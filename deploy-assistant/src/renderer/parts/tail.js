@@ -88,6 +88,7 @@
       (recent.length ? '<section class="section" data-k="recent"><div class="row"><h2 class="tm grow">Recent</h2><button class="btn text sm" data-go="instances:top">Every instance (' + D.instances.length + ')</button></div><div class="recent">' + recent.map(function (i) { return '<div class="row-item"><span class="sq">' + icon(TICON[i.target] || 'Docker') + '</span><span class="col grow" style="min-width:0"><span class="ll ell">' + esc(i.name) + '</span><span class="bs mu mono ell">' + esc(i.url || '') + '</span></span>' + stateTag(i.state) + (i.url ? '<button class="btn text sm" data-ext="' + esc(i.url) + '">' + icon('OpenInNew', 's') + L('open') + '</button>' : '') + '</div>'; }).join('') + '</div></section>' : '') + foot();
   };
   function wizGo() {
+    if (backupHost.file) { void backupHostStart(); return; }
     var t = wizTarget(); if (t === 'pi') { piDialog(); return; }
     var v = wiz.vals[t]; if (!v) return;
     var port = Number(v.port);
@@ -864,7 +865,7 @@
       if (e.ctrlKey && e.shiftKey && (e.key === 'F' || e.key === 'f')) { e.preventDefault(); palette(); return; }
       if (e.ctrlKey && !e.shiftKey && e.key === 'Enter' && st.active === 'deploy' && !$('#ov')) { e.preventDefault(); wizGo(); return; }
       var lb = e.target.closest && e.target.closest('[data-pick]'); if (lb && /Arrow(Up|Down)/.test(e.key)) { e.preventDefault(); var pi2 = PLACES.indexOf(lb.dataset.pick) + (e.key === 'ArrowDown' ? 1 : -1); st.wizTarget = PLACES[(pi2 + PLACES.length) % PLACES.length]; save(); render(); $('#place-' + st.wizTarget).focus(); return; }
-      if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) { e.preventDefault(); oneClick(st.defaultTarget); return; }
+      if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) { e.preventDefault(); if (backupHost.file) void backupHostStart(); else oneClick(st.defaultTarget); return; }
       if ((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu') { var el = document.activeElement && document.activeElement.closest('[data-k]'); if (el) { e.preventDefault(); var r = el.getBoundingClientRect(); var card = el.closest('.icard'); if (card) instMenu(card.id.slice(5), r.left + 12, r.top + 12); else menuFor(el, r.left + 12, r.top + 12); } }
       if (e.key === 'Escape') { if ($('.popover')) closePop(); else if ($('#ov')) closeDialog(); else if ($('.panel')) $('.panel').remove(); }
     });
@@ -917,6 +918,7 @@
     try { about = await API.about(); } catch (e) { about = {}; }
     try { dls = await API.downloads(); } catch (e) { dls = []; }
     await reload(); apply(); shell(); render(); wire();
+    if (!DEMO && API.backupHostJobs) void backupHostRefresh();
     try { exts = await API.extensions(); } catch (e) { exts = []; }
     try { extRuns = API.extRuns ? await API.extRuns() : []; } catch (e) { extRuns = []; }
     try { if (API.school) schoolApply(await API.school()); } catch (e) { /* the shared folder may be unreadable */ }

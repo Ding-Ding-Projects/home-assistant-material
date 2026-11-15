@@ -1,0 +1,437 @@
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators";
+import type { HASSDomCurrentTargetEvent } from "../../../../common/dom/fire_event";
+import { modeText } from "../../../../common/language-mode/language-mode";
+import "../../../../components/ha-alert";
+import "../../../../components/ha-button";
+import "../../../../components/ha-dialog";
+import "../../../../components/ha-dialog-footer";
+import { getPreferredAgentForDownload } from "../../../../data/backup";
+import {
+  availableHostingTargets,
+  canAutoStartHosting,
+  backupHostingStatus,
+  backupHostingJobs,
+  cancelBackupHosting,
+  hostingJobActive,
+  hostingJobNeedsKey,
+  pairBackupHosting,
+  readyHostingUrl,
+  signInHostingUrl,
+  startBackupHosting,
+} from "../../../../data/backup_hosting";
+import type {
+  BackupHostingBridge,
+  BackupHostingJob,
+  BackupHostingTarget,
+} from "../../../../data/backup_hosting";
+import { DialogMixin } from "../../../../dialogs/dialog-mixin";
+import { haStyleDialog } from "../../../../resources/styles";
+import type { HomeAssistant } from "../../../../types";
+import type { HostBackupDialogParams } from "./show-dialog-host-backup";
+
+@customElement("dialog-host-backup")
+class HostBackupDialog extends DialogMixin<HostBackupDialogParams>(LitElement) {
+  @property({ attribute: false }) public hass!: HomeAssistant;
+  @state() private _bridges: BackupHostingBridge[] = [];
+  @state() private _bridgeId = "";
+  @state() private _target: BackupHostingTarget = "docker";
+  @state() private _job?: BackupHostingJob;
+  @state() private _busy = true;
+  @state() private _message = "";
+  @state() private _password = "";
+  @state() private _url = "";
+  @state() private _fingerprint = "";
+  private _pairingBridgeId?: string;
+  private _requestId = crypto.randomUUID();
+  private _timer?: ReturnType<typeof setTimeout>;
+  private _loaded = false;
+  private _submitting = false;
+
+  private _text = (key: string) =>
+    modeText(this.hass.localize, `ui.panel.config.backup.hosting.${key}`);
+  private get _bridge() {
+    return this._bridges.find((item) => item.id === this._bridgeId);
+  }
+  private get _targets() {
+    return availableHostingTargets(this._bridge).filter(
+      (target): target is BackupHostingTarget =>
+        this.params?.kind === "docker"
+          ? target === "docker"
+          : target === "virtualbox" || target === "vmware"
+    );
+  }
+  private get _agentId() {
+    return getPreferredAgentForDownload(
+      Object.keys(this.params!.backup.agents).filter(
+        (id) => !this.params!.backup.failed_agent_ids?.includes(id)
+      )
+    );
+  }
+  private get _protected() {
+    return Boolean(this.params?.backup.agents[this._agentId]?.protected);
+  }
+
+  protected updated() {
+    if (this.params && !this._loaded) {
+      this._loaded = true;
+      void this._load(true);
+    }
+  }
+  public closeDialog() {
+    this._password = "";
+    return super.closeDialog();
+  }
+
+  public disconnectedCallback() {
+    super.disconnectedCallback();
+    clearTimeout(this._timer);
+    this._password = "";
+    this.params?.onBusy?.(Boolean(this._job && hostingJobActive(this._job)));
+  }
+  private async _load(autoStart = false) {
+    this._busy = true;
+    this._message = "";
+    try {
+      const status = await backupHostingStatus(this.hass);
+      this._bridges = status.bridges.filter((bridge) => bridge.paired);
+      // A stored selection identifies the computer explicitly paired by this browser.
+      let saved: { bridge_id?: string; target?: BackupHostingTarget } = {};
+      try {
+        const stored: unknown = JSON.parse(
+          localStorage.getItem(
+            `backup-hosting:${this.hass.auth.data.hassUrl}:${this.params!.kind}`
+          ) || "{}"
+        );
+        if (stored && typeof stored === "object") {
+          if ("bridge_id" in stored && typeof stored.bridge_id === "string")
+            saved.bridge_id = stored.bridge_id;
+          if (
+            "target" in stored &&
+            (stored.target === "docker" ||
+              stored.target === "virtualbox" ||
+              stored.target === "vmware")
+          )
+            saved.target = stored.target;
+        }
+      } catch {
+        /* no usable selection */
+      }
+      this._bridgeId = this._bridges.some(
+        (bridge) => bridge.id === saved.bridge_id
+      )
+        ? saved.bridge_id!
+        : "";
+      this._target = this._targets.includes(saved.target!)
+        ? saved.target!
+        : this._targets[0] || "docker";
+      if (this._bridgeId) {
+        const { jobs } = await backupHostingJobs(this.hass, this._bridgeId);
+        this._job = [...jobs]
+          .reverse()
+          .find(
+            (job) =>
+              job.backup_id === this.params!.backup.backup_id &&
+              (this.params!.kind === "docker"
+                ? job.target === "docker"
+                : job.target === "virtualbox" || job.target === "vmware")
+          );
+        if (this._job) this._target = this._job.target;
+      }
+      if (!this.isConnected) return;
+      if (this._job) this._poll();
+      else if (
+        canAutoStartHosting({
+          explicitAction: autoStart,
+          savedBridge: Boolean(this._bridgeId),
+          targets: this._targets,
+          savedTarget: saved.target,
+          protectedBackup: this._protected,
+          existingJob: this._job,
+        })
+      )
+        await this._start();
+    } catch {
+      this._message = "unavailable";
+    } finally {
+      this._busy = false;
+    }
+  }
+  private _poll() {
+    clearTimeout(this._timer);
+    this.params?.onBusy?.(Boolean(this._job && hostingJobActive(this._job)));
+    if (!this._job || !hostingJobActive(this._job) || !this.isConnected) return;
+    this._timer = setTimeout(async () => {
+      try {
+        const { jobs } = await backupHostingJobs(this.hass, this._bridgeId);
+        this._job = jobs.find((job) => job.id === this._job?.id) || this._job;
+        this._message = "";
+      } catch {
+        this._message = "reconnecting";
+      }
+      this._poll();
+    }, 3000);
+  }
+  private async _start() {
+    if (
+      !this.isConnected ||
+      this._submitting ||
+      !this._bridge?.paired ||
+      !this._targets.includes(this._target) ||
+      !this._agentId ||
+      (this._job &&
+        hostingJobActive(this._job) &&
+        !hostingJobNeedsKey(this._job))
+    )
+      return;
+    this._busy = true;
+    this._submitting = true;
+    this.params?.onBusy?.(true);
+    this._message = "";
+    try {
+      localStorage.setItem(
+        `backup-hosting:${this.hass.auth.data.hassUrl}:${this.params!.kind}`,
+        JSON.stringify({ bridge_id: this._bridgeId, target: this._target })
+      );
+      this._job = await startBackupHosting(this.hass, {
+        request_id: this._job?.request_id || this._requestId,
+        backup_id: this.params!.backup.backup_id,
+        agent_id: this._agentId,
+        bridge_id: this._bridgeId,
+        target: this._target,
+        options: {},
+        ...(this._password ? { password: this._password } : {}),
+      });
+      this._poll();
+    } catch {
+      this._message = "start_failed";
+    } finally {
+      this._password = "";
+      this._submitting = false;
+      this._busy = false;
+    }
+  }
+  private async _pair() {
+    this._busy = true;
+    try {
+      const result = await pairBackupHosting(
+        this.hass,
+        this._pairingBridgeId
+          ? { bridge_id: this._pairingBridgeId }
+          : { url: this._url, fingerprint: this._fingerprint }
+      );
+      this._pairingBridgeId = result.bridge_id;
+      this._message = result.state === "paired" ? "paired" : "pairing";
+      if (result.state === "paired") {
+        const status = await backupHostingStatus(this.hass);
+        this._bridges = status.bridges.filter((bridge) => bridge.paired);
+        this._bridgeId = result.bridge_id;
+        this._target = this._targets[0] || "docker";
+      }
+    } catch {
+      this._message = "pair_failed";
+    } finally {
+      this._busy = false;
+    }
+  }
+  private async _cancel() {
+    if (!this._job) return;
+    this._busy = true;
+    try {
+      this._job = await cancelBackupHosting(
+        this.hass,
+        this._bridgeId,
+        this._job.id
+      );
+    } catch {
+      this._message = "unavailable";
+    } finally {
+      this._busy = false;
+    }
+  }
+  protected render() {
+    if (!this.params) return nothing;
+    const link = readyHostingUrl(this._job);
+    const signInLink = signInHostingUrl(this._job);
+    const active = this._job && hostingJobActive(this._job);
+    return html`<ha-dialog
+      open
+      width="medium"
+      .headerTitle=${this._text("title")}
+    >
+      <div class="content">
+        ${
+          signInLink
+            ? html`<ha-alert alert-type="info">
+                <p>${this._text("sign_in_pending")}</p>
+                <a href=${signInLink} target="_blank" rel="noopener noreferrer"
+                  >${this._text("sign_in_verify")}</a
+                >
+              </ha-alert>`
+            : nothing
+        }
+        <p>${this.params.backup.name}</p>
+        <ha-alert alert-type="info">${this._text("original")}</ha-alert>
+        ${this._message ? html`<ha-alert>${this._text(this._message)}</ha-alert>` : nothing}
+        ${
+          this._job
+            ? html`<section aria-live="polite">
+                <h3>
+                  ${this._text(`states.${this._job.state}`) || this._text("pending")}
+                </h3>
+                <p>
+                  ${this._text(`phases.${this._job.phase}`) || this._text("pending")}
+                </p>
+                ${this._job.error_code ? html`<ha-alert alert-type="error">${this._text("job_failed")} <code>${this._job.error_code}</code></ha-alert>` : nothing}
+                ${link ? html`<a href=${link} target="_blank" rel="noopener noreferrer">${link}</a>` : html`<p>${this._text("not_verified")}</p>`}
+                ${active ? html`<ha-button .disabled=${this._busy} @click=${this._cancel}>${this._text("cancel")}</ha-button>` : nothing}
+              </section>`
+            : nothing
+        }
+        ${
+          hostingJobNeedsKey(this._job)
+            ? html`<label
+                >${this._text("key")}<input
+                  type="password"
+                  autocomplete="off"
+                  .value=${this._password}
+                  @input=${(
+                    ev: HASSDomCurrentTargetEvent<HTMLInputElement>
+                  ) => {
+                    this._password = ev.currentTarget.value;
+                  }}
+              /></label>`
+            : nothing
+        }
+        ${
+          !this._job
+            ? html` <label
+                  >${this._text("computer")}<select
+                    autofocus
+                    .value=${this._bridgeId}
+                    ?disabled=${this._busy}
+                    @change=${(
+                      ev: HASSDomCurrentTargetEvent<HTMLSelectElement>
+                    ) => {
+                      this._bridgeId = ev.currentTarget.value;
+                      this._target = this._targets[0] || "docker";
+                    }}
+                  >
+                    <option value="">${this._text("choose_computer")}</option>
+                    ${this._bridges.map((bridge) => html`<option value=${bridge.id}>${bridge.url}</option>`)}
+                  </select></label
+                >
+                ${
+                  this._bridgeId
+                    ? html`<label
+                          >${this._text("target")}<select
+                            .value=${this._target}
+                            @change=${(
+                              ev: HASSDomCurrentTargetEvent<HTMLSelectElement>
+                            ) => {
+                              this._target = ev.currentTarget
+                                .value as BackupHostingTarget;
+                            }}
+                          >
+                            ${this._targets.map((target) => html`<option value=${target}>${target === "docker" ? this._text("container") : target === "virtualbox" ? "VirtualBox" : "VMware"}</option>`)}
+                          </select></label
+                        >${!this._targets.length ? html`<ha-alert alert-type="warning">${this._text("setup_required")}</ha-alert>` : nothing}`
+                    : nothing
+                }
+                ${
+                  this._protected
+                    ? html`<label
+                        >${this._text("key")}<input
+                          type="password"
+                          autocomplete="off"
+                          .value=${this._password}
+                          @input=${(
+                            ev: HASSDomCurrentTargetEvent<HTMLInputElement>
+                          ) => {
+                            this._password = ev.currentTarget.value;
+                          }}
+                      /></label>`
+                    : nothing
+                }
+                <details>
+                  <summary>${this._text("setup")}</summary>
+                  <p>${this._text("pair_help")}</p>
+                  ${(["url", "fingerprint"] as const).map(
+                    (key) =>
+                      html`<label
+                        >${this._text(key)}<input
+                          type="text"
+                          autocomplete="off"
+                          .value=${this[`_${key}`]}
+                          @input=${(
+                            ev: HASSDomCurrentTargetEvent<HTMLInputElement>
+                          ) => {
+                            this[`_${key}`] = ev.currentTarget.value;
+                          }}
+                      /></label>`
+                  )}
+                  <ha-button
+                    .disabled=${this._busy || (!this._pairingBridgeId && (!this._url || !this._fingerprint))}
+                    @click=${this._pair}
+                    >${this._text(this._pairingBridgeId ? "check_pairing" : "pair")}</ha-button
+                  >
+                </details>`
+            : nothing
+        }
+      </div>
+      <ha-dialog-footer slot="footer"
+        ><ha-button
+          slot="secondaryAction"
+          appearance="plain"
+          @click=${this.closeDialog}
+          >${this._text("close")}</ha-button
+        >
+        ${!this._job || hostingJobNeedsKey(this._job) ? html`<ha-button slot="primaryAction" .disabled=${this._busy || !this._bridgeId || !this._targets.includes(this._target) || ((this._protected || hostingJobNeedsKey(this._job)) && !this._password)} @click=${this._start}>${this._text("start")}</ha-button>` : nothing}</ha-dialog-footer
+      >
+    </ha-dialog>`;
+  }
+  static styles = [
+    haStyleDialog,
+    css`
+      .content {
+        display: grid;
+        gap: var(--ha-space-4);
+      }
+      label {
+        display: grid;
+        gap: var(--ha-space-2);
+        margin-block: var(--ha-space-2);
+      }
+      input,
+      select {
+        min-height: 48px;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        color: var(--primary-text-color);
+        background: var(--card-background-color);
+        border: 1px solid var(--divider-color);
+        border-radius: var(--ha-border-radius-md);
+        padding-inline: var(--ha-space-2);
+        font: inherit;
+      }
+      summary,
+      a {
+        min-height: 48px;
+        overflow-wrap: anywhere;
+      }
+      input:focus-visible,
+      select:focus-visible,
+      summary:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+    `,
+  ];
+}
+declare global {
+  interface HTMLElementTagNameMap {
+    "dialog-host-backup": HostBackupDialog;
+  }
+}

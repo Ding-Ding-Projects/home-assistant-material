@@ -151,3 +151,11 @@ h2#history,h2#notifications,h2#records{margin:32px 0 8px}
 /* Page header: the description uses the free width and wraps evenly, so no single word is left beside the tags. */
 .phead>.col.grow{flex:1 1 320px}
 .phead .bm.mu{text-wrap:balance}
+
+/* Backup hosting uses the same theme and remains fully reachable on narrow screens. */
+.backup-host-panel{padding:var(--sp,20px);display:grid;gap:12px;margin-block-end:20px}
+.backup-host-panel input,.backup-host-panel select{min-height:48px;min-width:0;width:100%;box-sizing:border-box}
+.backup-host-panel .btn,.backup-host-jobs .btn{min-height:48px;white-space:normal;overflow-wrap:anywhere}
+.backup-host-jobs{display:grid;gap:12px}
+.backup-host-jobs .pcard{min-width:0;overflow-wrap:anywhere}
+@media(max-width:600px){.backup-host-panel .row{align-items:stretch}.backup-host-panel .row>.btn{flex:1 1 100%}}
