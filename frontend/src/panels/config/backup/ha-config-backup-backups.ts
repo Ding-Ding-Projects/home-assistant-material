@@ -1,5 +1,7 @@
 import {
   mdiDelete,
+  mdiServerNetwork,
+  mdiMonitor,
   mdiDotsVertical,
   mdiDownload,
   mdiHarddisk,
@@ -106,6 +108,8 @@ import {
   summarizeBackupDelete,
 } from "./backup-bulk-actions";
 import { downloadBackup } from "./helper/download_backup";
+import { showHostBackupDialog } from "./dialogs/show-dialog-host-backup";
+import { modeText } from "../../../common/language-mode/language-mode";
 
 interface BackupRow extends DataTableRowData, BackupContent {
   formatted_type: string;
@@ -132,6 +136,8 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
   @property({ attribute: false }) public agents: BackupAgent[] = [];
 
   @state() private _selected: string[] = [];
+
+  @state() private _hostingBackups = new Set<string>();
 
   @state()
   private _filters: DataTableFiltersValues = {};
@@ -188,7 +194,8 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
   private _columns = memoizeOne(
     (
       localize: LocalizeFunc,
-      maxDisplayedAgents: number
+      maxDisplayedAgents: number,
+      hostingBackups: Set<string>
     ): DataTableColumnContainer<BackupRow> => ({
       name: {
         title: localize("ui.panel.config.backup.name"),
@@ -294,6 +301,39 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
             </div>
           `;
         },
+      },
+      hosting: {
+        title: localize("ui.panel.config.backup.hosting.title"),
+        showNarrow: false,
+        hidden: !this.hass.user?.is_admin,
+        minWidth: "112px",
+        maxWidth: "112px",
+        template: (backup) => html`
+          ${
+            this.hass.user?.is_admin
+              ? html`
+                  <ha-icon-button
+                    .path=${mdiServerNetwork}
+                    .disabled=${hostingBackups.has(backup.backup_id)}
+                    .label=${modeText(this.hass.localize, "ui.panel.config.backup.hosting.container")}
+                    @click=${(ev: Event) => {
+                      ev.stopPropagation();
+                      this._hostBackup(backup, "docker");
+                    }}
+                  ></ha-icon-button>
+                  <ha-icon-button
+                    .path=${mdiMonitor}
+                    .disabled=${hostingBackups.has(backup.backup_id)}
+                    .label=${modeText(this.hass.localize, "ui.panel.config.backup.hosting.appliance")}
+                    @click=${(ev: Event) => {
+                      ev.stopPropagation();
+                      this._hostBackup(backup, "appliance");
+                    }}
+                  ></ha-icon-button>
+                `
+              : nothing
+          }
+        `,
       },
       actions: {
         lastFixed: true,
@@ -487,7 +527,7 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
         .filter=${this._tableSettings.search}
         @search-changed=${this._tableSettings.searchChanged}
         @row-click=${this._showBackupDetails}
-        .columns=${this._columns(this.hass.localize, maxDisplayedAgents)}
+        .columns=${this._columns(this.hass.localize, maxDisplayedAgents, this._hostingBackups)}
         .data=${data}
         .noDataText=${this.hass.localize("ui.panel.config.backup.no_backups")}
         .searchLabel=${this.hass.localize(
@@ -586,6 +626,18 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
         @wa-after-show=${this._overflowMenuOpened}
         @wa-after-hide=${this._overflowMenuClosed}
       >
+        ${
+          this.hass.user?.is_admin
+            ? html`
+                <ha-dropdown-item value="host-docker"
+                  >${modeText(this.hass.localize, "ui.panel.config.backup.hosting.container")}</ha-dropdown-item
+                >
+                <ha-dropdown-item value="host-appliance"
+                  >${modeText(this.hass.localize, "ui.panel.config.backup.hosting.appliance")}</ha-dropdown-item
+                >
+              `
+            : nothing
+        }
         <ha-dropdown-item value="download">
           <ha-svg-icon slot="icon" .path=${mdiDownload}></ha-svg-icon>
           ${this.hass.localize("ui.common.download")}
@@ -701,8 +753,32 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
     navigate(`/config/backup/details/${id}`);
   }
 
+  private _hostBackup(backup: BackupContent, kind: "docker" | "appliance") {
+    showHostBackupDialog(this, {
+      backup,
+      kind,
+      onBusy: (busy) => {
+        const next = new Set(this._hostingBackups);
+        if (busy) next.add(backup.backup_id);
+        else next.delete(backup.backup_id);
+        this._hostingBackups = next;
+      },
+    });
+  }
+
   private _handleOverflowAction = (ev: HaDropdownSelectEvent) => {
     const action = ev.detail.item.value;
+
+    if (
+      (action === "host-docker" || action === "host-appliance") &&
+      this._overflowBackup
+    ) {
+      this._hostBackup(
+        this._overflowBackup,
+        action === "host-docker" ? "docker" : "appliance"
+      );
+      return;
+    }
 
     if (action === "download") {
       this._downloadBackup();

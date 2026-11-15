@@ -43,6 +43,8 @@ import type { HomeAssistant } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
 import "./components/ha-backup-details-restore";
 import "./components/ha-backup-details-summary";
+import { showHostBackupDialog } from "./dialogs/show-dialog-host-backup";
+import { modeText } from "../../../common/language-mode/language-mode";
 import { showRestoreBackupDialog } from "./dialogs/show-dialog-restore-backup";
 import { downloadBackup } from "./helper/download_backup";
 
@@ -162,6 +164,22 @@ class HaConfigBackupDetails extends LitElement {
                       .hass=${this.hass}
                       .isHassio=${isHassio}
                     ></ha-backup-details-summary>
+                    ${
+                      this.hass.user?.is_admin
+                        ? html`<div
+                            style="display:flex;flex-wrap:wrap;gap:var(--ha-space-2)"
+                          >
+                            <ha-button
+                              @click=${() => showHostBackupDialog(this, { backup: this._backup!, kind: "docker" })}
+                              >${modeText(this.hass.localize, "ui.panel.config.backup.hosting.container")}</ha-button
+                            >
+                            <ha-button
+                              @click=${() => showHostBackupDialog(this, { backup: this._backup!, kind: "appliance" })}
+                              >${modeText(this.hass.localize, "ui.panel.config.backup.hosting.appliance")}</ha-button
+                            >
+                          </div>`
+                        : nothing
+                    }
                     <ha-backup-details-restore
                       .backup=${this._backup}
                       @backup-restore=${this._restore}
