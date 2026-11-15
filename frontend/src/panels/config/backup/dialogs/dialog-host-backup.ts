@@ -1,5 +1,6 @@
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { fireEvent } from "../../../../common/dom/fire_event";
 import type { HASSDomCurrentTargetEvent } from "../../../../common/dom/fire_event";
 import { modeText } from "../../../../common/language-mode/language-mode";
 import "../../../../components/ha-alert";
@@ -25,13 +26,19 @@ import type {
   BackupHostingJob,
   BackupHostingTarget,
 } from "../../../../data/backup_hosting";
-import { DialogMixin } from "../../../../dialogs/dialog-mixin";
+import type { HassDialog } from "../../../../dialogs/make-dialog-manager";
 import { haStyleDialog } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
 import type { HostBackupDialogParams } from "./show-dialog-host-backup";
 
 @customElement("dialog-host-backup")
-class HostBackupDialog extends DialogMixin<HostBackupDialogParams>(LitElement) {
+class HostBackupDialog
+  extends LitElement
+  implements HassDialog<HostBackupDialogParams>
+{
+  @state() private _params?: HostBackupDialogParams;
+  @state() private _open = false;
+  private _generation = 0;
   @property({ attribute: false }) public hass!: HomeAssistant;
   @state() private _bridges: BackupHostingBridge[] = [];
   @state() private _bridgeId = "";
@@ -56,51 +63,84 @@ class HostBackupDialog extends DialogMixin<HostBackupDialogParams>(LitElement) {
   private get _targets() {
     return availableHostingTargets(this._bridge).filter(
       (target): target is BackupHostingTarget =>
-        this.params?.kind === "docker"
+        this._params?.kind === "docker"
           ? target === "docker"
           : target === "virtualbox" || target === "vmware"
     );
   }
   private get _agentId() {
     return getPreferredAgentForDownload(
-      Object.keys(this.params!.backup.agents).filter(
-        (id) => !this.params!.backup.failed_agent_ids?.includes(id)
+      Object.keys(this._params!.backup.agents).filter(
+        (id) => !this._params!.backup.failed_agent_ids?.includes(id)
       )
     );
   }
   private get _protected() {
-    return Boolean(this.params?.backup.agents[this._agentId]?.protected);
+    return Boolean(this._params?.backup.agents[this._agentId]?.protected);
+  }
+
+  public showDialog(params: HostBackupDialogParams) {
+    clearTimeout(this._timer);
+    this._generation++;
+    this._params = params;
+    this._open = true;
+    this._loaded = false;
+    this._submitting = false;
+    this._busy = true;
+    this._message = "";
+    this._password = "";
+    this._job = undefined;
+    this._bridges = [];
+    this._bridgeId = "";
+    this._url = "";
+    this._fingerprint = "";
+    this._pairingBridgeId = undefined;
+    this._requestId = crypto.randomUUID();
   }
 
   protected updated() {
-    if (this.params && !this._loaded) {
+    if (this.hass && this._params && this._open && !this._loaded) {
       this._loaded = true;
       void this._load(true);
     }
   }
   public closeDialog() {
     this._password = "";
-    return super.closeDialog();
+    this._open = false;
+    this._generation++;
+    clearTimeout(this._timer);
+    return true;
+  }
+
+  private _dialogClosed() {
+    this.closeDialog();
+    this._params?.onBusy?.(Boolean(this._job && hostingJobActive(this._job)));
+    this._params = undefined;
+    this._loaded = false;
+    fireEvent(this, "dialog-closed", { dialog: this.localName });
   }
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    this._generation++;
     clearTimeout(this._timer);
     this._password = "";
-    this.params?.onBusy?.(Boolean(this._job && hostingJobActive(this._job)));
+    this._params?.onBusy?.(Boolean(this._job && hostingJobActive(this._job)));
   }
   private async _load(autoStart = false) {
+    const generation = this._generation;
     this._busy = true;
     this._message = "";
     try {
       const status = await backupHostingStatus(this.hass);
+      if (generation !== this._generation || !this._open) return;
       this._bridges = status.bridges.filter((bridge) => bridge.paired);
       // A stored selection identifies the computer explicitly paired by this browser.
       let saved: { bridge_id?: string; target?: BackupHostingTarget } = {};
       try {
         const stored: unknown = JSON.parse(
           localStorage.getItem(
-            `backup-hosting:${this.hass.auth.data.hassUrl}:${this.params!.kind}`
+            `backup-hosting:${this.hass.auth.data.hassUrl}:${this._params!.kind}`
           ) || "{}"
         );
         if (stored && typeof stored === "object") {
@@ -127,12 +167,13 @@ class HostBackupDialog extends DialogMixin<HostBackupDialogParams>(LitElement) {
         : this._targets[0] || "docker";
       if (this._bridgeId) {
         const { jobs } = await backupHostingJobs(this.hass, this._bridgeId);
+        if (generation !== this._generation || !this._open) return;
         this._job = [...jobs]
           .reverse()
           .find(
             (job) =>
-              job.backup_id === this.params!.backup.backup_id &&
-              (this.params!.kind === "docker"
+              job.backup_id === this._params!.backup.backup_id &&
+              (this._params!.kind === "docker"
                 ? job.target === "docker"
                 : job.target === "virtualbox" || job.target === "vmware")
           );
@@ -152,29 +193,40 @@ class HostBackupDialog extends DialogMixin<HostBackupDialogParams>(LitElement) {
       )
         await this._start();
     } catch {
-      this._message = "unavailable";
+      if (generation === this._generation) this._message = "unavailable";
     } finally {
-      this._busy = false;
+      if (generation === this._generation) this._busy = false;
     }
   }
   private _poll() {
     clearTimeout(this._timer);
-    this.params?.onBusy?.(Boolean(this._job && hostingJobActive(this._job)));
-    if (!this._job || !hostingJobActive(this._job) || !this.isConnected) return;
+    this._params?.onBusy?.(Boolean(this._job && hostingJobActive(this._job)));
+    if (
+      !this._open ||
+      !this._job ||
+      !hostingJobActive(this._job) ||
+      !this.isConnected
+    )
+      return;
+    const generation = this._generation;
     this._timer = setTimeout(async () => {
       try {
         const { jobs } = await backupHostingJobs(this.hass, this._bridgeId);
+        if (generation !== this._generation || !this._open) return;
         this._job = jobs.find((job) => job.id === this._job?.id) || this._job;
         this._message = "";
       } catch {
+        if (generation !== this._generation || !this._open) return;
         this._message = "reconnecting";
       }
       this._poll();
     }, 3000);
   }
   private async _start() {
+    const generation = this._generation;
     if (
       !this.isConnected ||
+      !this._open ||
       this._submitting ||
       !this._bridge?.paired ||
       !this._targets.includes(this._target) ||
@@ -186,32 +238,37 @@ class HostBackupDialog extends DialogMixin<HostBackupDialogParams>(LitElement) {
       return;
     this._busy = true;
     this._submitting = true;
-    this.params?.onBusy?.(true);
+    this._params?.onBusy?.(true);
     this._message = "";
     try {
       localStorage.setItem(
-        `backup-hosting:${this.hass.auth.data.hassUrl}:${this.params!.kind}`,
+        `backup-hosting:${this.hass.auth.data.hassUrl}:${this._params!.kind}`,
         JSON.stringify({ bridge_id: this._bridgeId, target: this._target })
       );
-      this._job = await startBackupHosting(this.hass, {
+      const job = await startBackupHosting(this.hass, {
         request_id: this._job?.request_id || this._requestId,
-        backup_id: this.params!.backup.backup_id,
+        backup_id: this._params!.backup.backup_id,
         agent_id: this._agentId,
         bridge_id: this._bridgeId,
         target: this._target,
         options: {},
         ...(this._password ? { password: this._password } : {}),
       });
+      if (generation !== this._generation || !this._open) return;
+      this._job = job;
       this._poll();
     } catch {
-      this._message = "start_failed";
+      if (generation === this._generation) this._message = "start_failed";
     } finally {
-      this._password = "";
-      this._submitting = false;
-      this._busy = false;
+      if (generation === this._generation) {
+        this._password = "";
+        this._submitting = false;
+        this._busy = false;
+      }
     }
   }
   private async _pair() {
+    const generation = this._generation;
     this._busy = true;
     try {
       const result = await pairBackupHosting(
@@ -220,42 +277,48 @@ class HostBackupDialog extends DialogMixin<HostBackupDialogParams>(LitElement) {
           ? { bridge_id: this._pairingBridgeId }
           : { url: this._url, fingerprint: this._fingerprint }
       );
+      if (generation !== this._generation || !this._open) return;
       this._pairingBridgeId = result.bridge_id;
       this._message = result.state === "paired" ? "paired" : "pairing";
       if (result.state === "paired") {
         const status = await backupHostingStatus(this.hass);
+        if (generation !== this._generation || !this._open) return;
         this._bridges = status.bridges.filter((bridge) => bridge.paired);
         this._bridgeId = result.bridge_id;
         this._target = this._targets[0] || "docker";
       }
     } catch {
-      this._message = "pair_failed";
+      if (generation === this._generation) this._message = "pair_failed";
     } finally {
-      this._busy = false;
+      if (generation === this._generation) this._busy = false;
     }
   }
   private async _cancel() {
+    const generation = this._generation;
     if (!this._job) return;
     this._busy = true;
     try {
-      this._job = await cancelBackupHosting(
+      const job = await cancelBackupHosting(
         this.hass,
         this._bridgeId,
         this._job.id
       );
+      if (generation !== this._generation || !this._open) return;
+      this._job = job;
     } catch {
-      this._message = "unavailable";
+      if (generation === this._generation) this._message = "unavailable";
     } finally {
-      this._busy = false;
+      if (generation === this._generation) this._busy = false;
     }
   }
   protected render() {
-    if (!this.params) return nothing;
+    if (!this.hass || !this._params) return nothing;
     const link = readyHostingUrl(this._job);
     const signInLink = signInHostingUrl(this._job);
     const active = this._job && hostingJobActive(this._job);
     return html`<ha-dialog
-      open
+      .open=${this._open}
+      @closed=${this._dialogClosed}
       width="medium"
       .headerTitle=${this._text("title")}
     >
@@ -270,7 +333,7 @@ class HostBackupDialog extends DialogMixin<HostBackupDialogParams>(LitElement) {
               </ha-alert>`
             : nothing
         }
-        <p>${this.params.backup.name}</p>
+        <p>${this._params.backup.name}</p>
         <ha-alert alert-type="info">${this._text("original")}</ha-alert>
         ${this._message ? html`<ha-alert>${this._text(this._message)}</ha-alert>` : nothing}
         ${

@@ -16,7 +16,7 @@ function view(approval = { approved: true, host_id: 'saved-host-1' }) {
   const calls = [];
   const context = {
     W: {}, R: { deploy() {}, backups() {} }, render() {},
-    document: { addEventListener() {} }, window: { addEventListener() {} },
+    document: { addEventListener() {}, getElementById() { return null; } }, window: { addEventListener() {} },
     DEMO: false, st: { active: 'none' }, soon() {}, $() { return null; }, wiz: { vals: {} },
     clearTimeout() {}, setTimeout() { return 1; },
     API: {
@@ -141,5 +141,35 @@ test('Pi address correction resumes only the waiting job with its opaque handle'
     denied.context.backupHost.jobs = [pending({ target: 'pi', state: 'waiting_for_boot', ...overrides })];
     await denied.context.backupHostRetryPi('job-1');
     assert.deepEqual(denied.calls, []);
+  }
+});
+
+test('native-owned resume after restart preserves identity and omits options', async () => {
+  const { context, calls } = view();
+  context.backupHost.file = null;
+  context.backupHost.jobs = [pending({ target: 'docker', state: 'needs_resume', error_code: null, can_resume: true })];
+  await context.backupHostResume('job-1');
+  assert.deepEqual(calls, [['start', { request_id: 'request-1', upload_handle: 'opaque-upload-1', target: 'docker' }]]);
+});
+
+test('resume forwards a transient key once and clears the input immediately', async () => {
+  const { context, calls } = view();
+  const input = { value: 'test-only-key' };
+  context.document.getElementById = () => input;
+  context.backupHost.jobs = [pending({ target: 'docker', error_code: 'incorrect_password', can_resume: true })];
+  await context.backupHostResume('job-1');
+  assert.equal(input.value, '');
+  assert.deepEqual(calls, [['start', { request_id: 'request-1', upload_handle: 'opaque-upload-1', target: 'docker', password: 'test-only-key' }]]);
+  assert.equal(Object.hasOwn(context.backupHost, 'password'), false);
+});
+
+test('resume rejects absent owner authority and preserves dedicated approval boundaries', async () => {
+  for (const overrides of [{ can_resume: false }, { can_resume: undefined }, { state: 'ready' },
+    { upload_handle: '' }, { request_id: '' }, { error_code: 'target_already_configured' },
+    { target: 'ssh', error_code: 'host_key_approval_required' }]) {
+    const { context, calls } = view();
+    context.backupHost.jobs = [pending({ target: 'docker', state: 'needs_attention', error_code: 'onboarding_not_ready', can_resume: true, ...overrides })];
+    await context.backupHostResume('job-1');
+    assert.deepEqual(calls, []);
   }
 });
