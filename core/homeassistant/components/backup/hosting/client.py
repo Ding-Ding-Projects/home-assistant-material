@@ -2,7 +2,8 @@
 
 import asyncio
 from collections.abc import AsyncIterator
-from ipaddress import ip_address
+from datetime import datetime
+from ipaddress import IPv4Address, ip_address, ip_network
 import json
 import re
 from typing import Any
@@ -13,6 +14,7 @@ from aiohttp import ClientError, ClientSession, ClientTimeout, DummyCookieJar, F
 MAX_ARCHIVE_BYTES = 64 * 1024**3
 MAX_RESPONSE_BYTES = 256 * 1024
 TARGETS = frozenset({"docker", "virtualbox", "vmware"})
+PHYSICAL_HOST_NETWORKS = tuple(ip_network(network) for network in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"))
 
 
 class HostingError(Exception):
@@ -25,6 +27,8 @@ class HostingError(Exception):
 
 def validate_endpoint(url: str, fingerprint: str) -> tuple[str, str]:
     """Allow explicit local host destinations and a complete SHA256 pin only."""
+    if any(ord(character) < 32 for character in url) or url != url.strip():
+        raise HostingError("invalid_bridge_url")
     try:
         parsed = urlsplit(url)
         port = parsed.port
@@ -42,14 +46,17 @@ def validate_endpoint(url: str, fingerprint: str) -> tuple[str, str]:
         or not 1024 <= port <= 65535
     ):
         raise HostingError("invalid_bridge_url")
-    # Arbitrary private LAN hosts are deliberately excluded. A container reaches
-    # its own physical host through the documented gateway name.
+    # A literal LAN address is selected explicitly and still requires the exact
+    # native certificate pin and approval of this Core/client pairing.
     if host not in {"localhost", "host.docker.internal", "gateway.docker.internal"}:
         try:
             address = ip_address(host)
         except ValueError as err:
             raise HostingError("invalid_bridge_host") from err
-        if not address.is_loopback:
+        if not address.is_loopback and not (
+            isinstance(address, IPv4Address)
+            and any(address in network for network in PHYSICAL_HOST_NETWORKS)
+        ):
             raise HostingError("invalid_bridge_host")
     pin = fingerprint.replace(":", "").lower()
     if not re.fullmatch(r"[0-9a-f]{64}", pin):
@@ -59,7 +66,7 @@ def validate_endpoint(url: str, fingerprint: str) -> tuple[str, str]:
 
 def safe_job(data: dict[str, Any]) -> dict[str, Any]:
     """Project native responses onto the public job contract."""
-    result = {
+    result: dict[str, Any] = {
         key: value
         for key in (
             "id", "request_id", "state", "phase", "target", "instance_id",
@@ -68,7 +75,16 @@ def safe_job(data: dict[str, Any]) -> dict[str, Any]:
         if isinstance((value := data.get(key)), str)
         and re.fullmatch(r"[A-Za-z0-9_.:+-]{1,256}", value)
     }
-    if data.get("state") == "ready" and isinstance(url := data.get("lan_url"), str) and len(url) <= 2048:
+    verified_at = data.get("lan_url_verified_at")
+    sign_in_verified = False
+    if data.get("state") == "authentication_needed" and data.get("lan_url_verified") is True and isinstance(verified_at, str) and len(verified_at) <= 64:
+        try:
+            timestamp = datetime.fromisoformat(verified_at)
+        except ValueError:
+            pass
+        else:
+            sign_in_verified = timestamp.tzinfo is not None
+    if (data.get("state") == "ready" or sign_in_verified) and isinstance(url := data.get("lan_url"), str) and len(url) <= 2048:
         try:
             parsed = urlsplit(url)
             port = parsed.port
@@ -91,6 +107,9 @@ def safe_job(data: dict[str, Any]) -> dict[str, Any]:
             else:
                 if address.is_private and not address.is_loopback and not address.is_link_local and not address.is_unspecified:
                     result["lan_url"] = url
+                    if sign_in_verified:
+                        result["lan_url_verified"] = True
+                        result["lan_url_verified_at"] = verified_at
     return result
 
 
