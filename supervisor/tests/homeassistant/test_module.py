@@ -164,6 +164,10 @@ async def test_end_backup_ws_error(coresys: CoreSys, caplog: pytest.LogCaptureFi
 @pytest.mark.parametrize(
     ("filename", "exclude_db", "expect_excluded", "subfolder"),
     [
+        ("backup.hosting", False, True, ".storage"),
+        ("backup.hosting", True, True, ".storage"),
+        ("core.uuid", False, False, ".storage"),
+        ("auth", False, False, ".storage"),
         ("home-assistant.log", False, True, None),
         ("home-assistant.log.1", False, True, None),
         ("home-assistant.log.fault", False, True, None),

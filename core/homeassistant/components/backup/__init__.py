@@ -113,6 +113,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.data[DATA_MANAGER] = backup_manager
     await backup_manager.async_setup()
 
+    from .hosting import async_setup as async_setup_hosting  # noqa: PLC0415
+
+    await async_setup_hosting(hass)
+
     async_register_websocket_handlers(hass, with_hassio)
 
     async_setup_services(hass)

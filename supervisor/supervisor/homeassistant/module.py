@@ -60,6 +60,7 @@ _LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
 HOMEASSISTANT_BACKUP_EXCLUDE = [
+    ".storage/backup.hosting",
     "**/__pycache__/*",
     "**/.DS_Store",
     "*.db-shm",
