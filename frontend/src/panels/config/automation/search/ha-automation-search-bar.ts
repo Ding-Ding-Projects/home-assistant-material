@@ -5,7 +5,7 @@ import {
   mdiClose,
   mdiFormatListBulleted,
 } from "@mdi/js";
-import type { CSSResultGroup, TemplateResult } from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
@@ -51,6 +51,8 @@ const KEY = "ui.panel.config.automation.editor.search.";
 export class HaAutomationSearchBar extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
+  @property({ attribute: false }) public stickyOffset = 0;
+
   @state()
   @consume({ context: automationSearchContext, subscribe: true })
   private _search?: AutomationSearchSnapshot;
@@ -90,11 +92,22 @@ export class HaAutomationSearchBar extends LitElement {
     this._offsetTarget = undefined;
   }
 
+  protected updated(changedProps: PropertyValues<this>) {
+    super.updated(changedProps);
+    if (changedProps.has("stickyOffset")) {
+      this.style.setProperty(
+        "--ha-automation-search-top",
+        `${this.stickyOffset}px`
+      );
+      this._publishOffset();
+    }
+  }
+
   private _publishOffset() {
-    // The bar's own height plus the gap under it and a little room.
+    // Include any sticky controls above the bar, its own height and the gap.
     this._offsetTarget?.style.setProperty(
       "--ha-automation-sticky-offset",
-      `${this.offsetHeight + 24}px`
+      `${this.stickyOffset + this.offsetHeight + 24}px`
     );
   }
 
@@ -491,7 +504,7 @@ export class HaAutomationSearchBar extends LitElement {
     :host {
       display: block;
       position: sticky;
-      inset-block-start: 0;
+      inset-block-start: var(--ha-automation-search-top, 0px);
       z-index: 4;
       margin-block-end: var(--ha-space-4);
     }

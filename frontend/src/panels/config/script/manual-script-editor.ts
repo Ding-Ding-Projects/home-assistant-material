@@ -69,6 +69,14 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
   @query("ha-script-fields")
   private _scriptFields?: HaScriptFields;
 
+  @query(".mode-row") private _modeRow?: HTMLDivElement;
+
+  @state() private _modeRowHeight = 0;
+
+  private _modeRowObserver?: ResizeObserver;
+
+  private _observedModeRow?: HTMLDivElement;
+
   @queryAll("ha-automation-action, ha-script-fields")
   protected collapsableElements?: NodeListOf<
     HaAutomationAction | HaScriptFields
@@ -101,8 +109,33 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
     });
   }
 
+  public override connectedCallback(): void {
+    super.connectedCallback();
+    this.requestUpdate();
+  }
+
+  public override disconnectedCallback(): void {
+    this._modeRowObserver?.disconnect();
+    this._modeRowObserver = undefined;
+    this._observedModeRow = undefined;
+    super.disconnectedCallback();
+  }
+
   protected updated(changedProps: PropertyValues<this>) {
     super.updated(changedProps);
+    if (this._modeRow !== this._observedModeRow) {
+      this._modeRowObserver?.disconnect();
+      this._observedModeRow = this._modeRow;
+      if (this._modeRow) {
+        // The mode controls can wrap or gain a maximum-runs field. Reserve
+        // their actual height instead of assuming a one-line toolbar.
+        this._modeRowHeight = this._modeRow.offsetHeight;
+        this._modeRowObserver ??= new ResizeObserver(() => {
+          this._modeRowHeight = this._modeRow?.offsetHeight ?? 0;
+        });
+        this._modeRowObserver.observe(this._modeRow);
+      }
+    }
     if (this._openFields && changedProps.has("config")) {
       this._openFields = false;
       this._scriptFields?.updateComplete.then(() =>
@@ -244,7 +277,10 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
             ></ha-starting-points>`
           : nothing
       }
-      <ha-automation-search-bar .hass=${this.hass}></ha-automation-search-bar>
+      <ha-automation-search-bar
+        .hass=${this.hass}
+        .stickyOffset=${this._modeRowHeight}
+      ></ha-automation-search-bar>
       <section class="card" aria-labelledby="sequence-heading">
         <div class="header">
           <span class="tag tag-do">
@@ -622,11 +658,20 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
           color: var(--secondary-text-color);
         }
         .mode-row {
+          position: sticky;
+          inset-block-start: 0;
+          z-index: 5;
+          background: var(--primary-background-color);
+          padding-block: var(--ha-space-2);
           display: flex;
           flex-wrap: wrap;
           align-items: center;
           gap: var(--ha-space-3);
           margin-bottom: var(--ha-space-4);
+        }
+        .mode-row ha-button-toggle-group {
+          min-width: 0;
+          max-width: 100%;
         }
         .mode-label {
           color: var(--secondary-text-color);

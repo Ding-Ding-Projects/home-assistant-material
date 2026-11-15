@@ -219,6 +219,8 @@ export class HaAutomationLiveState extends LitElement {
       gap: var(--ha-space-1);
       margin-inline-start: var(--ha-space-2);
       vertical-align: middle;
+      min-width: 0;
+      max-width: 100%;
     }
     .chip {
       display: inline-flex;
@@ -233,7 +235,14 @@ export class HaAutomationLiveState extends LitElement {
       );
       color: var(--secondary-text-color);
       white-space: nowrap;
-      max-width: 14em;
+      box-sizing: border-box;
+      min-width: 0;
+      max-width: min(14em, 100%);
+    }
+    .verdict {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      max-width: 100%;
     }
     .label {
       overflow: hidden;
