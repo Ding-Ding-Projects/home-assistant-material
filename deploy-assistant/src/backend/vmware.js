@@ -26,7 +26,7 @@ async function guestIp(inst, waitSec = 600) {
   const ip = r.out.trim();
   return /^\d+\.\d+\.\d+\.\d+$/.test(ip) ? ip : null;
 }
-function urls(inst) { return { url: inst.ip ? 'http://' + inst.ip + '/' : null, lanUrl: null }; }
+function urls(inst) { const url = inst.ip ? 'http://' + inst.ip + '/' : null; return { url, lanUrl: inst.hostingJobId ? url : null }; }
 
 async function deploy(inst, log, step, ctx) {
   step('image', 'Downloading the operating system image');
@@ -38,7 +38,7 @@ async function deploy(inst, log, step, ctx) {
   const set = (k, v) => { const re = new RegExp('^' + k.replace(/\./g, '\\.') + '\\s*=.*$', 'm'); text = re.test(text) ? text.replace(re, k + ' = "' + v + '"') : text + '\n' + k + ' = "' + v + '"'; };
   set('memsize', String(inst.memoryMb || 4096));
   set('numvcpus', String(inst.cpus || 2));
-  set('ethernet0.connectionType', 'nat');
+  set('ethernet0.connectionType', inst.hostingJobId ? 'bridged' : 'nat');
   set('firmware', 'efi');
   fs.writeFileSync(vmx(inst), text);
   step('start', 'Starting the virtual machine');

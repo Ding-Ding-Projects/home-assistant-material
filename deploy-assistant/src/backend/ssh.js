@@ -56,7 +56,7 @@ function urls(inst) { return { url: 'http://' + inst.host.address + ':' + inst.p
 async function deploy(inst, log, step) {
   return withHost(inst, async (c) => {
     step('config', 'Writing the configuration on ' + inst.host.address);
-    const yaml = composeYaml({ slug: inst.slug, prefix: inst.prefix || 'ham', port: inst.port, tag: inst.tag, timezone: inst.timezone, memoryLimit: inst.memoryLimit });
+    const yaml = inst.backupHostingFull ? require('./backup-compose').backupCompose(inst) : composeYaml({ slug: inst.slug, prefix: inst.prefix || 'ham', port: inst.port, tag: inst.tag, timezone: inst.timezone, memoryLimit: inst.memoryLimit });
     const mk = await exec(c, 'mkdir -p ' + remoteDir(inst) + '/config && cat > ' + remoteDir(inst) + '/compose.yaml', { input: require('node:stream').Readable.from([yaml]) });
     if (mk.code !== 0) throw new Error('Could not write the configuration on the host. ' + mk.err.trim());
     const used = await exec(c, '(ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep -E ":' + inst.port + '\\b" | head -1');
