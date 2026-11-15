@@ -66,7 +66,9 @@ app.whenReady().then(() => {
   const { BackupJobs } = require('./backend/backup-jobs');
   const { HostBridge } = require('./backend/host-bridge');
   const backupUploads = new BackupUploads(path.join(mgr.dir, 'backup-uploads'));
-  const backupJobs = new BackupJobs(mgr, backupUploads);
+  const bootstrap = require('./backend/backup-bootstrap-service').bootstrapService({ rootDir: path.join(mgr.dir, 'backup-appliances'), cacheDir: mgr.cacheDir(), safeStorage });
+  const backupJobs = new BackupJobs(mgr, backupUploads, { prepareBootstrap: bootstrap.prepare });
+  mgr.backupBootstrap = { available: bootstrap.available, reason: bootstrap.reason };
   const backupDrives = new Map();
   const nativePairing = async (pending) => {
     if (!win || win.isDestroyed()) return false;
@@ -114,7 +116,7 @@ app.whenReady().then(() => {
   backupIpc('backupHostCancel', (id) => { if (!backupJobs.jobs.some((job) => job.id === id && job.owner === 'native')) throw new Error('unauthorized'); return backupJobs.cancel(id); });
   backupIpc('hostBridgeStatus', async () => {
     const target_status = {};
-    await Promise.all(['docker', 'virtualbox', 'vmware'].map(async (target) => { const check = await mgr.check(target); target_status[target] = check.ok ? { available: true } : { available: false, reason: 'setup_required' }; }));
+    await Promise.all(['docker', 'virtualbox', 'vmware'].map(async (target) => { const check = await mgr.check(target); target_status[target] = target !== 'docker' && !bootstrap.available ? { available: false, reason: bootstrap.reason } : check.ok ? { available: true } : { available: false, reason: 'setup_required' }; }));
     target_status.ssh = { available: false, reason: 'saved_host_required' };
     target_status.pi = { available: false, reason: 'hardware_required' };
     return { ...hostBridge.status(), target_status, bind_addresses: Object.values(require('node:os').networkInterfaces()).flat().filter((address) => address && address.family === 'IPv4' && !address.internal && /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(address.address)).map((address) => address.address) };
