@@ -32,6 +32,8 @@ All native calls return the existing `{ok,value}` or `{ok:false,error}` IPC enve
 
 Options accept `name`, a saved `hostId`, `memoryMb` (2048–65536), `cpus` (1–32), `diskGb` (0–2048), and Pi `model` (`rpi3`, `rpi4`, `rpi5`). Native Pi requests may additionally carry the opaque `drive_handle`; it is resolved only in the main process and never accepted as a device path. Passwords remain transient and do not enter the job journal.
 
+Docker and SSH targets also accept an explicit `tag` matching `[A-Za-z0-9._-]{1,128}`. Docker, SSH and VirtualBox accept an explicit integer `port` from 1 through 65535. Supplied zero, fractional, null or string ports are rejected instead of becoming defaults. The selected values pass unchanged into the shared allocator; a conflicting port fails rather than being replaced. Omitting either option retains the existing defaults. Retrying the same request cannot change a previously selected port or image tag. VMware and Pi do not accept these container-image controls, and VMware does not expose a host-port selection.
+
 Pi discovery additionally accepts `pi_addresses`, an optional list of at most 16 explicit private IPv4 addresses. If omitted, discovery resolves only `homeassistant.local`, with a five-second DNS bound; it never scans a subnet. A name or responding address is insufficient: the newly prepared card must present the exact job-owned TLS certificate before any backup is transmitted. An existing waiting-for-boot job can retry with revised candidate addresses while retaining its identity and backup. Native job metadata includes `host_id` and the owner-bound opaque `upload_handle` so a reopened window can resume the correct record.
 
 ## Appliance bootstrap composition

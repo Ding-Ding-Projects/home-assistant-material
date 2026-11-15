@@ -28,10 +28,19 @@ class BackupJobs extends EventEmitter {
   start(input, { owner = 'native' } = {}) {
     if (!input || !/^[A-Za-z0-9_-]{8,100}$/.test(input.request_id || '') || !['docker', 'ssh', 'virtualbox', 'vmware', 'pi'].includes(input.target)) throw fail('invalid_request');
     if (input.password !== undefined && (typeof input.password !== 'string' || input.password.length > 16384)) throw fail('invalid_password');
+    if (input.options !== undefined && (!input.options || typeof input.options !== 'object' || Array.isArray(input.options))) throw fail('invalid_options');
+    if (input.options && 'port' in input.options) {
+      if (!['docker', 'ssh', 'virtualbox'].includes(input.target)) throw fail('unsupported_option');
+      if (!Number.isInteger(input.options.port) || input.options.port < 1 || input.options.port > 65535) throw fail('invalid_port');
+    }
+    if (input.options && 'tag' in input.options) {
+      if (!['docker', 'ssh'].includes(input.target)) throw fail('unsupported_option');
+      if (typeof input.options.tag !== 'string' || !/^[A-Za-z0-9._-]{1,128}$/.test(input.options.tag)) throw fail('invalid_tag');
+    }
     const previous = this.jobs.find((j) => j.request_id === input.request_id);
     if (previous) {
       if (previous.owner !== owner) throw fail('unauthorized');
-      if (previous.target !== input.target || previous.upload_handle !== input.upload_handle || ['name', 'hostId', 'memoryMb', 'cpus', 'diskGb', 'model'].some((key) => input.options && key in input.options && input.options[key] !== previous.options[key])) throw fail('idempotency_conflict');
+      if (previous.target !== input.target || previous.upload_handle !== input.upload_handle || ['name', 'hostId', 'memoryMb', 'cpus', 'diskGb', 'model', 'port', 'tag'].some((key) => input.options && key in input.options && input.options[key] !== previous.options[key])) throw fail('idempotency_conflict');
       if (input.options?.pi_addresses !== undefined) {
         if (previous.target !== 'pi' || !['waiting_for_boot', 'pending'].includes(previous.phase)) throw fail('idempotency_conflict');
         previous.options.pi_addresses = validateAddresses(input.options.pi_addresses); this.save();
@@ -42,7 +51,7 @@ class BackupJobs extends EventEmitter {
     if (this.jobs.length >= JOB_LIMITS.history || outstanding.length >= JOB_LIMITS.outstanding || outstanding.filter((job) => job.owner === owner).length >= JOB_LIMITS.outstandingPerOwner) throw fail('job_capacity');
     if (outstanding.some((job) => job.owner === owner && job.upload_handle === input.upload_handle)) throw fail('upload_job_exists');
     this.uploads.resolve(input.upload_handle);
-    const allowed = ['name', 'hostId', 'memoryMb', 'cpus', 'diskGb', 'model', 'pi_addresses'];
+    const allowed = ['name', 'hostId', 'memoryMb', 'cpus', 'diskGb', 'model', 'pi_addresses', 'port', 'tag'];
     const options = Object.fromEntries(allowed.filter((k) => input.options && k in input.options).map((k) => [k, input.options[k]]));
     if ('name' in options && (typeof options.name !== 'string' || options.name.length > 60 || /[\x00-\x1f]/.test(options.name))) throw fail('invalid_options');
     if ('hostId' in options && (typeof options.hostId !== 'string' || !this.manager.db.hosts.some((host) => host.id === options.hostId))) throw fail('invalid_host');
