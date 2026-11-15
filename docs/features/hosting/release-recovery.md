@@ -7,6 +7,9 @@ Build an immutable source export through `build.bat /s`, with a reserved numeric
 `HA_BUILD_NUMBER` and the exact `HA_BUILD_SOURCE` revision. The entrypoint stamps
 the Core version and image revision, and its image marker contains no workstation
 identity. The default local build remains unnumbered.
+Set `HA_BUILD_MACHINE` to a machine listed for the current processor in
+`versions.json` to produce `home-assistant-material:machine-local` through its
+existing machine wrapper. Unsupported machine names stop before compilation.
 
 For that update, publish only the verified machine image and ready frontend wheel,
 with a normal release, source revision, file hashes and an explicit machine/language

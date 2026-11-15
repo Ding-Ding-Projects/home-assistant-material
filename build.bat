@@ -74,6 +74,10 @@ set "CORE_VERSION=%CORE_BASE%"
 if defined HA_BUILD_NUMBER set "CORE_VERSION=%CORE_BASE%.%HA_BUILD_NUMBER%"
 set "ARCH=amd64"
 if /i "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "ARCH=aarch64"
+if defined HA_BUILD_MACHINE (
+  powershell -NoProfile -Command "$v=Get-Content versions.json -Raw | ConvertFrom-Json; if ($v.machines.($env:ARCH) -notcontains $env:HA_BUILD_MACHINE) { exit 1 }"
+  if errorlevel 1 (set "RC=4" & echo HA_BUILD_MACHINE is not supported on this processor. & goto done)
+)
 echo Docker is ready. Core %CORE_BASE%, processor %ARCH%.
 
 echo.
@@ -99,11 +103,16 @@ docker build core --build-arg BUILD_FROM=ghcr.io/home-assistant/%ARCH%-homeassis
 set "BUILD_RC=!errorlevel!"
 del /q core\rootfs\OFFICIAL_IMAGE >nul 2>&1
 if not "%BUILD_RC%"=="0" ( set "RC=%BUILD_RC%" & echo The container image build failed. & goto done )
+if defined HA_BUILD_MACHINE (
+  docker build core/machine --file "core/machine/%HA_BUILD_MACHINE%" --build-arg BUILD_FROM=home-assistant-material:local --tag home-assistant-material:machine-local
+  if errorlevel 1 (set "RC=!errorlevel!" & echo The machine image build failed. & goto done)
+)
 
 echo.
 echo [5/5] Result
 docker image inspect home-assistant-material:local --format "Built {{.Id}}"
 if errorlevel 1 ( set "RC=!errorlevel!" & echo The image is missing after the build. & goto done )
+if defined HA_BUILD_MACHINE docker image inspect home-assistant-material:machine-local --format "Built machine image {{.Id}}"
 if "%RUN%"=="0" goto done
 if not exist config mkdir config
 docker rm -f home-assistant-material >nul 2>&1
