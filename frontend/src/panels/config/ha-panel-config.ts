@@ -63,6 +63,10 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-dashboard-history",
         load: () => import("./dashboard-history/ha-config-dashboard-history"),
       },
+      camera_recording: {
+        tag: "ha-config-camera-recording",
+        load: () => import("./camera-recording/ha-config-camera-recording"),
+      },
       "activity-record": {
         tag: "ha-config-activity-record",
         load: () => import("./activity-record/ha-config-activity-record"),

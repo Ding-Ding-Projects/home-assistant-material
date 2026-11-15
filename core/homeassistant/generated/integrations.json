@@ -2071,6 +2071,15 @@
       "config_flow": true,
       "iot_class": "local_push"
     },
+    "camera_recording": {
+      "name": "Camera recording",
+      "integration_type": "service",
+      "categories": [
+        "security_safety.cameras"
+      ],
+      "config_flow": true,
+      "iot_class": "local_push"
+    },
     "canary": {
       "name": "Canary",
       "integration_type": "hub",

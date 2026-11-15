@@ -32,6 +32,7 @@ import {
   mdiNfcVariant,
   mdiPalette,
   mdiArchiveClockOutline,
+  mdiCctv,
   mdiHistory,
   mdiPaletteSwatch,
   mdiPuzzle,
@@ -669,6 +670,15 @@ export const configSections: Record<string, PageNavigation[]> = {
       translationKey: "dashboard_history",
       iconPath: mdiHistory,
       iconColor: "#B1345C",
+      adminOnly: true,
+    },
+    {
+      // Shown when the camera recording integration is loaded.
+      component: "camera_recording",
+      path: "/config/camera_recording",
+      translationKey: "camera_recording",
+      iconPath: mdiCctv,
+      iconColor: "#2E7D63",
       adminOnly: true,
     },
     {

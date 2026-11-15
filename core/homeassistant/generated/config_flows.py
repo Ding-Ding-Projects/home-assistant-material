@@ -131,6 +131,7 @@ FLOWS = {
         "buienradar",
         "caldav",
         "cambridge_audio",
+        "camera_recording",
         "canary",
         "casper_glow",
         "cast",

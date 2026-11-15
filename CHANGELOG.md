@@ -6,6 +6,26 @@ Every release is also listed, with its build results, on the
 Each day lists what changed that day, newest first. A release is made for every push, so a
 day can hold several releases. The interface shows this list under Settings, About, What changed.
 
+## 2026-11-15
+
+- New: Camera recording. Cameras are recorded around the clock in short MP4 files to a disk or
+  folder on this computer, an external or USB disk, a Windows shared folder, or an SSH server
+  (SFTP or SCP). A guided setup tests the connection for real (reach, sign in, open the folder,
+  write, read back and delete a file, free space) before anything is saved, then asks for the
+  cameras and how long to keep recordings. Segments wait here when the destination is away and
+  are copied when it is back. Settings, System, Camera recording shows every camera's state, what
+  waits to be copied and the space used, with pause and resume. See
+  `docs/features/camera-recording`.
+- New: the camera view has a timeline of the day under the player: recorded footage, gaps, and the
+  motion, person, vehicle, animal, doorbell and sound events of the camera's device, with 1, 6 and
+  24 hour zooms, filters, keyboard control and a list of events. Choosing an event or a moment
+  plays the recording from there, with back and forward 10 seconds, 1×, 2× and 4× speed and a
+  download; Back to live returns to the live picture. Seen in a local build at 1440 and 390 px and
+  in the dark theme, recording a test stream to a folder.
+- Fixed: in a setup step whose form is split into columns, an error for the whole step was shown
+  once per field. It is now shown once, above the fields.
+- Design: canvas 32 draws the timeline, the guided setup and the recording status.
+
 ## 2026-11-12
 
 - Fixed in the tab options, each seen in a local build: the "Close other tabs" preview lists every

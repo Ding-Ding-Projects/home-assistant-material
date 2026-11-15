@@ -12,6 +12,18 @@ been seen working and where.
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
+## Cameras, 15 November 2026
+
+- [~] Camera recording around the clock with guided setup (`design/canvases/32-modern-cameras`,
+      boards RecWhere, RecTest, RecTestFail, RecKeep, RecStatus). Folder recording, the guided
+      setup, the failed-test message and the status page were seen in a local build recording a
+      test stream. Not yet seen: a real Windows share, an SSH server with SFTP or SCP, a USB disk,
+      a real camera, and the published image.
+- [~] Event timeline under the camera player (boards CamLive, CamPlayback, CamLiveDark,
+      CamNoRecording, CamPhone). Seen in a local build at 1440 and 390 px and in the dark theme:
+      events, zooms, filters, keyboard jumps, playback, speed and back to live. Not yet seen with a
+      real camera's detection entities or in the published image.
+
 ## Everyday workflow follow-up, 15 November 2026
 
 - [ ] History page comparison: off, previous window, one day and one week earlier. Source implemented and reviewed in `8300184d2`; final tests and published runtime verification pending.

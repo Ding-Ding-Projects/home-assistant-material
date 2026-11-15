@@ -1935,6 +1935,7 @@ NO_QUALITY_SCALE = [
     "battery",
     "blueprint",
     "brands",
+    "camera_recording",
     "config",
     "configurator",
     "counter",

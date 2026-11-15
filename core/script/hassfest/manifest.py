@@ -26,7 +26,12 @@ from .icons import integration_category_keys
 DOCUMENTATION_URL_SCHEMA = "https"
 DOCUMENTATION_URL_HOST = "www.home-assistant.io"
 DOCUMENTATION_URL_PATH_PREFIX = "/integrations/"
-DOCUMENTATION_URL_EXCEPTIONS = {"https://www.home-assistant.io/hassio"}
+DOCUMENTATION_URL_EXCEPTIONS = {
+    "https://www.home-assistant.io/hassio",
+    # Integrations added by this fork are documented in its repository.
+    "https://github.com/Ding-Ding-Projects/home-assistant-material/blob/main/docs/features/activity-record/README.md",
+    "https://github.com/Ding-Ding-Projects/home-assistant-material/blob/main/docs/features/camera-recording/README.md",
+}
 
 _CORE_DOCUMENTATION_BASE = "https://www.home-assistant.io/integrations"
 

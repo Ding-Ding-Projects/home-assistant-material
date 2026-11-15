@@ -692,6 +692,41 @@
       "last": "Last"
     },
     "components": {
+      "camera_timeline": {
+        "label": "Camera timeline",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "previous_day": "Previous day",
+        "next_day": "Next day",
+        "hours": "{count, plural,\n  one {# hour}\n  other {# hours}\n}",
+        "live": "Live",
+        "recorded": "Recorded",
+        "not_recorded": "Not recorded",
+        "not_set_up": "This camera is not recorded yet, so only events are shown.",
+        "set_up": "Set up recording",
+        "settings": "Recording settings",
+        "back_to_live": "Back to live",
+        "filter": "Show events",
+        "load_failed": "The events of this day could not be loaded.",
+        "no_events": "No events on this day.",
+        "play": "Play",
+        "pause": "Pause",
+        "back_10": "Back 10 seconds",
+        "forward_10": "Forward 10 seconds",
+        "download": "Download this recording",
+        "not_recorded_here": "There is no recording at this moment.",
+        "play_failed": "The recording could not be played.",
+        "seconds": "{count} s",
+        "minutes": "{minutes} min {seconds} s",
+        "kinds": {
+          "motion": "Motion",
+          "person": "Person",
+          "vehicle": "Vehicle",
+          "animal": "Animal",
+          "doorbell": "Doorbell",
+          "sound": "Sound"
+        }
+      },
       "action-field-adapter": {
         "amount": "Number of days or weeks",
         "unit": "Time unit",
@@ -6069,6 +6104,10 @@
             "main": "Problem log",
             "secondary": "Problems recorded on this machine, with nothing sent anywhere"
           },
+          "camera_recording": {
+            "main": "Camera recording",
+            "secondary": "Cameras recorded around the clock and where recordings go"
+          },
           "ollama": {
             "main": "Ollama",
             "secondary": "Manage your Ollama servers and models"
@@ -9681,6 +9720,38 @@
               "done": "Done",
               "failed_rename": "Failed to rename the voice satellite: {error}"
             }
+          }
+        },
+        "camera_recording": {
+          "caption": "Camera recording",
+          "description": "Cameras recorded around the clock, where their recordings go, and what is waiting to be copied there. Recordings play from the timeline under each camera.",
+          "none": "No camera is recorded yet.",
+          "set_up": "Set up recording",
+          "add_another": "Record to another place",
+          "count_of": "{count} of {total}",
+          "recording": "Cameras recording",
+          "used": "Space used",
+          "used_of": "used of {limit}",
+          "waiting": "Waiting to copy",
+          "last_copy": "Last copy",
+          "copy_problem": "Recordings could not be copied: {error}. They wait on this computer and are copied when the destination is back.",
+          "camera": "Camera",
+          "state": "State",
+          "newest": "Newest recording",
+          "oldest": "Oldest kept",
+          "actions": "Actions",
+          "pause": "Pause",
+          "resume": "Resume",
+          "pause_all": "Pause all",
+          "resume_all": "Resume all",
+          "change": "Cameras and limits",
+          "states": {
+            "starting": "Starting",
+            "recording": "Recording",
+            "reconnecting": "Reconnecting",
+            "no_stream": "No video stream",
+            "paused": "Paused",
+            "stopped": "Stopped"
           }
         },
         "activity_record": {
