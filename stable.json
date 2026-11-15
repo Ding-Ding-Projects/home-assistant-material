@@ -2,12 +2,12 @@
   "channel": "stable",
   "supervisor": "2026.11.0.439",
   "homeassistant": {
-    "default": "2026.11.1.439",
+    "default": "2026.11.1.441",
     "qemux86": "2025.11.3",
     "qemux86-64": "2026.11.1.439",
     "qemuarm": "2025.11.3",
     "qemuarm-64": "2026.11.1.439",
-    "generic-x86-64": "2026.11.1.439",
+    "generic-x86-64": "2026.11.1.441",
     "intel-nuc": "2026.11.1",
     "khadas-vim3": "2026.11.1.439",
     "raspberrypi": "2025.11.3",
@@ -73,7 +73,7 @@
     "multicast": "ghcr.io/home-assistant/{arch}-hassio-multicast"
   },
   "material": {
-    "build": 439,
+    "build": 441,
     "os_build": 439
   }
 }
