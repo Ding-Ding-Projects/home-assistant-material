@@ -55,6 +55,11 @@ test('the root marker cannot be a file', async (t) => {
   await assert.rejects(inspectTar(file), { code: 'unsafe_backup_archive' });
 });
 
+test('root directory wire size must be zero before parser normalization', async (t) => {
+  const file = archive(t, [{ name: './', type: 'Directory', body: '\0' }, { name: 'backup.json', body: '{}' }, core]);
+  await assert.rejects(inspectTar(file), { code: 'unsafe_backup_archive' });
+});
+
 test('leading-dot symlinks remain rejected', async (t) => {
   const file = archive(t, [{ name: './backup.json', type: 'SymbolicLink', linkpath: 'outside' }, core]);
   await assert.rejects(inspectTar(file), { code: 'unsafe_backup_archive' });

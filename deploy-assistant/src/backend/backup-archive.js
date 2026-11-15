@@ -29,7 +29,11 @@ function rawTarHeaders(maximum) {
         if (header.length !== 512) continue;
         const decoded = new tar.Header(header);
         if (!decoded.nullBlock) {
-          if (decoded.path.includes('\\') || decoded.path === './' && header[156] !== 0x35) throw fail('unsafe_backup_archive');
+          if (decoded.path.includes('\\')) throw fail('unsafe_backup_archive');
+          if (decoded.path === './') {
+            const raw = Buffer.from(header); raw[156] = 0x37;
+            if (header[156] !== 0x35 || new tar.Header(raw).size !== 0) throw fail('unsafe_backup_archive');
+          }
           if (!Number.isSafeInteger(decoded.size) || decoded.size < 0 || decoded.size > MAX_BYTES) throw fail('backup_too_large');
           remaining = Math.ceil(decoded.size / 512) * 512;
         }
