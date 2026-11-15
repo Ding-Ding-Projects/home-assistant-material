@@ -14,11 +14,20 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 
 ## Everyday workflow follow-up, 15 November 2026
 
-- [ ] History page comparison: off, previous window, one day and one week earlier. Source implemented and reviewed in `8300184d2`; final tests and published runtime verification pending.
-- [ ] History chart request ownership: ignore stale statistics, subscriptions and comparison responses after reconfiguration or disconnect. Implemented in `8300184d2`; final regression run pending.
-- [ ] Script mode controls remain reachable while scrolling; persistent condition results wrap below the summary. Source prepared in `ea0ef484b`; published narrow-layout verification pending.
-- [ ] Apply the accepted candidate using Settings, System, Updates in the running interface; verify progress, reconnect, version and health.
+- [ ] History page comparison: off, previous window, one day and one week earlier. Source implemented in `8300184d2`; focused tests pass and published build 441 shows the earlier-period controls and truthful empty comparison. Populated comparison runtime verification remains pending.
+- [x] History chart request ownership: ignore stale statistics, subscriptions and comparison responses after reconfiguration or disconnect. Focused final tests pass; deliberate stale-response negative checks fail on the old implementation and pass after exact restoration.
+- [ ] Script mode controls remain reachable while scrolling; persistent condition results wrap below the summary. Published build 441 has zero measured summary/result overlaps in 60 script views. Native display-scale, keyboard and full condition-state evidence remain pending.
+- [x] Apply the accepted candidate through the supported normal updater, as authorized on 15 November. Core 2026.11.1.441, exact image/source and healthy Supervisor verified at 05:25 UTC. This does not claim an in-interface button click.
+- [ ] Independently exercise the update button, its progress view and recovery state.
 - [ ] Final workflow pass: setup resume, account settings persistence, backup restore with automation and dashboard histories, keyboard and narrow layouts. Existing implementations are retained.
+
+## Backup hosting follow-up, 15 November 2026
+
+- [ ] Host a selected backup as a separate web application or appliance from the Backups interface. Source integrated; new runtime not yet delivered.
+- [ ] Desktop **Host a backup** accepts an uploaded native archive or ZIP and offers Docker, SSH, VirtualBox, VMware and Raspberry Pi. Source integrated; final packaging and target verification pending.
+- [ ] Automatically restore after first-use setup, preserving original automation activity. Return a checked destination link only with truthful readiness or incomplete sign-in status.
+- [ ] Publish the immutable offline preparation helper and bind its digest into the native build. Pinned local helper builds; six synthetic partition checks and four JavaScript bootstrap checks pass.
+- [ ] Deliver matching Core and Supervisor backup-authority exclusions before enabling the new pairing workflow on the existing installation.
 
 ## Foundation
 

@@ -2,15 +2,21 @@
 
 ## Everyday workflows, 15 November 2026
 
-History comparison and request lifecycle changes are preserved in `8300184d2` and integrated into `main`. They add a bounded earlier-period selector to History and invalidate old chart requests after selection, configuration or lifecycle changes. Source review found no blocking correctness or accessibility finding. Tests and published runtime verification remain pending by the owner's chosen implementation-first order.
+History comparison and request lifecycle changes are preserved in `8300184d2` and integrated into `main`. Six focused frontend files pass 75 tests. The deliberate stale-response negative checks fail on the old card and pass all 12 lifecycle cases after exact restoration. Published build 441 shows the selected comparison and truthful empty-earlier-period result; a populated comparison remains unverified.
 
-The photo-reported script/condition layout follow-up is preserved in `ea0ef484b`: persistent condition results use normal flow below the summary; script mode controls stay sticky and publish their measured height to search. The photo alone does not establish whether the mode row was ordinarily scrolled off or had a wrong toolbar offset. This change deliberately keeps it reachable. Built verification remains pending.
+The photo-reported script/condition layout follow-up is preserved in `ea0ef484b`: persistent condition results use normal flow below the summary; script mode controls stay sticky and publish their measured height to search. Published build 441 has 120 retained raw browser images/geometry records across narrow/wide views, language preferences, themes and emulated pixel densities, with zero summary/result overlaps across 60 script views. These do not prove physical Windows DPI, keyboard operation or every condition state. Strict native evidence promotion remains incomplete; no receipt was fabricated.
 
-Core and Supervisor are currently `2026.11.1.439` and `2026.11.0.439`. Supervisor reports healthy and supported. Fresh configuration backup `d491cebb` completed on 15 November 2026 at 04:24:39 UTC, with reported size 36.37 MB. It is a partial backup containing Home Assistant, not installed add-ons. Its restore has not yet been verified.
+Core is `2026.11.1.441`, Supervisor is `2026.11.0.439`. At 05:25 UTC on 15 November, the installed image digest matched the normal release and Supervisor reported healthy and supported. Backup `d491cebb` restored into an empty isolated folder with 344 of 344 file hashes matching, five settings files and all three repository history checks passing. That folder was not booted. Fresh pre-update backup `b4f01fad` completed at 05:21:36 UTC, 36.37 MB, partial Home Assistant only.
 
-The next live update must use the update button inside Settings, System, Updates, rather than calling the update endpoint directly. There is no connected authenticated browser tab in the current session; a sign-in handoff or owner-operated click is pending. Do not claim that the live update occurred from release publication alone.
+The owner subsequently authorized normal build/update delivery. The supported Supervisor updater applied Core 441 and independent version, image, health and LAN checks succeeded. No button-click verification is claimed. The scoped normal release is `v2026.11.1.441`, bound to `394771b0f4b4afbd8562777c9abfb47c9c1d97ad`; its three assets were downloaded and hash-verified. Other-machine and appliance versions were preserved.
 
 Existing guided setup drafts, account-owned settings synchronization and backup inclusion of automation/dashboard history folders are implemented. Verify them instead of reconstructing them from older unchecked roadmap entries. Retain the unfinished Raspberry Pi recovery branch and pre-existing untracked browser scripts.
+
+## Uploaded and selected backup hosting, in progress
+
+The owner requested both hosted-copy actions on every backup, plus **Host a backup** in the desktop assistant with native archive/ZIP upload and all five existing targets. The selected hosting computer is the current computer. Preserve original automation activity; do not silently pause restored automations.
+
+Native admission, job ownership, SSH identity, protected restoration, Core pairing and both archive exclusions, frontend actions, native upload controls, explicit SSH approval and bounded Pi addresses are integrated source. Independent source review closed the six earlier transport/admission/cancellation findings for their observed conditions. The new workflow is not in live build 441. Bootstrap composition, immutable helper publication, new Core/Supervisor delivery, native packaging, final tests and actual restore/link verification remain pending. A source-only or fail-closed result is not usable target proof.
 
 ## Visual dictionaries and browser demo, 13 November 2026
 
