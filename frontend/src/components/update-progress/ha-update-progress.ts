@@ -4,6 +4,7 @@ import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { redactDetails } from "../../common/activity/redact-details";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import { consume } from "../../common/decorators/consume";
 import {
@@ -384,8 +385,17 @@ export class HaUpdateProgress extends LitElement {
     return html`<div class="failed">
       <ha-recovery-card
         .hass=${this._recoveryHass()}
-        .heading=${this._l("failed_heading", { name: run.title })}
-        .message=${this._l("failed_message")}
+        .heading=${this._l(
+          run.notStarted ? "not_started_heading" : "failed_heading",
+          { name: run.title }
+        )}
+        .message=${
+          run.notStarted
+            ? this._l("not_started_message", {
+                error: redactDetails(run.error ?? ""),
+              })
+            : this._l("failed_message")
+        }
         .changed=${changed}
         .details=${run.error ?? ""}
         .canRetry=${run.canRetry}

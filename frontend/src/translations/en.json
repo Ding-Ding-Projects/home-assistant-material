@@ -4114,6 +4114,8 @@
       "version_unchanged": "The installed version did not change. It is still {version}.",
       "failed_heading": "The update for {name} did not finish",
       "failed_message": "Home Assistant did not report the new version after the update.",
+      "not_started_heading": "The update for {name} did not start",
+      "not_started_message": "Nothing was installed, because the update was refused: {error}",
       "changed_installed": "The version installed now is {version}.",
       "changed_backup": "A backup was asked for before the update. Check the backups list for what exists.",
       "open_backups": "Open the backups to restore",

@@ -118,20 +118,8 @@ class RepositoryUpdateEntity(RepositoryEntity, UpdateEntity):
                     translation_placeholders={"version": version},
                 ) from exception
 
-        user_id = self._context.user_id if self._context else None
-
-        # Automations and scripts run without a user, someone has to have read it
-        if user_id is None:
-            warning_accepted = bool(self.marketplace.warning_acceptances)
-        else:
-            warning_accepted = self.marketplace.warning_accepted(user_id)
-
-        if not warning_accepted:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="warning_not_accepted",
-            )
-
+        # Updating what is installed already needs no visit to the Marketplace
+        # panel: its warning is about choosing what to install.
         to_install = version or self.latest_version
         if to_install == self.installed_version:
             raise HomeAssistantError(

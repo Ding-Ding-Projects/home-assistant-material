@@ -9,7 +9,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-from pytest_homeassistant.common import MockConfigEntry, MockUser
+from pytest_homeassistant.common import MockConfigEntry
 from pytest_homeassistant.test_util.aiohttp import AiohttpClientMocker
 from pytest_homeassistant.typing import WebSocketGenerator
 from syrupy.assertion import SnapshotAssertion
@@ -810,33 +810,14 @@ async def test_install_without_github(
 
 @pytest.mark.parametrize("config_entry_source", [SOURCE_SYSTEM])
 @pytest.mark.parametrize("warning_accepted", [None])
-async def test_install_needs_accepted_warning(
+async def test_install_without_accepted_warning(
     hass: HomeAssistant,
-    hass_ws_client: WebSocketGenerator,
     integration_update_entity: str,
 ) -> None:
-    """Test an install without a user is refused until someone accepts the warning."""
+    """Test an update installs when nobody has opened the Marketplace panel."""
     marketplace = get_marketplace(hass)
     assert CONF_WARNING_ACCEPTED not in marketplace.configuration.config_entry.data
 
-    with pytest.raises(
-        HomeAssistantError,
-        match="Open the Marketplace and read the warning first",
-    ):
-        await hass.services.async_call(
-            UPDATE_DOMAIN,
-            SERVICE_INSTALL,
-            {ATTR_ENTITY_ID: integration_update_entity, ATTR_VERSION: "2.0.0"},
-            blocking=True,
-        )
-
-    repository = marketplace.repositories.get_by_id(REPOSITORY_INTEGRATION_ID)
-    assert repository.data.installed_version == "1.0.0"
-
-    client = await hass_ws_client(hass)
-    await client.send_json_auto_id({"type": "marketplace/warning/accept"})
-    assert (await client.receive_json())["success"]
-
     await hass.services.async_call(
         UPDATE_DOMAIN,
         SERVICE_INSTALL,
@@ -844,41 +825,28 @@ async def test_install_needs_accepted_warning(
         blocking=True,
     )
 
+    repository = marketplace.repositories.get_by_id(REPOSITORY_INTEGRATION_ID)
     assert repository.data.installed_version == "2.0.0"
 
 
-async def test_install_needs_warning_accepted_by_caller(
+async def test_install_by_user_who_did_not_accept_warning(
     hass: HomeAssistant,
-    hass_admin_user: MockUser,
     second_admin_user: User,
     integration_update_entity: str,
 ) -> None:
-    """Test a user installing an update needs to have accepted the warning."""
+    """Test a user who never accepted the warning can install an update."""
     marketplace = get_marketplace(hass)
-    repository = marketplace.repositories.get_by_id(REPOSITORY_INTEGRATION_ID)
-
-    with pytest.raises(
-        HomeAssistantError,
-        match="Open the Marketplace and read the warning first",
-    ):
-        await hass.services.async_call(
-            UPDATE_DOMAIN,
-            SERVICE_INSTALL,
-            {ATTR_ENTITY_ID: integration_update_entity, ATTR_VERSION: "2.0.0"},
-            blocking=True,
-            context=Context(user_id=second_admin_user.id),
-        )
-
-    assert repository.data.installed_version == "1.0.0"
+    assert not marketplace.warning_accepted(second_admin_user.id)
 
     await hass.services.async_call(
         UPDATE_DOMAIN,
         SERVICE_INSTALL,
         {ATTR_ENTITY_ID: integration_update_entity, ATTR_VERSION: "2.0.0"},
         blocking=True,
-        context=Context(user_id=hass_admin_user.id),
+        context=Context(user_id=second_admin_user.id),
     )
 
+    repository = marketplace.repositories.get_by_id(REPOSITORY_INTEGRATION_ID)
     assert repository.data.installed_version == "2.0.0"
 
 

@@ -8,6 +8,12 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-15
 
+- Fixed: updates of Marketplace integrations, themes and plugins no longer ask anyone to open the
+  Marketplace and accept its warning first. Every update from Settings, the update dialog, an
+  automation or a script installs straight away. The warning still shows in the Marketplace panel
+  before something new is installed from there.
+- Fixed: an update that was refused before it started said Home Assistant "did not report the new
+  version". It now says the update did not start, nothing was installed, and why.
 - New: Camera recording. Cameras are recorded around the clock in short MP4 files to a disk or
   folder on this computer, an external or USB disk, a Windows shared folder, or an SSH server
   (SFTP or SCP). A guided setup tests the connection for real (reach, sign in, open the folder,
