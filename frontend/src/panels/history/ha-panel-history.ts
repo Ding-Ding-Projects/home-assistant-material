@@ -23,6 +23,7 @@ import type {
   HASSDomTargetEvent,
 } from "../../common/dom/fire_event";
 import { computeDomain } from "../../common/entity/compute_domain";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { navigate } from "../../common/navigate";
 import { constructUrlCurrentPath } from "../../common/url/construct-url";
 import {
@@ -64,17 +65,26 @@ import {
   setSourceFilter,
   sourceFiltersStyles,
 } from "../../components/ha-sources-picker";
+import "../../components/ha-select";
+import type { HaSelectSelectEvent } from "../../components/ha-select";
 import "../../components/ha-spinner";
 import "../../components/ha-top-app-bar-fixed";
 import type { EntitySources } from "../../data/entity/entity_sources";
 import { fetchEntitySourcesWithCache } from "../../data/entity/entity_sources";
 import { entityTypesNeedStates } from "../../data/entity/entity_type";
-import type { HistoryResult, HistoryStates } from "../../data/history";
+import type {
+  ComparePeriod,
+  HistoryResult,
+  HistoryStates,
+} from "../../data/history";
 import {
+  addComparisonToHistory,
+  computeCompareShiftMs,
   computeHistory,
   computeHistoryUpdateDelay,
   convertStatisticsToHistory,
   countHistoryStates,
+  fetchDateWS,
   mergeHistoryResults,
   subscribeHistory,
 } from "../../data/history";
@@ -165,6 +175,17 @@ class HaPanelHistory extends LitElement {
 
   private _historyGeneration = 0;
 
+  private _lang = new LanguageModeController(this);
+
+  @state() private _comparePeriod: ComparePeriod | "none" = "none";
+
+  @state() private _comparison?: { history: HistoryResult; shift: number };
+
+  @state() private _comparisonStatus?:
+    "loading" | "unavailable" | "empty" | "limit";
+
+  private _comparisonRequest = 0;
+
   public constructor() {
     super();
 
@@ -181,12 +202,15 @@ class HaPanelHistory extends LitElement {
     super.connectedCallback();
     if (this.hasUpdated) {
       this._getHistory();
+      this._getStats();
+      this._getComparison();
     }
   }
 
   public disconnectedCallback() {
     super.disconnectedCallback();
     this._unsubscribeHistory();
+    this._statsFetchId++;
   }
 
   protected render() {
@@ -203,6 +227,14 @@ class HaPanelHistory extends LitElement {
       (this._mungedStateHistory.line.length > 0 ||
         this._mungedStateHistory.timeline.length > 0);
     const showZoomBar = !loading && hasTargets && hasResults;
+    const comparisonStatus =
+      this._comparison &&
+      this._mungedStateHistory &&
+      !this._mungedStateHistory.line.some((unit) =>
+        unit.data.some((entity) => entity.compare)
+      )
+        ? "empty"
+        : this._comparisonStatus || "hint";
     const sourcesLabel = sourceCount
       ? this.hass.localize("ui.panel.history.sources_count", {
           count: entityIds.length,
@@ -309,6 +341,28 @@ class HaPanelHistory extends LitElement {
                   @value-changed=${this._dateRangeChanged}
                 ></ha-date-range-nav>
               </div>
+              <div class="comparison-controls">
+                <ha-select
+                  .label=${this._lang.text(this.hass.localize, "ui.panel.history.comparison.label")}
+                  .value=${this._comparePeriod}
+                  .options=${(["none", "previous", "day", "week"] as const).map(
+                    (value) => ({
+                      value,
+                      label: this._lang.text(
+                        this.hass.localize,
+                        `ui.panel.history.comparison.${value}`
+                      ),
+                    })
+                  )}
+                  @selected=${this._comparisonChanged}
+                ></ha-select>
+                <p role="status" aria-live="polite">
+                  ${this._lang.text(
+                    this.hass.localize,
+                    `ui.panel.history.comparison.${comparisonStatus}`
+                  )}
+                </p>
+              </div>
               <div
                 class="results ha-scrollbar ${classMap({
                   "has-zoom-bar": showZoomBar,
@@ -412,8 +466,26 @@ class HaPanelHistory extends LitElement {
     super.willUpdate(changedProps);
 
     if (
+      changedProps.has("_startDate") ||
+      changedProps.has("_endDate") ||
+      changedProps.has("_targetPickerValue") ||
+      changedProps.has("_filters") ||
+      changedProps.has("_entitySources")
+    ) {
+      // Clear the old selection before rendering, including while the narrow
+      // source sheet postpones fetching its replacement.
+      this._unsubscribeHistory();
+      this._statsFetchId++;
+      this._stateHistory = undefined;
+      this._statisticsHistory = undefined;
+      this._mungedStateHistory = undefined;
+      this._fetchedEntityIds = undefined;
+    }
+
+    if (
       changedProps.has("_stateHistory") ||
       changedProps.has("_statisticsHistory") ||
+      changedProps.has("_comparison") ||
       changedProps.has("_startDate") ||
       changedProps.has("_endDate") ||
       changedProps.has("_targetPickerValue")
@@ -426,6 +498,13 @@ class HaPanelHistory extends LitElement {
       } else {
         this._mungedStateHistory =
           this._stateHistory || this._statisticsHistory;
+      }
+      if (this._mungedStateHistory && this._comparison) {
+        this._mungedStateHistory = addComparisonToHistory(
+          this._mungedStateHistory,
+          this._comparison.history,
+          this._comparison.shift
+        );
       }
     }
 
@@ -479,6 +558,9 @@ class HaPanelHistory extends LitElement {
   }
 
   protected updated(changedProps: PropertyValues) {
+    if (!this.isConnected) {
+      return;
+    }
     // On narrow screens, the sources sheet covers the results, so only fetch
     // once it is closed instead of on every source change.
     if (this.narrow && this._sourcesShown()) {
@@ -491,6 +573,90 @@ class HaPanelHistory extends LitElement {
     ) {
       this._getHistory();
       this._getStats();
+      this._getComparison();
+    } else if (changedProps.has("_comparePeriod")) {
+      this._getComparison();
+    }
+  }
+
+  private _comparisonChanged(ev: HaSelectSelectEvent<ComparePeriod | "none">) {
+    if (this._comparePeriod === ev.detail.value) {
+      this._getComparison();
+      return;
+    }
+    this._comparePeriod = ev.detail.value;
+    this._clearComparison();
+  }
+
+  private _clearComparison() {
+    this._comparisonRequest++;
+    this._comparison = undefined;
+    this._comparisonStatus = undefined;
+  }
+
+  private async _getComparison() {
+    this._clearComparison();
+    const request = this._comparisonRequest;
+    const generation = this._historyGeneration;
+    const entityIds = this._getEntityIds().filter(
+      (id) => !isExternalStatistic(id)
+    );
+    if (
+      !this.isConnected ||
+      this._comparePeriod === "none" ||
+      !entityIds.length
+    ) {
+      return;
+    }
+    // A range ending in the future compares only its elapsed portion.
+    const end = Math.min(this._endDate.getTime(), Date.now());
+    const start = this._startDate.getTime();
+    const shift = computeCompareShiftMs(
+      this._comparePeriod,
+      (end - start) / 3_600_000
+    );
+    if (!shift) {
+      this._comparisonStatus = "limit";
+      return;
+    }
+    this._comparisonStatus = "loading";
+    try {
+      const states = await fetchDateWS(
+        this.hass,
+        new Date(start - shift),
+        new Date(end - shift),
+        entityIds
+      );
+      if (
+        !this.isConnected ||
+        generation !== this._historyGeneration ||
+        request !== this._comparisonRequest
+      ) {
+        return;
+      }
+      // Never synthesize earlier samples from the entity's current state.
+      const history = computeHistory(
+        this.hass,
+        states,
+        Object.keys(states),
+        this.hass.localize,
+        true
+      );
+      this._comparison = { history, shift };
+      this._comparisonStatus = history.line.some((unit) =>
+        unit.data.some((entity) => entity.states.length > 0)
+      )
+        ? undefined
+        : "empty";
+    } catch (_err) {
+      if (
+        this.isConnected &&
+        generation === this._historyGeneration &&
+        request === this._comparisonRequest
+      ) {
+        this._comparison = undefined;
+        this._comparisonStatus = "unavailable";
+      }
     }
   }
 
@@ -632,9 +798,8 @@ class HaPanelHistory extends LitElement {
     // The charts are rebuilt once loaded, so they start unzoomed.
     this._zoomRange = [0, 100];
 
-    if (this._subscribed) {
-      this._unsubscribeHistory();
-    }
+    this._unsubscribeHistory();
+    this._stateHistory = undefined;
 
     const now = new Date();
 
@@ -643,6 +808,9 @@ class HaPanelHistory extends LitElement {
     let lastApplied = 0;
     let pending: HistoryStates | undefined;
     const applyHistory = (history: HistoryStates) => {
+      if (!this.isConnected || generation !== this._historyGeneration) {
+        return;
+      }
       lastApplied = Date.now();
       this._isLoading = false;
       this._stateHistory = computeHistory(
@@ -658,7 +826,7 @@ class HaPanelHistory extends LitElement {
       this.hass,
       (history) => {
         // A replaced subscription can still deliver until its unsubscribe is acknowledged
-        if (generation !== this._historyGeneration) {
+        if (!this.isConnected || generation !== this._historyGeneration) {
           return;
         }
         const delay = lastApplied
@@ -684,6 +852,9 @@ class HaPanelHistory extends LitElement {
         this._stateHistoryCharts?.requestUpdate();
         if (this._historyUpdateTimer === undefined) {
           this._historyUpdateTimer = window.setTimeout(() => {
+            if (!this.isConnected || generation !== this._historyGeneration) {
+              return;
+            }
             this._historyUpdateTimer = undefined;
             if (pending) {
               const latest = pending;
@@ -698,6 +869,9 @@ class HaPanelHistory extends LitElement {
       entityIds
     );
     this._subscribed.catch(() => {
+      if (!this.isConnected || generation !== this._historyGeneration) {
+        return;
+      }
       this._isLoading = false;
       this._stateHistory = { line: [], timeline: [] };
       this._unsubscribeHistory();
@@ -724,6 +898,7 @@ class HaPanelHistory extends LitElement {
   }
 
   private _unsubscribeHistory() {
+    this._clearComparison();
     if (this._interval) {
       clearInterval(this._interval);
       this._interval = undefined;
@@ -852,6 +1027,10 @@ class HaPanelHistory extends LitElement {
 
     for (const line of this._mungedStateHistory.line) {
       for (const entity of line.data) {
+        // Comparison timestamps are shifted for display, never exported as records.
+        if (entity.compare) {
+          continue;
+        }
         const entityId = entity.entity_id;
         const domain = computeDomain(entityId);
         const extraAttributes = domainAttributes[domain];
@@ -925,6 +1104,8 @@ class HaPanelHistory extends LitElement {
           (endDateTime - this._startDate.getTime()) / 1000 / 60 / 60
         ),
         entities,
+        compare_period:
+          this._comparePeriod === "none" ? undefined : this._comparePeriod,
       },
     ];
     addEntitiesToLovelaceView(this, this.hass, {
@@ -1016,6 +1197,25 @@ class HaPanelHistory extends LitElement {
 
         .toolbar > * {
           flex-shrink: 0;
+        }
+
+        .comparison-controls {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-2) var(--ha-space-4);
+          padding: var(--ha-space-2) var(--ha-space-4);
+          border-bottom: 1px solid var(--divider-color);
+        }
+        .comparison-controls ha-select {
+          flex: 1 1 240px;
+          min-width: 0;
+        }
+        .comparison-controls p {
+          flex: 1 1 240px;
+          margin: 0;
+          color: var(--secondary-text-color);
+          overflow-wrap: anywhere;
         }
 
         .results {

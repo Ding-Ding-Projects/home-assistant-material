@@ -21497,6 +21497,18 @@
         }
       },
       "history": {
+        "comparison": {
+          "label": "Compare with an earlier period",
+          "none": "Do not compare",
+          "previous": "Previous equal window",
+          "day": "One day earlier",
+          "week": "One week earlier",
+          "hint": "Dashed lines compare recorded numeric states only. Timelines and external statistics are unchanged. Earlier records may cover only part of the window.",
+          "loading": "Loading the earlier period…",
+          "unavailable": "The earlier period could not be loaded. Current history is still shown. Select a period again to retry.",
+          "empty": "No comparable numeric records were found for the earlier period.",
+          "limit": "Choose an elapsed time range of up to 31 days to compare."
+        },
         "sources": "Sources",
         "summary": "How any entity changed over time. Pick what to compare.",
         "sources_count": "Sources: {count}",

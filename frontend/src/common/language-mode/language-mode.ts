@@ -20,6 +20,7 @@ import yueSource from "../../translations/yue-own.json";
 
 /** The translation blocks the Cantonese source covers. */
 export const YUE_PREFIXES = [
+  "ui.panel.history.comparison.",
   "ui.panel.config.personal.",
   // Single strings, not whole blocks: the settings home banners and the apps page.
   "ui.panel.config.dashboard.review_updates",

@@ -76,6 +76,10 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
 
   private _redrawTicks = 0;
 
+  private _historyGeneration = 0;
+
+  private _comparisonRequest = 0;
+
   public getCardSize(): number {
     return this._config?.title ? 2 : 0 + 2 * (this._entityIds?.length || 1);
   }
@@ -97,6 +101,13 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
       throw new Error("You must include at least one entity");
     }
 
+    // Invalidate pending work immediately, before Lit processes the new config.
+    this._unsubscribeHistory();
+    this._stateHistory = undefined;
+    this._statisticsHistory = undefined;
+    this._history = undefined;
+    this._error = undefined;
+
     this._entities = config.entities
       ? processConfigEntities(config.entities)
       : [];
@@ -104,7 +115,7 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
 
     this._hoursToShow = config.hours_to_show || DEFAULT_HOURS_TO_SHOW;
 
-    this._config = config;
+    this._config = { ...config };
     this._computeNames();
     this._computeColors();
   }
@@ -167,14 +178,21 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
   }
 
   private async _subscribeHistory() {
-    if (!isComponentLoaded(this.hass!.config, "history") || this._subscribed) {
+    if (
+      !this.isConnected ||
+      !this.hass ||
+      !this._config ||
+      !isComponentLoaded(this.hass.config, "history") ||
+      this._subscribed
+    ) {
       return;
     }
 
+    const generation = this._historyGeneration;
     this._subscribed = subscribeHistoryStatesTimeWindow(
       this.hass!,
       (combinedHistory) => {
-        if (!this._subscribed) {
+        if (!this.isConnected || generation !== this._historyGeneration) {
           // Message came in before we had a chance to unload
           return;
         }
@@ -192,15 +210,23 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
       this._hoursToShow,
       this._entityIds
     ).catch((err) => {
-      this._subscribed = undefined;
+      if (!this.isConnected || generation !== this._historyGeneration) {
+        return undefined;
+      }
+      this._unsubscribeHistory();
       this._error = err;
       return undefined;
     });
 
-    await this._fetchStatistics();
-    await this._fetchComparison();
-
-    this._setRedrawTimer();
+    await this._fetchStatistics(generation);
+    if (!this.isConnected || generation !== this._historyGeneration) {
+      return;
+    }
+    await this._fetchComparison(generation);
+    if (!this.isConnected || generation !== this._historyGeneration) {
+      return;
+    }
+    this._setRedrawTimer(generation);
   }
 
   private _mergeHistory() {
@@ -226,7 +252,11 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
    * request for the same entities and window length, moved back by the
    * period. A failed request just leaves the comparison out.
    */
-  private async _fetchComparison() {
+  private async _fetchComparison(generation = this._historyGeneration) {
+    if (!this.isConnected || generation !== this._historyGeneration) {
+      return;
+    }
+    const request = ++this._comparisonRequest;
     const shift = computeCompareShiftMs(
       this._config?.compare_period,
       this._hoursToShow
@@ -234,12 +264,20 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
     if (!shift || !this.hass) {
       this._compareHistory = undefined;
       this._compareShiftMs = undefined;
+      this._mergeHistory();
       return;
     }
     const end = new Date(Date.now() - shift);
     const start = new Date(end.getTime() - this._hoursToShow * 3_600_000);
     try {
       const states = await fetchDateWS(this.hass, start, end, this._entityIds);
+      if (
+        !this.isConnected ||
+        generation !== this._historyGeneration ||
+        request !== this._comparisonRequest
+      ) {
+        return;
+      }
       // Only entities that have recorded states in the earlier window: the
       // current state must not stand in for missing history.
       this._compareHistory = computeHistory(
@@ -251,13 +289,20 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
       );
       this._compareShiftMs = shift;
     } catch (_err) {
+      if (
+        !this.isConnected ||
+        generation !== this._historyGeneration ||
+        request !== this._comparisonRequest
+      ) {
+        return;
+      }
       this._compareHistory = undefined;
       this._compareShiftMs = undefined;
     }
     this._mergeHistory();
   }
 
-  private async _fetchStatistics() {
+  private async _fetchStatistics(generation: number) {
     if (this._hoursToShow < 1) {
       // Statistics are hourly aggregates, not useful for sub-hour windows
       return;
@@ -266,15 +311,29 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
     const start = new Date();
     start.setHours(start.getHours() - this._hoursToShow - 1);
 
-    const statistics = await fetchStatistics(
-      this.hass!.callWS,
-      start,
-      now,
-      this._entityIds,
-      "hour",
-      undefined,
-      ["mean", "state"]
-    );
+    let statistics;
+    try {
+      statistics = await fetchStatistics(
+        this.hass!.callWS,
+        start,
+        now,
+        this._entityIds,
+        "hour",
+        undefined,
+        ["mean", "state"]
+      );
+    } catch (_err) {
+      // Statistics supplement recorded states; a failure must not stop the
+      // comparison or leave the subscription setup promise rejected.
+      if (this.isConnected && generation === this._historyGeneration) {
+        this._statisticsHistory = undefined;
+        this._mergeHistory();
+      }
+      return;
+    }
+    if (!this.isConnected || generation !== this._historyGeneration) {
+      return;
+    }
 
     this._statisticsHistory = convertStatisticsToHistory(
       this.hass!,
@@ -298,16 +357,27 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
     }
   }
 
-  private _setRedrawTimer() {
+  private _setRedrawTimer(generation: number) {
     // redraw the graph every minute to update the time axis
     clearInterval(this._interval);
     if (this.isConnected) {
-      this._interval = window.setInterval(() => this._redrawGraph(), 1000 * 60);
+      this._interval = window.setInterval(() => {
+        if (this.isConnected && generation === this._historyGeneration) {
+          this._redrawGraph();
+        }
+      }, 1000 * 60);
     }
   }
 
   private _unsubscribeHistory() {
+    this._historyGeneration++;
+    this._comparisonRequest++;
+    this._compareHistory = undefined;
+    this._compareShiftMs = undefined;
+    this._redrawTicks = 0;
+    this._mergeHistory();
     clearInterval(this._interval);
+    this._interval = undefined;
     if (this._subscribed) {
       this._subscribed.then((unsub) => unsub?.()).catch(() => undefined);
       this._subscribed = undefined;
@@ -352,16 +422,7 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
       return;
     }
 
-    const oldConfig = changedProps.get("_config") as
-      HistoryGraphCardConfig | undefined;
-
-    if (
-      changedProps.has("_config") &&
-      (oldConfig?.entities !== this._config.entities ||
-        oldConfig?.hours_to_show !== this._config.hours_to_show ||
-        oldConfig?.compare_period !== this._config.compare_period)
-    ) {
-      this._unsubscribeHistory();
+    if (changedProps.has("_config")) {
       this._subscribeHistory();
     } else if (
       this.isConnected &&
