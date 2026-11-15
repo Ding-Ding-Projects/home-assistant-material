@@ -39,7 +39,14 @@ async function listDrives() {
 }
 
 // Runs this app's own writer with administrator rights and follows its progress file.
-async function write({ image, drive, onProgress, log }) {
+async function write({ image, drive, onProgress, log, prepareImage }) {
+  // An internal hosting-job callback may replace the public base with a private prepared copy.
+  // Drive selection and native write confirmation remain the caller's separate responsibility.
+  if (prepareImage) {
+    const prepared = await prepareImage(image);
+    if (!prepared?.image?.file || prepared.image.format !== 'raw') throw new Error('Secure appliance preparation did not produce a raw disk image.');
+    image = prepared.image.file;
+  }
   const prog = path.join(os.tmpdir(), 'ham-writer-' + Date.now() + '.json');
   const writer = path.join(__dirname, 'writer.js');
   const exe = process.execPath;
