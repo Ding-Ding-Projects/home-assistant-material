@@ -19,7 +19,7 @@ import {
 import deepClone from "deep-clone-simple";
 import { dump } from "js-yaml";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
-import { LitElement, html, nothing } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
@@ -216,31 +216,31 @@ export default class HaAutomationConditionRow extends LitElement {
               ></ha-condition-icon>
             </div>`
       }
-      <ha-automation-condition-summary
-        slot="header"
-        .label=${capitalizeFirstLetter(
-          describeCondition(this.condition, this.hass, this._entityReg)
-        )}
-        .condition=${this.condition}
-        .description=${this.conditionDescriptions[this.condition.condition]}
-        .isNew=${this._isNew}
-      >
-        ${
-          this.condition.condition === "trigger"
-            ? html`<ha-automation-trigger-references
-                slot="references"
-                .condition=${this.condition as TriggerCondition}
-                .hass=${this.hass}
-              ></ha-automation-trigger-references>`
-            : nothing
-        }
-      </ha-automation-condition-summary>
-      <ha-automation-live-state
-        slot="event"
-        kind="condition"
-        .hass=${this.hass}
-        .config=${this.condition}
-      ></ha-automation-live-state>
+      <div class="condition-header" slot="header">
+        <ha-automation-condition-summary
+          .label=${capitalizeFirstLetter(
+            describeCondition(this.condition, this.hass, this._entityReg)
+          )}
+          .condition=${this.condition}
+          .description=${this.conditionDescriptions[this.condition.condition]}
+          .isNew=${this._isNew}
+        >
+          ${
+            this.condition.condition === "trigger"
+              ? html`<ha-automation-trigger-references
+                  slot="references"
+                  .condition=${this.condition as TriggerCondition}
+                  .hass=${this.hass}
+                ></ha-automation-trigger-references>`
+              : nothing
+          }
+        </ha-automation-condition-summary>
+        <ha-automation-live-state
+          kind="condition"
+          .hass=${this.hass}
+          .config=${this.condition}
+        ></ha-automation-live-state>
+      </div>
       <ha-automation-row-event-chip
         .show=${this.condition.enabled === false && !this._testing}
         slot="event"
@@ -1132,7 +1132,22 @@ export default class HaAutomationConditionRow extends LitElement {
   }
 
   static get styles(): CSSResultGroup {
-    return [rowStyles, overflowStyles];
+    return [
+      rowStyles,
+      overflowStyles,
+      css`
+        .condition-header {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-width: 0;
+        }
+        .condition-header ha-automation-live-state {
+          margin-inline-start: 0;
+          margin-block-end: var(--ha-space-2);
+        }
+      `,
+    ];
   }
 }
 
