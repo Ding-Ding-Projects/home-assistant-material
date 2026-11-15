@@ -131,6 +131,12 @@
     if (input) input.value = '';
     var options = {};
     ['name', 'hostId'].forEach(function (key) { if (v[key]) options[key] = v[key]; });
+    if (!retry && (target === 'docker' || target === 'ssh') && typeof v.tag === 'string' && v.tag.trim()) options.tag = v.tag.trim();
+    if (!retry && ['docker', 'ssh', 'virtualbox'].indexOf(target) >= 0 && v.port != null && String(v.port).trim() !== '') {
+      var port = Number(v.port);
+      if (!Number.isInteger(port) || port < 1 || port > 65535) { backupHost.error = 'bhError'; soon(); return; }
+      options.port = port;
+    }
     ['memoryMb', 'cpus', 'diskGb'].forEach(function (key) { if (v[key] !== '' && v[key] != null) options[key] = Number(v[key]); });
     if (target === 'pi' && !retry) {
       try { options.pi_addresses = backupHostPiAddresses(backupHost.piAddresses); } catch (_) { backupHost.error = 'bhPiInvalid'; soon(); return; }
