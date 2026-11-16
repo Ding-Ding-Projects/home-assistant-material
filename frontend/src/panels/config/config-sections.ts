@@ -673,8 +673,7 @@ export const configSections: Record<string, PageNavigation[]> = {
       adminOnly: true,
     },
     {
-      // Shown when the camera recording integration is loaded.
-      component: "camera_recording",
+      // Always listed: the page itself offers the first-time setup.
       path: "/config/camera_recording",
       translationKey: "camera_recording",
       iconPath: mdiCctv,

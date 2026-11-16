@@ -68,6 +68,13 @@ export class HaConfigCameraRecording extends LitElement {
       this._status = await fetchRecordingStatus(this.hass);
       this._error = undefined;
     } catch (err: unknown) {
+      // The server only knows these commands once a destination has been
+      // added, so before the first one this is an empty list, not an error.
+      if ((err as { code?: string } | undefined)?.code === "unknown_command") {
+        this._status = [];
+        this._error = undefined;
+        return;
+      }
       this._error = (err as Error | undefined)?.message ?? String(err);
     }
   }
