@@ -74,6 +74,8 @@ export interface UpdateRun {
   percent?: number;
   /** Raw error text of a failed install, redacted before it is shown. */
   error?: string;
+  /** The install call was refused, so nothing was installed. */
+  notStarted?: boolean;
   startedAt: number;
   /** The install data that can be sent again, absent for an adopted run. */
   canRetry: boolean;
@@ -206,6 +208,7 @@ class UpdateInstallTracker {
     run.callPending = false;
     if (err !== undefined && !isConnectionLostError(err)) {
       run.callError = message ?? errorText(err);
+      run.notStarted = true;
     }
     this._evaluate(run);
   }
@@ -507,7 +510,11 @@ class UpdateInstallTracker {
           version: attributes?.installed_version ?? "",
         });
       const patch = {
-        message: localize("ui.update_progress.failed_message"),
+        message: run.callError
+          ? localize("ui.update_progress.not_started_message", {
+              error: redactDetails(run.callError),
+            })
+          : localize("ui.update_progress.failed_message"),
         // The full recovery card (details, retry) is shown on the updates
         // page only. The tray gets a one-line entry that opens that page.
         compact: true,
@@ -672,6 +679,8 @@ export interface UpdateTrayRow {
   slow: boolean;
   /** Error text with credentials hidden, only for a failed install. */
   details?: string;
+  /** The install call was refused, so nothing was installed. */
+  notStarted: boolean;
   canRetry: boolean;
   /** The row can be dismissed: it is not running and not waiting for a restart. */
   dismissible: boolean;
@@ -716,6 +725,7 @@ export const deriveUpdateTrayRows = (
       slow: state === "running" && !!run.slow,
       details:
         state === "failed" && run.error ? redactDetails(run.error) : undefined,
+      notStarted: state === "failed" && !!run.notStarted,
       canRetry: state === "failed" && run.canRetry,
       dismissible: state !== "running" && run.stage !== "restart_required",
       expiresAt,

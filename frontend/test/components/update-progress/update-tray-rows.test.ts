@@ -76,6 +76,28 @@ describe("deriveUpdateTrayRows", () => {
     expect(row.details).not.toContain("abcdefghijklmnop");
   });
 
+  it("tells a refused install apart from one that ran", () => {
+    const [refused, ran] = deriveUpdateTrayRows(
+      [
+        run({
+          entityId: "update.a",
+          stage: "failed",
+          notStarted: true,
+          error: "no",
+        }),
+        run({
+          entityId: "update.b",
+          stage: "failed",
+          error: "x",
+          startedAt: NOW + 1,
+        }),
+      ],
+      NOW
+    );
+    expect(refused.notStarted).toBe(true);
+    expect(ran.notStarted).toBe(false);
+  });
+
   it("offers no retry for an adopted run", () => {
     const [row] = deriveUpdateTrayRows(
       [run({ stage: "failed", canRetry: false, error: "x" })],

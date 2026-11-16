@@ -6,6 +6,7 @@
 - A small terminal shows every running job as it happens: deploys, Raspberry Pi cards, Minecraft consoles, the world generator and Chocolatey. Coloured lines, it follows new output unless you scroll up, and you can filter it, copy it, unwrap long lines or fill the window with it.
 - The Minecraft overview is a dashboard: who is playing (with message and kick), ticks per second, processor and memory, world size, backups, a live load chart, quick actions, the last console lines with a command line, and the address as a QR code.
 - Every tab has a header with an icon and its key facts.
+- A polish pass: the Name, Port and Image fields line up, the current wizard step is a rounded pill with its name kept on a phone, drop-down lists match the text fields, long status tags wrap inside their card, page actions sit under the title on a phone, and the live chart centres its waiting message.
 
 ## 1.4
 

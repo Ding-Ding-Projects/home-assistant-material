@@ -1,5 +1,13 @@
 import type { ContextType } from "@lit/context";
-import { mdiMicrophone, mdiMicrophoneOff } from "@mdi/js";
+import {
+  mdiDownload,
+  mdiFastForward10,
+  mdiMicrophone,
+  mdiMicrophoneOff,
+  mdiPause,
+  mdiPlay,
+  mdiRewind10,
+} from "@mdi/js";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { ifDefined } from "lit/directives/if-defined";
@@ -9,7 +17,10 @@ import { consumeLocalize } from "../../../common/decorators/consume-context-entr
 import type { HASSDomEvent } from "../../../common/dom/fire_event";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import "../../../components/ha-button";
+import "../../../components/ha-button-toggle-group";
 import "../../../components/ha-camera-stream";
+import "../../../components/ha-camera-timeline";
+import "../../../components/ha-icon-button";
 import type {
   CameraStreamType,
   HaCameraStream,
@@ -18,8 +29,15 @@ import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-tooltip";
 import type { WebRtcMicrophoneState } from "../../../components/ha-web-rtc-player";
+import { getSignedPath } from "../../../data/auth";
 import { STREAM_TYPE_WEB_RTC, type CameraEntity } from "../../../data/camera";
-import { configContext } from "../../../data/context";
+import {
+  segmentAfter,
+  segmentAt,
+  segmentPath,
+  type RecordedSegment,
+} from "../../../data/camera_recording";
+import { apiContext, configContext } from "../../../data/context";
 import { UNAVAILABLE } from "../../../data/entity/entity";
 import {
   canAppStreamMicrophone,
@@ -44,7 +62,27 @@ class MoreInfoCamera extends LitElement {
   @consume({ context: configContext, subscribe: true })
   private _config!: ContextType<typeof configContext>;
 
+  @consume({ context: apiContext })
+  private _api!: ContextType<typeof apiContext>;
+
   @property({ attribute: false }) public stateObj?: CameraEntity;
+
+  /** The recorded moment being played, in milliseconds; undefined while live */
+  @state() private _playhead?: number;
+
+  @state() private _playing?: { segment: RecordedSegment; url: string };
+
+  @state() private _paused = false;
+
+  @state() private _rate = "1";
+
+  private _segments: RecordedSegment[] = [];
+
+  private _seekTo?: number;
+
+  private _seekRequest = 0;
+
+  @query("video.recording") private _video?: HTMLVideoElement;
 
   @state() private _attached = false;
 
@@ -84,6 +122,7 @@ class MoreInfoCamera extends LitElement {
     const oldStateObj = changedProps.get("stateObj");
     if (oldStateObj && oldStateObj.entity_id !== this.stateObj?.entity_id) {
       this._resetMicrophone();
+      this._goLive();
     }
   }
 
@@ -123,24 +162,215 @@ class MoreInfoCamera extends LitElement {
 
     return html`
       <div class="video">
-        <ha-camera-stream
-          .stateObj=${this.stateObj}
-          allow-exoplayer
-          controls
-          @microphone-changed=${this._microphoneChanged}
-          @stream-type-changed=${this._streamTypeChanged}
-          @camera-capabilities-changed=${this._capabilitiesChanged}
-        ></ha-camera-stream>
         ${
-          this.stateObj.state === "streaming"
-            ? html`<span class="live-chip">
-                ${this._localize("ui.dialogs.more_info_control.camera.live")}
-              </span>`
-            : nothing
+          this._playing
+            ? html`<video
+                  class="recording"
+                  .src=${this._playing.url}
+                  autoplay
+                  playsinline
+                  muted
+                  .playbackRate=${Number(this._rate)}
+                  @loadedmetadata=${this._recordingLoaded}
+                  @timeupdate=${this._recordingTime}
+                  @ended=${this._recordingEnded}
+                  @pause=${this._recordingPaused}
+                  @play=${this._recordingPaused}
+                ></video>
+                <span class="recorded-chip">
+                  ${this._localize("ui.components.camera_timeline.recorded")}
+                </span>`
+            : html`<ha-camera-stream
+                  .stateObj=${this.stateObj}
+                  allow-exoplayer
+                  controls
+                  @microphone-changed=${this._microphoneChanged}
+                  @stream-type-changed=${this._streamTypeChanged}
+                  @camera-capabilities-changed=${this._capabilitiesChanged}
+                ></ha-camera-stream>
+                ${
+                  this.stateObj.state === "streaming"
+                    ? html`<span class="live-chip">
+                        ${this._localize("ui.dialogs.more_info_control.camera.live")}
+                      </span>`
+                    : nothing
+                }`
         }
       </div>
-      ${this._supportsTwoWayAudio ? this._renderMicrophoneButton() : nothing}
+      ${this._playing ? this._renderPlaybackControls() : nothing}
+      ${
+        this._supportsTwoWayAudio && !this._playing
+          ? this._renderMicrophoneButton()
+          : nothing
+      }
+      <ha-camera-timeline
+        .entityId=${this.stateObj.entity_id}
+        .playhead=${this._playhead}
+        @camera-timeline-seek=${this._timelineSeek}
+        @camera-timeline-live=${this._goLive}
+        @camera-timeline-segments=${this._timelineSegments}
+      ></ha-camera-timeline>
     `;
+  }
+
+  private _renderPlaybackControls() {
+    return html`
+      <div class="playback">
+        <ha-icon-button
+          .path=${mdiRewind10}
+          .label=${this._localize("ui.components.camera_timeline.back_10")}
+          @click=${this._back10}
+        ></ha-icon-button>
+        <ha-icon-button
+          .path=${this._paused ? mdiPlay : mdiPause}
+          .label=${this._localize(
+            `ui.components.camera_timeline.${this._paused ? "play" : "pause"}`
+          )}
+          @click=${this._togglePause}
+        ></ha-icon-button>
+        <ha-icon-button
+          .path=${mdiFastForward10}
+          .label=${this._localize("ui.components.camera_timeline.forward_10")}
+          @click=${this._forward10}
+        ></ha-icon-button>
+        <span class="grow"></span>
+        <ha-button-toggle-group
+          size="s"
+          .buttons=${["1", "2", "4"].map((value) => ({
+            value,
+            label: `${value}×`,
+          }))}
+          .active=${this._rate}
+          @value-changed=${this._rateChanged}
+        ></ha-button-toggle-group>
+        <ha-icon-button
+          .path=${mdiDownload}
+          .label=${this._localize("ui.components.camera_timeline.download")}
+          .href=${this._playing!.url}
+          .download=${this._playing!.segment.name}
+        ></ha-icon-button>
+      </div>
+    `;
+  }
+
+  private _timelineSegments(
+    ev: HASSDomEvent<HASSDomEvents["camera-timeline-segments"]>
+  ) {
+    this._segments = ev.detail.segments;
+  }
+
+  private _timelineSeek(
+    ev: HASSDomEvent<HASSDomEvents["camera-timeline-seek"]>
+  ) {
+    this._segments = ev.detail.segments;
+    this._playAt(ev.detail.time);
+  }
+
+  private async _playAt(time: number) {
+    const segment =
+      segmentAt(this._segments, time) ?? segmentAfter(this._segments, time);
+    if (!segment || !this.stateObj) {
+      showToast(this, {
+        message: this._localize(
+          "ui.components.camera_timeline.not_recorded_here"
+        ),
+      });
+      return;
+    }
+    const at = Math.max(time, segment.start * 1000);
+    this._playhead = at;
+    if (this._playing?.segment.name === segment.name && this._video) {
+      this._video.currentTime = (at - segment.start * 1000) / 1000;
+      return;
+    }
+    const request = ++this._seekRequest;
+    try {
+      const signed = await getSignedPath(
+        this._api,
+        segmentPath(this.stateObj.entity_id, segment)
+      );
+      if (request !== this._seekRequest) {
+        return;
+      }
+      this._seekTo = (at - segment.start * 1000) / 1000;
+      this._paused = false;
+      this._playing = { segment, url: signed.path };
+    } catch (_err) {
+      showToast(this, {
+        message: this._localize("ui.components.camera_timeline.play_failed"),
+      });
+    }
+  }
+
+  private _goLive() {
+    this._seekRequest++;
+    this._playing = undefined;
+    this._playhead = undefined;
+    this._seekTo = undefined;
+  }
+
+  private _recordingLoaded(ev: Event) {
+    const video = ev.currentTarget as HTMLVideoElement;
+    video.playbackRate = Number(this._rate);
+    if (this._seekTo !== undefined) {
+      video.currentTime = this._seekTo;
+      this._seekTo = undefined;
+    }
+  }
+
+  private _recordingTime(ev: Event) {
+    const video = ev.currentTarget as HTMLVideoElement;
+    if (this._playing) {
+      this._playhead =
+        this._playing.segment.start * 1000 + video.currentTime * 1000;
+    }
+  }
+
+  private _recordingPaused(ev: Event) {
+    this._paused = (ev.currentTarget as HTMLVideoElement).paused;
+  }
+
+  private _recordingEnded() {
+    if (!this._playing) {
+      return;
+    }
+    const next = segmentAfter(
+      this._segments,
+      this._playing.segment.start * 1000
+    );
+    if (next) {
+      this._playAt(next.start * 1000);
+    } else {
+      this._goLive();
+    }
+  }
+
+  private _back10() {
+    if (this._playhead !== undefined) {
+      this._playAt(this._playhead - 10_000);
+    }
+  }
+
+  private _forward10() {
+    if (this._playhead !== undefined) {
+      this._playAt(this._playhead + 10_000);
+    }
+  }
+
+  private _togglePause() {
+    const video = this._video;
+    if (!video) {
+      return;
+    }
+    if (video.paused) {
+      video.play();
+    } else {
+      video.pause();
+    }
+  }
+
+  private _rateChanged(ev: CustomEvent<{ value: string }>) {
+    this._rate = ev.detail.value;
   }
 
   /**
@@ -343,6 +573,41 @@ class MoreInfoCamera extends LitElement {
       position: relative;
       border-radius: var(--ha-border-radius-3xl);
       overflow: hidden;
+    }
+
+    video.recording {
+      display: block;
+      width: 100%;
+      max-height: var(--video-max-height, calc(100vh - 97px));
+      background: #000;
+    }
+
+    .recorded-chip {
+      position: absolute;
+      top: var(--ha-space-3);
+      inset-inline-start: var(--ha-space-3);
+      padding: var(--ha-space-1) var(--ha-space-3);
+      border-radius: var(--ha-border-radius-pill);
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+      pointer-events: none;
+    }
+
+    .playback {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-1);
+      padding: var(--ha-space-2) 0;
+    }
+
+    .grow {
+      flex: 1;
+    }
+
+    ha-camera-timeline {
+      margin-top: var(--ha-space-4);
     }
 
     .live-chip {

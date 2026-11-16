@@ -381,9 +381,6 @@
     },
     "version_without_repository_manifest": {
       "message": "Version {version} of {repository} is missing the hacs.json file required for installation."
-    },
-    "warning_not_accepted": {
-      "message": "Open the Marketplace and read the warning first, installing and updating work once it is accepted."
     }
   },
   "issues": {

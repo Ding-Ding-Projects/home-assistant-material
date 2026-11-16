@@ -25,10 +25,6 @@ vi.mock("../../../src/layouts/hass-error-screen", () =>
 vi.mock("../../../src/layouts/hass-loading-screen", () =>
   stubElement("hass-loading-screen")
 );
-vi.mock(
-  "../../../src/panels/marketplace/components/ha-marketplace-warning",
-  () => stubElement("ha-marketplace-warning")
-);
 vi.mock("../../../src/panels/marketplace/ha-marketplace-router", () =>
   stubElement("ha-marketplace-router")
 );
@@ -170,50 +166,19 @@ describe("ha-panel-marketplace", () => {
     );
   });
 
-  it("keeps the Marketplace out of use behind the warning until it is accepted", async () => {
+  it("opens a link straight away, with no warning to accept first", async () => {
     const panel = await openPanel({
       "marketplace/info": async () => ({ ...INFO, warning_accepted: false }),
-      "marketplace/repositories/list": async () => [],
-    });
-
-    expect(screen(panel, "ha-marketplace-warning")).not.toBeNull();
-    expect(screen(panel, "ha-marketplace-router")!.hasAttribute("inert")).toBe(
-      true
-    );
-  });
-
-  it("opens a link only once the warning is accepted, the catalog shows until then", async () => {
-    let accepted = false;
-    const panel = await openPanel({
-      "marketplace/info": async () => ({
-        ...INFO,
-        warning_accepted: accepted,
-      }),
       "marketplace/repositories/list": async () => [],
     });
     const link = { prefix: "/marketplace", path: "/repository/42" };
     panel.route = link;
     await settle(panel);
-    const behindWarning = screen(panel, "ha-marketplace-router") as
-      (HTMLElement & { route: Route }) | null;
 
-    // A link could add a repository or open a dialog over the warning
-    expect(behindWarning!.route).toEqual({
-      prefix: "/marketplace",
-      path: "/browse",
-    });
-
-    accepted = true;
-    panel.dispatchEvent(new Event("marketplace-refresh"));
-    await settle(panel);
-
-    // A new router, so what the link does runs once it is accepted
     const router = screen(panel, "ha-marketplace-router") as
       (HTMLElement & { route: Route }) | null;
-    expect(router).not.toBe(behindWarning);
     expect(router!.route).toBe(link);
     expect(router!.hasAttribute("inert")).toBe(false);
-    expect(screen(panel, "ha-marketplace-warning")).toBeNull();
   });
 
   it("loads the translations of the errors of the backend", async () => {

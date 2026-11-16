@@ -1,0 +1,140 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Recordings already go to this place."
+    },
+    "error": {
+      "invalid_key": "This file is not a private key Home Assistant can read. Keys with a passphrase are not supported.",
+      "no_cameras": "Choose at least one camera.",
+      "password_or_key": "Give a password, a private key file, or both.",
+      "path_not_absolute": "Use a full path, starting with /.",
+      "test_failed": "The connection test stopped at ❌ {failed}. Fix that and submit again."
+    },
+    "step": {
+      "cameras": {
+        "data": {
+          "cameras": "Cameras to record"
+        },
+        "description": "Step 4 of 6. Each camera is recorded around the clock in short MP4 files. The video is copied as the camera sends it, so recording uses little processor time.",
+        "title": "Cameras"
+      },
+      "external_disk": {
+        "data": {
+          "path": "Disk"
+        },
+        "data_description": {
+          "path": "Recordings go to a folder called home-assistant-recordings on this disk."
+        },
+        "description": "Step 2 of 6. {disks} disks or folders were found that Home Assistant can write to. Plug the disk in first if it is missing, or type its mount path.",
+        "title": "An external or USB disk"
+      },
+      "keep": {
+        "data": {
+          "buffer_hours": "Keep here for fast playback",
+          "keep_days": "Keep recordings for",
+          "max_gb": "Never use more than (0 for no limit)",
+          "segment_minutes": "Length of each file"
+        },
+        "data_description": {
+          "buffer_hours": "Recent files stay on this computer too, so the timeline plays them at once. Use 0 to keep nothing here once a file is copied.",
+          "max_gb": "When either limit is reached, the oldest recordings are removed first."
+        },
+        "description": "Step 5 of 6. At about 2 Mbit/s per camera, {cameras} cameras fill the free space in about {days} days.",
+        "title": "How long to keep recordings"
+      },
+      "local": {
+        "data": {
+          "path": "Folder"
+        },
+        "data_description": {
+          "path": "A full path. The folder is created when it does not exist. Files are written straight into it."
+        },
+        "description": "Step 2 of 6. Recordings are written to a folder on the data disk of this computer, or to any folder Home Assistant can write to.",
+        "title": "A disk or folder on this computer"
+      },
+      "scp": {
+        "data": {
+          "host": "Server",
+          "password": "Password",
+          "path": "Folder on the server",
+          "port": "Port",
+          "private_key_file": "Private key file",
+          "username": "User name"
+        },
+        "description": "Step 2 of 6. For servers that allow copying with SCP but not SFTP. The folder is created when it does not exist.",
+        "title": "An SSH server (SCP)"
+      },
+      "sftp": {
+        "data": {
+          "host": "Server",
+          "password": "Password",
+          "path": "Folder on the server",
+          "port": "Port",
+          "private_key_file": "Private key file",
+          "username": "User name"
+        },
+        "description": "Step 2 of 6. Any computer or NAS with SSH. Use a password, a private key file, or both. The folder is created when it does not exist.",
+        "title": "An SSH server (SFTP)"
+      },
+      "smb": {
+        "data": {
+          "domain": "Domain (optional)",
+          "host": "Server",
+          "password": "Password",
+          "path": "Folder in the share (optional)",
+          "port": "Port",
+          "share": "Share",
+          "username": "User name"
+        },
+        "data_description": {
+          "host": "The PC or NAS name, or its IP address, for example nas.local.",
+          "share": "The name of the shared folder, for example Cameras."
+        },
+        "description": "Step 2 of 6. A shared folder on a Windows PC or a NAS, reached with a user name and password.",
+        "title": "A Windows shared folder"
+      },
+      "test": {
+        "description": "Step 3 of 6. Every check passed for {label}:\n\n{results}\n\nNext, choose the cameras.",
+        "title": "Connection test"
+      },
+      "user": {
+        "description": "Step 1 of 6. Recording never stops while a file is being copied: each camera writes short files here first, then they move to the place you choose.",
+        "menu_options": {
+          "external_disk": "An external or USB disk",
+          "local": "A disk or folder on this computer",
+          "scp": "An SSH server (SCP)",
+          "sftp": "An SSH server (SFTP)",
+          "smb": "A Windows shared folder"
+        },
+        "title": "Where should recordings go?"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "used_space": {
+        "name": "Space used"
+      },
+      "waiting": {
+        "name": "Waiting to copy"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "no_cameras": "Choose at least one camera."
+    },
+    "step": {
+      "init": {
+        "data": {
+          "buffer_hours": "Keep here for fast playback",
+          "cameras": "Cameras to record",
+          "keep_days": "Keep recordings for",
+          "max_gb": "Never use more than (0 for no limit)",
+          "segment_minutes": "Length of each file"
+        },
+        "title": "Cameras and limits"
+      }
+    }
+  }
+}

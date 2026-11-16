@@ -1,0 +1,157 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-15T19:40:00Z"
+  },
+  "title": "Home Assistant Material, modern: Cameras",
+  "launch": {
+    "view": "canvas",
+    "page": "timeline"
+  },
+  "pages": [
+    {
+      "id": "timeline",
+      "name": "Event timeline under the camera player"
+    },
+    {
+      "id": "recording",
+      "name": "Recording around the clock, with guided setup"
+    },
+    {
+      "id": "phone",
+      "name": "Cameras on a phone"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Live camera with the event timeline",
+      "expand": "fill",
+      "page": "timeline"
+    },
+    "CamPlayback.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Playing a recorded event",
+      "expand": "fill",
+      "page": "timeline"
+    },
+    "CamLiveDark.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Live camera, dark",
+      "expand": "fill",
+      "page": "timeline"
+    },
+    "CamNoRecording.dc.html": {
+      "x": 4968,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Timeline before recording is set up",
+      "expand": "fill",
+      "page": "timeline"
+    },
+    "RecWhere.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Guided setup: where recordings go",
+      "expand": "fill",
+      "page": "recording"
+    },
+    "RecTest.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Guided setup: connection test",
+      "expand": "fill",
+      "page": "recording"
+    },
+    "RecTestFail.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Guided setup: a failed test explains the fix",
+      "expand": "fill",
+      "page": "recording"
+    },
+    "RecKeep.dc.html": {
+      "x": 4968,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Guided setup: cameras and how long to keep",
+      "expand": "fill",
+      "page": "recording"
+    },
+    "RecStatus.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Recording status",
+      "expand": "fill",
+      "page": "recording"
+    },
+    "CamPhone.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Camera timeline and setup on a phone",
+      "expand": "fill",
+      "page": "phone"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "CamPlayback.dc.html",
+    "CamLiveDark.dc.html",
+    "CamNoRecording.dc.html",
+    "RecWhere.dc.html",
+    "RecTest.dc.html",
+    "RecTestFail.dc.html",
+    "RecKeep.dc.html",
+    "RecStatus.dc.html",
+    "CamPhone.dc.html"
+  ],
+  "notes": {
+    "t-timeline": {
+      "x": 0,
+      "y": -320,
+      "text": "Event timeline under the camera player. 4 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "timeline"
+    },
+    "t-recording": {
+      "x": 0,
+      "y": -320,
+      "text": "Recording around the clock, with guided setup. 5 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "recording"
+    },
+    "t-phone": {
+      "x": 0,
+      "y": -320,
+      "text": "Cameras on a phone. 1 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "phone"
+    }
+  },
+  "designSystems": []
+}

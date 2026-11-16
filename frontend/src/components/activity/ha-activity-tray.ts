@@ -261,7 +261,11 @@ export class HaActivityTray extends LitElement {
           : html`<p class="detail">
               ${
                 row.state === "failed"
-                  ? this._t("ui.update_progress.failed_message")
+                  ? row.notStarted
+                    ? this._t("ui.update_progress.not_started_message", {
+                        error: row.details ?? "",
+                      })
+                    : this._t("ui.update_progress.failed_message")
                   : stage
               }
             </p>`
@@ -270,10 +274,19 @@ export class HaActivityTray extends LitElement {
         row.state === "failed"
           ? html`<ha-recovery-card
               .hass=${this.hass}
-              .heading=${this._t("ui.update_progress.failed_heading", {
-                name: row.title,
-              })}
-              .message=${this._t("ui.update_progress.failed_message")}
+              .heading=${this._t(
+                row.notStarted
+                  ? "ui.update_progress.not_started_heading"
+                  : "ui.update_progress.failed_heading",
+                { name: row.title }
+              )}
+              .message=${
+                row.notStarted
+                  ? this._t("ui.update_progress.not_started_message", {
+                      error: row.details ?? "",
+                    })
+                  : this._t("ui.update_progress.failed_message")
+              }
               .details=${row.details ?? ""}
               .canRetry=${row.canRetry}
               data-entity-id=${row.entityId}

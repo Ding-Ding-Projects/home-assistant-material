@@ -692,6 +692,41 @@
       "last": "Last"
     },
     "components": {
+      "camera_timeline": {
+        "label": "Camera timeline",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "previous_day": "Previous day",
+        "next_day": "Next day",
+        "hours": "{count, plural,\n  one {# hour}\n  other {# hours}\n}",
+        "live": "Live",
+        "recorded": "Recorded",
+        "not_recorded": "Not recorded",
+        "not_set_up": "This camera is not recorded yet, so only events are shown.",
+        "set_up": "Set up recording",
+        "settings": "Recording settings",
+        "back_to_live": "Back to live",
+        "filter": "Show events",
+        "load_failed": "The events of this day could not be loaded.",
+        "no_events": "No events on this day.",
+        "play": "Play",
+        "pause": "Pause",
+        "back_10": "Back 10 seconds",
+        "forward_10": "Forward 10 seconds",
+        "download": "Download this recording",
+        "not_recorded_here": "There is no recording at this moment.",
+        "play_failed": "The recording could not be played.",
+        "seconds": "{count} s",
+        "minutes": "{minutes} min {seconds} s",
+        "kinds": {
+          "motion": "Motion",
+          "person": "Person",
+          "vehicle": "Vehicle",
+          "animal": "Animal",
+          "doorbell": "Doorbell",
+          "sound": "Sound"
+        }
+      },
       "action-field-adapter": {
         "amount": "Number of days or weeks",
         "unit": "Time unit",
@@ -4079,6 +4114,8 @@
       "version_unchanged": "The installed version did not change. It is still {version}.",
       "failed_heading": "The update for {name} did not finish",
       "failed_message": "Home Assistant did not report the new version after the update.",
+      "not_started_heading": "The update for {name} did not start",
+      "not_started_message": "Nothing was installed, because the update was refused: {error}",
       "changed_installed": "The version installed now is {version}.",
       "changed_backup": "A backup was asked for before the update. Check the backups list for what exists.",
       "open_backups": "Open the backups to restore",
@@ -6068,6 +6105,10 @@
           "problem_log": {
             "main": "Problem log",
             "secondary": "Problems recorded on this machine, with nothing sent anywhere"
+          },
+          "camera_recording": {
+            "main": "Camera recording",
+            "secondary": "Cameras recorded around the clock and where recordings go"
           },
           "ollama": {
             "main": "Ollama",
@@ -9753,6 +9794,38 @@
               "done": "Done",
               "failed_rename": "Failed to rename the voice satellite: {error}"
             }
+          }
+        },
+        "camera_recording": {
+          "caption": "Camera recording",
+          "description": "Cameras recorded around the clock, where their recordings go, and what is waiting to be copied there. Recordings play from the timeline under each camera.",
+          "none": "No camera is recorded yet.",
+          "set_up": "Set up recording",
+          "add_another": "Record to another place",
+          "count_of": "{count} of {total}",
+          "recording": "Cameras recording",
+          "used": "Space used",
+          "used_of": "used of {limit}",
+          "waiting": "Waiting to copy",
+          "last_copy": "Last copy",
+          "copy_problem": "Recordings could not be copied: {error}. They wait on this computer and are copied when the destination is back.",
+          "camera": "Camera",
+          "state": "State",
+          "newest": "Newest recording",
+          "oldest": "Oldest kept",
+          "actions": "Actions",
+          "pause": "Pause",
+          "resume": "Resume",
+          "pause_all": "Pause all",
+          "resume_all": "Resume all",
+          "change": "Cameras and limits",
+          "states": {
+            "starting": "Starting",
+            "recording": "Recording",
+            "reconnecting": "Reconnecting",
+            "no_stream": "No video stream",
+            "paused": "Paused",
+            "stopped": "Stopped"
           }
         },
         "activity_record": {
@@ -21601,26 +21674,6 @@
         "title": "Marketplace",
         "not_loaded": "The Marketplace is not available. It does not load in recovery mode or when it failed to start, check the Home Assistant logs for more information.",
         "load_failed": "The Marketplace could not load its data: {error}",
-        "warning": {
-          "title": "Before you install from the Marketplace",
-          "intro": "Marketplace items are made by community contributors and are not reviewed by the Home\u00a0Assistant project. Treat them like plugins for any other software.",
-          "risks_title": "Anything you install can",
-          "risks": {
-            "access": "Access and control everything in Home\u00a0Assistant",
-            "internet": "Connect to the internet",
-            "data": "Share your data with others",
-            "stability": "Slow down or crash Home\u00a0Assistant"
-          },
-          "mindful_title": "So be mindful",
-          "mindful": {
-            "read": "Read the documentation and understand what the item changes.",
-            "monitor": "Keep an eye on your system after installing.",
-            "uninstall": "If something goes wrong, uninstall it right away."
-          },
-          "understand": "I understand the risks and agree",
-          "go_back": "Go back",
-          "continue": "Continue"
-        },
         "common": {
           "install": "Install",
           "learn_more": "Learn more",

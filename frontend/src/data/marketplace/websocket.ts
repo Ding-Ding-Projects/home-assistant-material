@@ -65,9 +65,6 @@ export const marketplaceErrorMessage = (
 export const fetchMarketplaceInfo = (hass: Pick<HomeAssistant, "callWS">) =>
   hass.callWS<MarketplaceInfo>({ type: "marketplace/info" });
 
-export const acceptMarketplaceWarning = (hass: Pick<HomeAssistant, "callWS">) =>
-  hass.callWS<null>({ type: "marketplace/warning/accept" });
-
 // Starts the reconfigure flow of the entry that connects a GitHub account
 export const connectMarketplaceGitHub = (hass: Pick<HomeAssistant, "callWS">) =>
   hass.callWS<{ flow_id: string }>({ type: "marketplace/github/connect" });

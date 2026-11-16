@@ -203,20 +203,39 @@ class StepFlowForm extends LitElement {
           Object.entries(stepData).filter(([name]) => !hidden.has(name))
         )
       : stepData;
-    return segments.map((segment, index) =>
-      segment.kind === "columns"
-        ? html`<div class="columns">
-            ${segment.fields.map((field, fieldIndex) =>
-              this._renderFormPart(
-                [field],
-                visibleData,
-                index === 0 && fieldIndex === 0
-              )
-            )}
-          </div>`
-        : this._renderFormPart(segment.fields, visibleData, index === 0)
-    );
+    // The error for the whole step spans every column, above the fields.
+    const baseError = this._errors?.base;
+    return [
+      baseError
+        ? html`<ha-alert alert-type="error" class="base-error"
+            >${this._errorCallback(baseError)}</ha-alert
+          >`
+        : nothing,
+      ...segments.map((segment, index) =>
+        segment.kind === "columns"
+          ? html`<div class="columns">
+              ${segment.fields.map((field, fieldIndex) =>
+                this._renderFormPart(
+                  [field],
+                  visibleData,
+                  index === 0 && fieldIndex === 0
+                )
+              )}
+            </div>`
+          : this._renderFormPart(segment.fields, visibleData, index === 0)
+      ),
+    ];
   }
+
+  // A form split into parts shows the error for the whole step once, above the parts.
+  private _fieldErrors = memoizeOne(
+    (errors: Record<string, string> | undefined, whole: boolean) =>
+      whole || errors?.base === undefined
+        ? errors
+        : Object.fromEntries(
+            Object.entries(errors).filter(([name]) => name !== "base")
+          )
+  );
 
   private _renderFormPart(
     schema: readonly HaFormSchema[],
@@ -232,7 +251,7 @@ class StepFlowForm extends LitElement {
       .disabled=${this._loading}
       @value-changed=${this._stepDataChanged}
       .schema=${schema}
-      .error=${this._errors}
+      .error=${this._fieldErrors(this._errors, schema.length === this.step.data_schema.length && first)}
       .computeLabel=${this._labelCallback}
       .computeHelper=${this._helperCallback}
       .computeError=${this._errorCallback}
