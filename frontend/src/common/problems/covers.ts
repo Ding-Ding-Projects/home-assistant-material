@@ -9,6 +9,9 @@ const covers = new Set<HTMLElement>();
 // The outline is drawn a little outside its box; this keeps it off the bar.
 const OUTLINE_ROOM = 8;
 
+// Less of an element than this is not worth outlining.
+const MIN_VISIBLE = 28;
+
 export const registerProblemCover = (element: HTMLElement): void => {
   covers.add(element);
 };
@@ -68,4 +71,69 @@ export const clipToCovers = <
     return undefined;
   }
   return { ...box, top, height: bottom - top };
+};
+
+const parentOf = (node: Element): Element | null => {
+  if (node.assignedSlot) {
+    return node.assignedSlot;
+  }
+  if (node.parentElement) {
+    return node.parentElement;
+  }
+  const root = node.getRootNode();
+  return root instanceof ShadowRoot ? root.host : null;
+};
+
+const CLIPPING = new Set(["hidden", "auto", "scroll", "clip"]);
+
+/**
+ * The part of the window in which an element can be seen: the window itself,
+ * narrowed by every ancestor that scrolls or hides its overflow, across shadow
+ * roots. The overlay is drawn above the page, so without this an outline would
+ * follow an element that has scrolled out of its container.
+ */
+export const visibleArea = (element: Element): CoverRect => {
+  const area: CoverRect = {
+    top: 0,
+    left: 0,
+    bottom: window.innerHeight,
+    right: window.innerWidth,
+  };
+  let node = parentOf(element);
+  while (node) {
+    const style = getComputedStyle(node);
+    const clipsY = CLIPPING.has(style.overflowY);
+    const clipsX = CLIPPING.has(style.overflowX);
+    if (clipsY || clipsX) {
+      const rect = node.getBoundingClientRect();
+      if (clipsY) {
+        area.top = Math.max(area.top, rect.top);
+        area.bottom = Math.min(area.bottom, rect.bottom);
+      }
+      if (clipsX) {
+        area.left = Math.max(area.left, rect.left);
+        area.right = Math.min(area.right, rect.right);
+      }
+    }
+    node = parentOf(node);
+  }
+  return area;
+};
+
+/** Cuts a box to an area. Returns undefined when too little of it is left. */
+export const clipToArea = <
+  T extends { top: number; left: number; width: number; height: number },
+>(
+  box: T,
+  area: CoverRect
+): T | undefined => {
+  const top = Math.max(box.top, area.top);
+  const bottom = Math.min(box.top + box.height, area.bottom);
+  const left = Math.max(box.left, area.left);
+  const right = Math.min(box.left + box.width, area.right);
+  // A sliver cannot carry a badge that can be read or pressed.
+  if (bottom - top < MIN_VISIBLE || right - left < MIN_VISIBLE) {
+    return undefined;
+  }
+  return { ...box, top, left, height: bottom - top, width: right - left };
 };

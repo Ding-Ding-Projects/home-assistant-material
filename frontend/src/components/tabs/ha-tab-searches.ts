@@ -4,6 +4,7 @@ import { css, html, nothing } from "lit";
 import { styleMap } from "lit/directives/style-map";
 import { classMap } from "lit/directives/class-map";
 import { navigate } from "../../common/navigate";
+import { startTypeAhead } from "../../common/type-ahead";
 import { readDestinations } from "../../common/tabs/tab-destination-list";
 import {
   destinationId,
@@ -818,8 +819,11 @@ export class TabSearchesController implements ReactiveController {
       !ev.isComposing
     ) {
       ev.preventDefault();
+      // Collecting starts in this same turn, before the dialog has loaded, so
+      // a fast burst of keys is kept whole.
+      startTypeAhead(ev.key);
       (ev.currentTarget as HaInputSearch).blur();
-      showQuickBar(this._ctx.host, { search: ev.key });
+      showQuickBar(this._ctx.host, {});
     }
   };
 

@@ -12,6 +12,12 @@ import { customElement, property, query, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
 import { consume } from "../../common/decorators/consume";
+import {
+  isTypeAheadActive,
+  startTypeAhead,
+  stopTypeAhead,
+  takeTypeAhead,
+} from "../../common/type-ahead";
 import type { NavigationFilterOptions } from "../../common/config/filter_navigation_pages";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import { stopPropagation } from "../../common/dom/stop_propagation";
@@ -186,30 +192,6 @@ export class QuickBar extends LitElement {
 
   @query("ha-picker-combo-box") private _comboBox?: HaPickerComboBox;
 
-  private _typedAhead = "";
-
-  private _collecting = false;
-
-  private _collectTyped = (ev: KeyboardEvent) => {
-    if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.isComposing) {
-      return;
-    }
-    if (ev.key.length === 1) {
-      this._typedAhead += ev.key;
-    } else if (ev.key === "Backspace") {
-      this._typedAhead = this._typedAhead.slice(0, -1);
-    } else {
-      return;
-    }
-    ev.preventDefault();
-    ev.stopPropagation();
-  };
-
-  private _stopCollecting() {
-    this._collecting = false;
-    window.removeEventListener("keydown", this._collectTyped, true);
-  }
-
   // Focuses the search field and hands it everything typed so far.
   private async _focusSearch() {
     const combo = this._comboBox;
@@ -217,13 +199,12 @@ export class QuickBar extends LitElement {
       return;
     }
     combo.focus();
-    if (!this._collecting) {
+    if (!isTypeAheadActive()) {
       return;
     }
     await combo.updateComplete;
     // Keys keep being collected until this point, then the field takes over.
-    const typed = this._typedAhead;
-    this._stopCollecting();
+    const typed = takeTypeAhead();
     if (typed) {
       await combo.setSearch(typed);
     }
@@ -277,11 +258,10 @@ export class QuickBar extends LitElement {
     this._initialize();
     this._selectedSection = effectiveQuickBarMode(this.hass.user, params.mode);
     this._showHint = params.showHint ?? false;
-    // Text typed before the search field can take focus is collected here, so
-    // no character is lost while the dialog opens.
-    this._typedAhead = params.search ?? "";
-    this._collecting = true;
-    window.addEventListener("keydown", this._collectTyped, true);
+    // Text typed before the search field can take focus is collected, so no
+    // character is lost while the dialog opens. A caller may have started
+    // collecting already; this adds to it.
+    startTypeAhead(params.search ?? "");
 
     this._unsubPrefs?.();
     this._unsubPrefs = subscribePersonalPreferences(() => {
@@ -352,8 +332,7 @@ export class QuickBar extends LitElement {
             element_id: "combo-box",
           },
         });
-        const typed = this._typedAhead;
-        this._stopCollecting();
+        const typed = takeTypeAhead();
         if (typed) {
           this._comboBox?.setSearch(typed);
         }
@@ -374,8 +353,7 @@ export class QuickBar extends LitElement {
   }
 
   private _dialogClosed = () => {
-    this._stopCollecting();
-    this._typedAhead = "";
+    stopTypeAhead();
     this._selectedSection = undefined;
     this._opened = false;
     this._open = false;

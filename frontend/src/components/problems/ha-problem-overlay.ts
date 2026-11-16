@@ -23,7 +23,12 @@ import {
   readProblemSettings,
 } from "../../common/problems/problem-settings";
 import type { ProblemSpotlightDetail } from "../../common/problems/teleport";
-import { clipToCovers, problemCoverRects } from "../../common/problems/covers";
+import {
+  clipToArea,
+  clipToCovers,
+  problemCoverRects,
+  visibleArea,
+} from "../../common/problems/covers";
 import { PROBLEM_SPOTLIGHT_EVENT } from "../../common/problems/teleport";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import type { HomeAssistant } from "../../types";
@@ -158,7 +163,8 @@ export class HaProblemOverlay extends LitElement {
             continue;
           }
           // The part that has scrolled under a bar is not drawn over it.
-          const box = clipToCovers<Box>(
+          // Nor is the part that has scrolled out of its own container.
+          const seen = clipToArea<Box>(
             {
               id: problem.id,
               severity: problem.severity,
@@ -167,8 +173,9 @@ export class HaProblemOverlay extends LitElement {
               width: rect.width,
               height: rect.height,
             },
-            coverRects
+            visibleArea(element)
           );
+          const box = seen ? clipToCovers<Box>(seen, coverRects) : undefined;
           if (box) {
             boxes.push(box);
           }
