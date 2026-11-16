@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Update coming soon card in every state</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#EEF1F6}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid #00639B;outline-offset:2px}
+</style>
+</helmet>
+<div style="box-sizing: border-box; min-height: 1330px; background: #EEF1F6; color: #181C20; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 32px 24px 48px">
+<div style="max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px">
+
+<section aria-labelledby="s1" style="background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 12px; color: #42474E; font-weight: 500">State 1 of 8: waiting in line</div>
+<div style="align-self: flex-start; padding: 4px 12px; border-radius: 8px; background: #D5E4F6; color: #3A4857; font-size: 12px; font-weight: 500">Waiting for the build before it</div>
+<h2 id="s1" style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 500">Update coming soon</h2>
+<div>Build 462 will become Core <span style="font-family: 'Roboto Mono', monospace">2026.11.1.462</span></div>
+<div role="progressbar" aria-label="Build progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="Not started, waiting for build 457" style="height: 12px; border-radius: 6px; background: #E1E5EC"></div>
+<div style="color: #42474E; font-size: 13px">Only one build runs at a time. Build 457 is on its last stage, the operating system images. Build 462 starts when it ends.</div>
+<div style="padding: 12px 16px; border-radius: 16px; background: #F1F4F9; font-size: 13px">Running now: build 457, stage 6 of 7, 81%</div>
+</section>
+
+<section aria-labelledby="s2" style="background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 12px; color: #42474E; font-weight: 500">State 2 of 8: Core is ready, the rest still building</div>
+<div style="align-self: flex-start; padding: 4px 12px; border-radius: 8px; background: #B6F2BE; color: #1F6A3B; font-size: 12px; font-weight: 500">Core update ready</div>
+<h2 id="s2" style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 500">Core 2026.11.1.462 can be installed</h2>
+<div role="progressbar" aria-label="Build progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="69" aria-valuetext="11 of 16 jobs done, 4 running" style="height: 12px; border-radius: 6px; background: #E1E5EC; overflow: hidden; display: flex; gap: 2px"><div style="width: 69%; background: #00639B; border-radius: 6px"></div><div style="width: 25%; background: repeating-linear-gradient(135deg, #00639B 0 6px, #CEE5FF 6px 12px); border-radius: 6px"></div></div>
+<div style="color: #42474E; font-size: 13px">Stage 6 of 7: Building operating system images. Estimate: about 1 hour 20 minutes left. You do not need to wait for it to update Core.</div>
+<div style="color: #42474E; font-size: 13px">Press Check now at the top of this page. The update then appears in the list below.</div>
+</section>
+
+<section aria-labelledby="s3" style="background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 12px; color: #42474E; font-weight: 500">State 3 of 8: finished</div>
+<div style="align-self: flex-start; padding: 4px 12px; border-radius: 8px; background: #B6F2BE; color: #1F6A3B; font-size: 12px; font-weight: 500">Release published</div>
+<h2 id="s3" style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 500">Build 462 is ready</h2>
+<div role="progressbar" aria-label="Build progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="16 of 16 jobs done" style="height: 12px; border-radius: 6px; background: #1F6A3B"></div>
+<div style="color: #42474E; font-size: 13px">Finished at 19:02 after 2 hours 6 minutes. Core, Supervisor and the operating system can all be updated. Press Check now if the list below has not caught up.</div>
+</section>
+
+<section aria-labelledby="s4" style="background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 12px; color: #42474E; font-weight: 500">State 4 of 8: a job failed</div>
+<div style="align-self: flex-start; padding: 4px 12px; border-radius: 8px; background: #FFDAD6; color: #93000A; font-size: 12px; font-weight: 500">Build stopped</div>
+<h2 id="s4" style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 500">Build 462 did not finish</h2>
+<div role="progressbar" aria-label="Build progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="44" aria-valuetext="Stopped at 7 of 16 jobs, 1 failed" style="height: 12px; border-radius: 6px; background: #E1E5EC; overflow: hidden; display: flex; gap: 2px"><div style="width: 44%; background: #72777F; border-radius: 6px"></div><div style="width: 6%; background: #BA1A1A; border-radius: 6px"></div></div>
+<div role="alert" style="padding: 12px 16px; border-radius: 16px; background: #FFDAD6; color: #93000A; font-size: 13px">Failed at stage 3: Build amd64 core images, after 12 minutes. Nothing from this build is offered as an update. Your home keeps running the version it has.</div>
+<div style="color: #42474E; font-size: 13px">Nothing to do here. The next build replaces this one.</div>
+</section>
+
+<section aria-labelledby="s5" style="background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 12px; color: #42474E; font-weight: 500">State 5 of 8: replaced before it started</div>
+<div style="align-self: flex-start; padding: 4px 12px; border-radius: 8px; background: #FFE08B; color: #6B5200; font-size: 12px; font-weight: 500">Replaced by a newer build</div>
+<h2 id="s5" style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 500">Build 461 was skipped</h2>
+<div style="color: #42474E; font-size: 13px">A newer change arrived while build 461 was waiting, so build 462 took its place. Everything in 461 is part of 462. This is normal and is not an error.</div>
+<div style="padding: 12px 16px; border-radius: 16px; background: #F1F4F9; font-size: 13px">Next in line: build 462</div>
+</section>
+
+<section aria-labelledby="s6" style="background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 12px; color: #42474E; font-weight: 500">State 6 of 8: nothing on the way</div>
+<h2 id="s6" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 500">No newer build is on the way</h2>
+<div style="color: #42474E; font-size: 13px">You have build 462, the newest. Last checked at 19:40. This card checks again when you open the page.</div>
+<button style="align-self: flex-start; height: 48px; padding: 0 20px; border-radius: 24px; border: 1px solid #72777F; background: transparent; color: #00639B; font-weight: 500">Refresh</button>
+</section>
+
+<section aria-labelledby="s7" style="background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 12px; color: #42474E; font-weight: 500">State 7 of 8: asked too often</div>
+<h2 id="s7" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 500">Build progress is resting</h2>
+<div style="padding: 12px 16px; border-radius: 16px; background: #FFE08B; color: #6B5200; font-size: 13px">The public build list allows 60 checks an hour from one address, and this address has used them. It can be checked again at 17:42.</div>
+<div style="color: #42474E; font-size: 13px">Shown below is what was known at 17:21: build 462, stage 3 of 7, 38%.</div>
+<button disabled style="align-self: flex-start; height: 48px; padding: 0 20px; border-radius: 24px; border: 1px solid #C2C7CF; background: transparent; color: #72777F; font-weight: 500">Refresh at 17:42</button>
+</section>
+
+<section aria-labelledby="s8" style="background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 12px; color: #42474E; font-weight: 500">State 8 of 8: cannot be reached</div>
+<h2 id="s8" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 500">Build progress cannot be read right now</h2>
+<div style="color: #42474E; font-size: 13px">This browser could not reach the public build list. Your home and its updates are not affected: the list of updates below comes from your own system.</div>
+<button style="align-self: flex-start; height: 48px; padding: 0 20px; border-radius: 24px; border: none; background: #00639B; color: #FFFFFF; font-weight: 500">Try again</button>
+</section>
+
+<section aria-labelledby="s9" style="grid-column: 1 / -1; background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="s9" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 500">How the bar is drawn</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; font-size: 13px; color: #42474E">
+<div><div style="height: 12px; border-radius: 6px; background: #00639B; margin-bottom: 8px"></div>Solid: jobs that finished. The share is jobs done out of all jobs in the build.</div>
+<div><div style="height: 12px; border-radius: 6px; background: repeating-linear-gradient(135deg, #00639B 0 6px, #CEE5FF 6px 12px); margin-bottom: 8px"></div>Striped: jobs running now. The stripes move slowly; with reduced motion they stay still.</div>
+<div><div style="height: 12px; border-radius: 6px; background: #E1E5EC; margin-bottom: 8px"></div>Track: jobs still waiting.</div>
+<div><div style="height: 12px; border-radius: 6px; background: #BA1A1A; margin-bottom: 8px"></div>Red: the job that failed. The finished part turns grey so nothing reads as success.</div>
+</div>
+<div style="font-size: 13px; color: #42474E">Every state also says its meaning in words beside the bar, so colour is never the only signal.</div>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1330}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

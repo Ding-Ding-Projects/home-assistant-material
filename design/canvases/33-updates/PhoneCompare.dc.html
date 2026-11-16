@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone: compare versions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600&family=Roboto+Mono:wght@400;500&family=Noto+Sans+HK:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#EEF1F6}
+button{font:inherit;cursor:pointer}
+button:focus-visible,summary:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #00639B;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 1900px; box-sizing: border-box; background: #EEF1F6; color: #181C20; font-family: 'Roboto Flex', 'Noto Sans HK', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 16px 16px 48px; display: flex; flex-direction: column; gap: 16px">
+
+<header style="display: flex; align-items: center; gap: 8px">
+<button aria-label="Back to Updates" style="width: 48px; height: 48px; border-radius: 24px; border: none; background: transparent; color: #181C20; display: grid; place-items: center"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button>
+<div>
+<div style="font-size: 12px; color: #42474E">Updates</div>
+<h1 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 500">What changed between versions</h1>
+</div>
+</header>
+
+<section aria-label="Versions to compare" style="background: #FFFFFF; border-radius: 28px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #42474E">From
+<select style="height: 56px; border-radius: 12px; border: 1px solid #72777F; background: #FFFFFF; color: #181C20; padding: 0 12px; font: inherit; font-size: 16px"><option>Build 439, installed</option><option>Build 437</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #42474E">To
+<select style="height: 56px; border-radius: 12px; border: 1px solid #72777F; background: #FFFFFF; color: #181C20; padding: 0 12px; font: inherit; font-size: 16px"><option>Build 457, newest</option><option>Build 441</option></select></label>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button aria-pressed="true" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: none; background: #D5E4F6; color: #3A4857; font-weight: 500">Installed to newest</button>
+<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Latest build only</button>
+</div>
+<div style="font-size: 16px; line-height: 24px; font-weight: 500">57 changes in 2 builds</div>
+</section>
+
+<section aria-label="The two versions side by side" style="background: #FFFFFF; border-radius: 28px; padding: 20px; display: flex; flex-direction: column; gap: 0">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-bottom: 12px">
+<div style="font-weight: 500">Build 439<br><span style="display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 8px; background: #D5E4F6; color: #3A4857; font-size: 12px">Installed</span></div>
+<div style="font-weight: 500">Build 457<br><span style="display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 8px; background: #CEE5FF; color: #004A76; font-size: 12px">Newest</span></div>
+</div>
+<div style="border-top: 1px solid #C2C7CF; padding: 10px 0"><div style="font-size: 12px; color: #42474E">Home Assistant Core</div><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: 'Roboto Mono', monospace; font-size: 13px"><span>2026.11.1.439</span><span>2026.11.1.457</span></div></div>
+<div style="border-top: 1px solid #C2C7CF; padding: 10px 0"><div style="font-size: 12px; color: #42474E">Supervisor</div><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: 'Roboto Mono', monospace; font-size: 13px"><span>2026.11.0.439</span><span>2026.11.0.457</span></div></div>
+<div style="border-top: 1px solid #C2C7CF; padding: 10px 0"><div style="font-size: 12px; color: #42474E">Operating system</div><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: 'Roboto Mono', monospace; font-size: 13px"><span>18.5.439</span><span>18.5.457</span></div></div>
+<div style="border-top: 1px solid #C2C7CF; padding: 10px 0"><div style="font-size: 12px; color: #42474E">Built</div><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px"><span>14 Nov 2026, 00:56</span><span>16 Nov 2026, 14:43</span></div></div>
+<div style="border-top: 1px solid #C2C7CF; padding: 10px 0"><div style="font-size: 12px; color: #42474E">Source</div><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: 'Roboto Mono', monospace; font-size: 13px"><span>47a063cfd</span><span>9b5bbbec2</span></div></div>
+<div style="border-top: 1px solid #C2C7CF; padding: 10px 0 0"><div style="font-size: 12px; color: #42474E">Kind</div><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px"><span>Published release</span><span>Published release</span></div></div>
+</section>
+
+<label style="display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 16px; border-radius: 28px; background: #FFFFFF">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#42474E" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Search the changes</span>
+<input type="search" placeholder="Search the changes" style="flex: 1; min-width: 0; height: 48px; border: none; background: transparent; color: #181C20; font: inherit; font-size: 16px">
+</label>
+
+<div role="group" aria-label="Show changes to" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px">
+<button aria-pressed="true" style="flex: none; min-height: 48px; padding: 0 16px; border-radius: 12px; border: none; background: #D5E4F6; color: #3A4857; font-weight: 500">Interface 20</button>
+<button aria-pressed="false" style="flex: none; min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Core 7</button>
+<button aria-pressed="false" style="flex: none; min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Deploy Assistant 24</button>
+<button aria-pressed="false" style="flex: none; min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Build 5</button>
+<button aria-pressed="false" style="flex: none; min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Documentation 40</button>
+</div>
+<div style="color: #42474E; font-size: 13px">Showing 20 of 57 changes: Interface</div>
+
+<div style="display: flex; gap: 8px">
+<button style="flex: 1; height: 48px; border-radius: 24px; border: 1px solid #72777F; background: transparent; color: #00639B; font-weight: 500">Expand all</button>
+<button style="flex: 1; height: 48px; border-radius: 24px; border: 1px solid #72777F; background: transparent; color: #00639B; font-weight: 500">Copy as text</button>
+</div>
+
+<h2 style="margin: 8px 0 0; font-size: 16px; font-weight: 500">Build 457 <span style="margin-inline-start: 6px; padding: 2px 8px; border-radius: 8px; background: #CEE5FF; color: #004A76; font-size: 12px">Newest</span><br><span style="font-weight: 400; color: #42474E; font-size: 13px">16 November 2026, 14:43. 52 changes, 18 shown</span></h2>
+
+<details open style="background: #FFFFFF; border-radius: 16px; padding: 0 16px 16px">
+<summary style="min-height: 56px; display: flex; flex-direction: column; justify-content: center; gap: 6px; cursor: pointer; padding: 12px 0">
+<span style="font-weight: 500">Fix phone dashboard tools, the right-to-left footer and the sidebar search; record build 455</span>
+<span style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: #42474E"><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #72777F; color: #181C20">Interface</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #72777F; color: #181C20">Documentation</span><span>16 Nov, 14:43</span><span style="font-family: 'Roboto Mono', monospace">9b5bbbec2</span></span>
+</summary>
+<div style="font-size: 12px; color: #42474E; font-weight: 500; margin-bottom: 4px">Both languages mode: English, then Cantonese</div>
+<p style="margin: 0 0 10px; color: #42474E">The dashboard tools dialog thought a sentence was a headline and cut it off mid-thought on a phone; it now wraps. Its selection bar sits in the flow on narrow screens. Device frames wider than the dialog scroll inside it.</p>
+<p lang="yue" style="margin: 0; color: #42474E; line-height: 24px">手機版儀表板工具嗰句副標題唔再斬一半，識得轉行；揀選列唔再浮喺搜尋格上面阻住晒；裝置框闊過對話框就喺入面打橫捲。</p>
+</details>
+
+<details style="background: #FFFFFF; border-radius: 16px; padding: 0 16px">
+<summary style="min-height: 56px; display: flex; flex-direction: column; justify-content: center; gap: 6px; cursor: pointer; padding: 12px 0">
+<span style="font-weight: 500">Let Settings search offer pages inside the cards; record build 453</span>
+<span style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: #42474E"><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #72777F; color: #181C20">Interface</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #72777F; color: #181C20">Documentation</span><span>16 Nov, 12:48</span><span style="font-family: 'Roboto Mono', monospace">0622bb442</span></span>
+</summary>
+</details>
+
+<details style="background: #FFFFFF; border-radius: 16px; padding: 0 16px">
+<summary style="min-height: 56px; display: flex; flex-direction: column; justify-content: center; gap: 6px; cursor: pointer; padding: 12px 0">
+<span style="font-weight: 500">Fix breakpoint dots, phone dashboard tools, the 320 px editor bar, phone History and right-to-left text</span>
+<span style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: #42474E"><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #72777F; color: #181C20">Interface</span><span>16 Nov, 12:25</span><span style="font-family: 'Roboto Mono', monospace">915c77f71</span></span>
+</summary>
+</details>
+
+<button style="align-self: flex-start; height: 48px; padding: 0 16px; border-radius: 24px; border: none; background: transparent; color: #00639B; font-weight: 500">Show 15 more from build 457</button>
+
+<h2 style="margin: 8px 0 0; font-size: 16px; font-weight: 500">Build 441<br><span style="font-weight: 400; color: #42474E; font-size: 13px">15 November 2026, 00:02. 5 changes, 2 shown</span></h2>
+
+<details style="background: #FFFFFF; border-radius: 16px; padding: 0 16px">
+<summary style="min-height: 56px; display: flex; flex-direction: column; justify-content: center; gap: 6px; cursor: pointer; padding: 12px 0">
+<span style="font-weight: 500">Keep script mode controls and condition results readable</span>
+<span style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: #42474E"><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #72777F; color: #181C20">Interface</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #72777F; color: #181C20">Documentation</span><span>14 Nov, 23:35</span><span style="font-family: 'Roboto Mono', monospace">ea0ef484b</span></span>
+</summary>
+</details>
+
+<details style="background: #FFFFFF; border-radius: 16px; padding: 0 16px">
+<summary style="min-height: 56px; display: flex; flex-direction: column; justify-content: center; gap: 6px; cursor: pointer; padding: 12px 0">
+<span style="font-weight: 500">Add bounded history comparison and isolate pending requests</span>
+<span style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: #42474E"><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #72777F; color: #181C20">Interface</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #72777F; color: #181C20">Documentation</span><span>14 Nov, 23:33</span><span style="font-family: 'Roboto Mono', monospace">8300184d2</span></span>
+</summary>
+</details>
+
+<div style="padding: 12px 16px; border-radius: 12px; border: 1px dashed #72777F; color: #42474E; font-size: 13px">Build 439 is where this comparison starts. It is the version installed here, so nothing before it is listed.</div>
+
+<section aria-label="Other states" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px">
+<div style="font-size: 12px; color: #42474E; font-weight: 500">Other states of this page</div>
+<div style="background: #FFFFFF; border-radius: 16px; padding: 16px; font-size: 13px"><div style="font-weight: 500; margin-bottom: 4px">Nothing matches</div><span style="color: #42474E">No change matches "thermostat" in Interface. Clear the search or choose more parts.</span></div>
+<div style="background: #FFFFFF; border-radius: 16px; padding: 16px; font-size: 13px"><div style="font-weight: 500; margin-bottom: 4px">Not published yet</div><span style="color: #42474E">The change list has not been published yet. It appears with the next build.</span></div>
+<div style="background: #FFDAD6; color: #93000A; border-radius: 16px; padding: 16px; font-size: 13px; display: flex; flex-direction: column; gap: 8px"><div style="font-weight: 500">The change list could not be read</div><span>This browser could not reach the public change list.</span><button style="align-self: flex-start; height: 48px; padding: 0 20px; border-radius: 24px; border: none; background: #93000A; color: #FFFFFF; font-weight: 500">Try again</button></div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
