@@ -48,10 +48,20 @@ case "${arch}" in
 	*) oci_arch="${arch}" ;;
 esac
 
-image_digest=$(retry 3 "skopeo inspect --override-arch '${oci_arch}' 'docker://${full_image_name}' | jq -r '.Digest'")
+image_digest=$(retry 3 "skopeo inspect --override-os linux --override-arch '${oci_arch}' 'docker://${full_image_name}' | jq -er '.Digest | select(test(\"^sha256:[a-f0-9]{64}\$\"))'")
+image_manifest=$(retry 3 "skopeo inspect --raw 'docker://${image_name}@${image_digest}'")
+if jq -e 'has("manifests")' <<< "${image_manifest}" > /dev/null; then
+	image_digest=$(jq -er --arg arch "${oci_arch}" \
+		'[.manifests[] | select(.platform.os == "linux" and .platform.architecture == $arch)] |
+		select(length == 1) | .[0].digest | select(test("^sha256:[a-f0-9]{64}$"))' \
+		<<< "${image_manifest}")
+fi
+image_config=$(retry 3 "skopeo inspect --config 'docker://${image_name}@${image_digest}'")
+jq -e --arg arch "${oci_arch}" '.os == "linux" and .architecture == $arch' \
+	<<< "${image_config}" > /dev/null
 
 # Cleanup image name file name use
-image_file_name="${full_image_name//[:\/]/_}@${image_digest//[:\/]/_}"
+image_file_name="${full_image_name//[:\/]/_}@linux-${oci_arch}-${image_digest//[:\/]/_}"
 image_file_path="${dl_dir}/${image_file_name}.tar"
 dst_image_file_path="${dst_dir}/${image_file_name}.tar"
 
@@ -61,7 +71,7 @@ dst_image_file_path="${dst_dir}/${image_file_name}.tar"
 	if [ ! -f "${image_file_path}" ]
 	then
 		echo "Fetching image: ${full_image_name} (digest ${image_digest})"
-		retry 3 "skopeo copy --override-arch '${oci_arch}' 'docker://${image_name}@${image_digest}' 'oci-archive:${image_file_path}:${full_image_name}'"
+		retry 3 "skopeo copy --override-os linux --override-arch '${oci_arch}' 'docker://${image_name}@${image_digest}' 'oci-archive:${image_file_path}:${full_image_name}'"
 	else
 		echo "Skipping download of existing image: ${full_image_name} (digest ${image_digest})"
 	fi
