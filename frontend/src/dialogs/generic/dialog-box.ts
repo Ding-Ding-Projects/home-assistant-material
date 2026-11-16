@@ -15,6 +15,7 @@ import type { HaTextArea } from "../../components/ha-textarea";
 import "../../components/input/ha-input";
 import type { HaInput } from "../../components/input/ha-input";
 import { DirtyStateProviderMixin } from "../../mixins/dirty-state-provider-mixin";
+import { modeText } from "../../common/language-mode/language-mode";
 import { getPersonalPreferences } from "../../common/preferences/personal-preferences";
 import type { HomeAssistant } from "../../types";
 import type { DialogBoxParams } from "./show-dialog-box";
@@ -146,7 +147,11 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
               ? html`<slot name="headerNavigationIcon" slot="navigationIcon">
                   <ha-icon-button
                     data-dialog="close"
-                    .label=${this.hass?.localize("ui.common.close") ?? "Close"}
+                    .label=${
+                      this.hass
+                        ? modeText(this.hass.localize, "ui.common.close")
+                        : "Close"
+                    }
                     .path=${mdiClose}
                   ></ha-icon-button
                 ></slot>`
@@ -277,7 +282,7 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
                               >${this.hass.localize("ui.dialogs.two_key.exit")}`
                           : this._params.dismissText
                             ? this._params.dismissText
-                            : this.hass.localize("ui.common.cancel")
+                            : modeText(this.hass.localize, "ui.common.cancel")
                     }
                   </ha-button>
                 `
@@ -310,7 +315,7 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
                     ${
                       this._params.confirmText
                         ? this._params.confirmText
-                        : this.hass.localize("ui.common.ok")
+                        : modeText(this.hass.localize, "ui.common.ok")
                     }
                   </ha-button>`
           }

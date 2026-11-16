@@ -24,8 +24,23 @@ export const YUE_PREFIXES = [
   "ui.panel.history.comparison.",
   "ui.panel.config.personal.",
   // Single strings, not whole blocks: the settings home banners and the apps page.
-  "ui.panel.config.dashboard.review_updates",
-  "ui.panel.config.dashboard.fix_repairs",
+  "ui.panel.config.dashboard.",
+  "ui.panel.config.updates.check_updates",
+  "ui.panel.config.system_dashboard.restart_homeassistant",
+  // The navigation rail, the panel names and the notification drawer.
+  "ui.sidebar.",
+  "panel.",
+  "ui.notification_drawer.",
+  // The common action buttons and words.
+  "ui.common.",
+  // The home page cards.
+  "ui.panel.lovelace.cards.home_hero.",
+  "ui.panel.lovelace.cards.home_greeting.",
+  "ui.panel.lovelace.cards.lights_summary.",
+  "ui.panel.lovelace.cards.security_locks.",
+  "ui.panel.lovelace.cards.security_alarm.",
+  "ui.panel.lovelace.cards.dashboards_list.",
+  "ui.panel.lovelace.cards.room_lights.",
   "ui.panel.config.lovelace.resources.detail.",
   "ui.panel.config.apps.info.needs_os_title",
   "ui.panel.config.apps.info.no_store_text",

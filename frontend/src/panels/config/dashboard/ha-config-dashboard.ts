@@ -14,6 +14,12 @@ import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import { ctrlOrCmdLabel } from "../../../common/keyboard/ctrl-or-cmd";
 import { PageLockController } from "../../../common/locks/page-lock-controller";
+import {
+  joinForMode,
+  textParts,
+} from "../../../common/language-mode/language-mode";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LanguageMode } from "../../../common/preferences/personal-preferences";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
@@ -198,16 +204,40 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
       panels: HomeAssistant["panels"],
       config: HomeAssistant["config"],
       integrations: number | undefined,
-      localize: HomeAssistant["localize"]
-    ) =>
-      sectionSummaries(
-        sectionCounts(
-          { devices, states, areas, floors, panels, config },
-          integrations
-        ),
-        localize
-      )
+      localize: HomeAssistant["localize"],
+      mode: LanguageMode
+    ) => {
+      const counts = sectionCounts(
+        { devices, states, areas, floors, panels, config },
+        integrations
+      );
+      const english = sectionSummaries(counts, localize);
+      if (mode === "english") {
+        return english;
+      }
+      // Each summary is joined as a whole, so two languages read as one line
+      // per language instead of being mixed inside the sentence.
+      const cantonese = sectionSummaries(counts, (key, values) => {
+        const parts = textParts(localize, key, values);
+        return parts.cantonese ?? parts.english;
+      });
+      return Object.fromEntries(
+        Object.entries(english).map(([path, text]) => [
+          path,
+          joinForMode({ english: text, cantonese: cantonese[path] }, mode),
+        ])
+      );
+    }
   );
+
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // A string that follows the language mode where it has Cantonese.
+  private _t = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string => this._lang.text(this.hass.localize, key, values);
 
   protected firstUpdated(changedProps: PropertyValues<this>): void {
     super.firstUpdated(changedProps);
@@ -244,7 +274,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
       this._repairsIssues;
 
     const locked = this._pageLock.locked;
-    const title = this.hass.localize("panel.config");
+    const title = this._t("panel.config");
 
     return html`
       <header>
@@ -261,9 +291,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           ${
             this.narrow
               ? nothing
-              : html`<p>
-                  ${this.hass.localize("ui.panel.config.dashboard.summary")}
-                </p>`
+              : html`<p>${this._t("ui.panel.config.dashboard.summary")}</p>`
           }
         </div>
         ${this.narrow ? nothing : this._renderSearch()}
@@ -275,19 +303,17 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
         <ha-dropdown ?inert=${locked} @wa-select=${this._handleMenuAction}>
           <ha-icon-button
             slot="trigger"
-            .label=${this.hass.localize("ui.common.menu")}
+            .label=${this._t("ui.common.menu")}
             .path=${mdiDotsVertical}
           ></ha-icon-button>
 
           <ha-dropdown-item value="check-updates">
-            ${this.hass.localize("ui.panel.config.updates.check_updates")}
+            ${this._t("ui.panel.config.updates.check_updates")}
             <ha-svg-icon slot="icon" .path=${mdiRefresh}></ha-svg-icon>
           </ha-dropdown-item>
 
           <ha-dropdown-item value="restart">
-            ${this.hass.localize(
-              "ui.panel.config.system_dashboard.restart_homeassistant"
-            )}
+            ${this._t("ui.panel.config.system_dashboard.restart_homeassistant")}
             <ha-svg-icon slot="icon" .path=${mdiPower}></ha-svg-icon>
           </ha-dropdown-item>
         </ha-dropdown>
@@ -309,7 +335,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
                         ></span>
                         <span class="banner-text">
                           <strong
-                            >${this.hass.localize(
+                            >${this._t(
                               "ui.panel.config.dashboard.updates_ready",
                               { count: totalUpdates }
                             )}</strong
@@ -321,7 +347,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
                           >
                         </span>
                         <span class="banner-action"
-                          >${this.hass.localize(
+                          >${this._t(
                             "ui.panel.config.dashboard.review_updates"
                           )}</span
                         >
@@ -339,7 +365,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
                         ></span>
                         <span class="banner-text">
                           <strong
-                            >${this.hass.localize(
+                            >${this._t(
                               "ui.panel.config.dashboard.repairs_waiting",
                               { count: totalRepairIssues }
                             )}</strong
@@ -347,7 +373,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
                           <span>${this._issueTitle(repairsIssues[0])}</span>
                         </span>
                         <span class="banner-action"
-                          >${this.hass.localize(
+                          >${this._t(
                             "ui.panel.config.dashboard.fix_repairs"
                           )}</span
                         >
@@ -370,7 +396,8 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
             this.hass.panels,
             this.hass.config,
             this._integrations,
-            this.hass.localize
+            this.hass.localize,
+            this._lang.mode
           )}
           .pages=${this._pages(
             this.hass.auth.external?.config.hasSettingsScreen,
@@ -389,7 +416,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
   }
 
   private _renderSearch(): TemplateResult {
-    const label = this.hass.localize("ui.panel.config.dashboard.search");
+    const label = this._t("ui.panel.config.dashboard.search");
     return html`<ha-input-search
       class="search"
       appearance="outlined"

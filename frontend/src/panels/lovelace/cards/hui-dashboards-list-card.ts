@@ -3,6 +3,7 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { storage } from "../../../common/decorators/storage";
 import { navigate } from "../../../common/navigate";
 import "../../../components/ha-icon";
@@ -35,6 +36,9 @@ const viewCounts = new Map<string, number | null>();
  */
 @customElement("hui-dashboards-list-card")
 export class HuiDashboardsListCard extends LitElement implements LovelaceCard {
+  // Draws the card again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _config?: DashboardsListCardConfig;
@@ -132,7 +136,7 @@ export class HuiDashboardsListCard extends LitElement implements LovelaceCard {
     if (!this.hass || !this._config) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._lang.localizer(this.hass.localize);
     const dashboards = this._list();
     return html`
       ${
@@ -171,7 +175,7 @@ export class HuiDashboardsListCard extends LitElement implements LovelaceCard {
   }
 
   private _renderTile(dashboard: ListedDashboard) {
-    const localize = this.hass!.localize;
+    const localize = this._lang.localizer(this.hass!.localize);
     const count = this._counts[dashboard.urlPath];
     return html`<li>
       <a

@@ -1,4 +1,4 @@
-import type { LocalizeFunc } from "../../../common/translations/localize";
+import type { Localize } from "../../../common/language-mode/language-mode";
 import type { HomeAssistant } from "../../../types";
 
 /**
@@ -51,10 +51,10 @@ export const sectionCounts = (
 /** The summary of each section, by the path of its card. */
 export const sectionSummaries = (
   counts: SectionCounts,
-  localize: LocalizeFunc
+  localize: Localize
 ): Record<string, string> => {
   const text = (key: string, values: Record<string, number | string>) =>
-    localize(`ui.panel.config.dashboard.summaries.${key}` as any, values);
+    localize(`ui.panel.config.dashboard.summaries.${key}`, values);
   const summaries: Record<string, string> = {
     "/config/integrations":
       counts.integrations === undefined

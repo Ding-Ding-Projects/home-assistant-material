@@ -27,9 +27,14 @@ import {
   getDefaultPanelUrlPath,
   getPanelIcon,
   getPanelIconPath,
-  getPanelTitle,
+  getPanelNameTranslationKey,
 } from "../data/panel";
 import { activityStore } from "../common/activity/activity-store";
+import {
+  currentLanguageMode,
+  modeText,
+} from "../common/language-mode/language-mode";
+import type { LanguageMode } from "../common/preferences/personal-preferences";
 import type { LocalizeFunc } from "../common/translations/localize";
 import { appJobTracker } from "../data/hassio/app-job-tracker";
 import { adoptRunningInstalls } from "./update-progress/update-install-tracker";
@@ -238,6 +243,9 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
 
   @state() private _sidebarDefaults: SidebarDefaults = readSidebarDefaults();
 
+  // The language mode, so the rail is drawn again when it changes.
+  @state() private _languageMode: LanguageMode = currentLanguageMode();
+
   private _unsubEntryLooks?: () => void;
 
   private _unsubSidebarDefaults?: () => void;
@@ -318,7 +326,9 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     this._hideDeveloperTools = isDeveloperToolsHidden(getPersonalPreferences());
     this._unsubPreferences = subscribePersonalPreferences((preferences) => {
       this._hideDeveloperTools = isDeveloperToolsHidden(preferences);
+      this._languageMode = preferences.languageMode ?? "english";
     });
+    this._languageMode = currentLanguageMode();
     this._entryLooks = readTabAppearance();
     this._unsubEntryLooks = getStorage().subscribeChanges(
       TAB_APPEARANCE_STORAGE_KEY,
@@ -332,6 +342,11 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     });
     this._identityChanged();
     this._pathChanged();
+  }
+
+  // A string that follows the language mode where it has Cantonese.
+  private _t(key: string, values?: Record<string, string | number>): string {
+    return modeText(this.hass.localize, key, values, this._languageMode);
   }
 
   // The name the person gave an entry, or its own name.
@@ -384,6 +399,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
       changedProps.has("expanded") ||
       changedProps.has("narrow") ||
       changedProps.has("alwaysExpand") ||
+      changedProps.has("_languageMode") ||
       changedProps.has("_updatesCount") ||
       changedProps.has("_issuesCount") ||
       changedProps.has("_inTools") ||
@@ -504,7 +520,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         !this.narrow
           ? html`
               <ha-icon-button
-                .label=${this.hass.localize("ui.sidebar.sidebar_toggle")}
+                .label=${this._t("ui.sidebar.sidebar_toggle")}
                 .path=${
                   this.hass.dockedSidebar === "docked" ? mdiMenuOpen : mdiMenu
                 }
@@ -528,7 +544,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     if (!this.hass.config.components.includes("conversation")) {
       return nothing;
     }
-    const label = this.hass.localize("ui.sidebar.assist");
+    const label = this._t("ui.sidebar.assist");
     return html`<button
       type="button"
       class="assist"
@@ -549,7 +565,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     if (!this.narrow) {
       return nothing;
     }
-    const label = this.hass.localize("ui.phone.accessibility_tools");
+    const label = this._t("ui.phone.accessibility_tools");
     return html`<ha-list-nav class="accessibility">
       <ha-list-item-button
         id="sidebar-accessibility"
@@ -663,7 +679,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     const urlPath = panel.url_path;
     const title = this._entryName(
       urlPath,
-      getPanelTitle(this.hass, panel) ?? ""
+      this._t(getPanelNameTranslationKey(panel)) || panel.title || ""
     );
     const icon = getPanelIcon(panel);
     const iconPath = getPanelIconPath(panel);
@@ -704,7 +720,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     }
     const title = this._entryName(
       "tools",
-      this.hass.localize("ui.sidebar.developer_tools")
+      this._t("ui.sidebar.developer_tools")
     );
     return html`
       <ha-list-item-button
@@ -717,7 +733,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         <span class="item-text item-short" slot="headline"
           >${this._entryName(
             "tools",
-            this.hass.localize("ui.sidebar.developer_tools_short")
+            this._t("ui.sidebar.developer_tools_short")
           )}</span
         >
         <span class="item-text item-full" slot="headline">${title}</span>
@@ -752,7 +768,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
             : nothing
         }
         <span class="item-text" slot="headline"
-          >${this._entryName("config", this.hass.localize("panel.config"))}</span
+          >${this._entryName("config", this._t("panel.config"))}</span
         >
         ${
           this._updatesCount > 0 || this._issuesCount > 0
@@ -768,7 +784,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         !this.alwaysExpand
           ? this._renderToolTip(
               "sidebar-config",
-              this._entryName("config", this.hass.localize("panel.config"))
+              this._entryName("config", this._t("panel.config"))
             )
           : nothing
       }
@@ -795,7 +811,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
             : nothing
         }
         <span class="item-text" slot="headline"
-          >${this.hass.localize("ui.notification_drawer.title")}</span
+          >${this._t("ui.notification_drawer.title")}</span
         >
         ${
           notificationCount > 0
@@ -807,7 +823,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         !this.alwaysExpand
           ? this._renderToolTip(
               "sidebar-notifications",
-              this.hass.localize("ui.notification_drawer.title")
+              this._t("ui.notification_drawer.title")
             )
           : nothing
       }
@@ -872,13 +888,13 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     }
     const updated =
       date && time
-        ? this.hass.localize("ui.sidebar.provenance_updated", { date, time })
-        : this.hass.localize("ui.sidebar.provenance_unavailable");
+        ? this._t("ui.sidebar.provenance_updated", { date, time })
+        : this._t("ui.sidebar.provenance_unavailable");
     return html`
       <div
         class="provenance"
         role="note"
-        aria-label=${`${this.hass.localize("ui.sidebar.provenance_version", {
+        aria-label=${`${this._t("ui.sidebar.provenance_version", {
           version,
         })}. ${updated}`}
       >
@@ -903,14 +919,14 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
       >
         <ha-svg-icon slot="start" .path=${mdiCellphoneCog}></ha-svg-icon>
         <span class="item-text" slot="headline">
-          ${this.hass.localize("ui.sidebar.external_app_configuration")}
+          ${this._t("ui.sidebar.external_app_configuration")}
         </span>
       </ha-list-item-button>
       ${
         !this.alwaysExpand
           ? this._renderToolTip(
               "sidebar-external-config",
-              this.hass.localize("ui.sidebar.external_app_configuration")
+              this._t("ui.sidebar.external_app_configuration")
             )
           : nothing
       }

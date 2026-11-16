@@ -3,6 +3,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import { lightsByArea } from "../../../common/home/home-hero";
 import "../../../components/ha-control-slider";
@@ -19,6 +20,9 @@ import type { RoomLightsCardConfig } from "./types";
  */
 @customElement("hui-room-lights-card")
 export class HuiRoomLightsCard extends LitElement implements LovelaceCard {
+  // Draws the card again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _config?: RoomLightsCardConfig;
@@ -51,7 +55,7 @@ export class HuiRoomLightsCard extends LitElement implements LovelaceCard {
       return nothing;
     }
     const hass = this.hass;
-    const localize = hass.localize;
+    const localize = this._lang.localizer(hass.localize);
     const areaId = this._config.area;
     const lights = this._byArea(hass.states, hass.entities, hass.devices)[
       areaId

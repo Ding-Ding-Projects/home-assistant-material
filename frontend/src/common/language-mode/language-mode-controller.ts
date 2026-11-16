@@ -58,6 +58,11 @@ export class LanguageModeController implements ReactiveController {
     return modeText(localize, key, values, this._mode, separator);
   }
 
+  /** A localize function whose strings follow the mode, for markup that already calls one. */
+  public localizer(localize: Localize): Localize {
+    return (key, values) => modeText(localize, key, values, this._mode);
+  }
+
   /** The two texts apart, for layouts that put them on separate lines. */
   public parts(
     localize: Localize,

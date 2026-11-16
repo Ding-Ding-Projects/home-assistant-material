@@ -10,6 +10,12 @@ import {
   homeScenes,
 } from "../../../common/home/home-greeting";
 import { computeStateName } from "../../../common/entity/compute_state_name";
+import type { Localize } from "../../../common/language-mode/language-mode";
+import {
+  joinForMode,
+  textParts,
+} from "../../../common/language-mode/language-mode";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { formatNumber } from "../../../common/number/format_number";
 import "../../../components/ha-state-icon";
 import "../../../components/ha-svg-icon";
@@ -42,20 +48,44 @@ export class HuiHomeGreetingCard extends LitElement implements LovelaceCard {
 
   private _scenes = memoizeOne(homeScenes);
 
-  private _sentence(): string {
+  // Draws the card again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // A string that follows the language mode where it has Cantonese.
+  private _t(key: string, values?: Record<string, string | number>): string {
+    return this._lang.text(this.hass!.localize, key, values);
+  }
+
+  // The one sentence about the home, built once per language so two languages
+  // sit side by side as whole sentences instead of mixed fact by fact.
+  private _line(): string {
+    const hass = this.hass!;
+    const english = this._sentence(hass.localize);
+    const mode = this._lang.mode;
+    if (mode === "english") {
+      return english;
+    }
+    const cantonese = this._sentence((key, values) => {
+      const parts = textParts(hass.localize, key, values);
+      return parts.cantonese ?? parts.english;
+    });
+    return joinForMode({ english, cantonese }, mode, " / ");
+  }
+
+  private _sentence(localize: Localize): string {
     const hass = this.hass!;
     const facts = this._facts(hass.states, hass.entities, hass.areas);
     const parts: string[] = [];
     if (facts.lightsOn !== undefined) {
       parts.push(
-        hass.localize("ui.panel.lovelace.cards.home_greeting.lights", {
+        localize("ui.panel.lovelace.cards.home_greeting.lights", {
           count: facts.lightsOn,
         })
       );
     }
     if (facts.inside) {
       parts.push(
-        hass.localize("ui.panel.lovelace.cards.home_greeting.inside", {
+        localize("ui.panel.lovelace.cards.home_greeting.inside", {
           temperature: `${formatNumber(facts.inside.temperature, hass.locale, {
             maximumFractionDigits: 1,
           })}${facts.inside.unit}`,
@@ -65,14 +95,14 @@ export class HuiHomeGreetingCard extends LitElement implements LovelaceCard {
     if (facts.locks) {
       parts.push(
         facts.locks.unlocked
-          ? hass.localize("ui.panel.lovelace.cards.home_greeting.unlocked", {
+          ? localize("ui.panel.lovelace.cards.home_greeting.unlocked", {
               count: facts.locks.unlocked,
             })
-          : hass.localize("ui.panel.lovelace.cards.home_greeting.all_locked")
+          : localize("ui.panel.lovelace.cards.home_greeting.all_locked")
       );
     }
     if (!parts.length) {
-      return hass.localize("ui.panel.lovelace.cards.home_greeting.nothing");
+      return localize("ui.panel.lovelace.cards.home_greeting.nothing");
     }
     // Facts side by side, the way the summary line of a page reads.
     const sentence = parts.join(" · ");
@@ -94,21 +124,20 @@ export class HuiHomeGreetingCard extends LitElement implements LovelaceCard {
         <h1>
           ${
             name
-              ? hass.localize(
-                  `ui.panel.lovelace.cards.home_greeting.${time}_user`,
-                  { user: name }
-                )
-              : hass.localize(`ui.panel.lovelace.cards.home_greeting.${time}`)
+              ? this._t(`ui.panel.lovelace.cards.home_greeting.${time}_user`, {
+                  user: name,
+                })
+              : this._t(`ui.panel.lovelace.cards.home_greeting.${time}`)
           }
         </h1>
-        <p>${this._sentence()}</p>
+        <p>${this._line()}</p>
       </div>
       ${
         scenes.length
           ? html`<div
               class="scenes"
               role="group"
-              aria-label=${hass.localize(
+              aria-label=${this._t(
                 "ui.panel.lovelace.cards.home_greeting.scenes"
               )}
             >

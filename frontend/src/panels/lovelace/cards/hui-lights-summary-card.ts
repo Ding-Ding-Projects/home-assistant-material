@@ -3,6 +3,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import "../../../components/ha-svg-icon";
 import "../../home/components/ha-panel-heading";
 import { summariseLights } from "../../light/light-summary";
@@ -17,6 +18,9 @@ import type { LightsSummaryCardConfig } from "./types";
  */
 @customElement("hui-lights-summary-card")
 export class HuiLightsSummaryCard extends LitElement implements LovelaceCard {
+  // Draws the card again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _config?: LightsSummaryCardConfig;
@@ -40,7 +44,7 @@ export class HuiLightsSummaryCard extends LitElement implements LovelaceCard {
       return nothing;
     }
     const hass = this.hass;
-    const localize = hass.localize;
+    const localize = this._lang.localizer(hass.localize);
     const summary = this._summary(hass.states, hass.entities, hass.devices);
     if (!summary.total) {
       return nothing;

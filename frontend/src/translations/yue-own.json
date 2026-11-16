@@ -69,7 +69,77 @@
         "name_neutral_grey": "灰色",
         "name_neutral_light_grey": "淺灰色",
         "name_neutral_white": "白色"
-      }
+      },
+      "and": "同",
+      "continue": "繼續",
+      "previous": "上一個",
+      "loading": "載入緊",
+      "refresh": "重新整理",
+      "cancel": "取消",
+      "upload_file_too_large": "上載嘅檔案 {name} 太大",
+      "upload_image_too_large": "上載嘅圖片 {name} 太大",
+      "unknown_error": "發生未知錯誤",
+      "delete": "刪除",
+      "delete_all": "全部刪除",
+      "download": "下載",
+      "duplicate": "製作副本",
+      "remove": "移除",
+      "enable": "啟用",
+      "disable": "停用",
+      "update": "更新",
+      "hide": "隱藏",
+      "close": "關閉",
+      "offline_banner": "由 {time} 起離線。連線恢復之前，會顯示最後已知嘅狀態。",
+      "dismiss_alert": "忽略警示",
+      "clear": "清除",
+      "leave": "離開",
+      "stay": "留低",
+      "next": "下一步",
+      "back": "返回",
+      "undo": "復原",
+      "redo": "重做",
+      "move": "移動",
+      "save": "儲存",
+      "apply": "套用",
+      "add": "新增",
+      "auto": "自動",
+      "create": "建立",
+      "edit": "編輯",
+      "edit_item": "編輯 {name}",
+      "submit": "提交",
+      "rename": "重新命名",
+      "reset": "重設",
+      "retry": "再試一次",
+      "search": "搜尋",
+      "ok": "好",
+      "yes": "係",
+      "no": "唔係",
+      "not_now": "遲啲先",
+      "skip": "略過",
+      "menu": "選單",
+      "overflow_menu": "更多選單",
+      "overflow_menu_for": "「{name}」嘅操作",
+      "help": "說明",
+      "successfully_saved": "已成功儲存",
+      "successfully_deleted": "已成功刪除",
+      "successfully_replaced": "已成功取代",
+      "deleting_failed": "刪除失敗",
+      "error_required": "必填",
+      "copied": "已複製",
+      "copied_clipboard": "已複製到剪貼簿",
+      "name": "名稱",
+      "optional": "選填",
+      "default": "預設",
+      "dont_save": "唔儲存",
+      "copy": "複製",
+      "show": "顯示",
+      "replace": "取代",
+      "append": "附加",
+      "supports_markdown": "支援 {markdown_help_link}",
+      "markdown": "Markdown",
+      "none": "無",
+      "first": "第一個",
+      "last": "最後一個"
     },
     "panel": {
       "history": {
@@ -119,7 +189,182 @@
         },
         "dashboard": {
           "review_updates": "睇吓",
-          "fix_repairs": "修理"
+          "fix_repairs": "修理",
+          "summary": "成個屋嘅一切，喺呢度一次過睇晒。",
+          "search": "搜尋設定",
+          "search_empty": "冇符合呢個搜尋嘅設定。",
+          "updates_ready": "有 {count} 項更新可以安裝",
+          "repairs_waiting": "有 {count} 項嘢要修理",
+          "summaries": {
+            "devices": "{devices} 部裝置",
+            "integrations": "{integrations} 個整合",
+            "automations": "{automations} 個自動化",
+            "scenes": "{scenes} 個場景",
+            "areas": "{areas} 個區域",
+            "areas_floors": "{floors} 層共 {areas} 個區域",
+            "dashboards": "{dashboards} 個儀表板",
+            "people": "{people} 位人員",
+            "version": "版本 {version}"
+          },
+          "devices": {
+            "main": "裝置同服務",
+            "secondary": "整合、裝置、實體同輔助項目"
+          },
+          "identity": {
+            "main": "名稱同標誌",
+            "secondary": "呢個應用喺你帳戶入面叫乜名、係咩樣"
+          },
+          "release_notes": {
+            "main": "發佈說明",
+            "secondary": "呢個版本改咗啲乜，同你嘅更新附帶嘅說明"
+          },
+          "support": {
+            "main": "支援",
+            "secondary": "打唔開嘅鎖，同可以分享嘅系統摘要"
+          },
+          "help": {
+            "main": "說明",
+            "secondary": "毋須連線都睇到嘅文章"
+          },
+          "extensions": {
+            "main": "擴充功能",
+            "secondary": "儀表板資源同自訂面板，以及各自可以做啲乜"
+          },
+          "personal": {
+            "main": "個人設定",
+            "secondary": "專屬於你嘅語言、趣味程度、聲音同專注模式"
+          },
+          "automations": {
+            "main": "自動化同場景",
+            "secondary": "自動化、場景、腳本同藍圖"
+          },
+          "backup": {
+            "main": "備份",
+            "secondary": "建立 Home Assistant 設定嘅備份"
+          },
+          "apps": {
+            "main": "應用程式",
+            "secondary": "喺 Home Assistant 旁邊運行額外嘅應用程式"
+          },
+          "problem_log": {
+            "main": "問題記錄",
+            "secondary": "呢部機記錄低嘅問題，唔會傳去任何地方"
+          },
+          "camera_recording": {
+            "main": "鏡頭錄影",
+            "secondary": "全日候錄影嘅鏡頭，同錄影存放喺邊"
+          },
+          "ollama": {
+            "main": "Ollama",
+            "secondary": "管理你嘅 Ollama 伺服器同模型"
+          },
+          "guided_setup": {
+            "main": "引導式設定",
+            "secondary": "跟住指引設定冇設定畫面嘅整合"
+          },
+          "marketplace": {
+            "main": "市集",
+            "secondary": "安裝社群整合、儀表板內容、主題同範本"
+          },
+          "dashboards": {
+            "main": "儀表板",
+            "secondary": "整理你同屋企互動嘅方式"
+          },
+          "connectivity": {
+            "main": "連線",
+            "secondary": "裝置用嘅通訊協定同無線電"
+          },
+          "voice_assistants": {
+            "main": "語音助理",
+            "secondary": "管理你嘅語音助理"
+          },
+          "energy": {
+            "main": "能源",
+            "secondary": "監察你嘅發電同用電"
+          },
+          "tags": {
+            "main": "標籤",
+            "secondary": "設定 NFC 標籤同 QR 碼"
+          },
+          "people": {
+            "main": "人員",
+            "secondary": "管理邊個可以進入你嘅屋企"
+          },
+          "areas": {
+            "main": "區域、標籤同地帶",
+            "secondary": "管理屋企內外嘅位置"
+          },
+          "companion": {
+            "main": "配套應用程式",
+            "secondary": "感應器、小工具、通知等等"
+          },
+          "system": {
+            "main": "系統",
+            "secondary": "建立備份、查看記錄或者重新啟動系統"
+          },
+          "tools": {
+            "main": "工具",
+            "secondary": "檢查同除錯你嘅系統"
+          },
+          "about": {
+            "main": "關於",
+            "secondary": "版本資料、鳴謝等等"
+          },
+          "cloud": {
+            "secondary": "載入緊⋯⋯"
+          },
+          "infrared": {
+            "main": "紅外線",
+            "secondary": "用遙控器控制任何嘢。"
+          },
+          "zwave_js": {
+            "main": "Z-Wave",
+            "secondary": "Sub-GHz 網狀協定"
+          },
+          "zha": {
+            "main": "Zigbee",
+            "secondary": "低功耗網狀網絡"
+          },
+          "matter": {
+            "main": "Matter",
+            "secondary": "跨品牌智能家居標準"
+          },
+          "mqtt": {
+            "main": "MQTT",
+            "secondary": "專為物聯網裝置而設嘅輕量網絡協定"
+          },
+          "thread": {
+            "main": "Thread",
+            "secondary": "常用於 Matter 裝置嘅網狀網絡"
+          },
+          "bluetooth": {
+            "main": "藍牙",
+            "secondary": "本地裝置連線"
+          },
+          "radio_frequency": {
+            "main": "無線電頻率",
+            "secondary": "控制無線電裝置。"
+          },
+          "serial": {
+            "main": "序列埠",
+            "secondary": "序列埠，同使用佢哋嘅整合同應用程式"
+          },
+          "modbus": {
+            "main": "Modbus",
+            "secondary": "共用序列或者網絡連線嘅工業裝置"
+          },
+          "knx": {
+            "main": "KNX",
+            "secondary": "樓宇自動化標準"
+          },
+          "insteon": {
+            "main": "Insteon",
+            "secondary": "雙網狀家居自動化"
+          },
+          "lorawan": {
+            "main": "LoRaWAN",
+            "secondary": "遠距離無線裝置同連線"
+          }
         },
         "lovelace": {
           "resources": {
@@ -856,6 +1101,12 @@
             "sign_in_verify": "開啟登入頁以進行驗證",
             "sign_in_pending": "區域網絡地址已有回應。請登入以繼續驗證，呢個工作尚未完成。"
           }
+        },
+        "updates": {
+          "check_updates": "檢查更新"
+        },
+        "system_dashboard": {
+          "restart_homeassistant": "重新啟動 Home Assistant"
         }
       },
       "profile": {
@@ -964,6 +1215,79 @@
             "show_on_rail": "顯示喺導覽列",
             "confirm_dashboard": "匯入儀表板",
             "confirm_view": "揀儀表板"
+          }
+        },
+        "cards": {
+          "home_hero": {
+            "lights_on": "{count} 盞燈，{on} 盞開咗",
+            "all_lights": "{room} 嘅所有燈",
+            "power": "而家嘅用電量",
+            "live": "即時",
+            "on": "開",
+            "off": "關",
+            "brightness": "亮度",
+            "cooler": "凍啲",
+            "warmer": "暖啲",
+            "target": "目標 {temperature}，{mode}",
+            "all_locked": "全部已上鎖",
+            "not_locked": "{count} 道門未上鎖",
+            "doors": "{count} 把鎖",
+            "lock_all": "全部上鎖",
+            "needs_you": "需要你處理",
+            "updates_waiting": "有 {count} 項更新等緊",
+            "review_updates": "查看更新",
+            "repairs_open": "有 {count} 項嘢需要修理",
+            "review_repairs": "查看修理項目",
+            "doors_open": "{count} 道門開住",
+            "pause": "暫停",
+            "play": "播放",
+            "next": "下一首"
+          },
+          "home_greeting": {
+            "morning": "早晨",
+            "afternoon": "午安",
+            "evening": "晚上好",
+            "night": "晚安",
+            "morning_user": "早晨，{user}",
+            "afternoon_user": "午安，{user}",
+            "evening_user": "晚上好，{user}",
+            "night_user": "晚安，{user}",
+            "lights": "開咗 {count} 盞燈",
+            "inside": "屋入面係 {temperature}",
+            "all_locked": "所有門都鎖好咗",
+            "unlocked": "{count} 道門未上鎖",
+            "nothing": "為區域加入燈、鎖或者溫度感應器，呢一行就會話你知屋企嘅情況。",
+            "scenes": "場景"
+          },
+          "lights_summary": {
+            "title": "燈光",
+            "of_on": "{total} 盞入面有 {on} 盞開咗",
+            "are_on": "{count} 盞開咗",
+            "all_off": "全部關咗",
+            "out_of": "共 {total} 盞，分佈喺 {rooms} 個房間。",
+            "out_of_no_rooms": "共 {total} 盞。",
+            "turn_all_off": "全部關燈",
+            "turn_all_on": "全部開燈"
+          },
+          "security_locks": {
+            "title": "門鎖",
+            "lock": "上鎖"
+          },
+          "security_alarm": {
+            "all_locked": "所有門都鎖好咗。",
+            "not_locked": "{count} 道門未上鎖。"
+          },
+          "dashboards_list": {
+            "empty": "冇儀表板可以顯示。",
+            "views": "{count} 個檢視",
+            "note": "新增嘅儀表板會自動出現喺呢度。",
+            "swipe_note": "喺手機上面，向左或者向右掃就可以喺佢哋之間切換。",
+            "swipe_label": "喺儀表板之間掃動"
+          },
+          "room_lights": {
+            "of_on": "{total} 盞入面有 {on} 盞開咗",
+            "all": "{room} 嘅所有燈",
+            "brightness": "亮度"
           }
         }
       }
@@ -2205,7 +2529,6 @@
           }
         }
       },
-
       "section_tabs": {
         "label": "分頁",
         "more": "更多分頁",
@@ -2533,6 +2856,51 @@
         "ignored_description": "揀咗唔理嘅問題，喺呢個瀏覽器會保持安靜。",
         "show_ignored": "再顯示返"
       }
+    },
+    "sidebar": {
+      "external_app_configuration": "應用程式設定",
+      "provenance_version": "版本 {version}",
+      "provenance_updated": "於 {date} {time} 更新",
+      "provenance_unavailable": "冇構建時間",
+      "sidebar_toggle": "切換側欄",
+      "assist": "Assist",
+      "developer_tools": "開發者工具",
+      "developer_tools_short": "開發者",
+      "edit_sidebar": "編輯側欄",
+      "edit_subtitle": "所有裝置同步",
+      "migrate_to_user_data": "呢個操作會改變你登入咗嘅所有裝置上面嘅側欄。如果想每部裝置有自己嘅側欄，應該每部裝置用唔同嘅使用者。",
+      "default": "預設",
+      "reset_to_defaults": "還原為預設",
+      "reset_confirmation": "你確定要將側欄重設返做預設設定？咁會恢復所有面板原本嘅次序同可見狀態。"
+    },
+    "notification_drawer": {
+      "click_to_configure": "㩒掣去設定 {entity}",
+      "empty": "冇通知",
+      "title": "通知",
+      "close": "關閉",
+      "dismiss_all": "全部忽略",
+      "count": "{count} 則通知"
     }
+  },
+  "panel": {
+    "demo": "示範",
+    "apps": "應用程式",
+    "energy": "能源",
+    "calendar": "日曆",
+    "config": "設定",
+    "states": "概覽",
+    "map": "地圖",
+    "logbook": "活動",
+    "history": "歷史",
+    "todo": "待辦清單",
+    "media_browser": "媒體",
+    "profile": "個人檔案",
+    "light": "燈光",
+    "security": "保安",
+    "climate": "氣候",
+    "home": "概覽",
+    "maintenance": "維護",
+    "marketplace": "市集",
+    "notfound": "搵唔到呢個頁面"
   }
 }

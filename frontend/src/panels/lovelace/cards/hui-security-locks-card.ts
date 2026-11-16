@@ -4,6 +4,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import "../../../components/ha-card";
@@ -22,6 +23,9 @@ const UNKNOWN = new Set(["unavailable", "unknown"]);
  */
 @customElement("hui-security-locks-card")
 export class HuiSecurityLocksCard extends LitElement implements LovelaceCard {
+  // Draws the card again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _config?: SecurityLocksCardConfig;
@@ -70,7 +74,7 @@ export class HuiSecurityLocksCard extends LitElement implements LovelaceCard {
     }
     return html`
       <ha-card
-        .header=${hass.localize("ui.panel.lovelace.cards.security_locks.title")}
+        .header=${this._lang.localizer(hass.localize)("ui.panel.lovelace.cards.security_locks.title")}
       >
         <ul>
           ${ids.map((entityId) => {
@@ -107,7 +111,7 @@ export class HuiSecurityLocksCard extends LitElement implements LovelaceCard {
                       data-entity=${entityId}
                       @click=${this._lock}
                     >
-                      ${hass.localize(
+                      ${this._lang.localizer(hass.localize)(
                         "ui.panel.lovelace.cards.security_locks.lock"
                       )}
                     </button>`

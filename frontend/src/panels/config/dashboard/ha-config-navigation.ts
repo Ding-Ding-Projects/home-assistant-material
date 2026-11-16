@@ -4,6 +4,7 @@ import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { consume } from "../../../common/decorators/consume";
 import { filterNavigationPages } from "../../../common/config/filter_navigation_pages";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-card";
 import "../../../components/ha-icon-next";
@@ -37,6 +38,15 @@ class HaConfigNavigation extends LitElement {
   @property() public filter = "";
 
   @state() private _visiblePages?: PageNavigation[];
+
+  // Draws the cards again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // A string that follows the language mode where it has Cantonese.
+  private _t = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string => this._lang.text(this.hass.localize, key, values);
 
   private _hasBluetoothConfigEntries = false;
 
@@ -86,20 +96,18 @@ class HaConfigNavigation extends LitElement {
       ...page,
       name:
         page.name ||
-        this.hass.localize(
-          `ui.panel.config.dashboard.${page.translationKey}.main`
-        ),
+        this._t(`ui.panel.config.dashboard.${page.translationKey}.main`),
       description: `
                 ${
                   this.summaries?.[page.path] ||
                   page.description ||
-                  this.hass.localize(
+                  this._t(
                     `ui.panel.config.dashboard.${page.translationKey}.secondary`
                   )
                 }
               `,
     }));
-    const label = this.label ?? this.hass.localize("panel.config");
+    const label = this.label ?? this._t("panel.config");
     const matches = searchMatcher(this.filter);
     const shown = pages.filter((page) => matches(page.name, page.description));
     if (this.filter) {
@@ -117,14 +125,10 @@ class HaConfigNavigation extends LitElement {
         }
         const name =
           page.name ||
-          this.hass.localize(
-            `ui.panel.config.dashboard.${page.translationKey}.main`
-          );
+          this._t(`ui.panel.config.dashboard.${page.translationKey}.main`);
         const description =
           page.description ||
-          this.hass.localize(
-            `ui.panel.config.dashboard.${page.translationKey}.secondary`
-          );
+          this._t(`ui.panel.config.dashboard.${page.translationKey}.secondary`);
         if (name && matches(name, description)) {
           known.add(page.path);
           shown.push({ ...page, name, description });
@@ -136,7 +140,7 @@ class HaConfigNavigation extends LitElement {
       ${
         this.filter && !shown.length
           ? html`<p class="empty" role="status">
-              ${this.hass.localize("ui.panel.config.dashboard.search_empty")}
+              ${this._t("ui.panel.config.dashboard.search_empty")}
             </p>`
           : html`<ha-config-navigation-list
               has-secondary

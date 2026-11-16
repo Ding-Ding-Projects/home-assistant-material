@@ -17,6 +17,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import {
@@ -45,6 +46,9 @@ import type { HomeHeroCardConfig } from "./types";
  */
 @customElement("hui-home-hero-card")
 export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
+  // Draws the card again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _config?: HomeHeroCardConfig;
@@ -147,7 +151,7 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
 
   private _renderRoom(room: NonNullable<ReturnType<typeof featuredRoom>>) {
     const hass = this.hass!;
-    const localize = hass.localize;
+    const localize = this._lang.localizer(hass.localize);
     const anyOn = room.on.length > 0;
     return html`
       <section class=${classMap({ hero: true, room: true, on: anyOn })}>
@@ -232,7 +236,7 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
 
   private _renderClimate(stateObj: HassEntity) {
     const hass = this.hass!;
-    const localize = hass.localize;
+    const localize = this._lang.localizer(hass.localize);
     const current = Number(stateObj.attributes.current_temperature);
     const target = Number(stateObj.attributes.temperature);
     const action = stateObj.attributes.hvac_action as string | undefined;
@@ -315,7 +319,7 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
     doors: string[]
   ): TemplateResult {
     const hass = this.hass!;
-    const localize = hass.localize;
+    const localize = this._lang.localizer(hass.localize);
     const open = locks?.unlocked ?? [];
     const names = open
       .map((entityId) => computeStateName(hass.states[entityId]))
@@ -458,7 +462,7 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
   }
 
   private _renderLocks(locks: NonNullable<ReturnType<typeof lockFacts>>) {
-    const localize = this.hass!.localize;
+    const localize = this._lang.localizer(this.hass!.localize);
     const open = locks.unlocked.length;
     return html`
       <section class=${classMap({ hero: true, locks: true, open: open > 0 })}>
@@ -498,7 +502,7 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
   }
 
   private _renderMedia(stateObj: HassEntity) {
-    const localize = this.hass!.localize;
+    const localize = this._lang.localizer(this.hass!.localize);
     const playing = stateObj.state === "playing";
     return html`
       <section class="hero media">

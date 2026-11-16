@@ -21,6 +21,7 @@ import { ScrollableFadeMixin } from "../mixins/scrollable-fade-mixin";
 import { haStyleScrollbar } from "../resources/styles";
 import { isIosApp } from "../util/is_ios";
 import "./dialog/ha-dialog-tools";
+import { modeText } from "../common/language-mode/language-mode";
 import "./ha-dialog-header";
 import "./ha-icon-button";
 
@@ -203,7 +204,9 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
                     <ha-icon-button
                       data-dialog="close"
                       .label=${
-                        this._i18n?.localize?.("ui.common.close") ?? "Close"
+                        this._i18n?.localize
+                          ? modeText(this._i18n.localize, "ui.common.close")
+                          : "Close"
                       }
                       .path=${mdiClose}
                     ></ha-icon-button>
