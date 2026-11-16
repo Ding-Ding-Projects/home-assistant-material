@@ -826,6 +826,35 @@ Written 9 November 2026 and brought up to date on 11 November 2026 (after batche
   - README pictures: six are from build 437 (the Updates page is new). A first set taken by
     a helper was thrown away unused because its test home carried an unsuitable name.
 
+16 November 2026, interface lane (all times Toronto, 24-hour):
+
+- `main` was brought together: 49 local commits from another lane were merged with the remote
+  (`2401855d9`), then three branches with conflicts were merged (frontend recovery, Raspberry Pi
+  first boot, early automation dictionaries; `46fed6a19`). Where both sides changed the same
+  interface file, the `main` side was kept; record files kept both.
+- Cleanup: a full archive of the repository and every linked checkout was written to the owner's
+  cloud folder and read back (207,757 files) before ten merged remote branches, eight local
+  branches and seven linked checkouts were removed. `main` and `channel` stayed. Other branches
+  were pushed again later by other lanes and are theirs.
+- The instance on the home network moved to build 448 at 10:12 and to build 449 at 11:17, each
+  after a browser pass on that exact image.
+- Recheck in build 449. Seen right: the continue-on-error label toggles its switch, the storage
+  page has no "NaN", the Lights page has one title, the save bar's buttons clear the side pane,
+  the wide tools dialog keeps one height, flow nodes fit the width. Seen wrong: the phone tools
+  sheet stopped 244 px above its bottom edge, the clock chip sat inside the phone's bottom bar
+  and inside the side pane on a fresh wide load, and the save bar's status text was cut with the
+  pane open.
+- `945c90a5f` fixes those three (the sheet keeps only the device's own bottom inset; the chip is
+  placed again after load; the bar's hint hides when the bar is narrow). It also replaces the
+  plain browser selects and inputs of the backup hosting dialog with the product's own, and
+  brings the bundled changelog list back in step with `CHANGELOG.md`. Full suite: 8,019 pass,
+  the 3 known build-script failures remain. These fixes have not yet been seen in a built image.
+- Open: `/config/camera_recording` answers "Unknown command." in build 449 and Settings search
+  does not find it. The release run for `46fed6a19` is the first to use the changed Raspberry Pi
+  image build (6 GB data partition, preloaded Core); if its Pi jobs fail, that build-script
+  change is the thing to revert. `dialog-host-backup.ts` still has six lint errors (braces,
+  `const`) that were there before this lane touched it.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to
