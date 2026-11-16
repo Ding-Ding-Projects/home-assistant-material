@@ -634,6 +634,35 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  # Moves the Core and Supervisor entries of the update feed as soon as their images
+  # exist, so an installed instance is offered the build without waiting one to two
+  # hours for the operating system images. Operating system entries are untouched
+  # here: only the release job advances them, after signed update files exist.
+  # The feed script keeps a newer build's numbers if one was published first.
+  feed:
+    name: Move the update feed for Core and Supervisor
+    needs: [prepare, core, supervisor, container]
+    if: needs.prepare.outputs.heavy == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      BUILD: ${{ needs.prepare.outputs.build }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Publish the feed without operating system changes
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          scripts/ci/publish-channel.sh "${BUILD}"
+          curl -fsSL --max-time 20 "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/channel/stable.json" |
+            jq '{supervisor, core: .homeassistant.default, material}' || true
+
   # The only job that creates the release. It runs only when every job above it
   # succeeded (no always(): a failed, cancelled or skipped job skips this one), so a
   # release is never created for a build that is partial or failed. A push that changed
