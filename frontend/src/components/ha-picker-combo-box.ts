@@ -227,6 +227,18 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
     }
   }
 
+  /** Puts text in the search field and filters by it, as if it were typed. */
+  public async setSearch(value: string) {
+    await this.updateComplete;
+    const field = this._searchFieldElement;
+    if (!field) {
+      return;
+    }
+    await field.updateComplete;
+    field.value = value;
+    this._filterChanged({ target: field } as unknown as InputEvent);
+  }
+
   protected get scrollableElement(): HTMLElement | null {
     if (this._plainList) {
       return this._list ?? null;

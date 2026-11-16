@@ -23,6 +23,7 @@ import {
   readProblemSettings,
 } from "../../common/problems/problem-settings";
 import type { ProblemSpotlightDetail } from "../../common/problems/teleport";
+import { clipToCovers, problemCoverRects } from "../../common/problems/covers";
 import { PROBLEM_SPOTLIGHT_EVENT } from "../../common/problems/teleport";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import type { HomeAssistant } from "../../types";
@@ -145,6 +146,7 @@ export class HaProblemOverlay extends LitElement {
   private _measure() {
     const show = this._settings.enabled || this._spot !== undefined;
     const boxes: Box[] = [];
+    const coverRects = show ? problemCoverRects() : [];
     if (show) {
       for (const problem of activeProblems()) {
         if (!this._settings.enabled && problem.id !== this._spot) {
@@ -155,14 +157,21 @@ export class HaProblemOverlay extends LitElement {
           if (!rect.width && !rect.height) {
             continue;
           }
-          boxes.push({
-            id: problem.id,
-            severity: problem.severity,
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-          });
+          // The part that has scrolled under a bar is not drawn over it.
+          const box = clipToCovers<Box>(
+            {
+              id: problem.id,
+              severity: problem.severity,
+              top: rect.top,
+              left: rect.left,
+              width: rect.width,
+              height: rect.height,
+            },
+            coverRects
+          );
+          if (box) {
+            boxes.push(box);
+          }
         }
       }
     }

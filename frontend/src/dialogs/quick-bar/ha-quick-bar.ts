@@ -186,7 +186,48 @@ export class QuickBar extends LitElement {
 
   @query("ha-picker-combo-box") private _comboBox?: HaPickerComboBox;
 
-  private _initialSearch?: string;
+  private _typedAhead = "";
+
+  private _collecting = false;
+
+  private _collectTyped = (ev: KeyboardEvent) => {
+    if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.isComposing) {
+      return;
+    }
+    if (ev.key.length === 1) {
+      this._typedAhead += ev.key;
+    } else if (ev.key === "Backspace") {
+      this._typedAhead = this._typedAhead.slice(0, -1);
+    } else {
+      return;
+    }
+    ev.preventDefault();
+    ev.stopPropagation();
+  };
+
+  private _stopCollecting() {
+    this._collecting = false;
+    window.removeEventListener("keydown", this._collectTyped, true);
+  }
+
+  // Focuses the search field and hands it everything typed so far.
+  private async _focusSearch() {
+    const combo = this._comboBox;
+    if (!combo) {
+      return;
+    }
+    combo.focus();
+    if (!this._collecting) {
+      return;
+    }
+    await combo.updateComplete;
+    // Keys keep being collected until this point, then the field takes over.
+    const typed = this._typedAhead;
+    this._stopCollecting();
+    if (typed) {
+      await combo.setSearch(typed);
+    }
+  }
 
   private get _showEntityId() {
     return this.hass.userData?.showEntityIdPicker;
@@ -236,7 +277,11 @@ export class QuickBar extends LitElement {
     this._initialize();
     this._selectedSection = effectiveQuickBarMode(this.hass.user, params.mode);
     this._showHint = params.showHint ?? false;
-    this._initialSearch = params.search;
+    // Text typed before the search field can take focus is collected here, so
+    // no character is lost while the dialog opens.
+    this._typedAhead = params.search ?? "";
+    this._collecting = true;
+    window.addEventListener("keydown", this._collectTyped, true);
 
     this._unsubPrefs?.();
     this._unsubPrefs = subscribePersonalPreferences(() => {
@@ -292,7 +337,7 @@ export class QuickBar extends LitElement {
   protected updated(changedProps: PropertyValues) {
     if (changedProps.has("_loading") && !this._loading && this._opened) {
       requestAnimationFrame(() => {
-        this._comboBox?.focus();
+        this._focusSearch();
       });
     }
   }
@@ -307,9 +352,14 @@ export class QuickBar extends LitElement {
             element_id: "combo-box",
           },
         });
+        const typed = this._typedAhead;
+        this._stopCollecting();
+        if (typed) {
+          this._comboBox?.setSearch(typed);
+        }
         return;
       }
-      this._comboBox?.focus();
+      this._focusSearch();
     });
   };
 
@@ -324,6 +374,8 @@ export class QuickBar extends LitElement {
   }
 
   private _dialogClosed = () => {
+    this._stopCollecting();
+    this._typedAhead = "";
     this._selectedSection = undefined;
     this._opened = false;
     this._open = false;
@@ -422,7 +474,6 @@ export class QuickBar extends LitElement {
                 mode="dialog"
                 .sections=${sections}
                 .selectedSection=${this._selectedSection}
-                .initialSearch=${this._initialSearch}
                 clearable
               ></ha-picker-combo-box>`
             : nothing

@@ -39,6 +39,10 @@ import type {
 } from "./automation-dry-run";
 import { dryRunAutomation } from "./automation-dry-run";
 import { isSaveDisabled } from "./run-helpers";
+import {
+  registerProblemCover,
+  releaseProblemCover,
+} from "../../../common/problems/covers";
 
 const PREFIX = "ui.panel.config.automation.editor.bottom_bar.";
 const DRY = "ui.panel.config.automation.editor.dry_run.";
@@ -126,12 +130,14 @@ export class HaAutomationBottomBar extends LitElement {
 
   public connectedCallback() {
     super.connectedCallback();
+    registerProblemCover(this);
     window.visualViewport?.addEventListener("resize", this._handleViewport);
     this._handleViewport();
   }
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    releaseProblemCover(this);
     window.visualViewport?.removeEventListener("resize", this._handleViewport);
   }
 
