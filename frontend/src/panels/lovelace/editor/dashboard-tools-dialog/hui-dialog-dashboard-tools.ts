@@ -839,6 +839,8 @@ export class HuiDialogDashboardTools extends LitElement {
       css`
         ha-dialog {
           --ha-dialog-width-lg: 720px;
+          /* The subtitle is a sentence; it wraps instead of being cut. */
+          --ha-dialog-header-white-space: normal;
         }
         .top {
           display: flex;
@@ -877,6 +879,14 @@ export class HuiDialogDashboardTools extends LitElement {
         .bulk .count {
           color: inherit;
           font-weight: var(--ha-font-weight-semibold);
+        }
+        @media (max-width: 600px) {
+          /* On a phone the bar sits in the flow, below the search box, so it
+             never floats over the field or its own text. */
+          .bulk {
+            position: static;
+            border-radius: var(--ha-border-radius-xl);
+          }
         }
         .preview,
         .bulk,

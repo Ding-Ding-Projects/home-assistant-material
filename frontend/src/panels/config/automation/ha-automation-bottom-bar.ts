@@ -421,6 +421,10 @@ export class HaAutomationBottomBar extends LitElement {
           );
           background: var(--primary-background-color);
           container-type: inline-size;
+          /* Above the editor's own problem badges and outlined steps, which
+             are positioned and would otherwise paint over the bar. */
+          position: relative;
+          z-index: 2;
         }
         /* Without much width (a side pane open beside the bar) the shortcut
            hint gives its room to the status text, which was being cut. */

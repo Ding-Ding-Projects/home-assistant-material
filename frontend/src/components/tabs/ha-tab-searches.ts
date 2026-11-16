@@ -165,6 +165,7 @@ export class TabSearchesController implements ReactiveController {
       .patternSamples=${tabs.map((tab) => tab.title)}
       @input=${this._topSearchInput}
       @keydown=${this._topSearchKeydown}
+      @click=${this._topSearchClick}
     >
       <kbd slot="end">${isMac ? "⌘ ⇧ F" : "Ctrl Shift F"}</kbd>
     </ha-input-search>`;
@@ -805,7 +806,39 @@ export class TabSearchesController implements ReactiveController {
       ev.preventDefault();
       (ev.currentTarget as HaInputSearch).blur();
       showQuickBar(this._ctx.host, {});
+      return;
     }
+    // A typed character goes straight to the search of everything, so none of
+    // it is left in this field or lost while focus moves.
+    if (
+      ev.key.length === 1 &&
+      !ev.ctrlKey &&
+      !ev.metaKey &&
+      !ev.altKey &&
+      !ev.isComposing
+    ) {
+      ev.preventDefault();
+      (ev.currentTarget as HaInputSearch).blur();
+      showQuickBar(this._ctx.host, { search: ev.key });
+    }
+  };
+
+  // Clicking the field opens the search of everything before anything is typed.
+  private _topSearchClick = (ev: Event) => {
+    // The field's own buttons (the pattern builder, clear) keep their action.
+    if (
+      ev
+        .composedPath()
+        .some(
+          (node) =>
+            node instanceof HTMLElement &&
+            (node.localName === "button" || node.localName === "ha-icon-button")
+        )
+    ) {
+      return;
+    }
+    (ev.currentTarget as HaInputSearch).blur();
+    showQuickBar(this._ctx.host, {});
   };
 
   public static styles = css`

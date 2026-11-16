@@ -19,6 +19,10 @@ const languageName = (language: string): string => {
   }
 };
 
+// Wraps a value in Unicode first-strong isolate marks so it keeps its own
+// reading order and never reorders the label, colon or numbers around it.
+const isolate = (value: string): string => `⁨${value}⁩`;
+
 /**
  * The line at the foot of every page: the running version and when it was
  * built, the language in use, and how to reach the tools of any element.
@@ -53,31 +57,37 @@ export class HaPageFooter extends LitElement {
     const language = this._i18n.language;
     const hasTime = !Number.isNaN(built.getTime());
     return html`
-      <span class="version" dir="auto"
+      <span class="version"
         >${
           hasTime
             ? localize("ui.page_tools.footer.build", {
-                version,
-                date: built.toLocaleDateString(language, {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                }),
-                time: built.toLocaleTimeString(language, {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                  hourCycle: "h23",
-                  timeZoneName: "short",
-                }),
+                version: isolate(String(version)),
+                date: isolate(
+                  built.toLocaleDateString(language, {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
+                ),
+                time: isolate(
+                  built.toLocaleTimeString(language, {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hourCycle: "h23",
+                    timeZoneName: "short",
+                  })
+                ),
               })
-            : localize("ui.page_tools.footer.build_no_time", { version })
+            : localize("ui.page_tools.footer.build_no_time", {
+                version: isolate(String(version)),
+              })
         }</span
       >
       <span class="item"
         ><ha-svg-icon .path=${mdiTranslate}></ha-svg-icon>${localize(
           "ui.page_tools.footer.language",
-          { language: languageName(language) }
+          { language: isolate(languageName(language)) }
         )}</span
       >
       ${
@@ -123,9 +133,9 @@ export class HaPageFooter extends LitElement {
       flex: none;
     }
     .version {
-      /* The line mixes the product name, a version and a date with the
-         page language; it takes its direction from its own first letter. */
-      unicode-bidi: plaintext;
+      /* The line follows the page direction, so it starts at the page's
+         start edge; each inserted value is isolated in the text itself. */
+      text-align: start;
       flex: 1 1 auto;
       min-width: 0;
       overflow-wrap: anywhere;

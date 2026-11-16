@@ -339,8 +339,13 @@ export class HuiDashboardScreens extends LitElement {
       flex-wrap: wrap;
       align-items: flex-end;
       gap: var(--ha-space-5);
+      /* A frame wider than the dialog scrolls here instead of being cut. */
+      max-width: 100%;
+      overflow-x: auto;
+      padding-bottom: var(--ha-space-2);
     }
     figure {
+      flex: none;
       margin: 0;
     }
     .frame {

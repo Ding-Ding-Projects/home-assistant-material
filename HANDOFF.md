@@ -870,6 +870,19 @@ Written 9 November 2026 and brought up to date on 11 November 2026 (after batche
   toolbar, English text runs in a right-to-left page); those five are not yet seen in a built
   image. Settings search did not offer pages inside the cards (for example Camera recording);
   the next commit makes it offer them.
+- Build 455 (`0622bb442`) had a full browser pass with no page errors and the home instance
+  moved to it at 14:36. All four operating system images of the build 453 run, the three
+  Raspberry Pi boards included, built with the 6 GB data partition and preloaded Core. Seen
+  right in 455: breakpoint dots beside action steps, the editor bar at 320, 390 and 760 px,
+  the phone History toolbar, and Settings search offering "Camera recording". Seen wrong, and
+  fixed in the commit after it (not yet seen in a built image): the dashboard tools subtitle
+  cut off on a phone, the selection bar floating over the search box, device frames wider
+  than the dialog with no way to scroll, the footer's label, date and alignment in a
+  right-to-left language, the sidebar search losing its first typed letter to the command
+  palette, and problem badges painting over the editor bar at 760 px (a best guess at the
+  stacking). Typing in the Settings search itself does not trigger shortcuts.
+- The release workflow publishes a release page only when it is started by hand; pushes keep
+  their container and operating system images. The newest release page is `v2026.11.1.441`.
 - Still open: Cantonese and both-languages modes translate only the shell (about 7 of 70
   strings on the Settings page), because the list of translated keys is short. The automation
   editor has no checkpoints; only the dashboard editor has. Arabic was not tried.
