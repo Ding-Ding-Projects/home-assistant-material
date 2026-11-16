@@ -855,6 +855,25 @@ Written 9 November 2026 and brought up to date on 11 November 2026 (after batche
   change is the thing to revert. `dialog-host-backup.ts` still has six lint errors (braces,
   `const`) that were there before this lane touched it.
 
+- Build 453 (`d114bb8b9`) was seen in a throwaway copy before the home instance moved to it at
+  12:46: the phone tools sheet now reaches the bottom of the sheet (content ends 16 px above
+  the screen edge at 390 and 320 wide), the clock chip clears the phone's bottom bar and the
+  side pane, the save bar's status text is whole at 1440, 1100 and 900 wide, the camera
+  recording page shows its empty state with a "Set up recording" button, and the backup
+  hosting dialog draws the product's select and fields. The full browser pass had no page
+  errors. Left as it is: on a phone the clock chip floats over the bottom edge of a card on
+  the home, Settings and editor pages.
+- A look at features never seen before, in build 449: dashboard checkpoints, "Replay a day",
+  "Make phone friendly" and the History comparison work on a wide screen; no page scrolls
+  sideways at 320 px. `915c77f71` fixes what that look found wrong (breakpoint dots that never
+  appeared, the dashboard tools on a phone, the editor bar at 320 px, the phone History
+  toolbar, English text runs in a right-to-left page); those five are not yet seen in a built
+  image. Settings search did not offer pages inside the cards (for example Camera recording);
+  the next commit makes it offer them.
+- Still open: Cantonese and both-languages modes translate only the shell (about 7 of 70
+  strings on the Settings page), because the list of translated keys is short. The automation
+  editor has no checkpoints; only the dashboard editor has. Arabic was not tried.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

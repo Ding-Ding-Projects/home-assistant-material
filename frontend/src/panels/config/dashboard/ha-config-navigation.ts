@@ -15,6 +15,7 @@ import {
 } from "../../../layouts/panel-ready";
 import type { HomeAssistant } from "../../../types";
 import "../../../components/ha-config-navigation-list";
+import { configSections } from "../config-sections";
 
 @customElement("ha-config-navigation")
 class HaConfigNavigation extends LitElement {
@@ -101,6 +102,35 @@ class HaConfigNavigation extends LitElement {
     const label = this.label ?? this.hass.localize("panel.config");
     const matches = searchMatcher(this.filter);
     const shown = pages.filter((page) => matches(page.name, page.description));
+    if (this.filter) {
+      // A search also looks inside the cards: pages that are one step further
+      // in, such as those under System, are offered directly.
+      const known = new Set(pages.map((page) => page.path));
+      const inner = this._filterNavigationPages(
+        this.hass,
+        this._innerPages(),
+        this._hasBluetoothConfigEntries
+      );
+      for (const page of inner) {
+        if (known.has(page.path) || !page.translationKey) {
+          continue;
+        }
+        const name =
+          page.name ||
+          this.hass.localize(
+            `ui.panel.config.dashboard.${page.translationKey}.main`
+          );
+        const description =
+          page.description ||
+          this.hass.localize(
+            `ui.panel.config.dashboard.${page.translationKey}.secondary`
+          );
+        if (name && matches(name, description)) {
+          known.add(page.path);
+          shown.push({ ...page, name, description });
+        }
+      }
+    }
     return html`
       <div class="visually-hidden" role="heading" aria-level="2">${label}</div>
       ${
@@ -118,6 +148,12 @@ class HaConfigNavigation extends LitElement {
       }
     `;
   }
+
+  private _innerPages = memoizeOne((): PageNavigation[] =>
+    Object.entries(configSections)
+      .filter(([key]) => !key.startsWith("dashboard"))
+      .flatMap(([, list]) => list)
+  );
 
   private _loadBluetoothEntries(): Promise<void> {
     if (!this._bluetoothEntriesLoaded) {
