@@ -209,6 +209,13 @@ class HaConfigNavigationList extends LitElement {
       display: flex;
       flex-direction: column;
     }
+    .name,
+    .summary,
+    [slot="supporting-text"] {
+      /* A name or description in another language than the page keeps its
+         own direction and punctuation. */
+      unicode-bidi: plaintext;
+    }
     .name {
       font-weight: var(--ha-font-weight-medium);
       line-height: var(--ha-line-height-condensed);

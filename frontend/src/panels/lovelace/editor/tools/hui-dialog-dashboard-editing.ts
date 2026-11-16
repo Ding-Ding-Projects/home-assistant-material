@@ -348,6 +348,9 @@ export class HuiDialogDashboardEditing extends LitElement {
       css`
         ha-dialog {
           --ha-dialog-width-lg: 820px;
+          /* Let the subtitle wrap instead of running past the edge. */
+          --ha-dialog-header-white-space: normal;
+          --ha-dialog-header-title-height: auto;
         }
         .picker {
           margin: var(--ha-space-3) 0;

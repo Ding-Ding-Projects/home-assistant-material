@@ -66,18 +66,22 @@ export class HuiDashboardScreens extends LitElement {
     }
     return html`
       <ha-alert alert-type="warning">
-        ${this._t("wide_warning", {
-          count: wide.length,
-          columns: PHONE_GRID_COLUMNS,
-        })}
-        <ha-button
-          slot="action"
-          size="s"
-          @click=${this._togglePreview}
-          .disabled=${this._previewing}
-        >
-          ${this._t("make_friendly")}
-        </ha-button>
+        <div class="wide-row">
+          <span class="wide-text">
+            ${this._t("wide_warning", {
+              count: wide.length,
+              columns: PHONE_GRID_COLUMNS,
+            })}
+          </span>
+          <ha-button
+            class="wide-action"
+            size="s"
+            @click=${this._togglePreview}
+            .disabled=${this._previewing}
+          >
+            ${this._t("make_friendly")}
+          </ha-button>
+        </div>
       </ha-alert>
       ${
         this._previewing
@@ -279,7 +283,22 @@ export class HuiDashboardScreens extends LitElement {
       margin-bottom: var(--ha-space-3);
     }
     .custom-size ha-input {
-      flex: 1 1 160px;
+      flex: 1 1 200px;
+      min-width: 0;
+    }
+    .wide-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-2) var(--ha-space-3);
+    }
+    .wide-text {
+      flex: 1 1 220px;
+      min-width: 0;
+    }
+    .wide-action {
+      flex: none;
+      white-space: nowrap;
     }
     ha-alert {
       display: block;

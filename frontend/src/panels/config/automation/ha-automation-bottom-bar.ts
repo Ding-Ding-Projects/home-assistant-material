@@ -191,28 +191,35 @@ export class HaAutomationBottomBar extends LitElement {
             title=${t(
               `ui.panel.config.automation.editor.status_bar.${this.dirty ? "run_dirty" : "run_now_hint"}`
             )}
+            aria-label=${t(`${CHECK}run_now`)}
             @click=${this._run}
           >
             <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
-            ${t(`${CHECK}run_now`)}
+            <span class="label">${t(`${CHECK}run_now`)}</span>
           </ha-button>
           <ha-button
             appearance="plain"
             .disabled=${this._checking || !this.config}
             title=${t(`${CHECK}check_hint`)}
+            aria-label=${t(`${CHECK}${this._checking ? "checking" : "check"}`)}
             @click=${this._check}
           >
             <ha-svg-icon slot="start" .path=${mdiFlask}></ha-svg-icon>
-            ${t(`${CHECK}${this._checking ? "checking" : "check"}`)}
+            <span class="label"
+              >${t(`${CHECK}${this._checking ? "checking" : "check"}`)}</span
+            >
           </ha-button>
           <ha-button
             appearance="plain"
             .disabled=${this._dryRunning || !this.config}
             title=${t(`${DRY}hint`)}
+            aria-label=${t(`${DRY}${this._dryRunning ? "running" : "button"}`)}
             @click=${this._dryRun}
           >
             <ha-svg-icon slot="start" .path=${mdiTestTube}></ha-svg-icon>
-            ${t(`${DRY}${this._dryRunning ? "running" : "button"}`)}
+            <span class="label"
+              >${t(`${DRY}${this._dryRunning ? "running" : "button"}`)}</span
+            >
           </ha-button>
           <ha-button
             .disabled=${isSaveDisabled({
@@ -455,6 +462,8 @@ export class HaAutomationBottomBar extends LitElement {
           }
         }
         .status {
+          /* Check messages can quote text in another language. */
+          unicode-bidi: plaintext;
           flex: 1 1 200px;
           min-width: 0;
           overflow-wrap: anywhere;
@@ -526,6 +535,13 @@ export class HaAutomationBottomBar extends LitElement {
           .buttons ha-button:not([appearance="plain"]) {
             grid-column: 3;
             grid-row: 1;
+          }
+        }
+        /* Too narrow for words beside the icons: the three secondary buttons
+           show their icon only. Their accessible name and tooltip remain. */
+        @container (max-width: 420px) {
+          .buttons ha-button[appearance="plain"] .label {
+            display: none;
           }
         }
         .dry {

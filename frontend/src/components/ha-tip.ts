@@ -32,6 +32,8 @@ class HaTip extends LitElement {
 
     .text {
       direction: var(--direction);
+      /* The tip may be in another language than the page. */
+      unicode-bidi: plaintext;
       margin-left: 2px;
       margin-inline-start: 2px;
       margin-inline-end: initial;

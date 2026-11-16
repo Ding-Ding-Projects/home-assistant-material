@@ -506,6 +506,14 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           font-size: var(--ha-font-size-xl);
           font-weight: var(--ha-font-weight-normal);
         }
+        /* Each line takes its direction from its own text, so a sentence in
+           another language than the page keeps its full stops in place. */
+        .titles h1,
+        .titles p,
+        .banner-text strong,
+        .banner-text span {
+          unicode-bidi: plaintext;
+        }
         .titles p {
           margin: var(--ha-space-1) 0 0;
           font-size: var(--ha-font-size-l);

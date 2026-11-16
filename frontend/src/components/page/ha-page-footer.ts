@@ -53,7 +53,7 @@ export class HaPageFooter extends LitElement {
     const language = this._i18n.language;
     const hasTime = !Number.isNaN(built.getTime());
     return html`
-      <span class="version"
+      <span class="version" dir="auto"
         >${
           hasTime
             ? localize("ui.page_tools.footer.build", {
@@ -123,6 +123,9 @@ export class HaPageFooter extends LitElement {
       flex: none;
     }
     .version {
+      /* The line mixes the product name, a version and a date with the
+         page language; it takes its direction from its own first letter. */
+      unicode-bidi: plaintext;
       flex: 1 1 auto;
       min-width: 0;
       overflow-wrap: anywhere;

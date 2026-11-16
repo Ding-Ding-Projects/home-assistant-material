@@ -88,17 +88,40 @@ export class HaAutomationToolSteps extends LitElement {
     );
   }
 
+  /** Identity of the automation the current subscription belongs to. */
+  private _listenKey?: string;
+
   public connectedCallback(): void {
     super.connectedCallback();
-    this._listen();
+    // The context is usually assigned after the element is created, so this
+    // only starts listening on a reconnect; the first start is in willUpdate.
+    this._syncListening();
   }
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._listenKey = undefined;
     this._stopListening();
   }
 
+  /** Starts, restarts or stops listening when the automation changes. */
+  private _syncListening() {
+    if (!this.context || !this.isConnected) {
+      return;
+    }
+    const { hass, automationId } = this.context;
+    const key = `${automationId ?? ""}|${hass.user?.is_admin ? "1" : "0"}`;
+    if (key === this._listenKey) {
+      return;
+    }
+    this._listenKey = key;
+    this._stopListening();
+    this._status = "starting";
+    this._listen(key);
+  }
+
   protected willUpdate(): void {
+    this._syncListening();
     const { hass, entityId } = this.context;
     // A run that ended without a command from here no longer waits.
     if (
@@ -110,7 +133,7 @@ export class HaAutomationToolSteps extends LitElement {
     }
   }
 
-  private async _listen() {
+  private async _listen(key: string) {
     if (this._unsub || this._subscribing || !this.context) {
       return;
     }
@@ -128,21 +151,30 @@ export class HaAutomationToolSteps extends LitElement {
       const unsub = await subscribeBreakpointHits(hass, (hit) =>
         this._hit(hit)
       );
-      if (!this.isConnected) {
-        // The tool was closed while the subscription was being made.
+      if (!this.isConnected || this._listenKey !== key) {
+        // The tool was closed or pointed at another automation while the
+        // subscription was being made.
         await unsub();
         return;
       }
       this._unsub = unsub;
-      this._breakpoints = breakpointPathsFor(
-        await listBreakpoints(hass),
-        automationId
-      );
+      const listed = await listBreakpoints(hass);
+      if (this._listenKey !== key) {
+        return;
+      }
+      this._breakpoints = breakpointPathsFor(listed, automationId);
       this._status = "listening";
     } catch (_err) {
-      this._status = "unavailable";
+      if (this._listenKey === key) {
+        this._status = "unavailable";
+      }
     } finally {
       this._subscribing = false;
+      // A change that arrived while subscribing was skipped by the guard.
+      if (this._listenKey !== key) {
+        this._listenKey = undefined;
+        this._syncListening();
+      }
     }
   }
 

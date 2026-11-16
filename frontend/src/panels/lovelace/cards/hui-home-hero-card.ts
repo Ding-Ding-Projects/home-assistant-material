@@ -722,6 +722,14 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
       font-size: var(--ha-font-size-m);
       color: var(--secondary-text-color);
     }
+    /* Entity names and counts can be in another script than the page, so each
+       line takes its direction from its own text instead of the page. */
+    h2,
+    .caption,
+    .heading span,
+    .name {
+      unicode-bidi: plaintext;
+    }
     h2 {
       margin: 0;
       font-family: var(--ha-font-family-heading, inherit);

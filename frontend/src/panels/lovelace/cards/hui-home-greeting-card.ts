@@ -167,6 +167,11 @@ export class HuiHomeGreetingCard extends LitElement implements LovelaceCard {
     .text {
       min-width: 0;
     }
+    h1,
+    p {
+      /* The greeting and summary can be in another language than the page. */
+      unicode-bidi: plaintext;
+    }
     h1 {
       margin: 0;
       font-family: var(--ha-font-family-heading, inherit);

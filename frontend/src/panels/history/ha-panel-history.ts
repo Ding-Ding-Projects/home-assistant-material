@@ -1180,23 +1180,21 @@ class HaPanelHistory extends LitElement {
         .toolbar {
           display: flex;
           align-items: center;
-          gap: var(--ha-space-4);
+          /* On a narrow screen the date navigator drops to its own row
+             instead of running past the right edge. */
+          flex-wrap: wrap;
+          gap: var(--ha-space-2) var(--ha-space-4);
           box-sizing: border-box;
-          height: 56px;
+          min-height: 56px;
           flex-shrink: 0;
-          padding: 0 16px;
+          padding: var(--ha-space-1) 16px;
           border-bottom: 1px solid var(--divider-color);
           direction: var(--direction);
-          overflow-x: auto;
-          scrollbar-width: none;
-        }
-
-        .toolbar::-webkit-scrollbar {
-          display: none;
         }
 
         .toolbar > * {
           flex-shrink: 0;
+          max-width: 100%;
         }
 
         .comparison-controls {
