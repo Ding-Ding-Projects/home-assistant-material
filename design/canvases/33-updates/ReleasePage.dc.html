@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Updates log: the page of one version</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#EEF1F6}
+a{color:#00639B}a:hover{color:#004A76}
+button{font:inherit;cursor:pointer}
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid #00639B;outline-offset:2px}
+</style>
+</helmet>
+<div style="box-sizing: border-box; min-height: 2500px; background: #EEF1F6; color: #181C20; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 16px; line-height: 24px">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #C2C7CF">
+<div style="max-width: 1120px; margin: 0 auto; padding: 12px clamp(16px, 4vw, 32px); display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px">
+<a href="Releases.dc.html" style="font-weight: 600; font-size: 18px; text-decoration: none; color: #181C20; margin-inline-end: auto">Home Assistant Material updates</a>
+<a href="Releases.dc.html" style="min-height: 48px; display: inline-flex; align-items: center; text-decoration: none; font-weight: 500">All versions</a>
+<a href="#demo" style="min-height: 48px; display: inline-flex; align-items: center; text-decoration: none; font-weight: 500">Live demo</a>
+<a href="#update" style="min-height: 48px; display: inline-flex; align-items: center; text-decoration: none; font-weight: 500">How to update</a>
+</div>
+</header>
+
+<main style="max-width: 1120px; margin: 0 auto; padding: 32px clamp(16px, 4vw, 32px) 64px; display: flex; flex-direction: column; gap: 32px">
+
+<section aria-labelledby="rp-h" style="background: #00639B; color: #FFFFFF; border-radius: 28px; padding: clamp(24px, 5vw, 48px); display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<span style="padding: 4px 12px; border-radius: 8px; background: #FFFFFF; color: #004A76; font-size: 13px; font-weight: 600">Newest version</span>
+<span style="padding: 4px 12px; border-radius: 8px; border: 1px solid #FFFFFF; font-size: 13px">Published release</span>
+</div>
+<h1 id="rp-h" style="margin: 0; font-size: clamp(36px, 6vw, 57px); line-height: 1.1; font-weight: 500">Build 457</h1>
+<div style="font-size: 20px; line-height: 28px">Home Assistant Material <span style="font-family: 'Roboto Mono', monospace">2026.11.1.457</span>, 16 November 2026 at 14:43</div>
+<p style="margin: 0; max-width: 68ch">52 changes since build 441. Around-the-clock camera recording with an event timeline arrives, Settings search finds pages inside the cards, and the phone layout of the dashboard tools and the automation editor is repaired.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<a href="#demo" style="min-height: 48px; padding: 0 24px; border-radius: 24px; background: #FFFFFF; color: #004A76; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center">Try the new features</a>
+<a href="#all" style="min-height: 48px; padding: 0 24px; border-radius: 24px; border: 1px solid #FFFFFF; color: #FFFFFF; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">Read all 52 changes</a>
+</div>
+</section>
+
+<section aria-label="This version in numbers" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px">
+<div style="background: #FFFFFF; border-radius: 20px; padding: 20px"><div style="font-size: 13px; color: #42474E">Home Assistant Core</div><div style="font-family: 'Roboto Mono', monospace; font-size: 18px">2026.11.1.457</div></div>
+<div style="background: #FFFFFF; border-radius: 20px; padding: 20px"><div style="font-size: 13px; color: #42474E">Supervisor</div><div style="font-family: 'Roboto Mono', monospace; font-size: 18px">2026.11.0.457</div></div>
+<div style="background: #FFFFFF; border-radius: 20px; padding: 20px"><div style="font-size: 13px; color: #42474E">Operating system</div><div style="font-family: 'Roboto Mono', monospace; font-size: 18px">18.5.457</div></div>
+<div style="background: #FFFFFF; border-radius: 20px; padding: 20px"><div style="font-size: 13px; color: #42474E">Source</div><div style="font-family: 'Roboto Mono', monospace; font-size: 18px">9b5bbbec2</div></div>
+</section>
+
+<section aria-labelledby="hl-h" style="display: flex; flex-direction: column; gap: 16px">
+<h2 id="hl-h" style="margin: 0; font-size: 32px; line-height: 40px; font-weight: 500">Highlights</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px">
+
+<article style="background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 8px"><span style="padding: 2px 10px; border-radius: 8px; background: #D5E4F6; color: #3A4857; font-size: 13px; font-weight: 500">Interface</span><span style="padding: 2px 10px; border-radius: 8px; background: #D5E4F6; color: #3A4857; font-size: 13px; font-weight: 500">Core</span></div>
+<h3 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 500">Add around-the-clock camera recording and the event timeline</h3>
+<p style="margin: 0; color: #42474E; font-size: 15px">A camera can record all day to a place you choose, and the player gains a timeline of events to jump along.</p>
+<a href="#demo" style="margin-top: auto; align-self: flex-start; min-height: 48px; padding: 0 20px; border-radius: 24px; background: #00639B; color: #FFFFFF; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">Try it in the demo</a>
+</article>
+
+<article style="background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 8px"><span style="padding: 2px 10px; border-radius: 8px; background: #D5E4F6; color: #3A4857; font-size: 13px; font-weight: 500">Interface</span></div>
+<h3 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 500">Let Settings search offer pages inside the cards</h3>
+<p style="margin: 0; color: #42474E; font-size: 15px">Typing in the Settings search now finds pages that live inside a card, such as Camera recording, not only the cards themselves.</p>
+<a href="#demo" style="margin-top: auto; align-self: flex-start; min-height: 48px; padding: 0 20px; border-radius: 24px; background: #00639B; color: #FFFFFF; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">Try it in the demo</a>
+</article>
+
+<article style="background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 8px"><span style="padding: 2px 10px; border-radius: 8px; background: #D5E4F6; color: #3A4857; font-size: 13px; font-weight: 500">Interface</span></div>
+<h3 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 500">Fix phone dashboard tools, the right-to-left footer and the sidebar search</h3>
+<p style="margin: 0; color: #42474E; font-size: 15px">The dashboard tools dialog wraps its text on a phone, its selection bar no longer covers the search box, and wide device frames scroll inside the dialog.</p>
+<a href="#demo" style="margin-top: auto; align-self: flex-start; min-height: 48px; padding: 0 20px; border-radius: 24px; background: #00639B; color: #FFFFFF; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">Try it in the demo</a>
+</article>
+
+</div>
+<p style="margin: 0; font-size: 13px; color: #42474E">Highlights are the changes to the interface, Core, Supervisor and the operating system with the fullest explanations. Housekeeping and record-keeping changes are listed under All changes.</p>
+</section>
+
+<section id="demo" aria-labelledby="dm-h" style="background: #FFFFFF; border-radius: 28px; padding: clamp(16px, 4vw, 32px); display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: flex-end">
+<div>
+<h2 id="dm-h" style="margin: 0; font-size: 32px; line-height: 40px; font-weight: 500">Live demo of this version</h2>
+<p style="margin: 4px 0 0; color: #42474E; font-size: 15px">The real interface, running in your browser with pretend devices. Nothing is installed and nothing is saved.</p>
+</div>
+<a href="#demo" style="min-height: 48px; padding: 0 20px; border-radius: 24px; border: 1px solid #72777F; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">Open the demo full screen</a>
+</div>
+<div role="tablist" aria-label="Feature to try" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px">
+<button role="tab" aria-selected="true" style="flex: none; min-height: 48px; padding: 0 16px; border-radius: 12px; border: none; background: #D5E4F6; color: #3A4857; font-weight: 500">Camera recording</button>
+<button role="tab" aria-selected="false" style="flex: none; min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Settings search</button>
+<button role="tab" aria-selected="false" style="flex: none; min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Dashboard tools</button>
+<button role="tab" aria-selected="false" style="flex: none; min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Automation editor</button>
+</div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px">
+<div style="background: #F1F4F9; border-radius: 16px; padding: 16px; font-size: 15px"><strong style="font-weight: 600">What to try:</strong> open Settings, type "camera" in the search, and choose Camera recording. Follow the three setup steps; the connection test answers with a pretend result.</div>
+<div aria-label="The demo runs here" role="img" style="height: 560px; border-radius: 16px; border: 1px solid #C2C7CF; background: #0B0F13; color: #C2C7CF; display: grid; place-items: center; text-align: center; padding: 24px; font-size: 15px">The live demo is embedded here at the page for the chosen feature.<br>It loads when the reader presses "Start the demo", so the page stays light.</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+<button style="min-height: 48px; padding: 0 24px; border-radius: 24px; border: none; background: #00639B; color: #FFFFFF; font-weight: 500">Start the demo</button>
+<span style="font-size: 13px; color: #42474E">The demo always runs the newest build. On the page of an older version it says so.</span>
+</div>
+</div>
+</section>
+
+<section id="all" aria-labelledby="al-h" style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: flex-end">
+<h2 id="al-h" style="margin: 0; font-size: 32px; line-height: 40px; font-weight: 500">All 52 changes</h2>
+<label style="flex: 0 1 360px; display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 16px; border-radius: 28px; background: #FFFFFF">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#42474E" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Search the changes</span>
+<input type="search" placeholder="Search the changes" style="flex: 1; min-width: 0; height: 48px; border: none; background: transparent; font: inherit">
+</label>
+</div>
+<div role="group" aria-label="Show changes to" style="display: flex; flex-wrap: wrap; gap: 8px">
+<button aria-pressed="true" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: none; background: #D5E4F6; color: #3A4857; font-weight: 500">Everything 52</button>
+<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Interface 18</button>
+<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Core</button>
+<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Deploy Assistant</button>
+<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Build</button>
+<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Documentation</button>
+</div>
+
+<h3 style="margin: 8px 0 0; font-size: 22px; line-height: 28px; font-weight: 500">Interface</h3>
+<details open style="background: #FFFFFF; border-radius: 16px; padding: 0 20px 16px">
+<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; cursor: pointer; padding: 10px 0"><span style="flex: 1 1 280px; min-width: 0; font-weight: 500">Fix phone dashboard tools, the right-to-left footer and the sidebar search; record build 455</span><span style="color: #42474E; font-size: 13px">16 Nov, 14:43</span><span style="font-family: 'Roboto Mono', monospace; color: #42474E; font-size: 13px">9b5bbbec2</span></summary>
+<p style="margin: 0 0 10px; color: #42474E; font-size: 15px; max-width: 76ch">The dashboard tools dialog thought a sentence was a headline and cut it off mid-thought on a phone; it now wraps. Its selection bar sits in the flow on narrow screens. Device frames wider than the dialog scroll inside it.</p>
+<p lang="yue" style="margin: 0; color: #42474E; font-size: 15px; max-width: 76ch">手機版儀表板工具嗰句副標題唔再斬一半，識得轉行；揀選列唔再浮喺搜尋格上面阻住晒。</p>
+</details>
+<details style="background: #FFFFFF; border-radius: 16px; padding: 0 20px">
+<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; cursor: pointer; padding: 10px 0"><span style="flex: 1 1 280px; min-width: 0; font-weight: 500">Let Settings search offer pages inside the cards; record build 453</span><span style="color: #42474E; font-size: 13px">16 Nov, 12:48</span><span style="font-family: 'Roboto Mono', monospace; color: #42474E; font-size: 13px">0622bb442</span></summary>
+</details>
+<details style="background: #FFFFFF; border-radius: 16px; padding: 0 20px">
+<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; cursor: pointer; padding: 10px 0"><span style="flex: 1 1 280px; min-width: 0; font-weight: 500">Show the camera recording page before first setup and list it in Settings</span><span style="color: #42474E; font-size: 13px">16 Nov</span></summary>
+</details>
+<a href="#all" style="align-self: flex-start; min-height: 48px; display: inline-flex; align-items: center; font-weight: 500; text-decoration: none">Show 15 more in Interface</a>
+
+<h3 style="margin: 8px 0 0; font-size: 22px; line-height: 28px; font-weight: 500">Deploy Assistant</h3>
+<details style="background: #FFFFFF; border-radius: 16px; padding: 0 20px">
+<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; cursor: pointer; padding: 10px 0"><span style="flex: 1 1 280px; min-width: 0; font-weight: 500">Add explicit SSH host-key review to backup hosting</span><span style="color: #42474E; font-size: 13px">15 Nov</span></summary>
+</details>
+<details style="background: #FFFFFF; border-radius: 16px; padding: 0 20px">
+<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; cursor: pointer; padding: 10px 0"><span style="flex: 1 1 280px; min-width: 0; font-weight: 500">Resume existing native backup jobs after restart</span><span style="color: #42474E; font-size: 13px">15 Nov</span></summary>
+</details>
+</section>
+
+<section id="update" aria-labelledby="up-h" style="background: #FFFFFF; border-radius: 28px; padding: clamp(16px, 4vw, 32px); display: flex; flex-direction: column; gap: 12px">
+<h2 id="up-h" style="margin: 0; font-size: 28px; line-height: 36px; font-weight: 500">How to update to build 457</h2>
+<ol style="margin: 0; padding-inline-start: 24px; display: flex; flex-direction: column; gap: 8px; font-size: 15px">
+<li>In your Home Assistant Material, open Settings, then System, then Updates.</li>
+<li>Press Check now. Core 2026.11.1.457 appears in the list.</li>
+<li>Choose Update. A backup is offered first when the update supports it.</li>
+</ol>
+<p style="margin: 0; font-size: 13px; color: #42474E">Core, Supervisor and the operating system are never updated automatically. You choose when.</p>
+</section>
+
+<nav aria-label="Other versions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+<a href="Releases.dc.html" style="background: #FFFFFF; border-radius: 20px; padding: 20px; text-decoration: none; color: #181C20; min-height: 48px"><div style="font-size: 13px; color: #42474E">Older</div><div style="font-size: 20px; font-weight: 500">Build 441</div><div style="font-size: 13px; color: #42474E">15 November 2026, 5 changes</div></a>
+<a href="Releases.dc.html" style="background: #D5E4F6; border-radius: 20px; padding: 20px; text-decoration: none; color: #181C20; min-height: 48px"><div style="font-size: 13px; color: #3A4857">Newer, building now</div><div style="font-size: 20px; font-weight: 500">Build 462</div><div style="font-size: 13px; color: #3A4857">Stage 3 of 7, 38%</div></a>
+</nav>
+
+</main>
+
+<footer style="border-top: 1px solid #C2C7CF; padding: 24px clamp(16px, 4vw, 32px); text-align: center; font-size: 13px; color: #42474E">This page was built from the public change list on 16 November 2026 at 18:10. It sets no cookies and loads nothing from other sites until you start the demo.</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2500}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

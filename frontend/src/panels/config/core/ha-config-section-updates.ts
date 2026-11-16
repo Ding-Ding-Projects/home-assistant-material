@@ -71,6 +71,8 @@ import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
+import "./updates/ha-update-changes";
+import "./updates/ha-update-coming-soon";
 import { showJoinBetaDialog } from "./updates/show-dialog-join-beta";
 
 type UpdateRowVariant = "install" | "skipped" | "manual" | "current";
@@ -271,6 +273,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                   }
                   ${this._renderHero(installableUpdates, readyCount)}
                   ${this._renderAutomatic()}
+                  <ha-update-coming-soon
+                    .hass=${this.hass}
+                  ></ha-update-coming-soon>
                   ${
                     installableUpdates.length
                       ? html`<div class="rows">
@@ -308,6 +313,10 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                     ${this._renderBeforeUpdating()}
                     ${this._renderCurrent(currentUpdates)}
                   </div>
+                  <ha-update-changes
+                    .hass=${this.hass}
+                    .narrow=${this.narrow}
+                  ></ha-update-changes>
                   ${this._renderFootnote()}
                 </div>
               `

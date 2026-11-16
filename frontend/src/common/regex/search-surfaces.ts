@@ -393,6 +393,12 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Card types",
   },
   {
+    file: "panels/config/core/updates/ha-update-changes.ts",
+    searches:
+      "The changes between two builds on the Updates page, by title, detail text and commit id",
+    matcher: "data/build-changes.ts",
+  },
+  {
     file: "panels/lovelace/editor/dashboard-tools-dialog/hui-dialog-dashboard-tools.ts",
     searches:
       "Every card on a dashboard, by type, name, section, view and entity",

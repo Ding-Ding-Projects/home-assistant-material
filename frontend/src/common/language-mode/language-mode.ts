@@ -26,6 +26,9 @@ export const YUE_PREFIXES = [
   // Single strings, not whole blocks: the settings home banners and the apps page.
   "ui.panel.config.dashboard.",
   "ui.panel.config.updates.check_updates",
+  "ui.panel.config.updates.build_data.",
+  "ui.panel.config.updates.coming_soon.",
+  "ui.panel.config.updates.compare.",
   "ui.panel.config.system_dashboard.restart_homeassistant",
   // The navigation rail, the panel names and the notification drawer.
   "ui.sidebar.",

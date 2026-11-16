@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Updates log: all versions with search, filters and calendar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#EEF1F6}
+a{color:#00639B}a:hover{color:#004A76}
+button{font:inherit;cursor:pointer}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #00639B;outline-offset:2px}
+</style>
+</helmet>
+<div style="box-sizing: border-box; min-height: 2300px; background: #EEF1F6; color: #181C20; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 16px; line-height: 24px">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #C2C7CF">
+<div style="max-width: 1120px; margin: 0 auto; padding: 12px clamp(16px, 4vw, 32px); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px">
+<a href="Releases.dc.html" style="font-weight: 600; font-size: 18px; text-decoration: none; color: #181C20; margin-inline-end: auto">Home Assistant Material updates</a>
+<a href="#versions" style="min-height: 48px; display: inline-flex; align-items: center; text-decoration: none; font-weight: 500">All versions</a>
+<a href="#calendar" style="min-height: 48px; display: inline-flex; align-items: center; text-decoration: none; font-weight: 500">Calendar</a>
+<a href="#versions" style="min-height: 48px; display: inline-flex; align-items: center; text-decoration: none; font-weight: 500">Compare</a>
+<button aria-label="Language: English. Change language" style="min-height: 48px; padding: 0 16px; border-radius: 24px; border: 1px solid #72777F; background: transparent; color: #181C20">English</button>
+<button aria-label="Colours: follow the system. Change" style="min-height: 48px; padding: 0 16px; border-radius: 24px; border: 1px solid #72777F; background: transparent; color: #181C20">System colours</button>
+</div>
+</header>
+
+<main style="max-width: 1120px; margin: 0 auto; padding: 32px clamp(16px, 4vw, 32px) 64px; display: flex; flex-direction: column; gap: 28px">
+
+<section aria-labelledby="ix-h" style="display: flex; flex-direction: column; gap: 16px">
+<h1 id="ix-h" style="margin: 0; font-size: clamp(32px, 5vw, 45px); line-height: 1.15; font-weight: 500">Every update, explained</h1>
+<p style="margin: 0; max-width: 68ch; color: #42474E">29 versions and 430 changes since 11 November 2026. Each version has its own page with plain-language notes and a working demo of every new feature.</p>
+<label style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 0 24px; border-radius: 32px; background: #FFFFFF; border: 2px solid #00639B">
+<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00639B" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Search every version and change</span>
+<input type="search" value="camera" style="flex: 1; min-width: 0; height: 56px; border: none; background: transparent; font: inherit; font-size: 18px; color: #181C20">
+<span style="font-size: 13px; color: #42474E; white-space: nowrap">3 versions, 7 changes</span>
+</label>
+</section>
+
+<section aria-labelledby="soon-h" style="background: #004A76; color: #FFFFFF; border-radius: 28px; padding: clamp(16px, 4vw, 28px); display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline">
+<h2 id="soon-h" style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 500">Update coming soon: build 462</h2>
+<span style="font-size: 22px; font-weight: 500">38%</span>
+</div>
+<div role="progressbar" aria-label="Build progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="38" aria-valuetext="6 of 16 jobs done, 2 running" style="height: 12px; border-radius: 6px; background: #003354; overflow: hidden; display: flex; gap: 2px"><div style="width: 37.5%; background: #CEE5FF; border-radius: 6px"></div><div style="width: 12.5%; background: repeating-linear-gradient(135deg, #CEE5FF 0 6px, #00639B 6px 12px); border-radius: 6px"></div></div>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 15px"><span>Stage 3 of 7: Building Core and Supervisor. 6 of 16 jobs done.</span><button style="min-height: 48px; padding: 0 20px; border-radius: 24px; border: 1px solid #FFFFFF; background: transparent; color: #FFFFFF; font-weight: 500">Show every job</button></div>
+</section>
+
+<section id="calendar" aria-labelledby="cal-h" style="background: #FFFFFF; border-radius: 28px; padding: clamp(16px, 4vw, 28px); display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<h2 id="cal-h" style="margin: 0; font-size: 28px; line-height: 36px; font-weight: 500">Calendar</h2>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<button aria-label="Previous month" style="width: 48px; height: 48px; border-radius: 24px; border: 1px solid #72777F; background: transparent; color: #181C20; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
+<label><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Month</span><select style="height: 48px; border-radius: 12px; border: 1px solid #72777F; background: #FFFFFF; color: #181C20; padding: 0 12px; font: inherit"><option>November 2026</option></select></label>
+<button aria-label="Next month" disabled style="width: 48px; height: 48px; border-radius: 24px; border: 1px solid #C2C7CF; background: transparent; color: #72777F; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+<button style="min-height: 48px; padding: 0 16px; border-radius: 24px; border: none; background: #D5E4F6; color: #3A4857; font-weight: 500">Jump to newest</button>
+</div>
+</div>
+<p style="margin: 0; font-size: 15px; color: #42474E">November 2026: 29 versions and 430 changes on 6 days. Choose a day to show only its versions.</p>
+
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 300px; border-collapse: separate; border-spacing: 4px; table-layout: fixed">
+<caption style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Versions per day in November 2026</caption>
+<thead><tr style="font-size: 13px; color: #42474E">
+<th scope="col" style="font-weight: 500; padding: 4px">Mon</th><th scope="col" style="font-weight: 500; padding: 4px">Tue</th><th scope="col" style="font-weight: 500; padding: 4px">Wed</th><th scope="col" style="font-weight: 500; padding: 4px">Thu</th><th scope="col" style="font-weight: 500; padding: 4px">Fri</th><th scope="col" style="font-weight: 500; padding: 4px">Sat</th><th scope="col" style="font-weight: 500; padding: 4px">Sun</th>
+</tr></thead>
+<tbody style="font-size: 13px">
+<tr><td></td><td></td><td></td><td></td><td></td><td></td><td style="height: 76px; border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">1</td></tr>
+<tr><td style="height: 76px; border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">2</td><td style="border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">3</td><td style="border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">4</td><td style="border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">5</td><td style="border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">6</td><td style="border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">7</td><td style="border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">8</td></tr>
+<tr>
+<td style="height: 76px; border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">9</td>
+<td style="border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">10</td>
+<td style="padding: 0"><button aria-pressed="false" aria-label="11 November 2026: 7 versions, 17 changes" style="width: 100%; min-height: 76px; border-radius: 12px; border: none; background: #CEE5FF; color: #004A76; text-align: start; padding: 6px; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">11</span><span>7 versions</span><span>17 changes</span></button></td>
+<td style="padding: 0"><button aria-pressed="false" aria-label="12 November 2026: 10 versions, 258 changes" style="width: 100%; min-height: 76px; border-radius: 12px; border: none; background: #004A76; color: #FFFFFF; text-align: start; padding: 6px; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">12</span><span>10 versions</span><span>258 changes</span></button></td>
+<td style="padding: 0"><button aria-pressed="false" aria-label="13 November 2026: 9 versions, 95 changes" style="width: 100%; min-height: 76px; border-radius: 12px; border: none; background: #00639B; color: #FFFFFF; text-align: start; padding: 6px; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">13</span><span>9 versions</span><span>95 changes</span></button></td>
+<td style="padding: 0"><button aria-pressed="false" aria-label="14 November 2026: 1 version, 3 changes" style="width: 100%; min-height: 76px; border-radius: 12px; border: none; background: #CEE5FF; color: #004A76; text-align: start; padding: 6px; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">14</span><span>1 version</span><span>3 changes</span></button></td>
+<td style="padding: 0"><button aria-pressed="false" aria-label="15 November 2026: 1 version, 5 changes" style="width: 100%; min-height: 76px; border-radius: 12px; border: none; background: #CEE5FF; color: #004A76; text-align: start; padding: 6px; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">15</span><span>1 version</span><span>5 changes</span></button></td>
+</tr>
+<tr>
+<td style="padding: 0"><button aria-pressed="true" aria-label="16 November 2026: 1 version, 52 changes. Chosen" style="width: 100%; min-height: 76px; border-radius: 12px; border: 3px solid #181C20; background: #00639B; color: #FFFFFF; text-align: start; padding: 4px; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">16 Today</span><span>1 version</span><span>52 changes</span></button></td>
+<td style="height: 76px; border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">17</td><td style="border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">18</td><td style="border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">19</td><td style="border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">20</td><td style="border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">21</td><td style="border-radius: 12px; background: #F1F4F9; vertical-align: top; padding: 6px; color: #42474E">22</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: #42474E; align-items: center">
+<span>Tint by changes that day:</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><i style="width: 16px; height: 16px; border-radius: 4px; background: #CEE5FF; display: inline-block"></i>1 to 19</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><i style="width: 16px; height: 16px; border-radius: 4px; background: #00639B; display: inline-block"></i>20 to 99</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><i style="width: 16px; height: 16px; border-radius: 4px; background: #004A76; display: inline-block"></i>100 or more</span>
+<span>The numbers are always written on the day. On a narrow screen they shorten to "1 / 52".</span>
+</div>
+</section>
+
+<section id="versions" aria-labelledby="vs-h" style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px">
+<h2 id="vs-h" style="margin: 0; font-size: 28px; line-height: 36px; font-weight: 500">Versions</h2>
+<div aria-live="polite" style="font-size: 15px; color: #42474E">Showing 1 of 29 versions: 16 November 2026, matching "camera"</div>
+</div>
+
+<div style="background: #FFFFFF; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div role="group" aria-label="Part of the product" style="display: flex; flex-wrap: wrap; gap: 8px">
+<button aria-pressed="true" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: none; background: #D5E4F6; color: #3A4857; font-weight: 500">Interface 21</button>
+<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Core 9</button>
+<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Supervisor 4</button>
+<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Operating system 6</button>
+<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #72777F; background: transparent; color: #181C20">Deploy Assistant 8</button>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #42474E; flex: 1 1 150px">Kind<select style="height: 56px; border-radius: 12px; border: 1px solid #72777F; background: #FFFFFF; color: #181C20; padding: 0 12px; font: inherit; font-size: 16px"><option>All versions</option><option>With new features</option><option>Housekeeping only</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #42474E; flex: 1 1 150px">From build<select style="height: 56px; border-radius: 12px; border: 1px solid #72777F; background: #FFFFFF; color: #181C20; padding: 0 12px; font: inherit; font-size: 16px"><option>114, oldest</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #42474E; flex: 1 1 150px">To build<select style="height: 56px; border-radius: 12px; border: 1px solid #72777F; background: #FFFFFF; color: #181C20; padding: 0 12px; font: inherit; font-size: 16px"><option>457, newest</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #42474E; flex: 1 1 150px">Order<select style="height: 56px; border-radius: 12px; border: 1px solid #72777F; background: #FFFFFF; color: #181C20; padding: 0 12px; font: inherit; font-size: 16px"><option>Newest first</option><option>Oldest first</option></select></label>
+<button style="min-height: 56px; padding: 0 20px; border-radius: 28px; border: 1px solid #72777F; background: transparent; color: #00639B; font-weight: 500">Clear filters</button>
+</div>
+</div>
+
+<article style="background: #FFFFFF; border-radius: 28px; padding: clamp(16px, 4vw, 28px); display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<span style="padding: 2px 10px; border-radius: 8px; background: #CEE5FF; color: #004A76; font-size: 13px; font-weight: 600">Newest</span>
+<span style="font-size: 13px; color: #42474E">16 November 2026 at 14:43</span>
+<span style="font-family: 'Roboto Mono', monospace; font-size: 13px; color: #42474E">2026.11.1.457</span>
+</div>
+<h3 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 500"><a href="ReleasePage.dc.html" style="text-decoration: none; color: #181C20">Build 457: Camera recording around the clock, and a Settings search that finds more</a></h3>
+<p style="margin: 0; color: #42474E; font-size: 15px; max-width: 76ch">A <mark style="background: #FFE08B; color: #181C20; padding: 0 2px; border-radius: 4px">camera</mark> can record all day to a place you choose, the player gains an event timeline, and Settings search finds pages inside the cards.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px"><span style="padding: 2px 10px; border-radius: 8px; background: #D5E4F6; color: #3A4857">52 changes</span><span style="padding: 2px 10px; border-radius: 8px; background: #B6F2BE; color: #1F6A3B">Features with a working demo</span><span style="padding: 2px 10px; border-radius: 8px; border: 1px solid #72777F">Interface</span><span style="padding: 2px 10px; border-radius: 8px; border: 1px solid #72777F">Core</span><span style="padding: 2px 10px; border-radius: 8px; border: 1px solid #72777F">Deploy Assistant</span></div>
+<div style="background: #F1F4F9; border-radius: 16px; padding: 12px 16px; font-size: 14px"><div style="font-weight: 500; margin-bottom: 4px">Matching changes in this version</div>Add around-the-clock <mark style="background: #FFE08B; color: #181C20; padding: 0 2px; border-radius: 4px">camera</mark> recording and the event timeline<br>Show the <mark style="background: #FFE08B; color: #181C20; padding: 0 2px; border-radius: 4px">camera</mark> recording page before first setup and list it in Settings</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<a href="ReleasePage.dc.html" style="min-height: 48px; padding: 0 24px; border-radius: 24px; background: #00639B; color: #FFFFFF; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">Read the notes</a>
+<a href="ReleasePage.dc.html" style="min-height: 48px; padding: 0 24px; border-radius: 24px; border: 1px solid #72777F; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">Try the demos</a>
+<a href="ReleasePage.dc.html" style="min-height: 48px; padding: 0 24px; border-radius: 24px; border: 1px solid #72777F; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">Compare with build 441</a>
+</div>
+</article>
+
+<div style="padding: 16px; border-radius: 16px; border: 1px dashed #72777F; color: #42474E; font-size: 15px">28 other versions are hidden by the day and the search. <button style="min-height: 48px; padding: 0 16px; border-radius: 24px; border: none; background: transparent; color: #00639B; font-weight: 500">Clear filters</button></div>
+
+<div style="font-size: 13px; color: #42474E; font-weight: 500">Without filters the list continues like this</div>
+<article style="background: #FFFFFF; border-radius: 28px; padding: clamp(16px, 4vw, 28px); display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center"><span style="font-size: 13px; color: #42474E">15 November 2026 at 00:02</span><span style="font-family: 'Roboto Mono', monospace; font-size: 13px; color: #42474E">2026.11.1.441</span></div>
+<h3 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 500"><a href="ReleasePage.dc.html" style="text-decoration: none; color: #181C20">Build 441</a></h3>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px"><span style="padding: 2px 10px; border-radius: 8px; background: #D5E4F6; color: #3A4857">5 changes</span><span style="padding: 2px 10px; border-radius: 8px; border: 1px solid #72777F">Interface</span><span style="padding: 2px 10px; border-radius: 8px; border: 1px solid #72777F">Build</span></div>
+</article>
+<article style="background: #FFFFFF; border-radius: 28px; padding: clamp(16px, 4vw, 28px); display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center"><span style="font-size: 13px; color: #42474E">14 November 2026 at 00:56</span><span style="font-family: 'Roboto Mono', monospace; font-size: 13px; color: #42474E">2026.11.1.439</span></div>
+<h3 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 500"><a href="ReleasePage.dc.html" style="text-decoration: none; color: #181C20">Build 439</a></h3>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px"><span style="padding: 2px 10px; border-radius: 8px; background: #D5E4F6; color: #3A4857">3 changes</span></div>
+</article>
+</section>
+
+</main>
+<footer style="border-top: 1px solid #C2C7CF; padding: 24px clamp(16px, 4vw, 32px); text-align: center; font-size: 13px; color: #42474E">Built from the public change list on 16 November 2026 at 18:10. This site sets no cookies.</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2300}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

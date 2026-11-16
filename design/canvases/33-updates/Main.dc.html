@@ -2,195 +2,232 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Updates page with build progress and version comparison</title>
+<title>Updates page: build progress and version comparison</title>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..800&family=Roboto+Mono:wght@400;500&display=swap">
 <style>
 body{margin:0;background:#0B0F13}
-a{color:#98CBFF}a:hover{color:#CEE5FF}
 button{font:inherit;cursor:pointer}
-button:focus-visible,summary:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #98CBFF;outline-offset:2px}
+button:focus-visible,summary:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #CEE5FF;outline-offset:3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{to{background-position:34px 0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </helmet>
-<div style="box-sizing: border-box; min-height: 2010px; background: #0B0F13; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px clamp(12px, 3vw, 24px) 64px">
-<div style="max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px">
+<div style="box-sizing: border-box; min-height: 2360px; background: #0B0F13; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: clamp(16px, 3vw, 40px) clamp(12px, 3vw, 32px) 80px">
+<div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
 
-<header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
-<div>
-<div style="font-size: 12px; color: #C2C7CF">Settings, System</div>
-<h1 style="margin: 0; font-size: 32px; line-height: 40px; font-weight: 500">Updates</h1>
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 0 8px 8px">
+<h1 style="margin: 0; font-size: clamp(40px, 7vw, 72px); line-height: 1; font-weight: 700; font-stretch: 112%; letter-spacing: -0.02em">Updates</h1>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button style="height: 56px; padding: 0 28px; border-radius: 28px; border: none; background: #98CBFF; color: #003354; font-weight: 600; font-size: 16px; display: inline-flex; align-items: center; gap: 10px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5"/></svg>Check now</button>
+<button aria-label="More" style="width: 56px; height: 56px; border-radius: 20px; border: none; background: #272B31; color: #E0E2E8; display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
 </div>
-<button style="height: 48px; padding: 0 24px; border-radius: 24px; border: 1px solid #8C9199; background: transparent; color: #98CBFF; font-weight: 500">Check now</button>
 </header>
 
-<section aria-labelledby="soon-h" style="background: #1D2126; border-radius: 28px; padding: clamp(18px, 4vw, 28px) clamp(16px, 4vw, 32px); display: flex; flex-direction: column; gap: 20px">
-<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: flex-start">
-<div style="flex: 1 1 300px; min-width: 0">
-<div style="display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 8px; background: #004A76; color: #CEE5FF; font-size: 12px; font-weight: 500">
-<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/></svg>
+<section aria-labelledby="soon-h" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px">
+
+<div style="grid-column: span 2; min-width: 0; background: #004A76; color: #CEE5FF; border-radius: 48px; padding: clamp(24px, 4vw, 44px); display: flex; flex-wrap: wrap; gap: clamp(20px, 4vw, 40px); align-items: center">
+<div role="progressbar" aria-label="Build progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="38" aria-valuetext="38 percent, 6 of 16 jobs done, 2 running" style="position: relative; width: clamp(168px, 26vw, 240px); aspect-ratio: 1; flex: none; margin: 0 auto">
+<svg aria-hidden="true" viewBox="0 0 120 120" style="width: 100%; height: 100%; transform: rotate(-90deg)">
+<circle cx="60" cy="60" r="50" fill="none" stroke="#003354" stroke-width="14"/>
+<circle cx="60" cy="60" r="50" fill="none" stroke="#5FA8E6" stroke-width="14" stroke-linecap="round" stroke-dasharray="157 314"/>
+<circle cx="60" cy="60" r="50" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" stroke-dasharray="118 314"/>
+</svg>
+<div style="position: absolute; inset: 0; display: grid; place-items: center; text-align: center">
+<div><div style="font-size: clamp(44px, 7vw, 68px); line-height: 1; font-weight: 800; font-stretch: 120%; color: #FFFFFF">38<span style="font-size: .5em">%</span></div><div style="font-size: 13px; margin-top: 4px">6 of 16 jobs</div></div>
+</div>
+</div>
+<div style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<div style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px; border-radius: 16px; background: #FFFFFF; color: #004A76; font-size: 13px; font-weight: 700">
+<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" style="animation: spin 1.4s linear infinite"><path d="M12 3a9 9 0 1 0 9 9"/></svg>
 Building now
 </div>
-<h2 id="soon-h" style="margin: 10px 0 4px; font-size: 28px; line-height: 36px; font-weight: 500">Update coming soon</h2>
-<div style="font-size: 16px; line-height: 24px">Build 462 will become Core <span style="font-family: 'Roboto Mono', monospace">2026.11.1.462</span></div>
-<div style="color: #C2C7CF; margin-top: 4px">Keep every key typed into the sidebar search; stop problem outlines painting over the editor bar</div>
-</div>
-<dl style="margin: 0; display: grid; grid-template-columns: auto auto; gap: 4px 16px; font-size: 13px">
-<dt style="color: #C2C7CF">Started</dt><dd style="margin: 0">16 November 2026, 16:56</dd>
-<dt style="color: #C2C7CF">Running for</dt><dd style="margin: 0">14 minutes</dd>
-<dt style="color: #C2C7CF">Started by</dt><dd style="margin: 0">Started by hand, publishes a release</dd>
-<dt style="color: #C2C7CF">You have</dt><dd style="margin: 0">Build 439</dd>
-</dl>
-</div>
-
-<div>
-<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px">
-<div style="font-size: 16px; font-weight: 500">Stage 3 of 7: Building Core and Supervisor</div>
-<div style="font-size: 22px; font-weight: 500">38%</div>
-</div>
-<div role="progressbar" aria-label="Build progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="38" aria-valuetext="6 of 16 jobs done, 2 running" style="height: 12px; border-radius: 6px; background: #32363C; overflow: hidden; display: flex; gap: 2px">
-<div style="width: 37.5%; background: #98CBFF; border-radius: 6px"></div>
-<div style="width: 12.5%; background: repeating-linear-gradient(135deg, #98CBFF 0 6px, #004A76 6px 12px); border-radius: 6px; opacity: .8"></div>
-</div>
-<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 8px; color: #C2C7CF; font-size: 13px">
-<span>6 of 16 jobs done, 2 running, 8 waiting</span>
-<span>Estimate: Core can be installed in about 11 minutes. The whole release in about 1 hour 45 minutes.</span>
+<h2 id="soon-h" style="margin: 0; font-size: clamp(32px, 5vw, 56px); line-height: 1.02; font-weight: 700; font-stretch: 110%; letter-spacing: -0.02em; color: #FFFFFF">Update coming soon</h2>
+<div style="font-size: 20px; line-height: 28px">Build 462 becomes Core <span style="font-family: 'Roboto Mono', monospace; background: #003354; padding: 2px 10px; border-radius: 10px; color: #FFFFFF">2026.11.1.462</span></div>
+<p style="margin: 0; max-width: 56ch">Keep every key typed into the sidebar search; stop problem outlines painting over the editor bar</p>
 </div>
 </div>
 
-<ol aria-label="Stages" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 8px">
-<li style="background: #272B31; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 6px"><span style="color: #9BD6A4; font-size: 12px; font-weight: 500">1 Done</span><span>Preparing</span><span style="color: #C2C7CF; font-size: 12px">1 of 1 job</span></li>
-<li style="background: #272B31; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 6px"><span style="color: #9BD6A4; font-size: 12px; font-weight: 500">2 Done</span><span>Building the interface</span><span style="color: #C2C7CF; font-size: 12px">3 of 3 jobs</span></li>
-<li aria-current="step" style="background: #004A76; color: #CEE5FF; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 6px; outline: 2px solid #98CBFF"><span style="font-size: 12px; font-weight: 600">3 Running</span><span>Building Core and Supervisor</span><span style="font-size: 12px">2 of 4 jobs</span></li>
-<li style="background: #191D22; border: 1px solid #42474E; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 6px"><span style="color: #C2C7CF; font-size: 12px; font-weight: 500">4 Waiting</span><span>Publishing container images</span><span style="color: #C2C7CF; font-size: 12px">0 of 2 jobs</span></li>
-<li style="background: #191D22; border: 1px solid #42474E; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 6px"><span style="color: #C2C7CF; font-size: 12px; font-weight: 500">5 Waiting</span><span>Offering the Core update</span><span style="color: #C2C7CF; font-size: 12px">Core can be installed after this</span></li>
-<li style="background: #191D22; border: 1px solid #42474E; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 6px"><span style="color: #C2C7CF; font-size: 12px; font-weight: 500">6 Waiting</span><span>Building operating system images</span><span style="color: #C2C7CF; font-size: 12px">0 of 4, the slow part</span></li>
-<li style="background: #191D22; border: 1px solid #42474E; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 6px"><span style="color: #C2C7CF; font-size: 12px; font-weight: 500">7 Waiting</span><span>Publishing the release</span><span style="color: #C2C7CF; font-size: 12px">0 of 1 job</span></li>
-</ol>
-
-<details open style="background: #14181D; border-radius: 20px; padding: 4px 20px 12px">
-<summary style="min-height: 48px; display: flex; align-items: center; font-weight: 500; cursor: pointer">Every job in this build (16)</summary>
-<div style="overflow-x: auto"><table style="width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px">
-<thead><tr style="color: #C2C7CF; text-align: start">
-<th scope="col" style="text-align: start; font-weight: 500; padding: 8px 8px 8px 0">Job</th><th scope="col" style="text-align: start; font-weight: 500; padding: 8px">Stage</th><th scope="col" style="text-align: start; font-weight: 500; padding: 8px">State</th><th scope="col" style="text-align: start; font-weight: 500; padding: 8px">Started</th><th scope="col" style="text-align: start; font-weight: 500; padding: 8px 0 8px 8px">Took</th>
-</tr></thead>
-<tbody>
-<tr style="border-top: 1px solid #32363C"><td style="padding: 10px 8px 10px 0">Work out versions</td><td style="padding: 10px 8px">1</td><td style="padding: 10px 8px; color: #9BD6A4">Done</td><td style="padding: 10px 8px">16:56</td><td style="padding: 10px 0 10px 8px">1 min</td></tr>
-<tr style="border-top: 1px solid #32363C"><td style="padding: 10px 8px 10px 0">Build the frontend</td><td style="padding: 10px 8px">2</td><td style="padding: 10px 8px; color: #9BD6A4">Done</td><td style="padding: 10px 8px">16:57</td><td style="padding: 10px 0 10px 8px">9 min</td></tr>
-<tr style="border-top: 1px solid #32363C"><td style="padding: 10px 8px 10px 0">Collect integration translations</td><td style="padding: 10px 8px">2</td><td style="padding: 10px 8px; color: #9BD6A4">Done</td><td style="padding: 10px 8px">16:57</td><td style="padding: 10px 0 10px 8px">3 min</td></tr>
-<tr style="border-top: 1px solid #32363C"><td style="padding: 10px 8px 10px 0">Stage the Deploy Assistant</td><td style="padding: 10px 8px">2</td><td style="padding: 10px 8px; color: #9BD6A4">Done</td><td style="padding: 10px 8px">16:57</td><td style="padding: 10px 0 10px 8px">2 min</td></tr>
-<tr style="border-top: 1px solid #32363C"><td style="padding: 10px 8px 10px 0">Build amd64 supervisor image</td><td style="padding: 10px 8px">3</td><td style="padding: 10px 8px; color: #9BD6A4">Done</td><td style="padding: 10px 8px">16:57</td><td style="padding: 10px 0 10px 8px">6 min</td></tr>
-<tr style="border-top: 1px solid #32363C"><td style="padding: 10px 8px 10px 0">Build aarch64 supervisor image</td><td style="padding: 10px 8px">3</td><td style="padding: 10px 8px; color: #9BD6A4">Done</td><td style="padding: 10px 8px">16:57</td><td style="padding: 10px 0 10px 8px">8 min</td></tr>
-<tr style="border-top: 1px solid #32363C; background: #1D2B38"><td style="padding: 10px 8px 10px 0; font-weight: 500">Build amd64 core images</td><td style="padding: 10px 8px">3</td><td style="padding: 10px 8px; color: #98CBFF; font-weight: 500">Running</td><td style="padding: 10px 8px">17:06</td><td style="padding: 10px 0 10px 8px">4 min so far</td></tr>
-<tr style="border-top: 1px solid #32363C; background: #1D2B38"><td style="padding: 10px 8px 10px 0; font-weight: 500">Build aarch64 core images</td><td style="padding: 10px 8px">3</td><td style="padding: 10px 8px; color: #98CBFF; font-weight: 500">Running</td><td style="padding: 10px 8px">17:06</td><td style="padding: 10px 0 10px 8px">4 min so far</td></tr>
-<tr style="border-top: 1px solid #32363C; color: #C2C7CF"><td style="padding: 10px 8px 10px 0">Publish the container image</td><td style="padding: 10px 8px">4</td><td style="padding: 10px 8px">Waiting</td><td style="padding: 10px 8px">Not started</td><td style="padding: 10px 0 10px 8px"></td></tr>
-<tr style="border-top: 1px solid #32363C; color: #C2C7CF"><td style="padding: 10px 8px 10px 0">Build the full hosting mode image</td><td style="padding: 10px 8px">4</td><td style="padding: 10px 8px">Waiting</td><td style="padding: 10px 8px">Not started</td><td style="padding: 10px 0 10px 8px"></td></tr>
-<tr style="border-top: 1px solid #32363C; color: #C2C7CF"><td style="padding: 10px 8px 10px 0">Move the update feed for Core and Supervisor</td><td style="padding: 10px 8px">5</td><td style="padding: 10px 8px">Waiting</td><td style="padding: 10px 8px">Not started</td><td style="padding: 10px 0 10px 8px"></td></tr>
-<tr style="border-top: 1px solid #32363C; color: #C2C7CF"><td style="padding: 10px 8px 10px 0">Build the ova, rpi3-64, rpi4-64 and rpi5-64 operating system images (4 jobs)</td><td style="padding: 10px 8px">6</td><td style="padding: 10px 8px">Waiting</td><td style="padding: 10px 8px">Not started</td><td style="padding: 10px 0 10px 8px"></td></tr>
-<tr style="border-top: 1px solid #32363C; color: #C2C7CF"><td style="padding: 10px 8px 10px 0">Publish the release</td><td style="padding: 10px 8px">7</td><td style="padding: 10px 8px">Waiting</td><td style="padding: 10px 8px">Not started</td><td style="padding: 10px 0 10px 8px"></td></tr>
-</tbody>
-</table></div>
-</details>
-
-<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
-<div style="color: #C2C7CF; font-size: 12px; flex: 1 1 260px">Checked at 17:10. Checks again every 3 minutes while a build is running. Build progress and the change list are read from public GitHub pages by this browser; nothing about this home is sent.</div>
-<button style="height: 48px; padding: 0 20px; border-radius: 24px; border: none; background: #3A4857; color: #D5E4F6; font-weight: 500">Refresh</button>
+<div style="min-width: 0; display: grid; grid-template-rows: repeat(3, auto); gap: 16px">
+<div style="background: #B6F2BE; color: #0E3A1E; border-radius: 32px; padding: 20px 24px; display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 13px; font-weight: 600">Core can be installed in</div>
+<div style="font-size: 40px; line-height: 44px; font-weight: 800; font-stretch: 115%">11 min</div>
+<div style="font-size: 13px">Estimate. You do not have to wait for the rest.</div>
+</div>
+<div style="background: #1D2126; border-radius: 32px; padding: 20px 24px; display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 13px; font-weight: 600; color: #C2C7CF">Whole release in</div>
+<div style="font-size: 40px; line-height: 44px; font-weight: 800; font-stretch: 115%">1 h 45</div>
+<div style="font-size: 13px; color: #C2C7CF">Estimate. Operating system images take longest.</div>
+</div>
+<div style="background: #1D2126; border-radius: 32px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<div><div style="font-size: 13px; font-weight: 600; color: #C2C7CF">You have</div><div style="font-size: 28px; line-height: 32px; font-weight: 800; font-stretch: 115%">439</div></div>
+<svg aria-hidden="true" width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="#98CBFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h34m-9-9 9 9-9 9"/></svg>
+<div style="text-align: end"><div style="font-size: 13px; font-weight: 600; color: #98CBFF">On its way</div><div style="font-size: 28px; line-height: 32px; font-weight: 800; font-stretch: 115%; color: #98CBFF">462</div></div>
+</div>
 </div>
 </section>
 
-<section aria-labelledby="cmp-h" style="background: #14181D; border-radius: 28px; padding: clamp(18px, 4vw, 28px) clamp(16px, 4vw, 32px); display: flex; flex-direction: column; gap: 20px">
-<div>
-<h2 id="cmp-h" style="margin: 0 0 4px; font-size: 24px; line-height: 32px; font-weight: 500">What changed between versions</h2>
-<div style="color: #C2C7CF">57 changes in 2 builds between build 439 and build 457</div>
+<section aria-label="Stages of the build" style="background: #14181D; border-radius: 40px; padding: clamp(20px, 3vw, 32px); display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px">
+<h3 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 700; font-stretch: 108%">Stage 3 of 7 <span style="color: #98CBFF">Building Core and Supervisor</span></h3>
+<div style="color: #C2C7CF; font-size: 13px">Started 16:56, running for 14 minutes, started by hand</div>
+</div>
+<div aria-hidden="true" style="display: flex; gap: 6px; height: 20px">
+<div style="flex: 1; background: #98CBFF; border-radius: 10px 4px 4px 10px"></div>
+<div style="flex: 3; background: #98CBFF; border-radius: 4px"></div>
+<div style="flex: 4; border-radius: 4px; background: #98CBFF linear-gradient(135deg, transparent 25%, #004A76 25%, #004A76 50%, transparent 50%, transparent 75%, #004A76 75%) 0 0 / 34px 34px; animation: slide 1.2s linear infinite"></div>
+<div style="flex: 2; background: #32363C; border-radius: 4px"></div>
+<div style="flex: 1; background: #32363C; border-radius: 4px"></div>
+<div style="flex: 4; background: #32363C; border-radius: 4px"></div>
+<div style="flex: 1; background: #32363C; border-radius: 4px 10px 10px 4px"></div>
+</div>
+<ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px">
+<li style="background: #1D2126; border-radius: 24px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px"><span style="display: flex; align-items: center; gap: 8px; color: #9BD6A4; font-size: 13px; font-weight: 700"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>1 Done</span><span style="font-weight: 600">Preparing</span><span style="color: #C2C7CF; font-size: 13px">1 of 1 job</span></li>
+<li style="background: #1D2126; border-radius: 24px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px"><span style="display: flex; align-items: center; gap: 8px; color: #9BD6A4; font-size: 13px; font-weight: 700"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>2 Done</span><span style="font-weight: 600">Building the interface</span><span style="color: #C2C7CF; font-size: 13px">3 of 3 jobs</span></li>
+<li aria-current="step" style="background: #98CBFF; color: #003354; border-radius: 24px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px"><span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" style="animation: spin 1.4s linear infinite"><path d="M12 3a9 9 0 1 0 9 9"/></svg>3 Running</span><span style="font-weight: 700">Building Core and Supervisor</span><span style="font-size: 13px">2 of 4 jobs</span></li>
+<li style="background: transparent; border: 2px dashed #42474E; border-radius: 24px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px"><span style="color: #C2C7CF; font-size: 13px; font-weight: 700">4 Waiting</span><span style="font-weight: 600">Publishing container images</span><span style="color: #C2C7CF; font-size: 13px">0 of 2 jobs</span></li>
+<li style="background: transparent; border: 2px dashed #42474E; border-radius: 24px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px"><span style="color: #C2C7CF; font-size: 13px; font-weight: 700">5 Waiting</span><span style="font-weight: 600">Offering the Core update</span><span style="color: #9BD6A4; font-size: 13px">Core installable after this</span></li>
+<li style="background: transparent; border: 2px dashed #42474E; border-radius: 24px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px"><span style="color: #C2C7CF; font-size: 13px; font-weight: 700">6 Waiting</span><span style="font-weight: 600">Operating system images</span><span style="color: #C2C7CF; font-size: 13px">0 of 4, the slow part</span></li>
+<li style="background: transparent; border: 2px dashed #42474E; border-radius: 24px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px"><span style="color: #C2C7CF; font-size: 13px; font-weight: 700">7 Waiting</span><span style="font-weight: 600">Publishing the release</span><span style="color: #C2C7CF; font-size: 13px">0 of 1 job</span></li>
+</ol>
+
+<details open style="border-top: 1px solid #32363C; padding-top: 8px">
+<summary style="min-height: 48px; display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer">Every job in this build <span style="background: #272B31; border-radius: 12px; padding: 2px 10px; font-size: 13px">16</span></summary>
+<ul style="list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 8px; font-size: 14px">
+<li style="display: flex; align-items: center; gap: 10px; background: #1D2126; border-radius: 16px; padding: 10px 14px"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #9BD6A4; flex: none"></i><span style="flex: 1; min-width: 0">Work out versions</span><span style="color: #C2C7CF; font-size: 12px; white-space: nowrap">Done, 1 min</span></li>
+<li style="display: flex; align-items: center; gap: 10px; background: #1D2126; border-radius: 16px; padding: 10px 14px"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #9BD6A4; flex: none"></i><span style="flex: 1; min-width: 0">Build the frontend</span><span style="color: #C2C7CF; font-size: 12px; white-space: nowrap">Done, 9 min</span></li>
+<li style="display: flex; align-items: center; gap: 10px; background: #1D2126; border-radius: 16px; padding: 10px 14px"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #9BD6A4; flex: none"></i><span style="flex: 1; min-width: 0">Collect integration translations</span><span style="color: #C2C7CF; font-size: 12px; white-space: nowrap">Done, 3 min</span></li>
+<li style="display: flex; align-items: center; gap: 10px; background: #1D2126; border-radius: 16px; padding: 10px 14px"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #9BD6A4; flex: none"></i><span style="flex: 1; min-width: 0">Stage the Deploy Assistant</span><span style="color: #C2C7CF; font-size: 12px; white-space: nowrap">Done, 2 min</span></li>
+<li style="display: flex; align-items: center; gap: 10px; background: #1D2126; border-radius: 16px; padding: 10px 14px"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #9BD6A4; flex: none"></i><span style="flex: 1; min-width: 0">Build amd64 supervisor image</span><span style="color: #C2C7CF; font-size: 12px; white-space: nowrap">Done, 6 min</span></li>
+<li style="display: flex; align-items: center; gap: 10px; background: #1D2126; border-radius: 16px; padding: 10px 14px"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #9BD6A4; flex: none"></i><span style="flex: 1; min-width: 0">Build aarch64 supervisor image</span><span style="color: #C2C7CF; font-size: 12px; white-space: nowrap">Done, 8 min</span></li>
+<li style="display: flex; align-items: center; gap: 10px; background: #004A76; color: #CEE5FF; border-radius: 16px; padding: 10px 14px"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #FFFFFF; flex: none"></i><span style="flex: 1; min-width: 0; font-weight: 600">Build amd64 core images</span><span style="font-size: 12px; white-space: nowrap">Running, 4 min</span></li>
+<li style="display: flex; align-items: center; gap: 10px; background: #004A76; color: #CEE5FF; border-radius: 16px; padding: 10px 14px"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #FFFFFF; flex: none"></i><span style="flex: 1; min-width: 0; font-weight: 600">Build aarch64 core images</span><span style="font-size: 12px; white-space: nowrap">Running, 4 min</span></li>
+<li style="display: flex; align-items: center; gap: 10px; border: 1px solid #42474E; border-radius: 16px; padding: 9px 13px; color: #C2C7CF"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; border: 2px solid #8C9199; flex: none"></i><span style="flex: 1; min-width: 0">Publish the container image</span><span style="font-size: 12px">Waiting</span></li>
+<li style="display: flex; align-items: center; gap: 10px; border: 1px solid #42474E; border-radius: 16px; padding: 9px 13px; color: #C2C7CF"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; border: 2px solid #8C9199; flex: none"></i><span style="flex: 1; min-width: 0">Build the full hosting mode image</span><span style="font-size: 12px">Waiting</span></li>
+<li style="display: flex; align-items: center; gap: 10px; border: 1px solid #42474E; border-radius: 16px; padding: 9px 13px; color: #C2C7CF"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; border: 2px solid #8C9199; flex: none"></i><span style="flex: 1; min-width: 0">Move the update feed for Core and Supervisor</span><span style="font-size: 12px">Waiting</span></li>
+<li style="display: flex; align-items: center; gap: 10px; border: 1px solid #42474E; border-radius: 16px; padding: 9px 13px; color: #C2C7CF"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; border: 2px solid #8C9199; flex: none"></i><span style="flex: 1; min-width: 0">Operating system images: ova, rpi3-64, rpi4-64, rpi5-64</span><span style="font-size: 12px; white-space: nowrap">4 waiting</span></li>
+<li style="display: flex; align-items: center; gap: 10px; border: 1px solid #42474E; border-radius: 16px; padding: 9px 13px; color: #C2C7CF"><i aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; border: 2px solid #8C9199; flex: none"></i><span style="flex: 1; min-width: 0">Publish the release</span><span style="font-size: 12px">Waiting</span></li>
+</ul>
+</details>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<div style="color: #C2C7CF; font-size: 12px; line-height: 18px; flex: 1 1 260px">Checked at 17:10, again every 3 minutes while a build runs. Build progress and the change list are read from public GitHub pages by this browser; nothing about this home is sent.</div>
+<button style="height: 48px; padding: 0 22px; border-radius: 24px; border: none; background: #272B31; color: #E0E2E8; font-weight: 600">Refresh</button>
+</div>
+</section>
+
+<section aria-labelledby="cmp-h" style="background: #14181D; border-radius: 40px; padding: clamp(20px, 3vw, 32px); display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+<h2 id="cmp-h" style="margin: 0; font-size: clamp(28px, 4.4vw, 44px); line-height: 1.05; font-weight: 700; font-stretch: 110%; letter-spacing: -0.01em">What changed</h2>
+<div role="group" aria-label="Range" style="display: inline-flex; background: #272B31; border-radius: 28px; padding: 4px">
+<button aria-pressed="true" style="min-height: 48px; padding: 0 20px; border-radius: 24px; border: none; background: #98CBFF; color: #003354; font-weight: 700">Installed to newest</button>
+<button aria-pressed="false" style="min-height: 48px; padding: 0 20px; border-radius: 24px; border: none; background: transparent; color: #E0E2E8; font-weight: 500">Latest build only</button>
+</div>
 </div>
 
-<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end">
-<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #C2C7CF; flex: 1 1 220px">From
-<select style="height: 56px; border-radius: 12px; border: 1px solid #8C9199; background: #14181D; color: #E0E2E8; padding: 0 12px; font: inherit; font-size: 16px"><option>Build 439, installed</option><option>Build 437</option><option>Build 436</option></select></label>
-<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #C2C7CF; flex: 1 1 220px">To
-<select style="height: 56px; border-radius: 12px; border: 1px solid #8C9199; background: #14181D; color: #E0E2E8; padding: 0 12px; font: inherit; font-size: 16px"><option>Build 457, newest</option><option>Build 441</option></select></label>
-<button aria-pressed="true" style="height: 48px; padding: 0 16px; border-radius: 12px; border: none; background: #3A4857; color: #D5E4F6; font-weight: 500">Installed to newest</button>
-<button aria-pressed="false" style="height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #8C9199; background: transparent; color: #E0E2E8">Latest build only</button>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; align-items: stretch">
+<div style="min-width: 0; background: #1D2126; border-radius: 32px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #C2C7CF">From
+<select style="height: 56px; border-radius: 16px; border: none; background: #272B31; color: #E0E2E8; padding: 0 14px; font: inherit; font-size: 16px"><option>Build 439, installed</option><option>Build 437</option></select></label>
+<div style="font-size: 56px; line-height: 1; font-weight: 800; font-stretch: 118%">439</div>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px">
+<dt style="color: #C2C7CF">Core</dt><dd style="margin: 0; font-family: 'Roboto Mono', monospace">2026.11.1.439</dd>
+<dt style="color: #C2C7CF">Supervisor</dt><dd style="margin: 0; font-family: 'Roboto Mono', monospace">2026.11.0.439</dd>
+<dt style="color: #C2C7CF">System</dt><dd style="margin: 0; font-family: 'Roboto Mono', monospace">18.5.439</dd>
+<dt style="color: #C2C7CF">Built</dt><dd style="margin: 0">14 Nov 2026, 00:56</dd>
+<dt style="color: #C2C7CF">Source</dt><dd style="margin: 0; font-family: 'Roboto Mono', monospace">47a063cfd</dd>
+</dl>
 </div>
 
-<div style="overflow-x: auto"><table style="width: 100%; min-width: 520px; border-collapse: collapse">
-<thead><tr>
-<th scope="col" style="text-align: start; padding: 12px 12px 12px 0; color: #C2C7CF; font-weight: 500; width: 26%"></th>
-<th scope="col" style="text-align: start; padding: 12px; background: #1D2126; border-radius: 16px 16px 0 0; font-size: 16px; font-weight: 500">Build 439 <span style="margin-inline-start: 8px; padding: 2px 8px; border-radius: 8px; background: #3A4857; color: #D5E4F6; font-size: 12px">Installed</span></th>
-<th scope="col" style="width: 8px"></th>
-<th scope="col" style="text-align: start; padding: 12px; background: #1D2B38; border-radius: 16px 16px 0 0; font-size: 16px; font-weight: 500">Build 457 <span style="margin-inline-start: 8px; padding: 2px 8px; border-radius: 8px; background: #004A76; color: #CEE5FF; font-size: 12px">Newest</span></th>
-</tr></thead>
-<tbody style="font-family: 'Roboto Mono', monospace; font-size: 13px">
-<tr><th scope="row" style="text-align: start; padding: 10px 12px 10px 0; color: #C2C7CF; font-weight: 400; font-family: 'Roboto Flex', sans-serif; border-top: 1px solid #32363C">Home Assistant Core</th><td style="padding: 10px 12px; background: #1D2126; border-top: 1px solid #32363C">2026.11.1.439</td><td></td><td style="padding: 10px 12px; background: #1D2B38; border-top: 1px solid #32363C">2026.11.1.457</td></tr>
-<tr><th scope="row" style="text-align: start; padding: 10px 12px 10px 0; color: #C2C7CF; font-weight: 400; font-family: 'Roboto Flex', sans-serif; border-top: 1px solid #32363C">Supervisor</th><td style="padding: 10px 12px; background: #1D2126; border-top: 1px solid #32363C">2026.11.0.439</td><td></td><td style="padding: 10px 12px; background: #1D2B38; border-top: 1px solid #32363C">2026.11.0.457</td></tr>
-<tr><th scope="row" style="text-align: start; padding: 10px 12px 10px 0; color: #C2C7CF; font-weight: 400; font-family: 'Roboto Flex', sans-serif; border-top: 1px solid #32363C">Operating system</th><td style="padding: 10px 12px; background: #1D2126; border-top: 1px solid #32363C">18.5.439</td><td></td><td style="padding: 10px 12px; background: #1D2B38; border-top: 1px solid #32363C">18.5.457</td></tr>
-<tr><th scope="row" style="text-align: start; padding: 10px 12px 10px 0; color: #C2C7CF; font-weight: 400; font-family: 'Roboto Flex', sans-serif; border-top: 1px solid #32363C">Built</th><td style="padding: 10px 12px; background: #1D2126; border-top: 1px solid #32363C">14 November 2026, 00:56</td><td></td><td style="padding: 10px 12px; background: #1D2B38; border-top: 1px solid #32363C">16 November 2026, 14:43</td></tr>
-<tr><th scope="row" style="text-align: start; padding: 10px 12px 10px 0; color: #C2C7CF; font-weight: 400; font-family: 'Roboto Flex', sans-serif; border-top: 1px solid #32363C">Source</th><td style="padding: 10px 12px; background: #1D2126; border-top: 1px solid #32363C">47a063cfd</td><td></td><td style="padding: 10px 12px; background: #1D2B38; border-top: 1px solid #32363C">9b5bbbec2</td></tr>
-<tr><th scope="row" style="text-align: start; padding: 10px 12px 10px 0; color: #C2C7CF; font-weight: 400; font-family: 'Roboto Flex', sans-serif; border-top: 1px solid #32363C">Kind</th><td style="padding: 10px 12px; background: #1D2126; border-top: 1px solid #32363C; border-radius: 0 0 16px 16px; font-family: 'Roboto Flex', sans-serif">Published release</td><td></td><td style="padding: 10px 12px; background: #1D2B38; border-top: 1px solid #32363C; border-radius: 0 0 16px 16px; font-family: 'Roboto Flex', sans-serif">Published release</td></tr>
-</tbody>
-</table></div>
+<div style="min-width: 0; background: #EEDBFF; color: #2B1D3B; border-radius: 32px; padding: 24px; display: flex; flex-direction: column; justify-content: center; gap: 4px; text-align: center">
+<div style="font-size: clamp(72px, 12vw, 120px); line-height: .95; font-weight: 800; font-stretch: 125%">57</div>
+<div style="font-size: 20px; line-height: 26px; font-weight: 700">changes in 2 builds</div>
+<div style="font-size: 13px">2 days, 13 hours and 47 minutes apart</div>
+</div>
 
-<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
-<label style="flex: 1 1 320px; display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 16px; border-radius: 28px; background: #272B31">
-<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C2C7CF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<div style="min-width: 0; background: #004A76; color: #CEE5FF; border-radius: 32px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">To
+<select style="height: 56px; border-radius: 16px; border: none; background: #003354; color: #FFFFFF; padding: 0 14px; font: inherit; font-size: 16px"><option>Build 457, newest</option><option>Build 441</option></select></label>
+<div style="font-size: 56px; line-height: 1; font-weight: 800; font-stretch: 118%; color: #FFFFFF">457</div>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px">
+<dt>Core</dt><dd style="margin: 0; font-family: 'Roboto Mono', monospace; color: #FFFFFF">2026.11.1.457</dd>
+<dt>Supervisor</dt><dd style="margin: 0; font-family: 'Roboto Mono', monospace; color: #FFFFFF">2026.11.0.457</dd>
+<dt>System</dt><dd style="margin: 0; font-family: 'Roboto Mono', monospace; color: #FFFFFF">18.5.457</dd>
+<dt>Built</dt><dd style="margin: 0; color: #FFFFFF">16 Nov 2026, 14:43</dd>
+<dt>Source</dt><dd style="margin: 0; font-family: 'Roboto Mono', monospace; color: #FFFFFF">9b5bbbec2</dd>
+</dl>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px">
+<div role="group" aria-label="Show changes to" style="min-width: 0; background: #1D2126; border-radius: 32px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 13px; font-weight: 600; color: #C2C7CF; padding: 0 4px 6px">Where the changes are. Choose a part to filter.</div>
+<button aria-pressed="false" style="position: relative; min-height: 48px; border: none; border-radius: 14px; background: #272B31; color: #E0E2E8; text-align: start; padding: 0 14px; overflow: hidden; display: flex; align-items: center; justify-content: space-between"><i aria-hidden="true" style="position: absolute; inset: 0 auto 0 0; width: 100%; background: #3A4857"></i><span style="position: relative">Documentation</span><b style="position: relative">40</b></button>
+<button aria-pressed="false" style="position: relative; min-height: 48px; border: none; border-radius: 14px; background: #272B31; color: #E0E2E8; text-align: start; padding: 0 14px; overflow: hidden; display: flex; align-items: center; justify-content: space-between"><i aria-hidden="true" style="position: absolute; inset: 0 auto 0 0; width: 60%; background: #3A4857"></i><span style="position: relative">Deploy Assistant</span><b style="position: relative">24</b></button>
+<button aria-pressed="true" style="position: relative; min-height: 48px; border: 2px solid #CEE5FF; border-radius: 14px; background: #272B31; color: #003354; text-align: start; padding: 0 12px; overflow: hidden; display: flex; align-items: center; justify-content: space-between"><i aria-hidden="true" style="position: absolute; inset: 0 auto 0 0; width: 50%; background: #98CBFF"></i><span style="position: relative; font-weight: 700">Interface, chosen</span><b style="position: relative; color: #E0E2E8">20</b></button>
+<button aria-pressed="false" style="position: relative; min-height: 48px; border: none; border-radius: 14px; background: #272B31; color: #E0E2E8; text-align: start; padding: 0 14px; overflow: hidden; display: flex; align-items: center; justify-content: space-between"><i aria-hidden="true" style="position: absolute; inset: 0 auto 0 0; width: 17.5%; background: #3A4857"></i><span style="position: relative">Core</span><b style="position: relative">7</b></button>
+<button aria-pressed="false" style="position: relative; min-height: 48px; border: none; border-radius: 14px; background: #272B31; color: #E0E2E8; text-align: start; padding: 0 14px; overflow: hidden; display: flex; align-items: center; justify-content: space-between"><i aria-hidden="true" style="position: absolute; inset: 0 auto 0 0; width: 12.5%; background: #3A4857"></i><span style="position: relative">Build</span><b style="position: relative">5</b></button>
+<button aria-pressed="false" style="position: relative; min-height: 48px; border: none; border-radius: 14px; background: #272B31; color: #E0E2E8; text-align: start; padding: 0 14px; overflow: hidden; display: flex; align-items: center; justify-content: space-between"><i aria-hidden="true" style="position: absolute; inset: 0 auto 0 0; width: 2.5%; background: #3A4857"></i><span style="position: relative">Supervisor, operating system, design</span><b style="position: relative">1 each</b></button>
+</div>
+
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<label style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 0 22px; border-radius: 32px; background: #272B31">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C2C7CF" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
 <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Search the changes</span>
-<input type="search" placeholder="Search the changes" style="flex: 1; min-width: 0; height: 48px; border: none; background: transparent; color: #E0E2E8; font: inherit; font-size: 16px">
+<input type="search" placeholder="Search the changes" style="flex: 1; min-width: 0; height: 56px; border: none; background: transparent; color: #E0E2E8; font: inherit; font-size: 17px">
 </label>
-<button style="height: 48px; padding: 0 16px; border-radius: 24px; border: 1px solid #8C9199; background: transparent; color: #98CBFF; font-weight: 500">Expand all</button>
-<button style="height: 48px; padding: 0 16px; border-radius: 24px; border: 1px solid #8C9199; background: transparent; color: #98CBFF; font-weight: 500">Copy as text</button>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button style="flex: 1 1 140px; min-height: 56px; border-radius: 20px; border: none; background: #272B31; color: #E0E2E8; font-weight: 600">Expand all</button>
+<button style="flex: 1 1 140px; min-height: 56px; border-radius: 20px; border: none; background: #272B31; color: #E0E2E8; font-weight: 600">Copy as text</button>
+</div>
+<div style="background: #1D2126; border-radius: 24px; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px"><div style="font-size: 13px; color: #C2C7CF">Showing</div><div style="font-size: 28px; line-height: 32px; font-weight: 800; font-stretch: 115%">20 of 57</div><div style="font-size: 13px; color: #C2C7CF">Interface. A change can belong to more than one part.</div></div>
+<button style="min-height: 56px; border-radius: 20px; border: none; background: #98CBFF; color: #003354; font-weight: 700; font-size: 16px">Read the full notes for build 457</button>
+</div>
 </div>
 
-<div role="group" aria-label="Show changes to" style="display: flex; flex-wrap: wrap; gap: 8px">
-<button aria-pressed="true" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: none; background: #3A4857; color: #D5E4F6; font-weight: 500">Interface 20</button>
-<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #8C9199; background: transparent; color: #E0E2E8">Core 7</button>
-<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #8C9199; background: transparent; color: #E0E2E8">Supervisor 1</button>
-<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #8C9199; background: transparent; color: #E0E2E8">Operating system 1</button>
-<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #8C9199; background: transparent; color: #E0E2E8">Deploy Assistant 24</button>
-<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #8C9199; background: transparent; color: #E0E2E8">Build 5</button>
-<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #8C9199; background: transparent; color: #E0E2E8">Documentation 40</button>
-<button aria-pressed="false" style="min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid #8C9199; background: transparent; color: #E0E2E8">Design 1</button>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 4px">
+<span style="font-size: 32px; line-height: 1; font-weight: 800; font-stretch: 118%">457</span>
+<span style="height: 28px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 14px; background: #98CBFF; color: #003354; font-size: 13px; font-weight: 700">Newest</span>
+<span style="color: #C2C7CF; font-size: 13px">16 November 2026, 14:43. 52 changes, 18 shown</span>
 </div>
-<div style="color: #C2C7CF; font-size: 13px">Showing 20 of 57 changes: Interface. A change can belong to more than one part.</div>
 
-<div style="display: flex; flex-direction: column; gap: 8px">
-<h3 style="margin: 8px 0 0; font-size: 16px; font-weight: 500; display: flex; flex-wrap: wrap; gap: 8px; align-items: center">Build 457 <span style="font-family: 'Roboto Mono', monospace; font-weight: 400; color: #C2C7CF; font-size: 13px">2026.11.1.457, 16 November 2026, 14:43</span><span style="padding: 2px 8px; border-radius: 8px; background: #004A76; color: #CEE5FF; font-size: 12px">Newest</span><span style="color: #C2C7CF; font-size: 13px; font-weight: 400">52 changes, 18 shown</span></h3>
-
-<details open style="background: #1D2126; border-radius: 16px; padding: 0 20px 16px">
-<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; cursor: pointer; padding: 8px 0"><span style="flex: 1 1 260px; min-width: 0; font-weight: 500">Fix phone dashboard tools, the right-to-left footer and the sidebar search; record build 455</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #8C9199; font-size: 12px">Interface</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #8C9199; font-size: 12px">Documentation</span><span style="color: #C2C7CF; font-size: 12px">16 Nov, 14:43</span><span style="font-family: 'Roboto Mono', monospace; color: #C2C7CF; font-size: 12px">9b5bbbec2</span></summary>
+<details open style="background: #1D2126; border-radius: 28px; padding: 6px 22px 20px">
+<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; cursor: pointer; padding: 8px 0"><span style="flex: 1 1 260px; min-width: 0; font-size: 17px; line-height: 24px; font-weight: 600">Fix phone dashboard tools, the right-to-left footer and the sidebar search; record build 455</span><span style="height: 26px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 13px; background: #3A4857; color: #D5E4F6; font-size: 12px; font-weight: 600">Interface</span><span style="height: 26px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 13px; background: #272B31; font-size: 12px">Documentation</span><span style="color: #C2C7CF; font-size: 12px">14:43</span><span style="font-family: 'Roboto Mono', monospace; color: #C2C7CF; font-size: 12px">9b5bbbec2</span></summary>
 <p style="margin: 0; color: #C2C7CF; max-width: 76ch">The dashboard tools dialog thought a sentence was a headline and cut it off mid-thought on a phone; it now wraps. Its selection bar sits in the flow on narrow screens. Device frames wider than the dialog scroll inside it. The page footer isolates the version, date, time and language name as their own text runs, so a right-to-left page no longer shuffles the day, year and month.</p>
 </details>
+<details style="background: #1D2126; border-radius: 28px; padding: 6px 22px">
+<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; cursor: pointer; padding: 8px 0"><span style="flex: 1 1 260px; min-width: 0; font-size: 17px; line-height: 24px; font-weight: 600">Let Settings search offer pages inside the cards; record build 453</span><span style="height: 26px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 13px; background: #3A4857; color: #D5E4F6; font-size: 12px; font-weight: 600">Interface</span><span style="height: 26px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 13px; background: #272B31; font-size: 12px">Documentation</span><span style="color: #C2C7CF; font-size: 12px">12:48</span><span style="font-family: 'Roboto Mono', monospace; color: #C2C7CF; font-size: 12px">0622bb442</span></summary>
+</details>
+<details style="background: #1D2126; border-radius: 28px; padding: 6px 22px">
+<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; cursor: pointer; padding: 8px 0"><span style="flex: 1 1 260px; min-width: 0; font-size: 17px; line-height: 24px; font-weight: 600">Fix breakpoint dots, phone dashboard tools, the 320 px editor bar, phone History and right-to-left text</span><span style="height: 26px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 13px; background: #3A4857; color: #D5E4F6; font-size: 12px; font-weight: 600">Interface</span><span style="color: #C2C7CF; font-size: 12px">12:25</span><span style="font-family: 'Roboto Mono', monospace; color: #C2C7CF; font-size: 12px">915c77f71</span></summary>
+</details>
+<button style="align-self: flex-start; min-height: 48px; padding: 0 22px; border-radius: 24px; border: none; background: #272B31; color: #98CBFF; font-weight: 600">Show 15 more from build 457</button>
 
-<details style="background: #1D2126; border-radius: 16px; padding: 0 20px">
-<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; cursor: pointer; padding: 8px 0"><span style="flex: 1 1 260px; min-width: 0; font-weight: 500">Let Settings search offer pages inside the cards; record build 453</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #8C9199; font-size: 12px">Interface</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #8C9199; font-size: 12px">Documentation</span><span style="color: #C2C7CF; font-size: 12px">16 Nov, 12:48</span><span style="font-family: 'Roboto Mono', monospace; color: #C2C7CF; font-size: 12px">0622bb442</span></summary>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px">
+<span style="font-size: 32px; line-height: 1; font-weight: 800; font-stretch: 118%">441</span>
+<span style="color: #C2C7CF; font-size: 13px">15 November 2026, 00:02. 5 changes, 2 shown</span>
+</div>
+<details style="background: #1D2126; border-radius: 28px; padding: 6px 22px">
+<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; cursor: pointer; padding: 8px 0"><span style="flex: 1 1 260px; min-width: 0; font-size: 17px; line-height: 24px; font-weight: 600">Keep script mode controls and condition results readable</span><span style="height: 26px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 13px; background: #3A4857; color: #D5E4F6; font-size: 12px; font-weight: 600">Interface</span><span style="color: #C2C7CF; font-size: 12px">14 Nov, 23:35</span><span style="font-family: 'Roboto Mono', monospace; color: #C2C7CF; font-size: 12px">ea0ef484b</span></summary>
+</details>
+<details style="background: #1D2126; border-radius: 28px; padding: 6px 22px">
+<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; cursor: pointer; padding: 8px 0"><span style="flex: 1 1 260px; min-width: 0; font-size: 17px; line-height: 24px; font-weight: 600">Add bounded history comparison and isolate pending requests</span><span style="height: 26px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 13px; background: #3A4857; color: #D5E4F6; font-size: 12px; font-weight: 600">Interface</span><span style="color: #C2C7CF; font-size: 12px">14 Nov, 23:33</span><span style="font-family: 'Roboto Mono', monospace; color: #C2C7CF; font-size: 12px">8300184d2</span></summary>
 </details>
 
-<details style="background: #1D2126; border-radius: 16px; padding: 0 20px">
-<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; cursor: pointer; padding: 8px 0"><span style="flex: 1 1 260px; min-width: 0; font-weight: 500">Fix breakpoint dots, phone dashboard tools, the 320 px editor bar, phone History and right-to-left text</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #8C9199; font-size: 12px">Interface</span><span style="color: #C2C7CF; font-size: 12px">16 Nov, 12:25</span><span style="font-family: 'Roboto Mono', monospace; color: #C2C7CF; font-size: 12px">915c77f71</span></summary>
-</details>
-
-<button style="align-self: flex-start; height: 48px; padding: 0 16px; border-radius: 24px; border: none; background: transparent; color: #98CBFF; font-weight: 500">Show 15 more from build 457</button>
-
-<h3 style="margin: 16px 0 0; font-size: 16px; font-weight: 500; display: flex; flex-wrap: wrap; gap: 8px; align-items: center">Build 441 <span style="font-family: 'Roboto Mono', monospace; font-weight: 400; color: #C2C7CF; font-size: 13px">2026.11.1.441, 15 November 2026, 00:02</span><span style="color: #C2C7CF; font-size: 13px; font-weight: 400">5 changes, 2 shown</span></h3>
-
-<details style="background: #1D2126; border-radius: 16px; padding: 0 20px">
-<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; cursor: pointer; padding: 8px 0"><span style="flex: 1 1 260px; min-width: 0; font-weight: 500">Keep script mode controls and condition results readable</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #8C9199; font-size: 12px">Interface</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #8C9199; font-size: 12px">Documentation</span><span style="color: #C2C7CF; font-size: 12px">14 Nov, 23:35</span><span style="font-family: 'Roboto Mono', monospace; color: #C2C7CF; font-size: 12px">ea0ef484b</span></summary>
-</details>
-
-<details style="background: #1D2126; border-radius: 16px; padding: 0 20px">
-<summary style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; cursor: pointer; padding: 8px 0"><span style="flex: 1 1 260px; min-width: 0; font-weight: 500">Add bounded history comparison and isolate pending requests</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #8C9199; font-size: 12px">Interface</span><span style="padding: 2px 8px; border-radius: 8px; border: 1px solid #8C9199; font-size: 12px">Documentation</span><span style="color: #C2C7CF; font-size: 12px">14 Nov, 23:33</span><span style="font-family: 'Roboto Mono', monospace; color: #C2C7CF; font-size: 12px">8300184d2</span></summary>
-</details>
-
-<div style="margin-top: 8px; padding: 12px 16px; border-radius: 12px; border: 1px dashed #42474E; color: #C2C7CF; font-size: 13px">Build 439 is where this comparison starts. It is the version installed here, so nothing before it is listed.</div>
+<div style="margin-top: 4px; padding: 14px 18px; border-radius: 20px; border: 2px dashed #42474E; color: #C2C7CF; font-size: 13px">Build 439 is where this comparison starts. It is the version installed here, so nothing before it is listed.</div>
 </div>
 </section>
 
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2010}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2360}}'>
 class Component extends DCLogic {
 renderVals() {
 return {};
