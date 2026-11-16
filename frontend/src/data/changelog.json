@@ -1,6 +1,35 @@
 {
   "days": [
     {
+      "date": "2026-11-15",
+      "items": [
+        {
+          "text": "Fixed: nothing in the Marketplace asks anyone to open it and accept its warning first any more. Updates from Settings, the update dialog, an automation or a script install straight away, and installing, adding a repository and uploading work without the warning. The Marketplace panel opens directly on what was asked for, without the warning screen.",
+          "commit": "642bce652309"
+        },
+        {
+          "text": "Fixed: an update that was refused before it started said Home Assistant \"did not report the new version\". It now says the update did not start, nothing was installed, and why.",
+          "commit": "9b95c44d8ce0"
+        },
+        {
+          "text": "New: Camera recording. Cameras are recorded around the clock in short MP4 files to a disk or folder on this computer, an external or USB disk, a Windows shared folder, or an SSH server (SFTP or SCP). A guided setup tests the connection for real (reach, sign in, open the folder, write, read back and delete a file, free space) before anything is saved, then asks for the cameras and how long to keep recordings. Segments wait here when the destination is away and are copied when it is back. Settings, System, Camera recording shows every camera's state, what waits to be copied and the space used, with pause and resume. See `docs/features/camera-recording`.",
+          "commit": "e60248a2a8a5"
+        },
+        {
+          "text": "New: the camera view has a timeline of the day under the player: recorded footage, gaps, and the motion, person, vehicle, animal, doorbell and sound events of the camera's device, with 1, 6 and 24 hour zooms, filters, keyboard control and a list of events. Choosing an event or a moment plays the recording from there, with back and forward 10 seconds, 1×, 2× and 4× speed and a download; Back to live returns to the live picture. Seen in a local build at 1440 and 390 px and in the dark theme, recording a test stream to a folder.",
+          "commit": "e60248a2a8a5"
+        },
+        {
+          "text": "Fixed: in a setup step whose form is split into columns, an error for the whole step was shown once per field. It is now shown once, above the fields.",
+          "commit": "e60248a2a8a5"
+        },
+        {
+          "text": "Design: canvas 32 draws the timeline, the guided setup and the recording status.",
+          "commit": "e60248a2a8a5"
+        }
+      ]
+    },
+    {
       "date": "2026-11-12",
       "items": [
         {
@@ -12,13 +41,16 @@
           "commit": "6330c10d93c1"
         },
         {
-          "text": "New: a settings page or a tool chosen in the New tab catalog opens as a tab of its own, on the wide strip and in the phone Pages sheet. Choosing it again goes to the tab it already has. Closing the tab in use goes to the neighbouring tab."
+          "text": "New: a settings page or a tool chosen in the New tab catalog opens as a tab of its own, on the wide strip and in the phone Pages sheet. Choosing it again goes to the tab it already has. Closing the tab in use goes to the neighbouring tab.",
+          "commit": "8a37d4c04c9e"
         },
         {
-          "text": "New: the tabs of a settings section have their own right-click menu (also the menu key and a long press), groups, their own look, locks, hide by text with a preview and undo, and a search in the More list; they are listed in \"Search all tabs\". The phone Pages sheet has groups as foldable sections, per-page looks and locks. All seen in a local build at 1440, 1000, 390 and 320 px, in the dark theme, right to left, Cantonese and both languages."
+          "text": "New: the tabs of a settings section have their own right-click menu (also the menu key and a long press), groups, their own look, locks, hide by text with a preview and undo, and a search in the More list; they are listed in \"Search all tabs\". The phone Pages sheet has groups as foldable sections, per-page looks and locks. All seen in a local build at 1440, 1000, 390 and 320 px, in the dark theme, right to left, Cantonese and both languages.",
+          "commit": "8a37d4c04c9e"
         },
         {
-          "text": "Known small points: \"Search all tabs\" names a section by its address, not its page name; in both-languages mode one placeholder in the hide dialog is cut; the phone sheet lists groups before loose pages while the wide strip keeps a group at its place in the order."
+          "text": "Known small points: \"Search all tabs\" names a section by its address, not its page name; in both-languages mode one placeholder in the hide dialog is cut; the phone sheet lists groups before loose pages while the wide strip keeps a group at its place in the order.",
+          "commit": "8a37d4c04c9e"
         }
       ]
     },

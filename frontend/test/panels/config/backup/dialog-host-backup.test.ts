@@ -104,7 +104,9 @@ describe("backup hosting dialog initialization", () => {
     };
     internal._password = "transient-test-value";
     const callback = vi.fn();
-    internal._timer = setTimeout(callback, 1);
+    internal._timer = setTimeout(callback, 1) as unknown as ReturnType<
+      typeof setTimeout
+    >;
     dialog.closeDialog();
     expect(internal._password).toBe("");
     dialog.showDialog({ backup: backup("Current backup"), kind: "docker" });

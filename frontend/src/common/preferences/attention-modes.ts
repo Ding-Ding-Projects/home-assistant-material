@@ -121,7 +121,8 @@ const ensureStyle = () => {
   /* Inside the page area: after the navigation pane and the page tab strip
      when it is docked on that side, never over the pane's edge. */
   inset-inline-start: calc(var(--ha-clock-start, 0px) + 12px);
-  inset-block-end: 12px;
+  /* Above the line at the foot of the page, which it used to cover. */
+  inset-block-end: 40px;
   padding: 4px 12px;
   border-radius: 16px;
   pointer-events: none;
@@ -359,6 +360,16 @@ class AttentionModes {
     tick();
     showPopover(clock);
     this._clockTimer = window.setInterval(tick, 15000);
+    // At start-up the layout this reads from is not drawn yet, so the first
+    // placement finds no pane and no phone bar and the clock lands on top of
+    // them. Place it again while the page settles.
+    for (const delay of [300, 1000, 2500, 5000, 9000]) {
+      window.setTimeout(() => {
+        if (this._clock === clock) {
+          placeClock(clock);
+        }
+      }, delay);
+    }
   }
 
   private _setMomentum(enabled: boolean) {

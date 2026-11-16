@@ -413,6 +413,14 @@ export class HaAutomationBottomBar extends LitElement {
             var(--ha-space-3) + var(--automation-bar-reserve, 0px)
           );
           background: var(--primary-background-color);
+          container-type: inline-size;
+        }
+        /* Without much width (a side pane open beside the bar) the shortcut
+           hint gives its room to the status text, which was being cut. */
+        @container (max-width: 760px) {
+          .hint {
+            display: none;
+          }
         }
         .bar,
         .dry {

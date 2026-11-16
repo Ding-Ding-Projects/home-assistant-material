@@ -7,6 +7,10 @@ import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
 import "../../../../components/ha-dialog";
 import "../../../../components/ha-dialog-footer";
+import "../../../../components/ha-select";
+import type { HaSelectSelectEvent } from "../../../../components/ha-select";
+import "../../../../components/input/ha-input";
+import type { HaInput } from "../../../../components/input/ha-input";
 import { getPreferredAgentForDownload } from "../../../../data/backup";
 import {
   availableHostingTargets,
@@ -353,67 +357,61 @@ class HostBackupDialog
         }
         ${
           hostingJobNeedsKey(this._job)
-            ? html`<label
-                >${this._text("key")}<input
-                  type="password"
-                  autocomplete="off"
-                  .value=${this._password}
-                  @input=${(
-                    ev: HASSDomCurrentTargetEvent<HTMLInputElement>
-                  ) => {
-                    this._password = ev.currentTarget.value;
-                  }}
-              /></label>`
+            ? html`<ha-input
+                type="password"
+                password-toggle
+                autocomplete="off"
+                .label=${this._text("key")}
+                .value=${this._password}
+                @input=${this._passwordChanged}
+              ></ha-input>`
             : nothing
         }
         ${
           !this._job
-            ? html` <label
-                  >${this._text("computer")}<select
-                    autofocus
-                    .value=${this._bridgeId}
-                    ?disabled=${this._busy}
-                    @change=${(
-                      ev: HASSDomCurrentTargetEvent<HTMLSelectElement>
-                    ) => {
-                      this._bridgeId = ev.currentTarget.value;
-                      this._target = this._targets[0] || "docker";
-                    }}
-                  >
-                    <option value="">${this._text("choose_computer")}</option>
-                    ${this._bridges.map((bridge) => html`<option value=${bridge.id}>${bridge.url}</option>`)}
-                  </select></label
-                >
+            ? html` <ha-select
+                  autofocus
+                  .label=${this._text("computer")}
+                  .value=${this._bridgeId}
+                  .disabled=${this._busy}
+                  .options=${[
+                    { value: "", label: this._text("choose_computer") },
+                    ...this._bridges.map((bridge) => ({
+                      value: bridge.id,
+                      label: bridge.url,
+                    })),
+                  ]}
+                  @selected=${this._bridgeChanged}
+                ></ha-select>
                 ${
                   this._bridgeId
-                    ? html`<label
-                          >${this._text("target")}<select
-                            .value=${this._target}
-                            @change=${(
-                              ev: HASSDomCurrentTargetEvent<HTMLSelectElement>
-                            ) => {
-                              this._target = ev.currentTarget
-                                .value as BackupHostingTarget;
-                            }}
-                          >
-                            ${this._targets.map((target) => html`<option value=${target}>${target === "docker" ? this._text("container") : target === "virtualbox" ? "VirtualBox" : "VMware"}</option>`)}
-                          </select></label
+                    ? html`<ha-select
+                          .label=${this._text("target")}
+                          .value=${this._target}
+                          .options=${this._targets.map((target) => ({
+                            value: target,
+                            label:
+                              target === "docker"
+                                ? this._text("container")
+                                : target === "virtualbox"
+                                  ? "VirtualBox"
+                                  : "VMware",
+                          }))}
+                          @selected=${this._targetChanged}
+                        ></ha-select
                         >${!this._targets.length ? html`<ha-alert alert-type="warning">${this._text("setup_required")}</ha-alert>` : nothing}`
                     : nothing
                 }
                 ${
                   this._protected
-                    ? html`<label
-                        >${this._text("key")}<input
-                          type="password"
-                          autocomplete="off"
-                          .value=${this._password}
-                          @input=${(
-                            ev: HASSDomCurrentTargetEvent<HTMLInputElement>
-                          ) => {
-                            this._password = ev.currentTarget.value;
-                          }}
-                      /></label>`
+                    ? html`<ha-input
+                        type="password"
+                        password-toggle
+                        autocomplete="off"
+                        .label=${this._text("key")}
+                        .value=${this._password}
+                        @input=${this._passwordChanged}
+                      ></ha-input>`
                     : nothing
                 }
                 <details>
@@ -421,17 +419,13 @@ class HostBackupDialog
                   <p>${this._text("pair_help")}</p>
                   ${(["url", "fingerprint"] as const).map(
                     (key) =>
-                      html`<label
-                        >${this._text(key)}<input
-                          type="text"
-                          autocomplete="off"
-                          .value=${this[`_${key}`]}
-                          @input=${(
-                            ev: HASSDomCurrentTargetEvent<HTMLInputElement>
-                          ) => {
-                            this[`_${key}`] = ev.currentTarget.value;
-                          }}
-                      /></label>`
+                      html`<ha-input
+                        autocomplete="off"
+                        .label=${this._text(key)}
+                        .value=${this[`_${key}`]}
+                        .field=${key}
+                        @input=${this._pairFieldChanged}
+                      ></ha-input>`
                   )}
                   <ha-button
                     .disabled=${this._busy || (!this._pairingBridgeId && (!this._url || !this._fingerprint))}
@@ -453,6 +447,25 @@ class HostBackupDialog
       >
     </ha-dialog>`;
   }
+  private _passwordChanged(ev: HASSDomCurrentTargetEvent<HaInput>) {
+    this._password = ev.currentTarget.value ?? "";
+  }
+
+  private _pairFieldChanged(
+    ev: HASSDomCurrentTargetEvent<HaInput & { field: "url" | "fingerprint" }>
+  ) {
+    this[`_${ev.currentTarget.field}`] = ev.currentTarget.value ?? "";
+  }
+
+  private _bridgeChanged(ev: HaSelectSelectEvent) {
+    this._bridgeId = String(ev.detail.value ?? "");
+    this._target = this._targets[0] || "docker";
+  }
+
+  private _targetChanged(ev: HaSelectSelectEvent) {
+    this._target = String(ev.detail.value ?? "docker") as BackupHostingTarget;
+  }
+
   static styles = [
     haStyleDialog,
     css`
@@ -460,31 +473,16 @@ class HostBackupDialog
         display: grid;
         gap: var(--ha-space-4);
       }
-      label {
-        display: grid;
-        gap: var(--ha-space-2);
+      ha-input,
+      ha-select {
+        display: block;
         margin-block: var(--ha-space-2);
-      }
-      input,
-      select {
-        min-height: 48px;
-        box-sizing: border-box;
-        width: 100%;
-        min-width: 0;
-        color: var(--primary-text-color);
-        background: var(--card-background-color);
-        border: 1px solid var(--divider-color);
-        border-radius: var(--ha-border-radius-md);
-        padding-inline: var(--ha-space-2);
-        font: inherit;
       }
       summary,
       a {
         min-height: 48px;
         overflow-wrap: anywhere;
       }
-      input:focus-visible,
-      select:focus-visible,
       summary:focus-visible,
       a:focus-visible {
         outline: 2px solid var(--primary-color);

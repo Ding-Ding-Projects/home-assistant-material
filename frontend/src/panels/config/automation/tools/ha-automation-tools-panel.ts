@@ -175,6 +175,14 @@ export class HaAutomationToolsPanel extends LitElement {
         }
         ha-bottom-sheet {
           --ha-bottom-sheet-height: min(85dvh, 760px);
+          /* The sheet covers the phone's bottom bar, so it keeps only the
+             device's own inset. With the room reserved for that bar added
+             twice (by the sheet and by the padding below), the tool stopped
+             far above the bottom of the sheet. */
+          --safe-area-inset-bottom: var(
+            --app-safe-area-inset-bottom,
+            env(safe-area-inset-bottom, 0px)
+          );
         }
         .description {
           margin: var(--ha-space-1) 0 var(--ha-space-3);
@@ -217,7 +225,9 @@ export class HaAutomationToolsPanel extends LitElement {
           display: flex;
           flex-direction: column;
           box-sizing: border-box;
-          block-size: min(85dvh, 760px);
+          block-size: 100%;
+          max-block-size: min(85dvh, 760px);
+          flex: 1 1 auto;
           padding: var(--ha-space-6) var(--ha-space-4)
             calc(var(--ha-space-4) + var(--safe-area-inset-bottom, 0px));
           min-height: 0;
