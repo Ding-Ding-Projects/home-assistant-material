@@ -1,15 +1,47 @@
 {
  "format": 1,
- "generated": "2026-11-17T04:14:12Z",
+ "generated": "2026-11-17T04:34:54Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 476,
+ "newest_build": 478,
  "releases": [
+  {
+   "build": 478,
+   "core": "2026.11.1.478",
+   "supervisor": "2026.11.0.478",
+   "os": "18.5.478",
+   "tag": null,
+   "source": "f599eaae8",
+   "date": "2026-11-16T22:36:31-05:00",
+   "previous_build": 476,
+   "changes": [
+    {
+     "sha": "f599eaae8",
+     "date": "2026-11-16T22:36:31-05:00",
+     "title": "Fix what a look at build 476 found on the Updates page, the confirmation and the editor",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Six faults from looking at the built app. While the update queue ran on a wide window each row's title was squeezed to eight pixels and wrapped one letter per line, because the waiting note took the whole line; rows now wrap and the title keeps its room. Problem outlines stayed off the editor's bottom bar but were drawn over its sticky search bar at the top; the cutting now understands a bar above as well as below, and the editor's sticky bars register themselves. When the home already ran the build being built, the page said \"up to date\" and \"can be installed\" at once; it now says \"You already have build N\". The comparison no longer opens on a build compared with itself. Every string on the Updates page follows the language mode, with a both-languages sentence built once per language instead of one nested in the other. The confirmation glow fades before its edge. One fault is only a best guess: \"Confirmation drama\" set to Off did not stick, and the likely cause (a settings merge that could replace an unrecorded local change) is fixed and tested, but it has not been seen working in a browser.",
+     "detail_yue": "睇完 476 版搵到六個毛病，一次過執。更新隊列行緊嗰陣，闊螢幕每行個 標題畀人逼到得八個像素，一個字母一行，因為等候提示霸晒成行；而家 識得轉行。問題外框避得開編輯器底部列，但係上面嗰條搜尋列又踩咗 過界，而家上下都識避。部機已經係嗰個版本嘅時候，唔會再又話「已經 最新」又話「可以安裝」。比較唔會再自己同自己比。更新頁所有字都跟 語言模式。至於「確認戲劇程度」揀咗關閉但冇效，搵到一個好可能嘅 原因並且修咗、加咗測試，不過未喺瀏覽器證實。"
+    },
+    {
+     "sha": "2f25b9874",
+     "date": "2026-11-16T22:00:56-05:00",
+     "title": "Let headings wrap on the Updates page; centre the text in the progress ring",
+     "areas": [
+      "interface"
+     ],
+     "detail": "A look at build 476 found the big heading \"Core 2026.11.1.476 can be installed\" running out of its block and under the tile beside it, at every width including a phone. The shared heading style keeps an h2 on one line and cuts it with an ellipsis, and the new blocks inherited that. Headings in the Updates components now wrap, the hero heading is a little smaller and balanced, and the percentage and the job count sit together in the middle of the ring instead of the count landing on the ring itself. Checked by applying the same rules inside the running 476 image: no heading overflows its block at 1440, 390 or 320 px.",
+     "detail_yue": "睇返 476 版，「Core 2026.11.1.476 can be installed」嗰個大標題衝出咗 自己個方塊，仲鑽咗入隔籬嗰格下面，手機都一樣。原因係共用嘅標題樣式 規定 h2 唔准轉行。而家更新頁啲標題識得轉行，大標題細返少少，進度圈 入面個百分比同工序數目亦都排返喺正中。"
+    }
+   ]
+  },
   {
    "build": 476,
    "core": "2026.11.1.476",
    "supervisor": "2026.11.0.476",
    "os": "18.5.476",
-   "tag": null,
+   "tag": "v2026.11.1.476",
    "source": "0d9211c6c",
    "date": "2026-11-16T20:50:31-05:00",
    "previous_build": 468,
@@ -4508,38 +4540,6 @@
       "design"
      ],
      "detail": "A new canvas, 22-live-app, with fifteen boards drawn by design/source/pages/live_boards.py from the frontend in this repository served against a running core: each board shows one page at 1440 pixels and on a 390 pixel phone, light and one dark. The boards for the pages fixed in the polish pass say what changed."
-    }
-   ]
-  },
-  {
-   "build": 117,
-   "core": "2026.11.1.117",
-   "supervisor": "2026.11.0.117",
-   "os": "18.5.117",
-   "tag": "v2026.11.1.117",
-   "source": "7ecc7c4a7",
-   "date": "2026-11-11T11:51:39-05:00",
-   "previous_build": 115,
-   "changes": [
-    {
-     "sha": "7ecc7c4a7",
-     "date": "2026-11-11T11:51:39-05:00",
-     "title": "Polish pass from the running app: tabs, phone tables, buttons",
-     "areas": [
-      "interface"
-     ],
-     "detail": "The Home Assistant pages were opened in a running copy of build 115 (the published container image) at 1440 and 390 pixels wide, and these defects fixed:\n\n- The page tab strip fades out at an edge that has tabs scrolled out of view, instead of cutting the last tab's name in half (\"Set\"). - On a phone, data table rows grow with their stacked columns. Before, a second line spilled into the next row (users, blueprints). - The Personal settings info buttons asked the translation for \"About {name}\" without a name, which logged a formatting error on every render (52 times on one visit). The placeholder is now passed through for the button to fill in. - The scenes empty state's \"Learn more\" icon was drawn at 80 pixels, because the large empty-state icon style reached into the button. - The to-do list's Add item button sat behind the page footer on wide layouts."
-    },
-    {
-     "sha": "e4425a069",
-     "date": "2026-11-11T11:24:16-05:00",
-     "title": "Deploy Assistant polish pass over every board",
-     "areas": [
-      "deploy",
-      "design",
-      "docs"
-     ],
-     "detail": "Every board was drawn again from the app, reviewed, and these fixed:\n\n- The Deploy tab has the same header as every other tab: icon, title, one line on what it does, version and demo tags on the right. - Instances, Downloads and Extensions put their main buttons in the header instead of on a row of their own under it. - Instance cards say \"1 backup\", not \"1 backups\". - The new Minecraft server dialog no longer cuts its step names: the current step is named, the others show their number. - The demo has game rules, so the Game rules tab is not empty. - AI models: memory and graphics memory join the header facts instead of a second row repeating them; the folded system prompt shows a chevron and whether it is set; the number steppers have real buttons. The steppers' class no longer clashes with the wizard steps. - Activity spaces its Notifications and History headings apart. - The update self-test demo names the current version, not 1.1.4. - The Design tab includes every Deploy Assistant canvas, 16 to 20. - Search fields show one focus ring, on the rounded edge. - The virtual disk file and parent fields span the dialog. - The empty convert result says \"Results show here.\""
     }
    ]
   }
