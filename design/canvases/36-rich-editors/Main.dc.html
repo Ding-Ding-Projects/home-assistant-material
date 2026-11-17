@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Speak, made for speaking</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#F7F9FF}
+button{font:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible{outline:3px solid #00629B;outline-offset:3px}
+</style>
+</helmet>
+<div style="min-height: 1040px; box-sizing: border-box; background: #F7F9FF; color: #181C20; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">ACTION</div>
+<h1 style="margin: 0; font-size: 56px; line-height: 1; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em">Speak</h1>
+
+<section style="border-radius: 40px; background: #00629B; color: #FFFFFF; padding: 22px 26px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #CEE5FF">WHAT WILL HAPPEN</div>
+<p style="margin: 6px 0 0; font-size: 26px; line-height: 32px; font-weight: 800; font-stretch: 112%">{{sentence}}</p>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start">
+
+<section style="border-radius: 32px; background: #FFFFFF; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; gap: 12px"><div style="font-size: 44px; line-height: .9; font-weight: 800; font-stretch: 122%; color: #00629B">1</div><h2 style="margin: 0; font-size: 22px; font-weight: 800">Who speaks</h2></div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px">
+<sc-for list="{{speakers}}" as="s" hint-placeholder-count="4">
+<button onClick="{{s.toggle}}" aria-pressed="{{s.pressed}}" style="{{s.style}}"><span style="display: block; font-weight: 800">{{s.name}}</span><span style="display: block; font-size: 13px">{{s.room}}</span></button>
+</sc-for>
+</div>
+<div style="font-size: 13px; color: #42474E">Tap one or several. Only speakers that can play speech are listed.</div>
+</section>
+
+<section style="border-radius: 32px; background: #FFFFFF; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; gap: 12px"><div style="font-size: 44px; line-height: .9; font-weight: 800; font-stretch: 122%; color: #00629B">2</div><h2 style="margin: 0; font-size: 22px; font-weight: 800">What is said</h2></div>
+<label style="font-weight: 700">Message
+<textarea rows="3" onInput="{{type}}" style="display: block; width: 100%; box-sizing: border-box; margin-top: 6px; border-radius: 20px; border: 2px solid #C2C7CF; padding: 12px 14px; font: inherit; resize: vertical; min-height: 96px">The washer is done.</textarea></label>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<button style="min-height: 44px; padding: 0 14px; border-radius: 22px; border: none; background: #D1E4FF; font-weight: 700">Insert: time</button>
+<button style="min-height: 44px; padding: 0 14px; border-radius: 22px; border: none; background: #D1E4FF; font-weight: 700">Insert: who is home</button>
+<button style="min-height: 44px; padding: 0 14px; border-radius: 22px; border: none; background: #D1E4FF; font-weight: 700">Insert: a sensor value</button>
+<span style="margin-left: auto; font-size: 13px; color: #42474E">{{count}} characters</span>
+</div>
+</section>
+
+<section style="border-radius: 32px; background: #FFFFFF; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; gap: 12px"><div style="font-size: 44px; line-height: .9; font-weight: 800; font-stretch: 122%; color: #00629B">3</div><h2 style="margin: 0; font-size: 22px; font-weight: 800">How it sounds</h2></div>
+<div style="font-weight: 700">Language</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{languages}}" as="l" hint-placeholder-count="4">
+<button onClick="{{l.pick}}" aria-pressed="{{l.pressed}}" style="{{l.style}}">{{l.name}}</button>
+</sc-for>
+</div>
+<div style="font-weight: 700">Voice</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{voices}}" as="v" hint-placeholder-count="3">
+<button onClick="{{v.pick}}" aria-pressed="{{v.pressed}}" style="{{v.style}}">{{v.name}}</button>
+</sc-for>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; border-radius: 20px; background: #F0F3F9; padding: 12px 16px"><div><div style="font-weight: 800">Remember this sentence</div><div style="font-size: 13px; color: #42474E">Faster next time it is said.</div></div><button role="switch" aria-checked="{{cacheOn}}" aria-label="Remember this sentence" onClick="{{toggleCache}}" style="{{cacheStyle}}"><span style="{{knobStyle}}"></span></button></div>
+<div style="font-size: 13px; color: #42474E">Languages and voices come from the speech engine that is chosen. An engine that offers none shows none.</div>
+</section>
+
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<button style="min-height: 56px; padding: 0 26px; border-radius: 28px; border: none; background: #181C20; color: #FFFFFF; font-weight: 800">Play a test now (this really speaks)</button>
+<button style="min-height: 56px; padding: 0 22px; border-radius: 28px; border: none; background: #E5E8EE; font-weight: 700">Show as code</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1040}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { on: { kitchen: true }, lang: 'en-GB', voice: 'Warm', text: 'The washer is done.', cache: true }; }
+renderVals() {
+const s = this.state;
+const tile = (on) => 'text-align:left;min-height:72px;border-radius:20px;padding:10px 14px;border:3px solid ' + (on ? '#00629B' : 'transparent') + ';background:' + (on ? '#D1E4FF' : '#F0F3F9') + ';color:#181C20';
+const pill = (on) => 'min-height:48px;padding:0 18px;border-radius:24px;border:none;font-weight:800;' + (on ? 'background:#00629B;color:#FFFFFF' : 'background:#E5E8EE;color:#181C20');
+const sp = [['kitchen', 'Kitchen speaker', 'Kitchen'], ['living', 'Living room speaker', 'Living room'], ['bedroom', 'Bedroom speaker', 'Bedroom'], ['hall', 'Hallway display', 'Hallway']];
+const picked = sp.filter(([id]) => s.on[id]).map(([, n]) => n);
+const who = picked.length === 0 ? 'Nobody is picked yet, so nothing' : picked.length === 1 ? picked[0] : picked.length + ' speakers';
+return {
+sentence: picked.length === 0 ? 'Pick a speaker first.' : who + ' will say "' + s.text + '" in ' + s.lang + ' with the ' + s.voice + ' voice.',
+speakers: sp.map(([id, name, room]) => ({ name, room, pressed: s.on[id] ? 'true' : 'false', style: tile(!!s.on[id]), toggle: () => this.setState({ on: { ...s.on, [id]: !s.on[id] } }) })),
+languages: ['en-GB', 'en-US', 'yue-HK', 'fr-CA'].map((n) => ({ name: n, pressed: s.lang === n ? 'true' : 'false', style: pill(s.lang === n), pick: () => this.setState({ lang: n }) })),
+voices: ['Warm', 'Clear', 'Quiet'].map((n) => ({ name: n, pressed: s.voice === n ? 'true' : 'false', style: pill(s.voice === n), pick: () => this.setState({ voice: n }) })),
+count: s.text.length, type: (e) => this.setState({ text: e.target.value }),
+cacheOn: s.cache ? 'true' : 'false', toggleCache: () => this.setState({ cache: !s.cache }),
+cacheStyle: 'width:64px;height:36px;border-radius:18px;border:none;padding:4px;flex:none;display:flex;justify-content:' + (s.cache ? 'flex-end' : 'flex-start') + ';background:' + (s.cache ? '#00629B' : '#C2C7CF'),
+knobStyle: 'display:block;width:28px;height:28px;border-radius:14px;background:#FFFFFF',
+};
+}
+}
+</script>
+</body>
+</html>

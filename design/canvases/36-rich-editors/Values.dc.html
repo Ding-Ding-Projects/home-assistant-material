@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Every kind of value gets its proper control</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#F7F9FF}
+</style>
+</helmet>
+<div style="min-height: 1180px; box-sizing: border-box; background: #F7F9FF; color: #181C20; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+<h1 style="margin: 0; font-size: 52px; line-height: 1; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em">The value decides the control</h1>
+<p style="margin: 0; max-width: 780px; font-size: 17px; line-height: 25px; color: #42474E">One rule for every action of every entity kind. A plain text box is the last resort, and a test fails if one of these is ever drawn as one.</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px">
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">A COLOUR</div><div style="height: 56px; border-radius: 28px; background: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)"></div><div style="font-weight: 800">Colour picker with shortcuts</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">WARM TO COOL WHITE</div><div style="height: 56px; border-radius: 28px; background: linear-gradient(90deg, #FFB46B, #FFF4E0, #CFE4FF)"></div><div style="font-weight: 800">Gradient slider within the lamp's range</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">A LEVEL, 0 TO 100</div><div style="display: flex; align-items: center; gap: 12px"><div style="font-size: 44px; line-height: 1; font-weight: 800; font-stretch: 122%">40%</div><div style="flex: 1; height: 16px; border-radius: 8px; background: #E5E8EE"><div style="width: 40%; height: 100%; border-radius: 8px; background: #00629B"></div></div></div><div style="font-weight: 800">Slider with a big numeral</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">A NUMBER WITH LIMITS</div><div style="display: flex; align-items: center; gap: 12px"><div style="width: 48px; height: 48px; border-radius: 24px; background: #D1E4FF; display: grid; place-items: center; font-size: 24px; font-weight: 800">−</div><div style="font-size: 40px; line-height: 1; font-weight: 800; font-stretch: 122%">21.5°</div><div style="width: 48px; height: 48px; border-radius: 24px; background: #FFDAD6; display: grid; place-items: center; font-size: 24px; font-weight: 800">+</div></div><div style="font-weight: 800">Stepper inside the device's own limits</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">A TIME OR A DATE</div><div style="display: flex; gap: 8px"><div style="padding: 10px 16px; border-radius: 16px; background: #F0F3F9; font-size: 26px; font-weight: 800">07</div><div style="font-size: 26px; font-weight: 800; align-self: center">:</div><div style="padding: 10px 16px; border-radius: 16px; background: #D1E4FF; font-size: 26px; font-weight: 800">30</div><div style="padding: 10px 16px; border-radius: 16px; background: #F0F3F9; font-weight: 800; align-self: center">18 Nov</div></div><div style="font-weight: 800">Time and date pickers, 24-hour by default</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">HOW LONG</div><div style="display: flex; gap: 8px; align-items: baseline"><div style="font-size: 34px; font-weight: 800; font-stretch: 120%">0</div><div style="color: #42474E">h</div><div style="font-size: 34px; font-weight: 800; font-stretch: 120%">5</div><div style="color: #42474E">min</div><div style="font-size: 34px; font-weight: 800; font-stretch: 120%">0</div><div style="color: #42474E">s</div></div><div style="font-weight: 800">Duration picker</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">ONE OF A FEW</div><div style="display: flex; flex-wrap: wrap; gap: 6px"><div style="padding: 10px 16px; border-radius: 22px; background: #00629B; color: #FFFFFF; font-weight: 800">Heat</div><div style="padding: 10px 16px; border-radius: 22px; background: #E5E8EE; font-weight: 700">Cool</div><div style="padding: 10px 16px; border-radius: 22px; background: #E5E8EE; font-weight: 700">Auto</div><div style="padding: 10px 16px; border-radius: 22px; background: #E5E8EE; font-weight: 700">Off</div></div><div style="font-weight: 800">Choice tiles, up to eight</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">ONE OF MANY</div><div style="min-height: 52px; border-radius: 26px; background: #F0F3F9; padding: 0 18px; display: flex; align-items: center; color: #42474E">Search 142 options</div><div style="font-weight: 800">Searchable list box, never a long drop-down</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">YES OR NO</div><div style="width: 64px; height: 36px; border-radius: 18px; background: #00629B; padding: 4px; box-sizing: border-box; display: flex; justify-content: flex-end"><div style="width: 28px; height: 28px; border-radius: 14px; background: #FFFFFF"></div></div><div style="font-weight: 800">Switch</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">A THING IN THE HOME</div><div style="display: flex; flex-wrap: wrap; gap: 6px"><div style="padding: 10px 14px; border-radius: 16px; background: #D1E4FF; font-weight: 800">Kitchen speaker</div><div style="padding: 10px 14px; border-radius: 16px; background: #F0F3F9; font-weight: 700">Add another</div></div><div style="font-weight: 800">Entity, device, area and label pickers</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">AN ICON</div><div style="display: flex; gap: 8px"><div style="width: 48px; height: 48px; border-radius: 16px; background: #00629B"></div><div style="width: 48px; height: 48px; border-radius: 16px; background: #E5E8EE"></div><div style="width: 48px; height: 48px; border-radius: 16px; background: #E5E8EE"></div><div style="width: 48px; height: 48px; border-radius: 16px; background: #E5E8EE"></div></div><div style="font-weight: 800">Icon picker with search</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">SOMETHING TO PLAY</div><div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px"><div style="height: 48px; border-radius: 14px; background: #D1E4FF"></div><div style="height: 48px; border-radius: 14px; background: #F0F3F9"></div><div style="height: 48px; border-radius: 14px; background: #F0F3F9"></div></div><div style="font-weight: 800">Media browser</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">A PLACE</div><div style="height: 64px; border-radius: 16px; background: #D7F5DC; position: relative"><div style="position: absolute; left: 46%; top: 20px; width: 20px; height: 20px; border-radius: 10px; background: #00629B"></div></div><div style="font-weight: 800">Map with a pin and a radius</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">WORDS</div><div style="min-height: 64px; border-radius: 16px; border: 2px solid #C2C7CF; padding: 10px 12px; box-sizing: border-box; color: #42474E">The washer is done.</div><div style="font-weight: 800">Labelled field, tall for messages, with "insert" chips</div></div>
+
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">EXTRA SETTINGS</div><div style="display: flex; gap: 6px"><div style="flex: 1; padding: 10px 12px; border-radius: 14px; background: #F0F3F9; font-weight: 700">voice</div><div style="flex: 1; padding: 10px 12px; border-radius: 14px; background: #F0F3F9">Warm</div></div><div style="font-weight: 800">Named rows, never a blank dictionary</div></div>
+
+<div style="border-radius: 28px; background: #181C20; color: #E0E2E8; padding: 18px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">THE LAST RESORT</div><div style="font-size: 20px; line-height: 26px; font-weight: 800; color: #FFFFFF">One labelled value box, for a field nothing above fits</div><div style="font-size: 13px; color: #C2C7CF">And the code view is always one tap away for people who want it.</div></div>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

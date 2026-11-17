@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A colour is picked with a colour picker</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500&display=swap">
+<style>
+body{margin:0;background:#0B0F13}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid #CEE5FF;outline-offset:3px}
+input[type=range]{width:100%;height:48px;margin:0}
+</style>
+</helmet>
+<div style="min-height: 980px; box-sizing: border-box; background: #0B0F13; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">ACTION · TURN ON: HALLWAY LIGHT</div>
+<h1 style="margin: 0; font-size: 52px; line-height: 1; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em; color: #FFFFFF">Pick the colour, do not type it</h1>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start">
+
+<section style="border-radius: 36px; background: #14181D; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 28px; background: #0B0F13; align-self: flex-start">
+<button onClick="{{modeColour}}" aria-pressed="{{isColourP}}" style="{{colourTab}}">Colour</button>
+<button onClick="{{modeWhite}}" aria-pressed="{{isWhiteP}}" style="{{whiteTab}}">White</button>
+</div>
+
+<div style="height: 150px; border-radius: 28px; background: {{swatch}}; display: flex; align-items: flex-end; padding: 16px 18px; box-sizing: border-box">
+<div style="padding: 6px 12px; border-radius: 14px; background: rgba(0,0,0,.55); color: #FFFFFF; font: 500 14px 'Roboto Mono', monospace">{{readout}}</div>
+</div>
+
+<sc-if value="{{isColour}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label style="font-weight: 700">Hue
+<input type="range" min="0" max="360" value="{{hue}}" onInput="{{setHue}}" style="border-radius: 24px; background: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); appearance: none"></label>
+<label style="font-weight: 700">How strong
+<input type="range" min="0" max="100" value="{{sat}}" onInput="{{setSat}}" style="border-radius: 24px; background: linear-gradient(90deg, #FFFFFF, {{pure}}); appearance: none"></label>
+</div>
+</sc-if>
+
+<sc-if value="{{isWhite}}" hint-placeholder-val="{{false}}">
+<label style="font-weight: 700">Warm to cool, {{kelvin}} K
+<input type="range" min="2000" max="6500" step="100" value="{{kelvin}}" onInput="{{setKelvin}}" style="border-radius: 24px; background: linear-gradient(90deg, #FFB46B, #FFF4E0, #CFE4FF); appearance: none"></label>
+</sc-if>
+
+<div style="font-weight: 700">Shortcuts</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<sc-for list="{{shortcuts}}" as="c" hint-placeholder-count="6">
+<button onClick="{{c.pick}}" aria-label="{{c.name}}" style="{{c.style}}"></button>
+</sc-for>
+</div>
+
+<label style="font-weight: 700">Brightness, {{bri}}%
+<input type="range" min="1" max="100" value="{{bri}}" onInput="{{setBri}}"></label>
+</section>
+
+<section style="border-radius: 36px; background: #1D2126; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">WHAT THE EDITOR KNOWS ABOUT THIS LIGHT</div>
+<div style="border-radius: 20px; background: #14181D; padding: 12px 16px"><div style="font-weight: 800">It can show colours</div><div style="font-size: 13px; color: #C2C7CF">So the Colour tab and the hue and strength sliders are offered.</div></div>
+<div style="border-radius: 20px; background: #14181D; padding: 12px 16px"><div style="font-weight: 800">It can do warm to cool white, 2000 K to 6500 K</div><div style="font-size: 13px; color: #C2C7CF">So the White tab is offered, limited to that range.</div></div>
+<div style="border-radius: 20px; background: #14181D; padding: 12px 16px"><div style="font-weight: 800">A light that cannot</div><div style="font-size: 13px; color: #C2C7CF">Shows brightness only. A control the device cannot act on is never drawn.</div></div>
+<div style="border-radius: 20px; background: #004A76; color: #FFFFFF; padding: 14px 16px"><div style="font-weight: 800">Stored exactly as the action expects</div><div style="font: 500 14px 'Roboto Mono', monospace; margin-top: 4px; overflow-wrap: anywhere">{{stored}}</div></div>
+<p style="margin: 0; font-size: 13px; color: #C2C7CF">In the product this is the same colour wheel the light's own control dialog uses, with the swatches beside it as shortcuts, not instead of it.</p>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":980}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { mode: 'colour', hue: 28, sat: 80, kelvin: 2700, bri: 40 }; }
+renderVals() {
+const s = this.state;
+const tab = (on) => 'min-height:48px;padding:0 22px;border-radius:24px;border:none;font-weight:800;' + (on ? 'background:#004A76;color:#FFFFFF' : 'background:transparent;color:#C2C7CF');
+const light = 100 - s.sat / 2;
+const colour = 'hsl(' + s.hue + ' 100% ' + light + '%)';
+const t = (s.kelvin - 2000) / 4500;
+const white = 'rgb(' + Math.round(255 - 48 * t) + ' ' + Math.round(180 + 48 * t) + ' ' + Math.round(107 + 148 * t) + ')';
+const isColour = s.mode === 'colour';
+const shorts = [['Warm orange', 28, 80], ['Red', 0, 100], ['Green', 130, 80], ['Blue', 220, 90], ['Purple', 280, 70], ['Pink', 330, 60]];
+return {
+isColour, isWhite: !isColour, isColourP: isColour ? 'true' : 'false', isWhiteP: isColour ? 'false' : 'true',
+colourTab: tab(isColour), whiteTab: tab(!isColour),
+modeColour: () => this.setState({ mode: 'colour' }), modeWhite: () => this.setState({ mode: 'white' }),
+swatch: isColour ? colour : white, pure: 'hsl(' + s.hue + ' 100% 50%)',
+readout: isColour ? 'hue ' + s.hue + '°, strength ' + s.sat + '%' : s.kelvin + ' K',
+hue: s.hue, sat: s.sat, kelvin: s.kelvin, bri: s.bri,
+setHue: (e) => this.setState({ hue: Number(e.target.value) }), setSat: (e) => this.setState({ sat: Number(e.target.value) }),
+setKelvin: (e) => this.setState({ kelvin: Number(e.target.value) }), setBri: (e) => this.setState({ bri: Number(e.target.value) }),
+shortcuts: shorts.map(([name, h, sa]) => ({ name, pick: () => this.setState({ mode: 'colour', hue: h, sat: sa }), style: 'width:52px;height:52px;border-radius:26px;border:' + (isColour && s.hue === h ? '4px solid #FFFFFF' : '4px solid transparent') + ';background:hsl(' + h + ' 100% ' + (100 - sa / 2) + '%)' })),
+stored: isColour ? 'hs_color: [' + s.hue + ', ' + s.sat + '], brightness_pct: ' + s.bri : 'color_temp_kelvin: ' + s.kelvin + ', brightness_pct: ' + s.bri,
+};
+}
+}
+</script>
+</body>
+</html>
