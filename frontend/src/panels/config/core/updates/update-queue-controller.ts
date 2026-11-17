@@ -15,6 +15,7 @@ import {
   roleRestartsSystem,
   stepDone,
   storeQueue,
+  SYSTEM_STEP_SETTLE_MS,
 } from "./update-queue";
 
 /** How often a running step is looked at when no state change arrives. */
@@ -49,6 +50,15 @@ export class UpdateQueueController implements ReactiveController {
   /** Error text of a refused call; it is never stored. */
   public failureMessage?: string;
 
+  /**
+   * A queue was restored after a reload and the page has no real data yet, so
+   * a restart-prone step is neither done nor failed: the card says it is
+   * checking. Never stored.
+   */
+  public checking = false;
+
+  private _restoredAt = 0;
+
   /** Steps whose install call has not answered yet. */
   private _calling = new Set<string>();
 
@@ -60,6 +70,7 @@ export class UpdateQueueController implements ReactiveController {
 
   hostConnected() {
     this.queue = loadStoredQueue();
+    this._beginChecking();
     // After a reload onto a new build the stored queue may already be done:
     // settle that before the card first shows anything.
     this.tick();
@@ -69,6 +80,41 @@ export class UpdateQueueController implements ReactiveController {
   hostDisconnected() {
     clearInterval(this._timer);
     this._timer = undefined;
+  }
+
+  // A step that restarts the system may have been left running or failed by
+  // the reload that this page is the result of. Until the first evaluation
+  // with real data it is judged by nobody, and its old idle time is dropped.
+  private _beginChecking(): void {
+    this.checking = false;
+    const queue = this.queue;
+    if (
+      !queue ||
+      !queue.steps.some(
+        (step) =>
+          roleRestartsSystem(step.role) &&
+          (step.state === "updating" || step.state === "failed")
+      )
+    ) {
+      return;
+    }
+    this.checking = true;
+    this._restoredAt = Date.now();
+    this.queue = {
+      ...queue,
+      steps: queue.steps.map((step) =>
+        step.state === "updating" ? { ...step, idleSince: null } : step
+      ),
+    };
+  }
+
+  // Whether the page now knows enough to judge the restored step.
+  private _hasRealData(hass: HomeAssistant): boolean {
+    if (hass.connected === false) {
+      return false;
+    }
+    const ids = this.queue?.steps.map((step) => step.entityId) ?? [];
+    return ids.some((id) => !!hass.states[id]) || !!hass.config?.version;
   }
 
   public get active(): boolean {
@@ -159,6 +205,14 @@ export class UpdateQueueController implements ReactiveController {
       return;
     }
     const connected = hass.connected !== false;
+    if (this.checking) {
+      const timedOut = Date.now() - this._restoredAt > SYSTEM_STEP_SETTLE_MS;
+      if (!this._hasRealData(hass) && !timedOut) {
+        return;
+      }
+      this.checking = false;
+      this._host.requestUpdate();
+    }
     if (this.queue.failure) {
       // A step that was judged failed but whose update has since arrived was
       // not a failure: a real update can look stuck for a while, and a call

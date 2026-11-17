@@ -4,7 +4,10 @@ import type { HomeAssistant } from "../../../../src/types";
 
 import { installUpdatesTracked } from "../../../../src/components/update-progress/update-install-tracker";
 import type { QueueState } from "../../../../src/panels/config/core/updates/update-queue";
-import { loadStoredQueue } from "../../../../src/panels/config/core/updates/update-queue";
+import {
+  loadStoredQueue,
+  SYSTEM_STEP_SETTLE_MS,
+} from "../../../../src/panels/config/core/updates/update-queue";
 import { UpdateQueueController } from "../../../../src/panels/config/core/updates/update-queue-controller";
 
 vi.mock(
@@ -145,6 +148,71 @@ describe("update queue controller", () => {
     expect(installUpdatesTracked).not.toHaveBeenCalled();
     expect(loadStoredQueue()).toBeUndefined();
     controller.hostDisconnected();
+  });
+
+  it("checks a restored failed Core step before it judges it, then finishes it", () => {
+    store({
+      version: 1,
+      backup: false,
+      stopRequested: false,
+      failure: { entityId: CORE, reason: "error" },
+      steps: [stepOf("failed")],
+    });
+    // The page just reloaded: the connection is not up and nothing is known.
+    let hass = makeHass(undefined, "", false);
+    const controller = makeController(() => hass);
+    controller.hostConnected();
+    expect(controller.checking).toBe(true);
+    expect(controller.queue?.failure).toBeDefined();
+    controller.tick();
+    expect(controller.checking).toBe(true);
+    // Connected, with the entity at the target: done, never shown as failed.
+    hass = makeHass(coreEntity({ installed_version: "490" }, "off"), "490");
+    controller.tick();
+    expect(controller.checking).toBe(false);
+    expect(controller.queue?.failure).toBeUndefined();
+    expect(controller.queue?.steps[0].state).toBe("done");
+    controller.hostDisconnected();
+  });
+
+  it("fails a restored step once real data shows it is not at the target", () => {
+    store({
+      version: 1,
+      backup: false,
+      stopRequested: false,
+      failure: { entityId: CORE, reason: "error" },
+      steps: [stepOf("failed")],
+    });
+    const hass = makeHass(coreEntity(), "481");
+    const controller = makeController(() => hass);
+    controller.hostConnected();
+    expect(controller.checking).toBe(false);
+    expect(controller.queue?.failure?.reason).toBe("error");
+    controller.hostDisconnected();
+  });
+
+  it("stops checking after the system settle time even without data", () => {
+    vi.useFakeTimers();
+    try {
+      store({
+        version: 1,
+        backup: false,
+        stopRequested: false,
+        failure: { entityId: CORE, reason: "error" },
+        steps: [stepOf("failed")],
+      });
+      const hass = makeHass(undefined, "", false);
+      const controller = makeController(() => hass);
+      controller.hostConnected();
+      expect(controller.checking).toBe(true);
+      vi.advanceTimersByTime(SYSTEM_STEP_SETTLE_MS + 1000);
+      controller.tick();
+      expect(controller.checking).toBe(false);
+      expect(controller.queue?.failure).toBeDefined();
+      controller.hostDisconnected();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("still fails a genuine refusal with a message that is never empty", async () => {

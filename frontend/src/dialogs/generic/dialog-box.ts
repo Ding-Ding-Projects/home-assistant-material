@@ -40,9 +40,6 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
 
   @state() private _validInput = true;
 
-  // A destructive confirmation has two steps: what will happen, then the guard.
-  @state() private _step: 1 | 2 = 1;
-
   @state() private _typed = "";
 
   @query("ha-input, ha-textarea") private _textField?: HaInput | HaTextArea;
@@ -62,7 +59,6 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
     }
     this._params = params;
     this._validInput = true;
-    this._step = 1;
     this._typed = "";
     this._open = true;
     this._initDirtyTracking(
@@ -110,21 +106,12 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
     }
 
     const confirmPrompt = this._params.confirmation || !!this._params.prompt;
-    // Anything that destroys data is confirmed in two steps: first what will
-    // happen, then the name of the thing typed, or two keys and a slider where
-    // there is no name to type.
-    const twoStep =
-      !!this._params.confirmation &&
-      !this._params.prompt &&
-      !!this._params.destructive;
+    // Anything that destroys data is confirmed on one screen: what will
+    // happen above, the two keys and the slider below.
     const confirmName = this._params.confirmName;
-    // Nothing is ever typed to confirm: the second step is always the two
-    // keys and the slider, also when the caller names the thing.
+    // Nothing is ever typed to confirm, also when the caller names the thing.
     const typed = false as boolean;
-    const twoKey =
-      confirmPrompt &&
-      !!this._params.destructive &&
-      (!twoStep || this._step === 2);
+    const twoKey = confirmPrompt && !!this._params.destructive;
     const typedMatches = typed && this._typed.trim() === confirmName!.trim();
     const dialogTitle =
       this._params.title ||
@@ -134,6 +121,7 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
     return html`
       <ha-dialog
         without-tools
+        class=${classMap({ "two-key": twoKey })}
         .open=${this._open}
         type=${confirmPrompt ? "alert" : "standard"}
         .preventScrimClose=${!!this._params.confirmation || this.isDirtyState}
@@ -180,8 +168,10 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
         </ha-dialog-header>
         <div id="dialog-box-description">
           ${
-            this._params.text && !(twoStep && this._step === 2)
-              ? html` <p>${this._params.text}</p> `
+            this._params.text
+              ? html`<p class=${classMap({ message: true, scrolls: twoKey })}>
+                  ${this._params.text}
+                </p>`
               : ""
           }
           ${
@@ -266,72 +256,54 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
               ? html`
                   <ha-button
                     slot="secondaryAction"
-                    @click=${twoStep && this._step === 2 ? this._back : this._dismiss}
+                    @click=${this._dismiss}
                     ?autofocus=${!this._params.prompt && this._params.destructive && !typed}
                     ?disabled=${this._loading}
-                    appearance=${twoKey && !twoStep ? "filled" : "plain"}
+                    appearance=${twoKey ? "filled" : "plain"}
                   >
                     ${
-                      twoStep && this._step === 2
-                        ? this.hass.localize("ui.dialogs.two_key.back")
-                        : twoKey
-                          ? html`<ha-svg-icon
-                                slot="start"
-                                .path=${mdiExitRun}
-                              ></ha-svg-icon
-                              >${this.hass.localize("ui.dialogs.two_key.exit")}`
-                          : this._params.dismissText
-                            ? this._params.dismissText
-                            : modeText(this.hass.localize, "ui.common.cancel")
+                      twoKey
+                        ? html`<ha-svg-icon
+                              slot="start"
+                              .path=${mdiExitRun}
+                            ></ha-svg-icon
+                            >${
+                              this._params.dismissText ??
+                              modeText(this.hass.localize, "ui.common.cancel")
+                            }`
+                        : this._params.dismissText
+                          ? this._params.dismissText
+                          : modeText(this.hass.localize, "ui.common.cancel")
                     }
                   </ha-button>
                 `
               : nothing
           }
           ${
-            twoStep && this._step === 1
-              ? html`<ha-button
+            twoKey
+              ? nothing
+              : html`<ha-button
                   slot="primaryAction"
-                  @click=${this._next}
-                  appearance="tonal"
-                  variant="brand"
+                  @click=${this._confirm}
+                  ?autofocus=${!this._params.prompt && !this._params.destructive}
+                  ?disabled=${
+                    this._loading ||
+                    (!!this._params.prompt && !this._validInput) ||
+                    (typed && !typedMatches)
+                  }
+                  .loading=${this._loading}
+                  variant=${this._params.destructive ? "danger" : "brand"}
                 >
-                  ${this.hass.localize("ui.dialogs.two_key.continue")}
+                  ${
+                    this._params.confirmText
+                      ? this._params.confirmText
+                      : modeText(this.hass.localize, "ui.common.ok")
+                  }
                 </ha-button>`
-              : twoKey
-                ? nothing
-                : html`<ha-button
-                    slot="primaryAction"
-                    @click=${this._confirm}
-                    ?autofocus=${!this._params.prompt && !this._params.destructive}
-                    ?disabled=${
-                      this._loading ||
-                      (!!this._params.prompt && !this._validInput) ||
-                      (typed && !typedMatches)
-                    }
-                    .loading=${this._loading}
-                    variant=${this._params.destructive ? "danger" : "brand"}
-                  >
-                    ${
-                      this._params.confirmText
-                        ? this._params.confirmText
-                        : modeText(this.hass.localize, "ui.common.ok")
-                    }
-                  </ha-button>`
           }
         </ha-dialog-footer>
       </ha-dialog>
     `;
-  }
-
-  private _next(): void {
-    this._step = 2;
-    this._typed = "";
-  }
-
-  private _back(): void {
-    this._step = 1;
-    this._typed = "";
   }
 
   private _typedInput(ev: Event): void {
@@ -448,6 +420,13 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
     a {
       color: var(--primary-color);
     }
+    /* With the two keys below, a long message scrolls by itself so the keys
+       always stay in view. */
+    .message.scrolls {
+      max-height: 38vh;
+      overflow-y: auto;
+      margin-bottom: var(--ha-space-4);
+    }
     p {
       margin: 0;
       color: var(--primary-text-color);
@@ -476,6 +455,25 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
       padding: 0 var(--ha-space-2);
     }
     /* A touch screen needs a 44 px button. */
+    /* On a phone the two keys need the whole height: the sheet may use it and
+       the title and footer give back some room, so the control never scrolls. */
+    @media (max-width: 600px) {
+      ha-dialog.two-key {
+        --ha-dialog-max-height: 100dvh;
+        --dialog-content-padding: 0 var(--ha-space-4) var(--ha-space-1);
+      }
+      ha-dialog.two-key .title {
+        font-size: var(--ha-font-size-xl);
+      }
+      .message.scrolls {
+        margin-bottom: 0;
+        max-height: 24vh;
+      }
+      ha-dialog.two-key #dialog-box-description {
+        display: flex;
+        flex-direction: column;
+      }
+    }
     @media (pointer: coarse) {
       ha-dialog-footer ha-button {
         --ha-button-height: 44px;

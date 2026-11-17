@@ -243,9 +243,19 @@ export const GO_BACK_LIMIT_MS = 15 * 60 * 1000;
 
 /** A way back that was started and has not been reported on yet. */
 export interface PendingGoBack {
+  /** The version the person went back to. */
   version: string;
   startedAt: number;
+  /** The version that was installed when going back started. */
+  fromVersion?: string;
+  /** The target was seen installed, so the way back is known to be finished. */
+  done?: boolean;
+  /** When the target was seen installed. */
+  finishedAt?: number;
 }
+
+/** How long a record of a way back is kept when nothing settles it. */
+export const GO_BACK_KEEP_MS = 24 * 60 * 60 * 1000;
 
 const PENDING_KEY = "ha-update-go-back";
 
@@ -266,7 +276,20 @@ export const parsePendingGoBack = (
     ) {
       return undefined;
     }
-    return { version: data.version, startedAt: data.startedAt };
+    const pending: PendingGoBack = {
+      version: data.version,
+      startedAt: data.startedAt,
+    };
+    if (typeof data.fromVersion === "string" && data.fromVersion.length <= 64) {
+      pending.fromVersion = data.fromVersion;
+    }
+    if (data.done === true) {
+      pending.done = true;
+      if (Number.isFinite(data.finishedAt)) {
+        pending.finishedAt = data.finishedAt;
+      }
+    }
+    return pending;
   } catch (_err) {
     return undefined;
   }
@@ -294,18 +317,56 @@ export const storePendingGoBack = (
   }
 };
 
+/** What a stored way back has come to, decided from evidence. */
+export type GoBackVerdict =
+  /** Nothing is known yet; keep the record and say nothing. */
+  | { kind: "pending" }
+  /** The target was installed; `time` is when it was first seen. */
+  | { kind: "done"; time: number }
+  /** Time has passed and the original version is still installed. */
+  | { kind: "failed" }
+  /** Forget the record without saying anything. */
+  | { kind: "clear" };
+
 /**
- * What became of a stored way back: done when the installed version is the
- * target, failed once the time limit has passed without that, otherwise still
- * going.
+ * What became of a stored way back. It is decided by evidence and never by a
+ * timer alone:
+ * 1. a record marked done is proof (the page saw the target installed);
+ * 2. a history entry for the target first seen after the start is proof;
+ * 3. the installed version being the target is proof;
+ * 4. only when the time limit has passed AND the version the way back started
+ *    from is still installed does it count as not finished;
+ * 5. anything else stays silent, and the record is dropped after a day.
  */
 export const resolvePendingGoBack = (
   pending: PendingGoBack,
+  history: readonly HistoryEntry[],
   currentVersion: string | null | undefined,
   now: number
-): "pending" | "done" | "failed" => {
-  if (currentVersion === pending.version) {
-    return "done";
+): GoBackVerdict => {
+  if (pending.done) {
+    return { kind: "done", time: pending.finishedAt ?? pending.startedAt };
   }
-  return now - pending.startedAt > GO_BACK_LIMIT_MS ? "failed" : "pending";
+  const seen = history.find(
+    (entry) =>
+      entry.version === pending.version && entry.firstSeen >= pending.startedAt
+  );
+  if (seen) {
+    return { kind: "done", time: seen.firstSeen };
+  }
+  if (currentVersion === pending.version) {
+    return { kind: "done", time: now };
+  }
+  const elapsed = now - pending.startedAt;
+  if (elapsed > GO_BACK_KEEP_MS) {
+    return { kind: "clear" };
+  }
+  if (
+    elapsed > GO_BACK_LIMIT_MS &&
+    !!pending.fromVersion &&
+    currentVersion === pending.fromVersion
+  ) {
+    return { kind: "failed" };
+  }
+  return { kind: "pending" };
 };

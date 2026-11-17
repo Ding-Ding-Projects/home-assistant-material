@@ -127,20 +127,29 @@ export class HaUpdateHistory extends LitElement {
   // once, and forget it.
   private _resolvePending(): void {
     const pending = loadPendingGoBack();
-    if (!pending || !this.hass?.config || this._job?.outcome === "running") {
+    // While this page runs the way back itself, its own result is shown.
+    if (!pending || !this.hass?.config || this._job) {
       return;
     }
     const now = Date.now();
-    const result = resolvePendingGoBack(pending, this.hass.config.version, now);
-    if (result === "pending") {
+    const verdict = resolvePendingGoBack(
+      pending,
+      this._history,
+      this.hass.config.version,
+      now
+    );
+    if (verdict.kind === "pending") {
       return;
     }
     storePendingGoBack(undefined);
+    if (verdict.kind === "clear") {
+      return;
+    }
     const build = parseBuildNumber(pending.version);
     this._notice = {
-      kind: result,
+      kind: verdict.kind,
       build: build !== undefined ? String(build) : pending.version,
-      time: now,
+      time: verdict.kind === "done" ? verdict.time : now,
     };
   }
 
@@ -430,6 +439,8 @@ export class HaUpdateHistory extends LitElement {
 
   private _dismissJob = () => {
     if (this._job && this._job.outcome !== "running") {
+      // The person has seen the result; nothing is left to report later.
+      storePendingGoBack(undefined);
       this._job = undefined;
     }
   };
@@ -474,7 +485,11 @@ export class HaUpdateHistory extends LitElement {
     };
     this._job = job;
     this._notice = undefined;
-    storePendingGoBack({ version, startedAt: job.startedAt });
+    storePendingGoBack({
+      version,
+      startedAt: job.startedAt,
+      fromVersion: this.hass.config.version,
+    });
     this._startTimer();
     try {
       await installCoreVersion(this.hass, version, this.backup);
@@ -519,8 +534,19 @@ export class HaUpdateHistory extends LitElement {
     error?: string
   ): void {
     this._stopTimer();
-    // The result is shown by this page; nothing is left to report later.
-    storePendingGoBack(undefined);
+    if (outcome === "done") {
+      // Kept as proof: the interface may reload onto the older build at once,
+      // and a later page must not call a finished way back unfinished.
+      storePendingGoBack({
+        version: job.version,
+        startedAt: job.startedAt,
+        fromVersion: loadPendingGoBack()?.fromVersion,
+        done: true,
+        finishedAt: Date.now(),
+      });
+    } else {
+      storePendingGoBack(undefined);
+    }
     this._job = { ...job, outcome, error };
   }
 
@@ -530,12 +556,17 @@ export class HaUpdateHistory extends LitElement {
     if (!job || job.outcome !== "running" || !this.hass?.states) {
       return;
     }
-    if (this.hass.config.version === job.version) {
+    const entity = this.hass.states[CORE_UPDATE_ENTITY] as
+      UpdateEntity | undefined;
+    // Either the running instance or the update entity shows the target.
+    if (
+      this.hass.config.version === job.version ||
+      (!entity?.attributes.in_progress &&
+        entity?.attributes.installed_version === job.version)
+    ) {
       this._finishJob(job, "done");
       return;
     }
-    const entity = this.hass.states[CORE_UPDATE_ENTITY] as
-      UpdateEntity | undefined;
     const connected = this.hass.connected !== false;
     if (entity?.attributes.in_progress) {
       job.seenInProgress = true;

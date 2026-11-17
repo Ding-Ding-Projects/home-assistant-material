@@ -309,11 +309,12 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
         },
       },
       self_check: {
-        title: "",
+        title: modeText(localize, "ui.panel.config.backup.self_check.column"),
         label: modeText(localize, "ui.panel.config.backup.self_check.title"),
         showNarrow: true,
-        minWidth: "48px",
-        maxWidth: "48px",
+        // 24 icon, 32 cell padding, and room for the short header.
+        minWidth: "96px",
+        maxWidth: "96px",
         template: (backup) => {
           const checkState = summarizeSelfCheck(backup.self_check)?.state;
           if (!checkState) {
@@ -344,14 +345,16 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
         },
       },
       hosting: {
-        title: localize("ui.panel.config.backup.hosting.title"),
+        title: localize("ui.panel.config.backup.hosting.column"),
+        label: localize("ui.panel.config.backup.hosting.title"),
         showNarrow: false,
         // On a phone the table joins every column that is not shown on its
         // own into the second line of the name, which put these two buttons
         // in the middle of the text. The same actions are in the row menu.
         hidden: !this.hass.user?.is_admin || narrow,
-        minWidth: "112px",
-        maxWidth: "112px",
+        // Two 48px buttons and the 32px cell padding.
+        minWidth: "136px",
+        maxWidth: "136px",
         template: (backup) => html`
           ${
             this.hass.user?.is_admin

@@ -1285,6 +1285,7 @@
         },
         "backup": {
           "self_check": {
+            "column": "已檢查",
             "heading_passed": "你上一個備份開得返",
             "heading_failed": "你上一個備份有問題",
             "heading_partial": "你上一個備份未能完整檢查",
@@ -1340,6 +1341,7 @@
           },
           "hosting": {
             "title": "託管呢個備份",
+            "column": "託管",
             "original": "還原後保留原本自動化嘅啟用狀態，來源實例維持不變。新實例亦可能會執行已啟用嘅自動化。",
             "container": "以容器網頁應用程式託管",
             "appliance": "以專用系統託管",
@@ -1464,6 +1466,9 @@
             "state_updating": "更新緊",
             "state_done": "已完成",
             "state_failed": "失敗",
+            "state_checking": "檢查緊…",
+            "checking_title": "檢查緊更新",
+            "checking_text": "Home Assistant 重新啟動緊，一有回應就會顯示結果。",
             "state_skipped": "已略過",
             "stop": "做完呢個就停",
             "stop_note": "而家進行緊嗰個更新會做完，之後嘅更新唔會開始。",

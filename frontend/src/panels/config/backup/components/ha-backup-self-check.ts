@@ -275,7 +275,13 @@ class HaBackupSelfCheck extends LitElement {
           flex-direction: column;
           min-width: 0;
         }
+        .check {
+          min-width: 0;
+        }
         .label {
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
           overflow-wrap: anywhere;
         }
         .state {

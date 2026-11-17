@@ -79,7 +79,11 @@ class HaUpdateQueueCard extends LitElement {
 
     let title: string;
     let text: string | undefined;
-    if (queue.failure) {
+    const checking = this.controller.checking;
+    if (checking) {
+      title = this._t("checking_title");
+      text = this._t("checking_text");
+    } else if (queue.failure) {
       title = this._t("failed_title", { name: currentName });
       text = this._t(`failed_text_${queue.failure.reason}`, {
         error: this.controller.failureMessage || this._t("error_unknown"),
@@ -107,7 +111,10 @@ class HaUpdateQueueCard extends LitElement {
 
     return html`
       <section class="card" aria-labelledby="queue-title">
-        <h2 id="queue-title" class=${queue.failure ? "failed" : ""}>
+        <h2
+          id="queue-title"
+          class=${queue.failure && !checking ? "failed" : ""}
+        >
           ${title}
         </h2>
         ${text ? html`<p class="lead">${text}</p>` : nothing}
@@ -132,46 +139,54 @@ class HaUpdateQueueCard extends LitElement {
             : nothing
         }
         <ol class="steps" aria-label=${this._t("steps_label")}>
-          ${queue.steps.map((step) => this._renderStep(step))}
+          ${queue.steps.map((step) => this._renderStep(step, checking))}
         </ol>
         <div class="actions">
           ${
-            queue.failure
-              ? html`
-                  <ha-button appearance="filled" @click=${this._retry}>
-                    ${this._t("retry")}
-                  </ha-button>
-                  <ha-button appearance="outlined" @click=${this._skip}>
-                    ${this._t("skip")}
-                  </ha-button>
-                `
-              : active
+            checking
+              ? nothing
+              : queue.failure
                 ? html`
-                    <ha-button
-                      appearance="outlined"
-                      .disabled=${queue.stopRequested}
-                      @click=${this._stop}
-                    >
-                      ${this._t("stop")}
+                    <ha-button appearance="filled" @click=${this._retry}>
+                      ${this._t("retry")}
                     </ha-button>
-                    <span class="note">${this._t("stop_note")}</span>
+                    <ha-button appearance="outlined" @click=${this._skip}>
+                      ${this._t("skip")}
+                    </ha-button>
                   `
-                : html`<ha-button appearance="filled" @click=${this._dismiss}>
-                    ${this._t("dismiss")}
-                  </ha-button>`
+                : active
+                  ? html`
+                      <ha-button
+                        appearance="outlined"
+                        .disabled=${queue.stopRequested}
+                        @click=${this._stop}
+                      >
+                        ${this._t("stop")}
+                      </ha-button>
+                      <span class="note">${this._t("stop_note")}</span>
+                    `
+                  : html`<ha-button appearance="filled" @click=${this._dismiss}>
+                      ${this._t("dismiss")}
+                    </ha-button>`
           }
         </div>
       </section>
     `;
   }
 
-  private _renderStep(step: QueueStep): TemplateResult {
+  private _renderStep(step: QueueStep, checking: boolean): TemplateResult {
+    // While the restored page has no real data, a step that was running or
+    // failed is shown as checking, never as failed.
+    const shownState =
+      checking && (step.state === "failed" || step.state === "updating")
+        ? "checking"
+        : step.state;
     const icon = STATE_ICON[step.state];
     return html`
-      <li class="step ${step.state}">
+      <li class="step ${shownState}">
         <span class="step-icon" aria-hidden="true">
           ${
-            step.state === "updating"
+            shownState === "updating" || shownState === "checking"
               ? html`<ha-spinner size="small"></ha-spinner>`
               : icon
                 ? html`<ha-svg-icon .path=${icon}></ha-svg-icon>`
@@ -181,7 +196,7 @@ class HaUpdateQueueCard extends LitElement {
         <span class="step-name"
           >${updateDisplayName(this.hass, step.entityId, step.title)}</span
         >
-        <span class="step-state">${this._t(`state_${step.state}`)}</span>
+        <span class="step-state">${this._t(`state_${shownState}`)}</span>
       </li>
     `;
   }
@@ -290,7 +305,8 @@ class HaUpdateQueueCard extends LitElement {
         .step.failed .step-state {
           color: var(--error-color);
         }
-        .step.updating .step-name {
+        .step.updating .step-name,
+        .step.checking .step-name {
           font-weight: var(--ha-font-weight-medium);
         }
         .step-name {

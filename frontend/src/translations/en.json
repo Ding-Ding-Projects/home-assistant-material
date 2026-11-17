@@ -6405,6 +6405,9 @@
             "state_updating": "Updating",
             "state_done": "Done",
             "state_failed": "Failed",
+            "state_checking": "Checking…",
+            "checking_title": "Checking the update",
+            "checking_text": "Home Assistant is restarting. The result will show as soon as it answers.",
             "state_skipped": "Skipped",
             "stop": "Stop after this one",
             "stop_note": "The update that is running will finish. The ones after it will not start.",
@@ -7401,6 +7404,7 @@
           "description_no_backup": "Manage backups and restore Home Assistant to a previous state",
           "self_check": {
             "title": "Backup opens",
+            "column": "Checked",
             "heading_passed": "Your last backup opens",
             "heading_failed": "Your last backup has a problem",
             "heading_partial": "Your last backup could not be fully checked",
@@ -7515,7 +7519,7 @@
             },
             "generate": {
               "sync": {
-                "title": "Synchronization",
+                "title": "Name and locations",
                 "name": "Backup name",
                 "locations": "Locations",
                 "locations_description": "What locations you want to automatically backup to.",
@@ -8060,6 +8064,7 @@
           },
           "hosting": {
             "title": "Host this backup",
+            "column": "Hosting",
             "original": "The restored instance keeps the original active automation state. The source instance is unchanged. Active automations may also run in the new instance.",
             "container": "Host as a container web app",
             "appliance": "Host as an appliance",
