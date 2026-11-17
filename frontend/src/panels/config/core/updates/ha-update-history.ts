@@ -22,11 +22,13 @@ import { showConfirmationDialog } from "../../../../dialogs/generic/show-dialog-
 import { haMotionKeyframes } from "../../../../resources/motion-styles";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
+import { TimeFormat } from "../../../../data/translation";
 import type { HistoryEntry, RollbackBlock } from "./update-history";
 import {
   anyUpdateInProgress,
   historyRows,
   loadPendingGoBack,
+  markGoBackShown,
   installCoreVersion,
   loadHistory,
   recordVersion,
@@ -140,6 +142,18 @@ export class HaUpdateHistory extends LitElement {
     }
   }
 
+  // Times here read 24-hour unless the person chose the 12-hour clock.
+  private _locale(language: string): HomeAssistant["locale"] {
+    return {
+      ...this.hass.locale,
+      language,
+      time_format:
+        this.hass.locale.time_format === TimeFormat.am_pm
+          ? TimeFormat.am_pm
+          : TimeFormat.twenty_four,
+    };
+  }
+
   // The time of day in the language of the chosen mode.
   private _time(ms: number): string {
     const date = new Date(ms);
@@ -147,8 +161,7 @@ export class HaUpdateHistory extends LitElement {
       return "";
     }
     return formatForMode(
-      (language) =>
-        formatTime(date, { ...this.hass.locale, language }, this.hass.config),
+      (language) => formatTime(date, this._locale(language), this.hass.config),
       this.hass.locale.language,
       this._lang.mode
     );
@@ -201,7 +214,7 @@ export class HaUpdateHistory extends LitElement {
       return "";
     }
     const inLanguage = (language: string) =>
-      formatDateTime(date, { ...this.hass.locale, language }, this.hass.config);
+      formatDateTime(date, this._locale(language), this.hass.config);
     return formatForMode(
       inLanguage,
       this.hass.locale.language,
@@ -462,6 +475,8 @@ export class HaUpdateHistory extends LitElement {
     if (!confirmed || this._blockReason()) {
       return;
     }
+    // What this page can later show as evidence of the way back, even when the
+    // older interface that loads next cannot record anything itself.
     const job: RollbackJob = {
       version,
       startedAt: Date.now(),
@@ -522,6 +537,18 @@ export class HaUpdateHistory extends LitElement {
   ): void {
     this._stopTimer();
     if (outcome === "done") {
+      // The target was seen installed: keep that in the history, which
+      // outlives the stored way back and is what the line is derived from.
+      const next = recordVersion(this._history, job.version, Date.now());
+      if (
+        next !== this._history &&
+        next[0]?.version !== this._history[0]?.version
+      ) {
+        this._history = next;
+        storeHistory(next);
+      }
+      // This page reports the result itself; the line is not said again.
+      markGoBackShown(this._history, job.version);
       // Kept as proof: the interface may reload onto the older build at once,
       // and a later page must not call a finished way back unfinished.
       storePendingGoBack({

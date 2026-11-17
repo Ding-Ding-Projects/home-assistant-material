@@ -216,6 +216,7 @@
           "everything_else": "其他",
           "attention": "有 {count} 樣嘢需要你處理",
           "updates_ready": "有 {count} 項更新可以安裝",
+          "updates_more": "{names} 同另外 {count} 項",
           "repairs_waiting": "有 {count} 項嘢要修理",
           "summaries": {
             "devices": "{devices} 部裝置",

@@ -507,7 +507,10 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     if (this._tableIsEmpty) {
       return false;
     }
-    return this._showFooterText || (this.footerSelect && this.selectable);
+    return (
+      this._showFooterText ||
+      (this.footerSelect && this.selectable && !this.narrow)
+    );
   }
 
   private get _rowsSelectable(): boolean {
@@ -599,7 +602,10 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       : nothing;
 
     const selectModeBtn =
-      this.selectable && !this._selectMode && !this.alwaysShowCheckboxes
+      this.selectable &&
+      !this.narrow &&
+      !this._selectMode &&
+      !this.alwaysShowCheckboxes
         ? html`<ha-assist-chip
             class="has-dropdown select-mode-chip"
             .active=${this._selectMode}
@@ -760,10 +766,29 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     const groupableColumns = Object.entries(this.columns).filter(
       ([, column]) => column.groupable
     );
+    // On a phone "Select" lives here too, so the screen has no extra button
+    // for it.
+    const canEnterSelect =
+      this.narrow &&
+      this.selectable &&
+      !this._selectMode &&
+      !this._showSelectionBar;
     const moreMenu = html`<ha-dropdown
       placement="bottom-end"
       @wa-select=${this._handleMore}
     >
+      ${
+        canEnterSelect
+          ? html`<ha-dropdown-item value="select_mode">
+                <ha-svg-icon
+                  slot="icon"
+                  .path=${mdiFormatListChecks}
+                ></ha-svg-icon>
+                ${localize("ui.components.subpage-data-table.select")}
+              </ha-dropdown-item>
+              <wa-divider></wa-divider>`
+          : nothing
+      }
       <ha-assist-chip
         slot="trigger"
         class="more-chip"
@@ -934,7 +959,10 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
               : nothing
           }
           ${
-            this.footerSelect && this.selectable && !this._showSelectionBar
+            this.footerSelect &&
+            this.selectable &&
+            !this.narrow &&
+            !this._showSelectionBar
               ? html`<ha-assist-chip
                   class="footer-select"
                   .label=${localize("ui.components.subpage-data-table.select")}
@@ -1023,7 +1051,6 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       noData &&
       !showSelectionBar &&
       !(this.hasFilters && !this.showFilters) &&
-      !selectModeBtn &&
       !this._hasFilterChips;
 
     return html`
@@ -1525,6 +1552,8 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       this._handleGroupValue("reset");
     } else if (value === "collapse_all" || value === "expand_all") {
       this._handleGroupValue(value);
+    } else if (value === "select_mode") {
+      this._enableSelectMode();
     } else if (value === "settings") {
       this._openSettings();
     } else if (value === "export") {

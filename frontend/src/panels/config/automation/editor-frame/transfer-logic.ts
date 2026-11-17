@@ -233,7 +233,7 @@ export const parseImport = (
     const originalId =
       entry.id ?? (config.id !== undefined ? String(config.id) : undefined);
     const idClash = originalId !== undefined && existingIds.has(originalId);
-    if (kind === "automation" && (idClash || originalId === undefined)) {
+    if (kind !== "script" && (idClash || originalId === undefined)) {
       delete config.id;
     }
     items.push({
@@ -301,3 +301,59 @@ export const findMissingReferences = (
 
 export const hasMissingReferences = (missing: MissingReferences): boolean =>
   missing.entities.length + missing.devices.length + missing.areas.length > 0;
+
+export interface SceneProblems {
+  /** Problems that make the scene unusable as it is. */
+  notMapping: boolean;
+  badEntities: string[];
+  badStates: string[];
+  /** Entities in the scene that this home does not have. */
+  missing: string[];
+}
+
+/**
+ * The checks that can be made on a scene without the server: the entities are
+ * a mapping, each key is an entity id, each state can be read, and which
+ * entities exist here. The server does not check scenes when they are saved.
+ */
+export const validateSceneConfig = (
+  config: Record<string, any>,
+  knownEntities: ReadonlySet<string>
+): SceneProblems => {
+  const result: SceneProblems = {
+    notMapping: false,
+    badEntities: [],
+    badStates: [],
+    missing: [],
+  };
+  const entities = config.entities;
+  if (entities === undefined || entities === null) {
+    return result;
+  }
+  if (!isRecord(entities)) {
+    result.notMapping = true;
+    return result;
+  }
+  for (const [entityId, state] of Object.entries(entities)) {
+    if (!ENTITY_ID.test(entityId)) {
+      result.badEntities.push(entityId);
+      continue;
+    }
+    const readable =
+      typeof state === "string" ||
+      typeof state === "number" ||
+      typeof state === "boolean" ||
+      (isRecord(state) &&
+        (state.state === undefined ||
+          ["string", "number", "boolean"].includes(typeof state.state)) &&
+        (state.attributes === undefined || isRecord(state.attributes)));
+    if (!readable) {
+      result.badStates.push(entityId);
+    }
+    if (!knownEntities.has(entityId)) {
+      result.missing.push(entityId);
+    }
+  }
+  result.missing.sort();
+  return result;
+};

@@ -6275,6 +6275,7 @@
           "attention": "{count, plural,\n  one {# thing needs you}\n  other {# things need you}\n}",
           "review_updates": "Review",
           "fix_repairs": "Fix",
+          "updates_more": "{names} and {count} more",
           "updates_ready": "{count, plural,\n  one {# update is ready}\n  other {# updates are ready}\n}",
           "repairs_waiting": "{count, plural,\n  one {# thing to repair}\n  other {# things to repair}\n}",
           "summaries": {

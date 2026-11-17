@@ -56,6 +56,7 @@ import { haStyle, haStyleScrollbar } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { isMobileClient } from "../../../util/is_mobile";
 import { configSections } from "../config-sections";
+import { summarizeUpdateNames } from "./attention-names";
 import "./ha-config-navigation";
 import { sectionCounts, sectionSummaries } from "./section-summaries";
 import {
@@ -282,6 +283,16 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
     }
   }
 
+  private _updateNames(
+    updates: Parameters<typeof computeStateName>[0][]
+  ): string {
+    return summarizeUpdateNames(
+      updates.map((entity) => computeStateName(entity)),
+      (names, count) =>
+        this._t("ui.panel.config.dashboard.updates_more", { names, count })
+    );
+  }
+
   /** Pending updates and repairs together: what needs the person. */
   private _attentionCount(): number {
     const { updates, total } = this._filterUpdateEntitiesParameterized(
@@ -395,9 +406,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
                                 )}</span
                               >
                               <small
-                                >${canInstallUpdates
-                                  .map((entity) => computeStateName(entity))
-                                  .join(", ")}</small
+                                >${this._updateNames(canInstallUpdates)}</small
                               >
                             </span>
                             <span class="link-action"
@@ -677,10 +686,12 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
         .attention-links {
           display: flex;
           flex-wrap: wrap;
+          min-width: 0;
           gap: var(--ha-space-2);
         }
         .attention-links a {
           flex: 1 1 240px;
+          min-width: 0;
           display: flex;
           align-items: center;
           gap: var(--ha-space-3);
@@ -707,10 +718,16 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           flex-direction: column;
           unicode-bidi: plaintext;
         }
+        .link-text > * {
+          min-width: 0;
+          max-width: 100%;
+        }
         .link-text small {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
           overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          overflow-wrap: anywhere;
           color: var(--secondary-text-color);
         }
         .link-action {

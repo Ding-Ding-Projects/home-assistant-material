@@ -440,9 +440,11 @@ class HaConfigNavigation extends LitElement {
       .row .summary {
         font-size: var(--ha-font-size-s);
         color: var(--secondary-text-color);
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: anywhere;
       }
       .name,
       .summary {

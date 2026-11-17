@@ -1,9 +1,12 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
   mdiClose,
+  mdiClipboardTextOutline,
   mdiCog,
   mdiContentDuplicate,
   mdiDelete,
+  mdiDownload,
+  mdiFileImportOutline,
   mdiFilterVariant,
   mdiFilterVariantRemove,
   mdiFormatListChecks,
@@ -48,6 +51,10 @@ import {
   selectVisible,
 } from "../../../components/bulk/bulk-selection";
 import "../../../components/bulk/ha-bulk-bar";
+import { draftText } from "../automation/editor-frame/draft-strings";
+import { exportConfigs } from "../automation/editor-frame/transfer-actions";
+import type { ExportMode } from "../automation/editor-frame/transfer-actions";
+import { showImportConfigDialog } from "../automation/editor-frame/show-dialog-import-config";
 import "../../../components/chips/ha-assist-chip";
 import type { SortingChangedEvent } from "../../../components/data-table/ha-data-table";
 import "../../../components/ha-button";
@@ -421,6 +428,12 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         content-heading
         has-fab
       >
+        <ha-icon-button
+          slot="toolbar-icon"
+          @click=${this._importYaml}
+          .label=${draftText(this.hass, "import_title")}
+          .path=${mdiFileImportOutline}
+        ></ha-icon-button>
         <ha-icon-button
           slot="toolbar-icon"
           @click=${this._showHelp}
@@ -915,6 +928,23 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         @bulk-clear=${this._clearSelection}
         @bulk-confirm=${this._bulkConfirmed}
       >
+        <ha-dropdown slot="actions" @wa-select=${this._exportSelected}>
+          <ha-button
+            slot="trigger"
+            size="s"
+            appearance="outlined"
+            variant="brand"
+          >
+            ${draftText(this.hass, "export_several")}
+            <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
+          </ha-button>
+          <ha-dropdown-item value="export_download">
+            ${draftText(this.hass, "export_download")}
+          </ha-dropdown-item>
+          <ha-dropdown-item value="export_copy">
+            ${draftText(this.hass, "export_copy")}
+          </ha-dropdown-item>
+        </ha-dropdown>
         <ha-dropdown slot="actions" @wa-select=${this._handleBulkCategory}>
           <ha-button
             slot="trigger"
@@ -1274,6 +1304,18 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         disabled: !scene.editable,
       },
       {
+        path: mdiDownload,
+        label: draftText(this.hass, "export_download"),
+        action: () => this._exportScenes([scene], "download"),
+        disabled: !scene.editable,
+      },
+      {
+        path: mdiClipboardTextOutline,
+        label: draftText(this.hass, "export_copy"),
+        action: () => this._exportScenes([scene], "copy"),
+        disabled: !scene.editable,
+      },
+      {
         label: this.hass.localize("ui.panel.config.scene.picker.delete"),
         path: mdiDelete,
         action: () => this._deleteConfirm(scene),
@@ -1289,6 +1331,37 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
       detail: { value },
     } as unknown as HASSDomEvent<HASSDomEvents["search-changed"]>);
   }
+
+  private _importYaml() {
+    showImportConfigDialog(this, { kind: "scene" });
+  }
+
+  private async _exportScenes(
+    scenes: SceneEntity[],
+    mode: ExportMode
+  ): Promise<void> {
+    const configs: Record<string, any>[] = [];
+    for (const scene of scenes) {
+      if (scene.attributes.id) {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          configs.push(await getSceneConfig(this.hass, scene.attributes.id));
+        } catch {
+          // A scene that cannot be read is left out of the export.
+        }
+      }
+    }
+    await exportConfigs(this, this.hass, "scene", configs, mode);
+  }
+
+  private _exportSelected = (ev: HaDropdownSelectEvent) => {
+    const mode = ev.detail.item.value === "export_copy" ? "copy" : "download";
+    const selected = new Set(this._selected);
+    void this._exportScenes(
+      this.scenes.filter((scene) => selected.has(scene.entity_id)),
+      mode
+    );
+  };
 
   private _toggleMoreFilters() {
     this._showMoreFilters = !this._showMoreFilters;

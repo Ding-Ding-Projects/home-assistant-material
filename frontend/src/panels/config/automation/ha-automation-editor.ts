@@ -92,6 +92,8 @@ import { showAutomationSaveTimeoutDialog } from "./automation-save-timeout-dialo
 import { ADD_AUTOMATION_ELEMENT_QUERY_PARAM } from "./show-add-automation-element-dialog";
 import "./blueprint-automation-editor";
 import "./editor-frame/ha-editor-frame-actions";
+import { draftText } from "./editor-frame/draft-strings";
+import { waitForAutomationEntity } from "./editor-frame/imported-off";
 import {
   isTransferMenuAction,
   renderTransferMenuItems,
@@ -1571,24 +1573,27 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
   // An automation imported together with others stays off until the owner
   // turns it on, so saving it must not start it.
   private async _turnOffImported(id: string): Promise<void> {
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const entityId = Object.keys(this.hass.states).find(
-        (key) =>
-          key.startsWith("automation.") &&
-          this.hass.states[key].attributes.id === id
-      );
-      if (entityId) {
-        // eslint-disable-next-line no-await-in-loop
+    const entityId = await waitForAutomationEntity(this.hass, id);
+    if (entityId) {
+      try {
         await this.hass.callService("automation", "turn_off", {
           entity_id: entityId,
         });
         return;
+      } catch {
+        // Falls through to tell the owner it is still on.
       }
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((resolve) => {
-        setTimeout(resolve, 500);
-      });
     }
+    showEditorToast(this, {
+      message: draftText(this.hass, "import_still_on"),
+      duration: 0,
+      action: {
+        text: draftText(this.hass, "turn_off"),
+        action: () => {
+          void this._turnOffImported(id);
+        },
+      },
+    });
   }
 
   private _subscribeAutomationConfig(ev) {

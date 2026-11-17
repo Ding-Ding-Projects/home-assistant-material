@@ -357,12 +357,13 @@ export class HassTabsSubpage extends LitElement {
           this.showTabs
             ? html`<div
                 id="tabbar"
-                class=${this._narrow ? "bottom-bar" : "tab-row"}
+                class=${this._narrow ? "tab-row compact" : "tab-row"}
               >
                 <ha-section-tabs
                   .tabs=${tabItems}
                   .activePath=${this._activeTab?.path}
-                  .narrow=${this._narrow}
+                  .narrow=${false}
+                  .scrollable=${this._narrow}
                   .surface=${this.route.prefix}
                   .localize=${localize}
                   .hass=${this._menuHass()}
@@ -519,6 +520,8 @@ export class HassTabsSubpage extends LitElement {
     }
   }
 
+  private _centredPath?: string;
+
   private _syncTabIndicator(): void {
     requestAnimationFrame(() => {
       const bar = this._tabBar;
@@ -530,6 +533,16 @@ export class HassTabsSubpage extends LitElement {
         '.section-tab[aria-selected="true"]:not([hidden])'
       );
       if (active) {
+        // On a phone the row scrolls: bring the open tab into view once when
+        // it changes, so the person never opens a page and cannot see where
+        // they are.
+        const path = active.dataset.path;
+        if (this._narrow && path && path !== this._centredPath) {
+          this._centredPath = path;
+          if (typeof active.scrollIntoView === "function") {
+            active.scrollIntoView({ inline: "center", block: "nearest" });
+          }
+        }
         bar.style.setProperty("--tab-ind-x", `${active.offsetLeft}px`);
         bar.style.setProperty("--tab-ind-w", `${active.offsetWidth}px`);
         // No slide on the first placement.
@@ -569,11 +582,9 @@ export class HassTabsSubpage extends LitElement {
    * element would never reach them.
    */
   private _publishBottomTabs(): void {
-    if (this._narrow && this.showTabs) {
-      bottomTabsOwners.add(this);
-    } else {
-      bottomTabsOwners.delete(this);
-    }
+    // The section tabs sit under the page title on every width, so no page
+    // has a bottom tab bar to keep clear of.
+    bottomTabsOwners.delete(this);
     syncBottomTabsProperty();
   }
 
@@ -777,6 +788,15 @@ export class HassTabsSubpage extends LitElement {
           flex: 0 1 auto;
           max-width: 100%;
         }
+        /* A phone: the same pill row, level with the page content and
+           scrolling sideways when the tabs are wider than the screen. */
+        #tabbar.tab-row.compact {
+          padding: 0 var(--ha-space-4) var(--ha-space-2);
+        }
+        #tabbar.tab-row.compact ha-section-tabs {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
 
         /* The segmented pill: a container with one filled tonal pill that
            slides under the open tab. */
@@ -960,23 +980,10 @@ export class HassTabsSubpage extends LitElement {
         :host([narrow]) .content {
           padding-left: var(--safe-area-inset-left);
         }
-        :host([narrow][show-tabs]) .content {
-          /* Bottom bar reuses header height */
-          margin-bottom: calc(
-            var(--header-height, 0px) + var(--safe-area-inset-bottom, 0px)
-          );
-        }
 
         .content .fab-bottom-space {
           height: calc(
             88px + var(--safe-area-inset-bottom, 0px) +
-              var(--ha-toast-reserved-height, 0px)
-          );
-        }
-
-        :host([narrow][show-tabs]) .content .fab-bottom-space {
-          height: calc(
-            104px + var(--safe-area-inset-bottom, 0px) +
               var(--ha-toast-reserved-height, 0px)
           );
         }
@@ -993,9 +1000,6 @@ export class HassTabsSubpage extends LitElement {
           justify-content: flex-end;
           gap: var(--ha-space-2);
           --ha-button-box-shadow: var(--ha-box-shadow-l);
-        }
-        :host([narrow][show-tabs]) #fab {
-          bottom: calc(84px + var(--safe-area-inset-bottom, 0px));
         }
         /* Above the page footer, which wide layouts show. */
         :host(:not([narrow])) #fab {

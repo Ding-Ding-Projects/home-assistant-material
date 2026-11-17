@@ -48,9 +48,24 @@ describe("list density", () => {
     expect(LIST_DENSITY_VARIABLES.compact["--ha-list-row-min"]).toBe("52px");
     expect(LIST_DENSITY_VARIABLES.compact["--ha-list-row-max"]).toBe("60px");
     expect(LIST_DENSITY_VARIABLES.comfortable["--ha-list-row-min"]).toBe(
-      "64px"
+      "60px"
     );
-    expect(LIST_DENSITY_VARIABLES.comfortable["--ha-list-row-gap"]).toBe("8px");
+    expect(LIST_DENSITY_VARIABLES.comfortable["--ha-list-row-gap"]).toBe(
+      "10px"
+    );
+    // Comfortable adds breathing room only: its type is never bigger or
+    // bolder than compact, and its rows never pass 60 px.
+    for (const name of [
+      "--ha-list-row-title-size",
+      "--ha-list-row-title-weight",
+    ]) {
+      expect(LIST_DENSITY_VARIABLES.comfortable[name]).toBe(
+        LIST_DENSITY_VARIABLES.compact[name]
+      );
+    }
+    expect(
+      parseInt(LIST_DENSITY_VARIABLES.comfortable["--ha-list-row-max"], 10)
+    ).toBeLessThanOrEqual(60);
     for (const density of LIST_DENSITIES) {
       expect(
         parseInt(LIST_DENSITY_VARIABLES[density]["--ha-list-row-min"], 10)

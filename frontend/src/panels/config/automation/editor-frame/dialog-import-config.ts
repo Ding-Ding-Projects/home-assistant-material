@@ -11,12 +11,14 @@ import "../../../../components/ha-dialog-footer";
 import "../../../../components/ha-file-upload";
 import "../../../../components/ha-textarea";
 import {
+  fetchAutomationFileConfig,
   normalizeAutomationConfig,
   showAutomationEditor,
 } from "../../../../data/automation";
 import { validateConfig } from "../../../../data/config";
 import { saveEditorDraft } from "../../../../data/editor-drafts";
 import {
+  fetchScriptFileConfig,
   normalizeScriptConfig,
   showScriptEditor,
 } from "../../../../data/script";
@@ -25,13 +27,14 @@ import type { HassDialog } from "../../../../dialogs/make-dialog-manager";
 import { haStyleDialog } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
 import { navigate } from "../../../../common/navigate";
-import { showSceneEditor } from "../../../../data/scene";
+import { getSceneConfig, showSceneEditor } from "../../../../data/scene";
 import { showToast } from "../../../../util/toast";
-import { newDraftId } from "./draft-logic";
+import { configHash, newDraftId } from "./draft-logic";
 import { draftText } from "./draft-strings";
 import "./ha-editor-hero";
 import {
   findMissingReferences,
+  validateSceneConfig,
   hasMissingReferences,
   parseImport,
 } from "./transfer-logic";
@@ -148,6 +151,7 @@ class DialogImportConfig extends LitElement implements HassDialog {
     });
     this._items = items;
     if (kind === "scene") {
+      this._items = items.map((item) => this._checkScene(item, known.entities));
       return;
     }
     this._items = await Promise.all(
@@ -170,6 +174,51 @@ class DialogImportConfig extends LitElement implements HassDialog {
         }
       })
     );
+  }
+
+  private _checkScene(
+    item: PreparedItem,
+    entities: ReadonlySet<string>
+  ): PreparedItem {
+    const problems = validateSceneConfig(item.config, entities);
+    const issues: string[] = [];
+    if (problems.notMapping) {
+      issues.push(draftText(this.hass, "import_scene_entities_not_mapping"));
+    }
+    problems.badEntities.forEach((entity) =>
+      issues.push(draftText(this.hass, "import_scene_bad_entity", { entity }))
+    );
+    problems.badStates.forEach((entity) =>
+      issues.push(draftText(this.hass, "import_scene_bad_state", { entity }))
+    );
+    return {
+      ...item,
+      missing: { ...item.missing, entities: problems.missing },
+      invalid: issues.length ? issues.join(" ") : undefined,
+    };
+  }
+
+  private async _liveHash(
+    kind: TransferKind,
+    id: string
+  ): Promise<string | null> {
+    try {
+      if (kind === "automation") {
+        return configHash(
+          normalizeAutomationConfig(
+            await fetchAutomationFileConfig(this.hass, id)
+          )
+        );
+      }
+      if (kind === "script") {
+        return configHash(
+          normalizeScriptConfig(await fetchScriptFileConfig(this.hass, id))
+        );
+      }
+      return configHash(await getSceneConfig(this.hass, id));
+    } catch {
+      return null;
+    }
   }
 
   private async _filePicked(ev: CustomEvent<{ files: File[] }>) {
@@ -223,12 +272,14 @@ class DialogImportConfig extends LitElement implements HassDialog {
         const replacing = this._replace.has(position) && item.originalId;
         const id = replacing ? item.originalId! : newDraftId();
         // eslint-disable-next-line no-await-in-loop
+        const baseHash = replacing ? await this._liveHash(kind, id) : null;
+        // eslint-disable-next-line no-await-in-loop
         await saveEditorDraft(
           this.hass,
           kind,
           id,
           item.config,
-          null,
+          baseHash,
           replacing ? undefined : { imported: true }
         );
         if (replacing) {
@@ -370,6 +421,13 @@ class DialogImportConfig extends LitElement implements HassDialog {
         ${
           refusal
             ? html`<ha-alert alert-type="error">${refusal}</ha-alert>`
+            : nothing
+        }
+        ${
+          this._items.length && this._params.kind === "scene"
+            ? html`<ha-alert alert-type="info">
+                ${draftText(this.hass, "import_scene_note")}
+              </ha-alert>`
             : nothing
         }
         ${

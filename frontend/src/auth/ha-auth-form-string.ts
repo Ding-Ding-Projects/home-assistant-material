@@ -5,6 +5,7 @@ import { fireEvent } from "../common/dom/fire_event";
 import { HaFormString } from "../components/ha-form/ha-form-string";
 import "./ha-auth-textfield";
 import type { HaAuthTextField } from "./ha-auth-textfield";
+import { getStringFieldProps } from "../components/ha-form/field-kinds";
 
 @customElement("ha-auth-form-string")
 export class HaAuthFormString extends HaFormString {
@@ -33,10 +34,11 @@ export class HaAuthFormString extends HaFormString {
   }
 
   protected override render(): TemplateResult {
+    const props = getStringFieldProps(this.schema);
     return html`
       <ha-auth-textfield
-        .passwordToggle=${this.isPassword}
-        .type=${!this.isPassword ? this.stringType : "password"}
+        .passwordToggle=${props.passwordToggle}
+        .type=${props.type}
         .label=${this.label}
         .value=${this.data || ""}
         .hint=${this.helper}
@@ -45,7 +47,7 @@ export class HaAuthFormString extends HaFormString {
         .autoValidate=${!!this.schema.required}
         .name=${this.schema.name}
         .autofocus=${!!this.schema.autofocus}
-        .autocomplete=${this.schema.autocomplete}
+        .autocomplete=${props.autocomplete}
         .validationMessage=${
           this.schema.required
             ? this.localize?.("ui.panel.page-authorize.form.error_required")

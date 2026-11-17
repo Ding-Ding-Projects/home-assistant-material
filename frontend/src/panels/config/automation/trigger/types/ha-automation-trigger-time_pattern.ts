@@ -12,8 +12,8 @@ import {
   TIME_PATTERN_MAX,
   TIME_PATTERN_UNITS,
   toTimePatternFormData,
-} from "./time-pattern-model";
-import type { TimePatternUnit } from "./time-pattern-model";
+} from "../time-pattern-model";
+import type { TimePatternUnit } from "../time-pattern-model";
 
 const FALLBACK_LABELS: Record<string, string> = {
   hours: "Hours",

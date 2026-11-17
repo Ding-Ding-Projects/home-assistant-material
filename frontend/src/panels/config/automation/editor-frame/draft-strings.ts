@@ -55,6 +55,15 @@ export const DRAFT_STRING_FALLBACK = {
   import_refused_empty: "There is nothing to import.",
   import_refused_not_config:
     "That is not a valid {kind} configuration: {detail}",
+  import_still_on:
+    "Saved, but it is switched on. It could not be turned off automatically.",
+  turn_off: "Turn off",
+  import_scene_note:
+    "The server does not check scenes. Only the entity ids and states in the file were checked here.",
+  import_scene_entities_not_mapping:
+    "The entities must be a mapping of entity id to state.",
+  import_scene_bad_entity: "{entity} is not an entity id.",
+  import_scene_bad_state: "The state of {entity} is not readable.",
   import_imported_many:
     "Imported {count} items as drafts. They stay off until you open each one, save and enable it.",
 } as const;

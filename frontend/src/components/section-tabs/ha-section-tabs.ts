@@ -208,6 +208,13 @@ export class HaSectionTabs extends LitElement {
   /** A phone: tabs sit in the bottom bar and the overflow entry is "More". */
   @property({ type: Boolean, reflect: true }) public narrow = false;
 
+  /**
+   * Keeps every tab in the row, which then scrolls sideways, instead of
+   * moving the tabs that do not fit into the More list. Used on a phone, where
+   * every section must stay one tap away.
+   */
+  @property({ type: Boolean }) public scrollable = false;
+
   /** What the choices are saved under: the route of the surface. */
   @property() public surface = "";
 
@@ -463,7 +470,7 @@ export class HaSectionTabs extends LitElement {
       if (this._barWidth > 0) {
         fits = planSlots(shown.map(required), slotsForWidth(this._barWidth));
       }
-    } else if (this._fit) {
+    } else if (this._fit && !this.scrollable) {
       const fit = new Set(this._fit);
       fits = shown.map(
         (tab) => fit.has(tab.path) || tab.path === this.activePath
@@ -474,7 +481,7 @@ export class HaSectionTabs extends LitElement {
     // A chip is shown while any of its tabs is, or while its group has no tab
     // in the row to lose (a collapsed group) and the chip itself fits.
     const chipsHidden = new Set<string>();
-    if (this._fit && !this.narrow) {
+    if (this._fit && !this.narrow && !this.scrollable) {
       const fit = new Set(this._fit);
       items.forEach((item) => {
         if (item.kind !== "chip") {
@@ -607,6 +614,9 @@ export class HaSectionTabs extends LitElement {
         this._widths.set(key, element.getBoundingClientRect().width);
       }
     });
+    if (this.scrollable) {
+      return;
+    }
     const { items } = this._row();
     const known = items.every((item) => this._widths.has(itemKey(item)));
     if (!known) {

@@ -6,7 +6,7 @@ import {
   parseTimePatternValue,
   serializeTimePatternField,
   toTimePatternFormData,
-} from "../../../../../src/panels/config/automation/trigger/types/time-pattern-model";
+} from "../../../../../src/panels/config/automation/trigger/time-pattern-model";
 
 const ROOT = resolve(__dirname, "../../../../../src/panels/config/automation");
 

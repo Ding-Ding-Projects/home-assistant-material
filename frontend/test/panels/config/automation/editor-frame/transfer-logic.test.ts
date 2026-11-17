@@ -6,6 +6,7 @@ import {
   exportYaml,
   findMissingReferences,
   parseImport,
+  validateSceneConfig,
 } from "../../../../../src/panels/config/automation/editor-frame/transfer-logic";
 
 const AUTOMATION = {
@@ -207,5 +208,62 @@ describe("findMissingReferences", () => {
       devices: [],
       areas: [],
     });
+  });
+});
+
+describe("validateSceneConfig", () => {
+  const known = new Set(["light.a", "switch.b"]);
+
+  test("a good scene has no problems", () => {
+    expect(
+      validateSceneConfig(
+        {
+          name: "S",
+          entities: {
+            "light.a": { state: "on", attributes: { brightness: 3 } },
+            "switch.b": "off",
+          },
+        },
+        known
+      )
+    ).toEqual({
+      notMapping: false,
+      badEntities: [],
+      badStates: [],
+      missing: [],
+    });
+  });
+
+  test("reports unknown entities, bad ids, bad states and a non-mapping", () => {
+    const problems = validateSceneConfig(
+      {
+        entities: {
+          "light.gone": "on",
+          "not an id": "on",
+          "light.a": { state: { nested: true } },
+          "switch.b": { attributes: "x" },
+        },
+      },
+      known
+    );
+    expect(problems.badEntities).toEqual(["not an id"]);
+    expect(problems.badStates).toEqual(["light.a", "switch.b"]);
+    expect(problems.missing).toEqual(["light.gone"]);
+    expect(
+      validateSceneConfig({ entities: ["light.a"] }, known).notMapping
+    ).toBe(true);
+  });
+
+  test("a scene whose entities mapping is missing is left to the other checks", () => {
+    expect(validateSceneConfig({ name: "S" }, known).notMapping).toBe(false);
+  });
+
+  test("a scene clash drops its id like an automation", () => {
+    const result = parseImport(
+      ["id: '5'", "name: S", "entities:", "  light.a: 'on'", ""].join("\n"),
+      "scene",
+      new Set(["5"])
+    );
+    expect(result.ok && "id" in result.items[0].config).toBe(false);
   });
 });

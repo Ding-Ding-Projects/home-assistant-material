@@ -222,4 +222,49 @@ describe("DraftController", () => {
     expect(controller.currentId()).toBe("new-abc");
     expect(controller.importedDisabled).toBe(true);
   });
+
+  test("page hide sends the pending draft at once", async () => {
+    const { state, controller } = setup();
+    controller.hostConnected();
+    controller.configChanged();
+    await settle();
+    edit(state, controller, "B");
+    expect(saves()).toHaveLength(0);
+    window.dispatchEvent(new Event("pagehide"));
+    await settle();
+    expect(saves()).toHaveLength(1);
+    expect(saves()[0].config).toEqual({ alias: "B", actions: [] });
+    controller.hostDisconnected();
+  });
+
+  test("the tab turning hidden sends the pending draft, visible does not", async () => {
+    const { state, controller } = setup();
+    controller.hostConnected();
+    controller.configChanged();
+    await settle();
+    edit(state, controller, "C");
+    const visibility = vi.spyOn(document, "visibilityState", "get");
+    visibility.mockReturnValue("visible");
+    document.dispatchEvent(new Event("visibilitychange"));
+    await settle();
+    expect(saves()).toHaveLength(0);
+    visibility.mockReturnValue("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+    await settle();
+    expect(saves()).toHaveLength(1);
+    expect(saves()[0].config).toEqual({ alias: "C", actions: [] });
+    visibility.mockRestore();
+    controller.hostDisconnected();
+  });
+
+  test("leaving the editor with a pending draft sends it", async () => {
+    const { state, controller } = setup();
+    controller.hostConnected();
+    controller.configChanged();
+    await settle();
+    edit(state, controller, "D");
+    controller.hostDisconnected();
+    await settle();
+    expect(saves()).toHaveLength(1);
+  });
 });

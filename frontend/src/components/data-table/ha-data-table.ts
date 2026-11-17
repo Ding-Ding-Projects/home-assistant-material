@@ -2467,13 +2467,28 @@ export class HaDataTable extends LitElement {
           white-space: normal;
           overflow-wrap: anywhere;
         }
-        /* Row cards: the second line is one line, cut with an ellipsis */
+        /* Row cards: the second line takes the width of the row and, when it is
+           still too long, a second line, before it is cut */
         :host([row-cards][narrow]) .secondary {
-          display: block;
-          -webkit-line-clamp: unset;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+        /* The row's text takes the width the row has: its own cell grows to
+           fill the row, and the cells beside it (status marks, a trailing
+           value) are only as wide as their content. A cell that shared the
+           width equally cut the second line short. */
+        :host([row-cards][narrow]) .mdc-data-table__cell[role="rowheader"] {
+          flex: 1 1 0% !important;
+          min-width: 0;
+          max-width: none !important;
+        }
+        :host([row-cards][narrow])
+          .mdc-data-table__cell[role="cell"]:not(
+            .mdc-data-table__cell--icon
+          ):not(.mdc-data-table__cell--checkbox) {
+          flex: 0 1 auto !important;
         }
         :host([row-cards][narrow]) .primary {
           font-size: var(--ha-list-row-title-size, var(--ha-font-size-m));

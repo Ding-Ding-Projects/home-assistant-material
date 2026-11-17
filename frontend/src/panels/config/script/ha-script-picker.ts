@@ -1,8 +1,10 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
+  mdiClipboardTextOutline,
   mdiCog,
   mdiContentDuplicate,
   mdiDelete,
+  mdiDownload,
   mdiHelpCircleOutline,
   mdiInformationOutline,
   mdiMenuDown,
@@ -122,6 +124,9 @@ import { documentationUrl } from "../../../util/documentation-url";
 import { showToast } from "../../../util/toast";
 import { showAreaRegistryDetailDialog } from "../areas/show-dialog-area-registry-detail";
 import { showNewAutomationDialog } from "../automation/show-dialog-new-automation";
+import { draftText } from "../automation/editor-frame/draft-strings";
+import { exportConfigs } from "../automation/editor-frame/transfer-actions";
+import type { ExportMode } from "../automation/editor-frame/transfer-actions";
 import { showAssignCategoryDialog } from "../category/show-dialog-assign-category";
 import { renderCategoryGroupActions } from "../category/render-category-group-actions";
 import { showCategoryRegistryDetailDialog } from "../category/show-dialog-category-registry-detail";
@@ -440,6 +445,16 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
                   action: () => this._duplicate(script),
                 },
                 {
+                  path: mdiDownload,
+                  label: draftText(this.hass, "export_download"),
+                  action: () => this._exportScripts([script], "download"),
+                },
+                {
+                  path: mdiClipboardTextOutline,
+                  label: draftText(this.hass, "export_copy"),
+                  action: () => this._exportScripts([script], "copy"),
+                },
+                {
                   label: this.hass.localize(
                     "ui.panel.config.script.picker.delete"
                   ),
@@ -685,6 +700,23 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
                 @bulk-invert=${this._invertRows}
                 @bulk-clear=${this._clearRows}
               >
+                <ha-dropdown slot="actions" @wa-select=${this._exportSelected}>
+                  <ha-button
+                    slot="trigger"
+                    size="s"
+                    appearance="outlined"
+                    variant="brand"
+                  >
+                    ${draftText(this.hass, "export_several")}
+                    <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
+                  </ha-button>
+                  <ha-dropdown-item value="export_download">
+                    ${draftText(this.hass, "export_download")}
+                  </ha-dropdown-item>
+                  <ha-dropdown-item value="export_copy">
+                    ${draftText(this.hass, "export_copy")}
+                  </ha-dropdown-item>
+                </ha-dropdown>
                 <ha-dropdown
                   slot="actions"
                   @wa-select=${this._handleBulkCategory}
@@ -1020,6 +1052,36 @@ ${rejected
       navigate(`/config/script/show/${ev.detail.id}`);
     }
   }
+
+  private async _exportScripts(
+    scripts: ScriptEntity[],
+    mode: ExportMode
+  ): Promise<void> {
+    const configs: Record<string, any>[] = [];
+    for (const script of scripts) {
+      const entry = this._entityReg.find(
+        (e) => e.entity_id === script.entity_id
+      );
+      if (entry) {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          configs.push(await fetchScriptFileConfig(this.hass, entry.unique_id));
+        } catch {
+          // A script that cannot be read is left out of the export.
+        }
+      }
+    }
+    await exportConfigs(this, this.hass, "script", configs, mode);
+  }
+
+  private _exportSelected = (ev: HaDropdownSelectEvent) => {
+    const mode = ev.detail.item.value === "export_copy" ? "copy" : "download";
+    const selected = new Set(this._selected);
+    void this._exportScripts(
+      this.scripts.filter((script) => selected.has(script.entity_id)),
+      mode
+    );
+  };
 
   private _createNew() {
     if (isComponentLoaded(this.hass.config, "blueprint")) {

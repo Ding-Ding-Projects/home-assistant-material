@@ -36,6 +36,7 @@ export const YUE_PREFIXES = [
   // The strings of the Updates page itself, one block of keys at a time.
   "ui.panel.config.updates.caption",
   "ui.panel.config.updates.check_now",
+  "ui.panel.config.updates.whats_new",
   "ui.panel.config.updates.ready",
   "ui.panel.config.updates.all_current",
   "ui.panel.config.updates.auto_",

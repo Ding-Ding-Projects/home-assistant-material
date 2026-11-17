@@ -391,22 +391,104 @@ export const takeGoBackNotice = (
   currentVersion: string | null | undefined,
   now: number
 ): GoBackNotice | undefined => {
+  if (!currentVersion) {
+    return undefined;
+  }
   const pending = loadPendingGoBack();
-  if (!pending || !currentVersion) {
+  if (pending) {
+    const verdict = resolvePendingGoBack(pending, history, currentVersion, now);
+    if (verdict.kind === "pending") {
+      return derivedGoBackNotice(history, currentVersion, now);
+    }
+    storePendingGoBack(undefined);
+    if (verdict.kind !== "clear") {
+      if (verdict.kind === "done") {
+        markGoBackShown(history, pending.version);
+      }
+      const build = parseBuildNumber(pending.version);
+      return {
+        kind: verdict.kind,
+        build: build !== undefined ? String(build) : pending.version,
+        time: verdict.kind === "done" ? verdict.time : now,
+      };
+    }
+  }
+  return derivedGoBackNotice(history, currentVersion, now);
+};
+
+const SHOWN_KEY = "ha-update-go-back-shown";
+
+const loadShown = (): number | undefined => {
+  try {
+    const value = Number(window.localStorage.getItem(SHOWN_KEY));
+    return Number.isFinite(value) && value > 0 ? value : undefined;
+  } catch (_err) {
     return undefined;
   }
-  const verdict = resolvePendingGoBack(pending, history, currentVersion, now);
-  if (verdict.kind === "pending") {
+};
+
+const storeShown = (firstSeen: number): void => {
+  try {
+    window.localStorage.setItem(SHOWN_KEY, String(firstSeen));
+  } catch (_err) {
+    // The line may then show once more after a reload.
+  }
+};
+
+/**
+ * Whether the history itself shows a way back: the newest entry is an older
+ * build than the entry before it. This is evidence that stays when the stored
+ * way back is gone, for example when the interface that loaded after the
+ * reload was an older build that never touched the record.
+ */
+export const detectGoBack = (
+  history: readonly HistoryEntry[],
+  currentVersion: string | null | undefined,
+  now: number
+): HistoryEntry | undefined => {
+  const latest = history[0];
+  const before = history[1];
+  if (!latest || !before || latest.version !== currentVersion) {
     return undefined;
   }
-  storePendingGoBack(undefined);
-  if (verdict.kind === "clear") {
+  const latestBuild = parseBuildNumber(latest.version);
+  const beforeBuild = parseBuildNumber(before.version);
+  if (
+    latestBuild === undefined ||
+    beforeBuild === undefined ||
+    latestBuild >= beforeBuild ||
+    now - latest.firstSeen > GO_BACK_KEEP_MS
+  ) {
     return undefined;
   }
-  const build = parseBuildNumber(pending.version);
+  return latest;
+};
+
+// Remembers that the line for the newest entry has been shown, so it is said
+// once.
+export const markGoBackShown = (
+  history: readonly HistoryEntry[],
+  version: string
+): void => {
+  if (history[0]?.version === version) {
+    storeShown(history[0].firstSeen);
+  }
+};
+
+const derivedGoBackNotice = (
+  history: readonly HistoryEntry[],
+  currentVersion: string,
+  now: number
+): GoBackNotice | undefined => {
+  const entry = detectGoBack(history, currentVersion, now);
+  if (!entry || loadShown() === entry.firstSeen) {
+    return undefined;
+  }
+  storeShown(entry.firstSeen);
+  const build = parseBuildNumber(entry.version);
   return {
-    kind: verdict.kind,
-    build: build !== undefined ? String(build) : pending.version,
-    time: verdict.kind === "done" ? verdict.time : now,
+    kind: "done",
+    build: build !== undefined ? String(build) : entry.version,
+    time: entry.firstSeen,
   };
 };
