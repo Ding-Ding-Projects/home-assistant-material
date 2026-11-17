@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dramatic motion moments</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0B0F13}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid #CEE5FF;outline-offset:3px}
+@keyframes m-rise-a{from{opacity:0;transform:translateY(34px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes m-rise-b{from{opacity:0;transform:translateY(34px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes m-pop-a{0%{transform:scale(1)}35%{transform:scale(1.5) rotate(-4deg)}70%{transform:scale(.92)}100%{transform:scale(1)}}
+@keyframes m-pop-b{0%{transform:scale(1)}35%{transform:scale(1.5) rotate(4deg)}70%{transform:scale(.92)}100%{transform:scale(1)}}
+@keyframes m-ring-a{0%{transform:scale(.4);opacity:.9}100%{transform:scale(3.2);opacity:0}}
+@keyframes m-ring-b{0%{transform:scale(.4);opacity:.9}100%{transform:scale(3.2);opacity:0}}
+@keyframes m-tick-a{0%{stroke-dashoffset:30}100%{stroke-dashoffset:0}}
+@keyframes m-tick-b{0%{stroke-dashoffset:30}100%{stroke-dashoffset:0}}
+@keyframes m-gone-a{0%{transform:none;opacity:1;max-height:76px}25%{transform:translateX(-10px)}45%{transform:translateX(10px)}60%{transform:translateX(0) scale(.98);opacity:1;max-height:76px}100%{transform:translateX(60px) scale(.9);opacity:0;max-height:0;padding-top:0;padding-bottom:0;margin-top:-10px}}
+@keyframes m-gone-b{0%{transform:none;opacity:1;max-height:76px}25%{transform:translateX(-10px)}45%{transform:translateX(10px)}60%{transform:translateX(0) scale(.98);opacity:1;max-height:76px}100%{transform:translateX(60px) scale(.9);opacity:0;max-height:0;padding-top:0;padding-bottom:0;margin-top:-10px}}
+@keyframes m-draw-a{from{stroke-dasharray:0 314}to{stroke-dasharray:314 314}}
+@keyframes m-draw-b{from{stroke-dasharray:0 314}to{stroke-dasharray:314 314}}
+@keyframes m-flash-a{0%{opacity:.9}100%{opacity:0}}
+@keyframes m-flash-b{0%{opacity:.9}100%{opacity:0}}
+@keyframes m-shake-a{0%,100%{transform:none}15%{transform:translateX(-12px) rotate(-1deg)}30%{transform:translateX(11px) rotate(1deg)}45%{transform:translateX(-8px)}60%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
+@keyframes m-shake-b{0%,100%{transform:none}15%{transform:translateX(-12px) rotate(-1deg)}30%{transform:translateX(11px) rotate(1deg)}45%{transform:translateX(-8px)}60%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width: 1100px; height: 980px; box-sizing: border-box; background: #0B0F13; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 32px; display: flex; flex-direction: column; gap: 20px">
+
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px">
+<h1 style="margin: 0; font-size: 60px; line-height: .98; font-weight: 800; font-stretch: 118%; letter-spacing: -0.03em; color: #FFFFFF">Six moments that earn drama</h1>
+<p style="margin: 0; max-width: 300px; font-size: 14px; color: #C2C7CF">Press a button to play its moment. Everything else in the product stays quiet.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; flex: 1">
+
+<section style="background: #14181D; border-radius: 36px; padding: 22px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">1 ARRIVING ON A PAGE</div>
+<div style="flex: 1; display: flex; flex-direction: column; gap: 10px">
+<div style="height: 96px; border-radius: 28px; background: #004A76; padding: 16px 20px; font-size: 30px; line-height: 1.05; font-weight: 800; font-stretch: 115%; color: #FFFFFF; animation: {{entry0}}">Good night</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; flex: 1">
+<div style="border-radius: 22px; background: #1D2126; animation: {{entry1}}"></div>
+<div style="border-radius: 22px; background: #1D2126; animation: {{entry2}}"></div>
+<div style="border-radius: 22px; background: #1D2126; animation: {{entry3}}"></div>
+</div>
+</div>
+<button onClick="{{playEntry}}" style="height: 52px; border-radius: 26px; border: none; background: #98CBFF; color: #003354; font-weight: 800">Arrive</button>
+<p style="margin: 0; font-size: 13px; color: #C2C7CF">The hero rises with a spring, the tiles follow 70 ms apart.</p>
+</section>
+
+<section style="background: #14181D; border-radius: 36px; padding: 22px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">2 A COUNT CHANGES</div>
+<div style="flex: 1; border-radius: 28px; background: #FFE08B; color: #241A00; display: flex; align-items: center; gap: 16px; padding: 0 24px">
+<div style="font-size: 116px; line-height: .85; font-weight: 800; font-stretch: 125%; animation: {{countAnim}}; transform-origin: 50% 80%">{{count}}</div>
+<div style="font-size: 22px; line-height: 26px; font-weight: 800">{{countLabel}}</div>
+</div>
+<button onClick="{{playCount}}" style="height: 52px; border-radius: 26px; border: none; background: #98CBFF; color: #003354; font-weight: 800">One more thing needs repair</button>
+<p style="margin: 0; font-size: 13px; color: #C2C7CF">The numeral swells past its size, tilts, and settles on the new value.</p>
+</section>
+
+<section style="background: #14181D; border-radius: 36px; padding: 22px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">3 SAVED</div>
+<div style="flex: 1; display: grid; place-items: center; position: relative">
+<div aria-hidden="true" style="position: absolute; width: 120px; height: 120px; border-radius: 50%; border: 6px solid #9BD6A4; opacity: 0; animation: {{saveRing}}"></div>
+<div style="width: 132px; height: 132px; border-radius: 44px; background: {{saveBg}}; color: {{saveInk}}; display: grid; place-items: center; transition: background .25s; animation: {{savePop}}">
+<svg role="img" aria-label="{{saveLabel}}" width="76" height="76" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5.5 5.5L20 6.5" stroke-dasharray="30" style="animation: {{saveTick}}"/></svg>
+</div>
+</div>
+<button onClick="{{playSave}}" style="height: 52px; border-radius: 26px; border: none; background: #98CBFF; color: #003354; font-weight: 800">Save</button>
+<p style="margin: 0; font-size: 13px; color: #C2C7CF">The tick draws itself, the tile pops, one ring leaves. No toast needed.</p>
+</section>
+
+<section style="background: #14181D; border-radius: 36px; padding: 22px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">4 DELETED</div>
+<div style="flex: 1; display: flex; flex-direction: column; gap: 10px">
+<div style="height: 56px; border-radius: 20px; background: #1D2126; padding: 0 18px; display: flex; align-items: center; font-weight: 700">Hallway light at sunset</div>
+<div style="max-height: 76px; overflow: hidden; border-radius: 20px; background: #93000A; color: #FFDAD6; padding: 17px 18px; box-sizing: border-box; font-weight: 700; animation: {{goneAnim}}">Announce when the washer is done</div>
+<div style="height: 56px; border-radius: 20px; background: #1D2126; padding: 0 18px; display: flex; align-items: center; font-weight: 700">Night mode</div>
+</div>
+<button onClick="{{playGone}}" style="height: 52px; border-radius: 26px; border: none; background: #FFB4AB; color: #690005; font-weight: 800">Delete the middle one</button>
+<p style="margin: 0; font-size: 13px; color: #C2C7CF">The row shudders, slides away, and the rows below close the gap.</p>
+</section>
+
+<section style="background: #14181D; border-radius: 36px; padding: 22px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; position: relative">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">5 AN UPDATE FINISHES</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: #B6F2BE; opacity: 0; pointer-events: none; animation: {{doneFlash}}"></div>
+<div style="flex: 1; display: grid; place-items: center; position: relative">
+<div aria-hidden="true" style="position: absolute; width: 150px; height: 150px; border-radius: 50%; border: 8px solid #9BD6A4; opacity: 0; animation: {{doneRing}}"></div>
+<div style="position: relative; width: 170px; height: 170px">
+<svg aria-hidden="true" viewBox="0 0 120 120" style="width: 100%; height: 100%; transform: rotate(-90deg)"><circle cx="60" cy="60" r="50" fill="none" stroke="#272B31" stroke-width="14"/><circle cx="60" cy="60" r="50" fill="none" stroke="#9BD6A4" stroke-width="14" stroke-linecap="round" stroke-dasharray="{{doneDash}}" style="animation: {{doneDraw}}"/></svg>
+<div style="position: absolute; inset: 0; display: grid; place-items: center; font-family: 'Roboto Mono', monospace; font-size: 34px; font-weight: 700; color: #FFFFFF; animation: {{donePop}}">{{donePct}}</div>
+</div>
+</div>
+<button onClick="{{playDone}}" style="height: 52px; border-radius: 26px; border: none; background: #98CBFF; color: #003354; font-weight: 800; position: relative">Finish the update</button>
+<p style="margin: 0; font-size: 13px; color: #C2C7CF; position: relative">The ring closes, one green flash, one ring leaves. Then it is still.</p>
+</section>
+
+<section style="background: #14181D; border-radius: 36px; padding: 22px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">6 SOMETHING WENT WRONG</div>
+<div style="flex: 1; display: grid; place-items: center">
+<div role="status" style="width: 100%; border-radius: 28px; background: {{errBg}}; color: {{errInk}}; padding: 20px; box-sizing: border-box; transition: background .2s; animation: {{errAnim}}">
+<div style="font-size: 22px; line-height: 26px; font-weight: 800">{{errTitle}}</div>
+<div style="margin-top: 4px; font-size: 14px">{{errText}}</div>
+</div>
+</div>
+<button onClick="{{playErr}}" style="height: 52px; border-radius: 26px; border: none; background: #98CBFF; color: #003354; font-weight: 800">Try a file that is damaged</button>
+<p style="margin: 0; font-size: 13px; color: #C2C7CF">One firm shake and a colour change. The words say what happened.</p>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"speed":{"editor":"range","default":1,"min":0.5,"max":2,"step":0.1,"section":"Motion"},"$preview":{"width":1100,"height":980}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { entry: 0, count: 1, countN: 0, save: 0, gone: 0, done: 0, err: 0 }; }
+renderVals() {
+const s = this.state; const k = 1 / (this.props.speed ?? 1);
+const ab = (n) => (n % 2 ? 'a' : 'b');
+const d = (sec) => (sec * k).toFixed(2) + 's';
+const play = (n, name, dur, ease, delay, fill) => n ? `m-${name}-${ab(n)} ${d(dur)} ${ease || 'ease'} ${d(delay || 0)} ${fill || 'both'}` : 'none';
+const spring = 'cubic-bezier(.2,1.5,.3,1)';
+return {
+entry0: play(s.entry, 'rise', .6, spring, 0),
+entry1: play(s.entry, 'rise', .55, spring, .07),
+entry2: play(s.entry, 'rise', .55, spring, .14),
+entry3: play(s.entry, 'rise', .55, spring, .21),
+playEntry: () => this.setState({ entry: s.entry + 1 }),
+count: s.count, countLabel: s.count === 1 ? 'thing needs repair' : 'things need repair',
+countAnim: play(s.countN, 'pop', .6, spring, 0),
+playCount: () => this.setState({ count: s.count >= 9 ? 1 : s.count + 1, countN: s.countN + 1 }),
+saveBg: s.save ? '#B6F2BE' : '#272B31', saveInk: s.save ? '#0E3A1E' : '#8C9199', saveLabel: s.save ? 'Saved' : 'Not saved yet',
+savePop: play(s.save, 'pop', .55, spring, 0), saveRing: play(s.save, 'ring', .8, 'ease-out', .05), saveTick: play(s.save, 'tick', .4, 'ease-out', .1),
+playSave: () => this.setState({ save: s.save + 1 }),
+goneAnim: play(s.gone, 'gone', .9, 'cubic-bezier(.4,0,.2,1)', 0, 'forwards'),
+playGone: () => this.setState({ gone: s.gone + 1 }),
+doneDash: s.done ? '314 314' : '229 314', donePct: s.done ? '100%' : '73%',
+doneDraw: play(s.done, 'draw', .8, 'cubic-bezier(.3,0,.1,1)', 0), donePop: play(s.done, 'pop', .6, spring, .7),
+doneRing: play(s.done, 'ring', .9, 'ease-out', .75), doneFlash: play(s.done, 'flash', .5, 'ease-out', .75),
+playDone: () => this.setState({ done: s.done + 1 }),
+errBg: s.err ? '#93000A' : '#1D2126', errInk: s.err ? '#FFDAD6' : '#E0E2E8',
+errTitle: s.err ? 'The update file is damaged' : 'Ready to install',
+errText: s.err ? 'It is not signed for this system. Nothing was changed.' : 'haos_rpi5-64-18.5.480.raucb',
+errAnim: play(s.err, 'shake', .5, 'ease-in-out', 0),
+playErr: () => this.setState({ err: s.err + 1 }),
+};
+}
+}
+</script>
+</body>
+</html>

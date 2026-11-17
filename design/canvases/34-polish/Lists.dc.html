@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Automations list, polished</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500&display=swap">
+<style>
+body{margin:0;background:#0B0F13}
+button{font:inherit;cursor:pointer}
+a{color:#98CBFF}a:hover{color:#CEE5FF}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #CEE5FF;outline-offset:3px}
+@keyframes pol-rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="box-sizing: border-box; min-height: 1080px; background: #0B0F13; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 12px">
+<main style="max-width: 1240px; margin: 0 auto; background: #14181D; border-radius: 32px; padding: clamp(16px, 2.4vw, 32px); display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<a href="Settings.dc.html" style="min-height: 48px; padding: 0 18px 0 12px; border-radius: 24px; background: #272B31; color: #E0E2E8; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 600"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m6-6-6 6 6 6"/></svg>Settings</a>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button style="height: 48px; padding: 0 18px; border-radius: 24px; border: none; background: #272B31; color: #E0E2E8; font-weight: 600">Appearance</button>
+<button style="height: 48px; padding: 0 18px; border-radius: 24px; border: none; background: #272B31; color: #E0E2E8; font-weight: 600">Export</button>
+<button aria-label="More: history, lock this page, help" style="width: 48px; height: 48px; border-radius: 18px; border: none; background: #272B31; color: #E0E2E8; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+<h1 style="margin: 0; font-size: clamp(40px, 6.4vw, 84px); line-height: .98; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em; color: #FFFFFF; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 20px">Automations <span style="color: #98CBFF">2</span></h1>
+<button style="height: 64px; padding: 0 30px; border-radius: 32px; border: none; background: #98CBFF; color: #003354; font-weight: 800; font-size: 17px; display: inline-flex; align-items: center; gap: 10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Create automation</button>
+</div>
+
+<div role="tablist" aria-label="Kind" style="align-self: flex-start; max-width: 100%; display: flex; gap: 4px; background: #0B0F13; border-radius: 32px; padding: 6px; overflow-x: auto">
+<button role="tab" aria-selected="true" style="flex: none; height: 52px; padding: 0 24px; border-radius: 26px; border: none; background: #98CBFF; color: #003354; font-weight: 800">Automations</button>
+<button role="tab" aria-selected="false" style="flex: none; height: 52px; padding: 0 24px; border-radius: 26px; border: none; background: transparent; color: #E0E2E8; font-weight: 600">Scenes</button>
+<button role="tab" aria-selected="false" style="flex: none; height: 52px; padding: 0 24px; border-radius: 26px; border: none; background: transparent; color: #E0E2E8; font-weight: 600">Scripts</button>
+<button role="tab" aria-selected="false" style="flex: none; height: 52px; padding: 0 24px; border-radius: 26px; border: none; background: transparent; color: #E0E2E8; font-weight: 600">Blueprints</button>
+<button role="tab" aria-selected="false" style="flex: none; height: 52px; padding: 0 24px; border-radius: 26px; border: none; background: transparent; color: #E0E2E8; font-weight: 600">History</button>
+</div>
+</header>
+
+<div role="group" aria-label="Show" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px">
+<button aria-pressed="true" style="min-height: 104px; border-radius: 32px; border: 3px solid #98CBFF; background: #004A76; color: #FFFFFF; text-align: start; padding: 16px 20px; display: flex; flex-direction: column; justify-content: space-between"><span style="font-size: 13px; font-weight: 700; color: #CEE5FF">All</span><span style="font-size: 44px; line-height: 1; font-weight: 800; font-stretch: 120%">2</span></button>
+<button aria-pressed="false" style="min-height: 104px; border-radius: 32px; border: none; background: #1D2126; color: #E0E2E8; text-align: start; padding: 16px 20px; display: flex; flex-direction: column; justify-content: space-between"><span style="font-size: 13px; font-weight: 700; color: #9BD6A4">Turned on</span><span style="font-size: 44px; line-height: 1; font-weight: 800; font-stretch: 120%">1</span></button>
+<button aria-pressed="false" style="min-height: 104px; border-radius: 32px; border: none; background: #1D2126; color: #E0E2E8; text-align: start; padding: 16px 20px; display: flex; flex-direction: column; justify-content: space-between"><span style="font-size: 13px; font-weight: 700; color: #C2C7CF">Turned off</span><span style="font-size: 44px; line-height: 1; font-weight: 800; font-stretch: 120%">1</span></button>
+<button aria-pressed="false" style="min-height: 104px; border-radius: 32px; border: none; background: #1D2126; color: #E0E2E8; text-align: start; padding: 16px 20px; display: flex; flex-direction: column; justify-content: space-between"><span style="font-size: 13px; font-weight: 700; color: #FFB4AB">Not working</span><span style="font-size: 44px; line-height: 1; font-weight: 800; font-stretch: 120%">0</span></button>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<label style="flex: 1 1 320px; display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 22px; border-radius: 30px; background: #272B31">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C2C7CF" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Search automations</span>
+<input type="search" placeholder="Search automations" style="flex: 1; min-width: 0; height: 52px; border: none; background: transparent; color: #E0E2E8; font: inherit; font-size: 17px">
+<button aria-label="Open the pattern builder" style="width: 44px; height: 44px; border-radius: 22px; border: none; background: #14181D; color: #C2C7CF; font-family: 'Roboto Mono', monospace; font-weight: 700">.*</button>
+</label>
+<button style="height: 60px; padding: 0 22px; border-radius: 30px; border: none; background: #272B31; color: #E0E2E8; font-weight: 600; display: inline-flex; align-items: center; gap: 10px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg>Filter and sort</button>
+<button style="height: 60px; padding: 0 22px; border-radius: 30px; border: none; background: #272B31; color: #E0E2E8; font-weight: 600">Select</button>
+</div>
+
+<section aria-label="Automations" style="display: flex; flex-direction: column; gap: 10px">
+<article style="background: #1D2126; border-radius: 28px; padding: 16px 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; animation: pol-rise .45s .05s cubic-bezier(.2,1.3,.3,1) both">
+<span style="width: 56px; height: 56px; border-radius: 20px; background: #005227; color: #B6F2BE; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V5m-5 9v2m10-2v2"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/></svg></span>
+<a href="#" style="flex: 1 1 260px; min-width: 0; color: #E0E2E8; text-decoration: none"><span style="display: block; font-size: 20px; line-height: 26px; font-weight: 800; font-stretch: 108%">Hallway light at sunset</span><span style="display: block; color: #C2C7CF; margin-top: 2px">When the sun sets</span></a>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 120px"><span style="font-size: 12px; font-weight: 700; color: #C2C7CF">LAST RAN</span><span style="font-weight: 600">3 minutes ago</span></span>
+<label style="display: inline-flex; align-items: center; gap: 10px; min-height: 48px"><span style="font-weight: 700; color: #9BD6A4">On</span><span style="position: relative; width: 64px; height: 36px; border-radius: 18px; background: #98CBFF; display: inline-block"><span style="position: absolute; top: 4px; left: 32px; width: 28px; height: 28px; border-radius: 50%; background: #003354"></span></span><input type="checkbox" checked style="position: absolute; opacity: 0; width: 1px; height: 1px"></label>
+<button aria-label="More for Hallway light at sunset" style="width: 48px; height: 48px; border-radius: 18px; border: none; background: #272B31; color: #E0E2E8; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+</article>
+
+<article style="background: #1D2126; border-radius: 28px; padding: 16px 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; animation: pol-rise .45s .11s cubic-bezier(.2,1.3,.3,1) both">
+<span style="width: 56px; height: 56px; border-radius: 20px; background: #32363C; color: #C2C7CF; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V5m-5 9v2m10-2v2"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/></svg></span>
+<a href="#" style="flex: 1 1 260px; min-width: 0; color: #E0E2E8; text-decoration: none"><span style="display: block; font-size: 20px; line-height: 26px; font-weight: 800; font-stretch: 108%">Announce when the washer is done</span><span style="display: block; color: #C2C7CF; margin-top: 2px">When Home Assistant is started</span></a>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 120px"><span style="font-size: 12px; font-weight: 700; color: #C2C7CF">LAST RAN</span><span style="font-weight: 600">Never</span></span>
+<label style="display: inline-flex; align-items: center; gap: 10px; min-height: 48px"><span style="font-weight: 700; color: #C2C7CF">Off</span><span style="position: relative; width: 64px; height: 36px; border-radius: 18px; background: #32363C; border: 2px solid #8C9199; box-sizing: border-box; display: inline-block"><span style="position: absolute; top: 6px; left: 6px; width: 20px; height: 20px; border-radius: 50%; background: #8C9199"></span></span><input type="checkbox" style="position: absolute; opacity: 0; width: 1px; height: 1px"></label>
+<button aria-label="More for Announce when the washer is done" style="width: 48px; height: 48px; border-radius: 18px; border: none; background: #272B31; color: #E0E2E8; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+</article>
+
+<a href="#" style="min-height: 96px; border-radius: 28px; border: 2px dashed #42474E; color: #98CBFF; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; font-size: 16px"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Start from a blueprint</a>
+</section>
+
+<section aria-label="What changed from today's page" style="background: #1D2126; border-radius: 28px; padding: 20px 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; font-size: 14px; color: #C2C7CF">
+<div><div style="color: #E0E2E8; font-weight: 800; margin-bottom: 4px">Header, before</div>Breadcrumb line, title, subtitle, a count line with a chevron, six unlabelled icons, then a tab row with an underline: six things stacked before the list.</div>
+<div><div style="color: #E0E2E8; font-weight: 800; margin-bottom: 4px">Header, after</div>Back says where it goes. One huge title carries the count. Two labelled actions and More. Tabs are one pill control. The create button is the only loud thing.</div>
+<div><div style="color: #E0E2E8; font-weight: 800; margin-bottom: 4px">List, after</div>Statistics are tiles that filter. One search row. Each item is a tall row with its switch large and labelled; there is no table header.</div>
+</section>
+
+<footer style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; font-size: 12px; color: #C2C7CF">
+<span>Showing 2 of 2</span>
+<span>Home Assistant Material 2026.11.1.478</span>
+</footer>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings front, polished</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500&display=swap">
+<style>
+body{margin:0;background:#EEF1F6}
+button{font:inherit;cursor:pointer}
+a{color:#00639B}a:hover{color:#004A76}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #00639B;outline-offset:3px}
+@keyframes pol-rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="box-sizing: border-box; min-height: 1240px; background: #EEF1F6; color: #181C20; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 12px">
+<main style="max-width: 1240px; margin: 0 auto; background: #F7F9FD; border-radius: 32px; padding: clamp(16px, 2.4vw, 32px); display: flex; flex-direction: column; gap: 20px">
+
+<section aria-labelledby="st-h" style="background: #CEE5FF; color: #001D32; border-radius: 48px; padding: clamp(24px, 4vw, 48px); display: flex; flex-direction: column; gap: 18px">
+<h1 id="st-h" style="margin: 0; font-size: clamp(44px, 7vw, 96px); line-height: .96; font-weight: 800; font-stretch: 118%; letter-spacing: -0.03em">Settings</h1>
+<label style="display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 0 12px 0 26px; border-radius: 36px; background: #FFFFFF">
+<svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00639B" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Search settings</span>
+<input type="search" placeholder="Search every setting and page" style="flex: 1; min-width: 0; height: 60px; border: none; background: transparent; color: #181C20; font: inherit; font-size: 20px">
+<button aria-label="Open the pattern builder" style="width: 52px; height: 52px; border-radius: 26px; border: none; background: #EEF1F6; color: #42474E; font-family: 'Roboto Mono', monospace; font-weight: 700">.*</button>
+</label>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 14px"><span style="align-self: center; font-weight: 600">Often opened</span>
+<a href="#" style="min-height: 44px; padding: 0 16px; border-radius: 22px; background: #FFFFFF; color: #004A76; text-decoration: none; display: inline-flex; align-items: center; font-weight: 600">Updates</a>
+<a href="#" style="min-height: 44px; padding: 0 16px; border-radius: 22px; background: #FFFFFF; color: #004A76; text-decoration: none; display: inline-flex; align-items: center; font-weight: 600">Backups</a>
+<a href="#" style="min-height: 44px; padding: 0 16px; border-radius: 22px; background: #FFFFFF; color: #004A76; text-decoration: none; display: inline-flex; align-items: center; font-weight: 600">Personal settings</a>
+</div>
+</section>
+
+<section aria-labelledby="st-fix" style="background: #FFE08B; color: #241A00; border-radius: 36px; padding: 20px 28px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; animation: pol-rise .45s .05s cubic-bezier(.2,1.3,.3,1) both">
+<div style="font-size: 72px; line-height: .85; font-weight: 800; font-stretch: 125%">1</div>
+<div style="flex: 1 1 240px; min-width: 0"><h2 id="st-fix" style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 800; font-stretch: 110%">thing to repair</h2><p style="margin: 2px 0 0">The country has not been configured</p></div>
+<button style="height: 56px; padding: 0 30px; border-radius: 28px; border: none; background: #241A00; color: #FFE08B; font-weight: 800; font-size: 16px">Fix</button>
+</section>
+
+<section aria-labelledby="st-main" style="display: flex; flex-direction: column; gap: 12px">
+<h2 id="st-main" style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">YOUR HOME</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 14px">
+
+<a href="#" style="min-height: 176px; border-radius: 36px; background: #FFFFFF; color: #181C20; text-decoration: none; padding: 22px; display: flex; flex-direction: column; justify-content: space-between; animation: pol-rise .45s .1s cubic-bezier(.2,1.3,.3,1) both"><span style="display: flex; align-items: flex-start; justify-content: space-between"><span style="width: 52px; height: 52px; border-radius: 18px; background: #D5E4F6; color: #3A4857; display: grid; place-items: center"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="13" height="10" rx="2"/><rect x="14" y="10" width="7" height="10" rx="2"/><path d="M6 19h6"/></svg></span><span style="font-size: 52px; line-height: .9; font-weight: 800; font-stretch: 120%; color: #00639B">3</span></span><span><span style="display: block; font-size: 22px; line-height: 26px; font-weight: 800; font-stretch: 108%">Devices and services</span><span style="display: block; font-size: 14px; color: #42474E; margin-top: 2px">3 devices, 7 integrations</span></span></a>
+
+<a href="Lists.dc.html" style="min-height: 176px; border-radius: 36px; background: #FFFFFF; color: #181C20; text-decoration: none; padding: 22px; display: flex; flex-direction: column; justify-content: space-between; animation: pol-rise .45s .15s cubic-bezier(.2,1.3,.3,1) both"><span style="display: flex; align-items: flex-start; justify-content: space-between"><span style="width: 52px; height: 52px; border-radius: 18px; background: #B6F2BE; color: #1F6A3B; display: grid; place-items: center"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V5"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/></svg></span><span style="font-size: 52px; line-height: .9; font-weight: 800; font-stretch: 120%; color: #1F6A3B">2</span></span><span><span style="display: block; font-size: 22px; line-height: 26px; font-weight: 800; font-stretch: 108%">Automations and scenes</span><span style="display: block; font-size: 14px; color: #42474E; margin-top: 2px">1 automation, 1 scene</span></span></a>
+
+<a href="#" style="min-height: 176px; border-radius: 36px; background: #FFFFFF; color: #181C20; text-decoration: none; padding: 22px; display: flex; flex-direction: column; justify-content: space-between; animation: pol-rise .45s .2s cubic-bezier(.2,1.3,.3,1) both"><span style="display: flex; align-items: flex-start; justify-content: space-between"><span style="width: 52px; height: 52px; border-radius: 18px; background: #FFDBCF; color: #8C3A1D; display: grid; place-items: center"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12V9a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3"/><path d="M2 14a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v4H2z"/></svg></span><span style="font-size: 52px; line-height: .9; font-weight: 800; font-stretch: 120%; color: #8C3A1D">3</span></span><span><span style="display: block; font-size: 22px; line-height: 26px; font-weight: 800; font-stretch: 108%">Areas, labels and zones</span><span style="display: block; font-size: 14px; color: #42474E; margin-top: 2px">3 areas</span></span></a>
+
+<a href="#" style="min-height: 176px; border-radius: 36px; background: #FFFFFF; color: #181C20; text-decoration: none; padding: 22px; display: flex; flex-direction: column; justify-content: space-between; animation: pol-rise .45s .25s cubic-bezier(.2,1.3,.3,1) both"><span style="display: flex; align-items: flex-start; justify-content: space-between"><span style="width: 52px; height: 52px; border-radius: 18px; background: #B6F2BE; color: #1F6A3B; display: grid; place-items: center"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="9" rx="2"/><rect x="13" y="4" width="7" height="5" rx="2"/><rect x="13" y="11" width="7" height="9" rx="2"/><rect x="4" y="15" width="7" height="5" rx="2"/></svg></span><span style="font-size: 52px; line-height: .9; font-weight: 800; font-stretch: 120%; color: #1F6A3B">8</span></span><span><span style="display: block; font-size: 22px; line-height: 26px; font-weight: 800; font-stretch: 108%">Dashboards</span><span style="display: block; font-size: 14px; color: #42474E; margin-top: 2px">8 dashboards</span></span></a>
+</div>
+</section>
+
+<section aria-labelledby="st-more" style="display: flex; flex-direction: column; gap: 12px">
+<h2 id="st-more" style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">EVERYTHING ELSE</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 10px">
+<a href="#" style="min-height: 72px; border-radius: 24px; background: #FFFFFF; color: #181C20; text-decoration: none; padding: 10px 18px; display: flex; align-items: center; gap: 14px"><span style="width: 44px; height: 44px; border-radius: 16px; background: #E9EDF3; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#42474E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3h3v6h-3v3H9v-3H6V7h3z"/></svg></span><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 700; font-size: 16px">Apps</span><span style="display: block; font-size: 13px; color: #42474E">Run extra applications next to Home Assistant</span></span></a>
+<a href="#" style="min-height: 72px; border-radius: 24px; background: #FFFFFF; color: #181C20; text-decoration: none; padding: 10px 18px; display: flex; align-items: center; gap: 14px"><span style="width: 44px; height: 44px; border-radius: 16px; background: #E9EDF3; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#42474E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-1.5-4h-13zM5 9v10h14V9M9 19v-5h6v5"/></svg></span><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 700; font-size: 16px">Marketplace</span><span style="display: block; font-size: 13px; color: #42474E">Community integrations, themes and templates</span></span></a>
+<a href="#" style="min-height: 72px; border-radius: 24px; background: #FFFFFF; color: #181C20; text-decoration: none; padding: 10px 18px; display: flex; align-items: center; gap: 14px"><span style="width: 44px; height: 44px; border-radius: 16px; background: #E9EDF3; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#42474E" stroke-width="2" stroke-linecap="round"><path d="M12 20v-6m-4-3a5.5 5.5 0 0 1 8 0M5 8a10 10 0 0 1 14 0"/><circle cx="12" cy="14" r="1"/></svg></span><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 700; font-size: 16px">Connectivity</span><span style="display: block; font-size: 13px; color: #42474E">Protocols and radios for your devices</span></span></a>
+<a href="#" style="min-height: 72px; border-radius: 24px; background: #FFFFFF; color: #181C20; text-decoration: none; padding: 10px 18px; display: flex; align-items: center; gap: 14px"><span style="width: 44px; height: 44px; border-radius: 16px; background: #E9EDF3; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#42474E" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg></span><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 700; font-size: 16px">Voice assistants</span><span style="display: block; font-size: 13px; color: #42474E">Manage your voice assistants</span></span></a>
+<a href="#" style="min-height: 72px; border-radius: 24px; background: #FFFFFF; color: #181C20; text-decoration: none; padding: 10px 18px; display: flex; align-items: center; gap: 14px"><span style="width: 44px; height: 44px; border-radius: 16px; background: #E9EDF3; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#42474E" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="18" cy="16" r="2.5"/></svg></span><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 700; font-size: 16px">Personal settings</span><span style="display: block; font-size: 13px; color: #42474E">Language, playfulness, sounds and attention</span></span></a>
+<a href="#" style="min-height: 72px; border-radius: 24px; background: #FFFFFF; color: #181C20; text-decoration: none; padding: 10px 18px; display: flex; align-items: center; gap: 14px"><span style="width: 44px; height: 44px; border-radius: 16px; background: #E9EDF3; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#42474E" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 700; font-size: 16px">People</span><span style="display: block; font-size: 13px; color: #42474E">1 person</span></span></a>
+<a href="#" style="min-height: 72px; border-radius: 24px; background: #FFFFFF; color: #181C20; text-decoration: none; padding: 10px 18px; display: flex; align-items: center; gap: 14px"><span style="width: 44px; height: 44px; border-radius: 16px; background: #E9EDF3; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#42474E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1"/></svg></span><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 700; font-size: 16px">System</span><span style="display: block; font-size: 13px; color: #42474E">Backups, updates, logs and restart</span></span></a>
+<a href="#" style="min-height: 72px; border-radius: 24px; background: #FFFFFF; color: #181C20; text-decoration: none; padding: 10px 18px; display: flex; align-items: center; gap: 14px"><span style="width: 44px; height: 44px; border-radius: 16px; background: #E9EDF3; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#42474E" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-9.5v.5"/></svg></span><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 700; font-size: 16px">About</span><span style="display: block; font-size: 13px; color: #42474E">Version 2026.11.1.478</span></span></a>
+<a href="#" style="min-height: 72px; border-radius: 24px; border: 2px dashed #C2C7CF; color: #00639B; text-decoration: none; padding: 10px 18px; display: flex; align-items: center; justify-content: center; font-weight: 700">Show 6 more</a>
+</div>
+</section>
+
+<footer style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; font-size: 12px; color: #42474E">
+<span>The built-in help works without a connection.</span>
+<span>Home Assistant Material 2026.11.1.478, updated 16 November 2026 at 23:15</span>
+</footer>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone: front door, light</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#F7F9FF}
+@keyframes ph-rise{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
+.ph-rise{animation:ph-rise .55s cubic-bezier(.2,1.4,.3,1) both}
+@media (prefers-reduced-motion:reduce){.ph-rise{animation:none}}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 1240px; box-sizing: border-box; background: #F7F9FF; color: #181C20; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; display: flex; flex-direction: column">
+
+<div style="padding: 16px 16px 0; display: flex; align-items: center; justify-content: space-between">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">HOME</div>
+<div style="display: flex; gap: 8px">
+<div role="button" aria-label="Search" style="width: 48px; height: 48px; border-radius: 24px; background: #E5E8EE; display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#181C20" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
+<div role="button" aria-label="More actions" style="width: 48px; height: 48px; border-radius: 24px; background: #E5E8EE; display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#181C20"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+</div>
+</div>
+
+<div style="padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 12px; flex: 1">
+
+<section class="ph-rise" style="border-radius: 40px; background: #00629B; color: #FFFFFF; padding: 24px 22px">
+<h1 style="margin: 0; font-size: 46px; line-height: .98; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em">Good night, Alex</h1>
+<p style="margin: 10px 0 0; font-size: 15px; color: #CEE5FF">Everything is quiet. 3 lights are on, the front door is locked.</p>
+<div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px">
+<div role="button" style="min-height: 48px; box-sizing: border-box; padding: 13px 18px; border-radius: 24px; background: #FFFFFF; color: #003354; font-weight: 800">All lights off</div>
+<div role="button" style="min-height: 48px; box-sizing: border-box; padding: 13px 18px; border-radius: 24px; background: rgba(255,255,255,.16); color: #FFFFFF; font-weight: 700">Night mode</div>
+</div>
+</section>
+
+<section class="ph-rise" style="animation-delay: .06s; border-radius: 32px; background: #FFE08B; color: #241A00; padding: 18px 20px; display: flex; align-items: center; gap: 16px">
+<div style="font-size: 76px; line-height: .85; font-weight: 800; font-stretch: 125%">2</div>
+<div style="flex: 1; min-width: 0">
+<div style="font-size: 19px; line-height: 23px; font-weight: 800">things need you</div>
+<div style="font-size: 13px; line-height: 18px">Washer sensor is silent. One update is waiting.</div>
+</div>
+<div role="button" aria-label="Open repairs" style="width: 48px; height: 48px; border-radius: 24px; background: #241A00; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFE08B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></div>
+</section>
+
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E; padding: 6px 4px 0">AREAS</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div class="ph-rise" style="animation-delay: .12s; border-radius: 28px; background: #FFFFFF; padding: 16px; min-height: 132px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between"><div style="font-size: 17px; font-weight: 800">Living room</div><div><div style="font-size: 40px; line-height: 1; font-weight: 800; font-stretch: 120%">21.5°</div><div style="font-size: 13px; color: #42474E">2 lights on</div></div></div>
+<div class="ph-rise" style="animation-delay: .18s; border-radius: 28px; background: #FFFFFF; padding: 16px; min-height: 132px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between"><div style="font-size: 17px; font-weight: 800">Kitchen</div><div><div style="font-size: 40px; line-height: 1; font-weight: 800; font-stretch: 120%">22.0°</div><div style="font-size: 13px; color: #42474E">1 light on</div></div></div>
+<div class="ph-rise" style="animation-delay: .24s; border-radius: 28px; background: #FFFFFF; padding: 16px; min-height: 132px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between"><div style="font-size: 17px; font-weight: 800">Bedroom</div><div><div style="font-size: 40px; line-height: 1; font-weight: 800; font-stretch: 120%">19.0°</div><div style="font-size: 13px; color: #42474E">All off</div></div></div>
+<div class="ph-rise" style="animation-delay: .3s; border-radius: 28px; background: #D1E4FF; color: #001D36; padding: 16px; min-height: 132px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between"><div style="font-size: 17px; font-weight: 800">Front door</div><div><div style="font-size: 30px; line-height: 1.05; font-weight: 800; font-stretch: 116%">Locked</div><div style="font-size: 13px">since 22:14</div></div></div>
+</div>
+
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E; padding: 6px 4px 0">JUST NOW</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="min-height: 60px; box-sizing: border-box; border-radius: 20px; background: #FFFFFF; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="font-weight: 700">Hallway light turned off</div><div style="font-size: 13px; color: #42474E; flex: none">23:41</div></div>
+<div style="min-height: 60px; box-sizing: border-box; border-radius: 20px; background: #FFFFFF; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="font-weight: 700">Front door locked</div><div style="font-size: 13px; color: #42474E; flex: none">22:14</div></div>
+</div>
+</div>
+
+<nav aria-label="Main" style="position: sticky; bottom: 0; background: #EBEEF4; padding: 8px 8px 12px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; font-size: 12px; font-weight: 700; text-align: center">
+<div style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #001D36"><div style="width: 56px; height: 30px; border-radius: 15px; background: #CEE5FF"></div>Home</div>
+<div style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #42474E"><div style="width: 56px; height: 30px"></div>Search</div>
+<div style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #42474E"><div style="width: 56px; height: 30px"></div>Pages</div>
+<div style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #42474E"><div style="width: 56px; height: 30px"></div>Settings</div>
+<div style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #42474E"><div style="width: 56px; height: 30px"></div>Menu</div>
+</nav>
+</div>
+</x-dc>
+</body>
+</html>

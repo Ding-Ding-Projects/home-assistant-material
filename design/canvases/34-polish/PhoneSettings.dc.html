@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone: settings front, dark</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#0B0F13}
+@keyframes ps-rise{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
+.ps-rise{animation:ps-rise .55s cubic-bezier(.2,1.4,.3,1) both}
+@media (prefers-reduced-motion:reduce){.ps-rise{animation:none}}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 1240px; box-sizing: border-box; background: #0B0F13; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; display: flex; flex-direction: column">
+
+<div style="padding: 16px 16px 16px; display: flex; flex-direction: column; gap: 12px; flex: 1">
+
+<h1 style="margin: 4px 4px 0; font-size: 52px; line-height: .98; font-weight: 800; font-stretch: 118%; letter-spacing: -0.03em; color: #FFFFFF">Settings</h1>
+
+<div class="ps-rise" role="search" style="min-height: 68px; box-sizing: border-box; border-radius: 34px; background: #98CBFF; color: #003354; padding: 0 22px; display: flex; align-items: center; gap: 12px">
+<svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<div style="font-size: 19px; font-weight: 800">Find any setting</div>
+</div>
+
+<section class="ps-rise" style="animation-delay: .06s; border-radius: 32px; background: #FFE08B; color: #241A00; padding: 18px 20px; display: flex; align-items: center; gap: 16px">
+<div style="font-size: 76px; line-height: .85; font-weight: 800; font-stretch: 125%">3</div>
+<div style="flex: 1; min-width: 0">
+<div style="font-size: 19px; line-height: 23px; font-weight: 800">updates are ready</div>
+<div style="font-size: 13px; line-height: 18px">They install one after another, in a safe order.</div>
+</div>
+</section>
+<div role="button" style="min-height: 56px; box-sizing: border-box; border-radius: 28px; background: #FFFFFF; color: #181C20; display: grid; place-items: center; font-weight: 800; font-size: 16px">Update everything</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div class="ps-rise" style="animation-delay: .12s; border-radius: 28px; background: #14181D; padding: 16px; min-height: 124px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between"><div style="font-size: 44px; line-height: 1; font-weight: 800; font-stretch: 122%; color: #FFFFFF">42</div><div style="font-size: 16px; font-weight: 800">Devices</div></div>
+<div class="ps-rise" style="animation-delay: .18s; border-radius: 28px; background: #14181D; padding: 16px; min-height: 124px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between"><div style="font-size: 44px; line-height: 1; font-weight: 800; font-stretch: 122%; color: #FFFFFF">17</div><div style="font-size: 16px; font-weight: 800">Automations</div></div>
+<div class="ps-rise" style="animation-delay: .24s; border-radius: 28px; background: #14181D; padding: 16px; min-height: 124px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between"><div style="font-size: 44px; line-height: 1; font-weight: 800; font-stretch: 122%; color: #FFFFFF">9</div><div style="font-size: 16px; font-weight: 800">Areas</div></div>
+<div class="ps-rise" style="animation-delay: .3s; border-radius: 28px; background: #14181D; padding: 16px; min-height: 124px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between"><div style="font-size: 26px; line-height: 1.05; font-weight: 800; font-stretch: 116%; color: #9BD6A4">Last night</div><div style="font-size: 16px; font-weight: 800">Backups</div></div>
+</div>
+
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF; padding: 6px 4px 0">EVERYTHING ELSE</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="min-height: 60px; box-sizing: border-box; border-radius: 20px; background: #14181D; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="font-weight: 700">Apps</div><div style="font-size: 13px; color: #C2C7CF">6 running</div></div>
+<div style="min-height: 60px; box-sizing: border-box; border-radius: 20px; background: #14181D; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="font-weight: 700">Dashboards</div><div style="font-size: 13px; color: #C2C7CF">4</div></div>
+<div style="min-height: 60px; box-sizing: border-box; border-radius: 20px; background: #14181D; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="font-weight: 700">People</div><div style="font-size: 13px; color: #C2C7CF">3 at home</div></div>
+<div style="min-height: 60px; box-sizing: border-box; border-radius: 20px; background: #14181D; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="font-weight: 700">Voice assistants</div><div style="font-size: 13px; color: #C2C7CF">Off</div></div>
+<div style="min-height: 60px; box-sizing: border-box; border-radius: 20px; background: #14181D; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="font-weight: 700">System</div><div style="font-size: 13px; color: #C2C7CF">Healthy</div></div>
+<div style="min-height: 60px; box-sizing: border-box; border-radius: 20px; background: #14181D; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="font-weight: 700">Appearance and motion</div><div style="font-size: 13px; color: #C2C7CF">Dramatic</div></div>
+<div style="min-height: 60px; box-sizing: border-box; border-radius: 20px; background: #14181D; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="font-weight: 700">About</div><div style="font-size: 13px; color: #C2C7CF">2026.11.1</div></div>
+</div>
+</div>
+
+<nav aria-label="Main" style="position: sticky; bottom: 0; background: #14181D; padding: 8px 8px 12px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; font-size: 12px; font-weight: 700; text-align: center">
+<div style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #C2C7CF"><div style="width: 56px; height: 30px"></div>Home</div>
+<div style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #C2C7CF"><div style="width: 56px; height: 30px"></div>Search</div>
+<div style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #C2C7CF"><div style="width: 56px; height: 30px"></div>Pages</div>
+<div style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #CEE5FF"><div style="width: 56px; height: 30px; border-radius: 15px; background: #004A76"></div>Settings</div>
+<div style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #C2C7CF"><div style="width: 56px; height: 30px"></div>Menu</div>
+</nav>
+</div>
+</x-dc>
+</body>
+</html>
