@@ -94,36 +94,35 @@ export class HaCollapsibleStatistics extends LitElement {
         role="group"
         aria-label=${label}
       >
+        ${
+          this._collapsed
+            ? html`<span class="summary" id="statistics-body"
+                >${summaryLine(items, language)}</span
+              >`
+            : html`<div class="body" id="statistics-body">
+                <dl class="items">
+                  ${items.map(
+                    (item) => html`
+                      <div class="item">
+                        <dt>${item.label}</dt>
+                        <dd>${formatStatisticValue(item.value, language)}</dd>
+                      </div>
+                    `
+                  )}
+                </dl>
+              </div>`
+        }
         <button
           type="button"
           class="toggle"
           aria-expanded=${this._collapsed ? "false" : "true"}
           aria-controls="statistics-body"
+          aria-label=${`${label}: ${action}`}
           title=${action}
           @click=${this._toggle}
         >
-          <span class="toggle-label">${label}</span>
-          ${
-            this._collapsed
-              ? html`<span class="summary"
-                  >${summaryLine(items, language)}</span
-                >`
-              : html`<span class="summary"></span>`
-          }
           <ha-svg-icon class="chevron" .path=${mdiChevronDown}></ha-svg-icon>
         </button>
-        <div class="body" id="statistics-body" ?inert=${this._collapsed}>
-          <dl class="items">
-            ${items.map(
-              (item) => html`
-                <div class="item">
-                  <dt>${item.label}</dt>
-                  <dd>${formatStatisticValue(item.value, language)}</dd>
-                </div>
-              `
-            )}
-          </dl>
-        </div>
       </div>
     `;
   }
@@ -132,36 +131,44 @@ export class HaCollapsibleStatistics extends LitElement {
     :host {
       display: block;
     }
+    /* One compact strip: each number is a small label over a large numeral,
+       with the collapse control at the end. No title row. */
     .strip {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2, 8px);
       box-sizing: border-box;
-      margin-block: var(--ha-space-2, 8px);
-      border-radius: var(--ha-border-radius-lg, 12px);
-      background: var(--secondary-background-color);
+      margin-block: var(--ha-space-1, 4px);
+      padding: var(--ha-space-1, 4px) var(--ha-space-1, 4px)
+        var(--ha-space-1, 4px) var(--ha-space-4, 16px);
+      border-radius: 20px;
+      background: var(
+        --md-sys-color-surface-container,
+        var(--secondary-background-color)
+      );
       color: var(--primary-text-color);
     }
     .toggle {
       display: flex;
+      flex: none;
       align-items: center;
-      gap: var(--ha-space-3, 12px);
-      box-sizing: border-box;
-      width: 100%;
-      min-height: 44px;
-      padding: var(--ha-space-2, 8px) var(--ha-space-4, 16px);
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
       border: 0;
-      border-radius: inherit;
+      border-radius: 50%;
       background: none;
-      color: inherit;
+      color: var(--secondary-text-color);
       font: inherit;
-      text-align: start;
       cursor: pointer;
+    }
+    .toggle:hover {
+      background: color-mix(in srgb, currentColor 10%, transparent);
     }
     .toggle:focus-visible {
       outline: 2px solid var(--primary-color);
       outline-offset: -2px;
-    }
-    .toggle-label {
-      flex-shrink: 0;
-      font-weight: 500;
     }
     .summary {
       flex: 1;
@@ -172,33 +179,21 @@ export class HaCollapsibleStatistics extends LitElement {
       color: var(--secondary-text-color);
     }
     .chevron {
-      flex-shrink: 0;
       --mdc-icon-size: 20px;
-      color: var(--secondary-text-color);
     }
     .strip:not(.collapsed) .chevron {
       transform: rotate(180deg);
     }
-    /* The body folds by sliding its row between zero and its own height */
     .body {
-      display: grid;
-      grid-template-rows: 1fr;
-    }
-    .collapsed .body {
-      grid-template-rows: 0fr;
-      visibility: hidden;
+      flex: 1;
+      min-width: 0;
     }
     .items {
-      min-height: 0;
-      overflow: hidden;
       margin: 0;
-      padding: 0 var(--ha-space-4, 16px);
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: var(--ha-space-3, 12px) var(--ha-space-4, 16px);
-    }
-    .strip:not(.collapsed) .items {
-      padding-block: var(--ha-space-1, 4px) var(--ha-space-4, 16px);
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-1, 4px) var(--ha-space-8, 32px);
     }
     .item {
       min-width: 0;
@@ -206,30 +201,22 @@ export class HaCollapsibleStatistics extends LitElement {
     dt {
       overflow-wrap: anywhere;
       color: var(--secondary-text-color);
-      font-size: var(--ha-font-size-s, 12px);
+      font-size: var(--ha-font-size-xs, 11px);
+      line-height: 1.2;
     }
     dd {
       margin: 0;
       overflow-wrap: anywhere;
       font-size: var(--ha-font-size-xl, 20px);
-      font-weight: 500;
+      font-weight: 700;
+      line-height: 1.15;
     }
-    @media (min-width: 600px) {
+    @media (max-width: 599px) {
       .items {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: var(--ha-space-1, 4px) var(--ha-space-5, 20px);
       }
     }
     @media (prefers-reduced-motion: no-preference) {
-      .body {
-        transition:
-          grid-template-rows 200ms ease,
-          visibility 0s linear 0s;
-      }
-      .collapsed .body {
-        transition:
-          grid-template-rows 200ms ease,
-          visibility 0s linear 200ms;
-      }
       .chevron {
         transition: transform 200ms ease;
       }

@@ -193,6 +193,9 @@
           "summary": "成個屋嘅一切，喺呢度一次過睇晒。",
           "search": "搜尋設定",
           "search_empty": "冇符合呢個搜尋嘅設定。",
+          "find_any": "搵任何設定",
+          "everything_else": "其他",
+          "attention": "有 {count} 樣嘢需要你處理",
           "updates_ready": "有 {count} 項更新可以安裝",
           "repairs_waiting": "有 {count} 項嘢要修理",
           "summaries": {

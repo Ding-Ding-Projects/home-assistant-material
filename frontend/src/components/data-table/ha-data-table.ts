@@ -258,10 +258,6 @@ export class HaDataTable extends LitElement {
   // Row count of the data that _filteredData was computed from
   @state() private _filteredDataSourceLength = 0;
 
-  @state() private _headerHeight = 0;
-
-  @query("slot[name='header']") private _header!: HTMLSlotElement;
-
   @query(".mdc-data-table__header-row") private _headerRow?: HTMLDivElement;
 
   @query("lit-virtualizer")
@@ -290,6 +286,8 @@ export class HaDataTable extends LitElement {
   );
 
   private _firstVisibleIndex = 0;
+
+  private _rowsEntered = false;
 
   @state() private _collapsedGroups: string[] = [];
 
@@ -414,10 +412,6 @@ export class HaDataTable extends LitElement {
     }
   }
 
-  protected firstUpdated() {
-    this.updateComplete.then(() => this._calcTableHeight());
-  }
-
   public disconnectedCallback() {
     super.disconnectedCallback();
     this._resizeObserver.disconnect();
@@ -432,6 +426,13 @@ export class HaDataTable extends LitElement {
     // have changed (filter, sort, collapse) without the visible range changing
     this._positionStickyGroupHeader();
     this._scheduleStickyGroupUpdate();
+
+    // The first rows rise in once, when the list first has rows to show
+    if (!this._rowsEntered && this._filteredData?.length) {
+      this._rowsEntered = true;
+      this.toggleAttribute("row-enter", true);
+      window.setTimeout(() => this.toggleAttribute("row-enter", false), 900);
+    }
 
     if (!this._headerRow) {
       return;
@@ -635,7 +636,7 @@ export class HaDataTable extends LitElement {
 
     return html`
       <div class="mdc-data-table">
-        <slot name="header" @slotchange=${this._calcTableHeight}>
+        <slot name="header">
           ${
             this._filterable
               ? html`
@@ -663,7 +664,7 @@ export class HaDataTable extends LitElement {
           style=${styleMap({
             height: this.autoHeight
               ? `${(filteredDataLength || 1) * 53 + 53}px`
-              : `calc(100% - ${this._headerHeight}px)`,
+              : undefined,
           })}
         >
           <div
@@ -1540,14 +1541,6 @@ export class HaDataTable extends LitElement {
     fireEvent(this, "retry-load");
   }
 
-  private async _calcTableHeight() {
-    if (this.autoHeight) {
-      return;
-    }
-    await this.updateComplete;
-    this._headerHeight = this._header.clientHeight;
-  }
-
   @eventOptions({ passive: true })
   private _saveScrollPos(e: HASSDomTargetEvent<HTMLDivElement>) {
     this._savedScrollPos = e.target.scrollTop;
@@ -1704,6 +1697,13 @@ export class HaDataTable extends LitElement {
     ev: HASSDomCurrentTargetEvent<HTMLElement & { group: string }>
   ) => {
     const groupName = ev.currentTarget.group;
+    // Where the toggled header sits in the scroller, so it can stay there
+    const scroller = this._scroller;
+    const anchorTop =
+      scroller && !ev.currentTarget.closest(".sticky-group-header")
+        ? ev.currentTarget.getBoundingClientRect().top -
+          scroller.getBoundingClientRect().top
+        : undefined;
     if (this._collapsedGroups.includes(groupName)) {
       this._collapsedGroups = this._collapsedGroups.filter(
         (grp) => grp !== groupName
@@ -1713,6 +1713,24 @@ export class HaDataTable extends LitElement {
     }
     this._lastSelectedRowId = null;
     fireEvent(this, "collapsed-changed", { value: this._collapsedGroups });
+    if (anchorTop !== undefined && scroller) {
+      // Removing or adding rows must not move the header under the finger
+      this.updateComplete.then(() =>
+        requestAnimationFrame(() => {
+          const row = Array.from(
+            scroller.querySelectorAll<HTMLElement & { group: string }>(
+              ".group-header-row"
+            )
+          ).find((headerRow) => headerRow.group === groupName);
+          if (row) {
+            scroller.scrollTop +=
+              row.getBoundingClientRect().top -
+              scroller.getBoundingClientRect().top -
+              anchorTop;
+          }
+        })
+      );
+    }
   };
 
   public expandAllGroups() {
@@ -1874,7 +1892,8 @@ export class HaDataTable extends LitElement {
         .mdc-data-table__table {
           display: flex;
           flex-direction: column;
-          height: 100%;
+          flex: 1 1 auto;
+          min-height: 0;
           width: 100%;
           border: 0;
           white-space: nowrap;
@@ -2178,8 +2197,11 @@ export class HaDataTable extends LitElement {
           display: block;
         }
 
+        /* The header takes the height it needs and the table takes the rest, so
+           the list never grows past the page and the page keeps one scroller. */
         .mdc-data-table {
-          display: block;
+          display: flex;
+          flex-direction: column;
           border-width: var(--data-table-border-width, 1px);
           height: 100%;
         }
@@ -2266,6 +2288,10 @@ export class HaDataTable extends LitElement {
         }
         slot[name="header"] {
           display: block;
+          flex: none;
+        }
+        .mdc-data-table__table.auto-height {
+          flex: none;
         }
         .center {
           text-align: center;
@@ -2290,6 +2316,18 @@ export class HaDataTable extends LitElement {
           white-space: normal;
           overflow-wrap: anywhere;
         }
+        /* Row cards: the second line is one line, cut with an ellipsis */
+        :host([row-cards][narrow]) .secondary {
+          display: block;
+          -webkit-line-clamp: unset;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        :host([row-cards][narrow]) .primary {
+          font-size: var(--ha-font-size-l);
+          font-weight: var(--ha-font-weight-bold, 700);
+        }
         .secondary ha-svg-icon {
           --mdc-icon-size: 16px;
           vertical-align: text-bottom;
@@ -2299,6 +2337,19 @@ export class HaDataTable extends LitElement {
           flex: 1;
           min-height: 0;
           overflow: overlay !important;
+        }
+        /* A phone list scrolls up and down only: a cell that is a few pixels
+           too wide must not add a sideways scroll to the page. */
+        :host([narrow]) .scroller {
+          overflow-x: hidden !important;
+        }
+        :host([narrow])
+          .mdc-data-table__cell:not(.mdc-data-table__cell--icon):not(
+            .mdc-data-table__cell--icon-button
+          ):not(.mdc-data-table__cell--overflow-menu):not(
+            .mdc-data-table__cell--checkbox
+          ) {
+          min-width: 0;
         }
 
         .mdc-data-table__row,
@@ -2332,9 +2383,30 @@ export class HaDataTable extends LitElement {
           height: auto;
           min-height: var(--ha-space-10);
         }
+        /* The column header is quiet: small capitals, no bar */
         :host([row-cards]) .mdc-data-table__header-cell {
           color: var(--secondary-text-color);
-          font-size: var(--ha-font-size-s);
+          font-size: var(--ha-font-size-xs, 11px);
+          font-weight: var(--ha-font-weight-bold, 700);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        :host([row-cards]) {
+          /* A row is at least 64 px tall, whatever a page asks for */
+          --_row-h: max(var(--data-table-row-height, 64px), 64px);
+          --_row-gap: 8px;
+          --_row-radius: 20px;
+          /* The row surface: the theme's tonal container, or the page's text
+             colour mixed into the card colour so it always stands out from
+             the page behind it. */
+          --_row-surface: var(
+            --md-sys-color-surface-container,
+            color-mix(
+              in srgb,
+              var(--primary-text-color) 7%,
+              var(--card-background-color)
+            )
+          );
         }
         :host([row-cards]) .mdc-data-table__row ~ .mdc-data-table__row {
           border-top: none;
@@ -2353,9 +2425,7 @@ export class HaDataTable extends LitElement {
             .sticky-group-header
           ) {
           height: auto;
-          min-height: calc(
-            var(--data-table-row-height, 52px) + var(--ha-space-2)
-          );
+          min-height: calc(var(--_row-h) + var(--_row-gap));
           /* A row that grew past one line keeps its text off the card's top edge. */
           padding-top: var(--ha-space-2);
           padding-bottom: calc(var(--ha-space-2) * 2);
@@ -2366,8 +2436,8 @@ export class HaDataTable extends LitElement {
           ) {
           position: relative;
           isolation: isolate;
-          height: calc(var(--data-table-row-height, 52px) + var(--ha-space-2));
-          padding-bottom: var(--ha-space-2);
+          height: calc(var(--_row-h) + var(--_row-gap));
+          padding-bottom: var(--_row-gap);
           background: none;
         }
         :host([row-cards])
@@ -2376,10 +2446,58 @@ export class HaDataTable extends LitElement {
           )::before {
           content: "";
           position: absolute;
-          inset: 0 0 var(--ha-space-2);
+          inset: 0 0 var(--_row-gap);
           z-index: -1;
-          border-radius: var(--ha-border-radius-xl);
-          background: var(--card-background-color);
+          border-radius: var(--_row-radius);
+          background: var(--_row-surface);
+        }
+        /* Rows rise in once, when the list first shows. Only the first eight
+           follow each other; a row the virtualizer recycles on scroll never
+           animates, and reduced motion shows the final state. */
+        @media (prefers-reduced-motion: no-preference) {
+          :host([row-enter])
+            .mdc-data-table__row[aria-rowindex]:not(.group-header-row):not(
+              .sticky-group-header
+            ):not(.empty-row):nth-child(-n + 8) {
+            animation: list-row-rise 0.5s cubic-bezier(0.2, 1.5, 0.3, 1) both;
+            animation-delay: calc((var(--_row-index, 1) - 1) * 45ms);
+          }
+          :host([row-enter]) .mdc-data-table__row:nth-child(1) {
+            --_row-index: 1;
+          }
+          :host([row-enter]) .mdc-data-table__row:nth-child(2) {
+            --_row-index: 2;
+          }
+          :host([row-enter]) .mdc-data-table__row:nth-child(3) {
+            --_row-index: 3;
+          }
+          :host([row-enter]) .mdc-data-table__row:nth-child(4) {
+            --_row-index: 4;
+          }
+          :host([row-enter]) .mdc-data-table__row:nth-child(5) {
+            --_row-index: 5;
+          }
+          :host([row-enter]) .mdc-data-table__row:nth-child(6) {
+            --_row-index: 6;
+          }
+          :host([row-enter]) .mdc-data-table__row:nth-child(7) {
+            --_row-index: 7;
+          }
+          :host([row-enter]) .mdc-data-table__row:nth-child(8) {
+            --_row-index: 8;
+          }
+        }
+        /* The virtualizer places rows with transform, so the rise uses the
+           separate translate property */
+        @keyframes list-row-rise {
+          from {
+            opacity: 0;
+            translate: 0 12px;
+          }
+          to {
+            opacity: 1;
+            translate: 0 0;
+          }
         }
         :host([row-cards])
           .mdc-data-table__row.mdc-data-table__row--selected::before {
@@ -2401,8 +2519,8 @@ export class HaDataTable extends LitElement {
           ):hover::before {
           background: color-mix(
             in srgb,
-            var(--primary-text-color) 6%,
-            var(--card-background-color)
+            var(--primary-text-color) 8%,
+            var(--_row-surface)
           );
         }
         :host([row-cards]) .mdc-data-table__row:has(.group-header) {

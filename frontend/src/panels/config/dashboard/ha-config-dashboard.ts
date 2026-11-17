@@ -8,6 +8,8 @@ import {
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
+import { keyed } from "lit/directives/keyed";
+import { styleMap } from "lit/directives/style-map";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
@@ -56,6 +58,10 @@ import { isMobileClient } from "../../../util/is_mobile";
 import { configSections } from "../config-sections";
 import "./ha-config-navigation";
 import { sectionCounts, sectionSummaries } from "./section-summaries";
+import {
+  SettingsDramaController,
+  settingsMotionStyles,
+} from "./settings-motion";
 
 type DashboardSummary<Key extends string, Item> = Record<Key, Item[]> & {
   total: number;
@@ -152,6 +158,12 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
 
   private _pageLock = new PageLockController(this);
 
+  // Keeps the motion strength attribute in step with the person's choice.
+  protected readonly _drama = new SettingsDramaController(this);
+
+  // The last attention count, so the numeral pops only when it changes.
+  private _lastAttention?: number;
+
   public constructor() {
     super();
     new ChildPanelReady(this);
@@ -170,6 +182,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           : []),
         ...configSections.dashboard_2,
         ...configSections.dashboard_3,
+        ...configSections.backup,
       ];
     }
   );
@@ -194,6 +207,22 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
       }),
     ];
   }
+
+  private _counts = memoizeOne(
+    (
+      devices: HomeAssistant["devices"],
+      states: HomeAssistant["states"],
+      areas: HomeAssistant["areas"],
+      floors: HomeAssistant["floors"],
+      panels: HomeAssistant["panels"],
+      config: HomeAssistant["config"],
+      integrations: number | undefined
+    ) =>
+      sectionCounts(
+        { devices, states, areas, floors, panels, config },
+        integrations
+      )
+  );
 
   private _summaries = memoizeOne(
     (
@@ -253,6 +282,19 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
     }
   }
 
+  /** Pending updates and repairs together: what needs the person. */
+  private _attentionCount(): number {
+    const { updates, total } = this._filterUpdateEntitiesParameterized(
+      this.hass.states,
+      this.hass.entities,
+      this.hass.formatEntityName
+    );
+    return (
+      (updates.length ? total : 0) +
+      (this._repairsIssues.issues.length ? this._repairsIssues.total : 0)
+    );
+  }
+
   private _issueTitle(issue: RepairsIssue): string {
     return (
       this.hass.localize(
@@ -273,6 +315,10 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
     const { issues: repairsIssues, total: totalRepairIssues } =
       this._repairsIssues;
 
+    const attention = this._attentionCount();
+    const popped =
+      this._lastAttention !== undefined && this._lastAttention !== attention;
+
     const locked = this._pageLock.locked;
     const title = this._t("panel.config");
 
@@ -286,15 +332,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
               ></ha-menu-button>`
             : nothing
         }
-        <div class="titles">
-          <h1>${title}</h1>
-          ${
-            this.narrow
-              ? nothing
-              : html`<p>${this._t("ui.panel.config.dashboard.summary")}</p>`
-          }
-        </div>
-        ${this.narrow ? nothing : this._renderSearch()}
+        <div class="spacer"></div>
         <ha-page-tools
           no-find
           .compact=${this.narrow}
@@ -320,72 +358,96 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
       </header>
       ${locked ? html`<ha-page-lock-banner></ha-page-lock-banner>` : nothing}
       <div class="content ha-scrollbar" ?inert=${locked}>
-        ${this.narrow ? this._renderSearch() : nothing}
+        <section class="hero rise">
+          <h1>${title}</h1>
+          ${this._renderSearch()}
+        </section>
         ${
-          canInstallUpdates.length || repairsIssues.length
-            ? html`<div class="banners">
-                ${
-                  canInstallUpdates.length
-                    ? html`<a
-                        class="banner updates"
-                        href="/config/updates?historyBack=1"
-                      >
-                        <span class="banner-icon"
-                          ><ha-svg-icon .path=${mdiUpdate}></ha-svg-icon
-                        ></span>
-                        <span class="banner-text">
-                          <strong
-                            >${this._t(
-                              "ui.panel.config.dashboard.updates_ready",
-                              { count: totalUpdates }
-                            )}</strong
-                          >
-                          <span
-                            >${canInstallUpdates
-                              .map((entity) => computeStateName(entity))
-                              .join(", ")}</span
-                          >
-                        </span>
-                        <span class="banner-action"
-                          >${this._t(
-                            "ui.panel.config.dashboard.review_updates"
-                          )}</span
-                        >
-                      </a>`
-                    : nothing
-                }
-                ${
-                  repairsIssues.length
-                    ? html`<a
-                        class="banner repairs"
-                        href="/config/repairs?historyBack=1"
-                      >
-                        <span class="banner-icon"
-                          ><ha-svg-icon .path=${mdiWrench}></ha-svg-icon
-                        ></span>
-                        <span class="banner-text">
-                          <strong
-                            >${this._t(
-                              "ui.panel.config.dashboard.repairs_waiting",
-                              { count: totalRepairIssues }
-                            )}</strong
-                          >
-                          <span>${this._issueTitle(repairsIssues[0])}</span>
-                        </span>
-                        <span class="banner-action"
-                          >${this._t(
-                            "ui.panel.config.dashboard.fix_repairs"
-                          )}</span
-                        >
-                      </a>`
-                    : nothing
-                }
-              </div>`
+          attention
+            ? html`<section
+                class="attention rise"
+                style=${styleMap({ "--i": "1" })}
+              >
+                ${keyed(
+                  attention,
+                  html`<span
+                    class=${popped ? "numeral pop" : "numeral"}
+                    aria-hidden="true"
+                    >${attention}</span
+                  >`
+                )}
+                <div class="attention-body">
+                  <strong
+                    >${this._t("ui.panel.config.dashboard.attention", {
+                      count: attention,
+                    })}</strong
+                  >
+                  <div class="attention-links">
+                    ${
+                      canInstallUpdates.length
+                        ? html`<a href="/config/updates?historyBack=1">
+                            <ha-svg-icon .path=${mdiUpdate}></ha-svg-icon>
+                            <span class="link-text">
+                              <span
+                                >${this._t(
+                                  "ui.panel.config.dashboard.updates_ready",
+                                  { count: totalUpdates }
+                                )}</span
+                              >
+                              <small
+                                >${canInstallUpdates
+                                  .map((entity) => computeStateName(entity))
+                                  .join(", ")}</small
+                              >
+                            </span>
+                            <span class="link-action"
+                              >${this._t(
+                                "ui.panel.config.dashboard.review_updates"
+                              )}</span
+                            >
+                          </a>`
+                        : nothing
+                    }
+                    ${
+                      repairsIssues.length
+                        ? html`<a href="/config/repairs?historyBack=1">
+                            <ha-svg-icon .path=${mdiWrench}></ha-svg-icon>
+                            <span class="link-text">
+                              <span
+                                >${this._t(
+                                  "ui.panel.config.dashboard.repairs_waiting",
+                                  { count: totalRepairIssues }
+                                )}</span
+                              >
+                              <small
+                                >${this._issueTitle(repairsIssues[0])}</small
+                              >
+                            </span>
+                            <span class="link-action"
+                              >${this._t(
+                                "ui.panel.config.dashboard.fix_repairs"
+                              )}</span
+                            >
+                          </a>`
+                        : nothing
+                    }
+                  </div>
+                </div>
+              </section>`
             : nothing
         }
         <ha-config-navigation
           grid
           .hass=${this.hass}
+          .counts=${this._counts(
+            this.hass.devices,
+            this.hass.states,
+            this.hass.areas,
+            this.hass.floors,
+            this.hass.panels,
+            this.hass.config,
+            this._integrations
+          )}
           .narrow=${this.narrow}
           .filter=${this._filter}
           .summaries=${this._summaries(
@@ -420,7 +482,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
     return html`<ha-input-search
       class="search"
       appearance="outlined"
-      .placeholder=${label}
+      .placeholder=${this._t("ui.panel.config.dashboard.find_any")}
       .accessibleLabel=${label}
       .value=${this._filter}
       @input=${this._filterChanged}
@@ -433,6 +495,9 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
 
   protected override updated(changedProps: PropertyValues<this>): void {
     super.updated(changedProps);
+
+    // Remembered after the draw, so the next change of the count can pop.
+    this._lastAttention = this._attentionCount();
 
     if (!this._tip && changedProps.has("hass")) {
       this._tip = randomTip(
@@ -492,6 +557,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
     return [
       haStyle,
       haStyleScrollbar,
+      settingsMotionStyles,
       css`
         :host {
           display: flex;
@@ -508,53 +574,17 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           display: flex;
           align-items: center;
           gap: var(--ha-space-2);
-          padding: var(--ha-space-6) var(--ha-space-8) var(--ha-space-3);
+          padding: var(--ha-space-4) var(--ha-space-8) 0;
           padding-inline-end: calc(
             var(--ha-space-8) + var(--safe-area-inset-right, 0px)
           );
           color: var(--sidebar-icon-color);
         }
         :host([narrow]) header {
-          padding: var(--ha-space-2) var(--ha-space-2);
+          padding: var(--ha-space-2) var(--ha-space-2) 0;
         }
-        .titles {
+        .spacer {
           flex: 1;
-          min-width: 0;
-          color: var(--primary-text-color);
-        }
-        h1 {
-          margin: 0;
-          font-family: var(--ha-font-family-heading, inherit);
-          font-size: var(--ha-font-size-4xl);
-          font-weight: var(--ha-font-weight-medium);
-          line-height: var(--ha-line-height-condensed);
-        }
-        :host([narrow]) h1 {
-          font-size: var(--ha-font-size-xl);
-          font-weight: var(--ha-font-weight-normal);
-        }
-        /* Each line takes its direction from its own text, so a sentence in
-           another language than the page keeps its full stops in place. */
-        .titles h1,
-        .titles p,
-        .banner-text strong,
-        .banner-text span {
-          unicode-bidi: plaintext;
-        }
-        .titles p {
-          margin: var(--ha-space-1) 0 0;
-          font-size: var(--ha-font-size-l);
-          color: var(--secondary-text-color);
-        }
-        .search {
-          width: clamp(200px, 26vw, 340px);
-          --ha-input-search-height: var(--ha-space-12);
-          --ha-input-search-border-radius: var(--ha-border-radius-pill);
-        }
-        :host([narrow]) .search {
-          display: block;
-          width: auto;
-          margin-bottom: var(--ha-space-3);
         }
         ha-page-footer,
         ha-page-lock-banner {
@@ -576,46 +606,114 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
             calc(var(--ha-space-6) + var(--safe-area-inset-bottom, 0px));
         }
 
-        .banners {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: var(--ha-space-3);
-          margin-bottom: var(--ha-space-4);
+        .hero {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-5);
+          margin-bottom: var(--ha-space-6);
         }
-        .banner {
+        /* The shared heading style keeps one line with an ellipsis; the big
+           title wraps instead, so no word is ever cut. */
+        .hero h1 {
+          margin: 0;
+          max-width: 100%;
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
+          overflow-wrap: anywhere;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: clamp(40px, 7vw, 72px);
+          font-weight: 800;
+          font-stretch: 125%;
+          letter-spacing: -0.03em;
+          line-height: 1;
+          color: var(--primary-text-color);
+          unicode-bidi: plaintext;
+        }
+        .search {
+          display: block;
+          width: 100%;
+          max-width: 760px;
+          --ha-input-search-height: 68px;
+          --ha-input-search-border-radius: 34px;
+        }
+
+        .attention {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-5);
+          margin-bottom: var(--ha-space-6);
+          padding: var(--ha-space-5) var(--ha-space-6);
+          border-radius: 32px;
+          color: var(--primary-text-color);
+          background: color-mix(
+            in srgb,
+            var(--warning-color) 38%,
+            var(--primary-background-color)
+          );
+        }
+        .numeral {
+          flex: none;
+          display: inline-block;
+          font-size: 76px;
+          font-weight: 800;
+          font-stretch: 125%;
+          line-height: 1;
+          letter-spacing: -0.03em;
+          font-variant-numeric: tabular-nums;
+        }
+        .attention-body {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-3);
+        }
+        .attention-body > strong {
+          font-size: var(--ha-font-size-xl);
+          font-weight: var(--ha-font-weight-medium);
+          unicode-bidi: plaintext;
+        }
+        .attention-links {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+        }
+        .attention-links a {
+          flex: 1 1 240px;
           display: flex;
           align-items: center;
           gap: var(--ha-space-3);
           min-height: 56px;
           box-sizing: border-box;
           padding: var(--ha-space-2) var(--ha-space-4);
-          border-radius: var(--ha-border-radius-3xl, 28px);
+          border-radius: 28px;
           color: var(--primary-text-color);
           text-decoration: none;
-        }
-        .banner {
-          padding: var(--ha-space-4) var(--ha-space-5);
-        }
-        .banner-icon {
-          flex: none;
-          display: grid;
-          place-items: center;
-          width: 48px;
-          height: 48px;
-          border-radius: var(--ha-border-radius-xl);
           background: color-mix(
             in srgb,
-            var(--card-background-color) 55%,
+            var(--card-background-color) 60%,
             transparent
           );
         }
-        .banner.updates .banner-icon {
-          color: var(--primary-color);
+        .attention-links a:focus-visible {
+          outline: 3px solid var(--primary-color);
+          outline-offset: 2px;
         }
-        .banner.repairs .banner-icon {
-          color: var(--warning-color);
+        .link-text {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          unicode-bidi: plaintext;
         }
-        .banner-action {
+        .link-text small {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: var(--secondary-text-color);
+        }
+        .link-action {
           flex: none;
           padding: var(--ha-space-2) var(--ha-space-4);
           border-radius: var(--ha-border-radius-pill);
@@ -623,41 +721,15 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           background: var(--primary-color);
           color: var(--text-primary-color, #fff);
         }
-        .banner.repairs .banner-action {
-          background: var(--warning-color);
-        }
-        .banner:focus-visible {
-          outline: 3px solid var(--primary-color);
-          outline-offset: 2px;
-        }
-        .banner.updates {
-          background: color-mix(
-            in srgb,
-            var(--primary-color) 22%,
-            var(--primary-background-color)
-          );
-        }
-        .banner.repairs {
-          background: color-mix(
-            in srgb,
-            var(--warning-color) 45%,
-            var(--primary-background-color)
-          );
-        }
-        .banner-text {
-          flex: 1;
-          min-width: 0;
-          display: flex;
-          flex-direction: column;
-        }
-        .banner-text strong {
-          font-weight: var(--ha-font-weight-medium);
-        }
-        .banner-text span {
-          font-size: var(--ha-font-size-s);
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+        @media (max-width: 460px) {
+          .attention {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: var(--ha-space-4);
+          }
+          .attention-links {
+            width: 100%;
+          }
         }
 
         ha-tip {

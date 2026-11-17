@@ -15,6 +15,7 @@ import memoizeOne from "memoize-one";
 import { canShowPage } from "../common/config/can_show_page";
 import { consume } from "../common/decorators/consume";
 import { restoreScroll } from "../common/decorators/restore-scroll";
+import { pageHeaderStyles, playPageEntry } from "../common/motion/page-entry";
 import type { HASSDomTargetEvent } from "../common/dom/fire_event";
 import { fireEvent } from "../common/dom/fire_event";
 import { PageLockController } from "../common/locks/page-lock-controller";
@@ -203,6 +204,13 @@ export class HassTabsSubpage extends LitElement {
 
   @state() private _hasCustomToolbar = false;
 
+  @query(".content > slot:not([name])")
+  private _contentSlot?: HTMLSlotElement;
+
+  @query("#tabbar") private _tabBar?: HTMLElement;
+
+  @query("#tabbar .strip") private _tabStrip?: HTMLElement;
+
   @query(".content") private _content?: HTMLDivElement;
 
   // @ts-ignore
@@ -319,8 +327,8 @@ export class HassTabsSubpage extends LitElement {
                   !title
                     ? ""
                     : this.contentHeading
-                      ? html`<span class="bar-title">${title}</span>`
-                      : html`<h1>${title}</h1>`
+                      ? html`<span class="bar-title page-title">${title}</span>`
+                      : html`<h1 class="page-title">${title}</h1>`
                 }</slot
               >${
                 summary && !this._narrow
@@ -459,10 +467,14 @@ export class HassTabsSubpage extends LitElement {
   protected firstUpdated(): void {
     // A page with nothing in its toolbar never fires a slot change.
     this._foldTools = inspectToolbarSlot(this._toolbarSlot ?? null).foldable;
+    playPageEntry(this._contentSlot?.assignedElements({ flatten: true }) ?? []);
+    this._observeTabStrip();
   }
 
   protected updated(changedProperties: PropertyValues<this>): void {
     super.updated(changedProperties);
+    this._observeTabStrip();
+    this._syncTabIndicator();
     setToolbarFolded(
       this._toolbarSlot ?? null,
       this._narrow && this._foldTools
@@ -480,8 +492,70 @@ export class HassTabsSubpage extends LitElement {
     this._publishBottomTabs();
   }
 
+  private _stripObserver?: ResizeObserver;
+
+  private _observedStrip?: Element;
+
+  private _onStripScroll = () => this._syncTabIndicator();
+
+  /** Keeps the sliding tab pill and the edge fades in step with the tab strip. */
+  private _observeTabStrip(): void {
+    const strip = this._tabStrip;
+    if (strip === this._observedStrip) {
+      return;
+    }
+    this._stripObserver?.disconnect();
+    this._observedStrip?.removeEventListener("scroll", this._onStripScroll);
+    this._observedStrip = strip ?? undefined;
+    if (!strip) {
+      return;
+    }
+    strip.addEventListener("scroll", this._onStripScroll, { passive: true });
+    if (typeof ResizeObserver !== "undefined") {
+      this._stripObserver ??= new ResizeObserver(() =>
+        this._syncTabIndicator()
+      );
+      this._stripObserver.observe(strip);
+    }
+  }
+
+  private _syncTabIndicator(): void {
+    requestAnimationFrame(() => {
+      const bar = this._tabBar;
+      const strip = this._tabStrip;
+      if (!bar || !strip) {
+        return;
+      }
+      const active = strip.querySelector<HTMLElement>(
+        '.section-tab[aria-selected="true"]:not([hidden])'
+      );
+      if (active) {
+        bar.style.setProperty("--tab-ind-x", `${active.offsetLeft}px`);
+        bar.style.setProperty("--tab-ind-w", `${active.offsetWidth}px`);
+        // No slide on the first placement.
+        requestAnimationFrame(() => bar.setAttribute("data-ind-ready", ""));
+      } else {
+        bar.style.setProperty("--tab-ind-w", "0px");
+      }
+      const max = strip.scrollWidth - strip.clientWidth;
+      const atStart = Math.abs(strip.scrollLeft) <= 1;
+      const atEnd = Math.abs(strip.scrollLeft) >= max - 1;
+      bar.style.setProperty(
+        "--tab-fade-start",
+        max > 1 && !atStart ? "20px" : "0px"
+      );
+      bar.style.setProperty(
+        "--tab-fade-end",
+        max > 1 && !atEnd ? "20px" : "0px"
+      );
+    });
+  }
+
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._stripObserver?.disconnect();
+    this._observedStrip?.removeEventListener("scroll", this._onStripScroll);
+    this._observedStrip = undefined;
     bottomTabsOwners.delete(this);
     syncBottomTabsProperty();
   }
@@ -505,7 +579,9 @@ export class HassTabsSubpage extends LitElement {
 
   @eventOptions({ passive: true })
   private _saveScrollPos(e: HASSDomTargetEvent<HTMLDivElement>) {
-    this._savedScrollPos = (e.target as HTMLDivElement).scrollTop;
+    const top = (e.target as HTMLDivElement).scrollTop;
+    this._savedScrollPos = top;
+    this.toggleAttribute("scrolled", top > 4);
   }
 
   public focusContentScroller() {
@@ -585,6 +661,7 @@ export class HassTabsSubpage extends LitElement {
     return [
       haStyleScrollbar,
       sectionTabsStyles,
+      pageHeaderStyles,
       css`
         :host {
           display: flex;
@@ -622,9 +699,8 @@ export class HassTabsSubpage extends LitElement {
           );
           padding-top: var(--safe-area-inset-top);
           padding-right: var(--safe-area-inset-right);
-          background-color: var(--sidebar-background-color);
+          background-color: transparent;
           font-weight: var(--ha-font-weight-normal);
-          border-bottom: 1px solid var(--divider-color);
           box-sizing: border-box;
         }
         :host([narrow]) .toolbar {
@@ -636,21 +712,12 @@ export class HassTabsSubpage extends LitElement {
           );
           border-bottom: none;
         }
-        :host([narrow]) .main-title h1,
-        :host([narrow]) .main-title .bar-title {
-          font-size: var(--ha-font-size-2xl);
-          font-weight: var(
-            --ha-font-weight-title,
-            var(--ha-font-weight-medium)
-          );
-          line-height: var(--ha-line-height-condensed);
-        }
         .toolbar-content {
           padding: 8px 12px;
           display: flex;
           align-items: center;
           gap: var(--ha-space-1);
-          height: var(--header-height);
+          min-height: var(--header-height);
           box-sizing: border-box;
         }
         :host([narrow]) .toolbar-content {
@@ -684,8 +751,10 @@ export class HassTabsSubpage extends LitElement {
             var(--safe-area-inset-bottom)
             calc(16px + var(--safe-area-inset-left));
           box-sizing: border-box;
-          background-color: var(--sidebar-background-color);
-          border-top: 1px solid var(--divider-color);
+          background-color: var(
+            --app-header-background-color,
+            var(--primary-background-color)
+          );
           justify-content: space-around;
           z-index: 2;
           font-size: var(--ha-font-size-s);
@@ -702,8 +771,93 @@ export class HassTabsSubpage extends LitElement {
 
         #tabbar.tab-row {
           justify-content: flex-start;
-          gap: var(--ha-space-1);
-          padding: 0 var(--ha-space-4) var(--ha-space-2);
+          padding: 0 var(--ha-space-6) var(--ha-space-3);
+        }
+        #tabbar.tab-row ha-section-tabs {
+          flex: 0 1 auto;
+          max-width: 100%;
+        }
+
+        /* The segmented pill: a container with one filled tonal pill that
+           slides under the open tab. */
+        #tabbar {
+          --tab-ind-x: 0px;
+          --tab-ind-w: 0px;
+          --tab-fade-start: 0px;
+          --tab-fade-end: 0px;
+          --ha-tab-height: calc(var(--header-height, 56px) - 8px);
+        }
+        #tabbar ha-tab {
+          --header-height: var(--ha-tab-height);
+        }
+        #tabbar ha-section-tabs .strip {
+          position: relative;
+          box-sizing: border-box;
+          padding: 4px;
+          gap: 0;
+          border-radius: 28px;
+          background-color: var(
+            --md-sys-color-surface-container-highest,
+            var(--ha-color-fill-neutral-quiet-resting)
+          );
+          overflow-x: auto;
+          overflow-y: hidden;
+          scrollbar-width: none;
+          -webkit-mask-image: linear-gradient(
+            to right,
+            transparent 0,
+            #000 var(--tab-fade-start),
+            #000 calc(100% - var(--tab-fade-end)),
+            transparent 100%
+          );
+          mask-image: linear-gradient(
+            to right,
+            transparent 0,
+            #000 var(--tab-fade-start),
+            #000 calc(100% - var(--tab-fade-end)),
+            transparent 100%
+          );
+        }
+        #tabbar ha-section-tabs .strip::-webkit-scrollbar {
+          display: none;
+        }
+        #tabbar ha-section-tabs .strip::before {
+          content: "";
+          position: absolute;
+          top: 4px;
+          bottom: 4px;
+          left: 0;
+          width: var(--tab-ind-w);
+          transform: translateX(var(--tab-ind-x));
+          border-radius: 24px;
+          background-color: var(
+            --md-sys-color-secondary-container,
+            var(--ha-color-fill-primary-quiet-resting)
+          );
+          pointer-events: none;
+        }
+        #tabbar[data-ind-ready] ha-section-tabs .strip::before {
+          transition:
+            transform 350ms cubic-bezier(0.2, 1.5, 0.3, 1),
+            width 350ms cubic-bezier(0.2, 1.5, 0.3, 1);
+        }
+        #tabbar ha-section-tabs .section-tab {
+          z-index: 1;
+          border-radius: 24px;
+        }
+        #tabbar ha-section-tabs a.section-tab[aria-selected="true"] {
+          --tab-color: var(
+            --md-sys-color-on-secondary-container,
+            var(--primary-text-color)
+          );
+        }
+        #tabbar ha-section-tabs a.section-tab:focus-visible {
+          outline-offset: -2px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          #tabbar[data-ind-ready] ha-section-tabs .strip::before {
+            transition: none;
+          }
         }
 
         :host(:not([narrow])) #toolbar-icon {
@@ -737,24 +891,12 @@ export class HassTabsSubpage extends LitElement {
           display: none;
         }
         :host(:not([narrow])) .toolbar-content {
-          height: auto;
           min-height: var(--header-height);
           padding: var(--ha-space-4) var(--ha-space-6) var(--ha-space-2);
         }
         :host(:not([narrow])) .main-title {
-          max-height: none;
           margin-inline-start: var(--ha-space-2);
         }
-        :host(:not([narrow])) .main-title h1,
-        :host(:not([narrow])) .main-title .bar-title {
-          font-size: var(--ha-font-size-3xl);
-          font-weight: var(
-            --ha-font-weight-title,
-            var(--ha-font-weight-medium)
-          );
-          line-height: var(--ha-line-height-condensed);
-        }
-
         ha-menu-button,
         ha-icon-button-arrow-prev,
         ::slotted([slot="toolbar-icon"]:not(slot)) {
@@ -767,7 +909,6 @@ export class HassTabsSubpage extends LitElement {
         .main-title {
           min-width: 0;
           flex: 1;
-          max-height: var(--header-height);
           line-height: var(--ha-line-height-normal);
           color: var(--sidebar-text-color);
           margin-inline-start: var(--main-title-margin, var(--ha-space-6));
@@ -775,14 +916,12 @@ export class HassTabsSubpage extends LitElement {
         .narrow .main-title {
           margin-inline-start: var(--main-title-margin, var(--ha-space-2));
         }
+        /* The title itself (weight, size, wrapping) comes from the shared
+           page header styles, which let it wrap instead of clipping. */
         .main-title h1,
         .main-title .bar-title {
           display: block;
           margin: 0;
-          font: inherit;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
         }
         .summary {
           display: block;

@@ -11,6 +11,7 @@ import {
 import { classMap } from "lit/directives/class-map";
 import { consume } from "../common/decorators/consume";
 import { restoreScroll } from "../common/decorators/restore-scroll";
+import { pageHeaderStyles, playPageEntry } from "../common/motion/page-entry";
 import type { HASSDomTargetEvent } from "../common/dom/fire_event";
 import { PageLockController } from "../common/locks/page-lock-controller";
 import { getHistoryState } from "../common/navigate";
@@ -68,6 +69,9 @@ class HassSubpage extends LitElement {
   // On a phone, a page without a menu of its own folds its tools into a More sheet
   @state() private _foldTools = false;
 
+  @query(".content > slot:not([name])")
+  private _contentSlot?: HTMLSlotElement;
+
   @query('slot[name="toolbar-icon"]')
   private _toolbarSlot?: HTMLSlotElement;
 
@@ -77,6 +81,7 @@ class HassSubpage extends LitElement {
   protected firstUpdated(): void {
     // A page with nothing in its toolbar never fires a slot change.
     this._foldTools = inspectToolbarSlot(this._toolbarSlot ?? null).foldable;
+    playPageEntry(this._contentSlot?.assignedElements({ flatten: true }) ?? []);
   }
 
   protected updated(): void {
@@ -108,7 +113,7 @@ class HassSubpage extends LitElement {
                 ? html`<span class="breadcrumb">${breadcrumb}</span>`
                 : nothing
             }
-            <span class="title-text"
+            <span class="title-text page-title"
               ><slot name="header">${this.header}</slot></span
             >
             ${
@@ -182,7 +187,9 @@ class HassSubpage extends LitElement {
 
   @eventOptions({ passive: true })
   private _saveScrollPos(e: HASSDomTargetEvent<HTMLDivElement>) {
-    this._savedScrollPos = (e.target as HTMLDivElement).scrollTop;
+    const top = (e.target as HTMLDivElement).scrollTop;
+    this._savedScrollPos = top;
+    this.toggleAttribute("scrolled", top > 4);
   }
 
   private _backTapped(ev: MouseEvent): void {
@@ -192,6 +199,7 @@ class HassSubpage extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       haStyleScrollbar,
+      pageHeaderStyles,
       css`
         :host {
           display: flex;
@@ -243,7 +251,7 @@ class HassSubpage extends LitElement {
         }
 
         .toolbar {
-          background-color: var(--app-header-background-color);
+          background-color: var(--app-header-background-color, transparent);
           padding-top: var(--safe-area-inset-top);
           padding-right: var(--safe-area-inset-right);
         }
@@ -255,10 +263,9 @@ class HassSubpage extends LitElement {
           display: flex;
           align-items: center;
           font-size: var(--ha-font-size-xl);
-          height: var(--header-height);
+          min-height: var(--header-height);
           font-weight: var(--ha-font-weight-normal);
           color: var(--app-header-text-color, white);
-          border-bottom: var(--app-header-border-bottom, none);
           box-sizing: border-box;
           padding: 8px 12px;
         }
@@ -287,32 +294,11 @@ class HassSubpage extends LitElement {
           justify-content: center;
         }
         :host(:not([narrow])) .toolbar-content {
-          height: auto;
           min-height: var(--header-height);
           padding: var(--ha-space-4) var(--ha-space-6) var(--ha-space-2);
         }
         :host(:not([narrow])) .main-title {
           margin-inline-start: var(--ha-space-2);
-        }
-        :host(:not([narrow])) .title-text {
-          font-size: var(--ha-font-size-3xl);
-          font-weight: var(
-            --ha-font-weight-title,
-            var(--ha-font-weight-medium)
-          );
-          line-height: var(--ha-line-height-condensed);
-        }
-        :host([narrow]) .title-text {
-          font-size: var(--ha-font-size-2xl);
-          font-weight: var(
-            --ha-font-weight-title,
-            var(--ha-font-weight-medium)
-          );
-        }
-        .title-text {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
         }
         .summary {
           margin-top: var(--ha-space-1);
