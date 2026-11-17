@@ -1,5 +1,17 @@
 # Handoff
 
+## Rich editors, phone sizing, automatic system updates and scrolling, 17 November 2026 (afternoon)
+
+- **On the home instance:** build 498 (`55c0ed5bd`), moved at 10:59 Toronto time. Proven by a page-load pass and a real run on the throwaway full copy (495 to 498 with no false red on the queue card).
+- **Build 503 is published but was not moved onto the home instance.** Its real run updated correctly, but Cloud host "Set up" and "Remove" failed with "could not stop the tunnel": a missing tunnel container was treated as an error. Fixed in `bd80ca4bb` (a missing container counts as stopped; Remove always ends in "not set up"). Do not press Set up on 503.
+- **Waiting to be built:** `465bb72ba` and everything before it since 503: the tunnel runner for full hosting mode, a rich editor for every entity kind (colours use a colour picker, 62 domains and 247 services covered by a test), compact rows with a density setting (compact, comfortable, cosy), a phone sizing pass, the Cloud host fix, and the Updates page no longer sitting on a blank spinner after the reload that follows an update (proven by simulation only).
+- **Committed after that:** `a7f6196c6` (editor redesign with one pill control, tonal step rows, scene editor parity, Home information, Network and Areas tidied, motion only for real moments, first scroll fixes) and the scroll performance work that follows it.
+- **Owner decision, 17 November: Core, Supervisor and the operating system may update automatically.** Three switches on the Updates page, all off until the owner turns each on behind the two-key confirmation, inside a window (03:00 to 05:00 by default) with a wait in days and a fixed order. USB install, USB recovery and going back to an earlier build are never automatic. No automatic system update has yet been watched happening inside its window.
+- **Sizing rule from the owner:** the product is used on a 390 px phone. Rows are 52 to 60 px, titles 22 to 26 px, tiles two across and short; large type and tall heroes are for wide windows only.
+- **Scrolling.** Measured at 390 px with the processor slowed four times. The first pass cut the worst frame on Entities from 100 to 67 ms and on Devices from 117 to 50 ms, but about a third of frames on those two lists were still slow; the remaining cost is in the list's own per-step work.
+- **Never proven for real:** an automatic system update inside its window; Cloud host sign-in, tunnel, DNS and reachability from outside (needs the owner's sign-in); the "went back to an earlier build" line; the Updates spinner fix on a real restart; the saved tick, the row editor sheet header and the queue ring in a browser.
+- **Design:** canvas 36 (`design/canvases/36-rich-editors`, four boards).
+
 ## Interface polish and seventeen new features, 17 November 2026
 
 - **On the home instance:** build 495 (`9ad470a94`), moved at 08:36 Toronto time. Before it: 481 (01:59), 487 (04:05, the polish build), 490 (06:09).
