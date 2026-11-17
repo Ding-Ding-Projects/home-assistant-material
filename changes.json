@@ -1,15 +1,79 @@
 {
  "format": 1,
- "generated": "2026-11-17T02:18:52Z",
+ "generated": "2026-11-17T02:43:47Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 468,
+ "newest_build": 476,
  "releases": [
+  {
+   "build": 476,
+   "core": "2026.11.1.476",
+   "supervisor": "2026.11.0.476",
+   "os": "18.5.476",
+   "tag": null,
+   "source": "0d9211c6c",
+   "date": "2026-11-16T20:50:31-05:00",
+   "previous_build": 468,
+   "changes": [
+    {
+     "sha": "0d9211c6c",
+     "date": "2026-11-16T20:50:31-05:00",
+     "title": "Rebuild the Updates page in the bold design; add install from USB storage and a notes preview",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The first Updates page worked and looked like a form. It now follows the design boards: a very large title, a progress ring with the percentage for the build on its way, tiles for when Core can be installed and when the whole release ends, a stage rail of seven proportional segments, and stage tiles in a wrapping grid (never a fixed row of seven, which was a real clipping fault on a phone). \"What changed\" shows the two builds as blocks around a huge count, and the counts per part are bars that toggle filters. A hand-started build used to show the workflow name as its latest change; it now shows the commit title. New: \"Install from USB storage\" lists update files the Supervisor finds on a stick with a plain verdict for each, installs behind the two-key confirmation, follows the copy and install, and never restarts by itself; it only appears where an operating system exists, and it joins the page's interlock. New: \"Notes for build N\" shows the headline, summary and highlights from the public updates log in the reader's language mode, and loads the full page in a sandboxed frame only when asked. Logic is tested; nothing here has been seen in a built app yet.",
+     "detail_yue": "第一版更新頁用得，不過個樣似填表。而家跟返設計板：特大標題、進度圈、 幾時裝得 Core 同成個版本幾時完嘅方塊、七段階段條，階段方塊會自己 轉行（以前硬排七格，喺手機真係斬字）。「改咗乜」用兩個版本方塊夾住 一個大數字，各部分嘅橫條撳得嚟篩選。新增「由 USB 儲存裝置安裝」： 列出手指入面搵到嘅更新檔同每個嘅判斷，要過雙鎖匙確認先裝，唔會自己 重啟。仲有「版本說明」預覽，跟你揀嘅語言顯示，撳先至載入完整頁面。 邏輯有測試，但未喺砌好嘅版本度睇過。"
+    },
+    {
+     "sha": "7db7b622d",
+     "date": "2026-11-16T20:38:13-05:00",
+     "title": "Let the Supervisor install an operating system update from a file on USB storage",
+     "areas": [
+      "supervisor"
+     ],
+     "detail": "A home with no connection had no way to update its system short of carrying the whole device somewhere with internet. The Supervisor can now list update files it finds on removable drives and install one that the owner picks. Only removable drives are read, read-only, and only names of the form haos_<board>-<version>.raucb in the root or in an updates, haos or home-assistant folder. Each file gets a verdict: ready, wrong device, not newer, too large, or not enough space. Installing re-runs the scan and accepts only a file the scan itself returned, copies it to the device while hashing, releases the stick, and hands the copy to the same installer the online update uses, whose signature check is never bypassed. No downgrade, no force, nothing automatic, admin only, and it cannot run together with another system update. Run in a Linux container: 698 tests pass, including the existing update tests. The first run there found a real fault, error messages built with their arguments swapped, now fixed. Not proven with a real stick on a real device.",
+     "detail_yue": "屋企冇網嘅話，以前想更新系統就得抬成部機去有網嘅地方。而家 Supervisor 識得喺 USB 手指度搵更新檔，等主人揀一個嚟裝。淨係讀可 移除嘅磁碟、淨係認指定檔名，每個檔都有判斷：裝得、唔啱呢部機、 唔夠新、太大或者唔夠位。裝之前會重新掃一次，抄落部機先放返枝手指， 簽名檢查一樣走唔甩；冇得降級、冇得強行、唔會自動裝。喺 Linux 容器 行過 698 個測試全部過，仲捉到一個真錯處。未用真手指喺真機試過。"
+    },
+    {
+     "sha": "473ce8227",
+     "date": "2026-11-16T20:27:13-05:00",
+     "title": "Make the two-key confirmation dramatic: turning keys, a charging core and a shockwave",
+     "areas": [
+      "design",
+      "interface"
+     ],
+     "detail": "Confirming something that cannot be undone felt like ticking a box on a tax form. The two keys now turn a quarter with a spring and light up amber, a core between them shows the slider as a ring with a big number and counter-rotating rings, and everything winds up as you slide: the rings and stripes speed up, a red glow closes in, the dialog starts to shake and the warning flickers, with status words that change from \"Turn both keys\" to \"Last chance to stop\". Letting go early eases the thumb back. Confirming gives one flash and two shockwaves on a layer of its own, and the confirm event is not delayed at all. What it requires is unchanged. A new personal setting, Confirmation drama (Off, Calm, Standard, Dramatic), scales it; reduced motion and Off show no motion, only the ring, the numbers and the words. The flicker stays under three times a second. Existing haptic and sound helpers are used and respect their settings. The design board is added to canvas 33. Logic is tested; the motion has not been seen in a built app yet.",
+     "detail_yue": "確認一啲冇得返轉頭嘅嘢，以前嗰種感覺同填報稅表剔格仔差唔多。而家 兩條鎖匙會彈住咁轉、著燈，中間有個核心顯示滑到幾多，越滑越緊張： 啲圈越轉越快、紅光逼埋嚟、成個對話框開始震，啲字由「扭晒兩條鎖匙」 變到「最後機會」。中途放手會彈返轉頭；滑到尾就一下閃光加兩圈衝擊波。 要求一樣冇變。個人設定多咗「確認戲劇程度」可以校，開咗減少動態就 完全唔郁，淨係睇個圈、數字同文字。"
+    },
+    {
+     "sha": "38d356959",
+     "date": "2026-11-16T20:21:23-05:00",
+     "title": "Add USB recovery: reinstall, reset apps or erase a device from a labelled stick",
+     "areas": [
+      "docs",
+      "os"
+     ],
+     "detail": "A device left broken by an update meant finding a screwdriver, taking the card out and flashing it on another computer. The operating system image now carries a recovery step that does nothing at all unless a USB stick labelled HA-RECOVERY appears, holding a request file with the exact confirmation phrase for its action. It can reinstall the operating system from an update file on the stick (the system's own signature check decides), schedule the existing reset of the app storage while keeping settings, or set the existing erase flag for a full reset. Each request runs once: it is renamed to started, then done or failed, and a plain result file is written to the stick. No other unit depends on it and every failure path lets the boot continue. Tested against pretend hardware only (79 script checks); it has not been proven on a real Raspberry Pi, and the document says so, along with what a stick cannot repair: destroyed boot files, or both system copies unbootable.",
+     "detail_yue": "以前更新搞壞部機，就要搵螺絲批拆殼、攞張卡出嚟喺第二部電腦重新燒過。 而家作業系統多咗個救援步驟：平時完全唔郁，除非插咗一枝標籤叫 HA-RECOVERY 嘅 USB 手指，入面有份寫明確認字句嘅要求檔。佢可以由 手指重裝作業系統（簽名一樣要過關）、清走壞咗嘅應用程式儲存但保留 設定，或者成部機還原。每份要求淨係做一次，做完會喺手指度留低結果。 暫時只係用假硬件測試過，未喺真嘅 Raspberry Pi 行過，文件都有寫明。"
+    },
+    {
+     "sha": "c30008148",
+     "date": "2026-11-16T20:11:58-05:00",
+     "title": "Add \"Update everything\" that installs in a safe order, and stop updates being started together",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The Updates page offered three Update buttons for Supervisor, Core and the operating system and let all three be pressed at once, which is a fine way to restart the Supervisor under a Core update while the device reboots under both. \"Update everything\" now runs the pending updates one at a time: Supervisor, then apps and everything else, then Core, then the operating system last because it restarts the device. It lists the order before it starts, survives the restarts in between by resuming when the page reconnects, and stops with a plain message if a step fails, leaving the rest untouched. While any update is running every other Update button is disabled and says what it is waiting for. On a phone the row title gets its own line with the versions under it. The ordering and step rules are covered by tests; the page has not been seen in a built app yet.",
+     "detail_yue": "更新頁以前畀你三粒掣一齊撳，Supervisor、Core 同作業系統一齊更新， 即係叫部機喺重啟緊嘅時候再重啟，唔出事先奇。而家有「全部更新」： 逐個嚟，先 Supervisor，再到應用程式同其他，跟住 Core，作業系統 擺最尾因為佢會重啟部機。開始之前會列晒次序，中間重啟完識得自己 接返落去，有一步失敗就停低講清楚。有嘢更新緊嘅時候，其他更新掣 會暫時撳唔到，仲會寫明等緊邊個。"
+    }
+   ]
+  },
   {
    "build": 468,
    "core": "2026.11.1.468",
    "supervisor": "2026.11.0.468",
    "os": "18.5.468",
-   "tag": null,
+   "tag": "v2026.11.1.468",
    "source": "e4e67a49a",
    "date": "2026-11-16T18:50:13-05:00",
    "previous_build": 462,
@@ -4476,29 +4540,6 @@
       "docs"
      ],
      "detail": "Every board was drawn again from the app, reviewed, and these fixed:\n\n- The Deploy tab has the same header as every other tab: icon, title, one line on what it does, version and demo tags on the right. - Instances, Downloads and Extensions put their main buttons in the header instead of on a row of their own under it. - Instance cards say \"1 backup\", not \"1 backups\". - The new Minecraft server dialog no longer cuts its step names: the current step is named, the others show their number. - The demo has game rules, so the Game rules tab is not empty. - AI models: memory and graphics memory join the header facts instead of a second row repeating them; the folded system prompt shows a chevron and whether it is set; the number steppers have real buttons. The steppers' class no longer clashes with the wizard steps. - Activity spaces its Notifications and History headings apart. - The update self-test demo names the current version, not 1.1.4. - The Design tab includes every Deploy Assistant canvas, 16 to 20. - Search fields show one focus ring, on the rounded edge. - The virtual disk file and parent fields span the dialog. - The empty convert result says \"Results show here.\""
-    }
-   ]
-  },
-  {
-   "build": 115,
-   "core": "2026.11.1.115",
-   "supervisor": "2026.11.0.115",
-   "os": "18.5.115",
-   "tag": "v2026.11.1.115",
-   "source": "b84711096",
-   "date": "2026-11-11T10:58:31-05:00",
-   "previous_build": 114,
-   "changes": [
-    {
-     "sha": "b84711096",
-     "date": "2026-11-11T10:58:31-05:00",
-     "title": "Batch 26: phone layout tightened (YAML tools, menu, top strip removed); records",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Reported from a phone:\n\n- YAML tools page: two cramped columns with names broken inside words. The page did not reflect its narrow flag, so the one-column rule never applied; the grid now goes by width. - The slim strip at the top that named the current page is no longer shown on a phone: the Pages button in the bottom bar does that job and each page has its own header. Its height is no longer reserved, which also removes the empty band above the menu's title. - The open menu on a phone has less space around its header, the Assist button and its groups.\n\nRecords: an activity tray entry was seen while running in build 113; the build 109 operating system image was booted in a virtual machine; no update was offered there because later operating system builds failed on an outside module host or were cancelled; two device checks closed by the owner's decision.",
-     "detail_yue": "第 26 批：手機版執位。YAML 工具頁之前硬係逼兩欄，啲字斬到一截截，而家夠闊 先至分兩欄。頂嗰條「而家喺邊頁」嘅幼條攞走咗，下面個「頁面」掣已經做晒 呢份工；連帶選單頂嗰忽空位都冇埋。選單啲間距亦都收緊咗，唔使碌咁耐。"
     }
    ]
   }
