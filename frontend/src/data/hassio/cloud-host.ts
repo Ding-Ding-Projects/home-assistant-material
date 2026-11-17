@@ -25,6 +25,8 @@ export interface CloudHostInfo {
   hostname: string | null;
   error: string | null;
   last_check: CloudHostCheck | null;
+  /** The address of the tunnel container, present only while running. */
+  trusted_proxy: string | null;
 }
 
 const STATES: readonly CloudHostState[] = [
@@ -40,6 +42,23 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const textOrNull = (value: unknown): string | null =>
   typeof value === "string" && value ? value : null;
+
+/** A dotted IPv4 address, or null for anything else. */
+export const parseIPv4 = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const parts = value.split(".");
+  if (
+    parts.length !== 4 ||
+    !parts.every(
+      (part) => /^(0|[1-9][0-9]{0,2})$/.test(part) && Number(part) <= 255
+    )
+  ) {
+    return null;
+  }
+  return value;
+};
 
 const parseCheck = (value: unknown): CloudHostCheck | null => {
   if (!isRecord(value) || typeof value.time !== "string") {
@@ -70,6 +89,7 @@ export const parseCloudHostInfo = (json: unknown): CloudHostInfo => {
         ? (textOrNull(data.error) ?? "unknown")
         : textOrNull(data.error),
     last_check: parseCheck(data.last_check),
+    trusted_proxy: state === "running" ? parseIPv4(data.trusted_proxy) : null,
   };
 };
 

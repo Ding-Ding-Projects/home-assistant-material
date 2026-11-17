@@ -3,13 +3,18 @@ import type {
   CloudHostInfo,
   CloudHostState,
 } from "../../../../src/data/hassio/cloud-host";
-import { parseCloudHostInfo } from "../../../../src/data/hassio/cloud-host";
+import {
+  parseCloudHostInfo,
+  parseIPv4,
+} from "../../../../src/data/hassio/cloud-host";
 import {
   allowedActions,
   buildSteps,
   hostnameProblem,
   isSafeSignInUrl,
   normalizeHostname,
+  proxyBlock,
+  proxyConfigLines,
   RUNNER_NOT_INSTALLED,
   shouldPoll,
 } from "../../../../src/panels/config/cloud-host/cloud-host";
@@ -24,6 +29,7 @@ const info = (over: Partial<CloudHostInfo> = {}): CloudHostInfo => ({
   hostname: null,
   error: null,
   last_check: null,
+  trusted_proxy: null,
   ...over,
 });
 
@@ -168,6 +174,7 @@ describe("reading the Supervisor answer", () => {
         status: 200,
         reason: null,
       },
+      trusted_proxy: null,
     });
   });
 
@@ -176,5 +183,70 @@ describe("reading the Supervisor answer", () => {
     expect(
       parseCloudHostInfo({ state: "error", error: RUNNER_NOT_INSTALLED }).error
     ).toBe(RUNNER_NOT_INSTALLED);
+  });
+});
+
+describe("trusted proxy", () => {
+  it("accepts only a dotted IPv4 address", () => {
+    expect(parseIPv4("172.30.32.7")).toBe("172.30.32.7");
+    for (const bad of [
+      "172.30.32",
+      "172.30.32.256",
+      "172.30.32.7/24",
+      "::1",
+      "a.b.c.d",
+      "01.2.3.4",
+      " 1.2.3.4",
+      "",
+      7,
+      null,
+      undefined,
+    ]) {
+      expect(parseIPv4(bad)).toBeNull();
+    }
+  });
+
+  it("is read only while running", () => {
+    const body = { hostname: "a.b.co", trusted_proxy: "172.30.32.7" };
+    expect(
+      parseCloudHostInfo({ state: "running", ...body }).trusted_proxy
+    ).toBe("172.30.32.7");
+    expect(parseCloudHostInfo({ state: "paused", ...body }).trusted_proxy).toBe(
+      null
+    );
+    expect(
+      parseCloudHostInfo({ state: "running", trusted_proxy: "nope" })
+        .trusted_proxy
+    ).toBe(null);
+    expect(parseCloudHostInfo({ state: "running" }).trusted_proxy).toBe(null);
+  });
+
+  it("writes the exact lines to add", () => {
+    expect(proxyConfigLines("172.30.32.7")).toBe(
+      [
+        "http:",
+        "  use_x_forwarded_for: true",
+        "  trusted_proxies:",
+        "    - 172.30.32.7",
+      ].join("\n")
+    );
+  });
+
+  it("shows the lines only while running with an address", () => {
+    expect(
+      proxyBlock(info({ state: "running", trusted_proxy: "1.2.3.4" }))
+    ).toBe("lines");
+    expect(proxyBlock(info({ state: "running" }))).toBe("waiting");
+    for (const state of [
+      "not_set_up",
+      "waiting_for_sign_in",
+      "paused",
+      "error",
+    ] as const) {
+      expect(proxyBlock(info({ state, trusted_proxy: "1.2.3.4" }))).toBe(
+        "none"
+      );
+    }
+    expect(proxyBlock(undefined)).toBe("none");
   });
 });

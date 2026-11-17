@@ -4,6 +4,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, queryAll, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
+import { copyToClipboard } from "../../../common/util/copy-clipboard";
 import { playPageEntry } from "../../../common/motion/page-entry";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
@@ -27,6 +28,7 @@ import "../../../layouts/hass-subpage";
 import { ChildPanelReady } from "../../../layouts/panel-ready";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
+import { showToast } from "../../../util/toast";
 import type { CloudHostAction, Step } from "./cloud-host";
 import {
   allowedActions,
@@ -34,6 +36,8 @@ import {
   hostnameProblem,
   isSafeSignInUrl,
   normalizeHostname,
+  proxyBlock,
+  proxyConfigLines,
   RUNNER_NOT_INSTALLED,
   shouldPoll,
   SIGN_IN_POLL_MS,
@@ -359,6 +363,7 @@ http:
           ${steps.map((step) => this._renderStep(step))}
         </ol>
         ${actions.includes("open_sign_in") ? this._renderSignIn() : nothing}
+        ${this._renderProxy(info)}
       </section>
     `;
   }
@@ -428,6 +433,41 @@ http:
         </ha-button>
       </div>
     `;
+  }
+
+  private _renderProxy(info: CloudHostInfo): TemplateResult | typeof nothing {
+    const block = proxyBlock(info);
+    if (block === "none") {
+      return nothing;
+    }
+    if (block === "waiting" || !info.trusted_proxy) {
+      return html`<div class="proxy"><p>${this._t("proxy_unknown")}</p></div>`;
+    }
+    return html`
+      <div class="proxy">
+        <p>${this._t("proxy_text")}</p>
+        <pre class="mono code">${proxyConfigLines(info.trusted_proxy)}</pre>
+        <p>${this._t("proxy_restart")}</p>
+        <ha-button appearance="filled" @click=${this._copyProxy}>
+          ${this._t("proxy_copy")}
+        </ha-button>
+      </div>
+    `;
+  }
+
+  private async _copyProxy(): Promise<void> {
+    const address = this._info?.trusted_proxy;
+    if (!address) {
+      return;
+    }
+    try {
+      await copyToClipboard(proxyConfigLines(address), this);
+      showToast(this, {
+        message: this.hass.localize("ui.common.copied_clipboard"),
+      });
+    } catch (_err) {
+      showToast(this, { message: this._t("proxy_copy_failed") });
+    }
   }
 
   private _renderStatus(

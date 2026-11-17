@@ -765,7 +765,7 @@
           "address_empty": "請先輸入地址",
           "address_invalid": "請用普通 DNS 名稱，例如 ha.example.com。唔接受 IP 位址、埠號、路徑同單一名稱。",
           "set_up": "設定",
-          "sign_in_text": "喺隧道供應商登入就完成。呢頁會不斷檢查，自動跳去下一步。",
+          "sign_in_text": "㩒「開啟登入」，喺隧道供應商登入。登入後呢頁會不斷檢查，自動跳去下一步。登入視窗過一陣會自己關閉；如果咁，㩒「移除」再㩒「設定」就可以重新開始。",
           "open_sign_in": "開啟登入",
           "status_title": "狀態",
           "status_paused": "已暫停。對外路線已關閉。",
@@ -795,7 +795,12 @@
           "confirm_pause_title": "暫停雲端主機？",
           "confirm_pause_text": "對外路線即時關閉。登入會保留，本地連線唔會變。",
           "confirm_remove_title": "移除雲端主機？",
-          "confirm_remove_text": "隧道會停止、憑證會刪除、地址會忘記。本地連線唔會變。"
+          "confirm_remove_text": "隧道會喺呢度停止同移除、憑證會刪除、地址會忘記。隧道供應商度嘅地址記錄可能仲喺度，可以喺嗰邊刪除。本地連線唔會變。",
+          "proxy_text": "將以下幾行加入 configuration.yaml，經隧道嚟嘅請求先會被信任。呢幾行只有隧道容器嘅地址。",
+          "proxy_restart": "加完之後要重新啟動 Home Assistant。呢頁唔會幫你改設定。",
+          "proxy_copy": "複製",
+          "proxy_copy_failed": "複製唔到。請自己選取再複製。",
+          "proxy_unknown": "暫時未收到隧道地址。過一陣再檢查。"
         },
         "personal": {
           "caption": "個人設定",

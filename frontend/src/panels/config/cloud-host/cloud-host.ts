@@ -133,3 +133,22 @@ export const isSafeSignInUrl = (value: string | null | undefined): boolean => {
     return false;
   }
 };
+
+/** The exact lines to add to configuration.yaml for the tunnel container. */
+export const proxyConfigLines = (address: string): string =>
+  [
+    "http:",
+    "  use_x_forwarded_for: true",
+    "  trusted_proxies:",
+    `    - ${address}`,
+  ].join("\n");
+
+/** Which block the page shows for the trusted proxy step in a state. */
+export type ProxyBlock = "lines" | "waiting" | "none";
+
+export const proxyBlock = (info: CloudHostInfo | undefined): ProxyBlock => {
+  if (info?.state !== "running") {
+    return "none";
+  }
+  return info.trusted_proxy ? "lines" : "waiting";
+};

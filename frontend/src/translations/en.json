@@ -16972,7 +16972,7 @@
           "address_empty": "Enter the address first",
           "address_invalid": "Use a plain DNS name such as ha.example.com. IP addresses, ports, paths and single names are not accepted.",
           "set_up": "Set up",
-          "sign_in_text": "Sign in at the tunnel provider to finish. This page keeps checking and moves on by itself.",
+          "sign_in_text": "Press Open sign-in and sign in at the tunnel provider. This page keeps checking and moves on by itself once you have signed in. The sign-in window closes itself after a while; if that happens, press Remove and then Set up to start it again.",
           "open_sign_in": "Open sign-in",
           "status_title": "Status",
           "status_paused": "Paused. The outside route is closed.",
@@ -17002,7 +17002,12 @@
           "confirm_pause_title": "Pause the cloud host?",
           "confirm_pause_text": "The outside route closes at once. The sign-in is kept and local access does not change.",
           "confirm_remove_title": "Remove the cloud host?",
-          "confirm_remove_text": "The tunnel stops, its credential is deleted and the address is forgotten. Local access does not change."
+          "confirm_remove_text": "The tunnel is stopped and removed here, its credential is deleted and the address is forgotten. The address record at the tunnel provider may remain; you can delete it there. Local access does not change.",
+          "proxy_text": "Add these lines to configuration.yaml so requests that arrive through the tunnel are trusted. They contain only the address of the tunnel container.",
+          "proxy_restart": "Restart Home Assistant after adding them. This page does not change the configuration for you.",
+          "proxy_copy": "Copy",
+          "proxy_copy_failed": "The lines could not be copied. Select them and copy by hand.",
+          "proxy_unknown": "The tunnel address has not been reported yet. Check again in a moment."
         },
         "performance": {
           "caption": "Performance",
