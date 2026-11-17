@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Helpers inside the automation editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#0B0F13}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid #CEE5FF;outline-offset:3px}
+</style>
+</helmet>
+<div style="min-height: 900px; box-sizing: border-box; background: #0B0F13; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px">
+
+<h1 style="margin: 0; font-size: 48px; line-height: 1; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em; color: #FFFFFF">Helpers, right where you need them</h1>
+<p style="margin: 0; max-width: 780px; font-size: 17px; line-height: 25px; color: #C2C7CF">Need a switch, a number, a timer or a list for this automation? Make it here, change it here, remove it here. No trip to another page, and the automation you are editing is not lost.</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start">
+
+<section style="border-radius: 36px; background: #14181D; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; gap: 12px"><div style="font-size: 60px; line-height: .9; font-weight: 800; font-stretch: 122%; color: #98CBFF">{{count}}</div><h2 style="margin: 0; font-size: 22px; font-weight: 800">{{countLabel}}</h2></div>
+<sc-for list="{{helpers}}" as="h" hint-placeholder-count="3">
+<div style="border-radius: 20px; background: {{h.bg}}; padding: 12px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+<div style="flex: 1 1 160px; min-width: 0"><div style="font-weight: 800">{{h.name}}</div><div style="font-size: 13px; color: #C2C7CF">{{h.kind}} · {{h.value}}</div></div>
+<button onClick="{{h.edit}}" style="min-height: 48px; padding: 0 16px; border-radius: 24px; border: none; background: #272B31; color: #E0E2E8; font-weight: 700">Edit</button>
+<button onClick="{{h.remove}}" style="min-height: 48px; padding: 0 16px; border-radius: 24px; border: none; background: #93000A; color: #FFDAD6; font-weight: 700">Remove</button>
+</div>
+</sc-for>
+<sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+<div style="border-radius: 20px; background: #1D2126; padding: 18px; color: #C2C7CF">No helpers are used by this automation yet.</div>
+</sc-if>
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF; margin-top: 6px">MAKE A NEW ONE</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px">
+<sc-for list="{{makers}}" as="m" hint-placeholder-count="6">
+<button onClick="{{m.make}}" style="min-height: 64px; border-radius: 20px; border: none; background: #004A76; color: #FFFFFF; font-weight: 800">{{m.label}}</button>
+</sc-for>
+</div>
+</section>
+
+<section style="border-radius: 36px; background: #1D2126; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">{{panelTitle}}</div>
+<sc-if value="{{editing}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<label style="font-weight: 700">Name<input type="text" value="{{editName}}" style="display: block; width: 100%; box-sizing: border-box; min-height: 52px; margin-top: 6px; border-radius: 16px; border: 2px solid #42474E; background: #0B0F13; color: #FFFFFF; padding: 0 14px; font: inherit"></label>
+<div style="border-radius: 24px; background: #14181D; padding: 16px">
+<div style="font-weight: 800">{{editKind}}</div>
+<div style="font-size: 13px; color: #C2C7CF; margin-top: 2px">{{editHint}}</div>
+<div style="margin-top: 12px; font-size: 44px; line-height: 1; font-weight: 800; font-stretch: 120%; color: #FFFFFF">{{editValue}}</div>
+</div>
+<div style="border-radius: 20px; background: #14181D; padding: 12px 16px; font-size: 14px; color: #C2C7CF">Used by: this automation, and 1 other. Changing it here changes it everywhere.</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button onClick="{{done}}" style="min-height: 52px; padding: 0 26px; border-radius: 26px; border: none; background: #98CBFF; color: #003354; font-weight: 800">Save helper</button>
+<button onClick="{{done}}" style="min-height: 52px; padding: 0 22px; border-radius: 26px; border: none; background: #272B31; color: #E0E2E8; font-weight: 700">Cancel</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{idle}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-size: 20px; line-height: 27px; font-weight: 800; color: #FFFFFF">{{lastAction}}</p>
+<p style="margin: 0; color: #C2C7CF">Press Edit, Remove or one of the "make" tiles. Removing a helper that other automations use asks first and names them; the confirmation is the two keys, nothing typed.</p>
+</div>
+</sc-if>
+</section>
+
+</div>
+<p style="margin: 0; font-size: 14px; color: #C2C7CF">The same panel appears as a bottom sheet on a small screen, and inside the script and scene editors.</p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { list: [
+{ id: 1, name: 'Guest mode', kind: 'Switch', value: 'Off', hint: 'On or off. Use it as a condition.' },
+{ id: 2, name: 'Evening brightness', kind: 'Number', value: '40%', hint: 'A value from 1 to 100 with a slider.' },
+{ id: 3, name: 'Hallway off timer', kind: 'Timer', value: '3:00:00', hint: 'Counts down, then fires a trigger.' } ], next: 4, editId: 2, last: 'Nothing changed yet.' }; }
+renderVals() {
+const s = this.state; const cur = s.list.find((h) => h.id === s.editId);
+const kinds = { Switch: ['Off', 'On or off. Use it as a condition.'], Number: ['50', 'A value in a range with a slider.'], Text: ['', 'A short piece of text.'], Timer: ['0:05:00', 'Counts down, then fires a trigger.'], List: ['Option 1', 'One choice out of several.'], 'Date and time': ['07:00', 'A date, a time, or both.'] };
+return {
+count: s.list.length, countLabel: s.list.length === 1 ? 'helper in this automation' : 'helpers in this automation', empty: s.list.length === 0,
+helpers: s.list.map((h) => ({ ...h, bg: h.id === s.editId ? '#004A76' : '#1D2126',
+edit: () => this.setState({ editId: h.id }),
+remove: () => this.setState({ list: s.list.filter((x) => x.id !== h.id), editId: s.editId === h.id ? null : s.editId, last: 'Removed "' + h.name + '".' }) })),
+makers: Object.keys(kinds).map((k) => ({ label: k, make: () => this.setState({ list: [...s.list, { id: s.next, name: 'New ' + k.toLowerCase(), kind: k, value: kinds[k][0] || 'empty', hint: kinds[k][1] }], next: s.next + 1, editId: s.next, last: 'Made a new ' + k.toLowerCase() + '.' }) })),
+editing: !!cur, idle: !cur, panelTitle: cur ? 'EDITING' : 'READY',
+editName: cur ? cur.name : '', editKind: cur ? cur.kind : '', editHint: cur ? cur.hint : '', editValue: cur ? cur.value : '',
+lastAction: s.last, done: () => this.setState({ editId: null, last: cur ? 'Saved "' + cur.name + '".' : s.last }),
+};
+}
+}
+</script>
+</body>
+</html>

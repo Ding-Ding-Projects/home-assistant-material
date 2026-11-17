@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>One shared empty state</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#F7F9FF}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 760px; box-sizing: border-box; background: #F7F9FF; color: #181C20; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px">
+<h1 style="margin: 0; font-size: 48px; line-height: 1; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em">Nothing here, said properly</h1>
+<p style="margin: 0; max-width: 760px; font-size: 17px; line-height: 25px; color: #42474E">One block replaces "No data" under a table header, blank pages, endless spinners and raw "404: Not Found" text. Always: a big picture, one sentence, one action.</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px">
+
+<section style="border-radius: 40px; background: #D1E4FF; color: #001D36; padding: 32px 28px; min-height: 340px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; gap: 18px">
+<svg aria-hidden="true" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="4"/><path d="M8 12h8"/></svg>
+<div><h2 style="margin: 0; font-size: 30px; line-height: 34px; font-weight: 800; font-stretch: 112%">No automations yet</h2><p style="margin: 8px 0 0">Make the first one and your home starts doing things by itself.</p></div>
+<button style="align-self: flex-start; min-height: 56px; padding: 0 26px; border-radius: 28px; border: none; background: #001D36; color: #FFFFFF; font-weight: 800">Create an automation</button>
+</section>
+
+<section style="border-radius: 40px; background: #FFFFFF; padding: 32px 28px; min-height: 340px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; gap: 18px">
+<svg aria-hidden="true" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="#42474E" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<div><h2 style="margin: 0; font-size: 30px; line-height: 34px; font-weight: 800; font-stretch: 112%">Nothing matches "garag"</h2><p style="margin: 8px 0 0; color: #42474E">3 filters are also on. 36 things are hidden by them.</p></div>
+<button style="align-self: flex-start; min-height: 56px; padding: 0 26px; border-radius: 28px; border: none; background: #00629B; color: #FFFFFF; font-weight: 800">Clear search and filters</button>
+</section>
+
+<section style="border-radius: 40px; background: #FFE08B; color: #241A00; padding: 32px 28px; min-height: 340px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; gap: 18px">
+<svg aria-hidden="true" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v5M12 17.5v.5"/></svg>
+<div><h2 style="margin: 0; font-size: 30px; line-height: 34px; font-weight: 800; font-stretch: 112%">This page does not exist</h2><p style="margin: 8px 0 0">The address may be old, or the feature needs something that is not set up here.</p></div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><button style="min-height: 56px; padding: 0 26px; border-radius: 28px; border: none; background: #241A00; color: #FFE08B; font-weight: 800">Go back</button><button style="min-height: 56px; padding: 0 22px; border-radius: 28px; border: none; background: rgba(36,26,0,.12); color: #241A00; font-weight: 700">Open Settings</button></div>
+</section>
+
+</div>
+<p style="margin: 0; font-size: 14px; color: #42474E">Three tones: blue for "start here", white for "your filters did this", amber for "something is missing". The block rises once with the page-entry spring and is announced to screen readers as a status.</p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":760}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

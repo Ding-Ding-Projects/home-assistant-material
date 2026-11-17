@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tiles that filter, docked button, polite toast</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#0B0F13}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid #CEE5FF;outline-offset:3px}
+@keyframes ls-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="min-height: 900px; box-sizing: border-box; background: #0B0F13; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px; position: relative">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+<h1 style="margin: 0; flex: 1 1 300px; font-size: 52px; line-height: 1; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em; color: #FFFFFF">Automations</h1>
+<button onClick="{{toast}}" style="min-height: 56px; padding: 0 26px; border-radius: 28px; border: none; background: #98CBFF; color: #003354; font-weight: 800">Create automation</button>
+</div>
+<p style="margin: 0; color: #C2C7CF">On a wide window the create button sits in the header. On a small screen it floats, and the list keeps enough room under the last row so nothing is ever covered.</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="4">
+<button onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="{{t.style}}"><span style="display: block; font-size: 60px; line-height: .9; font-weight: 800; font-stretch: 124%">{{t.n}}</span><span style="display: block; margin-top: 8px; font-size: 16px; font-weight: 800">{{t.label}}</span></button>
+</sc-for>
+</div>
+
+<div role="status" style="font-size: 14px; color: #C2C7CF">{{summary}}</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+<div style="min-height: 68px; box-sizing: border-box; border-radius: 20px; background: #14181D; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; animation: ls-in .4s cubic-bezier(.2,1.5,.3,1) both">
+<div style="min-width: 0"><div style="font-weight: 800">{{r.name}}</div><div style="font-size: 13px; color: #C2C7CF">{{r.note}}</div></div>
+<span style="flex: none; padding: 6px 14px; border-radius: 16px; background: {{r.chipBg}}; color: {{r.chipInk}}; font-size: 13px; font-weight: 800">{{r.state}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="height: 96px"></div>
+</div>
+
+<sc-if value="{{showToast}}" hint-placeholder-val="{{false}}">
+<div role="status" style="position: absolute; left: 50%; transform: translateX(-50%); bottom: 24px; max-width: calc(100% - 32px); box-sizing: border-box; border-radius: 28px; background: #E0E2E8; color: #181C20; padding: 14px 16px 14px 22px; display: flex; align-items: center; gap: 14px; box-shadow: 0 12px 32px rgba(0,0,0,.5); animation: ls-in .4s cubic-bezier(.2,1.5,.3,1) both">
+<span style="font-weight: 700">Automation created. This toast sits in the reserved strip, never on a row.</span>
+<button onClick="{{hideToast}}" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: none; background: #00629B; color: #FFFFFF; font-weight: 800; flex: none">Dismiss</button>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { f: 'all', toast: false }; }
+renderVals() {
+const all = [
+{ name: 'Hallway light at sunset', note: 'Ran 2 hours ago', state: 'On' },
+{ name: 'Announce when the washer is done', note: 'Ran yesterday', state: 'On' },
+{ name: 'Night mode', note: 'Never ran', state: 'Off' },
+{ name: 'Garage door left open', note: 'Its sensor is missing', state: 'Broken' },
+{ name: 'Morning blinds', note: 'Ran today at 07:00', state: 'On' } ];
+const f = this.state.f;
+const defs = [['all', 'All', all.length, '#004A76', '#FFFFFF'], ['On', 'Turned on', 3, '#1D4B2A', '#B6F2BE'], ['Off', 'Turned off', 1, '#272B31', '#E0E2E8'], ['Broken', 'Need repair', 1, '#5C4300', '#FFE08B']];
+const chip = { On: ['#1D4B2A', '#B6F2BE'], Off: ['#272B31', '#C2C7CF'], Broken: ['#5C4300', '#FFE08B'] };
+const shown = all.filter((r) => f === 'all' || r.state === f);
+return {
+tiles: defs.map(([id, label, n, bg, ink]) => ({ label, n, pressed: f === id ? 'true' : 'false', pick: () => this.setState({ f: f === id ? 'all' : id }),
+style: 'text-align:left;min-height:132px;border-radius:28px;padding:18px 20px;border:' + (f === id ? '4px solid #FFFFFF' : '4px solid transparent') + ';background:' + bg + ';color:' + ink })),
+rows: shown.map((r) => ({ ...r, chipBg: chip[r.state][0], chipInk: chip[r.state][1] })),
+summary: f === 'all' ? 'Tap a tile to filter the list. Tap it again to show everything.' : 'Showing ' + shown.length + ' of ' + all.length + '. Tap the tile again to show everything.',
+showToast: this.state.toast, toast: () => this.setState({ toast: true }), hideToast: () => this.setState({ toast: false }),
+};
+}
+}
+</script>
+</body>
+</html>

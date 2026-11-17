@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>While you were away</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#F7F9FF}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 760px; box-sizing: border-box; background: #F7F9FF; color: #181C20; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+
+<section style="border-radius: 48px; background: #00629B; color: #FFFFFF; padding: 30px 32px; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 20px">
+<div style="flex: 1 1 380px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #CEE5FF">WHILE YOU WERE AWAY · 9 HOURS</div>
+<h1 style="margin: 8px 0 0; font-size: 56px; line-height: .98; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em">A quiet day. One thing to look at.</h1>
+</div>
+<button style="min-height: 52px; padding: 0 24px; border-radius: 26px; border: none; background: rgba(255,255,255,.18); color: #FFFFFF; font-weight: 800">Got it, hide this</button>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+<div style="border-radius: 28px; background: #FFE08B; color: #241A00; padding: 18px 20px; min-height: 140px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between"><div style="font-size: 60px; line-height: .9; font-weight: 800; font-stretch: 124%">1</div><div style="font-weight: 800">needs a look</div></div>
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px 20px; min-height: 140px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between"><div style="font-size: 60px; line-height: .9; font-weight: 800; font-stretch: 124%">6</div><div style="font-weight: 800">automations ran</div></div>
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px 20px; min-height: 140px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between"><div style="font-size: 60px; line-height: .9; font-weight: 800; font-stretch: 124%">3</div><div style="font-weight: 800">times a door opened</div></div>
+<div style="border-radius: 28px; background: #FFFFFF; padding: 18px 20px; min-height: 140px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between"><div style="font-size: 60px; line-height: .9; font-weight: 800; font-stretch: 124%">2</div><div style="font-weight: 800">people came home</div></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="min-height: 68px; box-sizing: border-box; border-radius: 20px; background: #FFE08B; color: #241A00; padding: 10px 18px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px"><div><div style="font-weight: 800">The washer sensor went silent at 14:20</div><div style="font-size: 13px">It usually reports every 5 minutes.</div></div><button style="min-height: 48px; padding: 0 18px; border-radius: 24px; border: none; background: #241A00; color: #FFE08B; font-weight: 800">See device health</button></div>
+<div style="min-height: 60px; box-sizing: border-box; border-radius: 20px; background: #FFFFFF; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="font-weight: 700">Front door unlocked by Alex, then locked again</div><div style="font-size: 13px; color: #42474E; flex: none">17:42</div></div>
+<div style="min-height: 60px; box-sizing: border-box; border-radius: 20px; background: #FFFFFF; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="font-weight: 700">Hallway light turned on at sunset</div><div style="font-size: 13px; color: #42474E; flex: none">16:58</div></div>
+<div style="min-height: 60px; box-sizing: border-box; border-radius: 20px; background: #FFFFFF; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="font-weight: 700">Morning blinds opened</div><div style="font-size: 13px; color: #42474E; flex: none">07:00</div></div>
+</div>
+<p style="margin: 0; font-size: 14px; color: #42474E">Shown on the front door only after an absence of 2 hours or more (the gap is a setting). It is built from the activity log already on the instance; "last seen" is remembered on this device only. Nothing is sent anywhere.</p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":760}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

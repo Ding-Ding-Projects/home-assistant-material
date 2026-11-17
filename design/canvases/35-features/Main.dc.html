@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Automation editor, redrawn</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#0B0F13}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1100px; box-sizing: border-box; background: #0B0F13; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px">
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+<button aria-label="Back" style="width: 48px; height: 48px; border-radius: 24px; border: none; background: #1D2126; color: #E0E2E8; display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></button>
+<h1 style="margin: 0; flex: 1 1 320px; font-size: 44px; line-height: 1; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em; color: #FFFFFF">Hallway light at sunset</h1>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<span style="padding: 6px 14px; border-radius: 16px; background: #1D2126; color: #C2C7CF; font-size: 13px; font-weight: 700">No unsaved changes</span>
+<button style="min-height: 48px; padding: 0 20px; border-radius: 24px; border: none; background: #1D2126; color: #E0E2E8; font-weight: 700">Dry run</button>
+<button style="min-height: 48px; padding: 0 20px; border-radius: 24px; border: none; background: #1D2126; color: #E0E2E8; font-weight: 700">More</button>
+<button style="min-height: 48px; padding: 0 26px; border-radius: 24px; border: none; background: #98CBFF; color: #003354; font-weight: 800">Save</button>
+</div>
+</div>
+
+<div style="display: inline-flex; align-self: flex-start; padding: 4px; border-radius: 28px; background: #14181D; gap: 4px">
+<button style="min-height: 48px; padding: 0 22px; border-radius: 24px; border: none; background: #004A76; color: #FFFFFF; font-weight: 800">Simple</button>
+<button style="min-height: 48px; padding: 0 22px; border-radius: 24px; border: none; background: transparent; color: #C2C7CF; font-weight: 700">Advanced</button>
+<button style="min-height: 48px; padding: 0 22px; border-radius: 24px; border: none; background: transparent; color: #C2C7CF; font-weight: 700">Code</button>
+</div>
+
+<section style="border-radius: 40px; background: #004A76; color: #FFFFFF; padding: 26px 28px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #CEE5FF">IN ONE SENTENCE</div>
+<p style="margin: 8px 0 0; font-size: 30px; line-height: 36px; font-weight: 800; font-stretch: 112%">When the sun sets, and somebody is home, turn on the hallway light at 40%.</p>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start">
+
+<section style="border-radius: 32px; background: #14181D; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; gap: 12px"><div style="font-size: 52px; line-height: .9; font-weight: 800; font-stretch: 122%; color: #98CBFF">1</div><h2 style="margin: 0; font-size: 22px; font-weight: 800">When</h2></div>
+<div style="min-height: 64px; box-sizing: border-box; border-radius: 20px; background: #1D2126; padding: 12px 16px"><div style="font-weight: 800">The sun sets</div><div style="font-size: 13px; color: #C2C7CF">Offset: 15 minutes before</div></div>
+<button style="min-height: 52px; border-radius: 20px; border: 2px dashed #42474E; background: transparent; color: #C2C7CF; font-weight: 700">Add a trigger</button>
+</section>
+
+<section style="border-radius: 32px; background: #14181D; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; gap: 12px"><div style="font-size: 52px; line-height: .9; font-weight: 800; font-stretch: 122%; color: #FFE08B">2</div><h2 style="margin: 0; font-size: 22px; font-weight: 800">Only if</h2></div>
+<div style="min-height: 64px; box-sizing: border-box; border-radius: 20px; background: #1D2126; padding: 12px 16px"><div style="font-weight: 800">Somebody is home</div><div style="font-size: 13px; color: #C2C7CF">Zone: Home has 1 or more people</div></div>
+<button style="min-height: 52px; border-radius: 20px; border: 2px dashed #42474E; background: transparent; color: #C2C7CF; font-weight: 700">Add a condition</button>
+</section>
+
+<section style="border-radius: 32px; background: #14181D; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; gap: 12px"><div style="font-size: 52px; line-height: .9; font-weight: 800; font-stretch: 122%; color: #9BD6A4">3</div><h2 style="margin: 0; font-size: 22px; font-weight: 800">Then</h2></div>
+<div style="min-height: 64px; box-sizing: border-box; border-radius: 20px; background: #1D2126; padding: 12px 16px"><div style="font-weight: 800">Turn on Hallway light</div><div style="font-size: 13px; color: #C2C7CF">Brightness 40%, warm white</div></div>
+<div style="min-height: 64px; box-sizing: border-box; border-radius: 20px; background: #1D2126; padding: 12px 16px"><div style="font-weight: 800">Wait 3 hours, then turn it off</div><div style="font-size: 13px; color: #C2C7CF">Only if nobody changed it meanwhile</div></div>
+<button style="min-height: 52px; border-radius: 20px; border: 2px dashed #42474E; background: transparent; color: #C2C7CF; font-weight: 700">Add an action</button>
+</section>
+
+</div>
+
+<p style="margin: 0; font-size: 14px; color: #C2C7CF">Scripts and scenes use the same frame: a sentence on top, numbered blocks below, one Save. On a small screen the three blocks stack and the header buttons wrap under the title.</p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

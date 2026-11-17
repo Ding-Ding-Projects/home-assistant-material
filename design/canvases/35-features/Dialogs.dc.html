@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Modern dialog and bottom sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#2A2F36}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 900px; box-sizing: border-box; background: #2A2F36; color: #181C20; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; justify-content: center">
+
+<section aria-label="Dialog on a wide window" style="flex: 1 1 520px; max-width: 640px; border-radius: 36px; background: #F7F9FF; padding: 28px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.4)">
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<h1 style="margin: 0; font-size: 40px; line-height: 1; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em">Make a helper</h1>
+<button aria-label="Close" style="width: 48px; height: 48px; border-radius: 24px; border: none; background: #E5E8EE; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#181C20" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+</div>
+<label style="display: flex; align-items: center; gap: 12px; min-height: 60px; border-radius: 30px; background: #D1E4FF; padding: 0 20px"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#001D36" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" placeholder="Find a kind of helper" aria-label="Find a kind of helper" style="flex: 1; min-width: 0; border: none; background: transparent; font: inherit; font-size: 17px; font-weight: 700; color: #001D36; outline: none"></label>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px">
+<button style="min-height: 96px; border-radius: 24px; border: none; background: #FFFFFF; padding: 14px 16px; text-align: left"><div style="font-size: 18px; font-weight: 800">Switch</div><div style="font-size: 13px; color: #42474E">On or off</div></button>
+<button style="min-height: 96px; border-radius: 24px; border: 3px solid #00629B; background: #FFFFFF; padding: 14px 16px; text-align: left"><div style="font-size: 18px; font-weight: 800">Number</div><div style="font-size: 13px; color: #42474E">A value with a slider</div></button>
+<button style="min-height: 96px; border-radius: 24px; border: none; background: #FFFFFF; padding: 14px 16px; text-align: left"><div style="font-size: 18px; font-weight: 800">Timer</div><div style="font-size: 13px; color: #42474E">Counts down</div></button>
+<button style="min-height: 96px; border-radius: 24px; border: none; background: #FFFFFF; padding: 14px 16px; text-align: left"><div style="font-size: 18px; font-weight: 800">List</div><div style="font-size: 13px; color: #42474E">One choice of several</div></button>
+<button style="min-height: 96px; border-radius: 24px; border: none; background: #FFFFFF; padding: 14px 16px; text-align: left"><div style="font-size: 18px; font-weight: 800">Text</div><div style="font-size: 13px; color: #42474E">A short note</div></button>
+<button style="min-height: 96px; border-radius: 24px; border: none; background: #FFFFFF; padding: 14px 16px; text-align: left"><div style="font-size: 18px; font-weight: 800">Date and time</div><div style="font-size: 13px; color: #42474E">A moment to act on</div></button>
+</div>
+<div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px">
+<button style="min-height: 52px; padding: 0 22px; border-radius: 26px; border: none; background: #E5E8EE; font-weight: 700">Cancel</button>
+<button style="min-height: 52px; padding: 0 28px; border-radius: 26px; border: none; background: #00629B; color: #FFFFFF; font-weight: 800">Continue</button>
+</div>
+</section>
+
+<section aria-label="The same dialog as a bottom sheet on a small screen" style="flex: 0 1 390px; width: 100%; max-width: 390px; min-height: 780px; border-radius: 40px; background: #0B0F13; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
+<div style="position: absolute; inset: 0; background: rgba(0,0,0,.5)"></div>
+<div style="position: relative; border-radius: 36px 36px 0 0; background: #1D2126; color: #E0E2E8; padding: 12px 18px 22px; display: flex; flex-direction: column; gap: 12px">
+<div aria-hidden="true" style="width: 44px; height: 5px; border-radius: 3px; background: #42474E; align-self: center"></div>
+<h2 style="margin: 0; font-size: 32px; line-height: 1; font-weight: 800; font-stretch: 116%; color: #FFFFFF">Make a helper</h2>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 56px; border-radius: 28px; background: #98CBFF; padding: 0 18px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#003354" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" placeholder="Find a kind" aria-label="Find a kind of helper" style="flex: 1; min-width: 0; border: none; background: transparent; font: inherit; font-weight: 700; color: #003354; outline: none"></label>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<button style="min-height: 76px; border-radius: 20px; border: none; background: #14181D; color: #E0E2E8; padding: 10px 14px; text-align: left; font-weight: 800">Switch</button>
+<button style="min-height: 76px; border-radius: 20px; border: 3px solid #98CBFF; background: #14181D; color: #E0E2E8; padding: 10px 14px; text-align: left; font-weight: 800">Number</button>
+<button style="min-height: 76px; border-radius: 20px; border: none; background: #14181D; color: #E0E2E8; padding: 10px 14px; text-align: left; font-weight: 800">Timer</button>
+<button style="min-height: 76px; border-radius: 20px; border: none; background: #14181D; color: #E0E2E8; padding: 10px 14px; text-align: left; font-weight: 800">List</button>
+</div>
+<button style="min-height: 56px; border-radius: 28px; border: none; background: #98CBFF; color: #003354; font-weight: 800; font-size: 16px">Continue</button>
+<button style="min-height: 48px; border-radius: 24px; border: none; background: transparent; color: #C2C7CF; font-weight: 700">Cancel</button>
+</div>
+</section>
+
+</div>
+<p style="max-width: 1180px; margin: 22px auto 0; color: #E0E2E8; font-size: 14px">Rules: one big title, one search at the top (never a second bar at the bottom), choices as tiles, one filled main button. On a small screen the dialog rises from the bottom as a sheet with a spring, the main button is full width and sits within thumb reach, and a swipe down or Cancel closes it.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

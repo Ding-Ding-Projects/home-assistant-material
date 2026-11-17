@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Automation dry run</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#F7F9FF}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 860px; box-sizing: border-box; background: #F7F9FF; color: #181C20; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">DRY RUN · HALLWAY LIGHT AT SUNSET</div>
+<h1 style="margin: 0; font-size: 52px; line-height: 1; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em">What would this have done?</h1>
+
+<div style="display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 30px; background: #E5E8EE; align-self: flex-start">
+<button style="min-height: 48px; padding: 0 20px; border-radius: 24px; border: none; background: #00629B; color: #FFFFFF; font-weight: 800">Past day</button>
+<button style="min-height: 48px; padding: 0 20px; border-radius: 24px; border: none; background: transparent; font-weight: 700">Past week</button>
+<button style="min-height: 48px; padding: 0 20px; border-radius: 24px; border: none; background: transparent; font-weight: 700">Pick dates</button>
+</div>
+
+<section style="border-radius: 48px; background: #D1E4FF; color: #001D36; padding: 26px 30px; display: flex; flex-wrap: wrap; align-items: center; gap: 22px">
+<div style="font-size: 120px; line-height: .8; font-weight: 800; font-stretch: 126%">1</div>
+<div style="flex: 1 1 300px"><div style="font-size: 30px; line-height: 34px; font-weight: 800; font-stretch: 112%">time it would have run</div><div>The trigger fired twice. Once the condition said no.</div></div>
+<div style="padding: 10px 18px; border-radius: 22px; background: #001D36; color: #FFFFFF; font-weight: 800">Nothing was really switched</div>
+</section>
+
+<div style="border-radius: 32px; background: #FFFFFF; padding: 22px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">THE PAST DAY</div>
+<div aria-hidden="true" style="position: relative; height: 56px; margin-top: 14px; border-radius: 16px; background: #F0F3F9">
+<div style="position: absolute; left: 29%; top: 8px; bottom: 8px; width: 10px; border-radius: 5px; background: #C2C7CF"></div>
+<div style="position: absolute; left: 71%; top: 8px; bottom: 8px; width: 10px; border-radius: 5px; background: #00629B"></div>
+<div style="position: absolute; left: 71%; top: 22px; height: 12px; width: 12.5%; border-radius: 6px; background: #FFE08B"></div>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 13px; color: #42474E; margin-top: 6px"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 20px; background: #FFFFFF; padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center"><div style="flex: none; padding: 6px 14px; border-radius: 16px; background: #00629B; color: #FFFFFF; font-size: 13px; font-weight: 800">16:58 · would run</div><div style="flex: 1 1 320px"><div style="font-weight: 800">Sun set, somebody was home</div><div style="font-size: 13px; color: #42474E">Would turn on Hallway light at 40%, wait 3 hours, turn it off at 19:58.</div></div></div>
+<div style="border-radius: 20px; background: #FFFFFF; padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center"><div style="flex: none; padding: 6px 14px; border-radius: 16px; background: #E5E8EE; font-size: 13px; font-weight: 800">06:58 · stopped</div><div style="flex: 1 1 320px"><div style="font-weight: 800">A test of the trigger, but nobody was home</div><div style="font-size: 13px; color: #42474E">Stopped at "Only if: somebody is home". Home had 0 people.</div></div></div>
+</div>
+<p style="margin: 0; font-size: 14px; color: #42474E">The dry run replays the recorded history against the automation as it is on screen, saved or not, so a change can be tried before saving. It never calls an action. Anything it cannot know from history (a template that reads the weather forecast, for example) is marked "cannot tell" instead of guessed.</p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

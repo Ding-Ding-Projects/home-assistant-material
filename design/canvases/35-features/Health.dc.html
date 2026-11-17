@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Device health</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#0B0F13}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 900px; box-sizing: border-box; background: #0B0F13; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+<h1 style="margin: 0; font-size: 52px; line-height: 1; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em; color: #FFFFFF">Device health</h1>
+
+<section style="border-radius: 48px; background: #FFE08B; color: #241A00; padding: 26px 30px; display: flex; flex-wrap: wrap; align-items: center; gap: 22px">
+<div style="font-size: 120px; line-height: .8; font-weight: 800; font-stretch: 126%">4</div>
+<div style="flex: 1 1 280px"><div style="font-size: 30px; line-height: 34px; font-weight: 800; font-stretch: 112%">devices need attention</div><div>38 others are fine. Worst first, below.</div></div>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
+<button style="text-align: left; border: 4px solid #FFFFFF; border-radius: 28px; background: #5C4300; color: #FFE08B; padding: 16px 18px; min-height: 120px"><span style="display: block; font-size: 52px; line-height: .9; font-weight: 800; font-stretch: 124%">2</span><span style="display: block; margin-top: 8px; font-weight: 800">Low battery</span></button>
+<button style="text-align: left; border: 4px solid transparent; border-radius: 28px; background: #93000A; color: #FFDAD6; padding: 16px 18px; min-height: 120px"><span style="display: block; font-size: 52px; line-height: .9; font-weight: 800; font-stretch: 124%">1</span><span style="display: block; margin-top: 8px; font-weight: 800">Gone silent</span></button>
+<button style="text-align: left; border: 4px solid transparent; border-radius: 28px; background: #272B31; color: #E0E2E8; padding: 16px 18px; min-height: 120px"><span style="display: block; font-size: 52px; line-height: .9; font-weight: 800; font-stretch: 124%">1</span><span style="display: block; margin-top: 8px; font-weight: 800">Weak signal</span></button>
+<button style="text-align: left; border: 4px solid transparent; border-radius: 28px; background: #1D4B2A; color: #B6F2BE; padding: 16px 18px; min-height: 120px"><span style="display: block; font-size: 52px; line-height: .9; font-weight: 800; font-stretch: 124%">38</span><span style="display: block; margin-top: 8px; font-weight: 800">Healthy</span></button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 20px; background: #14181D; padding: 12px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+<div style="flex: 1 1 240px"><div style="font-weight: 800">Bedroom window sensor</div><div style="font-size: 13px; color: #C2C7CF">Bedroom · battery 7% · about 5 days left</div></div>
+<div aria-hidden="true" style="flex: 1 1 140px; height: 12px; border-radius: 6px; background: #272B31; overflow: hidden"><div style="width: 7%; height: 100%; background: #FFB4AB"></div></div>
+<button style="min-height: 48px; padding: 0 18px; border-radius: 24px; border: none; background: #272B31; color: #E0E2E8; font-weight: 700">Which battery?</button>
+</div>
+<div style="border-radius: 20px; background: #14181D; padding: 12px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+<div style="flex: 1 1 240px"><div style="font-weight: 800">Hallway motion sensor</div><div style="font-size: 13px; color: #C2C7CF">Hallway · battery 18% · about 3 weeks left</div></div>
+<div aria-hidden="true" style="flex: 1 1 140px; height: 12px; border-radius: 6px; background: #272B31; overflow: hidden"><div style="width: 18%; height: 100%; background: #FFE08B"></div></div>
+<button style="min-height: 48px; padding: 0 18px; border-radius: 24px; border: none; background: #272B31; color: #E0E2E8; font-weight: 700">Remind me</button>
+</div>
+<div style="border-radius: 20px; background: #14181D; padding: 12px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+<div style="flex: 1 1 240px"><div style="font-weight: 800">Washer power sensor</div><div style="font-size: 13px; color: #C2C7CF">Laundry · silent since 14:20 · usually reports every 5 minutes</div></div>
+<button style="min-height: 48px; padding: 0 18px; border-radius: 24px; border: none; background: #98CBFF; color: #003354; font-weight: 800">Try to wake it</button>
+</div>
+<div style="border-radius: 20px; background: #14181D; padding: 12px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+<div style="flex: 1 1 240px"><div style="font-weight: 800">Garage door contact</div><div style="font-size: 13px; color: #C2C7CF">Garage · signal 1 of 5 bars · drops out about twice a day</div></div>
+<button style="min-height: 48px; padding: 0 18px; border-radius: 24px; border: none; background: #272B31; color: #E0E2E8; font-weight: 700">What helps?</button>
+</div>
+</div>
+<p style="margin: 0; font-size: 14px; color: #C2C7CF">Built only from what the instance already knows: battery levels, last report times and signal values. "Days left" is an estimate from the last weeks and says so. A device with no battery or signal value is never guessed at; it is listed as "does not report health".</p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

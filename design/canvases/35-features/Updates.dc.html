@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Update history, rollback, backup self-check, USB</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#0B0F13}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1200px; box-sizing: border-box; background: #0B0F13; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+<h1 style="margin: 0; font-size: 52px; line-height: 1; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em; color: #FFFFFF">Updates and recovery</h1>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; align-items: start">
+
+<section style="border-radius: 36px; background: #14181D; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">UPDATE HISTORY</div>
+<div style="border-radius: 24px; background: #004A76; color: #FFFFFF; padding: 16px 18px"><div style="font-size: 13px; font-weight: 700; color: #CEE5FF">NOW</div><div style="font-size: 34px; line-height: 1.05; font-weight: 800; font-stretch: 118%">Build 481</div><div style="font-size: 13px; color: #CEE5FF">Installed 17 November, 01:59. 4 changes.</div></div>
+<div style="border-radius: 20px; background: #1D2126; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px"><div style="flex: 1 1 160px"><div style="font-weight: 800">Build 478</div><div style="font-size: 13px; color: #C2C7CF">16 November, 23:50. Ran for 2 hours.</div></div><button style="min-height: 48px; padding: 0 18px; border-radius: 24px; border: none; background: #FFE08B; color: #241A00; font-weight: 800">Go back to 478</button></div>
+<div style="border-radius: 20px; background: #1D2126; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px"><div style="flex: 1 1 160px"><div style="font-weight: 800">Build 476</div><div style="font-size: 13px; color: #C2C7CF">Held back: a heading overflowed. Never installed.</div></div><span style="padding: 6px 14px; border-radius: 16px; background: #272B31; font-size: 13px; font-weight: 800">Skipped</span></div>
+<div style="border-radius: 20px; background: #1D2126; padding: 12px 16px"><div style="font-weight: 800">Build 462</div><div style="font-size: 13px; color: #C2C7CF">15 November. Ran for 1 day.</div></div>
+<p style="margin: 0; font-size: 13px; color: #C2C7CF">Going back needs the two keys, makes a backup first, and only offers builds that were really installed here. It never happens by itself.</p>
+</section>
+
+<section style="border-radius: 36px; background: #14181D; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">BACKUP SELF-CHECK</div>
+<div style="border-radius: 24px; background: #1D4B2A; color: #B6F2BE; padding: 16px 18px; display: flex; align-items: center; gap: 14px"><svg role="img" aria-label="Passed" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex: none"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><div><div style="font-size: 24px; line-height: 28px; font-weight: 800">Last night's backup opens</div><div style="font-size: 13px">Checked 03:12. 4 of 4 checks passed.</div></div></div>
+<div style="border-radius: 20px; background: #1D2126; padding: 12px 16px; display: flex; justify-content: space-between; gap: 12px"><span style="font-weight: 700">The file is complete</span><span style="color: #9BD6A4; font-weight: 800">Yes</span></div>
+<div style="border-radius: 20px; background: #1D2126; padding: 12px 16px; display: flex; justify-content: space-between; gap: 12px"><span style="font-weight: 700">It unlocks with your backup key</span><span style="color: #9BD6A4; font-weight: 800">Yes</span></div>
+<div style="border-radius: 20px; background: #1D2126; padding: 12px 16px; display: flex; justify-content: space-between; gap: 12px"><span style="font-weight: 700">Settings and history are inside</span><span style="color: #9BD6A4; font-weight: 800">Yes</span></div>
+<div style="border-radius: 20px; background: #1D2126; padding: 12px 16px; display: flex; justify-content: space-between; gap: 12px"><span style="font-weight: 700">The copy elsewhere matches</span><span style="color: #9BD6A4; font-weight: 800">Yes</span></div>
+<p style="margin: 0; font-size: 13px; color: #C2C7CF">A backup that fails any check turns this block amber, says which check, and offers "Back up again now".</p>
+</section>
+
+<section style="border-radius: 36px; background: #14181D; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">USB STICK MAKER</div>
+<h2 style="margin: 0; font-size: 28px; line-height: 32px; font-weight: 800; font-stretch: 112%; color: #FFFFFF">Make a stick in three steps</h2>
+<div style="display: flex; gap: 14px; align-items: center; border-radius: 20px; background: #1D2126; padding: 12px 16px"><div style="font-size: 40px; line-height: 1; font-weight: 800; font-stretch: 122%; color: #98CBFF; flex: none">1</div><div><div style="font-weight: 800">Pick what the stick is for</div><div style="font-size: 13px; color: #C2C7CF">Install updates without a network, or recover a system that will not start.</div></div></div>
+<div style="display: flex; gap: 14px; align-items: center; border-radius: 20px; background: #1D2126; padding: 12px 16px"><div style="font-size: 40px; line-height: 1; font-weight: 800; font-stretch: 122%; color: #98CBFF; flex: none">2</div><div><div style="font-weight: 800">Pick the stick</div><div style="font-size: 13px; color: #C2C7CF">Only removable drives are listed, with their size and name.</div></div></div>
+<div style="display: flex; gap: 14px; align-items: center; border-radius: 20px; background: #1D2126; padding: 12px 16px"><div style="font-size: 40px; line-height: 1; font-weight: 800; font-stretch: 122%; color: #98CBFF; flex: none">3</div><div><div style="font-weight: 800">Write and check</div><div style="font-size: 13px; color: #C2C7CF">The files are checked after writing. Erasing the stick needs the two keys.</div></div></div>
+<p style="margin: 0; font-size: 13px; color: #C2C7CF">Lives in the Deploy Assistant on your computer.</p>
+</section>
+
+<section style="border-radius: 36px; background: #14181D; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">OFFLINE UPDATE PACK</div>
+<h2 style="margin: 0; font-size: 28px; line-height: 32px; font-weight: 800; font-stretch: 112%; color: #FFFFFF">One pack, everything in order</h2>
+<div style="border-radius: 20px; background: #1D2126; padding: 12px 16px; display: flex; justify-content: space-between; gap: 12px"><span style="font-weight: 700">Supervisor 482</span><span style="color: #9BD6A4; font-weight: 800">Checked</span></div>
+<div style="border-radius: 20px; background: #1D2126; padding: 12px 16px; display: flex; justify-content: space-between; gap: 12px"><span style="font-weight: 700">Core 482</span><span style="color: #9BD6A4; font-weight: 800">Checked</span></div>
+<div style="border-radius: 20px; background: #1D2126; padding: 12px 16px; display: flex; justify-content: space-between; gap: 12px"><span style="font-weight: 700">Operating system 18.5.482</span><span style="color: #9BD6A4; font-weight: 800">Checked</span></div>
+<button style="min-height: 56px; border-radius: 28px; border: none; background: #98CBFF; color: #003354; font-weight: 800; font-size: 16px">Install from this stick</button>
+<p style="margin: 0; font-size: 13px; color: #C2C7CF">Every part is checked against its signature before anything is touched. A pack that fails is refused whole and nothing changes. Installing needs the two keys.</p>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1200}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

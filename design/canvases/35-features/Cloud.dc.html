@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cloud host, one click</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500&display=swap">
+<style>
+body{margin:0;background:#F7F9FF}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 980px; box-sizing: border-box; background: #F7F9FF; color: #181C20; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+<h1 style="margin: 0; font-size: 52px; line-height: 1; font-weight: 800; font-stretch: 116%; letter-spacing: -0.03em">Cloud host</h1>
+
+<section style="border-radius: 48px; background: #00629B; color: #FFFFFF; padding: 30px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 22px">
+<div style="flex: 1 1 380px">
+<h2 style="margin: 0; font-size: 38px; line-height: 1.04; font-weight: 800; font-stretch: 114%">Reach your home from anywhere, through a tunnel</h2>
+<p style="margin: 10px 0 0; color: #CEE5FF">No ports opened on your router. Your home's sign-in still guards the door. It is off until you turn it on.</p>
+</div>
+<button style="min-height: 72px; padding: 0 36px; border-radius: 36px; border: none; background: #FFFFFF; color: #003354; font-weight: 800; font-size: 20px">Set up</button>
+</section>
+
+<div style="border-radius: 24px; background: #FFE08B; color: #241A00; padding: 14px 18px; font-weight: 700">Setting this up makes your home reachable from the internet at an address you choose. Use a strong sign-in and two-step sign-in before you do.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; align-items: start">
+
+<section style="border-radius: 36px; background: #FFFFFF; padding: 22px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #42474E">WHAT "SET UP" DOES, LIVE</div>
+<div style="display: flex; gap: 14px; align-items: center; border-radius: 20px; background: #D7F5DC; padding: 12px 16px"><svg role="img" aria-label="Done" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0E3A1E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex: none"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><div><div style="font-weight: 800">Tunnel service installed</div><div style="font-size: 13px; color: #42474E">Runs beside Home Assistant, started by this page.</div></div></div>
+<div style="display: flex; gap: 14px; align-items: center; border-radius: 20px; background: #D1E4FF; padding: 12px 16px"><div aria-hidden="true" style="width: 26px; height: 26px; border-radius: 13px; border: 4px solid #00629B; border-right-color: transparent; box-sizing: border-box; flex: none"></div><div style="flex: 1"><div style="font-weight: 800">Waiting for you to sign in to the tunnel provider</div><div style="font-size: 13px; color: #42474E">Opens the provider's own page. Your password is never typed here.</div></div><button style="min-height: 48px; padding: 0 18px; border-radius: 24px; border: none; background: #00629B; color: #FFFFFF; font-weight: 800; flex: none">Open sign-in</button></div>
+<div style="display: flex; gap: 14px; align-items: center; border-radius: 20px; background: #F0F3F9; padding: 12px 16px"><div style="font-size: 22px; font-weight: 800; color: #42474E; width: 26px; text-align: center; flex: none">3</div><div><div style="font-weight: 800">Pick an address</div><div style="font-size: 13px; color: #42474E">Only names on your own account are offered.</div></div></div>
+<div style="display: flex; gap: 14px; align-items: center; border-radius: 20px; background: #F0F3F9; padding: 12px 16px"><div style="font-size: 22px; font-weight: 800; color: #42474E; width: 26px; text-align: center; flex: none">4</div><div><div style="font-weight: 800">Trust the tunnel, and only the tunnel</div><div style="font-size: 13px; color: #42474E">Home Assistant is told to accept forwarded visits from the tunnel alone.</div></div></div>
+<div style="display: flex; gap: 14px; align-items: center; border-radius: 20px; background: #F0F3F9; padding: 12px 16px"><div style="font-size: 22px; font-weight: 800; color: #42474E; width: 26px; text-align: center; flex: none">5</div><div><div style="font-weight: 800">Check it from outside</div><div style="font-size: 13px; color: #42474E">The page shows the real answer, good or bad.</div></div></div>
+</section>
+
+<section style="border-radius: 36px; background: #181C20; color: #E0E2E8; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #C2C7CF">ONCE IT IS RUNNING</div>
+<div style="border-radius: 24px; background: #1D4B2A; color: #B6F2BE; padding: 16px 18px"><div style="font-size: 28px; line-height: 32px; font-weight: 800; font-stretch: 112%">Reachable</div><div style="font: 500 15px 'Roboto Mono', monospace; margin-top: 4px; overflow-wrap: anywhere">https://[YOUR ADDRESS]</div><div style="font-size: 13px; margin-top: 4px">Checked from outside 2 minutes ago.</div></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<div style="border-radius: 20px; background: #272B31; padding: 14px 16px"><div style="font-size: 36px; line-height: 1; font-weight: 800; font-stretch: 122%; color: #FFFFFF">12</div><div style="font-size: 13px; color: #C2C7CF">visits today</div></div>
+<div style="border-radius: 20px; background: #272B31; padding: 14px 16px"><div style="font-size: 36px; line-height: 1; font-weight: 800; font-stretch: 122%; color: #FFFFFF">0</div><div style="font-size: 13px; color: #C2C7CF">failed sign-ins</div></div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button style="min-height: 52px; padding: 0 22px; border-radius: 26px; border: none; background: #272B31; color: #E0E2E8; font-weight: 700">Check again</button>
+<button style="min-height: 52px; padding: 0 22px; border-radius: 26px; border: none; background: #5C4300; color: #FFE08B; font-weight: 800">Pause</button>
+<button style="min-height: 52px; padding: 0 22px; border-radius: 26px; border: none; background: #93000A; color: #FFDAD6; font-weight: 800">Remove</button>
+</div>
+<p style="margin: 0; font-size: 13px; color: #C2C7CF">Pause and Remove need the two keys. The tunnel's own credential is kept by the tunnel service; this page can never show it, copy it or export it.</p>
+</section>
+
+</div>
+<p style="margin: 0; font-size: 14px; color: #42474E">Works in both ways of running Home Assistant Material: as an app next to the Supervisor, or as one more container beside the main one. If the tunnel stops, the page says so and why; the home keeps working on the local network either way.</p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
