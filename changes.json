@@ -1,15 +1,67 @@
 {
  "format": 1,
- "generated": "2026-11-17T20:37:29Z",
+ "generated": "2026-11-17T21:05:07Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 509,
+ "newest_build": 512,
  "releases": [
+  {
+   "build": 512,
+   "core": "2026.11.1.512",
+   "supervisor": "2026.11.0.512",
+   "os": "18.5.512",
+   "tag": null,
+   "source": "a6886fe92",
+   "date": "2026-11-17T15:16:45-05:00",
+   "previous_build": 509,
+   "changes": [
+    {
+     "sha": "a6886fe92",
+     "date": "2026-11-17T15:16:45-05:00",
+     "title": "Automatic system updates: the switch that could not be switched",
+     "areas": [
+      "interface"
+     ],
+     "detail": "A real run on build 509 found that turning on any of the three automatic system update switches asked for the two keys, looked on, and then failed to save: the server was sent a list-like object instead of the word \"core\". The switch carried its name in a property called `part`, which every element already owns (it is the list of shadow parts), so the browser handed back that list. Nothing was saved, so nothing could update by itself; it failed closed.\n\nThe property is now `systemPart`. The time control in the more-info dialog used the same name for its hour and minute buttons and gets the same fix (`timePart`).\n\nChecks: types at the two known gallery errors, 8504 tests pass with the three known build-script failures. Not yet seen saving on a real build.",
+     "detail_yue": "系統自動更新：開唔到嘅開關\n\n喺 509 版本真實行一次先發現：三個系統自動更新開關，開任何一個都 會問兩條鎖匙、睇落開咗，跟住儲存失敗：伺服器收到嘅唔係「core」 呢個字，而係一個似清單嘅物件。開關將自己個名放喺一個叫 `part` 嘅屬性度，但每個元素本身已經有呢個屬性（即係陰影部件清單），所以 瀏覽器交返嗰張清單出嚟。因為乜都冇儲存到，所以乜都唔會自己更新； 係安全咁失敗。\n\n屬性而家叫 `systemPart`。詳細資料對話框入面嘅時間控制，小時同分鐘 掣用咗同一個名，一齊改成 `timePart`。\n\n檢查：型別維持兩個已知錯誤，8504 個測試通過（三個已知失敗）。 未喺真實版本上面睇過成功儲存。"
+    },
+    {
+     "sha": "6b6ac0e92",
+     "date": "2026-11-17T14:51:11-05:00",
+     "title": "Scrolling: stop restyling every row each time one row arrives",
+     "areas": [
+      "interface"
+     ],
+     "detail": "A long list on a phone was doing two kinds of busywork per scroll step.\n\n- Three selector shapes in the data table (a sibling selector for the row divider, nth-child for the entry stagger, and :has() for group headers) made the browser restyle every rendered row whenever the virtualizer added or removed one. They are now plain attribute and class selectors. Elements restyled per scroll on a 1500-row list fell from 4015 to 1344. - Every checkbox re-applied its six validity states on every update, changed or not, and each call asked for a restyle. With a checkbox in every row this was about 340 ms of roughly 800 ms of script time in the profile. The states are now applied only when they differ.\n\nMeasured at 390 px with the processor slowed four times, on lists stressed with 1500 and 200 injected rows: style time roughly halved, main-thread cost of a fixed scroll down 26% on Entities and 16% on Automations. The share of slow frames only moved from about 18% to about 16%, so this is a real but modest gain; the rest is the per-row cost of icons and custom elements. Not measured: Devices, dashboards, Logbook (too little data in the check config), touch gestures, and a real phone.\n\nChecks",
+     "detail_yue": "捲動：唔好再為咗一行入嚟就成版行重新計樣式\n\n手機上面一條長清單，每捲一步都做緊兩種無謂功夫。\n\n- 資料表有三種選擇器寫法（行分隔線用兄弟選擇器、入場錯開用 nth-child、分組標題用 :has()），搞到虛擬清單每加一行或者減一行， 瀏覽器就要將所有已畫嘅行重新計樣式。而家改用普通屬性同類別 選擇器。1500 行清單每次捲動要重計嘅元素由 4015 個減到 1344 個。 - 每個剔格每次更新都重新套用六個驗證狀態，有冇變都照做，每次都 叫瀏覽器重計樣式。每行一個剔格，喺效能紀錄入面大約 800 毫秒 程式時間佔咗 340。而家只喺狀態真係唔同先套用。\n\n喺 390 像素、處理器拖慢四倍、清單塞入 1500 同 200 行嘅情況下量度： 樣式時間大約減半，固定捲動嘅主線程成本實體清單減 26%、自動化清單 減 16%。慢格比例只係由大約 18% 跌到 16%，所以係真改善但唔算大； 剩低嘅係每行圖示同自訂元素嘅成本。未量度：裝置、儀表板、日誌 （檢查設定資料太少）、觸控手勢、真手機。\n\n檢查：型別維持兩個已知錯誤，8504 個測試通過（三個已知失敗）。"
+    },
+    {
+     "sha": "e27b2bff8",
+     "date": "2026-11-17T13:51:56-05:00",
+     "title": "Handoff: the afternoon nobody wrote down until now",
+     "areas": [
+      "docs"
+     ],
+     "detail": "The handoff still believed build 495 was the newest thing in the house. It now records 498 on the home instance, why 503 stayed on the shelf (Cloud host tripped over a container that was not there), what is waiting to be built, the owner's decision to allow automatic system updates, the phone sizing rule, the scroll measurements so far, and the list of things nobody has watched happen for real.",
+     "detail_yue": "交接文件：補返成個下晝冇人記低嘅嘢\n\n交接文件仲以為 495 係屋企最新嗰個版本。而家寫返清楚：屋企用緊 498；503 點解留喺架上（雲端主機畀一個根本唔存在嘅容器絆親）； 有乜嘢等緊建置；屋主決定容許系統自動更新；手機尺寸規則；到目前 為止嘅捲動量度；同埋仲未有人親眼睇過發生嘅事項。"
+    },
+    {
+     "sha": "a7f6196c6",
+     "date": "2026-11-17T13:48:47-05:00",
+     "title": "Calmer editors, tidier pages, motion for real moments, first scroll fixes",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Scrolling - Measured on a phone-sized window with the processor slowed four times. On the Entities list one function re-measured every group header on every frame; it now reads positions it already has. The problem-badge overlay stops doing any work during a scroll when there are no badges. Worst frame on Entities 100 to 67 ms, on Devices 117 to 50 ms. The share of slow frames on those two lists did not move: the remaining cost is the list's own per-step work, which is the next job.\n\nEditors - Simple / Advanced / YAML is one pill control under the title on a phone. The top row of add buttons is gone; the dashed add buttons inside each numbered block already did the same thing. - Search is an icon that opens the field. Step rows are tonal, rounded and six pixels apart. The six starter tiles of an empty automation fit on one phone screen instead of hiding in a sideways strip. - The scene editor has the same numbered blocks and compact rows.\n\nPages - Home information groups its fields in tonal cards with the info and reset buttons beside their field. Network cards are tonal blocks. Areas on a phone are compact rows, and the area page has a shorter hero.\n\nMotion, only where something h",
+     "detail_yue": "編輯器收斂啲、頁面企理啲、真有事先郁、捲動先修第一批\n\n捲動 - 喺手機大細視窗、將處理器拖慢四倍嚟量度。實體清單有個函數每一格 畫面都重新量度每個分組標題，而家改用佢本身已經有嘅位置。冇問題 徽章嗰陣，覆蓋層捲動期間乜都唔做。實體清單最差一格由 100 毫秒 減到 67，裝置清單由 117 減到 50。但呢兩個清單慢格嘅比例冇變： 剩低嘅成本係清單本身每一步嘅工作，係下一樣要做嘅嘢。\n\n編輯器 - 「簡單／進階／YAML」喺手機變成標題下面一條藥丸控制。頂部嗰行 新增掣拎走咗；每個編號方塊入面嘅虛線新增掣本身做緊同一樣嘢。 - 搜尋變成一粒圖示，撳咗先開欄位。步驟行有色塊、圓角、相隔六像素。 空白自動化嘅六塊入門磚一個手機畫面睇晒，唔使橫向捲。 - 場景編輯器用返同一套編號方塊同精簡行。\n\n頁面 - 屋企資料將欄位分組放入色塊卡，說明同重設掣跟返自己個欄位。網絡 卡變成色塊。手機上面分區係精簡行，分區頁個頭圖矮咗。\n\n真有事先郁 - 刪除步驟會收合，下面啲步驟補上。手機上面儲存會出一下畫出嚟嘅 剔號。更新隊列有個會填滿嘅圈，完成閃一下，失敗震一下。全部跟 動態偏好，減少動態時唔郁。\n\n未喺瀏覽器驗證：行編輯面板新頭部、儲存剔號、隊列個圈。檢查： 型別維持兩個已知錯誤，8504 個測試通過（三個已知失敗）。"
+    }
+   ]
+  },
   {
    "build": 509,
    "core": "2026.11.1.509",
    "supervisor": "2026.11.0.509",
    "os": "18.5.509",
-   "tag": null,
+   "tag": "v2026.11.1.509",
    "source": "465bb72ba",
    "date": "2026-11-17T13:12:32-05:00",
    "previous_build": 503,
@@ -4508,40 +4560,6 @@
      ],
      "detail": "It used to be named by its address, which is a fine name for a computer and a poor one for a person.",
      "detail_yue": "「搜尋所有分頁」入面，設定分區而家用頭幾個分頁嘅名嚟叫，唔再用網址。 網址畀電腦睇就啱，畀人睇就差啲。"
-    }
-   ]
-  },
-  {
-   "build": 130,
-   "core": "2026.11.1.130",
-   "supervisor": "2026.11.0.130",
-   "os": "18.5.130",
-   "tag": "v2026.11.1.130",
-   "source": "8a37d4c04",
-   "date": "2026-11-12T06:33:52-05:00",
-   "previous_build": 128,
-   "changes": [
-    {
-     "sha": "8a37d4c04",
-     "date": "2026-11-12T06:33:52-05:00",
-     "title": "Section and phone tab options: fixes from the browser pass",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Batch 33. The previous commit shipped the settings section tab options and the phone Pages sheet options unseen. They have now been driven in a local build at 1440, 1000, 390 and 320 px, and the pass found real defects.\n\n- Most settings pages had no section tab menu at all, because the layout only passed the app state down when a page handed it one. It now falls back to the app element's own. - A chosen text colour did not show on a section tab; a toolbar rule won. - On a phone, lifting the finger after a long press ran the menu row under it. The lift's click is now swallowed and the menu stays open. - Phone bottom sheets stopped 16 px short of the right edge. - The phone Pages sheet lists and opens settings and tool tabs, and closing the tab in use goes to the neighbouring tab, there and from the wide strip's tab menu. - The group picker names a section's tabs by their labels.\n\nChecks: type check clean apart from the two known gallery errors; full suite passed apart from the 3 known build-script failures.",
-     "detail_yue": "第 33 批。上一個提交將設定分頁同手機頁面表嘅新功能未睇過就交咗出去，今次 喺本機 build 逐樣跑過，真係搵到問題：大部分設定頁根本冇分頁選單；揀咗嘅 字色唔出；手機長按一放手就當撳咗下面嗰行。全部修好再睇過。手機頁面表而家 識列設定同工具分頁，閂咗用緊嗰個會跳去隔籬。"
-    },
-    {
-     "sha": "875b30677",
-     "date": "2026-11-12T05:32:16-05:00",
-     "title": "Settings pages and tools as tabs; tab options for section tabs and phone",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Batch 32. Two halves with different amounts of proof, said plainly.\n\nSeen in a local build: - A settings page or a tool chosen in the New tab catalog opens as a tab of its own, with its icon and title. A second choice focuses the existing tab. The most specific open tab is the selected one. These tabs pin, group, lock and take a look like any other, are saved with the account, and came back after a reload and in a second browser. A page the account may not see is hidden, not deleted.\n\nNOT yet seen in a browser (unit tests, lint and type check only): - Settings section tabs: their own right-click menu, groups, per-tab looks, locks, hide by text with a preview and undo, a search in the More list, and a place in \"Search all tabs\". - Phone Pages sheet: locks, groups as foldable sections, per-page looks, move into and out of a group. - The phone Pages sheet does not list the new settings and tool tabs yet.\n\nChecks: type check clean apart from the two known gallery errors; full suite 7,014 passed with the 3 known build-script failures.",
-     "detail_yue": "第 32 批，兩半嘅證據唔同，照直講。喺本機 build 睇過：設定頁同工具可以自己 開成分頁，有圖示有標題，再揀一次就跳返去嗰個分頁，唔會開多個。未喺瀏覽器 睇過、只係過咗單元測試同型別檢查：設定分頁嘅右鍵選單、分組、外觀、鎖同 按文字隱藏；手機頁面表嘅鎖、分組同外觀。手機頁面表仲未識列新嘅設定分頁。"
     }
    ]
   }
