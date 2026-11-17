@@ -1,15 +1,47 @@
 {
  "format": 1,
- "generated": "2026-11-17T22:37:42Z",
+ "generated": "2026-11-17T23:05:52Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 512,
+ "newest_build": 517,
  "releases": [
+  {
+   "build": 517,
+   "core": "2026.11.1.517",
+   "supervisor": "2026.11.0.517",
+   "os": "18.5.517",
+   "tag": null,
+   "source": "3cdb9adac",
+   "date": "2026-11-17T15:50:22-05:00",
+   "previous_build": 512,
+   "changes": [
+    {
+     "sha": "3cdb9adac",
+     "date": "2026-11-17T15:50:22-05:00",
+     "title": "Updates: a \"What's new in build N\" button for the build you are on",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The Updates page could tell you about builds you have not installed yet, but had no single place to read about the one already running. The top block now has a small button, \"What's new in build 509\", that opens that build's page on the public updates log. It is worked out from the running version, so it follows every update without being told. If the version has no build number, the button is not shown.\n\nNot yet seen in a browser on a real build.",
+     "detail_yue": "更新：加一粒「N 版本有乜新嘢」掣，講你而家用緊嗰個版本\n\n更新頁識得講你未裝嘅版本，但係冇一個地方講你而家行緊嗰個。頂部 嗰格而家多咗一粒細掣「509 版本有乜新嘢」，會開公開更新日誌入面 嗰個版本嗰一頁。佢係由行緊嘅版本號計出嚟，所以每次更新之後自己 跟住變。版本號冇建置編號就唔顯示呢粒掣。\n\n未喺真實版本嘅瀏覽器入面睇過。"
+    },
+    {
+     "sha": "5fc4fbe08",
+     "date": "2026-11-17T15:48:05-05:00",
+     "title": "Updates: Notes on a system update opens its page on the updates log",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The Notes button beside Core, Supervisor and the operating system used whatever link the update happened to carry, which for the operating system was nowhere useful. It now opens that build's own page on the public updates log, found from the build number at the end of the version (2026.11.1.509 and 18.5.481 both end in theirs). Integrations and apps keep the link their author gave. A version with no build number falls back to the old behaviour.\n\nOne small test pins the version-to-page rule.",
+     "detail_yue": "更新：系統更新嘅「說明」會開返更新日誌入面嗰一頁\n\n核心、監督程式同作業系統旁邊個「說明」掣，以前係更新本身帶住 乜嘢連結就用乜嘢，作業系統嗰個根本去唔到有用嘅地方。而家會開 公開更新日誌入面嗰個版本自己嗰一頁，靠版本號最尾嗰個建置編號 嚟搵（2026.11.1.509 同 18.5.481 都係以自己個編號收尾）。整合同 應用程式照用返作者畀嘅連結。版本號冇建置編號就用返舊做法。\n\n加咗一個細測試釘實「版本號去邊一頁」呢條規則。"
+    }
+   ]
+  },
   {
    "build": 512,
    "core": "2026.11.1.512",
    "supervisor": "2026.11.0.512",
    "os": "18.5.512",
-   "tag": null,
+   "tag": "v2026.11.1.512",
    "source": "a6886fe92",
    "date": "2026-11-17T15:16:45-05:00",
    "previous_build": 509,
@@ -4527,39 +4559,6 @@
      ],
      "detail": "Batch 35. Three items left open by the tab passes, built and unit tested, not seen in a browser.\n\n- Both hide dialogs used one long sentence as label and placeholder, and both-languages mode made it twice as long, so the field cut it. The placeholder is now the short search word and the sentence sits below the field, where it is allowed to wrap like a civilised sentence. - The phone Pages sheet put every group first and loose pages after, while the wide strip keeps a group where its first member is. The sheet now asks the strip's own layout function instead of holding its own opinion. - The shared tab menu actions always wrote the main strip's keys. They now take the surface's store; section tabs reuse them for hide many, undo and remove from group. Pin, move and single hide stay separate because they behave differently there. Stored key names are unchanged.\n\nRecords for batch 34 and for the ten minutes the address did not answer after the Docker engine restarted (the local front proxy kept an old address; it now looks the name up again).\n\nChecks: component tests 973 passed in 93 files; type check clean apart from the two known gallery errors.",
      "detail_yue": "第 35 批。收尾三樣分頁手尾：隱藏對話框條提示句太長，雙語模式仲長一倍， 畀個輸入格斬咗一截，而家搬咗落格仔下面，可以慢慢轉行；手機頁面表以前 堅持群組排頭位，同闊版唔同步，今次直接問返闊版嗰個排位函數；共用選單 動作以前淨係識寫主分頁條嘅鎖匙，而家邊個表面叫就寫邊個。全部有單元測試， 未喺瀏覽器睇過。"
-    }
-   ]
-  },
-  {
-   "build": 131,
-   "core": "2026.11.1.131",
-   "supervisor": "2026.11.0.131",
-   "os": "18.5.131",
-   "tag": "v2026.11.1.131",
-   "source": "e163a99be",
-   "date": "2026-11-12T08:49:32-05:00",
-   "previous_build": 130,
-   "changes": [
-    {
-     "sha": "e163a99be",
-     "date": "2026-11-12T08:49:32-05:00",
-     "title": "New tab catalog: stop the strip's group pill styling the catalog sections",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Batch 34. In published build 130 the New tab catalog drew its page list in the right half of the panel and left the other half empty. The strip's tab groups and the catalog's sections share a class name and a shadow root, so every catalog section was laid out as a one-row group pill. The catalog sections are plain blocks again. Fixed in source; not yet seen in a build.\n\nAlso records batches 31 to 33: build 130 was opened in a browser on a throwaway instance (strip, section tab menu, catalog, phone sheet; no page errors), and the live instance was moved to it.",
-     "detail_yue": "第 34 批。130 版嘅「新分頁」目錄將頁面清單擠咗去右邊一半，左邊吉晒：分頁列 嘅分組同目錄嘅段落撞咗 class 名，又住喺同一個 shadow root，結果目錄每段都 當咗自己係一粒分組藥丸。而家還返佢做普通方塊。只係改咗源碼，未喺 build 睇過。 順手記低第 31 至 33 批嘅瀏覽器檢查同正式機已經升到 130。"
-    },
-    {
-     "sha": "17efc3cb3",
-     "date": "2026-11-12T06:35:18-05:00",
-     "title": "Name a settings section by its first tabs in \"Search all tabs\"",
-     "areas": [
-      "interface"
-     ],
-     "detail": "It used to be named by its address, which is a fine name for a computer and a poor one for a person.",
-     "detail_yue": "「搜尋所有分頁」入面，設定分區而家用頭幾個分頁嘅名嚟叫，唔再用網址。 網址畀電腦睇就啱，畀人睇就差啲。"
     }
    ]
   }
