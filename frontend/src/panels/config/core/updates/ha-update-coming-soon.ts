@@ -916,6 +916,17 @@ export class HaUpdateComingSoon extends LitElement {
       haStyle,
       haMotionKeyframes,
       css`
+        /* The shared heading style keeps an h2 on one line and cuts it with an
+           ellipsis. Headings on this page are long and must wrap. */
+        h1,
+        h2,
+        h3 {
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
+          overflow-wrap: anywhere;
+          max-width: 100%;
+        }
         :host {
           display: block;
         }
@@ -1020,9 +1031,10 @@ export class HaUpdateComingSoon extends LitElement {
         }
         .title {
           font-family: var(--ha-font-family-heading, inherit);
-          font-size: clamp(30px, 5vw, 56px);
+          font-size: clamp(28px, 3.6vw, 48px);
           font-weight: var(--ha-font-weight-bold);
-          line-height: 1.04;
+          line-height: 1.08;
+          text-wrap: balance;
           letter-spacing: -0.02em;
           overflow-wrap: anywhere;
         }
@@ -1133,8 +1145,10 @@ export class HaUpdateComingSoon extends LitElement {
         .ring-text {
           position: absolute;
           inset: 0;
-          display: grid;
-          place-items: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
           text-align: center;
         }
         .percent {

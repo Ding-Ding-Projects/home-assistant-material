@@ -246,6 +246,17 @@ export class HaUpdateNotes extends LitElement {
     return [
       haStyle,
       css`
+        /* The shared heading style keeps an h2 on one line and cuts it with an
+           ellipsis. Headings on this page are long and must wrap. */
+        h1,
+        h2,
+        h3 {
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
+          overflow-wrap: anywhere;
+          max-width: 100%;
+        }
         :host {
           display: block;
         }
