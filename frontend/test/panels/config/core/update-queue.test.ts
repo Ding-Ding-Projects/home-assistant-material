@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { UpdateEntity } from "../../../../src/data/update";
 import {
+  STEP_SETTLE_MS,
+  STEP_START_GRACE_MS,
+  STEP_TIMEOUT_MS,
+  SYSTEM_STEP_SETTLE_MS,
   createQueue,
   evaluateStep,
   orderUpdateQueue,
   parseStoredQueue,
   queueProgress,
-  STEP_START_GRACE_MS,
-  STEP_TIMEOUT_MS,
+  stepReached,
   updateBlockReason,
   updateRole,
 } from "../../../../src/panels/config/core/updates/update-queue";
@@ -153,11 +156,60 @@ describe("evaluateStep", () => {
     expect(evaluateStep(core({}, "off"), step, 2000, true).kind).toBe("done");
   });
 
-  it("fails when it returns to available with the same version", () => {
-    expect(evaluateStep(core(), step, 2000, true)).toEqual({
-      kind: "failed",
-      reason: "failed",
+  // Found in a real run: nine seconds into a Core update the entity went
+  // back to "available, not running" while the download was still going, and
+  // the queue called that a failure. Core then updated correctly.
+  it("does not fail the moment a running update reports not running", () => {
+    expect(evaluateStep(core(), step, 2000, true)).toEqual({ kind: "waiting" });
+    expect(
+      evaluateStep(core(), { ...step, idleSince: 2000 }, 11000, true)
+    ).toEqual({ kind: "waiting" });
+  });
+
+  it("fails once not running has lasted for an ordinary update", () => {
+    const other = { ...step, role: "other" as const, idleSince: 2000 };
+    expect(evaluateStep(core(), other, 2000 + STEP_SETTLE_MS, true)).toEqual({
+      kind: "waiting",
     });
+    expect(
+      evaluateStep(core(), other, 2000 + STEP_SETTLE_MS + 1, true)
+    ).toEqual({ kind: "failed", reason: "failed" });
+  });
+
+  it("gives Supervisor, Core and operating system updates longer", () => {
+    const system = { ...step, role: "core" as const, idleSince: 2000 };
+    expect(
+      evaluateStep(core(), system, 2000 + STEP_SETTLE_MS + 1, true)
+    ).toEqual({ kind: "waiting" });
+    expect(
+      evaluateStep(core(), system, 2000 + SYSTEM_STEP_SETTLE_MS + 1, true)
+    ).toEqual({ kind: "failed", reason: "failed" });
+  });
+
+  it("counts as running while the install call is still open", () => {
+    expect(
+      evaluateStep(core(), { ...step, idleSince: 2000 }, 9e6, true, true)
+    ).toEqual({ kind: "failed", reason: "timeout" });
+    expect(
+      evaluateStep(
+        core(),
+        { ...step, role: "core" as const, idleSince: 2000 },
+        2000 + SYSTEM_STEP_SETTLE_MS + 5000,
+        true,
+        true
+      )
+    ).toEqual({ kind: "running" });
+  });
+
+  it("is done when the target version arrives after a quiet spell", () => {
+    expect(
+      evaluateStep(
+        core({ installed_version: "2" }),
+        { ...step, role: "core" as const, idleSince: 2000 },
+        2000 + SYSTEM_STEP_SETTLE_MS + 5000,
+        true
+      )
+    ).toEqual({ kind: "done" });
   });
 
   it("gives a started install time to show up before it counts as not started", () => {
@@ -284,5 +336,24 @@ describe("queue state", () => {
       ...queue,
       failure: undefined,
     });
+  });
+});
+
+describe("stepReached", () => {
+  it("is true at the target version or when nothing is offered", () => {
+    expect(
+      stepReached(core({ installed_version: "2" }), { targetVersion: "2" })
+    ).toBe(true);
+    expect(stepReached(core({}, "off"), { targetVersion: "2" })).toBe(true);
+  });
+
+  it("is false while still offered, while running, or when gone", () => {
+    expect(stepReached(core(), { targetVersion: "2" })).toBe(false);
+    expect(
+      stepReached(core({ installed_version: "2", in_progress: true }), {
+        targetVersion: "2",
+      })
+    ).toBe(false);
+    expect(stepReached(undefined, { targetVersion: "2" })).toBe(false);
   });
 });

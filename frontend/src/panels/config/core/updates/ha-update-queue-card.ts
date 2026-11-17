@@ -24,11 +24,14 @@ const PREFIX = "ui.panel.config.updates.queue";
 /** The name an update is shown under. */
 export const updateDisplayName = (
   hass: HomeAssistant,
-  entityId: string
+  entityId: string,
+  fallback?: string
 ): string => {
   const entity = hass.states[entityId] as UpdateEntity | undefined;
   if (!entity) {
-    return entityId;
+    // The entity can be gone after a restart; the name kept with the step is
+    // better than a raw id.
+    return fallback || entityId;
   }
   return (
     entity.attributes.title || hass.formatEntityName(entity) || entity.entity_id
@@ -66,7 +69,7 @@ class HaUpdateQueueCard extends LitElement {
       (step) => step.state === "updating" || step.state === "failed"
     );
     const currentName = current
-      ? updateDisplayName(this.hass, current.entityId)
+      ? updateDisplayName(this.hass, current.entityId, current.title)
       : "";
     const done = queue.steps.filter((step) => step.state === "done").length;
     const currentEntity = current
@@ -176,7 +179,7 @@ class HaUpdateQueueCard extends LitElement {
           }
         </span>
         <span class="step-name"
-          >${updateDisplayName(this.hass, step.entityId)}</span
+          >${updateDisplayName(this.hass, step.entityId, step.title)}</span
         >
         <span class="step-state">${this._t(`state_${step.state}`)}</span>
       </li>

@@ -6600,7 +6600,7 @@
             "success_title": "The update is installed",
             "success_text": "Version {version} is ready. Restart the device to start using it. Nothing restarts by itself.",
             "success_text_plain": "The update is ready. Restart the device to start using it. Nothing restarts by itself.",
-            "restart": "Restart now",
+            "restart": "Restart the device",
             "done": "Not now",
             "failed_title": "The update did not install",
             "failed_unknown": "The update could not be installed.",
@@ -6610,7 +6610,10 @@
             "error_other": "The update could not be started: {error}",
             "scan_busy": "An operating system update is copying right now. Look again when it has finished.",
             "scan_failed": "Could not look for update files: {error}",
-            "blocked_other": "Waiting for {name} to finish"
+            "blocked_other": "Waiting for {name} to finish",
+            "restart_confirm_title": "Restart the device now?",
+            "restart_confirm_text": "The new operating system starts after the device restarts. Home Assistant will be unavailable for a few minutes.",
+            "restart_failed": "The device could not be restarted: {error}"
           },
           "build_notes": {
             "title": "Notes for build {build}",

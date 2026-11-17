@@ -1422,7 +1422,7 @@
             "success_title": "更新已經安裝",
             "success_text": "{version} 版本已準備好。請重新啟動裝置嚟開始使用。佢唔會自己重新啟動。",
             "success_text_plain": "更新已準備好。請重新啟動裝置嚟開始使用。佢唔會自己重新啟動。",
-            "restart": "而家重新啟動",
+            "restart": "重新啟動部機",
             "done": "遲啲先",
             "failed_title": "更新安裝唔到",
             "failed_unknown": "更新安裝唔到。",
@@ -1432,7 +1432,10 @@
             "error_other": "更新開始唔到：{error}",
             "scan_busy": "有一個作業系統更新而家喺度複製緊。等佢完成再搵過。",
             "scan_failed": "搵唔到更新檔案：{error}",
-            "blocked_other": "等緊 {name} 完成"
+            "blocked_other": "等緊 {name} 完成",
+            "restart_confirm_title": "而家重新啟動部機？",
+            "restart_confirm_text": "部機重新啟動之後，新嘅作業系統先會開始運作。Home Assistant 會有幾分鐘用唔到。",
+            "restart_failed": "部機重新啟動唔到：{error}"
           },
           "build_notes": {
             "title": "第 {build} 版建置嘅說明",

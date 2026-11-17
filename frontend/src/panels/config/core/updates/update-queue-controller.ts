@@ -12,6 +12,7 @@ import {
   evaluateStep,
   loadStoredQueue,
   queueIsActive,
+  stepReached,
   storeQueue,
 } from "./update-queue";
 
@@ -46,6 +47,9 @@ export class UpdateQueueController implements ReactiveController {
 
   /** Error text of a refused call; it is never stored. */
   public failureMessage?: string;
+
+  /** Steps whose install call has not answered yet. */
+  private _calling = new Set<string>();
 
   constructor(host: ReactiveControllerHost, getHass: () => HomeAssistant) {
     this._host = host;
@@ -108,6 +112,7 @@ export class UpdateQueueController implements ReactiveController {
               state: "waiting",
               seenInProgress: false,
               startedAt: null,
+              idleSince: null,
             }
           : step
       ),
@@ -145,15 +150,40 @@ export class UpdateQueueController implements ReactiveController {
 
   /** Looks at the running step and starts the next one when it is time. */
   public tick(): void {
-    const queue = this.queue;
-    if (!queue || queue.failure) {
-      return;
-    }
     const hass = this._getHass();
-    if (!hass?.states) {
+    if (!this.queue || !hass?.states) {
       return;
     }
     const connected = hass.connected !== false;
+    if (this.queue.failure) {
+      // A step that was judged failed but whose update has since arrived was
+      // not a failure: a real update can look stuck for a while. The queue
+      // carries on. A refused call ("error") is left for the person to decide.
+      const failedId = this.queue.failure.entityId;
+      const failed = this.queue.steps.find(
+        (step) => step.entityId === failedId
+      );
+      if (
+        !connected ||
+        !failed ||
+        this.queue.failure.reason === "error" ||
+        !stepReached(hass.states[failedId] as UpdateEntity | undefined, failed)
+      ) {
+        return;
+      }
+      this.failureMessage = undefined;
+      this.announcement = { kind: "done", entityId: failedId };
+      this._commit({
+        ...this.queue,
+        failure: undefined,
+        steps: this.queue.steps.map((step) =>
+          step.entityId === failedId
+            ? { ...step, state: "done" as const }
+            : step
+        ),
+      });
+    }
+    const queue = this.queue;
     let changed = false;
     const steps = queue.steps.map((step) => ({ ...step }));
     let failure: QueueFailure | undefined;
@@ -169,7 +199,26 @@ export class UpdateQueueController implements ReactiveController {
           current.seenInProgress = true;
           changed = true;
         }
-        const outcome = evaluateStep(entity, current, Date.now(), connected);
+        // Track how long the update has sat at "available, not running".
+        const idleNow =
+          connected &&
+          !!entity &&
+          entity.state === "on" &&
+          !entity.attributes.in_progress;
+        if (idleNow && current.idleSince === null) {
+          current.idleSince = Date.now();
+          changed = true;
+        } else if (!idleNow && current.idleSince !== null) {
+          current.idleSince = null;
+          changed = true;
+        }
+        const outcome = evaluateStep(
+          entity,
+          current,
+          Date.now(),
+          connected,
+          this._calling.has(current.entityId)
+        );
         if (outcome.kind === "done") {
           current.state = "done";
           announcement = { kind: "done", entityId: current.entityId };
@@ -218,6 +267,7 @@ export class UpdateQueueController implements ReactiveController {
       }
       next.state = "updating";
       next.startedAt = Date.now();
+      next.idleSince = null;
       next.seenInProgress = !!entity.attributes.in_progress;
       announcement = { kind: "start", entityId: next.entityId };
       changed = true;
@@ -241,13 +291,20 @@ export class UpdateQueueController implements ReactiveController {
     const entity = hass.states[entityId] as UpdateEntity | undefined;
     const withBackup =
       backup && !!entity && supportsFeature(entity, UpdateEntityFeature.BACKUP);
+    this._calling.add(entityId);
+    let refused: string | undefined;
     try {
       await installUpdatesTracked(hass, [entityId], false, withBackup);
     } catch (err: any) {
       // A lost connection is what these updates look like from the browser.
       if (!isConnectionLostError(err)) {
-        this._failStep(entityId, "error", extractApiErrorMessage(err));
+        refused = extractApiErrorMessage(err);
       }
+    } finally {
+      this._calling.delete(entityId);
+    }
+    if (refused !== undefined) {
+      this._failStep(entityId, "error", refused);
     }
     this.tick();
   }

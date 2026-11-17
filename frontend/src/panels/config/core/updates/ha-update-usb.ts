@@ -20,8 +20,12 @@ import "../../../../components/ha-button";
 import "../../../../components/ha-spinner";
 import "../../../../components/ha-svg-icon";
 import "../../../../components/progress/ha-progress-bar";
+import { isConnectionLostError } from "../../../../components/update-progress/update-progress-logic";
 import { extractApiErrorMessage } from "../../../../data/hassio/common";
-import { fetchHassioHassOsInfo } from "../../../../data/hassio/host";
+import {
+  fetchHassioHassOsInfo,
+  rebootHost,
+} from "../../../../data/hassio/host";
 import type {
   OfflineCandidate,
   OfflineProgress,
@@ -38,7 +42,6 @@ import {
   startOfflineUpdate,
 } from "../../../../data/hassio/os-offline-update";
 import { showConfirmationDialog } from "../../../../dialogs/generic/show-dialog-box";
-import { showRestartDialog } from "../../../../dialogs/restart/show-dialog-restart";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
 
@@ -84,6 +87,8 @@ export class HaUpdateUsb extends LitElement {
   @state() private _starting = false;
 
   @state() private _startError?: string;
+
+  @state() private _restartError?: string;
 
   @state() private _run?: UsbRun;
 
@@ -248,6 +253,10 @@ export class HaUpdateUsb extends LitElement {
         kind === "other"
           ? this._t("error_other", { error: extractApiErrorMessage(err) })
           : this._t(`error_${kind}`);
+      if (kind === "not_found") {
+        // The stick or the file is gone: the list on screen is out of date.
+        this._scan();
+      }
     } finally {
       this._starting = false;
     }
@@ -338,8 +347,31 @@ export class HaUpdateUsb extends LitElement {
     }
   }
 
-  private _restart = (): void => {
-    showRestartDialog(this);
+  // A new operating system only starts after the device itself restarts.
+  // The shared restart dialog opens on a quick reload, which would not apply
+  // it, so this asks one plain question and restarts the device.
+  private _restart = async (): Promise<void> => {
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._t("restart_confirm_title"),
+      text: this._t("restart_confirm_text"),
+      confirmText: this._t("restart"),
+      dismissText: this._t("done"),
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._restartError = undefined;
+    try {
+      await rebootHost(this.hass);
+    } catch (err: any) {
+      // The connection usually drops while the device goes down; that is the
+      // restart happening, not a failure.
+      if (!isConnectionLostError(err)) {
+        this._restartError = this._t("restart_failed", {
+          error: extractApiErrorMessage(err),
+        });
+      }
+    }
   };
 
   private _dismiss = (): void => {
@@ -540,6 +572,13 @@ export class HaUpdateUsb extends LitElement {
             </p>
           </div>
         </div>
+        ${
+          this._restartError
+            ? html`<ha-alert alert-type="error"
+                >${this._restartError}</ha-alert
+              >`
+            : nothing
+        }
         <div class="actions">
           <ha-button appearance="filled" @click=${this._restart}>
             ${this._t("restart")}
@@ -779,7 +818,9 @@ export class HaUpdateUsb extends LitElement {
           color: var(--success-color);
         }
         .file.bad .verdict {
-          color: var(--warning-color, var(--secondary-text-color));
+          /* Text in the ordinary ink colour: amber on a pale card was hard to
+             read. The icon keeps the warning colour. */
+          color: var(--primary-text-color);
         }
         .verdict ha-svg-icon {
           --mdc-icon-size: 20px;

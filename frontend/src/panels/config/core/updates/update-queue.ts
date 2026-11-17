@@ -22,6 +22,15 @@ export interface QueueStep {
   seenInProgress: boolean;
   /** When the step was started, in milliseconds. */
   startedAt: number | null;
+  /**
+   * Since when the update has been sitting at "available, not running" after
+   * it was seen running. A real update reports "not running" for a while
+   * during its download and around a restart, so this has to last before it
+   * counts as a failure.
+   */
+  idleSince: number | null;
+  /** The name shown for the step, kept for when its entity is gone. */
+  title?: string;
 }
 
 export interface QueueFailure {
@@ -67,6 +76,15 @@ export const STEP_TIMEOUT_MS = 30 * 60 * 1000;
 
 /** The time a started install may stay unseen before it counts as not started. */
 export const STEP_START_GRACE_MS = 3 * 60 * 1000;
+
+/**
+ * How long an update that was seen running may sit at "available, not
+ * running" before the step counts as failed. Supervisor, Core and operating
+ * system updates report "not running" while an image downloads and while the
+ * system restarts, so they get longer.
+ */
+export const STEP_SETTLE_MS = 90 * 1000;
+export const SYSTEM_STEP_SETTLE_MS = 8 * 60 * 1000;
 
 const ROLE_RANK: Record<UpdateRole, number> = {
   supervisor: 0,
@@ -119,6 +137,8 @@ export const createQueue = (
     role: updateRole(entity),
     seenInProgress: false,
     startedAt: null,
+    idleSince: null,
+    title: entity.attributes.title || entity.attributes.friendly_name,
   })),
 });
 
@@ -135,9 +155,12 @@ export type StepOutcome =
  */
 export const evaluateStep = (
   entity: UpdateEntity | undefined,
-  step: Pick<QueueStep, "targetVersion" | "seenInProgress" | "startedAt">,
+  step: Pick<QueueStep, "targetVersion" | "seenInProgress" | "startedAt"> &
+    Partial<Pick<QueueStep, "idleSince" | "role">>,
   now: number,
-  connected: boolean
+  connected: boolean,
+  /** The install call for this step has not answered yet. */
+  callPending = false
 ): StepOutcome => {
   if (!connected || !entity) {
     return { kind: "waiting" };
@@ -161,7 +184,25 @@ export const evaluateStep = (
     return { kind: "done" };
   }
   // Still offered, not running.
+  if (callPending) {
+    // The install call itself is still open: the update is being worked on.
+    return elapsed > STEP_TIMEOUT_MS
+      ? { kind: "failed", reason: "timeout" }
+      : { kind: "running" };
+  }
   if (step.seenInProgress) {
+    // "Not running" flickers during a real update. It only counts as a
+    // failure once it has lasted.
+    const settle =
+      step.role && step.role !== "other"
+        ? SYSTEM_STEP_SETTLE_MS
+        : STEP_SETTLE_MS;
+    const idleSince = step.idleSince ?? null;
+    if (idleSince === null || now - idleSince <= settle) {
+      return elapsed > STEP_TIMEOUT_MS
+        ? { kind: "failed", reason: "timeout" }
+        : { kind: "waiting" };
+    }
     return { kind: "failed", reason: "failed" };
   }
   return elapsed > STEP_START_GRACE_MS
@@ -273,6 +314,9 @@ export const parseStoredQueue = (
           : "other",
         seenInProgress: step.seenInProgress === true,
         startedAt: typeof step.startedAt === "number" ? step.startedAt : null,
+        idleSince: typeof step.idleSince === "number" ? step.idleSince : null,
+        title:
+          typeof step.title === "string" ? step.title.slice(0, 200) : undefined,
       });
     }
     const failure = data.failure;
@@ -332,3 +376,14 @@ export const storeQueue = (queue: QueueState | undefined): void => {
     // The queue then simply does not survive a reload.
   }
 };
+
+/** The step's entity has reached what the step set out to do. */
+export const stepReached = (
+  entity: UpdateEntity | undefined,
+  step: Pick<QueueStep, "targetVersion">
+): boolean =>
+  !!entity &&
+  !entity.attributes.in_progress &&
+  (entity.state === "off" ||
+    (step.targetVersion !== null &&
+      entity.attributes.installed_version === step.targetVersion));
