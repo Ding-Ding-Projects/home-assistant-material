@@ -1,15 +1,51 @@
 {
  "format": 1,
- "generated": "2026-11-17T10:20:55Z",
+ "generated": "2026-11-17T10:38:52Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 487,
+ "newest_build": 490,
  "releases": [
+  {
+   "build": 490,
+   "core": "2026.11.1.490",
+   "supervisor": "2026.11.0.490",
+   "os": "18.5.490",
+   "tag": null,
+   "source": "b0535fcdf",
+   "date": "2026-11-17T04:35:51-05:00",
+   "previous_build": 487,
+   "changes": [
+    {
+     "sha": "b0535fcdf",
+     "date": "2026-11-17T04:35:51-05:00",
+     "title": "Device health, away digest, dry run replay, room wizard, update history, cloud host",
+     "areas": [
+      "build",
+      "deploy",
+      "docs",
+      "interface",
+      "supervisor"
+     ],
+     "detail": "Second wave of features, plus the plumbing for two more.\n\nIn the interface: - Device health, under Settings then System: low batteries, devices that went silent and weak signal, worst first, with tiles that filter the list. A device that reports nothing is listed as such instead of being guessed at, and \"days left\" only appears when recorded history actually supports it. - \"While you were away\" on the front door after an absence, built from the activity the instance already records and remembered on this device only. A switch and a gap setting live in Personal settings. - Dry run replay: \"Replay a past period\" under the editor's dry run shows how often the automation would have run over a past day or week, what stopped it and with which value. Anything history cannot answer is marked \"cannot tell\". No action is ever called. - Room setup wizard on the Areas page: name, devices, starter automations, done. Nothing is created unless ticked and starters are saved switched off. - Update history on the Updates page with going back to an earlier build behind the two-key confirmation. Kept per browser. The call that installs a chosen version has not yet been run against a real Supervisor. -",
+     "detail_yue": "裝置健康、離家摘要、試行重播、房間精靈、更新紀錄、雲端主機\n\n第二波功能，另加兩樣嘢嘅底層。\n\n介面方面： - 裝置健康（設定 → 系統）：電量低、冇晒聲氣同訊號弱嘅裝置，由最差 排起，數字磚可以直接過濾。冇回報健康資料嘅裝置會照直講，唔會亂估； 「仲有幾多日」要有紀錄支持先會出。 - 首頁「你唔喺度嗰陣」：離開一段時間之後先出現，用部機本身已經有嘅 活動紀錄砌出嚟，上次睇嘅時間只記喺呢部裝置。個人設定有開關同時間 間隔。 - 試行重播：編輯器試行結果下面有「重播過去一段時間」，話你知過去 一日或者一星期個自動化會行幾多次、邊個條件擋住、當時個數值係幾多。 紀錄答唔到嘅就寫「判斷唔到」。任何動作都唔會真係執行。 - 分區頁嘅房間設定精靈：改名、揀裝置、揀入門自動化、完成。冇剔嘅 唔會建立，入門自動化儲存時係關閉狀態。 - 更新頁嘅更新紀錄，可以經雙鑰匙確認返去舊版本。紀錄按瀏覽器保存。 指定版本安裝嗰個呼叫仲未喺真嘅 Supervisor 上面行過。 - 開發者工具：六個常用工具做藥丸掣，其餘收入「更多工具」各有一句 說明，狀態清單先顯示易讀名。\n\n介面以外： - 雲端主機：自選嘅「cloud」組合設定，用 `host.bat --cloud` 或者 `host.sh --cloud` 啟動，冇隧道憑證就拒絕；Supervisor 有設定、暫停、 繼續、移除同外部檢查嘅路由。由 Supervisor 啟動隧道程式嗰部分暫時 係有標明嘅替身，完整託管模式會老實講。隧道本身從未啟動過。 - 離線更新包：格式、製作工具、發佈工作同 Supervisor 路由，會逐件 檢查先郁手。而家淨係作業系統部分可以完全離線安裝，Core 同 Supervisor 會驗證然後報告需要網絡。Deploy Assistant 多咗 USB 手指 製作，唔會格式化，寫完逐個檔案讀返對。冇用過真手指或者真硬件。\n\n檢查：前端型別維持兩個已知錯誤，8336 個測試通過（三個已知失敗）， 本機建置 390 同 1440 闊度睇過零頁面錯誤；Supervisor 雲端主機 57 個、 離線更新 408 個測試通過；Deploy Assistant 178 個測試通過。"
+    },
+    {
+     "sha": "85655ade1",
+     "date": "2026-11-17T03:51:46-05:00",
+     "title": "Rich automation editor, visual action editors, modern dialogs and lists",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The automation editor used to greet people with a wall of rows and, for some actions, a code box and a shrug. Now it states the automation as one sentence, numbers its When / Only if / Then blocks, and keeps Save where a hand expects it: in the header on a wide window, in the bottom bar on a phone, never both. Helpers can be created, edited and removed from inside the editor; removing one names the other automations that use it and goes through the two-key confirmation.\n\nEvery action now has a visual editor. Twenty-eight entity kinds get controls made for them (a light gets brightness and colour, a thermostat a stepper bounded by what it supports, a cover a position slider) and only show what the targeted device can really do. Other services get switches, sliders and choice tiles from their own field lists. The variables action and the two event data boxes lost their code-only status; a test walks every type and fails if one comes back. The code view is still there and round-trips unchanged.\n\nAlso in this change: - Statistic tiles that filter the list on Entities and Devices, and one shared empty-state block with a \"Clear search and filters\" action and a create button on Automation",
+     "detail_yue": "自動化編輯器大翻新：視覺化動作編輯器、新式對話框同清單\n\n以前個自動化編輯器一打開就係成牆嘅行，有啲動作仲淨係掟個程式碼框 俾你自己搞掂。而家佢會用一句說話講清楚個自動化做乜，「當／只有／ 然後」三塊有編號，儲存掣放喺手會去嘅位：闊螢幕喺頁首，手機喺底部， 唔會兩邊都有。輔助項目可以喺編輯器入面直接新增、修改同移除；移除 之前會講明仲有邊個自動化用緊，兼且要過雙鑰匙確認。\n\n每個動作都有視覺編輯器。二十八類實體有度身訂造嘅控制（燈有光度同 顏色，恆溫器有按裝置上下限嘅加減掣，窗簾有位置滑桿），而且只顯示 部裝置真係做到嘅嘢。其他服務就按自己嘅欄位清單出開關、滑桿同選項 磚。變數動作同兩個事件資料框唔再係淨得程式碼；有個測試會逐類行 一次，邊個走返轉頭就即刻紅燈。程式碼檢視仲喺度，來回轉換唔會走樣。\n\n今次仲有： - 實體同裝置頁嘅統計磚可以直接過濾清單；統一嘅空白狀態，有「清除 搜尋同篩選」，自動化、腳本同輔助項目仲有新增掣。 - 對話框：大標題識換行、搜尋得返頂部一個、主要動作係實心掣，600 闊度以下變成可以向下掃走嘅底部面板。 - 浮動掣會預留位，唔再壓住最後一行；提示訊息置中、闊螢幕最多兩個、 個個都閂得；有圖嗰個提示變成細藥丸，有對話框開住或者有人打緊字 就會等。 - 頁面標題唔會再喺一個字中間斷開。\n\n喺本機建置 390 同 1440 闊度、光暗兩款睇過，零頁面錯誤。型別檢查 維持兩個已知錯誤，測試維持三個已知失敗。"
+    }
+   ]
+  },
   {
    "build": 487,
    "core": "2026.11.1.487",
    "supervisor": "2026.11.0.487",
    "os": "18.5.487",
-   "tag": null,
+   "tag": "v2026.11.1.487",
    "source": "51000eee6",
    "date": "2026-11-17T02:50:51-05:00",
    "previous_build": 481,
@@ -4462,41 +4498,6 @@
      ],
      "detail": "- Toasts: a stacked toast kept the fixed toast's offsets and was pushed sideways and upward, with its buttons off a phone screen. It is placed by the stack only now. Measured in a local build at 390, 320 and 1440 px. Build 122 should be skipped. - Updates: an operating system update is staged and takes effect after a restart, but was reported as finished at once. It now ends with \"Installed. Restart to finish\", Restart now and Later, checks the running version after the restart and says so if the old one came back. - Host: reboot, shutdown and moving the data disk are offered only where the Supervisor lists them; the app store's Repositories page shows the built-in repositories. - From the browser pass on build 122: toolbar chips, row checkbox reach, the \"Shown\" count following the search, sub-tab labels, page catalog titles, the automation editor's bottom bar, the Blueprints note, dark bar contrast, dialog button heights, and the reason a blueprint could not be fetched (server side, with tests). - Full mode documentation: the copy command sets the core's port to 80, and the notes reflect the run with the published images of release 122.\n\nChecked: type check clean; 6,301 frontend t",
      "detail_yue": "122 版出咗個烏龍：啲提示訊息成舊飛咗去右上角，手機度粒掣出晒界。而家由 疊羅漢嗰個容器擺位，返返正中。作業系統更新之前啱啱開始就話「搞掂」，其實 未重新開機，而家老老實實話「裝好咗，重開先至生效」。仲有瀏覽器逐樣度返 嘅一輪執漏，同埋完整模式搬家指令補返改埠嗰步。"
-    }
-   ]
-  },
-  {
-   "build": 122,
-   "core": "2026.11.1.122",
-   "supervisor": "2026.11.0.122",
-   "os": "18.5.122",
-   "tag": "v2026.11.1.122",
-   "source": "f5b82618f",
-   "date": "2026-11-11T18:54:23-05:00",
-   "previous_build": 121,
-   "changes": [
-    {
-     "sha": "f5b82618f",
-     "date": "2026-11-11T18:54:23-05:00",
-     "title": "Full hosting mode with the app store; dashboard add control; fixes from the browser pass on build 121",
-     "areas": [
-      "build",
-      "docs",
-      "interface",
-      "supervisor"
-     ],
-     "detail": "Hosting - \"Full\" mode: an outer container with its own Docker engine runs the Supervisor, the core and every app as containers inside it (hosting/full, compose.full.yaml, host.bat --full, host.sh --full, a workflow job that publishes the outer image and is part of the publish-only-when-green rule). The Supervisor skips its systemd firewall step when the outer container has already protected the gateway. Proven on a throwaway copy: store, installs, ingress, backup and restore with apps, a core update, stop and start; the workflow job has not run.\n\nInterface - A dashboard page that holds a single card says so in edit mode and offers the sections layout; a generated page offers an editable copy; the page uses the visible screen height. - From the browser pass on build 121: the statistics strip is used by six list pages; selection bar buttons, row checkboxes, notification buttons and dashboard add buttons are 44 px on touch; the bar clears the sub-tab row; long press on a tile opens the menu without taking over a configured hold action; readable bar and toast buttons; the toast stack clears the bottom bar; the type scale survives a reload and starts from the theme's sizes; support tick",
-     "detail_yue": "今次大件事：多咗個「完整模式」，一個外殼入面自己開引擎，管理員、核心同每個 應用程式各自一格，應用商店、完整備份、真更新全部得，部電腦望落只係得一個 容器。儀表板單卡頁編輯嗰陣終於有嘢可以加。仲有瀏覽器逐版睇完之後嘅一輪 執漏：粒掣夠大、字睇得清、砌好咗冇人用嘅零件終於駁返上版面。"
-    },
-    {
-     "sha": "4342caf56",
-     "date": "2026-11-11T16:59:44-05:00",
-     "title": "Tests: define build-time values and form stubs so no unhandled errors are printed",
-     "areas": [
-      "interface"
-     ],
-     "detail": "One layout test file printed 135 unhandled errors on every run: a build-time value the bundler defines was missing from the test setup, and the test browser's form internals lack the validity methods that form-associated components call. Both are provided in test/setup.ts. The suite is unchanged (6,232 pass, 3 fail as before) and prints no unhandled errors, so a real one will stand out.",
-     "detail_yue": "測試執手尾：每次跑都彈 135 行「冇人理嘅錯誤」，其實係測試環境少咗個建置 時先有嘅數值，同埋假瀏覽器唔識表單驗證。補返之後靜晒，真係有事先至會嘈。"
     }
    ]
   }
