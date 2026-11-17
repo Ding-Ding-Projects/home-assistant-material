@@ -71,6 +71,7 @@ export const YUE_PREFIXES = [
   "ui.personal_prefs.",
   "ui.page_tabs.",
   "ui.dialogs.quick-bar.",
+  "ui.dialogs.two_key.",
   "ui.components.section_tabs.",
   "ui.components.setting_info.",
   "ui.common.color_palette.",

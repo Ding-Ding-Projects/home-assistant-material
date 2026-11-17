@@ -17,6 +17,10 @@ import {
   subscribeAccessibilitySettings,
 } from "../../../common/accessibility/accessibility-tools";
 import { getStorage } from "../../../common/decorators/storage";
+import {
+  CONFIRMATION_DRAMA_LEVELS,
+  normalizeConfirmationDrama,
+} from "../../../common/confirm/two-key-drama";
 import { renderBilingual } from "../../../common/language-mode/bilingual-text";
 import {
   fillPlaceholders,
@@ -885,6 +889,26 @@ export class HaConfigSectionPersonal extends LitElement {
           this._t("reduce_motion.label"),
           (ev) => this._setReduceMotion(ev.target.checked)
         ),
+      },
+      {
+        id: "confirmation_drama",
+        group: "attention",
+        label: this._t("confirmation_drama.label"),
+        description: this._tl("confirmation_drama.description"),
+        defaultText: this._t("confirmation_drama.default"),
+        reach: this._tl("confirmation_drama.reach"),
+        active: true,
+        valueText: this._t(`confirmation_drama.${p.confirmationDrama}`),
+        isDefault: follows("confirmationDrama"),
+        reset: () => this._follow(["confirmationDrama"]),
+        control: html`<ha-button-toggle-group
+          .buttons=${CONFIRMATION_DRAMA_LEVELS.map((value) => ({
+            value,
+            label: this._t(`confirmation_drama.${value}`),
+          }))}
+          .active=${p.confirmationDrama}
+          @value-changed=${this._dramaChanged}
+        ></ha-button-toggle-group>`,
       },
       {
         id: "low_stimulation",
@@ -1985,6 +2009,12 @@ export class HaConfigSectionPersonal extends LitElement {
 
   private _speakInChanged = (ev: CustomEvent<{ value: string }>) => {
     this._change({ narratorSpeakIn: ev.detail.value as NarratorSpeakIn });
+  };
+
+  private _dramaChanged = (ev: CustomEvent<{ value: string }>) => {
+    this._change({
+      confirmationDrama: normalizeConfirmationDrama(ev.detail.value),
+    });
   };
 
   private _rateChanged = (ev: Event) => {

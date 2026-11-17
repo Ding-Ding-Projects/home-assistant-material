@@ -1,4 +1,9 @@
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { ConfirmationDrama } from "../confirm/two-key-drama";
+import {
+  DEFAULT_CONFIRMATION_DRAMA,
+  normalizeConfirmationDrama,
+} from "../confirm/two-key-drama";
 import { getStorage } from "../decorators/storage";
 import { narrator } from "../narration/narrator";
 import { attentionModes } from "./attention-modes";
@@ -95,6 +100,8 @@ export interface PersonalPreferences {
   dialogEmojis: boolean;
   /** Keeps one expansion panel open at a time among its siblings. */
   oneThingAtATime: boolean;
+  /** How strongly the two-key confirmation looks and moves. */
+  confirmationDrama: ConfirmationDrama;
   /** A comfort setting in this browser, see `effectivePreferences`. */
   schoolMode: boolean;
   /** The name School mode is shown under. */
@@ -129,6 +136,7 @@ export const DEFAULT_PERSONAL_PREFERENCES: PersonalPreferences = {
   momentum: false,
   dialogEmojis: true,
   oneThingAtATime: false,
+  confirmationDrama: DEFAULT_CONFIRMATION_DRAMA,
   schoolMode: false,
   schoolName: "School mode",
   schoolRules: ["plain_english", "low_stimulation", "quiet_sounds"],
@@ -237,6 +245,10 @@ export const normalizePersonalPreferences = (
     momentum: asBool(source.momentum, d.momentum),
     dialogEmojis: asBool(source.dialogEmojis, d.dialogEmojis),
     oneThingAtATime: asBool(source.oneThingAtATime, d.oneThingAtATime),
+    confirmationDrama: normalizeConfirmationDrama(
+      source.confirmationDrama,
+      d.confirmationDrama
+    ),
     schoolMode: asBool(source.schoolMode, d.schoolMode),
     schoolName: asName(source.schoolName, d.schoolName),
     schoolRules: asRules(source.schoolRules, d.schoolRules),

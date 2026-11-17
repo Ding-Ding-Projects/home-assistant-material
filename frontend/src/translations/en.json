@@ -2554,7 +2554,19 @@
         "phone_hold": "Hold to confirm",
         "phone_holding": "Keep holding…",
         "phone_locked": "Type the word first",
-        "phone_note": "Nothing happens until you type the word and then hold the button until it fills. Let go early and it starts over."
+        "phone_note": "Nothing happens until you type the word and then hold the button until it fills. Let go early and it starts over.",
+        "tag": "Cannot be undone",
+        "status_turn_both": "Turn both keys",
+        "status_one_turned": "One key turned",
+        "status_armed": "Armed. Slide all the way to confirm.",
+        "status_keep_going": "Keep going",
+        "status_almost": "Almost there. Do not let go.",
+        "status_last_chance": "Last chance to stop",
+        "status_confirmed": "Confirmed",
+        "core_locked": "Locked",
+        "core_armed": "Armed",
+        "core_release": "Release",
+        "slide_hint": "Turn both keys first"
       },
       "vacuum_segment_mapping": {
         "title": "Map vacuum segments to areas",
@@ -16014,6 +16026,16 @@
             "description": "Shortens animations across the interface. The accessibility panel changes the same choice.",
             "default": "Off.",
             "reach": "Active everywhere that uses the theme's animation timing."
+          },
+          "confirmation_drama": {
+            "label": "Confirmation drama",
+            "description": "How strongly the two-key confirmation looks and moves before something is deleted: spinning rings, a growing glow, shaking, a flash and shockwaves when you confirm. It never changes what you have to do.",
+            "default": "Dramatic.",
+            "reach": "Active in every confirmation that asks for two keys and a slider. Off, and any reduced motion setting, show the same controls with no movement at all.",
+            "off": "Off",
+            "calm": "Calm",
+            "standard": "Standard",
+            "dramatic": "Dramatic"
           },
           "low_stimulation": {
             "label": "Low stimulation",

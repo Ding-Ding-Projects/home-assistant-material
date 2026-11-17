@@ -12,7 +12,16 @@ import { scheduleZoneNow } from "../preferences/preference-schedule-store";
  */
 
 export type ActionCue =
-  "toggle-on" | "toggle-off" | "success" | "refused" | "reset" | "sample";
+  | "toggle-on"
+  | "toggle-off"
+  | "success"
+  | "refused"
+  | "reset"
+  | "sample"
+  // The two-key confirmation: a key turning, a step of the slide, the release.
+  | "key-turn"
+  | "charge"
+  | "impact";
 
 interface Tone {
   /** Frequency in hertz. */
@@ -43,6 +52,12 @@ export const CUE_TONES: Record<ActionCue, Tone[]> = {
     { frequency: 523.25, start: 0, duration: 0.09 },
     { frequency: 659.25, start: 0.1, duration: 0.09 },
     { frequency: 783.99, start: 0.2, duration: 0.14 },
+  ],
+  "key-turn": [{ frequency: 880, start: 0, duration: 0.05 }],
+  charge: [{ frequency: 440, start: 0, duration: 0.05 }],
+  impact: [
+    { frequency: 110, start: 0, duration: 0.16 },
+    { frequency: 82.41, start: 0.05, duration: 0.3 },
   ],
 };
 
@@ -159,9 +174,10 @@ const getContext = (): AudioContext | undefined => {
 
 /**
  * Plays one cue. Returns true when tones were started and false when the
- * cue was silent for any reason. Never throws and never waits.
+ * cue was silent for any reason. Never throws and never waits. `pitch`
+ * multiplies every frequency, so a cue can rise step by step.
  */
-export const playActionCue = (cue: ActionCue): boolean => {
+export const playActionCue = (cue: ActionCue, pitch = 1): boolean => {
   // Quiet hours run on the same clock as schedules: the profile's time zone.
   if (silenceReason(getPersonalPreferences(), scheduleZoneNow())) {
     return false;
@@ -175,12 +191,13 @@ export const playActionCue = (cue: ActionCue): boolean => {
       ctx.resume().catch(() => undefined);
     }
     const peak = gainForVolume(getPersonalPreferences().soundVolume);
+    const factor = Number.isFinite(pitch) && pitch > 0 ? Math.min(pitch, 4) : 1;
     const now = ctx.currentTime;
     CUE_TONES[cue].forEach((tone) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
-      osc.frequency.value = tone.frequency;
+      osc.frequency.value = tone.frequency * factor;
       const begin = now + tone.start;
       const end = begin + tone.duration;
       gain.gain.setValueAtTime(0.0001, begin);

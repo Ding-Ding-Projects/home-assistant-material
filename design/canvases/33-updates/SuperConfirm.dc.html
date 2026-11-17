@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Super confirmation: two keys and a slider, dramatic</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#05070A}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid #FFFFFF;outline-offset:4px}
+@keyframes sc-spin{to{transform:rotate(360deg)}}
+@keyframes sc-spin-back{to{transform:rotate(-360deg)}}
+@keyframes sc-pulse{0%{transform:scale(.72);opacity:.9}100%{transform:scale(1.7);opacity:0}}
+@keyframes sc-shake{0%,100%{transform:translate(0,0) rotate(0)}20%{transform:translate(-3px,2px) rotate(-.4deg)}40%{transform:translate(3px,-2px) rotate(.4deg)}60%{transform:translate(-2px,-3px) rotate(-.3deg)}80%{transform:translate(2px,3px) rotate(.3deg)}}
+@keyframes sc-flicker{0%,100%{opacity:1}45%{opacity:.55}50%{opacity:1}70%{opacity:.75}}
+@keyframes sc-scan{0%{transform:translateY(-100%)}100%{transform:translateY(900px)}}
+@keyframes sc-blast{0%{transform:scale(.2);opacity:1}100%{transform:scale(9);opacity:0}}
+@keyframes sc-flash{0%{opacity:.95}100%{opacity:0}}
+@keyframes sc-rise{0%{transform:translateY(24px) scale(.9);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes sc-march{to{background-position:48px 0}}
+input[type=range].sc{appearance:none;-webkit-appearance:none;width:100%;height:72px;background:transparent;margin:0;position:relative;z-index:2}
+input[type=range].sc::-webkit-slider-runnable-track{height:72px;background:transparent}
+input[type=range].sc::-moz-range-track{height:72px;background:transparent}
+input[type=range].sc::-webkit-slider-thumb{-webkit-appearance:none;width:72px;height:72px;border-radius:24px;background:#FFFFFF;border:none;box-shadow:0 0 0 6px rgba(255,180,171,.35),0 0 36px 8px rgba(255,90,70,.8);cursor:grab}
+input[type=range].sc::-moz-range-thumb{width:72px;height:72px;border-radius:24px;background:#FFFFFF;border:none;box-shadow:0 0 0 6px rgba(255,180,171,.35),0 0 36px 8px rgba(255,90,70,.8);cursor:grab}
+input[type=range].sc:disabled::-webkit-slider-thumb{background:#42474E;box-shadow:none;cursor:not-allowed}
+input[type=range].sc:disabled::-moz-range-thumb{background:#42474E;box-shadow:none;cursor:not-allowed}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="width: 880px; height: 980px; box-sizing: border-box; position: relative; overflow: hidden; background: #05070A; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+
+<div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(circle at 50% 44%, {{glow}} 0%, rgba(5,7,10,0) 62%); transition: background .2s"></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; box-shadow: inset 0 0 {{vignette}} rgba(186,26,26,.55); transition: box-shadow .2s"></div>
+<div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 120px; background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.05), rgba(255,255,255,0)); animation: sc-scan {{scanDur}} linear infinite; opacity: {{scanOn}}"></div>
+
+<div style="position: absolute; inset: 0; padding: 40px 48px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 22px; animation: {{shake}}">
+
+<div style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 16px; border-radius: 17px; background: #93000A; color: #FFDAD6; font-size: 13px; font-weight: 800; letter-spacing: .14em; animation: {{flicker}}">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3zm0 7v4m0 3v.5"/></svg>
+CANNOT BE UNDONE
+</div>
+
+<h1 style="margin: 0; font-size: 52px; line-height: 1; font-weight: 800; font-stretch: 118%; letter-spacing: -0.02em; text-align: center; color: #FFFFFF">Delete 3 automations?</h1>
+<p aria-live="polite" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 600; color: {{statusColor}}; text-align: center; min-height: 28px">{{status}}</p>
+
+<div style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 6px">
+
+<button aria-pressed="{{aOn}}" aria-label="Key A. Press to turn" onClick="{{turnA}}" style="width: 190px; height: 230px; border-radius: 44px; border: 3px solid {{aRing}}; background: {{aBg}}; color: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; transition: background .25s, border-color .25s, transform .25s; transform: {{aLift}}; box-shadow: {{aShadow}}">
+<span style="position: relative; width: 112px; height: 112px; border-radius: 50%; background: #0B0F13; border: 4px solid {{aRing}}; display: grid; place-items: center; transition: border-color .25s">
+<svg aria-hidden="true" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="{{aKey}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate({{aRot}}); transition: transform .55s cubic-bezier(.2,1.6,.3,1), stroke .25s"><circle cx="12" cy="6.5" r="3.5"/><path d="M12 10v11m0-4h3m-3-3.5h2"/></svg>
+</span>
+<span style="font-size: 13px; font-weight: 800; letter-spacing: .12em">KEY A</span>
+<span style="font-size: 15px; font-weight: 600; color: {{aKey}}">{{aText}}</span>
+</button>
+
+<div aria-hidden="true" style="position: relative; width: 260px; height: 260px; flex: none">
+<div style="position: absolute; inset: 0; border-radius: 50%; border: 3px solid {{coreColor}}; opacity: {{pulseOn}}; animation: sc-pulse {{pulseDur}} ease-out infinite"></div>
+<div style="position: absolute; inset: 0; border-radius: 50%; border: 3px solid {{coreColor}}; opacity: {{pulseOn}}; animation: sc-pulse {{pulseDur}} ease-out infinite; animation-delay: {{pulseHalf}}"></div>
+<svg viewBox="0 0 120 120" style="position: absolute; inset: 0; width: 100%; height: 100%; animation: sc-spin {{spinDur}} linear infinite"><circle cx="60" cy="60" r="56" fill="none" stroke="{{coreColor}}" stroke-width="2" stroke-dasharray="4 10" opacity=".7"/></svg>
+<svg viewBox="0 0 120 120" style="position: absolute; inset: 0; width: 100%; height: 100%; animation: sc-spin-back {{spinDur2}} linear infinite"><circle cx="60" cy="60" r="48" fill="none" stroke="{{coreColor}}" stroke-width="3" stroke-dasharray="30 14" opacity=".55"/></svg>
+<svg viewBox="0 0 120 120" style="position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg)"><circle cx="60" cy="60" r="38" fill="none" stroke="#272B31" stroke-width="10"/><circle cx="60" cy="60" r="38" fill="none" stroke="{{coreColor}}" stroke-width="10" stroke-linecap="round" stroke-dasharray="{{arc}} 239"/></svg>
+<div style="position: absolute; inset: 0; display: grid; place-items: center; text-align: center">
+<div style="transform: scale({{coreScale}}); transition: transform .12s"><div style="font-family: 'Roboto Mono', monospace; font-size: 54px; line-height: 1; font-weight: 700; color: #FFFFFF">{{pct}}</div><div style="font-size: 12px; font-weight: 800; letter-spacing: .16em; color: {{coreColor}}; margin-top: 6px">{{coreLabel}}</div></div>
+</div>
+</div>
+
+<button aria-pressed="{{bOn}}" aria-label="Key B. Press to turn" onClick="{{turnB}}" style="width: 190px; height: 230px; border-radius: 44px; border: 3px solid {{bRing}}; background: {{bBg}}; color: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; transition: background .25s, border-color .25s, transform .25s; transform: {{bLift}}; box-shadow: {{bShadow}}">
+<span style="position: relative; width: 112px; height: 112px; border-radius: 50%; background: #0B0F13; border: 4px solid {{bRing}}; display: grid; place-items: center; transition: border-color .25s">
+<svg aria-hidden="true" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="{{bKey}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate({{bRot}}); transition: transform .55s cubic-bezier(.2,1.6,.3,1), stroke .25s"><circle cx="12" cy="6.5" r="3.5"/><path d="M12 10v11m0-4h3m-3-3.5h2"/></svg>
+</span>
+<span style="font-size: 13px; font-weight: 800; letter-spacing: .12em">KEY B</span>
+<span style="font-size: 15px; font-weight: 600; color: {{bKey}}">{{bText}}</span>
+</button>
+</div>
+
+<div style="width: 100%; margin-top: 10px">
+<label for="sc-slide" style="display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; font-weight: 800; letter-spacing: .12em; margin-bottom: 10px"><span>SLIDE ALL THE WAY TO CONFIRM</span><span style="font-family: 'Roboto Mono', monospace; color: {{coreColor}}">{{pct}}</span></label>
+<div style="position: relative; height: 72px; border-radius: 28px; background: #14181D; border: 2px solid {{trackRing}}; overflow: hidden; transition: border-color .2s">
+<div aria-hidden="true" style="position: absolute; inset: 0 auto 0 0; width: {{fill}}; background: #BA1A1A linear-gradient(135deg, rgba(255,255,255,.16) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.16) 50%, rgba(255,255,255,.16) 75%, transparent 75%) 0 0 / 48px 48px; animation: sc-march {{marchDur}} linear infinite; border-radius: 26px"></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-end; padding: 0 28px; gap: 6px; color: {{chev}}; font-weight: 800; letter-spacing: .1em; font-size: 13px">{{trackHint}}<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 6 6 6-6 6m7-12 6 6-6 6"/></svg></div>
+<input id="sc-slide" class="sc" type="range" min="0" max="100" step="1" value="{{slide}}" disabled="{{sliderOff}}" aria-valuetext="{{pct}}" onInput="{{slideTo}}" onChange="{{release}}">
+</div>
+<p style="margin: 10px 0 0; font-size: 13px; line-height: 18px; color: #C2C7CF; text-align: center">Turn both keys, then slide to the end. Letting go early springs the slider back. Nothing is typed.</p>
+</div>
+
+<div style="display: flex; gap: 12px; margin-top: 2px">
+<button onClick="{{reset}}" style="height: 56px; padding: 0 28px; border-radius: 28px; border: 2px solid #8C9199; background: transparent; color: #E0E2E8; font-weight: 700; font-size: 16px">Cancel</button>
+</div>
+</div>
+
+<sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; display: grid; place-items: center; background: rgba(5,7,10,.86)">
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 44%; width: 200px; height: 200px; margin: -100px 0 0 -100px; border-radius: 50%; border: 10px solid #FFB4AB; animation: sc-blast .9s cubic-bezier(.1,.7,.2,1) forwards"></div>
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 44%; width: 200px; height: 200px; margin: -100px 0 0 -100px; border-radius: 50%; border: 6px solid #FFFFFF; animation: sc-blast 1.2s .12s cubic-bezier(.1,.7,.2,1) forwards; opacity: 0"></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: #FFFFFF; animation: sc-flash .5s ease-out forwards"></div>
+<div role="status" style="position: relative; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 16px; animation: sc-rise .5s .25s cubic-bezier(.2,1.4,.3,1) both">
+<div style="width: 132px; height: 132px; border-radius: 44px; background: #B6F2BE; color: #0E3A1E; display: grid; place-items: center"><svg aria-hidden="true" width="76" height="76" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg></div>
+<div style="font-size: 44px; line-height: 1; font-weight: 800; font-stretch: 118%; color: #FFFFFF">Confirmed</div>
+<div style="font-size: 16px; color: #C2C7CF">3 automations deleted. Both keys are released.</div>
+<button onClick="{{reset}}" style="height: 56px; padding: 0 28px; border-radius: 28px; border: none; background: #98CBFF; color: #003354; font-weight: 700; font-size: 16px">Play it again</button>
+</div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"intensity":{"editor":"range","default":1,"min":0,"max":1.5,"step":0.1,"section":"Drama"},"$preview":{"width":880,"height":980}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { a: false, b: false, slide: 0, done: false }; }
+renderVals() {
+const s = this.state; const k = this.props.intensity ?? 1;
+const armed = s.a && s.b; const lvl = armed ? s.slide / 100 : 0; const hot = lvl * k;
+const keyCount = (s.a ? 1 : 0) + (s.b ? 1 : 0);
+const core = !armed ? (keyCount ? '#F2C744' : '#8C9199') : lvl > .66 ? '#FF5A46' : lvl > .33 ? '#FFB59E' : '#F2C744';
+const status = s.done ? 'Confirmed' : !keyCount ? 'Turn key A and key B to arm the slider' : keyCount === 1 ? 'One key turned. Turn the other one.' : lvl === 0 ? 'Armed. Slide all the way to confirm.' : lvl < .5 ? 'Keep going…' : lvl < .9 ? 'Almost there. Do not let go.' : 'Last chance to stop';
+const key = (on) => ({ rot: on ? '90deg' : '0deg', ring: on ? '#F2C744' : '#42474E', bg: on ? '#3A2E00' : '#14181D', col: on ? '#F2C744' : '#C2C7CF', text: on ? 'Turned' : 'Press to turn', lift: on ? 'translateY(-6px)' : 'none', shadow: on ? '0 0 44px 0 rgba(242,199,68,.45)' : 'none' });
+const A = key(s.a), B = key(s.b);
+const dur = (base, min) => Math.max(min, base - hot * (base - min)).toFixed(2) + 's';
+return {
+slide: s.slide, pct: s.slide + '%', done: s.done, status,
+statusColor: lvl > .66 ? '#FFB4AB' : armed ? '#F2C744' : '#C2C7CF',
+aOn: s.a, bOn: s.b, sliderOff: !armed,
+aRot: A.rot, aRing: A.ring, aBg: A.bg, aKey: A.col, aText: A.text, aLift: A.lift, aShadow: A.shadow,
+bRot: B.rot, bRing: B.ring, bBg: B.bg, bKey: B.col, bText: B.text, bLift: B.lift, bShadow: B.shadow,
+coreColor: core, coreLabel: !armed ? 'LOCKED' : lvl >= 1 ? 'RELEASE' : 'ARMED',
+coreScale: (1 + hot * .22).toFixed(3), arc: Math.round(lvl * 239),
+pulseOn: armed ? 1 : 0, pulseDur: dur(2.2, .45), pulseHalf: (parseFloat(dur(2.2, .45)) / 2).toFixed(2) + 's',
+spinDur: dur(18, 1.2), spinDur2: dur(26, 1.8), marchDur: dur(1.6, .25),
+fill: 'calc(36px + ' + s.slide + '% - ' + (s.slide * .72).toFixed(1) + 'px)',
+trackRing: armed ? core : '#42474E', chev: armed ? '#FFDAD6' : '#8C9199', trackHint: armed ? '' : 'TURN BOTH KEYS FIRST',
+glow: 'rgba(186,26,26,' + (0.08 + hot * .5).toFixed(2) + ')', vignette: Math.round(40 + hot * 260) + 'px',
+scanDur: dur(7, 1.4), scanOn: armed ? 1 : 0,
+shake: hot > .25 ? 'sc-shake ' + Math.max(.09, .5 - hot * .38).toFixed(2) + 's linear infinite' : 'none',
+flicker: hot > .5 ? 'sc-flicker ' + Math.max(.18, .9 - hot * .6).toFixed(2) + 's linear infinite' : 'none',
+turnA: () => this.setState({ a: !s.a, slide: 0 }),
+turnB: () => this.setState({ b: !s.b, slide: 0 }),
+slideTo: (e) => this.setState({ slide: Number(e.target.value) }),
+release: () => { if (this.state.slide >= 100 && this.state.a && this.state.b) { this.setState({ done: true }); } else { this.setState({ slide: 0 }); } },
+reset: () => this.setState({ a: false, b: false, slide: 0, done: false }),
+};
+}
+}
+</script>
+</body>
+</html>
