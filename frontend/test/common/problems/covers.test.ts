@@ -25,6 +25,67 @@ describe("clipToCovers", () => {
     ).toBeUndefined();
   });
 
+  // A sticky bar at the top of the editor, from y 60 to 140.
+  const topBar = [{ top: 60, bottom: 140, left: 0, right: 760 }];
+
+  it("moves the top of a box that has scrolled under a top bar", () => {
+    const cut = clipToCovers(
+      { top: 100, left: 20, width: 300, height: 300 },
+      topBar
+    );
+    expect(cut!.top).toBeGreaterThanOrEqual(140);
+    expect(cut!.top + cut!.height).toBe(400);
+  });
+
+  it("drops a box that is only under the top bar", () => {
+    expect(
+      clipToCovers({ top: 80, left: 20, width: 300, height: 40 }, topBar)
+    ).toBeUndefined();
+  });
+
+  it("cuts both ends of a box under a top bar and a bottom bar", () => {
+    const cut = clipToCovers({ top: 100, left: 20, width: 300, height: 800 }, [
+      ...topBar,
+      ...bar,
+    ]);
+    expect(cut!.top).toBeGreaterThanOrEqual(140);
+    expect(cut!.top + cut!.height).toBeLessThanOrEqual(792);
+  });
+
+  it("keeps the larger visible part when a bar crosses the middle", () => {
+    const middle = [{ top: 300, bottom: 380, left: 0, right: 760 }];
+    const above = clipToCovers(
+      { top: 100, left: 20, width: 300, height: 600 },
+      middle
+    );
+    // 192 px above the bar, 312 px below it: the lower part stays.
+    expect(above!.top).toBeGreaterThanOrEqual(380);
+    expect(above!.top + above!.height).toBe(700);
+    const larger = clipToCovers(
+      { top: 100, left: 20, width: 300, height: 470 },
+      middle
+    );
+    expect(larger!.top).toBe(100);
+    expect(larger!.top + larger!.height).toBeLessThanOrEqual(292);
+  });
+
+  it("drops a box that is under a bar completely", () => {
+    expect(
+      clipToCovers({ top: 70, left: 20, width: 300, height: 60 }, topBar)
+    ).toBeUndefined();
+  });
+
+  it("drops a box when only a sliver is left above the bar", () => {
+    expect(
+      clipToCovers({ top: 780, left: 20, width: 300, height: 100 }, bar)
+    ).toBeUndefined();
+  });
+
+  it("keeps a small box that no bar touches", () => {
+    const box = { top: 300, left: 20, width: 20, height: 20 };
+    expect(clipToCovers(box, bar)).toEqual(box);
+  });
+
   it("ignores a bar that is beside the box", () => {
     const box = { top: 790, left: 800, width: 100, height: 60 };
     expect(clipToCovers(box, bar)).toEqual(box);

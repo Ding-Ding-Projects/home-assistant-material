@@ -26,6 +26,25 @@ export const YUE_PREFIXES = [
   // Single strings, not whole blocks: the settings home banners and the apps page.
   "ui.panel.config.dashboard.",
   "ui.panel.config.updates.check_updates",
+  // The strings of the Updates page itself, one block of keys at a time.
+  "ui.panel.config.updates.caption",
+  "ui.panel.config.updates.check_now",
+  "ui.panel.config.updates.ready",
+  "ui.panel.config.updates.all_current",
+  "ui.panel.config.updates.auto_",
+  "ui.panel.config.updates.backups_",
+  "ui.panel.config.updates.before_updating",
+  "ui.panel.config.updates.beta_",
+  "ui.panel.config.updates.current",
+  "ui.panel.config.updates.notes",
+  "ui.panel.config.updates.show_",
+  "ui.panel.config.updates.skipped",
+  "ui.panel.config.updates.title_",
+  "ui.panel.config.updates.up_to_date",
+  "ui.panel.config.updates.update_in_progress",
+  "ui.panel.config.updates.version_change",
+  "ui.panel.config.updates.join_beta",
+  "ui.panel.config.updates.leave_beta",
   "ui.panel.config.updates.build_data.",
   "ui.panel.config.updates.queue.",
   "ui.panel.config.updates.coming_soon.",
@@ -241,6 +260,48 @@ export const modeText = (
   mode: LanguageMode = currentLanguageMode(),
   separator = BILINGUAL_SEPARATOR
 ): string => joinForMode(textParts(localize, key, values), mode, separator);
+
+/** Gives one string of a sentence in the language being built. */
+export type PartText = ((key: string, values?: Values) => string) & {
+  /** True while the Cantonese sentence is being built. */
+  cantonese: boolean;
+};
+
+/**
+ * Builds a sentence that is put together from several strings. The sentence is
+ * built once per language, each time from that language's own strings and
+ * values, and the two sentences are then joined for the mode. Use it instead of
+ * putting the result of one mode text inside another: that would carry the
+ * other language into the sentence. A string without Cantonese is given in
+ * English in the Cantonese sentence, and two identical sentences show once.
+ */
+export const composeForMode = (
+  localize: Localize,
+  build: (part: PartText) => string,
+  mode: LanguageMode = currentLanguageMode(),
+  separator = BILINGUAL_SEPARATOR
+): string => {
+  const english = build(
+    Object.assign((key: string, values?: Values) => localize(key, values), {
+      cantonese: false,
+    })
+  );
+  if (mode === "english") {
+    return english;
+  }
+  const cantonese = build(
+    Object.assign(
+      (key: string, values?: Values) => {
+        const raw = yueString(key);
+        return raw === undefined
+          ? localize(key, values)
+          : fillPlaceholders(raw, values);
+      },
+      { cantonese: true }
+    )
+  );
+  return joinForMode({ english, cantonese }, mode, separator);
+};
 
 /**
  * Wraps a localize function so every string it returns follows the language

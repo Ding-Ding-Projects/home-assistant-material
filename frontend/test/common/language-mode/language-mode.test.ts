@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import en from "../../../src/translations/en.json";
 import {
+  composeForMode,
   fillPlaceholders,
   flattenStrings,
   hasCantoneseBlock,
@@ -50,6 +51,45 @@ describe("joinForMode", () => {
   it("shows identical text once in both mode", () => {
     expect(joinForMode({ english: "PIN", cantonese: "PIN" }, "bilingual")).toBe(
       "PIN"
+    );
+  });
+});
+
+// A sentence that holds another string must carry each language on its own:
+// the English sentence gets the English value and the Cantonese sentence the
+// Cantonese value, never the pair of them.
+describe("composeForMode", () => {
+  const say = (key: string, values?: Record<string, string | number>) =>
+    key === "t.stage_of"
+      ? `Stage ${values?.number}: ${values?.stage}.`
+      : key === "t.stage.images"
+        ? "Building images"
+        : "";
+
+  const build = (
+    part: (k: string, v?: Record<string, string | number>) => string
+  ) => part("t.stage_of", { number: 2, stage: part("t.stage.images") });
+
+  it("builds each language from its own values and joins them", () => {
+    setYueStringsForTest({
+      "t.stage_of": "第 {number} 階段：{stage}。",
+      "t.stage.images": "建置映像",
+    });
+    expect(composeForMode(say, build, "english")).toBe(
+      "Stage 2: Building images."
+    );
+    expect(composeForMode(say, build, "cantonese")).toBe(
+      "第 2 階段：建置映像。"
+    );
+    expect(composeForMode(say, build, "bilingual")).toBe(
+      "Stage 2: Building images. · 第 2 階段：建置映像。"
+    );
+  });
+
+  it("gives a string without Cantonese in English inside the Cantonese sentence", () => {
+    setYueStringsForTest({ "t.stage_of": "第 {number} 階段：{stage}。" });
+    expect(composeForMode(say, build, "cantonese")).toBe(
+      "第 2 階段：Building images。"
     );
   });
 });

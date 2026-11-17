@@ -33,6 +33,8 @@ import {
   BUILD_REPOSITORY,
   REFRESH_COOLDOWN_MS,
   REFRESH_INTERVAL_MS,
+  alreadyInstalled,
+  buildRelation,
   buildStages,
   computeProgress,
   coreBase,
@@ -50,6 +52,7 @@ import {
   stageCount,
   startedBy,
 } from "../../../../data/build-progress";
+import type { PartText } from "../../../../common/language-mode/language-mode";
 import type { PublicFetchFailure } from "../../../../data/public-json";
 import { haMotionKeyframes } from "../../../../resources/motion-styles";
 import { haStyle } from "../../../../resources/styles";
@@ -77,7 +80,9 @@ const STATE_ICONS: Record<JobState, string> = {
 };
 
 /** Which of the eight looks the card takes. */
-type CardState = "active" | "core" | "waiting" | "ready" | "failed" | "none";
+// "have" is a build that is the installed build or older: nothing to install.
+type CardState =
+  "active" | "core" | "waiting" | "ready" | "failed" | "none" | "have";
 
 /**
  * The "Update coming soon" card: how far the next build has got.
@@ -203,11 +208,16 @@ export class HaUpdateComingSoon extends LitElement {
       : formatTime(date, this.hass.locale, this.hass.config);
   }
 
-  private _dateTime(iso: string): string {
+  // The date in the language of the sentence it is put in.
+  private _dateTime(iso: string, cantonese = false): string {
     const date = new Date(iso);
-    return Number.isNaN(date.getTime())
-      ? ""
-      : formatDateTime(date, this.hass.locale, this.hass.config);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+    const locale = cantonese
+      ? { ...this.hass.locale, language: "zh-HK" }
+      : this.hass.locale;
+    return formatDateTime(date, locale, this.hass.config);
   }
 
   // ------------------------------------------------------------------ render
@@ -324,15 +334,32 @@ export class HaUpdateComingSoon extends LitElement {
       case "waiting":
         return "waiting";
       case "ready":
-        return "ready";
+        return this._alreadyInstalled(snapshot) ? "have" : "ready";
       case "failed":
         return "failed";
       default:
         if (stages.some((stage) => stage.state === "failed")) {
           return "failed";
         }
+        if (this._alreadyInstalled(snapshot)) {
+          return "have";
+        }
         return coreUpdateOffered(stages) ? "core" : "active";
     }
+  }
+
+  // True when the build in this card is the installed build or an older one.
+  private _alreadyInstalled(snapshot: BuildSnapshot): boolean {
+    const run =
+      snapshot.choice.kind === "active" || snapshot.choice.kind === "ready"
+        ? snapshot.choice.run
+        : undefined;
+    return (
+      !!run &&
+      alreadyInstalled(
+        buildRelation(parseBuildNumber(this.hass.config.version), run.runNumber)
+      )
+    );
   }
 
   private _renderSnapshot(snapshot: BuildSnapshot): TemplateResult {
@@ -464,6 +491,10 @@ export class HaUpdateComingSoon extends LitElement {
           <ha-svg-icon .path=${mdiProgressClock}></ha-svg-icon>
           ${this._t(`${PREFIX}.waiting`)}
         </span>`;
+      case "have":
+        return this._snapshot?.choice.kind === "active"
+          ? this._pillFor("active")
+          : this._pillFor("ready");
       default:
         return nothing;
     }
@@ -503,20 +534,36 @@ export class HaUpdateComingSoon extends LitElement {
           : this._t(`${PREFIX}.core_ready_title_plain`);
         body = html`
           <p>
-            ${
-              stage
-                ? this._t(`${PREFIX}.stage_of`, {
-                    number: stages.indexOf(stage) + 1,
-                    total: stages.length,
-                    stage: this._t(`${PREFIX}.stage.${stage.id}`),
-                  })
-                : ""
-            }
-            ${this._estimateText(estimate)}
-            ${this._t(`${PREFIX}.core_ready_wait`)}
+            ${this._lang.compose(this.hass.localize, (part) =>
+              [
+                this._stageLine(part, stage, stages),
+                this._estimateWith(part, estimate),
+                part(`${PREFIX}.core_ready_wait`),
+              ]
+                .filter(Boolean)
+                .join(" ")
+            )}
           </p>
           <p class="strong">${this._t(`${PREFIX}.core_ready_hint`)}</p>
         `;
+        break;
+      case "have":
+        heading = this._t(`${PREFIX}.have_title`, {
+          build: parseBuildNumber(this.hass.config.version) ?? run.runNumber,
+        });
+        body = active
+          ? html`<p>
+              ${this._lang.compose(this.hass.localize, (part) =>
+                [
+                  this._stageLine(part, stage, stages),
+                  this._estimateWith(part, estimate),
+                  part(`${PREFIX}.have_rest`),
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+              )}
+            </p>`
+          : html`<p>${this._t(`${PREFIX}.have_done`)}</p>`;
         break;
       case "ready":
         heading = this._t(`${PREFIX}.ready`, { build: run.runNumber });
@@ -568,7 +615,7 @@ export class HaUpdateComingSoon extends LitElement {
     }
 
     const showRing = look !== "waiting";
-    const showTiles = look === "active" || look === "core";
+    const showTiles = look === "active" || look === "core" || look === "have";
     return html`
       <div class="top">
         <div class="hero s-${look}">
@@ -578,7 +625,7 @@ export class HaUpdateComingSoon extends LitElement {
             <h2 id="soon-h" class="title">${heading}</h2>
             ${body}
             ${
-              look === "core" || look === "active"
+              look === "core" || look === "active" || look === "have"
                 ? html`<p class="quiet">${this._renderStartedLine(run)}</p>`
                 : nothing
             }
@@ -589,40 +636,66 @@ export class HaUpdateComingSoon extends LitElement {
             }
           </div>
         </div>
-        ${showTiles ? this._renderTiles(stages, run, estimate) : nothing}
+        ${showTiles ? this._renderTiles(stages, run, estimate, look === "have") : nothing}
       </div>
     `;
   }
 
+  // Each language gets its own line, with its own date, and the two lines are
+  // joined for the mode, so no date or phrase is repeated inside a line.
   private _renderStartedLine(run: BuildRun): string {
     const by = startedBy(run.event);
     const elapsed =
       this._snapshot?.choice.kind === "active"
         ? formatElapsed(durationSeconds(run.startedAt, null, this._now))
         : "";
-    return [
-      this._t(`${PREFIX}.started_${by}`),
-      run.startedAt
-        ? this._t(`${PREFIX}.started_at`, {
-            time: this._dateTime(run.startedAt),
-          })
-        : "",
-      elapsed ? this._t(`${PREFIX}.elapsed`, { duration: elapsed }) : "",
-    ]
-      .filter(Boolean)
-      .join(" · ");
+    return this._lang.compose(
+      this.hass.localize,
+      (part) => {
+        return [
+          part(`${PREFIX}.started_${by}`),
+          run.startedAt
+            ? part(`${PREFIX}.started_at`, {
+                time: this._dateTime(run.startedAt, part.cantonese),
+              })
+            : "",
+          elapsed ? part(`${PREFIX}.elapsed`, { duration: elapsed }) : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+      },
+      " / "
+    );
   }
 
-  private _estimateText(estimate: number | "overdue" | undefined): string {
+  // "Stage 3 of 7: Building the interface." in the language being built.
+  private _stageLine(
+    part: PartText,
+    stage: StageSummary | undefined,
+    stages: StageSummary[]
+  ): string {
+    return stage
+      ? part(`${PREFIX}.stage_of`, {
+          number: stages.indexOf(stage) + 1,
+          total: stages.length,
+          stage: part(`${PREFIX}.stage.${stage.id}`),
+        })
+      : "";
+  }
+
+  private _estimateWith(
+    part: PartText,
+    estimate: number | "overdue" | undefined
+  ): string {
     if (estimate === undefined) {
       return "";
     }
     if (estimate === "overdue") {
-      return this._t(`${PREFIX}.estimate_overdue`);
+      return part(`${PREFIX}.estimate_overdue`);
     }
     return estimate >= 60
-      ? this._t(`${PREFIX}.estimate_hours`, splitMinutes(estimate))
-      : this._t(`${PREFIX}.estimate_minutes`, { minutes: estimate });
+      ? part(`${PREFIX}.estimate_hours`, splitMinutes(estimate))
+      : part(`${PREFIX}.estimate_minutes`, { minutes: estimate });
   }
 
   private _renderRing(
@@ -716,9 +789,12 @@ export class HaUpdateComingSoon extends LitElement {
   private _renderTiles(
     stages: StageSummary[],
     run: BuildRun,
-    release: number | "overdue" | undefined
+    release: number | "overdue" | undefined,
+    have = false
   ): TemplateResult {
-    const core = estimateCore(stages, run.startedAt, this._now);
+    const core = have
+      ? undefined
+      : estimateCore(stages, run.startedAt, this._now);
     const installed = parseBuildNumber(this.hass.config.version);
     const tile = (index: number) => styleMap({ "--i": String(index) });
     return html`
@@ -741,7 +817,7 @@ export class HaUpdateComingSoon extends LitElement {
             : nothing
         }
         ${
-          release !== undefined
+          release !== undefined && !have
             ? html`<div class="tile" style=${tile(1)}>
                 <div class="tile-label">
                   ${this._t(`${PREFIX}.tile_release_label`)}
@@ -754,23 +830,36 @@ export class HaUpdateComingSoon extends LitElement {
             : nothing
         }
         ${
-          installed !== undefined
+          have && installed !== undefined
             ? html`<div class="tile versions" style=${tile(2)}>
                 <div>
                   <div class="tile-label">
                     ${this._t(`${PREFIX}.tile_have`)}
                   </div>
-                  <div class="medium">${installed}</div>
-                </div>
-                <ha-svg-icon .path=${mdiArrowRight}></ha-svg-icon>
-                <div class="end">
-                  <div class="tile-label accent">
-                    ${this._t(`${PREFIX}.tile_on_way`)}
+                  <div class="medium accent">
+                    ${this._t(`${PREFIX}.tile_have_newest`, {
+                      build: installed,
+                    })}
                   </div>
-                  <div class="medium accent">${run.runNumber}</div>
                 </div>
               </div>`
-            : nothing
+            : installed !== undefined
+              ? html`<div class="tile versions" style=${tile(2)}>
+                  <div>
+                    <div class="tile-label">
+                      ${this._t(`${PREFIX}.tile_have`)}
+                    </div>
+                    <div class="medium">${installed}</div>
+                  </div>
+                  <ha-svg-icon .path=${mdiArrowRight}></ha-svg-icon>
+                  <div class="end">
+                    <div class="tile-label accent">
+                      ${this._t(`${PREFIX}.tile_on_way`)}
+                    </div>
+                    <div class="medium accent">${run.runNumber}</div>
+                  </div>
+                </div>`
+              : nothing
         }
       </div>
     `;
@@ -782,9 +871,13 @@ export class HaUpdateComingSoon extends LitElement {
     }
     if (stage.id === "system") {
       const { done, total } = stageCount(stage);
-      return `${this._t(`${PREFIX}.stage_count`, { done, total })}, ${this._t(
-        `${PREFIX}.stage_note_system`
-      )}`;
+      return this._lang.compose(
+        this.hass.localize,
+        (part) =>
+          `${part(`${PREFIX}.stage_count`, { done, total })}, ${part(
+            `${PREFIX}.stage_note_system`
+          )}`
+      );
     }
     const { done, total } = stageCount(stage);
     return total ? this._t(`${PREFIX}.stage_count`, { done, total }) : "";

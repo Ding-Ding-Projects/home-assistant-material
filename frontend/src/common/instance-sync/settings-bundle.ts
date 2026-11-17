@@ -341,6 +341,13 @@ export const mergeInstanceSettings = (
     // Another account owns the cache now; nothing is written or sent.
     return { applied: [], needsUpload: false };
   }
+  // A change made in this tab that no check has recorded yet has no age, so it
+  // would lose to any copy the instance sends first. Record it now. This is
+  // only done once the tab is watching (it has seen the stored keys), so the
+  // values found at start-up are never taken for changes made here.
+  if (seen.size > 0) {
+    recordLocalChanges();
+  }
   const times = readTimes();
   pruneTimes(times);
   const applied: string[] = [];

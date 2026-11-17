@@ -861,16 +861,23 @@ export class HaTwoKeyConfirm extends LitElement {
       position: absolute;
       inset: calc(var(--ha-space-4) * -1);
       overflow: hidden;
+      /* The same corners as the dialog surface the board sits in. */
+      border-radius: var(
+        --ha-dialog-border-radius,
+        var(--ha-border-radius-4xl)
+      );
       pointer-events: none;
       z-index: 0;
     }
     .glow {
       position: absolute;
       inset: 0;
+      /* closest-side ends the fade at the nearest edge of the layer, so it is
+         fully clear before it reaches any side and shows no hard edge. */
       background: radial-gradient(
-        circle at 50% 44%,
+        ellipse closest-side at 50% 44%,
         color-mix(in srgb, var(--tk-red) 45%, transparent) 0%,
-        transparent 62%
+        transparent 100%
       );
       opacity: min(1, calc(var(--tk-hot) * 0.9));
     }

@@ -2,8 +2,14 @@ import type { ReactiveController, ReactiveControllerHost } from "lit";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { LanguageMode } from "../preferences/personal-preferences";
 import { subscribePersonalPreferences } from "../preferences/personal-preferences";
-import type { Localize } from "./language-mode";
-import { currentLanguageMode, modeText, textParts } from "./language-mode";
+import {
+  type Localize,
+  type PartText,
+  composeForMode,
+  currentLanguageMode,
+  modeText,
+  textParts,
+} from "./language-mode";
 
 /**
  * Re-renders its host when the language mode changes, and gives the host a
@@ -56,6 +62,18 @@ export class LanguageModeController implements ReactiveController {
     separator?: string
   ): string {
     return modeText(localize, key, values, this._mode, separator);
+  }
+
+  /**
+   * A sentence made of several strings, built once per language and joined for
+   * the mode, so no language ends up inside the other one's sentence.
+   */
+  public compose(
+    localize: Localize,
+    build: (part: PartText) => string,
+    separator?: string
+  ): string {
+    return composeForMode(localize, build, this._mode, separator);
   }
 
   /** A localize function whose strings follow the mode, for markup that already calls one. */

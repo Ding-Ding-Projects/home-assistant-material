@@ -13,6 +13,10 @@ import { consume } from "../../../../common/decorators/consume";
 import { computeAreaName } from "../../../../common/entity/compute_area_name";
 import { computeDeviceName } from "../../../../common/entity/compute_device_name";
 import { computeStateName } from "../../../../common/entity/compute_state_name";
+import {
+  registerProblemCover,
+  releaseProblemCover,
+} from "../../../../common/problems/covers";
 import { LanguageModeController } from "../../../../common/language-mode/language-mode-controller";
 import { regexQuery, searchMatcher } from "../../../../common/regex/filter";
 import "../../../../components/ha-button";
@@ -75,6 +79,8 @@ export class HaAutomationSearchBar extends LitElement {
 
   public connectedCallback() {
     super.connectedCallback();
+    // Problem outlines are drawn above the page; they stay off this bar.
+    registerProblemCover(this);
     // Rows scroll to just below this sticky bar. Its height changes with the
     // options and the match count, so the rows are told the real height.
     this._offsetTarget =
@@ -86,6 +92,7 @@ export class HaAutomationSearchBar extends LitElement {
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    releaseProblemCover(this);
     this._resizeObserver?.disconnect();
     this._resizeObserver = undefined;
     this._offsetTarget?.style.removeProperty("--ha-automation-sticky-offset");

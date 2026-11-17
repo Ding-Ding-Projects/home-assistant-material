@@ -3,6 +3,8 @@ import {
   fitSettingsBundle,
   forgetSettingsWatch,
   getDroppedSettingKeys,
+  mergeInstanceSettings,
+  recordLocalChanges,
   SETTINGS_TIMES_KEY,
   settingsBundleSync,
   validateSettingsData,
@@ -405,5 +407,46 @@ describe("upload loops and removal notices", () => {
     await vi.advanceTimersByTimeAsync(SETTLE * 3);
     expect(window.localStorage.getItem("elementLocks")).toBeNull();
     expect(bundles()).toHaveLength(1);
+  });
+});
+
+// A setting changed in this tab is written to browser storage at once but only
+// recorded (given an age) by the next check. A copy from the instance that
+// arrives in between must not replace it: that is how a just-made choice came
+// back as its old value after a reload.
+describe("a change that has not been recorded yet", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    forgetSettingsWatch();
+    forgetClaimedOwner();
+  });
+
+  it("is kept when an older copy arrives from the instance", () => {
+    const before = JSON.stringify({ languageMode: "bilingual" });
+    const after = JSON.stringify({
+      languageMode: "bilingual",
+      confirmationDrama: "off",
+    });
+    window.localStorage.setItem("personalPreferences", before);
+    recordLocalChanges(1000, true);
+    window.localStorage.setItem("personalPreferences", after);
+    const result = mergeInstanceSettings({
+      personalPreferences: { v: before, t: 500 },
+    });
+    expect(window.localStorage.getItem("personalPreferences")).toBe(after);
+    expect(result.applied).toEqual([]);
+    expect(result.needsUpload).toBe(true);
+  });
+
+  it("still takes a newer copy from the instance", () => {
+    const before = JSON.stringify({ languageMode: "bilingual" });
+    const newer = JSON.stringify({ languageMode: "cantonese" });
+    window.localStorage.setItem("personalPreferences", before);
+    recordLocalChanges(1000, true);
+    const result = mergeInstanceSettings({
+      personalPreferences: { v: newer, t: Date.now() + 60000 },
+    });
+    expect(window.localStorage.getItem("personalPreferences")).toBe(newer);
+    expect(result.applied).toEqual(["personalPreferences"]);
   });
 });

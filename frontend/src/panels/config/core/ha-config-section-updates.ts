@@ -125,6 +125,15 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     );
   }
 
+  // A string of this page, in the chosen language mode.
+  private _ui(key: string, values?: Record<string, string | number>): string {
+    return this._lang.text(
+      this.hass.localize,
+      `ui.panel.config.updates.${key}`,
+      values
+    );
+  }
+
   protected willUpdate(changedProps: PropertyValues<this>) {
     super.willUpdate(changedProps);
     if (changedProps.has("hass")) {
@@ -249,13 +258,13 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         back-path="/config/system"
         .hass=${this.hass}
         .narrow=${this.narrow}
-        .header=${this.hass.localize("ui.panel.config.updates.caption")}
+        .header=${this._ui("caption")}
       >
         <div slot="toolbar-icon">
           <ha-dropdown @wa-select=${this._handleOverflowAction}>
             <ha-icon-button
               slot="trigger"
-              .label=${this.hass.localize("ui.common.menu")}
+              .label=${this._lang.text(this.hass.localize, "ui.common.menu")}
               .path=${mdiDotsVertical}
             ></ha-icon-button>
 
@@ -264,7 +273,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
               .checked=${this._showSkipped}
               value="show_skipped"
             >
-              ${this.hass.localize("ui.panel.config.updates.show_skipped")}
+              ${this._ui("show_skipped")}
             </ha-dropdown-item>
             ${
               this._supervisorInfo
@@ -282,8 +291,8 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                         }
                         slot="icon"
                       ></ha-svg-icon>
-                      ${this.hass.localize(
-                        `ui.panel.config.updates.${this._supervisorInfo.channel === "stable" ? "join" : "leave"}_beta`
+                      ${this._ui(
+                        `${this._supervisorInfo.channel === "stable" ? "join" : "leave"}_beta`
                       )}
                     </ha-dropdown-item>
                   `
@@ -337,10 +346,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                   ${
                     notInstallableUpdates.length
                       ? this._renderListSection(
-                          this.hass.localize(
-                            "ui.panel.config.updates.title_not_installable",
-                            { count: notInstallableUpdates.length }
-                          ),
+                          this._ui("title_not_installable", {
+                            count: notInstallableUpdates.length,
+                          }),
                           notInstallableUpdates,
                           "manual"
                         )
@@ -349,10 +357,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                   ${
                     skippedUpdates.length
                       ? this._renderListSection(
-                          this.hass.localize(
-                            "ui.panel.config.updates.title_skipped",
-                            { count: skippedUpdates.length }
-                          ),
+                          this._ui("title_skipped", {
+                            count: skippedUpdates.length,
+                          }),
                           skippedUpdates,
                           "skipped"
                         )
@@ -380,7 +387,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   }
 
   private _renderHero(readyCount: number): TemplateResult {
-    const localize = this.hass.localize;
+    const localize = this._lang.localizer(this.hass.localize);
     return html`
       <header class="page-head">
         <h1 id="page-title">${localize("ui.panel.config.updates.caption")}</h1>
@@ -437,7 +444,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     variant: UpdateRowVariant,
     blockText?: string
   ): TemplateResult {
-    const localize = this.hass.localize;
+    const localize = this._lang.localizer(this.hass.localize);
     const name = this.hass.formatEntityName(entity) || entity.entity_id;
     const title = entity.attributes.title;
     const sub =
@@ -645,7 +652,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     if (!info) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._lang.localizer(this.hass.localize);
     return html`
       <section class="card auto-card" aria-labelledby="auto-title">
         <h2 id="auto-title">
@@ -690,7 +697,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     if (!this._autoInfo) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._lang.localizer(this.hass.localize);
     const rowState = autoUpdateRowState(this._autoInfo, entity.entity_id);
     if (rowState.reason === "unknown") {
       return nothing;
@@ -741,7 +748,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     if (!result) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._lang.localizer(this.hass.localize);
     return html`<span class="sub auto-result ${result.ok ? "ok" : "failed"}"
       >${
         result.ok
@@ -798,7 +805,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     if (!isComponentLoaded(this.hass.config, "backup")) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._lang.localizer(this.hass.localize);
     return html`
       <section class="card">
         <h2>${localize("ui.panel.config.updates.before_updating")}</h2>
@@ -829,7 +836,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     const shown = this._showAllCurrent
       ? current
       : current.slice(0, CURRENT_PREVIEW);
-    const localize = this.hass.localize;
+    const localize = this._lang.localizer(this.hass.localize);
     return html`
       <section class="card">
         <h2>${localize("ui.panel.config.updates.up_to_date")}</h2>
@@ -856,7 +863,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   }
 
   private _renderFootnote(): TemplateResult {
-    const localize = this.hass.localize;
+    const localize = this._lang.localizer(this.hass.localize);
     const channel = this._supervisorInfo?.channel;
     return html`
       <div class="footnote">
@@ -943,7 +950,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     const confirmed = await showConfirmationDialog(this, {
       title: this._text("confirm_title"),
       text: html`
-        <p>${this._text("confirm_intro", { count: ready.length })}</p>
+        <p style="margin-block-start: var(--ha-space-3)">
+          ${this._text("confirm_intro", { count: ready.length })}
+        </p>
         <ol>
           ${ready.map(
             (entity) =>
@@ -956,7 +965,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         </ol>
       `,
       confirmText: this._text("confirm_action"),
-      dismissText: this.hass.localize("ui.common.cancel"),
+      dismissText: this._lang.text(this.hass.localize, "ui.common.cancel"),
     });
     if (!confirmed) {
       return;
@@ -1233,6 +1242,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       }
       .row {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: var(--ha-space-2);
         min-height: 72px;
@@ -1260,7 +1270,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       }
       .row-main {
         display: flex;
-        flex: 1;
+        flex: 1 1 240px;
         align-items: center;
         gap: var(--ha-space-4);
         min-width: 0;

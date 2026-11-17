@@ -8,6 +8,7 @@ import {
   countByArea,
   countChanges,
   defaultFromBuild,
+  defaultRange,
   detailsForMode,
   filterReleases,
   parseChangeList,
@@ -83,6 +84,42 @@ describe("parseChangeList", () => {
     expect(parseChangeList({ format: 2, releases: [] })).toBeUndefined();
     expect(parseChangeList(null)).toBeUndefined();
     expect(parseChangeList({ format: 1 })).toBeUndefined();
+  });
+});
+
+describe("the range the comparison opens on", () => {
+  const releases = list().releases;
+
+  it("runs from the installed build to the newest when the installed one is older", () => {
+    expect(defaultRange(releases, 457)).toEqual({
+      from: 457,
+      to: 460,
+      belowList: false,
+      latestOnly: false,
+    });
+  });
+
+  it("opens on the newest build alone when the installed one is the newest", () => {
+    expect(defaultRange(releases, 460)).toEqual({
+      from: 457,
+      to: 460,
+      belowList: false,
+      latestOnly: true,
+    });
+  });
+
+  it("does the same when the installed build is newer than the list", () => {
+    const range = defaultRange(releases, 999);
+    expect(range.from).toBe(457);
+    expect(range.to).toBe(460);
+    expect(range.latestOnly).toBe(true);
+  });
+
+  it("never opens with From equal to To when the list has an older build", () => {
+    [undefined, 100, 450, 457, 458, 460, 461].forEach((installed) => {
+      const range = defaultRange(releases, installed);
+      expect(range.from, String(installed)).toBeLessThan(range.to);
+    });
   });
 });
 

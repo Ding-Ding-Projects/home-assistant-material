@@ -14,6 +14,7 @@ import { assert } from "superstruct";
 import { ensureArray } from "../../../common/array/ensure-array";
 import { canOverrideAlphanumericInput } from "../../../common/dom/can-override-input";
 import { fireEvent } from "../../../common/dom/fire_event";
+import { syncProblemCover } from "../../../common/problems/covers";
 import "../../../components/ha-button";
 import "../../../components/ha-button-toggle-group";
 import "../../../components/ha-icon-button";
@@ -71,6 +72,8 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
 
   @query(".mode-row") private _modeRow?: HTMLDivElement;
 
+  private _modeRowCover?: HTMLElement;
+
   @state() private _modeRowHeight = 0;
 
   private _modeRowObserver?: ResizeObserver;
@@ -115,6 +118,7 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
   }
 
   public override disconnectedCallback(): void {
+    this._modeRowCover = syncProblemCover(this._modeRowCover, undefined);
     this._modeRowObserver?.disconnect();
     this._modeRowObserver = undefined;
     this._observedModeRow = undefined;
@@ -123,6 +127,8 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
 
   protected updated(changedProps: PropertyValues<this>) {
     super.updated(changedProps);
+    // The mode row sticks to the top of the editor; problem outlines stay off it.
+    this._modeRowCover = syncProblemCover(this._modeRowCover, this._modeRow);
     if (this._modeRow !== this._observedModeRow) {
       this._modeRowObserver?.disconnect();
       this._observedModeRow = this._modeRow;

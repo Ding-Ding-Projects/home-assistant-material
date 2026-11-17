@@ -165,6 +165,39 @@ export const defaultFromBuild = (
 };
 
 /**
+ * The range the comparison opens on: from the installed build to the newest.
+ * When the installed build is the newest one listed (or newer), that range
+ * would be empty, so it opens on the newest build alone: From is the build
+ * before it. From never equals To unless the list has a single build.
+ */
+export const defaultRange = (
+  releases: ReleaseEntry[],
+  installedBuild: number | undefined
+): { from: number; to: number; belowList: boolean; latestOnly: boolean } => {
+  const newest = releases[0];
+  if (!newest) {
+    throw new Error("No releases");
+  }
+  const start = defaultFromBuild(releases, installedBuild);
+  const from = start.build ?? newest.build;
+  if (from < newest.build) {
+    return {
+      from,
+      to: newest.build,
+      belowList: start.belowList,
+      latestOnly: false,
+    };
+  }
+  const older = releases.find((release) => release.build < newest.build);
+  return {
+    from: older?.build ?? newest.build,
+    to: newest.build,
+    belowList: false,
+    latestOnly: true,
+  };
+};
+
+/**
  * Keeps From at or below To. When the person changed From past To, To moves
  * up to it; when they changed To below From, From moves down to it.
  */

@@ -24,6 +24,7 @@ import { classMap } from "lit/directives/class-map";
 import { hasInvalidObjectDrafts } from "../../../common/object-editor/object-model";
 import { UndoRedoController } from "../../../common/controllers/undo-redo-controller";
 import { fireEvent } from "../../../common/dom/fire_event";
+import { syncProblemCover } from "../../../common/problems/covers";
 import { goBack, navigate } from "../../../common/navigate";
 import { slugify } from "../../../common/string/slugify";
 import { promiseTimeout } from "../../../common/util/promise-timeout";
@@ -95,6 +96,10 @@ export class HaScriptEditor extends SubscribeMixin(
   private _manualEditor?: HaManualScriptEditor;
 
   @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
+
+  @query(".alert-wrapper") private _alertWrapper?: HTMLElement;
+
+  private _alertCover?: HTMLElement;
 
   private _newScriptId?: string;
 
@@ -576,8 +581,15 @@ export class HaScriptEditor extends SubscribeMixin(
     this.currentEntityId = entity?.entity_id;
   }
 
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._alertCover = syncProblemCover(this._alertCover, undefined);
+  }
+
   protected updated(changedProps: PropertyValues<this>): void {
     super.updated(changedProps);
+    // The alerts stick to the top of the editor; problem outlines stay off them.
+    this._alertCover = syncProblemCover(this._alertCover, this._alertWrapper);
 
     const oldScript = changedProps.get("scriptId");
     if (

@@ -5,6 +5,8 @@ import type {
   StageSummary,
 } from "../../src/data/build-progress";
 import {
+  alreadyInstalled,
+  buildRelation,
   buildStages,
   chooseRun,
   computeProgress,
@@ -421,5 +423,27 @@ describe("replaced builds and Core estimate", () => {
       ],
     } as unknown as StageSummary;
     expect(stageCount(counted)).toEqual({ done: 1, total: 2 });
+  });
+});
+
+// The page must not offer a build as something to install when the installed
+// build already is that build, or is newer.
+describe("buildRelation", () => {
+  it("says newer only for a build above the installed one", () => {
+    expect(buildRelation(476, 477)).toBe("newer");
+    expect(buildRelation(476, 476)).toBe("same");
+    expect(buildRelation(476, 475)).toBe("older");
+  });
+
+  it("says unknown when the installed build cannot be read", () => {
+    expect(buildRelation(undefined, 476)).toBe("unknown");
+    expect(buildRelation(Number.NaN, 476)).toBe("unknown");
+  });
+
+  it("treats the same and an older build as already installed", () => {
+    expect(alreadyInstalled("same")).toBe(true);
+    expect(alreadyInstalled("older")).toBe(true);
+    expect(alreadyInstalled("newer")).toBe(false);
+    expect(alreadyInstalled("unknown")).toBe(false);
   });
 });

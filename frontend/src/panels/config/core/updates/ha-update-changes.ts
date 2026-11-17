@@ -31,7 +31,7 @@ import {
   correctRange,
   countByArea,
   countChanges,
-  defaultFromBuild,
+  defaultRange,
   detailsForMode,
   fetchChangeList,
   filterReleases,
@@ -126,10 +126,10 @@ export class HaUpdateChanges extends LitElement {
     if (!list || !newest) {
       return;
     }
-    const start = defaultFromBuild(list.releases, this._installedBuild());
-    this._from = start.build ?? newest.build;
-    this._to = newest.build;
-    this._belowList = start.belowList;
+    const range = defaultRange(list.releases, this._installedBuild());
+    this._from = range.from;
+    this._to = range.to;
+    this._belowList = range.belowList;
   }
 
   private _selectLatestOnly(): void {
@@ -148,11 +148,16 @@ export class HaUpdateChanges extends LitElement {
     return this._lang.text(this.hass.localize, key, values);
   }
 
-  private _date(iso: string): string {
+  // The date in the language of the sentence it is put in.
+  private _date(iso: string, cantonese = false): string {
     const date = new Date(iso);
-    return Number.isNaN(date.getTime())
-      ? ""
-      : formatDateTime(date, this.hass.locale, this.hass.config);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+    const locale = cantonese
+      ? { ...this.hass.locale, language: "zh-HK" }
+      : this.hass.locale;
+    return formatDateTime(date, locale, this.hass.config);
   }
 
   private _areaLabel(area: string): string {
@@ -279,18 +284,29 @@ export class HaUpdateChanges extends LitElement {
     this._load(true);
   };
 
+  // The build number and a short badge, so the value fits on a phone in
+  // every language mode: "476, newest" or "476, newest · 最新".
   private _optionLabel(build: number, list: ChangeList): string {
-    const installed = build === this._installedBuild();
-    const newest = build === list.releases[0]?.build;
-    const key =
-      installed && newest
-        ? "option_both"
-        : installed
-          ? "option_installed"
-          : newest
-            ? "option_newest"
-            : "option";
-    return this._t(`${PREFIX}.${key}`, { build });
+    const badges = [
+      build === list.releases[0]?.build ? "badge_newest" : "",
+      build === this._installedBuild() ? "badge_installed" : "",
+    ].filter(Boolean);
+    if (!badges.length) {
+      return String(build);
+    }
+    const texts = badges.map((key) =>
+      this._lang.parts(this.hass.localize, `${PREFIX}.${key}`)
+    );
+    const english = texts.map((text) => text.english.toLowerCase());
+    const cantonese = texts.map((text) => text.cantonese ?? "");
+    const mode = this._lang.mode;
+    if (mode === "cantonese" && cantonese.every(Boolean)) {
+      return `${build}，${cantonese.join("、")}`;
+    }
+    const base = `${build}, ${english.join(", ")}`;
+    return mode === "bilingual" && cantonese.every(Boolean)
+      ? `${base} · ${cantonese.join("、")}`
+      : base;
   }
 
   // The range as a segmented control: it is pressed while the pickers agree
@@ -301,10 +317,9 @@ export class HaUpdateChanges extends LitElement {
     if (!list || !newest || this._failure) {
       return nothing;
     }
-    const start = defaultFromBuild(list.releases, this._installedBuild());
+    const start = defaultRange(list.releases, this._installedBuild());
     const older = list.releases.find((release) => release.build < newest.build);
-    const installedRange =
-      this._from === (start.build ?? newest.build) && this._to === newest.build;
+    const installedRange = this._from === start.from && this._to === start.to;
     const latestRange =
       this._from === (older?.build ?? newest.build) &&
       this._to === newest.build;
@@ -367,18 +382,20 @@ export class HaUpdateChanges extends LitElement {
     const total = countChanges(range);
     const shown = countChanges(this._currentVisible());
     const filtering = isFiltering({ areas: this._areas, query: this._query });
-    const base =
-      this._from === this._to
-        ? this._t(`${PREFIX}.summary_same`, { build: this._from! })
-        : this._t(`${PREFIX}.summary`, {
-            changes: total,
-            builds: range.length,
-            from: this._from!,
-            to: this._to!,
-          });
-    return filtering
-      ? `${base}. ${this._t(`${PREFIX}.summary_filtered`, { shown, total })}`
-      : base;
+    return this._lang.compose(this.hass.localize, (part) => {
+      const base =
+        this._from === this._to
+          ? part(`${PREFIX}.summary_same`, { build: this._from! })
+          : part(`${PREFIX}.summary`, {
+              changes: total,
+              builds: range.length,
+              from: this._from!,
+              to: this._to!,
+            });
+      return filtering
+        ? `${base}. ${part(`${PREFIX}.summary_filtered`, { shown, total })}`
+        : base;
+    });
   }
 
   private _renderFacts(
@@ -524,9 +541,12 @@ export class HaUpdateChanges extends LitElement {
     const total = countChanges(range);
     const shown = countChanges(visible);
     const filtering = isFiltering({ areas: this._areas, query: this._query });
-    const names = [...this._areas]
-      .map((area) => this._areaLabel(area))
-      .join(", ");
+    const hint = this._lang.compose(this.hass.localize, (part) => {
+      const names = [...this._areas]
+        .map((area) => part(`${PREFIX}.area.${area}`) || area)
+        .join(", ");
+      return `${names ? `${names}. ` : ""}${part(`${PREFIX}.showing_hint`)}`;
+    });
     return html`
       <div class="search-col">
         <ha-input-search
@@ -562,9 +582,7 @@ export class HaUpdateChanges extends LitElement {
                 : this._t(`${PREFIX}.showing_all`, { total })
             }
           </div>
-          <div class="tile-label">
-            ${names ? `${names}. ` : ""}${this._t(`${PREFIX}.showing_hint`)}
-          </div>
+          <div class="tile-label">${hint}</div>
           ${
             filtering
               ? html`<ha-button appearance="plain" @click=${this._clearFilters}>
@@ -721,15 +739,20 @@ export class HaUpdateChanges extends LitElement {
                 }
               </div>
               <span class="quiet"
-                >${this._date(release.date)}.
-                ${this._t(`${PREFIX}.group_count`, { count: all })}${
-                  release.changes.length !== all
-                    ? html`,
-                      ${this._t(`${PREFIX}.group_shown`, {
-                        shown: release.changes.length,
-                      })}`
-                    : nothing
-                }</span
+                >${this._lang.compose(
+                  this.hass.localize,
+                  (part) =>
+                    `${this._date(release.date, part.cantonese)}. ${part(
+                      `${PREFIX}.group_count`,
+                      { count: all }
+                    )}${
+                      release.changes.length !== all
+                        ? `, ${part(`${PREFIX}.group_shown`, {
+                            shown: release.changes.length,
+                          })}`
+                        : ""
+                    }`
+                )}</span
               >
               <span class="quiet core"
                 >${this._t(`${PREFIX}.group_core`, { core: release.core })}</span
@@ -816,7 +839,7 @@ export class HaUpdateChanges extends LitElement {
       }
       ${
         open
-          ? html`<div class="detail">
+          ? html`<div class="detail ${classMap({ two: details.length > 1 })}">
               ${details.map(
                 (paragraph) =>
                   html`<p
@@ -1267,10 +1290,20 @@ export class HaUpdateChanges extends LitElement {
           flex-direction: column;
           gap: var(--ha-space-2);
           padding: 0 var(--ha-space-5) var(--ha-space-4);
-          max-width: 76ch;
+          max-width: 90ch;
           color: var(--secondary-text-color);
           line-height: var(--ha-line-height-normal);
           overflow-wrap: anywhere;
+        }
+        /* On a wide window the English and Cantonese paragraphs sit side by
+           side and use the width of the card. */
+        @media (min-width: 900px) {
+          .detail.two {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            column-gap: var(--ha-space-6);
+            max-width: none;
+          }
         }
         .start-note {
           padding: 14px 18px;

@@ -174,6 +174,32 @@ export const coreVersionFor = (
   runNumber: number
 ): string | undefined => (base ? `${base}.${runNumber}` : undefined);
 
+/** How a build compares with the build that is installed. */
+export type BuildRelation = "newer" | "same" | "older" | "unknown";
+
+/**
+ * Whether a build is newer than, the same as, or older than the installed
+ * build. Only a newer build is something to wait for or install; the same or an
+ * older one is already part of what is installed. "unknown" when the installed
+ * build number cannot be read.
+ */
+export const buildRelation = (
+  installed: number | undefined,
+  build: number
+): BuildRelation => {
+  if (installed === undefined || !Number.isFinite(installed)) {
+    return "unknown";
+  }
+  if (build > installed) {
+    return "newer";
+  }
+  return build === installed ? "same" : "older";
+};
+
+/** True when the installed build already has everything this build holds. */
+export const alreadyInstalled = (relation: BuildRelation): boolean =>
+  relation === "same" || relation === "older";
+
 // ------------------------------------------------------------------- runs
 
 const QUEUED = ["queued", "pending", "waiting", "requested"];

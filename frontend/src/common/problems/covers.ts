@@ -20,6 +20,27 @@ export const releaseProblemCover = (element: HTMLElement): void => {
   covers.delete(element);
 };
 
+/**
+ * For a bar that is rendered conditionally or re-created by a template: moves
+ * the registration from the bar seen last time to the one found now, and
+ * returns the one to remember. Pass undefined when there is no bar.
+ */
+export const syncProblemCover = (
+  previous: HTMLElement | undefined,
+  current: HTMLElement | undefined | null
+): HTMLElement | undefined => {
+  const next = current ?? undefined;
+  if (previous !== next) {
+    if (previous) {
+      covers.delete(previous);
+    }
+    if (next) {
+      covers.add(next);
+    }
+  }
+  return next;
+};
+
 export interface CoverRect {
   top: number;
   bottom: number;
@@ -44,8 +65,12 @@ export const problemCoverRects = (): CoverRect[] => {
 };
 
 /**
- * Cuts a box where a cover overlaps it from below or above. Returns undefined
- * when its top edge, where the badge sits, is under a cover.
+ * Cuts a box where a cover overlaps it. A cover over the top part moves the
+ * top edge (and with it the badge) down to the cover's lower edge; a cover over
+ * the bottom part moves the bottom edge up; a cover in the middle of a tall box
+ * leaves the larger visible part; a box that is covered completely, or has too
+ * little left, is dropped. Every cut keeps the outline's room clear of the
+ * cover.
  */
 export const clipToCovers = <
   T extends { top: number; left: number; width: number; height: number },
@@ -53,21 +78,49 @@ export const clipToCovers = <
   box: T,
   rects: CoverRect[]
 ): T | undefined => {
-  const top = box.top;
+  let top = box.top;
   let bottom = box.top + box.height;
-  for (const rect of rects) {
-    const overlapsAcross =
-      box.left < rect.right && box.left + box.width > rect.left;
-    if (!overlapsAcross || bottom <= rect.top || top >= rect.bottom) {
-      continue;
+  let cut = false;
+  const across = rects.filter(
+    (rect) => box.left < rect.right && box.left + box.width > rect.left
+  );
+  // A cut can bring the box under another cover, so repeat until it is stable.
+  for (let pass = 0; pass <= across.length; pass++) {
+    let changed = false;
+    for (const rect of across) {
+      const coverTop = rect.top - OUTLINE_ROOM;
+      const coverBottom = rect.bottom + OUTLINE_ROOM;
+      if (bottom <= coverTop || top >= coverBottom) {
+        continue;
+      }
+      const topCovered = top >= coverTop;
+      const bottomCovered = bottom <= coverBottom;
+      if (topCovered && bottomCovered) {
+        return undefined;
+      }
+      if (topCovered) {
+        top = coverBottom;
+      } else if (bottomCovered) {
+        bottom = coverTop;
+      } else {
+        // The cover is in the middle: keep the larger part.
+        const above = coverTop - top;
+        const below = bottom - coverBottom;
+        if (above >= below) {
+          bottom = coverTop;
+        } else {
+          top = coverBottom;
+        }
+      }
+      changed = true;
+      cut = true;
     }
-    if (top >= rect.top - OUTLINE_ROOM) {
-      // The top edge is under the bar.
-      return undefined;
+    if (!changed) {
+      break;
     }
-    bottom = Math.min(bottom, rect.top - OUTLINE_ROOM);
   }
-  if (bottom - top < 1) {
+  // A sliver left by a cut cannot carry a badge that can be read or pressed.
+  if (cut && bottom - top < MIN_VISIBLE) {
     return undefined;
   }
   return { ...box, top, height: bottom - top };
