@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ten families cover the 356 with their own actions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1200px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">The "Add an action" picker in the automation editor. Its ten groups are the ten families of editors. Left: the picker. Middle: one group opened. Right: what every integration in a family shares.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Add an action" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px"><span style="width: 44px; height: 44px; border-radius: 50%; background: #1D1F26; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3E2E9" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg></span><div style="flex: 1; padding-left: 8px; font-size: 20px; font-weight: 700">Add an action</div></div>
+<div style="padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="height: 48px; border-radius: 24px; background: #1D1F26; display: flex; align-items: center; gap: 10px; padding: 0 16px; color: #C4C6D0"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/></svg>Search 2,140 actions</div>
+<div style="display: flex; gap: 6px"><span style="height: 32px; padding: 0 12px; border-radius: 8px; background: #2B3F6E; color: #D9E2FF; display: flex; align-items: center; font-weight: 600; font-size: 13px">By kind</span><span style="height: 32px; padding: 0 12px; border-radius: 8px; box-shadow: inset 0 0 0 1px #44474F; display: flex; align-items: center; font-size: 13px">By device</span><span style="height: 32px; padding: 0 12px; border-radius: 8px; box-shadow: inset 0 0 0 1px #44474F; display: flex; align-items: center; font-size: 13px">Used lately</span></div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 0">
+<sc-for list="{{families}}" as="f" hint-placeholder-count="10">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 12px"><span style="{{f.dot}}"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">{{f.name}}</div><div style="font-size: 12px; color: #C4C6D0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{f.sub}}</div></div><span style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0">{{f.count}}</span><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E9099" stroke-width="2.2" stroke-linecap="round"><path d="m10 7 5 5-5 5"/></svg></div>
+</sc-for>
+</div>
+</div>
+</section>
+
+<section aria-label="Vacuums and mowers group" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px"><span style="width: 44px; height: 44px; border-radius: 50%; background: #1D1F26; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3E2E9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 6-6 6 6 6"/></svg></span><div style="flex: 1; padding-left: 8px; font-size: 20px; font-weight: 700">Vacuums and mowers</div></div>
+<div style="padding: 0 16px 8px; font-size: 13px; color: #C4C6D0">Vacuums, mowers and pet devices in your home</div>
+<div style="padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">DOWNSTAIRS VACUUM</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 0">
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #17423D; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Clean rooms</div><div style="font-size: 12px; color: #C4C6D0">Rooms in order, passes, suction</div></div></div>
+<div style="height: 1px; background: #2A2D36; margin-left: 60px"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #17423D; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Clean a zone</div><div style="font-size: 12px; color: #C4C6D0">Draw it on the map</div></div></div>
+<div style="height: 1px; background: #2A2D36; margin-left: 60px"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #17423D; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Go to a spot</div><div style="font-size: 12px; color: #C4C6D0">Tap the map</div></div></div>
+<div style="height: 1px; background: #2A2D36; margin-left: 60px"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #17423D; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Start, pause, return to dock</div><div style="font-size: 12px; color: #C4C6D0">Standard vacuum actions</div></div></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">LAWN MOWER</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 0">
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #2E4A1E; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Mow for a while</div><div style="font-size: 12px; color: #C4C6D0">Duration, then back to the schedule</div></div></div>
+<div style="height: 1px; background: #2A2D36; margin-left: 60px"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #2E4A1E; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Set cutting height</div><div style="font-size: 12px; color: #C4C6D0">1 to 9, this mower's steps</div></div></div>
+</div>
+<div style="border-radius: 12px; background: #1D2A44; color: #D9E2FF; padding: 10px 12px; font-size: 13px">Only actions your own devices can do are listed. Nothing is offered for a robot you do not have.</div>
+</div>
+</section>
+
+<section aria-label="What a family shares" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">EVERY EDITOR, WHATEVER THE FAMILY</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>The device card on top, with its state</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>Required fields first, each in its own card</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>Limits and lists read from the device itself</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>Advanced fields folded, with a count</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">5</span><span>A test button that says what it will really do</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">6</span><span>Code view one tap away, unchanged both ways</span></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">ALL 1577 INTEGRATIONS</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>With their own actions</span><span style="font-family: 'Roboto Mono', monospace; font-weight: 700">356</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>With their own triggers or conditions</span><span style="font-family: 'Roboto Mono', monospace; font-weight: 700">94</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>With a setup form</span><span style="font-family: 'Roboto Mono', monospace; font-weight: 700">1002</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>Standard entity kinds for the rest</span><span style="font-family: 'Roboto Mono', monospace; font-weight: 700">62</span></div>
+</div>
+<div style="border-radius: 12px; background: #3A2E12; color: #FFDF9E; padding: 10px 12px; font-size: 13px">A test walks every folder. One field left as a plain box where a proper control exists fails the build.</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1200}}'>
+class Component extends DCLogic {
+renderVals() {
+const rows = [
+['Messages and alerts', 'Who, what, attachments, reply buttons', '48', '#5C2E22'],
+['Music, video and speakers', 'Browse, search, speaker groups, queue', '52', '#55273F'],
+['Heating, cooling and water', 'Target, mode, until, week schedule', '41', '#5A4514'],
+['Device settings by radio or bus', 'Settings from the device, parts of a value', '37', '#3B2F5C'],
+['Calendars, lists and tasks', 'Dates, times, repeats, due shortcuts', '29', '#1F4A52'],
+['Cameras and doorbells', 'Aim, presets, clip length, where to save', '31', '#5C2E22'],
+['Vacuums and mowers', 'Rooms, zones, passes, power', '18', '#17423D'],
+['Energy, cars and chargers', 'Limits, departure, tariffs, prices', '34', '#2E4A1E'],
+['Network, servers and downloads', 'Named things, guarded actions', '39', '#5A4514'],
+['Files, photos and cloud storage', 'Pick files and albums, backup places', '27', '#1F4A52'],
+];
+return { families: rows.map((r) => ({ name: r[0], sub: r[1], count: r[2], dot: 'width: 36px; height: 36px; border-radius: 50%; flex: none; background: ' + r[3] })) };
+}
+}
+</script>
+</body>
+</html>

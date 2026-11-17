@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>One setup form, rich for all 1002</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1240px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Adding an integration, as a bottom sheet on a phone. One shared form draws all 1002 setup flows; the field's name and kind choose the control. What is sent to the server does not change.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Set up a device on the home network" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="display: grid; place-items: center; padding-top: 8px"><span style="width: 32px; height: 4px; border-radius: 2px; background: #44474F"></span></div>
+<div style="padding: 10px 16px 4px; display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #17423D; display: grid; place-items: center; color: #6FD8C8; font-weight: 800">3D</span><div style="flex: 1"><div style="font-size: 18px; font-weight: 700">Connect your printer</div><div style="font-size: 12px; color: #C4C6D0">Step 2 of 3 · on your home network</div></div></div>
+<div style="height: 4px; margin: 8px 16px; border-radius: 2px; background: #2A2D36"><div style="width: 66%; height: 4px; border-radius: 2px; background: #B4C5FF"></div></div>
+<div style="padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 12px; background: #14161B; padding: 8px 12px"><div style="font-size: 12px; color: #B4C5FF">Address *</div><div style="display: flex; align-items: center; gap: 8px; min-height: 28px"><span style="font-family: 'Roboto Mono', monospace; font-size: 15px">203.0.113.42</span><span style="margin-left: auto; height: 24px; padding: 0 8px; border-radius: 6px; background: #17423D; color: #6FD8C8; font-size: 12px; display: flex; align-items: center">found on network</span></div></div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 12px">The printer shows this under Settings, Network.</div>
+<div style="border-radius: 12px; background: #14161B; padding: 8px 12px"><div style="font-size: 12px; color: #C4C6D0">Access code *</div><div style="display: flex; align-items: center; gap: 8px; min-height: 28px"><span style="font-size: 18px; letter-spacing: .2em">{{code}}</span><button type="button" onClick="{{toggle}}" aria-label="Show or hide the access code" style="margin-left: auto; width: 44px; height: 44px; margin-block: -8px; border: 0; background: transparent; color: #C4C6D0"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 12px">Eight characters. Never shown in logs or exports.</div>
+<div style="border-radius: 12px; background: #14161B; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px"><div style="display: flex; justify-content: space-between; font-size: 13px"><span style="color: #C4C6D0">Check for changes every</span><span style="font-weight: 700">30 s</span></div><div style="height: 36px; border-radius: 10px; background: #262933; overflow: hidden"><div style="width: 40%; height: 36px; border-radius: 10px; background: #2B3F6E; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; box-sizing: border-box"><span style="width: 4px; height: 16px; border-radius: 2px; background: #B4C5FF"></span></div></div><div style="display: flex; justify-content: space-between; font-size: 12px; color: #C4C6D0"><span>5 s</span><span>2 min</span></div></div>
+<div style="border-radius: 12px; background: #14161B; padding: 0 12px; min-height: 52px; display: flex; align-items: center; justify-content: space-between"><div><div>Use the camera</div><div style="font-size: 12px; color: #C4C6D0">Shows the print live on its card</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; display: flex; align-items: center; justify-content: flex-end; padding: 0 4px; box-sizing: border-box"><span style="width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+</div>
+<div style="padding: 8px 12px 12px; display: flex; gap: 8px; box-shadow: 0 -1px 0 #2A2D36"><span style="height: 48px; padding: 0 20px; border-radius: 24px; display: grid; place-items: center; color: #B4C5FF; font-weight: 700">Back</span><span style="flex: 1; height: 48px; border-radius: 24px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Connect</span></div>
+</section>
+
+<section aria-label="Sign in at the provider" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="display: grid; place-items: center; padding-top: 8px"><span style="width: 32px; height: 4px; border-radius: 2px; background: #44474F"></span></div>
+<div style="padding: 10px 16px 4px; display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #1F4A52; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8FE3F0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.6 1.5A3.5 3.5 0 0 1 17 18z"/></svg></span><div style="flex: 1"><div style="font-size: 18px; font-weight: 700">Cloud storage for backups</div><div style="font-size: 12px; color: #C4C6D0">Step 1 of 2 · sign in at the provider</div></div></div>
+<div style="height: 4px; margin: 8px 16px; border-radius: 2px; background: #2A2D36"><div style="width: 50%; height: 4px; border-radius: 2px; background: #B4C5FF"></div></div>
+<div style="padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 16px; background: #14161B; padding: 4px 12px">
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="width: 24px; height: 24px; border-radius: 50%; background: #17423D; color: #6FD8C8; display: grid; place-items: center; font-size: 12px; font-weight: 700">1</span><div style="flex: 1">Open the provider's sign-in page</div><span style="font-size: 12px; color: #6FD8C8">Now</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px; color: #C4C6D0"><span style="width: 24px; height: 24px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #8E9099; display: grid; place-items: center; font-size: 12px">2</span><div style="flex: 1">Allow access to one folder for backups</div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px; color: #C4C6D0"><span style="width: 24px; height: 24px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #8E9099; display: grid; place-items: center; font-size: 12px">3</span><div style="flex: 1">Come back here by itself</div></div>
+</div>
+<div style="border-radius: 12px; background: #1D2A44; color: #D9E2FF; padding: 10px 12px; font-size: 13px">Sign-in happens on the provider's own page in a new tab. Your password is never typed here, and this page moves on by itself when you return.</div>
+<div style="border-radius: 12px; background: #14161B; padding: 0 12px; min-height: 52px; display: flex; align-items: center; justify-content: space-between"><div><div>Use my own app credentials</div><div style="font-size: 12px; color: #C4C6D0">For people who made their own at the provider</div></div><span style="width: 52px; height: 32px; border-radius: 16px; box-shadow: inset 0 0 0 2px #8E9099; display: flex; align-items: center; padding: 0 8px; box-sizing: border-box"><span style="width: 16px; height: 16px; border-radius: 50%; background: #8E9099"></span></span></div>
+</div>
+<div style="padding: 8px 12px 12px; display: flex; gap: 8px; box-shadow: 0 -1px 0 #2A2D36"><span style="height: 48px; padding: 0 20px; border-radius: 24px; display: grid; place-items: center; color: #B4C5FF; font-weight: 700">Cancel</span><span style="flex: 1; height: 48px; border-radius: 24px; background: #B4C5FF; color: #152E66; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700">Open sign-in<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#152E66" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5"/><path d="M19 5 10 14"/><path d="M19 14v5H5V5h5"/></svg></span></div>
+</section>
+
+<section aria-label="Which control each field gets" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">THE FIELD CHOOSES ITS CONTROL</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<sc-for list="{{rules}}" as="r" hint-placeholder-count="10">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 0 #2A2D36"><span style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #B4C5FF; width: 118px; flex: none">{{r.field}}</span><span style="flex: 1">{{r.control}}</span></div>
+</sc-for>
+</div>
+<div style="border-radius: 12px; background: #3A1512; color: #FFB4AB; padding: 10px 12px; font-size: 13px">An error appears beside the field that caused it and is read out. A form never just closes.</div>
+<div style="border-radius: 12px; background: #1D1F26; padding: 10px 12px; font-size: 13px; color: #C4C6D0">Every step kind is drawn: form, menu, sign-in elsewhere, progress, done, sign in again, change settings.</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1240}}'>
+class Component extends DCLogic {
+renderVals() {
+const shown = !!(this.state && this.state.shown);
+const rules = [
+['host, url', 'Address box, found devices offered'],
+['port', 'Number box with the usual port filled in'],
+['password, token', 'Hidden, with show and hide'],
+['email, username', 'Right keyboard, saved sign-ins offered'],
+['number with limits', 'Bar slider with the value and unit'],
+['number, no limits', 'Stepper'],
+['one of up to five', 'Segmented buttons'],
+['one of many', 'Searchable list'],
+['several of many', 'Chips'],
+['yes or no', 'Switch with its explanation'],
+['time period', 'Duration control'],
+['place', 'Map with a radius'],
+].map((r) => ({ field: r[0], control: r[1] }));
+return { code: shown ? 'PRETEND8' : '••••••••', toggle: () => this.setState({ shown: !shown }), rules: rules };
+}
+}
+</script>
+</body>
+</html>
