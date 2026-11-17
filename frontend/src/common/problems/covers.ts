@@ -80,6 +80,11 @@ export const clipToCovers = <
 ): T | undefined => {
   let top = box.top;
   let bottom = box.top + box.height;
+  // The room kept clear of a cover is not part of what the person can see, so
+  // it does not count against the minimum: a box with 30 px showing below a
+  // bar keeps its outline.
+  let topRoom = 0;
+  let bottomRoom = 0;
   let cut = false;
   const across = rects.filter(
     (rect) => box.left < rect.right && box.left + box.width > rect.left
@@ -100,16 +105,20 @@ export const clipToCovers = <
       }
       if (topCovered) {
         top = coverBottom;
+        topRoom = OUTLINE_ROOM;
       } else if (bottomCovered) {
         bottom = coverTop;
+        bottomRoom = OUTLINE_ROOM;
       } else {
         // The cover is in the middle: keep the larger part.
         const above = coverTop - top;
         const below = bottom - coverBottom;
         if (above >= below) {
           bottom = coverTop;
+          bottomRoom = OUTLINE_ROOM;
         } else {
           top = coverBottom;
+          topRoom = OUTLINE_ROOM;
         }
       }
       changed = true;
@@ -120,7 +129,7 @@ export const clipToCovers = <
     }
   }
   // A sliver left by a cut cannot carry a badge that can be read or pressed.
-  if (cut && bottom - top < MIN_VISIBLE) {
+  if (cut && bottom - top + topRoom + bottomRoom < MIN_VISIBLE) {
     return undefined;
   }
   return { ...box, top, height: bottom - top };

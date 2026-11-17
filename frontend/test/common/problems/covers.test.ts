@@ -92,6 +92,35 @@ describe("clipToCovers", () => {
   });
 });
 
+// The scroll container starts at y 100 and its sticky bar fills y 100 to 160.
+describe("a box under a sticky bar at the top of its scroll container", () => {
+  const area = { top: 100, bottom: 700, left: 0, right: 760 };
+  const sticky = [{ top: 100, bottom: 160, left: 0, right: 760 }];
+  const seen = (box: { top: number; height: number }) => {
+    const inArea = clipToArea({ ...box, left: 20, width: 300 }, area);
+    return inArea ? clipToCovers(inArea, sticky) : undefined;
+  };
+
+  it("keeps the part below the bar when the box starts above the container", () => {
+    // 30 px of the box show below the bar: it keeps its outline from there.
+    const cut = seen({ top: 60, height: 130 });
+    expect(cut).toBeDefined();
+    expect(cut!.top).toBeGreaterThanOrEqual(160);
+    expect(cut!.top + cut!.height).toBe(190);
+  });
+
+  it("keeps the part below the bar when the box starts under the bar", () => {
+    const cut = seen({ top: 120, height: 70 });
+    expect(cut).toBeDefined();
+    expect(cut!.top).toBeGreaterThanOrEqual(160);
+    expect(cut!.top + cut!.height).toBe(190);
+  });
+
+  it("still drops a box with less than the minimum showing below the bar", () => {
+    expect(seen({ top: 60, height: 112 })).toBeUndefined();
+  });
+});
+
 describe("clipToArea", () => {
   const area = { top: 100, bottom: 700, left: 0, right: 760 };
 

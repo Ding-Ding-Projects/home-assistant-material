@@ -6420,6 +6420,19 @@
               "cancelled": "Cancelled, replaced by a newer build",
               "skipped": "Skipped"
             },
+            "job": {
+              "work_out_versions": "Work out versions",
+              "build_frontend": "Build the frontend",
+              "collect_translations": "Collect integration translations",
+              "stage_deploy_assistant": "Stage the deploy assistant",
+              "build_core_images": "Build {arch} core images",
+              "build_supervisor_image": "Build {arch} supervisor image",
+              "publish_container_image": "Publish the container image",
+              "build_full_hosting_image": "Build the full hosting mode image",
+              "move_update_feed": "Move the update feed for core and supervisor",
+              "build_os_image": "Build the {board} operating system image",
+              "publish_release": "Publish the release"
+            },
             "job_started": "started {time}",
             "none_text": "Nothing newer than the installed build is being built. This card checks again when you open the page.",
             "pill_building": "Building now",

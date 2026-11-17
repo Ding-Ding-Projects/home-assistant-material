@@ -9,6 +9,10 @@ import { copyToClipboard } from "../../../../common/util/copy-clipboard";
 import { formatDateTime } from "../../../../common/datetime/format_date_time";
 import { formatTime } from "../../../../common/datetime/format_time";
 import { LanguageModeController } from "../../../../common/language-mode/language-mode-controller";
+import {
+  CANTONESE_FORMAT_LANGUAGE,
+  formatForMode,
+} from "../../../../common/language-mode/mode-format";
 import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
 import type {
@@ -149,15 +153,24 @@ export class HaUpdateChanges extends LitElement {
   }
 
   // The date in the language of the sentence it is put in.
-  private _date(iso: string, cantonese = false): string {
+  // Without `cantonese` it follows the language mode, once per language.
+  private _date(iso: string, cantonese?: boolean): string {
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) {
       return "";
     }
-    const locale = cantonese
-      ? { ...this.hass.locale, language: "zh-HK" }
-      : this.hass.locale;
-    return formatDateTime(date, locale, this.hass.config);
+    const inLanguage = (language: string) =>
+      formatDateTime(date, { ...this.hass.locale, language }, this.hass.config);
+    if (cantonese === undefined) {
+      return formatForMode(
+        inLanguage,
+        this.hass.locale.language,
+        this._lang.mode
+      );
+    }
+    return inLanguage(
+      cantonese ? CANTONESE_FORMAT_LANGUAGE : this.hass.locale.language
+    );
   }
 
   private _areaLabel(area: string): string {
@@ -448,6 +461,7 @@ export class HaUpdateChanges extends LitElement {
             .label=${this._t(`${PREFIX}.from`)}
             .value=${this._from}
             .options=${options}
+            multiline
             @selected=${this._fromChanged}
           ></ha-select>
           <div class="build-number">${this._from}</div>
@@ -478,6 +492,7 @@ export class HaUpdateChanges extends LitElement {
             .label=${this._t(`${PREFIX}.to`)}
             .value=${this._to}
             .options=${options}
+            multiline
             @selected=${this._toChanged}
           ></ha-select>
           <div class="build-number">${this._to}</div>
@@ -652,11 +667,13 @@ export class HaUpdateChanges extends LitElement {
         to: this._to!,
       }),
       releaseLabel: (release) =>
-        this._t(`${PREFIX}.text_release`, {
-          build: release.build,
-          core: release.core,
-          date: this._date(release.date),
-        }),
+        this._lang.compose(this.hass.localize, (part) =>
+          part(`${PREFIX}.text_release`, {
+            build: release.build,
+            core: release.core,
+            date: this._date(release.date, part.cantonese),
+          })
+        ),
       areaLabel: (area) => this._areaLabel(area),
       details: (change) => detailsForMode(change, mode),
     });
@@ -1290,7 +1307,6 @@ export class HaUpdateChanges extends LitElement {
           flex-direction: column;
           gap: var(--ha-space-2);
           padding: 0 var(--ha-space-5) var(--ha-space-4);
-          max-width: 90ch;
           color: var(--secondary-text-color);
           line-height: var(--ha-line-height-normal);
           overflow-wrap: anywhere;
@@ -1302,7 +1318,6 @@ export class HaUpdateChanges extends LitElement {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             column-gap: var(--ha-space-6);
-            max-width: none;
           }
         }
         .start-note {

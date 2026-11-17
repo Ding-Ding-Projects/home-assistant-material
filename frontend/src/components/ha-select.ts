@@ -48,6 +48,9 @@ export class HaSelect extends LitElement {
 
   @property({ type: Boolean }) public disabled = false;
 
+  /** Lets the shown value wrap onto more lines instead of ending in an ellipsis. */
+  @property({ type: Boolean }) public multiline = false;
+
   @state() private _opened = false;
 
   @query("ha-picker-field") private _triggerField!: HaPickerField;
@@ -151,6 +154,7 @@ export class HaSelect extends LitElement {
         .value=${valueLabel}
         .required=${this.required}
         .disabled=${this.disabled}
+        .multiline=${this.multiline}
         .hideClearIcon=${
           !this.clearable ||
           this.required ||

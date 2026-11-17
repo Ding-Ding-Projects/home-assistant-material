@@ -5,6 +5,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { consume } from "../../common/decorators/consume";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
+import { CANTONESE_FORMAT_LANGUAGE } from "../../common/language-mode/mode-format";
 import { configContext, internationalizationContext } from "../../data/context";
 import "../ha-svg-icon";
 
@@ -56,34 +57,38 @@ export class HaPageFooter extends LitElement {
     const built = new Date(__BUILD_TIME__);
     const language = this._i18n.language;
     const hasTime = !Number.isNaN(built.getTime());
+    // The sentence is built once per language, so the date and the time inside
+    // each one are written in that sentence's own language.
+    const buildLine = hasTime
+      ? this._lang.compose(this._i18n.localize, (part) => {
+          const dateLanguage = part.cantonese
+            ? CANTONESE_FORMAT_LANGUAGE
+            : language;
+          return part("ui.page_tools.footer.build", {
+            version: isolate(String(version)),
+            date: isolate(
+              built.toLocaleDateString(dateLanguage, {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })
+            ),
+            time: isolate(
+              built.toLocaleTimeString(dateLanguage, {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hourCycle: "h23",
+                timeZoneName: "short",
+              })
+            ),
+          });
+        })
+      : localize("ui.page_tools.footer.build_no_time", {
+          version: isolate(String(version)),
+        });
     return html`
-      <span class="version"
-        >${
-          hasTime
-            ? localize("ui.page_tools.footer.build", {
-                version: isolate(String(version)),
-                date: isolate(
-                  built.toLocaleDateString(language, {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })
-                ),
-                time: isolate(
-                  built.toLocaleTimeString(language, {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                    hourCycle: "h23",
-                    timeZoneName: "short",
-                  })
-                ),
-              })
-            : localize("ui.page_tools.footer.build_no_time", {
-                version: isolate(String(version)),
-              })
-        }</span
-      >
+      <span class="version">${buildLine}</span>
       <span class="item"
         ><ha-svg-icon .path=${mdiTranslate}></ha-svg-icon>${localize(
           "ui.page_tools.footer.language",

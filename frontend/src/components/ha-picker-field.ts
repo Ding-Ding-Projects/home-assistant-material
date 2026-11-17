@@ -42,6 +42,9 @@ export class HaPickerField extends PickerMixin(LitElement) {
   /** Whether the popup the field opens is showing; sets aria-expanded. */
   @property({ type: Boolean }) public expanded = false;
 
+  /** Lets a long value wrap onto more lines instead of ending in an ellipsis. */
+  @property({ type: Boolean }) public multiline = false;
+
   @query("#trigger", true) private _trigger?: HTMLButtonElement;
 
   @state()
@@ -102,7 +105,10 @@ export class HaPickerField extends PickerMixin(LitElement) {
           )}
           ?disabled=${this.disabled}
         >
-          <ha-combo-box-item .disabled=${this.disabled}>
+          <ha-combo-box-item
+            .disabled=${this.disabled}
+            ?multiline=${this.multiline}
+          >
             ${
               this.image
                 ? html`<img

@@ -48,6 +48,9 @@ interface Box {
 const POPOVER_WIDTH = 360;
 const SPOTLIGHT_MS = 7000;
 
+// How long after the last scroll event the boxes are still measured every frame.
+const FOLLOW_MS = 100;
+
 /**
  * Draws the problem detector over the page: an outline and a badge on every
  * element with a problem, the details panel with Fix and the steps to fix it
@@ -80,6 +83,10 @@ export class HaProblemOverlay extends LitElement {
 
   private _frame?: number;
 
+  private _followFrame?: number;
+
+  private _lastScroll = 0;
+
   private _timer?: number;
 
   private _spotTimer?: number;
@@ -87,7 +94,7 @@ export class HaProblemOverlay extends LitElement {
   public connectedCallback(): void {
     super.connectedCallback();
     this._unsub = subscribeProblems(() => this._schedule());
-    window.addEventListener("scroll", this._schedule, {
+    window.addEventListener("scroll", this._onScroll, {
       capture: true,
       passive: true,
     });
@@ -105,7 +112,7 @@ export class HaProblemOverlay extends LitElement {
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     this._unsub?.();
-    window.removeEventListener("scroll", this._schedule, { capture: true });
+    window.removeEventListener("scroll", this._onScroll, { capture: true });
     window.removeEventListener("resize", this._schedule);
     window.removeEventListener(PROBLEM_SPOTLIGHT_EVENT, this._onSpotlight);
     window.removeEventListener(
@@ -116,6 +123,10 @@ export class HaProblemOverlay extends LitElement {
     window.clearTimeout(this._spotTimer);
     if (this._frame) {
       cancelAnimationFrame(this._frame);
+    }
+    if (this._followFrame) {
+      cancelAnimationFrame(this._followFrame);
+      this._followFrame = undefined;
     }
   }
 
@@ -136,6 +147,25 @@ export class HaProblemOverlay extends LitElement {
       }, SPOTLIGHT_MS);
     }
     this._schedule();
+  };
+
+  // While the page is scrolling the boxes are measured on every frame, not
+  // once per scroll event, so the outlines stay on their elements. The loop
+  // ends a few frames after the last scroll event.
+  private _onScroll = () => {
+    this._lastScroll = performance.now();
+    if (this._followFrame === undefined) {
+      this._followFrame = requestAnimationFrame(this._follow);
+    }
+  };
+
+  private _follow = () => {
+    this._measure();
+    if (performance.now() - this._lastScroll < FOLLOW_MS) {
+      this._followFrame = requestAnimationFrame(this._follow);
+    } else {
+      this._followFrame = undefined;
+    }
   };
 
   private _schedule = () => {
@@ -220,8 +250,7 @@ export class HaProblemOverlay extends LitElement {
           <div
             class="outline ${box.severity}"
             style=${styleMap({
-              top: `${box.top - 4}px`,
-              left: `${box.left - 4}px`,
+              transform: `translate3d(${box.left - 4}px, ${box.top - 4}px, 0)`,
               width: `${box.width + 8}px`,
               height: `${box.height + 8}px`,
             })}
@@ -229,8 +258,7 @@ export class HaProblemOverlay extends LitElement {
           <button
             class="badge ${box.severity}"
             style=${styleMap({
-              top: `${Math.max(box.top - 14, 2)}px`,
-              left: `${box.left + 12}px`,
+              translate: `${box.left + 12}px ${Math.max(box.top - 14, 2)}px`,
             })}
             aria-haspopup="dialog"
             aria-expanded=${this._open === box.id ? "true" : "false"}
@@ -249,8 +277,7 @@ export class HaProblemOverlay extends LitElement {
     return html`<div
       class="spotlight"
       style=${styleMap({
-        top: `${box.top - 10}px`,
-        left: `${box.left - 10}px`,
+        transform: `translate3d(${box.left - 10}px, ${box.top - 10}px, 0)`,
         width: `${box.width + 20}px`,
         height: `${box.height + 20}px`,
       })}
@@ -401,6 +428,9 @@ export class HaProblemOverlay extends LitElement {
     }
     .outline {
       position: fixed;
+      top: 0;
+      left: 0;
+      will-change: transform;
       border-radius: var(--ha-border-radius-lg, 16px);
       outline: 3px solid var(--error-color);
       pointer-events: none;
@@ -424,6 +454,9 @@ export class HaProblemOverlay extends LitElement {
     }
     .badge {
       position: fixed;
+      top: 0;
+      left: 0;
+      will-change: translate;
       pointer-events: auto;
       display: inline-flex;
       align-items: center;
@@ -460,6 +493,9 @@ export class HaProblemOverlay extends LitElement {
     }
     .spotlight {
       position: fixed;
+      top: 0;
+      left: 0;
+      will-change: transform;
       border-radius: var(--ha-border-radius-xl, 20px);
       box-shadow: 0 0 0 200vmax rgba(10, 10, 20, 0.55);
       pointer-events: none;

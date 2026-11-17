@@ -191,6 +191,12 @@ const ROW_FIELD: Record<
   narrator_enabled: "narratorEnabled",
 };
 
+/**
+ * Rows that show a tile at the top of the page although no schedule or
+ * instance default reaches them, so they are not in `ROW_FIELD`.
+ */
+const OVERVIEW_ONLY_ROWS = new Set<string>(["confirmation_drama"]);
+
 const GROUPS: GroupId[] = [
   "language",
   "modes",
@@ -1394,7 +1400,9 @@ export class HaConfigSectionPersonal extends LitElement {
 
   /** The main settings with their current value; each opens its row. */
   private _renderOverview(rows: Row[]): TemplateResult | symbol {
-    const shown = rows.filter((row) => row.id in ROW_FIELD);
+    const shown = rows.filter(
+      (row) => row.id in ROW_FIELD || OVERVIEW_ONLY_ROWS.has(row.id)
+    );
     if (!shown.length) {
       return nothing;
     }

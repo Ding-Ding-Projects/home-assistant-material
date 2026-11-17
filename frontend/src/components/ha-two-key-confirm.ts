@@ -868,6 +868,18 @@ export class HaTwoKeyConfirm extends LitElement {
       );
       pointer-events: none;
       z-index: 0;
+      /* Every layer inside ends in a colour that is not clear at the side of
+         this box (the vignette is at full strength there), and the box ends
+         inside the dialog, so it would show as a straight edge. The mask fades
+         the whole layer to nothing on all four sides before its own edge. */
+      -webkit-mask-image:
+        linear-gradient(to right, transparent, #000 22%, #000 78%, transparent),
+        linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+      -webkit-mask-composite: source-in;
+      mask-image:
+        linear-gradient(to right, transparent, #000 22%, #000 78%, transparent),
+        linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+      mask-composite: intersect;
     }
     .glow {
       position: absolute;

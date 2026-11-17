@@ -1253,6 +1253,19 @@
               "cancelled": "已取消，由較新嘅建置取代",
               "skipped": "已略過"
             },
+            "job": {
+              "work_out_versions": "計算版本",
+              "build_frontend": "建置前端介面",
+              "collect_translations": "收集整合翻譯",
+              "stage_deploy_assistant": "準備部署助手",
+              "build_core_images": "建置 {arch} Core 映像",
+              "build_supervisor_image": "建置 {arch} Supervisor 映像",
+              "publish_container_image": "發佈容器映像",
+              "build_full_hosting_image": "建置完整託管模式映像",
+              "move_update_feed": "移動 Core 同 Supervisor 嘅更新來源",
+              "build_os_image": "建置 {board} 作業系統映像",
+              "publish_release": "發佈版本"
+            },
             "job_started": "{time} 開始",
             "none_text": "冇比已安裝版本更新嘅建置喺度建置。你開呢一頁嘅時候，呢張卡會再檢查。",
             "pill_building": "建置緊",

@@ -378,6 +378,77 @@ export const STAGES: StageDefinition[] = [
   },
 ];
 
+interface JobNamePattern {
+  pattern: RegExp;
+  key: string;
+  // Names the captured groups in order, for example the architecture.
+  values?: string[];
+}
+
+// The names the public build data gives its jobs, with the translation key
+// for each. Board and architecture identifiers are kept as they are.
+const JOB_NAMES: JobNamePattern[] = [
+  { pattern: /^work out versions/i, key: "work_out_versions" },
+  { pattern: /^build the frontend/i, key: "build_frontend" },
+  {
+    pattern: /^collect integration translations/i,
+    key: "collect_translations",
+  },
+  { pattern: /^stage the deploy assistant/i, key: "stage_deploy_assistant" },
+  {
+    pattern: /^build (aarch64|amd64) core images/i,
+    key: "build_core_images",
+    values: ["arch"],
+  },
+  {
+    pattern: /^build (aarch64|amd64) supervisor image/i,
+    key: "build_supervisor_image",
+    values: ["arch"],
+  },
+  { pattern: /^publish the container image/i, key: "publish_container_image" },
+  {
+    pattern: /^build the full hosting mode image/i,
+    key: "build_full_hosting_image",
+  },
+  {
+    pattern: /^move the update feed for core and supervisor/i,
+    key: "move_update_feed",
+  },
+  {
+    pattern: /^build the (.+?) operating system image/i,
+    key: "build_os_image",
+    values: ["board"],
+  },
+  { pattern: /^publish the release/i, key: "publish_release" },
+];
+
+/**
+ * The translation key and values for a known job name, with whatever follows
+ * the known part of the name (a suffix such as a matrix label) kept as
+ * written. Undefined for a job name that is not known: show it as it is.
+ */
+export const jobNameKey = (
+  name: string
+):
+  { key: string; values: Record<string, string>; rest: string } | undefined => {
+  const trimmed = name.trim();
+  for (const entry of JOB_NAMES) {
+    const match = entry.pattern.exec(trimmed);
+    if (match) {
+      const values: Record<string, string> = {};
+      (entry.values ?? []).forEach((valueName, index) => {
+        values[valueName] = match[index + 1];
+      });
+      return {
+        key: `ui.panel.config.updates.coming_soon.job.${entry.key}`,
+        values,
+        rest: trimmed.slice(match[0].length),
+      };
+    }
+  }
+  return undefined;
+};
+
 /** The stage a job belongs to, matched by its name. */
 export const stageOfJob = (name: string): StageId => {
   const normal = name.trim().toLowerCase();

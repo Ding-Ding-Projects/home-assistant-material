@@ -46,6 +46,7 @@ import {
   estimateRemaining,
   fetchBuildSnapshot,
   formatElapsed,
+  jobNameKey,
   jobStateCounts,
   parseBuildNumber,
   splitMinutes,
@@ -206,6 +207,22 @@ export class HaUpdateComingSoon extends LitElement {
     return Number.isNaN(date.getTime())
       ? ""
       : formatTime(date, this.hass.locale, this.hass.config);
+  }
+
+  // A job name in the language being written; a name that is not known is
+  // shown as the build data gives it.
+  private _jobName(
+    name: string,
+    part?: (key: string, values?: Record<string, string | number>) => string
+  ): string {
+    const known = jobNameKey(name);
+    if (!known) {
+      return name;
+    }
+    const text = part
+      ? part(known.key, known.values)
+      : this._t(known.key, known.values);
+    return `${text}${known.rest}`;
   }
 
   // The date in the language of the sentence it is put in.
@@ -580,11 +597,13 @@ export class HaUpdateComingSoon extends LitElement {
           <p role="alert">
             ${
               failedJob
-                ? this._t(`${PREFIX}.failed_detail`, {
-                    number: stageIndex,
-                    job: failedJob.name,
-                    duration: finishedAfter,
-                  })
+                ? this._lang.compose(this.hass.localize, (part) =>
+                    part(`${PREFIX}.failed_detail`, {
+                      number: stageIndex,
+                      job: this._jobName(failedJob.name, part),
+                      duration: finishedAfter,
+                    })
+                  )
                 : this._t(`${PREFIX}.failed_text`)
             }
           </p>
@@ -942,7 +961,7 @@ export class HaUpdateComingSoon extends LitElement {
                 (job) =>
                   html`<li class="job ${job.state}">
                     <i aria-hidden="true"></i>
-                    <span class="job-name">${job.name}</span>
+                    <span class="job-name">${this._jobName(job.name)}</span>
                     <span class="job-time">
                       ${this._t(`${PREFIX}.state.${job.state}`)}${
                         job.durationSeconds !== undefined &&
