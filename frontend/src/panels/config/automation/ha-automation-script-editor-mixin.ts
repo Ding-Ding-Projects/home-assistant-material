@@ -23,6 +23,9 @@ import { showMoreInfoDialog } from "../../../dialogs/more-info/show-ha-more-info
 import { DirtyStateProviderMixin } from "../../../mixins/dirty-state-provider-mixin";
 import type { Constructor, HomeAssistant, Route } from "../../../types";
 import type { EntityRegistryUpdate } from "./automation-save-dialog/show-dialog-automation-save";
+import { DraftController } from "./editor-frame/draft-controller";
+import { showDraftHistoryDialog } from "./editor-frame/show-dialog-draft-history";
+import "./editor-frame/ha-editor-draft-bar";
 
 /** Minimum config shape shared by both AutomationConfig and ScriptConfig. */
 interface BaseEditorConfig {
@@ -139,6 +142,59 @@ export const AutomationScriptEditorMixin = <TConfig extends BaseEditorConfig>(
 
     protected get dashboardPath(): string {
       return `/config/${this.domainHooks.domain}/dashboard`;
+    }
+
+    /** The id of the item being edited; undefined for a new item. */
+    protected getDraftItemId(): string | undefined {
+      return undefined;
+    }
+
+    protected readonly drafts = new DraftController(this, {
+      hass: () => this.hass,
+      kind: () => this.domainHooks.domain,
+      itemId: () => this.getDraftItemId(),
+      config: () => this.config as Record<string, any> | undefined,
+      dirty: () => this.isDirtyState,
+      readOnly: () => this.readOnly,
+      apply: (config) => this.applyDraftConfig(config),
+    });
+
+    protected updated(changedProps: PropertyValues): void {
+      super.updated(changedProps);
+      if (changedProps.has("config")) {
+        this.drafts.configChanged();
+      }
+    }
+
+    protected _markDirtyStateClean(): void {
+      super._markDirtyStateClean();
+      this.drafts.saved();
+    }
+
+    protected applyDraftConfig(config: Record<string, any>): void {
+      this.config = this.domainHooks.normalizeConfig(config as TConfig);
+      if (this.mode === "yaml") {
+        this.renderRoot.querySelector("ha-yaml-editor")?.setValue(this.config);
+      }
+      this._updateDirtyState({
+        config: this.config,
+        entityRegistryUpdate: this.entityRegistryUpdate,
+      });
+    }
+
+    protected renderDraftBar(): TemplateResult {
+      return html`<ha-editor-draft-bar
+        .hass=${this.hass}
+        .controller=${this.drafts}
+      ></ha-editor-draft-bar>`;
+    }
+
+    protected showDraftHistory(): void {
+      showDraftHistoryDialog(this, {
+        kind: this.domainHooks.domain,
+        itemId: this.drafts.currentId(),
+        onRestore: (config) => this.drafts.restored(config),
+      });
     }
 
     protected entityRegCreated?: (

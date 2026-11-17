@@ -39,6 +39,14 @@ import "../../../components/appearance/ha-appearance-color-picker";
 import "../../../components/ha-area-picker";
 import "../../../components/ha-button";
 import "../automation/editor-frame/ha-editor-frame-actions";
+import "../automation/editor-frame/ha-editor-draft-bar";
+import { DraftController } from "../automation/editor-frame/draft-controller";
+import { showDraftHistoryDialog } from "../automation/editor-frame/show-dialog-draft-history";
+import {
+  isTransferMenuAction,
+  renderTransferMenuItems,
+  runTransferMenuAction,
+} from "../automation/editor-frame/transfer-menu";
 import "../../../components/ha-control-slider";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
@@ -210,6 +218,32 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
   @state() private _mode: "review" | "live" | "yaml" = "review";
 
   @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
+
+  private readonly _drafts = new DraftController(this, {
+    hass: () => this.hass,
+    kind: () => "scene",
+    itemId: () => this.sceneId ?? undefined,
+    config: () => this._config as Record<string, any> | undefined,
+    dirty: () => this.isDirtyState,
+    readOnly: () => false,
+    apply: (config) => this._applyDraftConfig(config),
+  });
+
+  protected _markDirtyStateClean(): void {
+    super._markDirtyStateClean();
+    this._drafts.saved();
+  }
+
+  private _applyDraftConfig(config: Record<string, any>): void {
+    const scene = config as SceneConfig;
+    if (!scene.entities) {
+      scene.entities = {};
+    }
+    this._config = scene;
+    this._initEntities(scene);
+    this._yamlEditor?.setValue(scene);
+    this._updateDirtyState(++this._sceneRevision);
+  }
 
   private _storedStates: SceneEntities = {};
 
@@ -393,6 +427,8 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
           </ha-dropdown-item>
 
           <wa-divider></wa-divider>
+          ${renderTransferMenuItems(this.hass)}
+          <wa-divider></wa-divider>
 
           <ha-dropdown-item value="duplicate" .disabled=${!this.sceneId}>
             ${this.hass.localize(
@@ -415,6 +451,10 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
             </ha-svg-icon>
           </ha-dropdown-item>
         </ha-dropdown>
+        <ha-editor-draft-bar
+          .hass=${this.hass}
+          .controller=${this._drafts}
+        ></ha-editor-draft-bar>
         ${this._errors ? html` <div class="errors">${this._errors}</div> ` : ""}
         ${this._mode === "yaml" ? this._renderYamlMode() : this._renderUiMode()}
         ${this._renderActions()}
@@ -1206,6 +1246,10 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
   protected updated(changedProps: PropertyValues): void {
     super.updated(changedProps);
 
+    if (changedProps.has("_config")) {
+      this._drafts.configChanged();
+    }
+
     const oldscene = changedProps.get("sceneId");
 
     if (
@@ -1320,6 +1364,25 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
   private _handleMenuAction(ev: HaDropdownSelectEvent) {
     const action = ev.detail?.item?.value;
     if (!action) {
+      return;
+    }
+
+    if (isTransferMenuAction(action)) {
+      if (action === "draft_history") {
+        showDraftHistoryDialog(this, {
+          kind: "scene",
+          itemId: this._drafts.currentId(),
+          onRestore: (config) => this._drafts.restored(config),
+        });
+      } else {
+        runTransferMenuAction(
+          this,
+          this.hass,
+          "scene",
+          action,
+          this._config as Record<string, any> | undefined
+        );
+      }
       return;
     }
 

@@ -1,10 +1,12 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
   mdiCloseThick,
+  mdiClipboardTextOutline,
   mdiCog,
   mdiContentDuplicate,
   mdiDelete,
   mdiDotsVertical,
+  mdiDownload,
   mdiExclamationThick,
   mdiHelpCircleOutline,
   mdiHistory,
@@ -158,6 +160,9 @@ import {
 } from "../voice-assistants/expose/assistants-table-column";
 import { getAvailableAssistants } from "../voice-assistants/expose/available-assistants";
 import { showNewAutomationDialog } from "./show-dialog-new-automation";
+import { draftText } from "./editor-frame/draft-strings";
+import { exportConfigs } from "./editor-frame/transfer-actions";
+import type { ExportMode } from "./editor-frame/transfer-actions";
 
 const renderIconBadge = (path: string, color: string) => html`
   <div
@@ -1037,6 +1042,23 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
                     "ui.panel.config.automation.picker.bulk_actions.disable"
                   )}
                 </ha-button>
+                <ha-dropdown slot="actions" @wa-select=${this._exportSelected}>
+                  <ha-button
+                    slot="trigger"
+                    size="s"
+                    appearance="outlined"
+                    variant="brand"
+                  >
+                    ${draftText(this.hass, "export_several")}
+                    <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
+                  </ha-button>
+                  <ha-dropdown-item value="export_download">
+                    ${draftText(this.hass, "export_download")}
+                  </ha-dropdown-item>
+                  <ha-dropdown-item value="export_copy">
+                    ${draftText(this.hass, "export_copy")}
+                  </ha-dropdown-item>
+                </ha-dropdown>
                 <ha-dropdown
                   slot="actions"
                   @wa-select=${this._handleBulkCategory}
@@ -1131,6 +1153,17 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         <ha-dropdown-item value="duplicate">
           <ha-svg-icon .path=${mdiContentDuplicate} slot="icon"></ha-svg-icon>
           ${this.hass.localize("ui.panel.config.automation.picker.duplicate")}
+        </ha-dropdown-item>
+        <ha-dropdown-item value="export_download">
+          <ha-svg-icon .path=${mdiDownload} slot="icon"></ha-svg-icon>
+          ${draftText(this.hass, "export_download")}
+        </ha-dropdown-item>
+        <ha-dropdown-item value="export_copy">
+          <ha-svg-icon
+            .path=${mdiClipboardTextOutline}
+            slot="icon"
+          ></ha-svg-icon>
+          ${draftText(this.hass, "export_copy")}
         </ha-dropdown-item>
         <ha-dropdown-item value="toggle">
           <ha-svg-icon
@@ -1359,6 +1392,13 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
           navigate(repositoryUrl(this._overflowAutomation.attributes.id));
         }
         break;
+      case "export_download":
+      case "export_copy":
+        void this._exportAutomations(
+          [this._overflowAutomation],
+          action === "export_copy" ? "copy" : "download"
+        );
+        break;
       case "toggle":
         this._toggle(this._overflowAutomation);
         break;
@@ -1538,6 +1578,36 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
   ): void {
     this._selected = ev.detail.value;
   }
+
+  private async _exportAutomations(
+    automations: AutomationEntity[],
+    mode: ExportMode
+  ): Promise<void> {
+    const configs: Record<string, any>[] = [];
+    for (const automation of automations) {
+      const id = automation.attributes.id;
+      if (id) {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          configs.push(await fetchAutomationFileConfig(this.hass, id));
+        } catch {
+          // An automation that cannot be read is left out of the export.
+        }
+      }
+    }
+    await exportConfigs(this, this.hass, "automation", configs, mode);
+  }
+
+  private _exportSelected = (ev: HaDropdownSelectEvent) => {
+    const mode = ev.detail.item.value === "export_copy" ? "copy" : "download";
+    const selected = new Set(this._selected);
+    void this._exportAutomations(
+      this.automations.filter((automation) =>
+        selected.has(automation.entity_id)
+      ),
+      mode
+    );
+  };
 
   private _createNew() {
     if (isComponentLoaded(this.hass.config, "blueprint")) {

@@ -1,6 +1,7 @@
 import {
   mdiAccount,
   mdiFile,
+  mdiFileImportOutline,
   mdiOpenInNew,
   mdiPencilOutline,
   mdiWeb,
@@ -23,6 +24,8 @@ import "../../../components/ha-tip";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import { showAutomationEditor } from "../../../data/automation";
+import { draftText } from "./editor-frame/draft-strings";
+import { showImportConfigDialog } from "./editor-frame/show-dialog-import-config";
 import type {
   Blueprint,
   BlueprintDomain,
@@ -193,6 +196,18 @@ class DialogNewAutomation extends LitElement {
               </span>
               <ha-icon-next slot="meta"></ha-icon-next>
             </ha-list-item>
+            <ha-list-item
+              hasmeta
+              graphic="icon"
+              @request-selected=${this._importYaml}
+            >
+              <ha-svg-icon
+                slot="graphic"
+                .path=${mdiFileImportOutline}
+              ></ha-svg-icon>
+              ${draftText(this.hass, "import_title")}
+              <ha-icon-next slot="meta"></ha-icon-next>
+            </ha-list-item>
           </ha-list>
           <div class="blueprints-container">
             <div class="blueprints-list ha-scrollbar">
@@ -319,6 +334,16 @@ class DialogNewAutomation extends LitElement {
     } else {
       showAutomationEditor({ use_blueprint: { path } });
     }
+  }
+
+  private _importYaml(ev) {
+    if (!shouldHandleRequestSelectedEvent(ev)) {
+      return;
+    }
+    this._open = false;
+    showImportConfigDialog(this, {
+      kind: this._mode === "script" ? "script" : "automation",
+    });
   }
 
   private async _blank(ev) {

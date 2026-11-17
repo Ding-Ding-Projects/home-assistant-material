@@ -92,6 +92,11 @@ import { showAutomationSaveTimeoutDialog } from "./automation-save-timeout-dialo
 import { ADD_AUTOMATION_ELEMENT_QUERY_PARAM } from "./show-add-automation-element-dialog";
 import "./blueprint-automation-editor";
 import "./editor-frame/ha-editor-frame-actions";
+import {
+  isTransferMenuAction,
+  renderTransferMenuItems,
+  runTransferMenuAction,
+} from "./editor-frame/transfer-menu";
 import "./ha-automation-bottom-bar";
 import type { HaAutomationBottomBar } from "./ha-automation-bottom-bar";
 import "./tools/ha-automation-tools-panel";
@@ -242,6 +247,10 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
         this.entityRegCreated = undefined;
       }
     }
+  }
+
+  protected getDraftItemId(): string | undefined {
+    return this.automationId ?? undefined;
   }
 
   private _renderDeprecatedMigratedAlert(): TemplateResult | typeof nothing {
@@ -545,6 +554,8 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
           </ha-dropdown-item>
 
           <wa-divider></wa-divider>
+          ${renderTransferMenuItems(this.hass)}
+          <wa-divider></wa-divider>
 
           <ha-dropdown-item .disabled=${!stateObj} value="disable">
             ${
@@ -632,6 +643,7 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
                                 @sidebar-config-changed=${this._sidebarConfigChanged}
                               >
                                 <div class="alert-wrapper" slot="alerts">
+                                  ${this.renderDraftBar()}
                                   ${this._renderDeprecatedMigratedAlert()}
                                   ${
                                     this.errors ||
@@ -732,7 +744,7 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
                     </div>
                   `
                 : this.mode === "yaml"
-                  ? html`${this._renderDeprecatedMigratedAlert()}
+                  ? html`${this.renderDraftBar()}${this._renderDeprecatedMigratedAlert()}
                       ${
                         stateObj?.state === "off"
                           ? html`
@@ -1493,6 +1505,7 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
       });
     }
 
+    const disableAfterSave = this.drafts.importedDisabled && !this.automationId;
     try {
       await saveAutomationConfig(this.hass, id, this.config!);
 
@@ -1540,6 +1553,9 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
       }
 
       this._markDirtyStateClean();
+      if (disableAfterSave) {
+        void this._turnOffImported(id);
+      }
       this.deprecatedConfigMigrated = false;
     } catch (errors: any) {
       this.errors = errors.body?.message || errors.error || errors.body;
@@ -1549,6 +1565,29 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
       throw errors;
     } finally {
       this.saving = false;
+    }
+  }
+
+  // An automation imported together with others stays off until the owner
+  // turns it on, so saving it must not start it.
+  private async _turnOffImported(id: string): Promise<void> {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const entityId = Object.keys(this.hass.states).find(
+        (key) =>
+          key.startsWith("automation.") &&
+          this.hass.states[key].attributes.id === id
+      );
+      if (entityId) {
+        // eslint-disable-next-line no-await-in-loop
+        await this.hass.callService("automation", "turn_off", {
+          entity_id: entityId,
+        });
+        return;
+      }
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((resolve) => {
+        setTimeout(resolve, 500);
+      });
     }
   }
 
@@ -1647,6 +1686,21 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
     const action = ev.detail?.item?.value;
 
     if (!action) {
+      return;
+    }
+
+    if (isTransferMenuAction(action)) {
+      if (action === "draft_history") {
+        this.showDraftHistory();
+      } else {
+        runTransferMenuAction(
+          this,
+          this.hass,
+          "automation",
+          action,
+          this.config
+        );
+      }
       return;
     }
 

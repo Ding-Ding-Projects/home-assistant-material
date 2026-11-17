@@ -67,6 +67,11 @@ import { haStyle } from "../../../resources/styles";
 import type { Entries } from "../../../types";
 import { isMac } from "../../../util/is_mac";
 import { showEditorToast } from "../automation/editor-toast";
+import {
+  isTransferMenuAction,
+  renderTransferMenuItems,
+  runTransferMenuAction,
+} from "../automation/editor-frame/transfer-menu";
 import { motionAlertStyles } from "../automation/motion-styles";
 import { beginRun, getErrorMessage } from "../automation/run-helpers";
 import { showAutomationModeDialog } from "../automation/automation-mode-dialog/show-dialog-automation-mode";
@@ -137,6 +142,10 @@ export class HaScriptEditor extends SubscribeMixin(
         this.entityRegCreated = undefined;
       }
     }
+  }
+
+  protected getDraftItemId(): string | undefined {
+    return this.scriptId ?? undefined;
   }
 
   private _renderDeprecatedMigratedAlert(): TemplateResult | typeof nothing {
@@ -417,6 +426,8 @@ export class HaScriptEditor extends SubscribeMixin(
           </ha-dropdown-item>
 
           <wa-divider></wa-divider>
+          ${renderTransferMenuItems(this.hass)}
+          <wa-divider></wa-divider>
 
           <ha-dropdown-item
             .disabled=${this.readOnly || !this.scriptId}
@@ -480,6 +491,7 @@ export class HaScriptEditor extends SubscribeMixin(
                               @save-bar-discard=${this.backTapped}
                             >
                               <div class="alert-wrapper" slot="alerts">
+                                ${this.renderDraftBar()}
                                 ${this._renderDeprecatedMigratedAlert()}
                                 ${
                                   this.errors || stateObj?.state === UNAVAILABLE
@@ -557,7 +569,7 @@ export class HaScriptEditor extends SubscribeMixin(
                   </div>
                 `
               : this.mode === "yaml"
-                ? html`${this._renderDeprecatedMigratedAlert()}
+                ? html`${this.renderDraftBar()}${this._renderDeprecatedMigratedAlert()}
                     <ha-yaml-editor
                       .defaultValue=${this._preprocessYaml()}
                       .readOnly=${this.readOnly}
@@ -1248,6 +1260,15 @@ export class HaScriptEditor extends SubscribeMixin(
     const action = ev.detail?.item?.value;
 
     if (!action) {
+      return;
+    }
+
+    if (isTransferMenuAction(action)) {
+      if (action === "draft_history") {
+        this.showDraftHistory();
+      } else {
+        runTransferMenuAction(this, this.hass, "script", action, this.config);
+      }
       return;
     }
 
