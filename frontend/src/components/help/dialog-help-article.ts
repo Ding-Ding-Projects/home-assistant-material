@@ -372,6 +372,7 @@ export class DialogHelpArticle
     return html`
       <ha-dialog
         .open=${this._open}
+        own-search
         width="large"
         header-title=${this._headerTitle()}
         @closed=${this._dialogClosed}

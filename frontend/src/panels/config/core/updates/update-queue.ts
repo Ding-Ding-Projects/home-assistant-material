@@ -377,6 +377,27 @@ export const storeQueue = (queue: QueueState | undefined): void => {
   }
 };
 
+/** Whether a step's role restarts the system the page itself runs on. */
+export const roleRestartsSystem = (role: UpdateRole | undefined): boolean =>
+  role === "core" || role === "supervisor" || role === "os";
+
+/**
+ * The step has reached its target as far as anyone can tell. For Core the
+ * version the running instance reports counts too: after the page reloads
+ * onto the new build the update entity may not have caught up yet.
+ */
+export const stepDone = (
+  entity: UpdateEntity | undefined,
+  step: Pick<QueueStep, "targetVersion" | "role">,
+  configVersion?: string | null
+): boolean =>
+  stepReached(entity, step) ||
+  (step.role === "core" &&
+    step.targetVersion !== null &&
+    !!configVersion &&
+    configVersion === step.targetVersion &&
+    !entity?.attributes.in_progress);
+
 /** The step's entity has reached what the step set out to do. */
 export const stepReached = (
   entity: UpdateEntity | undefined,

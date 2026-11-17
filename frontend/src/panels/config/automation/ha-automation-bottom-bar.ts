@@ -566,39 +566,56 @@ export class HaAutomationBottomBar extends LitElement {
           .hint {
             display: none;
           }
+          /* One compact row: every action is an icon with its label under
+             it, 56 px high. The plain saved or unsaved text stays available
+             to screen readers; a check result still shows in full. */
           .bar {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            align-items: center;
-            gap: var(--ha-space-2);
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: var(--ha-space-1);
             width: 100%;
-            padding: var(--ha-space-2) var(--ha-space-3);
+            padding: var(--ha-space-1) var(--ha-space-2);
           }
-          .status {
-            grid-column: 1 / 3;
-            grid-row: 1;
-            flex: none;
+          .status.short {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            margin: -1px;
+            padding: 0;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
           }
           .buttons {
-            display: contents;
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: space-around;
+            margin-inline-start: 0;
+            gap: var(--ha-space-1);
           }
           .buttons ha-button {
-            min-width: 0;
-            --wa-form-control-padding-inline: var(--ha-space-2);
+            flex: 1 1 0;
+            min-width: 48px;
+            min-height: 56px;
+            --wa-form-control-padding-inline: var(--ha-space-1);
           }
-          .buttons ha-button[appearance="plain"] {
-            grid-row: 2;
+          .buttons ha-button::part(base) {
+            flex-direction: column;
+            gap: 0;
+            min-height: 56px;
+            height: 56px;
+            font-size: var(--ha-font-size-xs, 0.75rem);
+            line-height: 1.1;
           }
-          .buttons ha-button:not([appearance="plain"]) {
-            grid-column: 3;
-            grid-row: 1;
+          .buttons ha-button::part(start) {
+            margin: 0;
           }
-        }
-        /* Too narrow for words beside the icons: the three secondary buttons
-           show their icon only. Their accessible name and tooltip remain. */
-        @container (max-width: 420px) {
-          .buttons ha-button[appearance="plain"] .label {
-            display: none;
+          .buttons ha-button .label {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
           }
         }
         .dry {

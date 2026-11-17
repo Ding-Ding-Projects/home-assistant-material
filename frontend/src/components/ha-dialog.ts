@@ -137,6 +137,13 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
   @property({ type: Boolean, attribute: "without-tools" })
   public withoutTools = false;
 
+  /**
+   * The dialog says it has a search of its own (for example inside a nested
+   * component's shadow root), so the shared search is left out.
+   */
+  @property({ type: Boolean, attribute: "own-search" })
+  public ownSearch = false;
+
   @state() private _locked = false;
 
   @state()
@@ -273,7 +280,7 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
           this.withoutTools || this.type === "alert"
             ? nothing
             : html`<ha-dialog-tools
-                .hideSearch=${this._ownSearch}
+                .hideSearch=${this._ownSearch || this.ownSearch}
                 @dialog-lock-changed=${this._lockChanged}
               ></ha-dialog-tools>`
         }

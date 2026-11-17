@@ -973,6 +973,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       `,
       confirmText: this._text("confirm_action"),
       dismissText: this._lang.text(this.hass.localize, "ui.common.cancel"),
+      destructive: true,
     });
     if (!confirmed) {
       return;

@@ -43,6 +43,7 @@ import type {
   WizardStep,
 } from "./room-wizard";
 import {
+  buildAreaCreateParams,
   buildStarterConfig,
   buildWizardDevices,
   clearDraft,
@@ -684,11 +685,10 @@ class DialogRoomWizard
     }
     if (!this._draft.areaId) {
       try {
-        const area = await createAreaRegistryEntry(this.hass, {
-          name,
-          floor_id: this._draft.floorId,
-          icon: this._draft.icon,
-        });
+        const area = await createAreaRegistryEntry(
+          this.hass,
+          buildAreaCreateParams({ ...this._draft, name })
+        );
         this._persist({ areaId: area.area_id, name: area.name });
       } catch (err) {
         this._error = this._t("error_area", { error: errorMessage(err) });

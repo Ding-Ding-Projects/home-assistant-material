@@ -111,10 +111,13 @@ export class HaAutomationSearchBar extends LitElement {
   }
 
   private _publishOffset() {
+    // On a narrow screen the bar sits in the flow and scrolls away, so rows
+    // only need room for the controls that stay on screen.
+    const narrow = window.matchMedia("(max-width: 600px)").matches;
     // Include any sticky controls above the bar, its own height and the gap.
     this._offsetTarget?.style.setProperty(
       "--ha-automation-sticky-offset",
-      `${this.stickyOffset + this.offsetHeight + 24}px`
+      `${this.stickyOffset + (narrow ? 0 : this.offsetHeight) + 24}px`
     );
   }
 
@@ -670,6 +673,16 @@ export class HaAutomationSearchBar extends LitElement {
       clip-path: inset(50%);
       white-space: nowrap;
       border: 0;
+    }
+    @media (max-width: 600px) {
+      :host {
+        position: static;
+        z-index: auto;
+      }
+      .bar {
+        max-height: none;
+        overflow-y: visible;
+      }
     }
     @media (max-width: 420px) {
       .nav {

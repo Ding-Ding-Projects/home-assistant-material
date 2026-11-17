@@ -534,6 +534,29 @@ export const clearDraft = (
   }
 };
 
+export interface AreaCreateParams {
+  name: string;
+  floor_id?: string;
+  icon?: string;
+}
+
+/**
+ * The values for creating a room. Optional keys are left out when empty,
+ * because the server rejects null for them.
+ */
+export const buildAreaCreateParams = (
+  draft: Pick<RoomDraft, "name" | "floorId" | "icon">
+): AreaCreateParams => {
+  const params: AreaCreateParams = { name: draft.name.trim() };
+  if (draft.floorId) {
+    params.floor_id = draft.floorId;
+  }
+  if (draft.icon) {
+    params.icon = draft.icon;
+  }
+  return params;
+};
+
 /** A new automation id; the editor uses the time in milliseconds too. */
 export const newAutomationId = (index: number, now = Date.now()): string =>
   String(now + index);

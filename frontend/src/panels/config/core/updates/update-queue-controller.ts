@@ -12,7 +12,8 @@ import {
   evaluateStep,
   loadStoredQueue,
   queueIsActive,
-  stepReached,
+  roleRestartsSystem,
+  stepDone,
   storeQueue,
 } from "./update-queue";
 
@@ -59,6 +60,9 @@ export class UpdateQueueController implements ReactiveController {
 
   hostConnected() {
     this.queue = loadStoredQueue();
+    // After a reload onto a new build the stored queue may already be done:
+    // settle that before the card first shows anything.
+    this.tick();
     this._timer = setInterval(() => this.tick(), TICK_MS);
   }
 
@@ -157,8 +161,9 @@ export class UpdateQueueController implements ReactiveController {
     const connected = hass.connected !== false;
     if (this.queue.failure) {
       // A step that was judged failed but whose update has since arrived was
-      // not a failure: a real update can look stuck for a while. The queue
-      // carries on. A refused call ("error") is left for the person to decide.
+      // not a failure: a real update can look stuck for a while, and a call
+      // that was refused while the system restarted says nothing about the
+      // result. The queue carries on.
       const failedId = this.queue.failure.entityId;
       const failed = this.queue.steps.find(
         (step) => step.entityId === failedId
@@ -166,8 +171,11 @@ export class UpdateQueueController implements ReactiveController {
       if (
         !connected ||
         !failed ||
-        this.queue.failure.reason === "error" ||
-        !stepReached(hass.states[failedId] as UpdateEntity | undefined, failed)
+        !stepDone(
+          hass.states[failedId] as UpdateEntity | undefined,
+          failed,
+          hass.config?.version
+        )
       ) {
         return;
       }
@@ -195,6 +203,14 @@ export class UpdateQueueController implements ReactiveController {
       if (current) {
         const entity = hass.states[current.entityId] as
           UpdateEntity | undefined;
+        if (stepDone(entity, current, hass.config?.version)) {
+          // Already at the target, for instance after a reload onto the new
+          // build: finished, whatever the entity still says.
+          current.state = "done";
+          announcement = { kind: "done", entityId: current.entityId };
+          changed = true;
+          continue;
+        }
         if (entity?.attributes.in_progress && !current.seenInProgress) {
           current.seenInProgress = true;
           changed = true;
@@ -254,14 +270,16 @@ export class UpdateQueueController implements ReactiveController {
         break;
       }
       const entity = hass.states[next.entityId] as UpdateEntity | undefined;
+      const atTarget = stepDone(entity, next, hass.config?.version);
       if (
         !entity ||
+        atTarget ||
         entity.state === "off" ||
         (next.targetVersion !== null &&
           entity.attributes.installed_version === next.targetVersion)
       ) {
         // Gone, or already at the target: there is nothing to install.
-        next.state = entity ? "done" : "skipped";
+        next.state = entity || atTarget ? "done" : "skipped";
         changed = true;
         continue;
       }
@@ -291,20 +309,46 @@ export class UpdateQueueController implements ReactiveController {
     const entity = hass.states[entityId] as UpdateEntity | undefined;
     const withBackup =
       backup && !!entity && supportsFeature(entity, UpdateEntityFeature.BACKUP);
+    const step = this.queue?.steps.find((s) => s.entityId === entityId);
+    const restarts = roleRestartsSystem(step?.role);
     this._calling.add(entityId);
     let refused: string | undefined;
     try {
       await installUpdatesTracked(hass, [entityId], false, withBackup);
     } catch (err: any) {
       // A lost connection is what these updates look like from the browser.
+      // For an update that restarts the system any rejection can be the
+      // restart cutting the call off, so it is judged by the result below.
       if (!isConnectionLostError(err)) {
-        refused = extractApiErrorMessage(err);
+        refused = extractApiErrorMessage(err) || "";
       }
     } finally {
       this._calling.delete(entityId);
     }
     if (refused !== undefined) {
-      this._failStep(entityId, "error", refused);
+      const current = this._getHass();
+      const latest = current.states[entityId] as UpdateEntity | undefined;
+      const now = this.queue?.steps.find((s) => s.entityId === entityId);
+      const healthy = current.connected !== false;
+      const settled =
+        !!latest &&
+        !latest.attributes.in_progress &&
+        !stepDone(
+          latest,
+          now ?? { targetVersion: null, role: "other" },
+          current.config?.version
+        );
+      const genuine = restarts
+        ? healthy && settled && !now?.seenInProgress
+        : settled || !latest;
+      if (genuine) {
+        this._failStep(
+          entityId,
+          "error",
+          refused.trim() ||
+            current.localize("ui.panel.config.updates.queue.error_unknown")
+        );
+      }
     }
     this.tick();
   }

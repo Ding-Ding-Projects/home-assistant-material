@@ -6,6 +6,7 @@ import { ifDefined } from "lit/directives/if-defined";
 import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
 import { formatDateTime } from "../../../../common/datetime/format_date_time";
+import { formatTime } from "../../../../common/datetime/format_time";
 import { LanguageModeController } from "../../../../common/language-mode/language-mode-controller";
 import { formatForMode } from "../../../../common/language-mode/mode-format";
 import "../../../../components/ha-alert";
@@ -27,11 +28,14 @@ import {
   historyRows,
   installCoreVersion,
   loadHistory,
+  loadPendingGoBack,
   recordVersion,
+  resolvePendingGoBack,
   rollbackBlockReason,
   rollbackTargets,
   splitDuration,
   storeHistory,
+  storePendingGoBack,
 } from "./update-history";
 import { evaluateStep } from "./update-queue";
 
@@ -78,6 +82,13 @@ export class HaUpdateHistory extends LitElement {
 
   @state() private _job?: RollbackJob;
 
+  /** The one-time line about a way back that finished or did not. */
+  @state() private _notice?: {
+    kind: "done" | "failed";
+    build: string;
+    time: number;
+  };
+
   private _lang = new LanguageModeController(this);
 
   private _timer?: ReturnType<typeof setInterval>;
@@ -88,6 +99,7 @@ export class HaUpdateHistory extends LitElement {
     super.connectedCallback();
     this._history = loadHistory();
     this._record();
+    this._resolvePending();
     this._loadChangeCount();
   }
 
@@ -106,8 +118,44 @@ export class HaUpdateHistory extends LitElement {
         this._record();
         this._loadChangeCount();
       }
+      this._resolvePending();
       this._tick();
     }
+  }
+
+  // A way back that was started before this page loaded: report how it ended,
+  // once, and forget it.
+  private _resolvePending(): void {
+    const pending = loadPendingGoBack();
+    if (!pending || !this.hass?.config || this._job?.outcome === "running") {
+      return;
+    }
+    const now = Date.now();
+    const result = resolvePendingGoBack(pending, this.hass.config.version, now);
+    if (result === "pending") {
+      return;
+    }
+    storePendingGoBack(undefined);
+    const build = parseBuildNumber(pending.version);
+    this._notice = {
+      kind: result,
+      build: build !== undefined ? String(build) : pending.version,
+      time: now,
+    };
+  }
+
+  // The time of day in the language of the chosen mode.
+  private _time(ms: number): string {
+    const date = new Date(ms);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+    return formatForMode(
+      (language) =>
+        formatTime(date, { ...this.hass.locale, language }, this.hass.config),
+      this.hass.locale.language,
+      this._lang.mode
+    );
   }
 
   private _t(key: string, values?: Record<string, string | number>): string {
@@ -213,7 +261,7 @@ export class HaUpdateHistory extends LitElement {
           <h2 id="history-title">${this._t("title")}</h2>
         </div>
         <p class="quiet">${this._t("intro")}</p>
-        ${this._renderJob()}
+        ${this._renderJob()} ${this._renderNotice()}
         ${
           current
             ? html`<div class="hero">
@@ -354,6 +402,32 @@ export class HaUpdateHistory extends LitElement {
     </ha-alert>`;
   }
 
+  private _renderNotice(): TemplateResult | typeof nothing {
+    const notice = this._notice;
+    if (!notice) {
+      return nothing;
+    }
+    return html`<ha-alert
+      alert-type=${notice.kind === "done" ? "success" : "warning"}
+    >
+      ${
+        notice.kind === "done"
+          ? this._t("went_back", {
+              build: notice.build,
+              time: this._time(notice.time),
+            })
+          : this._t("go_back_unfinished", { build: notice.build })
+      }
+      <ha-button slot="action" appearance="plain" @click=${this._dismissNotice}>
+        ${this._t("dismiss")}
+      </ha-button>
+    </ha-alert>`;
+  }
+
+  private _dismissNotice = () => {
+    this._notice = undefined;
+  };
+
   private _dismissJob = () => {
     if (this._job && this._job.outcome !== "running") {
       this._job = undefined;
@@ -399,13 +473,27 @@ export class HaUpdateHistory extends LitElement {
       outcome: "running",
     };
     this._job = job;
+    this._notice = undefined;
+    storePendingGoBack({ version, startedAt: job.startedAt });
     this._startTimer();
     try {
       await installCoreVersion(this.hass, version, this.backup);
     } catch (err: any) {
       // A lost connection is what a Core restart looks like from here.
-      if (!isConnectionLostError(err)) {
-        this._finishJob(job, "failed", extractApiErrorMessage(err));
+      // Any other rejection while Core restarts is judged by the result.
+      const core = this.hass.states[CORE_UPDATE_ENTITY] as
+        UpdateEntity | undefined;
+      if (
+        !isConnectionLostError(err) &&
+        this.hass.connected !== false &&
+        !core?.attributes.in_progress &&
+        this.hass.config.version !== version
+      ) {
+        this._finishJob(
+          job,
+          "failed",
+          extractApiErrorMessage(err) || undefined
+        );
         return;
       }
     }
@@ -431,6 +519,8 @@ export class HaUpdateHistory extends LitElement {
     error?: string
   ): void {
     this._stopTimer();
+    // The result is shown by this page; nothing is left to report later.
+    storePendingGoBack(undefined);
     this._job = { ...job, outcome, error };
   }
 

@@ -82,7 +82,7 @@ class HaUpdateQueueCard extends LitElement {
     if (queue.failure) {
       title = this._t("failed_title", { name: currentName });
       text = this._t(`failed_text_${queue.failure.reason}`, {
-        error: this.controller.failureMessage ?? "",
+        error: this.controller.failureMessage || this._t("error_unknown"),
       });
     } else if (active) {
       title = this._t("progress_title", {

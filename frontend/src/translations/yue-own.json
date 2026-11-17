@@ -1476,6 +1476,7 @@
             "failed_text_timeout": "呢個更新用咗超過 30 分鐘。剩低嘅更新未有開始。",
             "failed_text_not_started": "呢個更新冇開始到。剩低嘅更新未有開始。",
             "failed_text_error": "Home Assistant 開始唔到呢個更新：{error} 剩低嘅更新未有開始。",
+            "error_unknown": "Home Assistant 冇講原因。",
             "retry": "再試一次",
             "skip": "跳過呢個，繼續落去",
             "dismiss": "閂咗佢",
@@ -1713,6 +1714,8 @@
             "job_done": "Home Assistant 已經再次行緊第 {build} 版。",
             "job_failed": "返回第 {build} 版未能完成。之前行緊嘅版本仍然係已安裝嘅版本。",
             "job_failed_error": "返回第 {build} 版未能開始：{error}",
+            "went_back": "喺 {time} 返回咗第 {build} 版",
+            "go_back_unfinished": "返回第 {build} 版未能完成",
             "dismiss": "關閉"
           },
           "usb": {

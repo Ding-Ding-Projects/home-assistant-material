@@ -237,3 +237,75 @@ export const installCoreVersion = (
     timeout: null,
     data: { version, backup },
   });
+
+/** How long a started way back may take before it counts as not finished. */
+export const GO_BACK_LIMIT_MS = 15 * 60 * 1000;
+
+/** A way back that was started and has not been reported on yet. */
+export interface PendingGoBack {
+  version: string;
+  startedAt: number;
+}
+
+const PENDING_KEY = "ha-update-go-back";
+
+export const parsePendingGoBack = (
+  raw: string | null
+): PendingGoBack | undefined => {
+  if (!raw) {
+    return undefined;
+  }
+  try {
+    const data = JSON.parse(raw);
+    if (
+      typeof data?.version !== "string" ||
+      !data.version.trim() ||
+      data.version.length > 64 ||
+      typeof data.startedAt !== "number" ||
+      !Number.isFinite(data.startedAt)
+    ) {
+      return undefined;
+    }
+    return { version: data.version, startedAt: data.startedAt };
+  } catch (_err) {
+    return undefined;
+  }
+};
+
+export const loadPendingGoBack = (): PendingGoBack | undefined => {
+  try {
+    return parsePendingGoBack(window.localStorage.getItem(PENDING_KEY));
+  } catch (_err) {
+    return undefined;
+  }
+};
+
+export const storePendingGoBack = (
+  pending: PendingGoBack | undefined
+): void => {
+  try {
+    if (pending) {
+      window.localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+    } else {
+      window.localStorage.removeItem(PENDING_KEY);
+    }
+  } catch (_err) {
+    // The result is then simply not reported after a reload.
+  }
+};
+
+/**
+ * What became of a stored way back: done when the installed version is the
+ * target, failed once the time limit has passed without that, otherwise still
+ * going.
+ */
+export const resolvePendingGoBack = (
+  pending: PendingGoBack,
+  currentVersion: string | null | undefined,
+  now: number
+): "pending" | "done" | "failed" => {
+  if (currentVersion === pending.version) {
+    return "done";
+  }
+  return now - pending.startedAt > GO_BACK_LIMIT_MS ? "failed" : "pending";
+};

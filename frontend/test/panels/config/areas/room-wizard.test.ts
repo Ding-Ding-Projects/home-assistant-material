@@ -5,6 +5,7 @@ import type {
   StarterText,
 } from "../../../../src/panels/config/areas/room-wizard/room-wizard";
 import {
+  buildAreaCreateParams,
   buildStarterConfig,
   buildWizardDevices,
   clearDraft,
@@ -197,6 +198,30 @@ describe("starter configurations", () => {
     expect(buildStarterConfig("temp_high", "Study", empty, text)).toBe(
       undefined
     );
+  });
+});
+
+describe("area create values", () => {
+  it("sends only the name when nothing else is chosen", () => {
+    const params = buildAreaCreateParams({
+      name: " Study ",
+      floorId: null,
+      icon: null,
+    });
+    expect(params).toEqual({ name: "Study" });
+    expect(Object.keys(params)).toEqual(["name"]);
+  });
+
+  it("adds the icon when one is chosen", () => {
+    expect(
+      buildAreaCreateParams({ name: "Study", floorId: null, icon: "mdi:desk" })
+    ).toEqual({ name: "Study", icon: "mdi:desk" });
+  });
+
+  it("adds the floor when one is chosen", () => {
+    expect(
+      buildAreaCreateParams({ name: "Study", floorId: "first", icon: "" })
+    ).toEqual({ name: "Study", floor_id: "first" });
   });
 });
 

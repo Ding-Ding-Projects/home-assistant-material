@@ -101,6 +101,7 @@ class DialogZHAAddGroupMembers
     return html`
       <ha-dialog
         .open=${this._open}
+        ?own-search=${showSearch}
         header-title=${this.hass.localize(
           "ui.panel.config.zha.groups.add_members"
         )}

@@ -6417,6 +6417,7 @@
             "failed_text_timeout": "The update took longer than 30 minutes. The rest were not started.",
             "failed_text_not_started": "The update did not start. The rest were not started.",
             "failed_text_error": "Home Assistant could not start the update: {error} The rest were not started.",
+            "error_unknown": "Home Assistant gave no reason.",
             "retry": "Try again",
             "skip": "Skip this one and continue",
             "dismiss": "Close",
@@ -6665,6 +6666,8 @@
             "job_done": "Home Assistant is running build {build} again.",
             "job_failed": "Going back to build {build} did not finish. The build that was running before is still the one installed.",
             "job_failed_error": "Going back to build {build} did not start: {error}",
+            "went_back": "Went back to build {build} at {time}",
+            "go_back_unfinished": "Going back to build {build} did not finish",
             "dismiss": "Close"
           },
           "usb": {

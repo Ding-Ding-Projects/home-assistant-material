@@ -543,6 +543,7 @@ class DialogAddAutomationElement extends DialogMixin<AddAutomationElementDialogP
       <ha-dialog
         width="large"
         open
+        own-search
         @closed=${this._handleClosed}
         @after-show=${this._handleAfterShow}
         flexcontent
