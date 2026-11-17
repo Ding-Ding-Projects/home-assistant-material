@@ -193,3 +193,9 @@ Not verified:
   Core at the Core address. If any of these differs, the setup ends in a clear `error` state.
 - The core `http:` settings are documented here but not added to the default configuration
   template, which lives in the core part of the tree.
+
+## Remove and Resume never leave a dead end
+
+- **Remove** always ends in "not set up". It stops what exists, tries to delete the tunnel at the provider, deletes the private folder and clears the stored state. If one of those could not be done, the answer carries a short `note` (for example "the tunnel was not deleted at the provider") instead of an error. A container that is already gone counts as stopped.
+- **Resume** from an error that happened before sign-in starts the sign-in again and returns a fresh sign-in address, or a new error with its reason.
+- This was found by a real run: the first build with the real runner failed Set up and Remove because stopping a container that had never been created was treated as a failure. A test now replays that exact sequence.

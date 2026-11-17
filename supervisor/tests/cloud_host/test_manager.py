@@ -232,18 +232,47 @@ async def test_runner_stops_by_itself(tmp_path: Path) -> None:
     assert (await manager.resume())["state"] == CloudHostState.RUNNING
 
 
-async def test_remove_failure_keeps_setup(tmp_path: Path) -> None:
-    """Test a failed removal keeps the setup so it can be retried."""
+async def test_remove_failure_still_ends_not_set_up(tmp_path: Path) -> None:
+    """Test a failed cleanup never leaves the page stuck, and says what was left."""
     manager, runner = make_manager(tmp_path)
     await manager.setup(HOSTNAME)
     runner.fail_on = {"remove"}
 
     result = await manager.remove()
 
-    assert result["state"] == CloudHostState.ERROR
-    assert result["hostname"] == HOSTNAME
-    runner.fail_on = set()
+    assert result["state"] == CloudHostState.NOT_SET_UP
+    assert result["hostname"] is None
+    assert result["note"] == "remove failed"
+    assert (await manager.info())["state"] == CloudHostState.NOT_SET_UP
+
+
+async def test_error_then_remove_then_setup_again(tmp_path: Path) -> None:
+    """Test an error is never a dead end: Remove clears it and Set up works again."""
+    runner = FakeRunner()
+    runner.fail_on = {"begin_sign_in"}
+    manager, _ = make_manager(tmp_path, runner)
+    assert (await manager.setup(HOSTNAME))["state"] == CloudHostState.ERROR
+
     assert (await manager.remove())["state"] == CloudHostState.NOT_SET_UP
+    runner.fail_on = set()
+    result = await manager.setup(HOSTNAME)
+
+    assert result["state"] == CloudHostState.WAITING_FOR_SIGN_IN
+    assert result["sign_in_url"] == SIGN_IN_URL
+
+
+async def test_error_then_resume_restarts_sign_in(tmp_path: Path) -> None:
+    """Test Resume from an error before sign-in tries the sign-in again."""
+    runner = FakeRunner()
+    runner.fail_on = {"begin_sign_in"}
+    manager, _ = make_manager(tmp_path, runner)
+    await manager.setup(HOSTNAME)
+    runner.fail_on = set()
+
+    result = await manager.resume()
+
+    assert result["state"] == CloudHostState.WAITING_FOR_SIGN_IN
+    assert await manager.sign_in_url() == SIGN_IN_URL
 
 
 @pytest.mark.parametrize(

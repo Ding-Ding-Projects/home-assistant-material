@@ -187,15 +187,17 @@ class DockerTunnelRunner(TunnelRunner):
 
     async def _stop_container(self, name: str) -> None:
         """Stop and remove a managed container, quietly when it does not exist."""
-        with suppress(DockerNotFound):
-            try:
-                await asyncio.wait_for(
-                    self._docker.stop_container(name, STOP_TIMEOUT_SECONDS),
-                    timeout=STEP_TIMEOUT_SECONDS,
-                )
-            except (DockerError, TimeoutError) as err:
-                _LOGGER.warning("Could not stop %s: %s", name, type(err).__name__)
-                raise CloudHostRunnerError("could not stop the tunnel") from err
+        try:
+            await asyncio.wait_for(
+                self._docker.stop_container(name, STOP_TIMEOUT_SECONDS),
+                timeout=STEP_TIMEOUT_SECONDS,
+            )
+        except DockerNotFound:
+            # A container that does not exist is already stopped
+            return
+        except (DockerError, TimeoutError) as err:
+            _LOGGER.warning("Could not stop %s: %s", name, type(err).__name__)
+            raise CloudHostRunnerError("could not stop the tunnel") from err
 
     async def _one_shot(self, command: list[str], reason: str) -> None:
         """Run one client command to completion and require exit code 0."""
@@ -344,25 +346,34 @@ class DockerTunnelRunner(TunnelRunner):
         address = networks.get(self._docker.network.name, {}).get("IPAddress")
         return address or None
 
-    async def remove(self) -> None:
-        """Stop the client, delete the tunnel where possible and the credential."""
-        await self._stop_container(TUNNEL_DOCKER_NAME)
-        await self._stop_container(LOGIN_DOCKER_NAME)
+    async def remove(self) -> str | None:
+        """Clean up everything that exists and return a note about what is left.
 
-        # Best effort: the provider side is only removed when the client can do it
-        # without asking, and a failure never stops the local removal.
+        Never raises for a cleanup step: the caller must always be able to reach
+        the not-set-up state.
+        """
+        notes: list[str] = []
+        for name in (TUNNEL_DOCKER_NAME, LOGIN_DOCKER_NAME):
+            try:
+                await self._stop_container(name)
+            except CloudHostRunnerError:
+                notes.append("a container could not be stopped")
+
         if await asyncio.to_thread(self._has_cert) and await asyncio.to_thread(
             self._credential_ids
         ):
             name = await asyncio.to_thread(self._read_tunnel_name)
             if name:
-                with suppress(CloudHostRunnerError):
-                    await self._one_shot(
-                        delete_command(name), "could not delete the tunnel"
-                    )
+                try:
+                    await self._one_shot(delete_command(name), "tunnel delete failed")
+                except CloudHostRunnerError:
+                    notes.append("the tunnel was not deleted at the provider")
             else:
-                _LOGGER.warning("Tunnel name unknown, tunnel left at the provider")
+                notes.append("the tunnel was not deleted at the provider")
         try:
             await asyncio.to_thread(shutil.rmtree, self._data_dir, True)
-        except OSError as err:
-            raise CloudHostRunnerError("could not delete the credential") from err
+        except OSError:
+            notes.append("the credential folder could not be deleted")
+        if (await asyncio.to_thread(self._data_dir.exists)):
+            notes.append("the credential folder could not be deleted")
+        return "; ".join(dict.fromkeys(notes)) or None

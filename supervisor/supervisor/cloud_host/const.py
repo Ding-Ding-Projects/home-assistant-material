@@ -16,6 +16,7 @@ ATTR_CHECK_STATUS: Final = "status"
 ATTR_CHECK_TIME: Final = "time"
 ATTR_ERROR: Final = "error"
 ATTR_LAST_CHECK: Final = "last_check"
+ATTR_NOTE: Final = "note"
 ATTR_PAUSED: Final = "paused"
 ATTR_SIGN_IN_URL: Final = "sign_in_url"
 

@@ -24,7 +24,7 @@ from supervisor.cloud_host.docker_runner import (
     valid_sign_in_url,
 )
 from supervisor.docker.manager import CommandReturn
-from supervisor.exceptions import CloudHostRunnerError, DockerError
+from supervisor.exceptions import CloudHostRunnerError, DockerError, DockerNotFound
 
 HOSTNAME = "ha.example.com"
 ORIGIN = "http://172.30.32.1:8123"
@@ -79,6 +79,7 @@ class FakeDocker:
         self.exit_codes: dict[str, int] = {}
         self.data_dir: Path | None = None
         self.raise_on_run: Exception | None = None
+        self.stop_error: Exception | None = None
 
     async def _inspect(self, image: str) -> dict:
         if not self.has_image:
@@ -111,12 +112,18 @@ class FakeDocker:
     async def stop_container(
         self, name: str, timeout: int, remove_container: bool = True
     ) -> None:
-        """Record a stop."""
+        """Record a stop; like the real interface, a missing container is not found."""
         self.stopped.append(name)
+        if self.stop_error:
+            raise self.stop_error
+        if name not in self.running:
+            raise DockerNotFound()
         self.running.discard(name)
 
     async def container_logs(self, name: str, tail: int = 100) -> list[str]:
-        """Return the canned output."""
+        """Return the canned output; a missing container is not found, as in the real one."""
+        if name not in self.running:
+            raise DockerNotFound()
         return self.logs
 
 
@@ -372,3 +379,70 @@ async def test_info_reports_trusted_proxy_only_when_running(tmp_path: Path) -> N
     info = await manager.info()
     assert info["state"] == "running"
     assert info["trusted_proxy"] == "172.30.32.7"
+
+
+async def test_stop_of_missing_container_is_success(
+    runner: DockerTunnelRunner, docker: FakeDocker
+) -> None:
+    """A container that was never created is already stopped."""
+    await runner.stop()
+
+    assert docker.stopped == [TUNNEL_DOCKER_NAME]
+
+
+async def test_real_stop_failure_of_existing_container_is_error(
+    runner: DockerTunnelRunner, docker: FakeDocker
+) -> None:
+    """Only a real stop failure is an error."""
+    docker.running.add(TUNNEL_DOCKER_NAME)
+    docker.stop_error = DockerError("daemon said no")
+
+    with pytest.raises(CloudHostRunnerError) as err:
+        await runner.stop()
+
+    assert "daemon" not in str(err.value)
+
+
+async def test_remove_with_nothing_created_is_clean(
+    runner: DockerTunnelRunner, docker: FakeDocker
+) -> None:
+    """Remove on a fresh instance succeeds with no note."""
+    assert await runner.remove() is None
+
+
+async def test_remove_reports_leftovers_without_raising(
+    runner: DockerTunnelRunner, docker: FakeDocker
+) -> None:
+    """A failing stop becomes a note, and the folder is still deleted."""
+    assert docker.data_dir
+    _sign_in(docker.data_dir)
+    docker.running.add(TUNNEL_DOCKER_NAME)
+    docker.stop_error = DockerError("x")
+
+    note = await runner.remove()
+
+    assert note == "a container could not be stopped"
+    assert not docker.data_dir.exists()
+
+
+async def test_real_sequence_setup_then_remove(
+    runner: DockerTunnelRunner, docker: FakeDocker, tmp_path: Path
+) -> None:
+    """Fresh instance: Set up reaches waiting_for_sign_in, Remove reaches not_set_up."""
+    from supervisor.cloud_host import CloudHostManager, CloudHostState
+
+    docker.has_image = False
+    manager = CloudHostManager(tmp_path / "state.json", runner, lambda _: None)  # type: ignore[arg-type]
+
+    result = await manager.setup(HOSTNAME)
+
+    assert result["state"] == CloudHostState.WAITING_FOR_SIGN_IN
+    assert result["sign_in_url"] == LOGIN_LINES[2]
+    assert docker.pulled == ["cloudflare/cloudflared:2025.11.1"]
+
+    removed = await manager.remove()
+
+    assert removed["state"] == CloudHostState.NOT_SET_UP
+    assert "note" not in removed
+    assert not docker.running
+    assert (await manager.info())["state"] == CloudHostState.NOT_SET_UP

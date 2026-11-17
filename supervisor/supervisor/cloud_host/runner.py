@@ -30,8 +30,8 @@ class TunnelRunner(ABC):
         """Return True when the client is serving."""
 
     @abstractmethod
-    async def remove(self) -> None:
-        """Stop and delete the client and its credential."""
+    async def remove(self) -> str | None:
+        """Stop and delete the client and its credential, returning a note on leftovers."""
 
     async def trusted_proxy(self) -> str | None:
         """Return the address Core must trust, when the runner knows it."""
@@ -61,5 +61,6 @@ class NotInstalledTunnelRunner(TunnelRunner):
         """Report that no runner exists."""
         raise CloudHostRunnerError(RUNNER_NOT_INSTALLED)
 
-    async def remove(self) -> None:
+    async def remove(self) -> str | None:
         """Nothing was ever installed, so nothing needs removing."""
+        return None

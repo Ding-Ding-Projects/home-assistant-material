@@ -22,6 +22,7 @@ from .const import (
     ATTR_CHECK_TIME,
     ATTR_ERROR,
     ATTR_LAST_CHECK,
+    ATTR_NOTE,
     ATTR_PAUSED,
     ATTR_SIGN_IN_URL,
     ATTR_TRUSTED_PROXY,
@@ -209,6 +210,15 @@ class CloudHostManager:
                 raise CloudHostStateError(state=state)
             data.pop(ATTR_ERROR, None)
             if not data.get(ATTR_SIGNED_IN):
+                # The sign-in may never have started or its container may be gone
+                try:
+                    self._sign_in_url = await self._runner.begin_sign_in(
+                        data[ATTR_HOSTNAME]
+                    )
+                except CloudHostRunnerError as err:
+                    self._sign_in_url = None
+                    await self._fail(data, err)
+                    return self._describe(data, CloudHostState.ERROR)
                 await self._save(data)
                 return self._describe(data, CloudHostState.WAITING_FOR_SIGN_IN)
             try:
@@ -224,16 +234,18 @@ class CloudHostManager:
         """Stop, delete the credential and forget the hostname."""
         async with self._lock:
             data = await self._load()
-            if data.get(ATTR_HOSTNAME):
-                try:
-                    await self._runner.remove()
-                except CloudHostRunnerError as err:
-                    # Keep the setup so the removal can be tried again
-                    await self._fail(data, err)
-                    return self._describe(data, CloudHostState.ERROR)
+            note: str | None = None
+            try:
+                note = await self._runner.remove()
+            except CloudHostRunnerError as err:
+                note = str(err) or "cleanup was incomplete"
+                _LOGGER.warning("Cloud host cleanup incomplete: %s", note)
             self._sign_in_url = None
             await self._save({})
-            return self._describe({}, CloudHostState.NOT_SET_UP)
+            described = self._describe({}, CloudHostState.NOT_SET_UP)
+            if note:
+                described[ATTR_NOTE] = note
+            return described
 
     async def check(self) -> dict[str, Any]:
         """Make one HTTPS request to the hostname and record the result."""
