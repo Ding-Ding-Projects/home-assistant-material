@@ -1,15 +1,67 @@
 {
  "format": 1,
- "generated": "2026-11-17T08:16:07Z",
+ "generated": "2026-11-17T08:42:05Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 481,
+ "newest_build": 487,
  "releases": [
+  {
+   "build": 487,
+   "core": "2026.11.1.487",
+   "supervisor": "2026.11.0.487",
+   "os": "18.5.487",
+   "tag": null,
+   "source": "51000eee6",
+   "date": "2026-11-17T02:50:51-05:00",
+   "previous_build": 481,
+   "changes": [
+    {
+     "sha": "51000eee6",
+     "date": "2026-11-17T02:50:51-05:00",
+     "title": "Modernise the shared page header, list pages and the Settings front",
+     "areas": [
+      "interface"
+     ],
+     "detail": "About a hundred pages shared one tired header, so they all get the new one at once: a round back button, a heavy title that wraps instead of giving up with an ellipsis, pill tabs with an indicator that slides, and a page-entry rise that respects the motion preference and reduced motion. List pages lose the stack of chrome: statistics are one strip of numerals, the tools fit one row with the overflow behind More, rows are tall rounded blocks, the selection row replaces the tool row in place, and the \"Showing N of N\" sentence only speaks when a filter is actually hiding something. On a phone the list had two scrollers fighting over one finger; now there is one. The Settings front leads with its search, one amber block when something needs attention, four numeral tiles and compact rows for everything else.\n\nSeen in a local build at 390 and 1440 px. Checks: types at the two known gallery errors, tests at the three known build-script failures.",
+     "detail_yue": "翻新共用頁首、清單頁同設定首頁\n\n成百頁共用同一個老頁首，今次一次過換晒：圓形返回掣、識得換行 唔再「…」嘅粗標題、有滑動指示嘅藥丸分頁、同埋尊重動態偏好嘅入場 動畫。清單頁唔再疊到成座山：統計變成一行數字，工具一行排晒， 放唔落嘅收入「更多」，每行變高身圓角，選取列原地取代工具列， 「顯示 N 之 N」得返真係有嘢被過濾先出聲。手機上面兩個捲軸爭一隻 手指嘅問題都解決咗，得返一個。設定首頁以搜尋做主角，有嘢要處理先 出琥珀色方塊，四塊大數字磚，其餘用精簡行。\n\n喺本機建置 390 同 1440 闊度睇過。型別檢查維持兩個已知錯誤， 測試維持三個已知失敗。"
+    },
+    {
+     "sha": "e9ed80261",
+     "date": "2026-11-17T02:38:49-05:00",
+     "title": "Add design canvas 35: boards for the new features",
+     "areas": [
+      "design"
+     ],
+     "detail": "Thirteen boards, drawn before a line of product code, so nobody has to guess what \"a visual editor for every action\" means at two in the morning. The automation editor now reads as one sentence with numbered blocks, every action gets controls made for the thing it controls instead of a code box that stares back, and helpers can be made, changed and removed without leaving the editor. Also on the canvas: modern dialogs and phone bottom sheets, one shared empty state, tiles that filter, tidied developer tools, update history with going back, backup self-check, USB stick maker, offline pack, the away digest, device health, dry run, the room wizard and the cloud host.\n\nReferences only. No product page changed in this commit.",
+     "detail_yue": "新增設計畫布 35：新功能嘅畫板\n\n十三塊畫板，寫產品程式之前畫好，費事半夜兩點先嚟估「每個動作都有 視覺編輯器」即係乜。自動化編輯器而家讀落似一句說話再加編號方塊， 每個動作都有度身訂造嘅控制，唔再係一格冷冰冰嘅程式碼框；輔助項目 喺編輯器入面就可以新增、修改同移除。其餘仲有新式對話框同手機底部 面板、統一嘅空白狀態、識過濾嘅磚、整理好嘅開發者工具、更新紀錄同 還原、備份自我檢查、USB 手指製作、離線更新包、離家摘要、裝置健康、 試行、房間精靈同雲端主機。\n\n純參考，今次冇改任何產品頁面。"
+    },
+    {
+     "sha": "63aaa961e",
+     "date": "2026-11-17T01:39:07-05:00",
+     "title": "Backups list on a phone: keep the hosting buttons out of the text line",
+     "areas": [
+      "interface"
+     ],
+     "detail": "On a narrow table every column without a slot of its own is joined into the second line under the name. The two hosting icon buttons qualified, so each row read \"8.87 GB, 1 hour ago, [server icon]\" and then gave up with an ellipsis. They are hidden on narrow layouts now; the same two actions were already in the row menu. The disabled \"Back up now\" button also says why it is disabled.\n\nNot yet looked at in a browser. The scrolling report is still open.",
+     "detail_yue": "手機睇備份清單：唔好再將託管掣塞入文字行\n\n窄版表格會將冇自己位嘅欄全部串埋落名下面第二行，兩粒託管圖示掣 啱啱好中招，搞到每行讀到一半就「…」。而家窄版收埋佢哋，功能本身 喺行尾選單一早有。「立即備份」停用嗰陣都會講原因。\n\n未喺瀏覽器睇過，捲動問題仲未解決。"
+    },
+    {
+     "sha": "e56cca6fa",
+     "date": "2026-11-17T01:38:26-05:00",
+     "title": "Add design canvas 34: the full interface polish direction",
+     "areas": [
+      "design"
+     ],
+     "detail": "Six boards that tell every page to pick one loud thing and let the rest sit down. The stock look had eighteen equal rows all shouting at the same volume, which is the visual equivalent of a meeting with no agenda. Now the front door, the Settings front and a list page each have a hero, big numerals for counts, tiles that double as filters, and two phone boards that prove nothing gets thrown overboard on a small screen. The motion board has six buttons, one per moment that has actually earned a little theatre; everything else stays still on purpose.\n\nThese are references only. No product page changed in this commit.",
+     "detail_yue": "新增設計畫布 34：成個介面嘅翻新方向\n\n六塊畫板，叫每一頁揀一樣嘢大聲，其餘收聲。以前十八行一齊嗌， 好似開會冇議程咁。而家首頁、設定首頁同清單頁都有主角、大數字、 識得過濾嘅磚，仲有兩塊手機畫板證明細螢幕都冇嘢被掉走。動態畫板 有六粒掣，每粒對應一個真係值得做戲嘅時刻，其他時候乖乖唔郁。\n\n純參考，今次冇改任何產品頁面。"
+    }
+   ]
+  },
   {
    "build": 481,
    "core": "2026.11.1.481",
    "supervisor": "2026.11.0.481",
    "os": "18.5.481",
-   "tag": null,
+   "tag": "v2026.11.1.481",
    "source": "d00578e2e",
    "date": "2026-11-17T00:32:44-05:00",
    "previous_build": 478,
@@ -4445,122 +4497,6 @@
      ],
      "detail": "One layout test file printed 135 unhandled errors on every run: a build-time value the bundler defines was missing from the test setup, and the test browser's form internals lack the validity methods that form-associated components call. Both are provided in test/setup.ts. The suite is unchanged (6,232 pass, 3 fail as before) and prints no unhandled errors, so a real one will stand out.",
      "detail_yue": "測試執手尾：每次跑都彈 135 行「冇人理嘅錯誤」，其實係測試環境少咗個建置 時先有嘅數值，同埋假瀏覽器唔識表單驗證。補返之後靜晒，真係有事先至會嘈。"
-    }
-   ]
-  },
-  {
-   "build": 121,
-   "core": "2026.11.1.121",
-   "supervisor": "2026.11.0.121",
-   "os": "18.5.121",
-   "tag": "v2026.11.1.121",
-   "source": "4d8ac10ed",
-   "date": "2026-11-11T16:55:17-05:00",
-   "previous_build": 118,
-   "changes": [
-    {
-     "sha": "4d8ac10ed",
-     "date": "2026-11-11T16:55:17-05:00",
-     "title": "Official backups restore fully; last polish items; records for the five waves",
-     "areas": [
-      "docs",
-      "core",
-      "interface"
-     ],
-     "detail": "Backups - Member names with a leading \"./\" (older Supervisor archives) are found, so such a backup is no longer refused as a wrong password; an archive with no core backup gets its own error. - A backup from a newer release is refused before anything is scheduled, with the version named; the startup check stays as the last defence. - Versions are compared by year and month against the three-part core version, so a later patch of the same month is accepted and this product's fourth part no longer gets in the way. New backups carry the three-part version, so official builds accept them. - A backup name with a path separator is tidied on read instead of the upload being refused. The first-run restore page shows each line once and says why a restore was refused. - Server tests: 509 pass in the backup folder (478 before) with the same 10 failures on both trees, which come from the test harness; 50 pass in the restore test file. Ten real backup files were read and checked.\n\nInterface polish - The selected page tab scrolls clear of the edge fade; Select is clear of the Add device button; Blueprints descriptions wrap on a phone and the Use button is 44 px there; the automation history tabl",
-     "detail_yue": "官方版備份而家還原得晒：舊式檔名頭嗰個「./」唔再當係密碼錯；新過自己嘅 備份喺郁手之前就拒絕，唔會熄咗機先至話唔得；版本淨係睇年同月，同一個月 嘅補丁版照收，我哋自己整嘅備份官方版都食得落。仲有最後四樣執靚功夫， 同埋五波工程嘅紀錄一次過寫返好。"
-    },
-    {
-     "sha": "b7843603e",
-     "date": "2026-11-11T16:32:51-05:00",
-     "title": "Wave 5 of five: header page tools, setup flows, support tickets, command search keys",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "- Dashboard header carries the page tools cluster (view, edit, locked, phone, embedded). - First-run integrations step: cards plus a failure-safe state machine. - Guided setup: 14-day draft, jump rules, Save and close, side step list. - Nest registration guidance in Google setup (six-step checklist, project ID check). - Support page Tickets section: create, list, status, search, notes, close and reopen. - Command search: wrapping arrows, Space toggle, Escape, status line, three new entries. - Cantonese source now covers the new onboarding, Google setup and guided setup keys.\n\nChecks: type check shows only the two allowed gallery errors; full suite has only the allowed build-management failures after the Cantonese coverage fix; wording scan clean. Nothing here has been seen in a running build.",
-     "detail_yue": "呢一浪係第五浪，亦係最後一浪：儀表板頂部加咗頁面工具列，首次設定嘅整合步驟變咗 唔易死機嘅狀態機，引導設定可以儲存草稿同跳步，Google 設定有 Nest 登記清單， 支援頁有工單，指令搜尋夠晒鍵盤操作。型別檢查只剩兩個預期錯誤，掃描乾淨。 但係冇一樣喺真正運行嘅版本入面睇過，個代碼自己話冇事，我哋都要打個問號。"
-    },
-    {
-     "sha": "c0f26a697",
-     "date": "2026-11-11T16:12:12-05:00",
-     "title": "Wave 4 of five: type scale, type fields, named palette, practise control, tab group search, General page help",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Six items, all built and unit-tested, none yet seen in a running build. - Type scale: ratio, base and per-step sizes in the fonts dialog, off by default, multiplied with Text size, applied at startup; all nine theme sizes written monotonically. Sync and Cantonese strings for it are not done. - Appearance editor for type: typeface, weight, italic, line height, letter spacing, capitals, alignment and maximum lines, each with a reset and a small-text warning. - Named palette in both colour tools: 48 named colours, nearest name, gamut chips and a keyboard-operable rainbow strip. - Setting information panel: optional worked example and a practise control that saves and sends nothing. - New tab catalog: a separate search per group, with Close matching on Pinned and Pages. - General settings page: an information button on each of the eight settings and a confirmed Reset on seven. - The Cantonese source now covers the colour palette and General help blocks (fixes a language-mode test). Checks: type check shows only the two allowed gallery errors; full suite 6145 passed, 4 failed (3 allowed build-management tests plus the language-mode coverage test, fixed afterwards and now passing); chang",
-     "detail_yue": "呢一浪一口氣收埋六樣嘢：字階、字體欄位、命名調色盤、練習掣、分組搜尋同一般設定說明。全部寫好又有單元測試，不過未喺跑緊嘅版本度見過。有個粵語區塊覆蓋測試一開始紅咗燈，原來係代碼忘記登記新區塊，補返之後就綠晒，真係個清單自己漏咗自己。"
-    },
-    {
-     "sha": "c84a2eef8",
-     "date": "2026-11-11T15:52:06-05:00",
-     "title": "Wave 3 of five: test cases, dry run, repository strip, save bar, starting points",
-     "areas": [
-      "docs",
-      "core",
-      "deploy",
-      "interface"
-     ],
-     "detail": "Items in this wave, none seen in a running browser: - Named test cases and a simulated run in the history manager: named cases per automation kept in the browser, and a run that decides conditions against fake states only and calls no service. - Dry run of a whole automation and a bottom bar with Run now, Check, Dry run and Save. The visual and blueprint editors still draw their own bar, so two bars show there. - Repository strip in the automation editor and a Push action on the repository page (host shown only). - One save bar behaviour in the script and scene editors: hide when clean, Discard, live announcements. - Tests that a backup carries every automation repository; written, not run (no securetar on this machine). - Starting points for an empty automation and an empty script, six each. Also in this commit: other small changes from the same wave (tables, tabs, personal settings, updates, home tiles, users page).",
-     "detail_yue": "呢一浪嘅嘢：歷史管理加咗命名測試個案同模擬運行，只對住假狀態，唔會叫任何服務；自動化加咗整份乾跑同底部掣條；編輯器出咗倉庫條；腳本同場景嘅儲存條識得收埋、放棄同報讀結果；空白自動化同腳本有開頭範本；仲有備份測試寫好咗但未跑得（呢部機冇 securetar）。全部都未喺瀏覽器睇過，個 code 都算乖，淨係有兩條舊 gallery 嘅 build 錯誤同三個老友測試喺度扮喊。"
-    },
-    {
-     "sha": "a00117602",
-     "date": "2026-11-11T15:34:04-05:00",
-     "title": "Wave 2 of five: stacked toasts, notification severity, statistics strip, draft recovery, update rows, element menu entries",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "- Stacked toasts: up to three visible, queue with a \"more waiting\" chip, per-toast timers that pause on hover or focus, duplicate suppression, one polite live region, reduced-motion fade. - Notification severity: level taken only from an explicit id marker; edge, icon and word on each row, filter chips, sort by severity then newest. - Collapsible statistics strip on the shared list layout (optional property, remembered per page). - Draft recovery for the template editor: debounced save, secret and size refusal, banner with Restore, Compare and Discard. - Update installs shown as rows in the activity tray, with recovery card and Show update. - Context menu entries resolved from the clicked entity, device, area or link. - The Cantonese source now covers the new toast, statistics and draft blocks in the language list. - Records: changelog, roadmap, feature status and the interface docs index updated.\n\nChecks: type check shows only the two known gallery import-pages errors; full test run has only the three known build-management failures after the language-list fix. Nothing has been seen in a running build yet.",
-     "detail_yue": "呢一浪（五浪之第二）加咗疊埋嘅 toast、通知嘅嚴重程度顏色、可以摺埋嘅統計條、範本編輯器 嘅草稿復原、更新安裝喺活動托盤入面嘅列，仲有按住元素彈出嘅選單新項目。程式碼之前唔肯 認廣東話區塊，而家教識佢，測試先肯行過。型別檢查淨係剩返兩個已知嘅 gallery 錯誤，全套 測試淨係剩返三個已知嘅 build-management 失敗。仲未喺真正運行嘅版本入面睇過，所以紀錄 入面全部寫明「未見過」，唔好當佢食咗糊。"
-    },
-    {
-     "sha": "c8600219c",
-     "date": "2026-11-11T15:17:33-05:00",
-     "title": "Wave 1 of five: selection bar and bulk actions on six more tables",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "- Tags: bulk delete with a preview, a warning for tags an automation tag trigger still uses, per-tag failure reporting. 11 unit tests. - Dashboards: show in sidebar, hide from sidebar and delete; the default dashboard, built-in pages and YAML dashboards are skipped with a reason. - Resources: bulk delete with a preview of each address; the page cannot tell which dashboards use a resource, and the preview says so. - Scenes: move to category, add and remove label, move to area, apply and delete with previews; apply runs scenes in order, YAML scenes are skipped on delete. - Blueprints: re-import from the saved address and delete; blueprints still in use are not deleted, and usage is re-read before deleting. - Backups: bulk delete with name, date, size, newest-backup and only-copy lines; locked and unfinished backups are skipped. - Shared bar: the preview list is height-limited and scrolls. - Checks: lint:types shows only the two gallery build/import-pages errors; full test run 5898 passed, 5 failed (3 in build-management as allowed, 2 in language-mode caused by a Cantonese block outside the covered prefixes, fixed by removing that block from yue-own.json). Public wording scan clean. N",
-     "detail_yue": "呢一浪（五浪之第一浪）將選取列同批量操作加到標籤、儀表板、資源、場景、藍圖同備份六個表。 刪除之前一律先預覽、要㩒兩下確認，逐項處理，失敗嘅會留低並列名。粵語字串擺錯咗位， 測試即刻嗌救命，搬走就乖返；程式碼認錯好快，真係好有禮貌。仲未喺運行緊嘅版本睇過。"
-    },
-    {
-     "sha": "336234d2d",
-     "date": "2026-11-11T14:29:17-05:00",
-     "title": "Touch targets: sliders, compact fields and table filter chips are 44 px on a touch screen",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Found by looking at build 119 on a phone-sized touch screen: a slider reacted only in its middle 32 px, the compact outlined text field was 32 px high, and the filter chips beside a table's search field were 32 px high. The colour field's marker covered the Hue label when the colour was black. Records: the batch 27 fixes that were seen in build 119.",
-     "detail_yue": "用手指撳嘅地方要夠大：滑桿之前淨係中間 32 像素有反應，撳邊邊當你透明；細格 文字欄同表格隔籬嗰排篩選掣都係 32 像素。而家全部 44 像素。揀色嗰粒圓點亦 唔再遮住「色相」兩個字。"
-    },
-    {
-     "sha": "c44440bf6",
-     "date": "2026-11-11T13:22:13-05:00",
-     "title": "Batch 27: settings saved on the instance, locks on plain http, schedule entity rules, release only when green",
-     "areas": [
-      "build",
-      "docs",
-      "interface",
-      "os"
-     ],
-     "detail": "Interface - Every personal setting is saved on the instance for the account and follows it to every device (preferences, schedules, locks, table layouts, saved patterns, history, name and logo, tool drafts). Tokens, caches, per-device switches and typed console text stay in the browser. A review proved an upload loop and an upload after an account switch in another tab; both are fixed with tests. - Locks: creating one works on a page without crypto.subtle (plain http) through a script fallback that gives the browser's answers; names come from the card's label or heading; stored waits and rounds are bounded; the start cover is re-checked after the instance copy arrives. - Schedule rules can depend on an entity (is, is not, above, below). - Plain browser selects, sliders, checkboxes, radios and colour inputs are replaced with the product's own controls in 20 files; a test fails on a new one. - Seven messages that could not be formatted are fixed and a test parses every string; info button names; notification selection; YAML tools title; a plural; touch targets; Personal settings no longer pans sideways on a phone.\n\nBuild and release - A release is created only by a final job when eve",
-     "detail_yue": "第 27 批：設定唔再淨係擺喺瀏覽器，跟住戶口去晒每部機；把鎖喺普通 http 都 整得成；時間表可以睇住實體嘅狀態；啲求其嘅原生下拉選單、滑桿、剔格仔全部 換晒自家貨。發佈流程亦都改咗規矩：成條流水線全綠先至出版本，紅咗或者 俾人截咗就乜都唔出，唔會再有空殼版本。作業系統映像今日食咗三次檸檬，全因 出面一個模組站唔應機，而家先問官方鏡像。"
-    },
-    {
-     "sha": "7f8909f3b",
-     "date": "2026-11-11T11:01:51-05:00",
-     "title": "Personal settings: the page can no longer be dragged sideways on a phone",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "The row of group chips took the width of all its chips (666 px in a 358 px page), which made the page wider than the screen. The narrow layout now stretches its children to the page width and the chip row scrolls inside itself. Measured in a running copy at 390 px with the rule applied: the row is 358 px.",
-     "detail_yue": "個人設定喺手機度可以成版打橫拖走，原來係嗰排分類掣闊到 666 像素，撐爆咗 358 像素嘅版面。而家排掣乖乖喺自己度碌，個版唔再周圍走。"
     }
    ]
   }
