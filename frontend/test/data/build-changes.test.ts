@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { ReleaseEntry } from "../../src/data/build-changes";
 import {
+  areaShares,
+  timeApart,
   changesToText,
   correctRange,
   countByArea,
@@ -240,5 +242,30 @@ describe("text", () => {
         "- Image build [BUILD, OS]",
       ].join("\n")
     );
+  });
+});
+
+describe("time apart and area bars", () => {
+  it("measures the time between two release dates", () => {
+    expect(
+      timeApart("2026-11-14T00:56:00-05:00", "2026-11-16T14:43:00-05:00")
+    ).toEqual({ days: 2, hours: 13, minutes: 47 });
+    expect(timeApart("2026-11-16T14:43:00Z", "2026-11-14T00:56:00Z")).toEqual({
+      days: 2,
+      hours: 13,
+      minutes: 47,
+    });
+    expect(timeApart("nope", "2026-11-16T14:43:00Z")).toBeUndefined();
+    expect(timeApart(undefined, undefined)).toBeUndefined();
+  });
+
+  it("sizes each bar as a share of the largest count", () => {
+    expect(areaShares({ docs: 40, interface: 20, core: 7 })).toEqual({
+      docs: 100,
+      interface: 50,
+      core: 18,
+    });
+    expect(areaShares({})).toEqual({});
+    expect(areaShares({ docs: 0 })).toEqual({ docs: 0 });
   });
 });

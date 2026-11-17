@@ -208,15 +208,19 @@ class HaUpdateQueueCard extends LitElement {
         }
         .card {
           box-sizing: border-box;
-          padding: var(--ha-space-5) var(--ha-space-6);
-          border-radius: var(--ha-border-radius-3xl);
-          background: var(--card-background-color);
+          padding: clamp(20px, 3vw, 32px);
+          border-radius: calc(var(--ha-border-radius-6xl) + 4px);
+          background: color-mix(
+            in srgb,
+            var(--primary-color) 16%,
+            var(--card-background-color)
+          );
           border: 2px solid var(--primary-color);
         }
         h2 {
           margin: 0 0 var(--ha-space-2);
-          font-size: var(--ha-font-size-l);
-          font-weight: var(--ha-font-weight-medium);
+          font-size: var(--ha-font-size-2xl);
+          font-weight: var(--ha-font-weight-bold);
           overflow-wrap: anywhere;
         }
         h2.failed {
@@ -228,7 +232,7 @@ class HaUpdateQueueCard extends LitElement {
           overflow-wrap: anywhere;
         }
         ha-progress-bar {
-          --ha-progress-bar-track-height: 12px;
+          --ha-progress-bar-track-height: 16px;
           --ha-progress-bar-indicator-color: var(--primary-color);
         }
         .step-bar {
@@ -252,7 +256,10 @@ class HaUpdateQueueCard extends LitElement {
           display: flex;
           align-items: center;
           gap: var(--ha-space-3);
-          min-height: 40px;
+          min-height: 48px;
+          padding: 0 var(--ha-space-4);
+          border-radius: var(--ha-border-radius-2xl);
+          background: var(--card-background-color);
         }
         .step-icon {
           display: inline-flex;

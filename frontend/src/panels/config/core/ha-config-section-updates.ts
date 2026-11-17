@@ -72,11 +72,13 @@ import {
 } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
+import { haMotionKeyframes } from "../../../resources/motion-styles";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
 import "./updates/ha-update-changes";
 import "./updates/ha-update-coming-soon";
+import "./updates/ha-update-usb";
 import { updateDisplayName } from "./updates/ha-update-queue-card";
 import { UpdateQueueController } from "./updates/update-queue-controller";
 import {
@@ -106,6 +108,10 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   @state() private _supervisorInfo?: HassioSupervisorInfo;
 
   @state() private _autoInfo?: AutoUpdateInfo;
+
+  // True while an operating system update from USB storage is copying or
+  // installing; every other Update button waits for it.
+  @state() private _usbRunning = false;
 
   private _lang = new LanguageModeController(this);
 
@@ -356,6 +362,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                     ${this._renderBeforeUpdating()}
                     ${this._renderCurrent(currentUpdates)}
                   </div>
+                  <ha-update-usb
+                    .hass=${this.hass}
+                    .blockedBy=${this._usbBlockedBy(installableUpdates)}
+                    @usb-update-running=${this._usbRunningChanged}
+                  ></ha-update-usb>
                   <ha-update-changes
                     .hass=${this.hass}
                     .narrow=${this.narrow}
@@ -371,35 +382,38 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   private _renderHero(readyCount: number): TemplateResult {
     const localize = this.hass.localize;
     return html`
-      <div class="hero-row">
-        <section class="hero" aria-labelledby="hero-title">
-          <span class="eyebrow"
-            >${localize("ui.panel.config.updates.caption")}</span
-          >
-          <h1 id="hero-title">
-            ${
-              readyCount
-                ? localize("ui.panel.config.updates.ready", {
-                    count: readyCount,
-                  })
-                : localize("ui.panel.config.updates.all_current")
-            }
-          </h1>
-          <p>
-            ${
-              readyCount
-                ? localize("ui.panel.config.updates.ready_hint")
-                : localize("ui.panel.config.updates.all_current_hint")
-            }
-          </p>
-        </section>
-        <div class="hero-actions">
-          <ha-button appearance="outlined" @click=${this._checkUpdates}>
-            <ha-svg-icon slot="start" .path=${mdiRefresh}></ha-svg-icon>
-            ${localize("ui.panel.config.updates.check_now")}
-          </ha-button>
-        </div>
-      </div>
+      <header class="page-head">
+        <h1 id="page-title">${localize("ui.panel.config.updates.caption")}</h1>
+        <ha-button
+          class="check"
+          appearance="filled"
+          @click=${this._checkUpdates}
+        >
+          <ha-svg-icon slot="start" .path=${mdiRefresh}></ha-svg-icon>
+          ${localize("ui.panel.config.updates.check_now")}
+        </ha-button>
+      </header>
+      <section
+        class="ready ${readyCount ? "has" : "none"}"
+        aria-labelledby="hero-title"
+      >
+        <h2 id="hero-title">
+          ${
+            readyCount
+              ? localize("ui.panel.config.updates.ready", {
+                  count: readyCount,
+                })
+              : localize("ui.panel.config.updates.all_current")
+          }
+        </h2>
+        <p>
+          ${
+            readyCount
+              ? localize("ui.panel.config.updates.ready_hint")
+              : localize("ui.panel.config.updates.all_current_hint")
+          }
+        </p>
+      </section>
     `;
   }
 
@@ -551,6 +565,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     entity: UpdateEntity,
     updates: UpdateEntity[]
   ): string | undefined {
+    if (this._usbRunning) {
+      return this._text("waiting_usb");
+    }
     const reason = updateBlockReason(entity, updates, this._queue.active);
     if (!reason) {
       return undefined;
@@ -601,16 +618,18 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       return nothing;
     }
     const running = installable.find((entity) => updateIsInstalling(entity));
-    const reason = running
-      ? this._text("waiting_for", {
-          name: updateDisplayName(this.hass, running.entity_id),
-        })
-      : undefined;
+    const reason = this._usbRunning
+      ? this._text("waiting_usb")
+      : running
+        ? this._text("waiting_for", {
+            name: updateDisplayName(this.hass, running.entity_id),
+          })
+        : undefined;
     return html`
       <div class="queue-bar">
         <ha-button
           appearance="filled"
-          .disabled=${!!running}
+          .disabled=${!!running || this._usbRunning}
           @click=${this._confirmQueue}
         >
           <ha-svg-icon slot="start" .path=${mdiUpdate}></ha-svg-icon>
@@ -882,7 +901,25 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       this.hass.states,
       this.hass.formatEntityName
     );
-    return !!updateBlockReason(entity, updates, this._queue.active);
+    return (
+      this._usbRunning ||
+      !!updateBlockReason(entity, updates, this._queue.active)
+    );
+  }
+
+  // The name of the update that holds the USB install back, if there is one.
+  private _usbBlockedBy(installable: UpdateEntity[]): string | undefined {
+    if (this._queue.active) {
+      return this._text("queue_label");
+    }
+    const running = installable.find((entity) => updateIsInstalling(entity));
+    return running
+      ? updateDisplayName(this.hass, running.entity_id)
+      : undefined;
+  }
+
+  private _usbRunningChanged(ev: CustomEvent<{ running: boolean }>): void {
+    this._usbRunning = ev.detail.running;
   }
 
   private _roleText(entity: UpdateEntity): string {
@@ -897,6 +934,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     const ready = orderUpdateQueue(updates);
     if (
       ready.length < 2 ||
+      this._usbRunning ||
       this._queue.active ||
       updates.some((entity) => updateIsInstalling(entity))
     ) {
@@ -1093,10 +1131,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
 
   static styles = [
     haStyle,
+    haMotionKeyframes,
     css`
       .page {
         box-sizing: border-box;
-        max-width: 1100px;
+        max-width: 1200px;
         margin: 0 auto;
         padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
         display: flex;
@@ -1114,61 +1153,64 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       ha-alert {
         display: block;
       }
-      .hero-row {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+      .page-head {
+        display: flex;
+        flex-wrap: wrap;
         align-items: center;
+        justify-content: space-between;
         gap: var(--ha-space-4);
-      }
-      :host([narrow]) .hero-row {
-        grid-template-columns: minmax(0, 1fr);
-      }
-      .hero {
-        box-sizing: border-box;
-        padding: var(--ha-space-6) var(--ha-space-8);
-        border-radius: var(--ha-border-radius-3xl);
-        color: var(--primary-text-color);
-        background: color-mix(
-          in srgb,
-          var(--primary-color) 22%,
-          var(--primary-background-color)
-        );
-      }
-      :host([narrow]) .hero {
-        padding: var(--ha-space-4) var(--ha-space-5);
-      }
-      .eyebrow {
-        font-size: var(--ha-font-size-s);
-        font-weight: var(--ha-font-weight-medium);
+        padding: 0 var(--ha-space-2) var(--ha-space-2);
       }
       h1 {
-        margin: var(--ha-space-1) 0 var(--ha-space-2);
-        font-family: var(--ha-font-family-heading, inherit);
-        font-size: var(--ha-font-size-4xl);
-        font-weight: var(--ha-font-weight-medium);
-        line-height: var(--ha-line-height-condensed);
-      }
-      :host([narrow]) h1 {
-        font-size: var(--ha-font-size-2xl);
-      }
-      .hero p {
         margin: 0;
-        line-height: var(--ha-line-height-normal);
+        font-family: var(--ha-font-family-heading, inherit);
+        font-size: clamp(40px, 7vw, 72px);
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.02em;
       }
-      .hero-actions {
+      .check {
+        --ha-button-height: 56px;
+        --ha-button-border-radius: var(--ha-border-radius-pill);
+      }
+      .ready {
+        box-sizing: border-box;
         display: flex;
         flex-direction: column;
         gap: var(--ha-space-2);
-        min-width: 180px;
+        padding: clamp(20px, 3vw, 32px) clamp(22px, 4vw, 40px);
+        border-radius: calc(var(--ha-border-radius-6xl) + 12px);
+        color: var(--primary-text-color);
+        background: color-mix(
+          in srgb,
+          var(--primary-color) 24%,
+          var(--card-background-color)
+        );
+        animation: ha-rise var(--ha-animation-duration-enter, 450ms)
+          var(--ha-motion-spring, ease) both;
       }
-      :host([narrow]) .hero-actions {
-        flex-direction: row;
-        flex-wrap: wrap;
+      .ready.none {
+        background: color-mix(
+          in srgb,
+          var(--success-color) 22%,
+          var(--card-background-color)
+        );
+      }
+      .ready h2 {
+        margin: 0;
+        font-size: clamp(28px, 4.4vw, 44px);
+        font-weight: var(--ha-font-weight-bold);
+        line-height: 1.05;
+        letter-spacing: -0.01em;
+      }
+      .ready p {
+        margin: 0;
+        line-height: var(--ha-line-height-normal);
       }
       h2 {
         margin: 0 0 var(--ha-space-3);
-        font-size: var(--ha-font-size-l);
-        font-weight: var(--ha-font-weight-medium);
+        font-size: var(--ha-font-size-xl);
+        font-weight: var(--ha-font-weight-bold);
       }
       .list-section h2 {
         margin-inline: var(--ha-space-2);
@@ -1182,9 +1224,12 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         display: flex;
         align-items: center;
         gap: var(--ha-space-2);
-        padding: var(--ha-space-2) var(--ha-space-3);
-        border-radius: var(--ha-border-radius-2xl);
+        min-height: 72px;
+        padding: var(--ha-space-2) var(--ha-space-4);
+        border-radius: var(--ha-border-radius-5xl);
         background: var(--card-background-color);
+        animation: ha-rise var(--ha-animation-duration-enter, 450ms)
+          var(--ha-motion-spring, ease) both;
       }
       .rows.plain .row {
         padding-inline: 0;
@@ -1219,7 +1264,8 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         min-width: 0;
       }
       .name {
-        font-weight: var(--ha-font-weight-medium);
+        font-size: var(--ha-font-size-l);
+        font-weight: var(--ha-font-weight-bold);
         overflow-wrap: anywhere;
       }
       .sub {
@@ -1369,7 +1415,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       .card {
         box-sizing: border-box;
         padding: var(--ha-space-5) var(--ha-space-6);
-        border-radius: var(--ha-border-radius-3xl);
+        border-radius: calc(var(--ha-border-radius-6xl) + 4px);
         background: var(--card-background-color);
       }
       .link-row {
@@ -1408,6 +1454,12 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         gap: var(--ha-space-2);
         font-size: var(--ha-font-size-s);
         color: var(--secondary-text-color);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ready,
+        .row {
+          animation: none;
+        }
       }
     `,
   ];

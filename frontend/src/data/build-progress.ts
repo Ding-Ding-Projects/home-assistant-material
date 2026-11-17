@@ -51,6 +51,33 @@ const text = (value: unknown, fallback = ""): string =>
 const textOrNull = (value: unknown): string | null =>
   typeof value === "string" ? value : null;
 
+/** The first line of a commit message, trimmed. */
+export const firstLine = (message: unknown): string =>
+  typeof message === "string"
+    ? (message.split(/\r?\n/, 1)[0] ?? "").trim()
+    : "";
+
+/**
+ * The title to show for a run. A run started by hand has the name of the
+ * workflow as its display title, which says nothing about the change, so the
+ * title of the commit it built is used instead. A title that equals the
+ * workflow name and has no commit to fall back on is left empty.
+ */
+export const pickRunTitle = (
+  displayTitle: string,
+  workflowName: string,
+  commitMessage: unknown
+): string => {
+  const display = displayTitle.trim();
+  const isWorkflowName =
+    !!workflowName &&
+    display.toLowerCase() === workflowName.trim().toLowerCase();
+  if (display && !isWorkflowName) {
+    return display;
+  }
+  return firstLine(commitMessage);
+};
+
 /** Reads the run list of the workflow. Entries that are not runs are ignored. */
 export const parseRuns = (json: unknown): BuildRun[] => {
   if (!isRecord(json) || !Array.isArray(json.workflow_runs)) {
@@ -77,7 +104,11 @@ export const parseRuns = (json: unknown): BuildRun[] => {
       startedAt: text(entry.run_started_at, text(entry.created_at)),
       updatedAt: text(entry.updated_at),
       url: text(entry.html_url),
-      title: text(entry.display_title),
+      title: pickRunTitle(
+        text(entry.display_title),
+        text(entry.name),
+        isRecord(entry.head_commit) ? entry.head_commit.message : undefined
+      ),
     });
   }
   return runs;
@@ -199,6 +230,25 @@ export const chooseRun = (
   }
   return { kind: "none" };
 };
+
+/**
+ * Runs that were cancelled or skipped because a newer build took their place:
+ * newer than the installed build and older than the chosen run, newest first.
+ */
+export const replacedRuns = (
+  runs: BuildRun[],
+  chosen: BuildRun | undefined,
+  installedBuild: number | undefined
+): BuildRun[] =>
+  chosen
+    ? newestFirst(runs).filter(
+        (run) =>
+          run.status === "completed" &&
+          (run.conclusion === "cancelled" || run.conclusion === "skipped") &&
+          run.runNumber < chosen.runNumber &&
+          (installedBuild === undefined || run.runNumber > installedBuild)
+      )
+    : [];
 
 export type StartedBy = "push" | "manual" | "other";
 
@@ -481,6 +531,62 @@ export const estimateRemaining = (
   return remaining <= 0 ? "overdue" : Math.max(1, Math.round(remaining));
 };
 
+/**
+ * Minutes until Core can be installed, as an estimate: 0 once the update has
+ * been offered, "overdue" when the offering step is already past its typical
+ * time, undefined when the build has no such step to wait for.
+ */
+export const estimateCore = (
+  stages: StageSummary[],
+  startedAt: string,
+  now: number
+): number | "overdue" | undefined => {
+  const offer = stages.find((stage) => stage.id === "offer");
+  const started = toMs(startedAt);
+  if (!offer || started === undefined) {
+    return undefined;
+  }
+  if (offer.state === "done") {
+    return 0;
+  }
+  const end = STAGES.find((stage) => stage.id === "offer")!.typicalEnd;
+  const remaining = end - (now - started) / 60000;
+  return remaining <= 0 ? "overdue" : Math.max(1, Math.round(remaining));
+};
+
+/** A number of minutes as whole hours and the minutes left over. */
+export const splitMinutes = (
+  minutes: number
+): { hours: number; minutes: number } => ({
+  hours: Math.floor(minutes / 60),
+  minutes: minutes % 60,
+});
+
+export interface StageCount {
+  done: number;
+  total: number;
+}
+
+/** Jobs finished out of jobs in a stage; skipped jobs are not counted. */
+export const stageCount = (stage: StageSummary): StageCount => {
+  const counted = stage.jobs.filter((job) => job.state !== "skipped");
+  return {
+    done: counted.filter((job) => job.state === "done").length,
+    total: counted.length,
+  };
+};
+
+/** How many jobs are running and how many failed, for a screen reader. */
+export const jobStateCounts = (
+  jobs: BuildJob[]
+): { running: number; failed: number } => {
+  const states = jobs.map(jobState);
+  return {
+    running: states.filter((state) => state === "running").length,
+    failed: states.filter((state) => state === "failed").length,
+  };
+};
+
 /** "1:05:09" or "5:09": a plain elapsed time that needs no translation. */
 export const formatElapsed = (seconds: number | undefined): string => {
   if (seconds === undefined) {
@@ -502,6 +608,8 @@ export interface BuildSnapshot {
   fetchedAt: number;
   choice: RunChoice;
   jobs: BuildJob[];
+  /** Newer builds than the one installed that a later build replaced. */
+  replaced?: BuildRun[];
 }
 
 /**
@@ -520,11 +628,17 @@ export const fetchBuildSnapshot = async (
   if (!runsResult.ok) {
     return runsResult;
   }
-  const choice = chooseRun(parseRuns(runsResult.data), installedBuild);
+  const runs = parseRuns(runsResult.data);
+  const choice = chooseRun(runs, installedBuild);
+  const replaced = replacedRuns(
+    runs,
+    choice.kind === "none" ? undefined : choice.run,
+    installedBuild
+  );
   if (choice.kind === "none" || choice.kind === "waiting") {
     return {
       ok: true,
-      data: { fetchedAt: Date.now(), choice, jobs: [] },
+      data: { fetchedAt: Date.now(), choice, jobs: [], replaced },
     };
   }
   const jobsResult = await fetchPublicJson(
@@ -540,6 +654,7 @@ export const fetchBuildSnapshot = async (
       fetchedAt: Date.now(),
       choice,
       jobs: parseJobs(jobsResult.data),
+      replaced,
     },
   };
 };

@@ -30,6 +30,8 @@ export const YUE_PREFIXES = [
   "ui.panel.config.updates.queue.",
   "ui.panel.config.updates.coming_soon.",
   "ui.panel.config.updates.compare.",
+  "ui.panel.config.updates.usb.",
+  "ui.panel.config.updates.build_notes.",
   "ui.panel.config.system_dashboard.restart_homeassistant",
   // The navigation rail, the panel names and the notification drawer.
   "ui.sidebar.",

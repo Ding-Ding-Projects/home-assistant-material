@@ -25,6 +25,8 @@ export interface HassioHassOSInfo {
   version: string | null;
   version_pending: string | null;
   data_disk: string | null;
+  /** True when this operating system can install an update from a USB stick. */
+  offline_update?: boolean;
 }
 
 export interface Datadisk {

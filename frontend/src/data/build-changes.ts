@@ -203,6 +203,45 @@ export const findRelease = (
     ? undefined
     : releases.find((release) => release.build === build);
 
+export interface TimeApart {
+  days: number;
+  hours: number;
+  minutes: number;
+}
+
+/**
+ * How far apart two release dates are, in whole days, hours and minutes.
+ * Returns undefined when either date cannot be read.
+ */
+export const timeApart = (
+  earlier: string | undefined,
+  later: string | undefined
+): TimeApart | undefined => {
+  const from = Date.parse(earlier ?? "");
+  const to = Date.parse(later ?? "");
+  if (Number.isNaN(from) || Number.isNaN(to)) {
+    return undefined;
+  }
+  const total = Math.max(0, Math.round(Math.abs(to - from) / 60000));
+  return {
+    days: Math.floor(total / 1440),
+    hours: Math.floor((total % 1440) / 60),
+    minutes: total % 60,
+  };
+};
+
+/** The widest each area bar can be: counts as a share of the largest one. */
+export const areaShares = (
+  counts: Record<string, number>
+): Record<string, number> => {
+  const max = Math.max(0, ...Object.values(counts));
+  const shares: Record<string, number> = {};
+  for (const [area, count] of Object.entries(counts)) {
+    shares[area] = max ? Math.round((count / max) * 100) : 0;
+  }
+  return shares;
+};
+
 export const isPublishedRelease = (release: ReleaseEntry): boolean =>
   release.tag !== null;
 

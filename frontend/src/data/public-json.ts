@@ -7,6 +7,10 @@
  * functions here never throw.
  */
 
+/** The one place that names the public updates log of the project. */
+export const PUBLIC_UPDATES_ORIGIN =
+  "https://ding-ding-projects.github.io/home-assistant-material-updates";
+
 export type PublicFetchFailure =
   | { ok: false; reason: "rate_limited"; resetAt?: Date }
   | { ok: false; reason: "not_found" }

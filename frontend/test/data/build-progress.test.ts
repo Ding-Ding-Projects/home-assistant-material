@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { BuildJob, BuildRun } from "../../src/data/build-progress";
+import type {
+  BuildJob,
+  BuildRun,
+  StageSummary,
+} from "../../src/data/build-progress";
 import {
   buildStages,
   chooseRun,
@@ -14,6 +18,10 @@ import {
   parseBuildNumber,
   parseJobs,
   parseRuns,
+  pickRunTitle,
+  replacedRuns,
+  estimateCore,
+  stageCount,
   stageOfJob,
 } from "../../src/data/build-progress";
 import { rateLimitResetFromHeaders } from "../../src/data/public-json";
@@ -308,5 +316,110 @@ describe("small helpers", () => {
       rateLimitResetFromHeaders((name) => retry[name] ?? null, 5000)?.getTime()
     ).toBe(65_000);
     expect(rateLimitResetFromHeaders(() => null)).toBeUndefined();
+  });
+});
+
+describe("run titles", () => {
+  const entry = (over: Record<string, unknown>) => ({
+    id: 1,
+    run_number: 462,
+    status: "in_progress",
+    ...over,
+  });
+
+  it("keeps a display title that names a change", () => {
+    expect(pickRunTitle("Fix the footer", "Release", "Other")).toBe(
+      "Fix the footer"
+    );
+  });
+
+  it("uses the first line of the commit when the title is the workflow name", () => {
+    expect(pickRunTitle("Release", "Release", "Fix it\n\nBody text")).toBe(
+      "Fix it"
+    );
+    expect(pickRunTitle("release", " Release ", "Fix it")).toBe("Fix it");
+  });
+
+  it("uses the commit when the title is empty", () => {
+    expect(pickRunTitle("", "Release", "Fix it")).toBe("Fix it");
+  });
+
+  it("shows nothing when the title is the workflow name and there is no commit", () => {
+    expect(pickRunTitle("Release", "Release", undefined)).toBe("");
+  });
+
+  it("reads the head commit of a run from the run list", () => {
+    const [first] = parseRuns({
+      workflow_runs: [
+        entry({
+          name: "Release",
+          display_title: "Release",
+          head_commit: { message: "Add the USB update\n\nMore" },
+        }),
+      ],
+    });
+    expect(first.title).toBe("Add the USB update");
+    const [plain] = parseRuns({
+      workflow_runs: [entry({ name: "Release", display_title: "Fix it" })],
+    });
+    expect(plain.title).toBe("Fix it");
+  });
+});
+
+describe("replaced builds and Core estimate", () => {
+  const make = (number: number, over: Partial<BuildRun> = {}): BuildRun => ({
+    id: number,
+    runNumber: number,
+    status: "completed",
+    conclusion: "cancelled",
+    event: "push",
+    headSha: "",
+    createdAt: "",
+    startedAt: "",
+    updatedAt: "",
+    url: "",
+    title: "",
+    ...over,
+  });
+
+  it("lists cancelled builds between the installed build and the chosen one", () => {
+    const runs = [
+      make(461),
+      make(460, { conclusion: "success" }),
+      make(458),
+      make(462, { status: "in_progress", conclusion: null }),
+    ];
+    expect(replacedRuns(runs, runs[3], 459).map((r) => r.runNumber)).toEqual([
+      461,
+    ]);
+    expect(replacedRuns(runs, undefined, 459)).toEqual([]);
+  });
+
+  const stage = (id: string, state: string) =>
+    ({ id, state, jobs: [] }) as unknown as StageSummary;
+  const start = "2026-11-16T10:00:00Z";
+  const at = (minutes: number) => Date.parse(start) + minutes * 60000;
+
+  it("estimates the time until Core can be installed", () => {
+    const stages = [stage("prepare", "done"), stage("offer", "waiting")];
+    expect(estimateCore(stages, start, at(10))).toBe(17);
+    expect(estimateCore(stages, start, at(40))).toBe("overdue");
+    expect(estimateCore([stage("offer", "done")], start, at(10))).toBe(0);
+    expect(
+      estimateCore([stage("prepare", "done")], start, at(10))
+    ).toBeUndefined();
+  });
+
+  it("counts finished jobs of a stage without the skipped ones", () => {
+    const counted = {
+      id: "system",
+      state: "running",
+      jobs: [
+        { name: "a", state: "done" },
+        { name: "b", state: "running" },
+        { name: "c", state: "skipped" },
+      ],
+    } as unknown as StageSummary;
+    expect(stageCount(counted)).toEqual({ done: 1, total: 2 });
   });
 });

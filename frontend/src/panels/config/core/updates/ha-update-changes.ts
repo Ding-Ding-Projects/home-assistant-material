@@ -1,8 +1,9 @@
-import { mdiChevronDown, mdiContentCopy, mdiRefresh } from "@mdi/js";
+import { mdiCheck, mdiChevronDown, mdiContentCopy, mdiRefresh } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
 import { copyToClipboard } from "../../../../common/util/copy-clipboard";
 import { formatDateTime } from "../../../../common/datetime/format_date_time";
@@ -10,7 +11,6 @@ import { formatTime } from "../../../../common/datetime/format_time";
 import { LanguageModeController } from "../../../../common/language-mode/language-mode-controller";
 import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
-import "../../../../components/ha-card";
 import type {
   HaSelectOption,
   HaSelectSelectEvent,
@@ -26,6 +26,7 @@ import type {
 } from "../../../../data/build-changes";
 import {
   CHANGE_AREAS,
+  areaShares,
   changesToText,
   correctRange,
   countByArea,
@@ -38,19 +39,22 @@ import {
   isFiltering,
   isPublishedRelease,
   sliceReleases,
+  timeApart,
 } from "../../../../data/build-changes";
 import { parseBuildNumber } from "../../../../data/build-progress";
 import type { PublicFetchFailure } from "../../../../data/public-json";
+import { haMotionKeyframes } from "../../../../resources/motion-styles";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
 import { showToast } from "../../../../util/toast";
+import "./ha-update-notes";
 
 const PREFIX = "ui.panel.config.updates.compare";
 const DATA_PREFIX = "ui.panel.config.updates.build_data";
 
 /**
- * "What changed between versions": a comparison of two builds and the list
- * of changes between them, read from the public change list.
+ * "What changed": a comparison of two builds and the list of changes between
+ * them, read from the public change list.
  */
 @customElement("ha-update-changes")
 export class HaUpdateChanges extends LitElement {
@@ -173,16 +177,15 @@ export class HaUpdateChanges extends LitElement {
 
   protected render(): TemplateResult {
     return html`
-      <ha-card aria-labelledby="compare-title">
+      <section class="panel" aria-labelledby="compare-title">
         <div class="head">
-          <div>
-            <h2 id="compare-title">${this._t(`${PREFIX}.title`)}</h2>
-            <p class="quiet">${this._t(`${PREFIX}.intro`)}</p>
-          </div>
+          <h2 id="compare-title">${this._t(`${PREFIX}.title`)}</h2>
+          ${this._renderRangeSwitch()}
         </div>
+        <p class="quiet intro">${this._t(`${PREFIX}.intro`)}</p>
         ${this._renderBody()}
         <p class="quiet">${this._t(`${DATA_PREFIX}.privacy`)}</p>
-      </ha-card>
+      </section>
     `;
   }
 
@@ -210,7 +213,6 @@ export class HaUpdateChanges extends LitElement {
     const byQuery = this._byQuery(range, this._query);
     const visible = this._visible(range, this._areas, this._query);
     return html`
-      ${this._renderPickers(list)}
       ${
         this._belowList
           ? html`<ha-alert alert-type="info">
@@ -218,8 +220,12 @@ export class HaUpdateChanges extends LitElement {
             </ha-alert>`
           : nothing
       }
-      ${this._renderTable(list, range)} ${this._renderSummary(range, visible)}
-      ${this._renderFilters(range, byQuery, visible)}
+      ${this._renderBlocks(list, range)}
+      <div class="sr-only" role="status">${this._summaryText(range)}</div>
+      <div class="controls">
+        ${this._renderAreas(byQuery)} ${this._renderSearch(range, visible)}
+      </div>
+      <ha-update-notes .hass=${this.hass} .build=${this._to}></ha-update-notes>
       ${this._renderGroups(list, range, visible)}
     `;
   }
@@ -287,33 +293,43 @@ export class HaUpdateChanges extends LitElement {
     return this._t(`${PREFIX}.${key}`, { build });
   }
 
-  private _renderPickers(list: ChangeList): TemplateResult {
-    const options: HaSelectOption[] = list.releases.map((release) => ({
-      value: release.build,
-      label: this._optionLabel(release.build, list),
-    }));
+  // The range as a segmented control: it is pressed while the pickers agree
+  // with it, and the pickers below still allow any other pair of builds.
+  private _renderRangeSwitch(): TemplateResult | typeof nothing {
+    const list = this._list;
+    const newest = list?.releases[0];
+    if (!list || !newest || this._failure) {
+      return nothing;
+    }
+    const start = defaultFromBuild(list.releases, this._installedBuild());
+    const older = list.releases.find((release) => release.build < newest.build);
+    const installedRange =
+      this._from === (start.build ?? newest.build) && this._to === newest.build;
+    const latestRange =
+      this._from === (older?.build ?? newest.build) &&
+      this._to === newest.build;
     return html`
-      <div class="pickers">
-        <ha-select
-          .label=${this._t(`${PREFIX}.from`)}
-          .value=${this._from}
-          .options=${options}
-          @selected=${this._fromChanged}
-        ></ha-select>
-        <ha-select
-          .label=${this._t(`${PREFIX}.to`)}
-          .value=${this._to}
-          .options=${options}
-          @selected=${this._toChanged}
-        ></ha-select>
-        <div class="quick">
-          <ha-button appearance="outlined" @click=${this._quickInstalled}>
-            ${this._t(`${PREFIX}.quick_installed`)}
-          </ha-button>
-          <ha-button appearance="outlined" @click=${this._quickLatest}>
-            ${this._t(`${PREFIX}.quick_latest`)}
-          </ha-button>
-        </div>
+      <div
+        class="segmented"
+        role="group"
+        aria-label=${this._t(`${PREFIX}.range_label`)}
+      >
+        <button
+          type="button"
+          class=${classMap({ on: installedRange })}
+          aria-pressed=${installedRange ? "true" : "false"}
+          @click=${this._quickInstalled}
+        >
+          ${this._t(`${PREFIX}.quick_installed`)}
+        </button>
+        <button
+          type="button"
+          class=${classMap({ on: latestRange && !installedRange })}
+          aria-pressed=${latestRange && !installedRange ? "true" : "false"}
+          @click=${this._quickLatest}
+        >
+          ${this._t(`${PREFIX}.quick_latest`)}
+        </button>
       </div>
     `;
   }
@@ -347,112 +363,172 @@ export class HaUpdateChanges extends LitElement {
     this._to = next.to;
   }
 
-  private _renderTable(
+  private _summaryText(range: ReleaseEntry[]): string {
+    const total = countChanges(range);
+    const shown = countChanges(this._currentVisible());
+    const filtering = isFiltering({ areas: this._areas, query: this._query });
+    const base =
+      this._from === this._to
+        ? this._t(`${PREFIX}.summary_same`, { build: this._from! })
+        : this._t(`${PREFIX}.summary`, {
+            changes: total,
+            builds: range.length,
+            from: this._from!,
+            to: this._to!,
+          });
+    return filtering
+      ? `${base}. ${this._t(`${PREFIX}.summary_filtered`, { shown, total })}`
+      : base;
+  }
+
+  private _renderFacts(
+    release: ReleaseEntry | undefined,
+    onPrimary: boolean
+  ): TemplateResult {
+    const row = (label: string, value: string, mono: boolean) =>
+      html`<dt>${label}</dt>
+        <dd class=${classMap({ mono })}>${value}</dd>`;
+    return html`
+      <dl class="facts ${classMap({ "on-primary": onPrimary })}">
+        ${row(this._t(`${PREFIX}.row_core`), release?.core ?? "", true)}
+        ${row(this._t(`${PREFIX}.row_supervisor`), release?.supervisor ?? "", true)}
+        ${row(this._t(`${PREFIX}.row_os`), release?.os ?? "", true)}
+        ${row(this._t(`${PREFIX}.row_date`), release ? this._date(release.date) : "", false)}
+        ${row(this._t(`${PREFIX}.row_source`), release?.source ?? "", true)}
+        ${
+          release
+            ? row(
+                this._t(`${PREFIX}.row_kind`),
+                this._t(
+                  isPublishedRelease(release)
+                    ? `${PREFIX}.kind_release`
+                    : `${PREFIX}.kind_feed`
+                ),
+                false
+              )
+            : nothing
+        }
+      </dl>
+    `;
+  }
+
+  private _renderBlocks(
     list: ChangeList,
     range: ReleaseEntry[]
   ): TemplateResult {
     const from = findRelease(list.releases, this._from);
     const to = findRelease(list.releases, this._to);
-    const fromLabel = this._t(`${PREFIX}.from`);
-    const toLabel = this._t(`${PREFIX}.to`);
-    const row = (
-      label: string,
-      pick: (release: ReleaseEntry | undefined) => string
-    ) =>
-      html`<tr>
-        <th scope="row">${label}</th>
-        <td data-label=${fromLabel}>${pick(from)}</td>
-        <td data-label=${toLabel}>${pick(to)}</td>
-      </tr>`;
+    const options: HaSelectOption[] = list.releases.map((release) => ({
+      value: release.build,
+      label: this._optionLabel(release.build, list),
+    }));
+    const apart = timeApart(from?.date, to?.date);
+    const total = countChanges(range);
     return html`
-      <table class="compare" aria-label=${this._t(`${PREFIX}.table_label`)}>
-        <thead>
-          <tr>
-            <td></td>
-            <th scope="col">${fromLabel}</th>
-            <th scope="col">${toLabel}</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${row(this._t(`${PREFIX}.row_build`), (r) =>
-            r ? this._t(`${PREFIX}.option`, { build: r.build }) : ""
-          )}
-          ${row(this._t(`${PREFIX}.row_core`), (r) => r?.core ?? "")}
-          ${row(this._t(`${PREFIX}.row_supervisor`), (r) => r?.supervisor ?? "")}
-          ${row(this._t(`${PREFIX}.row_os`), (r) => r?.os ?? "")}
-          ${row(this._t(`${PREFIX}.row_date`), (r) =>
-            r ? this._date(r.date) : ""
-          )}
-          ${row(this._t(`${PREFIX}.row_source`), (r) => r?.source ?? "")}
-          ${row(this._t(`${PREFIX}.row_kind`), (r) =>
-            r
-              ? this._t(
-                  isPublishedRelease(r)
-                    ? `${PREFIX}.kind_release`
-                    : `${PREFIX}.kind_feed`
-                )
-              : ""
-          )}
-          <tr>
-            <th scope="row">${this._t(`${PREFIX}.row_changes`)}</th>
-            <td class="span" colspan="2">
-              ${this._t(`${PREFIX}.group_count`, {
-                count: countChanges(range),
-              })}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="blocks">
+        <div class="block from" style=${styleMap({ "--i": "0" })}>
+          <ha-select
+            .label=${this._t(`${PREFIX}.from`)}
+            .value=${this._from}
+            .options=${options}
+            @selected=${this._fromChanged}
+          ></ha-select>
+          <div class="build-number">${this._from}</div>
+          ${this._renderFacts(from, false)}
+        </div>
+        <div class="block count" style=${styleMap({ "--i": "1" })}>
+          <div class="huge">${total}</div>
+          <div class="count-label">
+            ${this._t(
+              `${PREFIX}.${total === 1 ? "block_change_one" : "block_changes"}`,
+              { builds: range.length }
+            )}
+          </div>
+          ${
+            apart && this._from !== this._to
+              ? html`<div class="count-note">
+                  ${this._t(`${PREFIX}.apart`, {
+                    days: apart.days,
+                    hours: apart.hours,
+                    minutes: apart.minutes,
+                  })}
+                </div>`
+              : nothing
+          }
+        </div>
+        <div class="block to" style=${styleMap({ "--i": "2" })}>
+          <ha-select
+            .label=${this._t(`${PREFIX}.to`)}
+            .value=${this._to}
+            .options=${options}
+            @selected=${this._toChanged}
+          ></ha-select>
+          <div class="build-number">${this._to}</div>
+          ${this._renderFacts(to, true)}
+        </div>
+      </div>
     `;
   }
 
-  private _renderSummary(
-    range: ReleaseEntry[],
-    visible: ReleaseEntry[]
-  ): TemplateResult {
-    const total = countChanges(range);
-    const shown = countChanges(visible);
-    const filtering = isFiltering({ areas: this._areas, query: this._query });
-    return html`<div class="summary" role="status">
-      <strong>
-        ${
-          this._from === this._to
-            ? this._t(`${PREFIX}.summary_same`, { build: this._from! })
-            : this._t(`${PREFIX}.summary`, {
-                changes: total,
-                builds: range.length,
-                from: this._from!,
-                to: this._to!,
-              })
-        }
-      </strong>
-      ${
-        filtering
-          ? html`<span class="quiet"
-              >${this._t(`${PREFIX}.summary_filtered`, { shown, total })}</span
-            >`
-          : nothing
-      }
-    </div>`;
-  }
-
-  private _renderFilters(
-    range: ReleaseEntry[],
-    byQuery: ReleaseEntry[],
-    visible: ReleaseEntry[]
-  ): TemplateResult {
+  private _renderAreas(byQuery: ReleaseEntry[]): TemplateResult {
     const counts = countByArea(byQuery);
+    const shares = areaShares(counts);
     const areas = [
       ...CHANGE_AREAS.filter((area) => counts[area] || this._areas.has(area)),
       ...Object.keys(counts).filter(
         (area) => !(CHANGE_AREAS as readonly string[]).includes(area)
       ),
-    ];
+    ].sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0));
+    return html`
+      <div
+        class="areas"
+        role="group"
+        aria-label=${this._t(`${PREFIX}.areas_label`)}
+      >
+        <div class="areas-hint">${this._t(`${PREFIX}.parts_hint`)}</div>
+        ${
+          areas.length
+            ? areas.map((area) => {
+                const on = this._areas.has(area);
+                return html`<button
+                  type="button"
+                  class="bar ${classMap({ on })}"
+                  aria-pressed=${on ? "true" : "false"}
+                  .area=${area}
+                  @click=${this._toggleArea}
+                >
+                  <i
+                    aria-hidden="true"
+                    style=${styleMap({ width: `${shares[area] ?? 0}%` })}
+                  ></i>
+                  <span class="bar-label">
+                    ${on ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>` : nothing}
+                    ${this._areaLabel(area)}
+                  </span>
+                  <b class="bar-count">${counts[area] ?? 0}</b>
+                </button>`;
+              })
+            : html`<p class="quiet">${this._t(`${PREFIX}.no_changes`)}</p>`
+        }
+      </div>
+    `;
+  }
+
+  private _renderSearch(
+    range: ReleaseEntry[],
+    visible: ReleaseEntry[]
+  ): TemplateResult {
     const samples = range.flatMap((release) =>
       release.changes.map((change) => change.title)
     );
+    const total = countChanges(range);
+    const shown = countChanges(visible);
+    const filtering = isFiltering({ areas: this._areas, query: this._query });
+    const names = [...this._areas]
+      .map((area) => this._areaLabel(area))
+      .join(", ");
     return html`
-      <div class="filters">
+      <div class="search-col">
         <ha-input-search
           appearance="outlined"
           .value=${this._query}
@@ -461,34 +537,11 @@ export class HaUpdateChanges extends LitElement {
           .patternSamples=${samples}
           @input=${this._queryChanged}
         ></ha-input-search>
-        ${
-          areas.length
-            ? html`<div
-                class="chips"
-                role="group"
-                aria-label=${this._t(`${PREFIX}.areas_label`)}
-              >
-                ${areas.map(
-                  (area) =>
-                    html`<button
-                      type="button"
-                      class="chip ${classMap({ on: this._areas.has(area) })}"
-                      aria-pressed=${this._areas.has(area) ? "true" : "false"}
-                      .area=${area}
-                      @click=${this._toggleArea}
-                    >
-                      ${this._areaLabel(area)}
-                      <span class="count">${counts[area] ?? 0}</span>
-                    </button>`
-                )}
-              </div>`
-            : nothing
-        }
         <div class="tools">
-          <ha-button appearance="plain" @click=${this._expandAll}>
+          <ha-button appearance="outlined" @click=${this._expandAll}>
             ${this._t(`${PREFIX}.expand_all`)}
           </ha-button>
-          <ha-button appearance="plain" @click=${this._collapseAll}>
+          <ha-button appearance="outlined" @click=${this._collapseAll}>
             ${this._t(`${PREFIX}.collapse_all`)}
           </ha-button>
           <ha-button
@@ -499,6 +552,26 @@ export class HaUpdateChanges extends LitElement {
             <ha-svg-icon slot="start" .path=${mdiContentCopy}></ha-svg-icon>
             ${this._t(`${PREFIX}.copy`)}
           </ha-button>
+        </div>
+        <div class="showing">
+          <div class="tile-label">${this._t(`${PREFIX}.showing`)}</div>
+          <div class="medium">
+            ${
+              filtering
+                ? this._t(`${PREFIX}.showing_count`, { shown, total })
+                : this._t(`${PREFIX}.showing_all`, { total })
+            }
+          </div>
+          <div class="tile-label">
+            ${names ? `${names}. ` : ""}${this._t(`${PREFIX}.showing_hint`)}
+          </div>
+          ${
+            filtering
+              ? html`<ha-button appearance="plain" @click=${this._clearFilters}>
+                  ${this._t(`${PREFIX}.clear_filters`)}
+                </ha-button>`
+              : nothing
+          }
         </div>
       </div>
     `;
@@ -611,9 +684,11 @@ export class HaUpdateChanges extends LitElement {
     }
     const installed = this._installedBuild();
     const newest = list.releases[0]?.build;
+    const full = new Map(range.map((release) => [release.build, release]));
     return html`<div class="groups">
-      ${visible.map(
-        (release) => html`
+      ${visible.map((release) => {
+        const all = full.get(release.build)?.changes.length ?? 0;
+        return html`
           <section
             class="group"
             aria-label=${this._t(`${PREFIX}.group_title`, {
@@ -621,26 +696,19 @@ export class HaUpdateChanges extends LitElement {
             })}
           >
             <header>
-              <h3>
-                ${this._t(`${PREFIX}.group_title`, { build: release.build })}
-                <span class="quiet"
-                  >${this._t(`${PREFIX}.group_core`, {
-                    core: release.core,
-                  })}</span
-                >
-              </h3>
+              <span class="group-number">${release.build}</span>
               <div class="badges">
                 ${
-                  release.build === installed
-                    ? html`<span class="badge"
-                        >${this._t(`${PREFIX}.badge_installed`)}</span
+                  release.build === newest
+                    ? html`<span class="badge on"
+                        >${this._t(`${PREFIX}.badge_newest`)}</span
                       >`
                     : nothing
                 }
                 ${
-                  release.build === newest
+                  release.build === installed
                     ? html`<span class="badge"
-                        >${this._t(`${PREFIX}.badge_newest`)}</span
+                        >${this._t(`${PREFIX}.badge_installed`)}</span
                       >`
                     : nothing
                 }
@@ -652,7 +720,20 @@ export class HaUpdateChanges extends LitElement {
                     : nothing
                 }
               </div>
-              <span class="quiet">${this._date(release.date)}</span>
+              <span class="quiet"
+                >${this._date(release.date)}.
+                ${this._t(`${PREFIX}.group_count`, { count: all })}${
+                  release.changes.length !== all
+                    ? html`,
+                      ${this._t(`${PREFIX}.group_shown`, {
+                        shown: release.changes.length,
+                      })}`
+                    : nothing
+                }</span
+              >
+              <span class="quiet core"
+                >${this._t(`${PREFIX}.group_core`, { core: release.core })}</span
+              >
             </header>
             ${
               release.truncated
@@ -669,8 +750,15 @@ export class HaUpdateChanges extends LitElement {
                 : html`<p class="quiet">${this._t(`${PREFIX}.no_changes`)}</p>`
             }
           </section>
-        `
-      )}
+        `;
+      })}
+      ${
+        installed !== undefined && installed === this._from
+          ? html`<div class="start-note">
+              ${this._t(`${PREFIX}.start_note`, { build: installed })}
+            </div>`
+          : nothing
+      }
     </div>`;
   }
 
@@ -746,39 +834,59 @@ export class HaUpdateChanges extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      haMotionKeyframes,
       css`
         :host {
           display: block;
         }
-        ha-card {
+        .panel {
           box-sizing: border-box;
-          padding: var(--ha-space-5) var(--ha-space-6);
-          border-radius: var(--ha-border-radius-3xl);
           display: flex;
           flex-direction: column;
-          gap: var(--ha-space-4);
+          gap: var(--ha-space-5);
+          padding: clamp(20px, 3vw, 32px);
+          border-radius: calc(var(--ha-border-radius-6xl) + 4px);
+          background: var(--card-background-color);
         }
         h2,
         h3 {
           margin: 0;
-          font-weight: var(--ha-font-weight-medium);
         }
         h2 {
-          font-size: var(--ha-font-size-l);
-        }
-        h3 {
-          font-size: var(--ha-font-size-m);
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: clamp(28px, 4.4vw, 44px);
+          font-weight: var(--ha-font-weight-bold);
+          line-height: 1.05;
+          letter-spacing: -0.01em;
         }
         p {
           margin: 0;
         }
         ha-button {
-          --ha-button-height: 48px;
+          --ha-button-height: 52px;
+        }
+        .head {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: var(--ha-space-3);
+        }
+        .intro {
+          margin-top: calc(var(--ha-space-3) * -1);
         }
         .quiet {
           font-size: var(--ha-font-size-s);
           color: var(--secondary-text-color);
           overflow-wrap: anywhere;
+        }
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
         }
         .loading {
           display: flex;
@@ -786,131 +894,245 @@ export class HaUpdateChanges extends LitElement {
           gap: var(--ha-space-3);
           color: var(--secondary-text-color);
         }
-        .pickers {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: var(--ha-space-3);
-        }
-        .quick {
-          grid-column: 1 / -1;
-          display: flex;
+        /* The range as a segmented control. */
+        .segmented {
+          display: inline-flex;
           flex-wrap: wrap;
-          gap: var(--ha-space-2);
+          padding: 4px;
+          border-radius: var(--ha-border-radius-6xl);
+          background: var(--secondary-background-color);
+        }
+        .segmented button {
+          min-height: 48px;
+          padding: 0 20px;
+          border: none;
+          border-radius: var(--ha-border-radius-5xl);
+          background: transparent;
+          color: var(--primary-text-color);
+          font: inherit;
+          font-weight: var(--ha-font-weight-medium);
+          cursor: pointer;
+          transition:
+            background-color var(--ha-animation-duration-normal, 250ms)
+              var(--ha-motion-ease, ease),
+            color var(--ha-animation-duration-normal, 250ms)
+              var(--ha-motion-ease, ease);
+        }
+        .segmented button.on {
+          background: var(--primary-color);
+          color: var(--text-primary-color, #fff);
+          font-weight: var(--ha-font-weight-bold);
+        }
+        button:focus-visible {
+          outline: 3px solid var(--primary-color);
+          outline-offset: 3px;
+        }
+        /* From, how many, To. */
+        .blocks {
+          display: grid;
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(min(100%, 280px), 1fr)
+          );
+          gap: var(--ha-space-4);
+          align-items: stretch;
+        }
+        .block {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-3);
+          min-width: 0;
+          padding: var(--ha-space-6);
+          border-radius: var(--ha-border-radius-6xl);
+          background: var(--secondary-background-color);
+          animation: ha-pop var(--ha-animation-duration-enter, 450ms)
+            var(--ha-motion-spring, ease) both;
+          animation-delay: calc(var(--i, 0) * 80ms);
+        }
+        .block.to {
+          background: color-mix(
+            in srgb,
+            var(--primary-color) 28%,
+            var(--card-background-color)
+          );
+        }
+        .block.count {
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          gap: var(--ha-space-1);
+          background: color-mix(
+            in srgb,
+            var(--accent-color, var(--primary-color)) 22%,
+            var(--card-background-color)
+          );
         }
         ha-select {
           min-width: 0;
         }
-        table.compare {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: var(--ha-font-size-s);
-        }
-        .compare th,
-        .compare td {
-          padding: var(--ha-space-2) var(--ha-space-3);
-          text-align: start;
-          vertical-align: top;
-          border-block-end: 1px solid var(--divider-color);
-          overflow-wrap: anywhere;
-        }
-        .compare thead th {
-          color: var(--secondary-text-color);
-          font-weight: var(--ha-font-weight-medium);
-        }
-        .compare tbody th {
-          width: 30%;
-          font-weight: var(--ha-font-weight-medium);
-        }
-        .compare tbody td {
+        .build-number {
+          font-size: 56px;
+          line-height: 1;
+          font-weight: 800;
           font-variant-numeric: tabular-nums;
         }
-        @media (max-width: 600px) {
-          .compare,
-          .compare tbody,
-          .compare tr {
-            display: block;
-          }
-          .compare thead {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-            clip-path: inset(50%);
-          }
-          .compare tr {
-            padding-block: var(--ha-space-2);
-            border-block-end: 1px solid var(--divider-color);
-          }
-          .compare th,
-          .compare td {
-            display: block;
-            width: auto !important;
-            padding: var(--ha-space-1) 0;
-            border: none;
-          }
-          .compare tbody td:not(.span) {
-            display: grid;
-            grid-template-columns: 4.5em minmax(0, 1fr);
-            gap: var(--ha-space-2);
-          }
-          .compare tbody td:not(.span)::before {
-            content: attr(data-label);
-            color: var(--secondary-text-color);
-          }
+        .huge {
+          font-size: clamp(72px, 12vw, 120px);
+          line-height: 0.95;
+          font-weight: 800;
+          font-variant-numeric: tabular-nums;
         }
-        :host([narrow]) .pickers {
-          grid-template-columns: minmax(0, 1fr);
+        .count-label {
+          font-size: var(--ha-font-size-xl);
+          font-weight: var(--ha-font-weight-bold);
         }
-        .summary {
+        .count-note {
+          font-size: var(--ha-font-size-s);
+        }
+        .facts {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          gap: 4px 14px;
+          margin: 0;
+          font-size: var(--ha-font-size-s);
+        }
+        .facts dt {
+          color: var(--secondary-text-color);
+        }
+        .facts dd {
+          margin: 0;
+          overflow-wrap: anywhere;
+        }
+        .facts dd.mono {
+          font-family: var(--ha-font-family-code, monospace);
+        }
+        .facts.on-primary dt {
+          color: var(--primary-text-color);
+        }
+        /* Where the changes are, and the search. */
+        .controls {
+          display: grid;
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(min(100%, 340px), 1fr)
+          );
+          gap: var(--ha-space-4);
+        }
+        .areas {
           display: flex;
           flex-direction: column;
-          gap: var(--ha-space-1);
+          gap: 6px;
+          min-width: 0;
+          padding: var(--ha-space-5);
+          border-radius: var(--ha-border-radius-6xl);
+          background: var(--secondary-background-color);
         }
-        .filters {
+        .areas-hint {
+          padding: 0 4px 6px;
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
+          color: var(--secondary-text-color);
+        }
+        .bar {
+          position: relative;
           display: flex;
-          flex-direction: column;
-          gap: var(--ha-space-3);
-        }
-        .chips {
-          display: flex;
-          flex-wrap: wrap;
-          gap: var(--ha-space-2);
-        }
-        .chip {
-          display: inline-flex;
           align-items: center;
-          gap: var(--ha-space-2);
+          justify-content: space-between;
+          gap: var(--ha-space-3);
           min-height: 48px;
-          padding-inline: var(--ha-space-4);
-          border: 1px solid var(--outline-color, var(--divider-color));
-          border-radius: var(--ha-border-radius-pill);
-          background: none;
+          padding: 0 14px;
+          overflow: hidden;
+          border: 2px solid transparent;
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--card-background-color);
           color: var(--primary-text-color);
           font: inherit;
-          font-size: var(--ha-font-size-s);
+          text-align: start;
           cursor: pointer;
         }
-        .chip.on {
+        .bar i {
+          position: absolute;
+          inset-block: 0;
+          inset-inline-start: 0;
           background: color-mix(
             in srgb,
             var(--primary-color) 22%,
             var(--card-background-color)
           );
-          border-color: var(--primary-color);
-          font-weight: var(--ha-font-weight-medium);
+          transform-origin: left;
+          animation: bar-grow var(--ha-animation-duration-enter, 450ms)
+            var(--ha-motion-ease, ease-out) both;
         }
-        .chip .count {
+        :host-context([dir="rtl"]) .bar i {
+          transform-origin: right;
+        }
+        @keyframes bar-grow {
+          from {
+            transform: scaleX(0);
+          }
+        }
+        .bar.on {
+          border-color: var(--primary-color);
+          font-weight: var(--ha-font-weight-bold);
+        }
+        .bar.on i {
+          background: color-mix(
+            in srgb,
+            var(--primary-color) 48%,
+            var(--card-background-color)
+          );
+        }
+        .bar-label {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+        .bar-label ha-svg-icon {
+          --mdc-icon-size: 20px;
+          color: var(--primary-color);
+        }
+        .bar-count {
+          position: relative;
           font-variant-numeric: tabular-nums;
-          color: var(--secondary-text-color);
+        }
+        .search-col {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-3);
+          min-width: 0;
+        }
+        ha-input-search {
+          --ha-input-search-height: 64px;
+          --ha-input-search-border-radius: var(--ha-border-radius-6xl);
         }
         .tools {
           display: flex;
           flex-wrap: wrap;
           gap: var(--ha-space-2);
         }
-        button:focus-visible {
-          outline: 3px solid var(--primary-color);
-          outline-offset: 2px;
+        .tools ha-button {
+          flex: 1 1 140px;
+        }
+        .showing {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: var(--ha-space-1);
+          padding: var(--ha-space-4) var(--ha-space-5);
+          border-radius: var(--ha-border-radius-4xl);
+          background: var(--secondary-background-color);
+        }
+        .tile-label {
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+        .medium {
+          font-size: 28px;
+          font-weight: 800;
+          line-height: 1.15;
         }
         .empty {
           display: flex;
@@ -919,23 +1141,24 @@ export class HaUpdateChanges extends LitElement {
           gap: var(--ha-space-2);
           color: var(--secondary-text-color);
         }
+        /* The list, grouped by build. */
         .groups {
           display: flex;
           flex-direction: column;
-          gap: var(--ha-space-5);
+          gap: var(--ha-space-6);
         }
         .group header {
           display: flex;
           flex-wrap: wrap;
           align-items: center;
           gap: var(--ha-space-2) var(--ha-space-3);
-          margin-block-end: var(--ha-space-2);
+          margin-block-end: var(--ha-space-3);
         }
-        .group h3 {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: baseline;
-          gap: var(--ha-space-2);
+        .group-number {
+          font-size: 32px;
+          line-height: 1;
+          font-weight: 800;
+          font-variant-numeric: tabular-nums;
         }
         .badges {
           display: flex;
@@ -943,10 +1166,18 @@ export class HaUpdateChanges extends LitElement {
           gap: var(--ha-space-1);
         }
         .badge {
-          padding: 2px var(--ha-space-2);
-          border-radius: var(--ha-border-radius-pill);
+          display: inline-flex;
+          align-items: center;
+          min-height: 28px;
+          padding: 0 12px;
+          border-radius: var(--ha-border-radius-lg);
           background: var(--secondary-background-color);
           font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-bold);
+        }
+        .badge.on {
+          background: var(--primary-color);
+          color: var(--text-primary-color, #fff);
         }
         .changes {
           margin: 0;
@@ -954,10 +1185,10 @@ export class HaUpdateChanges extends LitElement {
           list-style: none;
           display: flex;
           flex-direction: column;
-          gap: var(--ha-space-1);
+          gap: var(--ha-space-2);
         }
         .change {
-          border-radius: var(--ha-border-radius-xl);
+          border-radius: var(--ha-border-radius-4xl);
           background: var(--secondary-background-color);
         }
         .change-main {
@@ -966,10 +1197,10 @@ export class HaUpdateChanges extends LitElement {
           gap: var(--ha-space-3);
           box-sizing: border-box;
           width: 100%;
-          min-height: 48px;
-          padding: var(--ha-space-2) var(--ha-space-3);
+          min-height: 56px;
+          padding: var(--ha-space-2) var(--ha-space-5);
           border: none;
-          border-radius: var(--ha-border-radius-xl);
+          border-radius: var(--ha-border-radius-4xl);
           background: none;
           color: inherit;
           font: inherit;
@@ -986,6 +1217,8 @@ export class HaUpdateChanges extends LitElement {
           min-width: 0;
         }
         .change-title {
+          font-size: var(--ha-font-size-l);
+          font-weight: var(--ha-font-weight-medium);
           overflow-wrap: anywhere;
         }
         .meta {
@@ -995,10 +1228,15 @@ export class HaUpdateChanges extends LitElement {
           gap: var(--ha-space-1) var(--ha-space-2);
         }
         .area {
-          padding: 0 var(--ha-space-2);
-          border-radius: var(--ha-border-radius-pill);
-          border: 1px solid var(--divider-color);
+          padding: 0 10px;
+          border-radius: var(--ha-border-radius-lg);
+          background: color-mix(
+            in srgb,
+            var(--primary-color) 22%,
+            var(--card-background-color)
+          );
           font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
         }
         .sha {
           font-family: var(--ha-font-family-code, monospace);
@@ -1017,18 +1255,35 @@ export class HaUpdateChanges extends LitElement {
           display: flex;
           flex-direction: column;
           gap: var(--ha-space-2);
-          padding: 0 var(--ha-space-3) var(--ha-space-3);
+          padding: 0 var(--ha-space-5) var(--ha-space-4);
+          max-width: 76ch;
+          color: var(--secondary-text-color);
           line-height: var(--ha-line-height-normal);
           overflow-wrap: anywhere;
         }
+        .start-note {
+          padding: 14px 18px;
+          border-radius: var(--ha-border-radius-2xl);
+          border: 2px dashed var(--divider-color);
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+        }
         @media (prefers-reduced-motion: reduce) {
-          .chevron {
+          .chevron,
+          .segmented button {
             transition: none;
+          }
+          .block,
+          .bar i {
+            animation: none;
           }
         }
         @media (max-width: 480px) {
-          ha-card {
+          .panel {
             padding: var(--ha-space-4);
+          }
+          .block {
+            padding: var(--ha-space-5);
           }
         }
       `,
