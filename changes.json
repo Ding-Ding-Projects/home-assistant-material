@@ -1,15 +1,57 @@
 {
  "format": 1,
- "generated": "2026-11-17T06:21:19Z",
+ "generated": "2026-11-17T06:39:28Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 478,
+ "newest_build": 481,
  "releases": [
+  {
+   "build": 481,
+   "core": "2026.11.1.481",
+   "supervisor": "2026.11.0.481",
+   "os": "18.5.481",
+   "tag": null,
+   "source": "d00578e2e",
+   "date": "2026-11-17T00:32:44-05:00",
+   "previous_build": 478,
+   "changes": [
+    {
+     "sha": "d00578e2e",
+     "date": "2026-11-17T00:32:44-05:00",
+     "title": "Stop the update queue calling a real update failed; restart the device after a USB install",
+     "areas": [
+      "interface"
+     ],
+     "detail": "\"Update everything\" was run for real on a throwaway copy with a real Supervisor: a Core update from build 476 to 478. Nine seconds into the download the update reported \"not running\" for a moment, and the queue took that as \"went back to available without installing\". Core then updated and restarted correctly, but the queue stayed on the false failure and would never have reached a step after it. Every test had passed, and a look with pretend updates had found nothing. Now \"not running\" has to last (ninety seconds, eight minutes for Supervisor, Core and the operating system) before it counts, an install call that is still open counts as running, and a step that was judged failed is taken back as done once its update has arrived, so the queue carries on. A step keeps its name for when its entity is gone after a restart. In the USB install section \"Restart now\" opened the shared dialog, which defaults to a quick reload that would not start a new operating system; it now asks one question and restarts the device. A file that is no longer found triggers a fresh look, and verdict text uses the ordinary ink colour.",
+     "detail_yue": "「全部更新」喺一個有真 Supervisor 嘅臨時副本度真係行咗一次：Core 由 476 升去 478。下載咗九秒，個更新話咗一下「冇行緊」，隊列就當佢失敗。 其實 Core 之後正常升完級兼重啟，但隊列就企咗喺個假失敗度，後面嘅 步驟永遠唔會輪到。所有測試都過晒，用假更新睇亦都睇唔出。而家「冇 行緊」要持續一段時間先算數，安裝請求未返嚟就當仲行緊；就算判咗 失敗，個更新之後到咗都會改返做完成，隊列繼續行。另外 USB 安裝完 嗰粒「重新啟動」以前開嘅對話框預設係快速重新載入，起唔到新系統； 而家問一句就直接重啟部機。"
+    },
+    {
+     "sha": "49742a972",
+     "date": "2026-11-17T00:12:52-05:00",
+     "title": "Polish what a look at build 478 found: the glow edge, Cantonese dates and job names, small layout cuts",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The confirmation's red glow ended at a visible edge because the layer holding it was clipped while still red at its sides; the earlier fix had changed the wrong gradient. The layer now fades to nothing on all four sides. In Cantonese mode the comparison's dates, the footer date and the names of the build jobs stayed English; dates are now formatted per language, written once per language in both-languages mode, and the eleven known job names have translations, with an unknown name shown as it is. The build picker's chosen value wraps instead of being cut. An expanded change uses the card's width. A step half under the editor's search bar kept losing its whole outline because the room left for the outline was counted against the visible part; the remaining part is now outlined, and outlines follow scrolling frame by frame. \"Confirmation drama\" has its summary tile. Tests pass at the usual baseline; none of this has been seen in a built app yet.",
+     "detail_yue": "確認對話框嘅紅光有條睇得見嘅邊，原因係嗰層喺邊位仲紅緊就畀人剪咗， 上次改錯咗另一個漸變；而家四邊都會淡出。廣東話模式入面，比較嘅日期、 頁腳日期同工序名以前係英文，而家日期跟語言寫，十一個工序名都有 翻譯。版本選擇器揀咗嘅值識得轉行唔再斬尾。編輯器入面畀搜尋列遮住 一半嘅步驟，露出嚟嗰部分而家會保留外框，外框亦都跟得上捲動。"
+    },
+    {
+     "sha": "1352b0423",
+     "date": "2026-11-17T00:01:53-05:00",
+     "title": "Record build 478: what was seen right, what is still wrong, what has never run for real",
+     "areas": [
+      "docs"
+     ],
+     "detail": "HANDOFF.md now says which repairs were seen working in the built app, which smaller faults remain (the confirmation glow edge, Cantonese fragments, a cut picker value), that the storage error a checker reported came from the checker's own script and not from the product, and, most importantly, that the update queue, the install from USB storage and the USB recovery step have never run against a real device.",
+     "detail_yue": "交接文件寫低咗 478 版邊啲修正喺砌好嘅版本度見到得咗、邊啲細毛病 仲未執，仲有最緊要嗰句：順序更新、USB 安裝同 USB 救援三樣都未喺 真機度行過。"
+    }
+   ]
+  },
   {
    "build": 478,
    "core": "2026.11.1.478",
    "supervisor": "2026.11.0.478",
    "os": "18.5.478",
-   "tag": null,
+   "tag": "v2026.11.1.478",
    "source": "f599eaae8",
    "date": "2026-11-16T22:36:31-05:00",
    "previous_build": 476,
@@ -4519,27 +4561,6 @@
      ],
      "detail": "The row of group chips took the width of all its chips (666 px in a 358 px page), which made the page wider than the screen. The narrow layout now stretches its children to the page width and the chip row scrolls inside itself. Measured in a running copy at 390 px with the rule applied: the row is 358 px.",
      "detail_yue": "個人設定喺手機度可以成版打橫拖走，原來係嗰排分類掣闊到 666 像素，撐爆咗 358 像素嘅版面。而家排掣乖乖喺自己度碌，個版唔再周圍走。"
-    }
-   ]
-  },
-  {
-   "build": 118,
-   "core": "2026.11.1.118",
-   "supervisor": "2026.11.0.118",
-   "os": "18.5.118",
-   "tag": "v2026.11.1.118",
-   "source": "b1e08fd1c",
-   "date": "2026-11-11T11:54:48-05:00",
-   "previous_build": 117,
-   "changes": [
-    {
-     "sha": "b1e08fd1c",
-     "date": "2026-11-11T11:54:48-05:00",
-     "title": "Draw the Home Assistant pages from a running copy",
-     "areas": [
-      "design"
-     ],
-     "detail": "A new canvas, 22-live-app, with fifteen boards drawn by design/source/pages/live_boards.py from the frontend in this repository served against a running core: each board shows one page at 1440 pixels and on a 390 pixel phone, light and one dark. The boards for the pages fixed in the polish pass say what changed."
     }
    ]
   }
