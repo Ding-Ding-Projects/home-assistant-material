@@ -231,7 +231,7 @@ class MoreInfoTime extends LitElement {
           type="button"
           class="neighbor"
           tabindex="-1"
-          .part=${part}
+          .timePart=${part}
           .delta=${-step}
           @click=${this._nudge}
         >
@@ -246,7 +246,7 @@ class MoreInfoTime extends LitElement {
           aria-valuemax=${size - 1}
           aria-valuenow=${value}
           aria-valuetext=${this._valueText(part, value, ampm)}
-          .part=${part}
+          .timePart=${part}
           @click=${this._selectPart}
           @focus=${this._selectPart}
           @blur=${this._clearTyped}
@@ -258,7 +258,7 @@ class MoreInfoTime extends LitElement {
           type="button"
           class="neighbor"
           tabindex="-1"
-          .part=${part}
+          .timePart=${part}
           .delta=${step}
           @click=${this._nudge}
         >
@@ -289,17 +289,19 @@ class MoreInfoTime extends LitElement {
 
   private _nudge(ev: Event) {
     const target = ev.currentTarget as HTMLElement & {
-      part: Part;
+      timePart: Part;
       delta: number;
     };
-    this._part = target.part;
+    this._part = target.timePart;
     this._invalidEntry = undefined;
     this._clearTyped();
-    this._change(target.part, target.delta);
+    this._change(target.timePart, target.delta);
   }
 
   private _selectPart(ev: Event) {
-    this._part = (ev.currentTarget as HTMLElement & { part: Part }).part;
+    this._part = (
+      ev.currentTarget as HTMLElement & { timePart: Part }
+    ).timePart;
   }
 
   private _setMeridiem(ev: Event) {
@@ -315,7 +317,8 @@ class MoreInfoTime extends LitElement {
     if (ev.altKey || ev.ctrlKey || ev.metaKey) {
       return;
     }
-    const part = (ev.currentTarget as HTMLElement & { part: Part }).part;
+    const part = (ev.currentTarget as HTMLElement & { timePart: Part })
+      .timePart;
     this._part = part;
     if (/^\d$/.test(ev.key)) {
       this._type(ev.key);

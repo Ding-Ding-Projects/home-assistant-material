@@ -37,7 +37,7 @@ import { showToast } from "../../../../util/toast";
 
 const PREFIX = "ui.panel.config.updates.";
 
-type PartTarget = HTMLElement & { part: AutoSystemPartName };
+type PartTarget = HTMLElement & { systemPart: AutoSystemPartName };
 
 /**
  * The switches, window and wait for updating Home Assistant itself, the
@@ -93,7 +93,7 @@ export class HaUpdateAutoSystem extends LitElement {
           <span class="sub">${this._t(`auto_system_${part}_help`)}</span>
         </span>
         <ha-switch
-          .part=${part}
+          .systemPart=${part}
           .checked=${this.system.enabled[part]}
           haptic
           @change=${this._togglePart}
@@ -264,13 +264,13 @@ export class HaUpdateAutoSystem extends LitElement {
           <div class="alert-actions">
             <ha-button
               appearance="filled"
-              .part=${part.part}
+              .systemPart=${part.part}
               @click=${this._tryNow}
               >${this._t("auto_system_try_now")}</ha-button
             >
             <ha-button
               appearance="plain"
-              .part=${part.part}
+              .systemPart=${part.part}
               @click=${this._skip}
               >${this._t("auto_system_skip")}</ha-button
             >
@@ -314,9 +314,11 @@ export class HaUpdateAutoSystem extends LitElement {
   }
 
   private async _togglePart(ev: Event): Promise<void> {
-    const target = ev.currentTarget as HaSwitch & { part: AutoSystemPartName };
+    const target = ev.currentTarget as HaSwitch & {
+      systemPart: AutoSystemPartName;
+    };
     const enabled = target.checked;
-    const part = target.part;
+    const part = target.systemPart;
     // Turning one off needs no confirmation; turning one on asks once.
     if (
       enabled &&
@@ -380,7 +382,7 @@ export class HaUpdateAutoSystem extends LitElement {
   }
 
   private async _tryNow(ev: Event): Promise<void> {
-    const part = (ev.currentTarget as PartTarget).part;
+    const part = (ev.currentTarget as PartTarget).systemPart;
     const confirmed = await this._confirmRestart(
       part,
       this._t("auto_system_try_now"),
@@ -393,7 +395,7 @@ export class HaUpdateAutoSystem extends LitElement {
   }
 
   private async _skip(ev: Event): Promise<void> {
-    const part = (ev.currentTarget as PartTarget).part;
+    const part = (ev.currentTarget as PartTarget).systemPart;
     const entry = this.system.parts.find((item) => item.part === part);
     if (!entry) {
       return;
