@@ -195,7 +195,8 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
     (
       localize: LocalizeFunc,
       maxDisplayedAgents: number,
-      hostingBackups: Set<string>
+      hostingBackups: Set<string>,
+      narrow: boolean
     ): DataTableColumnContainer<BackupRow> => ({
       name: {
         title: localize("ui.panel.config.backup.name"),
@@ -305,7 +306,10 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
       hosting: {
         title: localize("ui.panel.config.backup.hosting.title"),
         showNarrow: false,
-        hidden: !this.hass.user?.is_admin,
+        // On a phone the table joins every column that is not shown on its
+        // own into the second line of the name, which put these two buttons
+        // in the middle of the text. The same actions are in the row menu.
+        hidden: !this.hass.user?.is_admin || narrow,
         minWidth: "112px",
         maxWidth: "112px",
         template: (backup) => html`
@@ -527,7 +531,12 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
         .filter=${this._tableSettings.search}
         @search-changed=${this._tableSettings.searchChanged}
         @row-click=${this._showBackupDetails}
-        .columns=${this._columns(this.hass.localize, maxDisplayedAgents, this._hostingBackups)}
+        .columns=${this._columns(
+          this.hass.localize,
+          maxDisplayedAgents,
+          this._hostingBackups,
+          this.narrow
+        )}
         .data=${data}
         .noDataText=${this.hass.localize("ui.panel.config.backup.no_backups")}
         .searchLabel=${this.hass.localize(
@@ -580,6 +589,13 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
                   slot="fab"
                   size="l"
                   ?disabled=${backupInProgress}
+                  title=${
+                    backupInProgress
+                      ? this.hass.localize(
+                          "ui.panel.config.backup.creating_backup"
+                        )
+                      : nothing
+                  }
                   @click=${this._newBackup}
                 >
                   ${
