@@ -64,6 +64,42 @@ sign-in and returns only the sign-in address the client prints. After signing in
 the client holds its credential in its own data volume. The credential is never returned by the
 API, written to the logs or placed in backup metadata.
 
+Step by step, as the Supervisor does it (the tunnel client is the official image at the same
+pinned version as `compose.yaml`):
+
+1. **Sign-in.** The Supervisor pulls the image if needed and starts a short-lived container
+   (`hassio_cloud_login`) that runs the client's interactive login. It has no published ports and
+   no extra privileges. The client prints one sentence and then the sign-in address on a line of
+   its own. The Supervisor accepts only an `https` address on the provider's own login domain
+   (`dash.cloudflare.com`) and returns that address, nothing else. Open it and approve the
+   hostname in the provider account.
+2. **Credential.** When the client has written its certificate into the cloud host's private
+   folder, the Supervisor sees that the file exists (it never reads it) and removes the login
+   container.
+3. **Tunnel.** The Supervisor creates a named tunnel for this instance (`ham-` plus a hash of the
+   hostname), routes the hostname to it with a DNS record, and starts the tunnel container
+   (`hassio_cloud_tunnel`, restart policy always, no published ports) pointing at the Core address.
+   An existing DNS record for the hostname is not overwritten: setup stops with an error instead.
+4. **Trusted proxy.** The tunnel container always gets the same address on the Supervisor network
+   (`172.30.32.7`). While running, `GET /cloud_host/info` reports it as `trusted_proxy`, so the
+   page can show the exact `http:` lines to add. The Supervisor does not edit the Core
+   configuration.
+
+Where things are stored:
+
+- State (hostname, paused flag, last check): `cloud_host.json` in the Supervisor data folder,
+  mode 0600, no credential.
+- Tunnel client data (certificate, tunnel credential file, tunnel name): the folder
+  `cloud_host_tunnel` in the Supervisor data folder, mode 0700, owned by the client's user. Backups
+  only cover Core, apps and the share, ssl, media and local app folders, so this folder is not in
+  a backup and needs no exclusion entry.
+
+**Remove** stops and deletes both containers, asks the client to delete the tunnel at the
+provider (`tunnel delete -f`, no prompt) and then deletes the private folder. If the provider
+step fails, local removal still completes and the tunnel stays in the provider account: delete it
+there by hand. The DNS record that was created for the hostname is not deleted by the client, so
+remove it in the provider account too. Pause stops the tunnel container and keeps the sign-in.
+
 ## API
 
 All routes are on the Supervisor API. Only `GET /cloud_host/info` is readable by apps with the
@@ -103,6 +139,9 @@ State values: `not_set_up`, `waiting_for_sign_in`, `running`, `paused`, `error`.
 
 - `hostname` and `last_check` are `null` until they exist. `error` holds a short reason only when
   the state is `error`.
+- `trusted_proxy` is present only while the state is `running` in the full mode: the address of the
+  tunnel container, a single IPv4 address string such as `"172.30.32.7"`, for the core `http:`
+  `trusted_proxies` list.
 - `last_check.reason` is the name of the failure (for example `TimeoutError`) when the hostname did
   not answer, and `status` is then `null`. `ok` is true only for status 200.
 - `POST /cloud_host/setup` also returns `"sign_in_url"` (a string, or `null` when the setup failed).
@@ -118,7 +157,10 @@ State values: `not_set_up`, `waiting_for_sign_in`, `running`, `paused`, `error`.
 
 | What happens | What it looks like | What to do |
 | --- | --- | --- |
-| Tunnel client missing in the full mode | State `error`, reason `tunnel runner not installed` | Not wired up yet, see below. |
+| No Docker interface in the Supervisor | State `error`, reason `tunnel runner not installed` | Only in an unusual test setup. |
+| Image cannot be pulled | State `error`, reason `tunnel client image unavailable` | Check the host's internet access and run resume. |
+| No sign-in address within 30 seconds | State `error`, reason `no sign-in address from the tunnel client` | Remove and set up again. |
+| Tunnel or DNS step refused | State `error`, reason `could not create the tunnel` or `could not route the hostname` | Check the provider account (an existing tunnel or DNS record of that name). |
 | Sign-in never completed | State stays `waiting_for_sign_in` | Open the sign-in address again, or remove and set up again. |
 | Tunnel client stopped | State `error`, reason `tunnel is not running` | Resume. |
 | Hostname does not answer | `last_check.ok` false, `status` null | Check DNS and the provider hostname route. |
@@ -131,14 +173,23 @@ Verified:
 
 - The Supervisor module and routes, against a fake tunnel runner, with automated tests
   (state machine, hostname validation, persistence, no credential in stored state, check result).
+- The Docker tunnel runner, against a fake Docker interface: address parsing with the shape the
+  client printed in a throwaway run (a sentence, a blank line, one `https` address on the login
+  domain, a blank line, a sentence), refusal of other addresses, completion detection, command
+  construction, timeouts and secret-free error reasons.
+- The client's sign-in output was observed once with the pinned image (sign-in not completed,
+  container removed).
 - The flag handling of `host.bat` and `host.sh`: an empty credential variable stops with the
   message, `--cloud` with `--full` is refused.
 
 Not verified:
 
 - No tunnel was started and no provider was contacted. The compose service has not been run.
-- The real tunnel runner for the full mode is not wired up: it is a placeholder that reports
-  `tunnel runner not installed`. Starting the tunnel client from the Supervisor needs an app or
-  container mechanism that is still to be done.
+- The real sign-in, tunnel creation, DNS route and reachability from outside have NOT been run
+  by anyone. No credential exists. Details the code relies on but nobody has seen: the client
+  writes its certificate to `cert.pem` in its default folder (documented behaviour, not observed
+  because sign-in was never completed), the tunnel credential is a file named after the tunnel id,
+  `tunnel delete -f` and `tunnel route dns` need no prompt, and the tunnel container can reach
+  Core at the Core address. If any of these differs, the setup ends in a clear `error` state.
 - The core `http:` settings are documented here but not added to the default configuration
   template, which lives in the core part of the tree.

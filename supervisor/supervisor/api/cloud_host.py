@@ -7,17 +7,33 @@ from aiohttp import web
 import voluptuous as vol
 
 from ..cloud_host import CloudHostManager, NotInstalledTunnelRunner, TunnelRunner
-from ..cloud_host.const import ATTR_SIGN_IN_URL, CHECK_TIMEOUT_SECONDS, STATE_FILE
+from ..cloud_host.const import (
+    ATTR_SIGN_IN_URL,
+    CHECK_TIMEOUT_SECONDS,
+    DATA_FOLDER,
+    STATE_FILE,
+)
+from ..cloud_host.docker_runner import DockerTunnelRunner
 from ..const import ATTR_HOSTNAME
-from ..coresys import CoreSysAttributes
+from ..coresys import CoreSys, CoreSysAttributes
 from .utils import api_process, api_validate
 
 SCHEMA_SETUP = vol.Schema({vol.Required(ATTR_HOSTNAME): vol.All(str, vol.Length(max=300))})
 
 
-def build_runner() -> TunnelRunner:
-    """Return the tunnel runner. The real one is not wired up yet."""
-    return NotInstalledTunnelRunner()
+def build_runner(coresys: CoreSys) -> TunnelRunner:
+    """Return the Docker tunnel runner, or the placeholder without a Docker interface."""
+    try:
+        docker = coresys.docker
+    except RuntimeError:
+        return NotInstalledTunnelRunner()
+    config = coresys.config
+    return DockerTunnelRunner(
+        docker,
+        config.path_supervisor / DATA_FOLDER,
+        config.path_extern_supervisor / DATA_FOLDER,
+        lambda: coresys.homeassistant.api_url,
+    )
 
 
 class APICloudHost(CoreSysAttributes):
@@ -31,7 +47,7 @@ class APICloudHost(CoreSysAttributes):
         if self._manager is None:
             self._manager = CloudHostManager(
                 self.sys_config.path_supervisor / STATE_FILE,
-                build_runner(),
+                build_runner(self.coresys),
                 self._fetch_status,
             )
         return self._manager

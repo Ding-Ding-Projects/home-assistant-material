@@ -33,6 +33,10 @@ class TunnelRunner(ABC):
     async def remove(self) -> None:
         """Stop and delete the client and its credential."""
 
+    async def trusted_proxy(self) -> str | None:
+        """Return the address Core must trust, when the runner knows it."""
+        return None
+
 
 class NotInstalledTunnelRunner(TunnelRunner):
     """Placeholder until the real tunnel client can be started from the Supervisor."""

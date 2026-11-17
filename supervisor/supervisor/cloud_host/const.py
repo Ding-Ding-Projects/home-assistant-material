@@ -4,6 +4,8 @@ from enum import StrEnum
 import re
 from typing import Final
 
+from ..const import DOCKER_PREFIX
+
 STATE_FILE: Final = "cloud_host.json"
 MANIFEST_PATH: Final = "/manifest.json"
 CHECK_TIMEOUT_SECONDS: Final = 10
@@ -23,6 +25,27 @@ RE_HOSTNAME: Final = re.compile(
 )
 
 RUNNER_NOT_INSTALLED: Final = "tunnel runner not installed"
+
+ATTR_TRUSTED_PROXY: Final = "trusted_proxy"
+
+# Same pin as compose.yaml
+CLIENT_IMAGE: Final = "cloudflare/cloudflared"
+CLIENT_TAG: Final = "2025.11.1"
+CLIENT_USER_ID: Final = 65532
+CLIENT_DATA_TARGET: Final = "/home/nonroot/.cloudflared"
+CLIENT_CERT_FILE: Final = "cert.pem"
+TUNNEL_NAME_FILE: Final = "tunnel_name"
+DATA_FOLDER: Final = "cloud_host_tunnel"
+
+LOGIN_DOCKER_NAME: Final = f"{DOCKER_PREFIX}_cloud_login"
+TUNNEL_DOCKER_NAME: Final = f"{DOCKER_PREFIX}_cloud_tunnel"
+
+SIGN_IN_HOST: Final = "dash.cloudflare.com"
+SIGN_IN_POLL_SECONDS: Final = 0.5
+SIGN_IN_TIMEOUT_SECONDS: Final = 30
+STEP_TIMEOUT_SECONDS: Final = 90
+PULL_TIMEOUT_SECONDS: Final = 300
+STOP_TIMEOUT_SECONDS: Final = 10
 
 
 class CloudHostState(StrEnum):

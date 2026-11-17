@@ -24,6 +24,7 @@ from .const import (
     ATTR_LAST_CHECK,
     ATTR_PAUSED,
     ATTR_SIGN_IN_URL,
+    ATTR_TRUSTED_PROXY,
     MANIFEST_PATH,
     RE_HOSTNAME,
     CloudHostState,
@@ -128,7 +129,10 @@ class CloudHostManager:
         async with self._lock:
             data = await self._load()
             state = await self._refresh(data)
-            return self._describe(data, state)
+            described = self._describe(data, state)
+            if proxy := await self._trusted_proxy(state):
+                described[ATTR_TRUSTED_PROXY] = proxy
+            return described
 
     def _describe(self, data: dict[str, Any], state: CloudHostState) -> dict[str, Any]:
         return {
@@ -137,6 +141,14 @@ class CloudHostManager:
             ATTR_ERROR: data.get(ATTR_ERROR) if state == CloudHostState.ERROR else None,
             ATTR_LAST_CHECK: data.get(ATTR_LAST_CHECK),
         }
+
+    async def _trusted_proxy(self, state: CloudHostState) -> str | None:
+        if state != CloudHostState.RUNNING:
+            return None
+        try:
+            return await self._runner.trusted_proxy()
+        except CloudHostRunnerError:
+            return None
 
     async def sign_in_url(self) -> str | None:
         """Return the pending sign-in URL, if one is waiting."""
