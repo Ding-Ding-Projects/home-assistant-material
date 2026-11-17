@@ -66,6 +66,25 @@ export class HaCheckbox extends WaCheckbox {
     this._value = val;
   }
 
+  private _appliedValidityStates?: string;
+
+  /**
+   * Web Awesome re-applies its six validity states on every update pass,
+   * and each call tells the browser to restyle the element even when nothing
+   * changed. A list with a checkbox in every row paid for that on each row it
+   * scrolled into view, so the states are only applied when they differ.
+   */
+  override setCustomStates(): void {
+    // @ts-ignore - accessing WA internal validity
+    const valid = Boolean(this.internals?.validity?.valid);
+    const key = `${Boolean(this.required)}|${valid}|${Boolean(this.hasInteracted)}`;
+    if (key === this._appliedValidityStates) {
+      return;
+    }
+    this._appliedValidityStates = key;
+    super.setCustomStates();
+  }
+
   static get styles(): CSSResultGroup {
     return [
       WaCheckbox.styles,

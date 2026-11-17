@@ -1725,22 +1725,59 @@ export class HaDataTable extends LitElement {
     this._positionStickyGroupHeader();
   }
 
+  // What was last written to the pinned header, so a frame that changes
+  // nothing writes nothing
+  private _stickyGroupApplied: {
+    element?: HTMLElement;
+    width: string;
+    transform: string;
+    cell: string;
+    actions: string;
+  } = { width: "", transform: "", cell: "", actions: "" };
+
   private _positionStickyGroupHeader() {
     const header = this._stickyGroupHeader;
     if (!header) {
       return;
     }
+    // A header element that was rendered anew starts without these styles
+    if (this._stickyGroupApplied.element !== header) {
+      this._stickyGroupApplied = {
+        element: header,
+        width: "",
+        transform: "",
+        cell: "",
+        actions: "",
+      };
+    }
     const { top, width, scrollLeft } = this._stickyGroupPosition;
-    header.style.width = `${width}px`;
-    header.style.transform = `translateY(${top}px)`;
+    const applied = this._stickyGroupApplied;
+    const widthValue = `${width}px`;
+    if (applied.width !== widthValue) {
+      header.style.width = widthValue;
+      applied.width = widthValue;
+    }
+    const transformValue = `translateY(${top}px)`;
+    if (applied.transform !== transformValue) {
+      header.style.transform = transformValue;
+      applied.transform = transformValue;
+    }
     // Follow the horizontal scroll of the group header rows it covers
     if (this._stickyGroupHeaderCell) {
-      this._stickyGroupHeaderCell.style.transform = `translateX(${-scrollLeft}px)`;
+      const cellValue = `translateX(${-scrollLeft}px)`;
+      if (applied.cell !== cellValue) {
+        this._stickyGroupHeaderCell.style.transform = cellValue;
+        applied.cell = cellValue;
+      }
     }
 
     // Its actions stay at the end of the visible row, like the rows' own
     if (this._stickyGroupActions) {
-      this._stickyGroupActions.style.transform = `translateX(${scrollLeft}px)`;
+      const actionsValue = `translateX(${scrollLeft}px)`;
+      if (applied.actions !== actionsValue) {
+        this._stickyGroupActions.style.transform = actionsValue;
+        applied.actions = actionsValue;
+      }
     }
   }
 
@@ -1924,8 +1961,15 @@ export class HaDataTable extends LitElement {
           );
         }
 
-        .mdc-data-table__row ~ .mdc-data-table__row {
+        /* A divider above every row but the first. No sibling or position
+           selector here: one makes the browser restyle every row each time the
+           virtualizer adds or removes one while scrolling. */
+        .mdc-data-table__row {
           border-top: 1px solid var(--divider-color);
+        }
+
+        .mdc-data-table__row[aria-rowindex="2"] {
+          border-top: none;
         }
 
         .mdc-data-table__row.clickable:not(
@@ -2465,7 +2509,8 @@ export class HaDataTable extends LitElement {
           padding-right: var(--_inset-right);
         }
 
-        .mdc-data-table__row:has(.group-header) {
+        .mdc-data-table__row.group-header-row,
+        .mdc-data-table__row.sticky-group-header {
           background: var(
             --ha-data-table-background,
             var(--primary-background-color)
@@ -2529,7 +2574,7 @@ export class HaDataTable extends LitElement {
             )
           );
         }
-        :host([row-cards]) .mdc-data-table__row ~ .mdc-data-table__row {
+        :host([row-cards]) .mdc-data-table__row {
           border-top: none;
         }
         /* On a phone a row holds its columns stacked, so it grows with them
@@ -2604,35 +2649,47 @@ export class HaDataTable extends LitElement {
            follow each other; a row the virtualizer recycles on scroll never
            animates, and reduced motion shows the final state. */
         @media (prefers-reduced-motion: no-preference) {
+          /* Rows are picked by their row index and never by their position
+             among siblings: a position selector makes the browser restyle
+             every row whenever the virtualizer adds or removes one. */
           :host([row-enter])
             .mdc-data-table__row[aria-rowindex]:not(.group-header-row):not(
               .sticky-group-header
-            ):not(.empty-row):nth-child(-n + 8) {
+            ):not(.empty-row):is(
+              [aria-rowindex="2"],
+              [aria-rowindex="3"],
+              [aria-rowindex="4"],
+              [aria-rowindex="5"],
+              [aria-rowindex="6"],
+              [aria-rowindex="7"],
+              [aria-rowindex="8"],
+              [aria-rowindex="9"]
+            ) {
             animation: list-row-rise 0.5s cubic-bezier(0.2, 1.5, 0.3, 1) both;
             animation-delay: calc((var(--_row-index, 1) - 1) * 45ms);
           }
-          :host([row-enter]) .mdc-data-table__row:nth-child(1) {
+          :host([row-enter]) .mdc-data-table__row[aria-rowindex="2"] {
             --_row-index: 1;
           }
-          :host([row-enter]) .mdc-data-table__row:nth-child(2) {
+          :host([row-enter]) .mdc-data-table__row[aria-rowindex="3"] {
             --_row-index: 2;
           }
-          :host([row-enter]) .mdc-data-table__row:nth-child(3) {
+          :host([row-enter]) .mdc-data-table__row[aria-rowindex="4"] {
             --_row-index: 3;
           }
-          :host([row-enter]) .mdc-data-table__row:nth-child(4) {
+          :host([row-enter]) .mdc-data-table__row[aria-rowindex="5"] {
             --_row-index: 4;
           }
-          :host([row-enter]) .mdc-data-table__row:nth-child(5) {
+          :host([row-enter]) .mdc-data-table__row[aria-rowindex="6"] {
             --_row-index: 5;
           }
-          :host([row-enter]) .mdc-data-table__row:nth-child(6) {
+          :host([row-enter]) .mdc-data-table__row[aria-rowindex="7"] {
             --_row-index: 6;
           }
-          :host([row-enter]) .mdc-data-table__row:nth-child(7) {
+          :host([row-enter]) .mdc-data-table__row[aria-rowindex="8"] {
             --_row-index: 7;
           }
-          :host([row-enter]) .mdc-data-table__row:nth-child(8) {
+          :host([row-enter]) .mdc-data-table__row[aria-rowindex="9"] {
             --_row-index: 8;
           }
         }
@@ -2672,7 +2729,8 @@ export class HaDataTable extends LitElement {
             var(--_row-surface)
           );
         }
-        :host([row-cards]) .mdc-data-table__row:has(.group-header) {
+        :host([row-cards]) .mdc-data-table__row.group-header-row,
+        :host([row-cards]) .mdc-data-table__row.sticky-group-header {
           background: var(--primary-background-color);
         }
         /* The icon of a row sits on a small tile. */
