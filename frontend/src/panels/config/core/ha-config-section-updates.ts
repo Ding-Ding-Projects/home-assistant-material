@@ -82,8 +82,19 @@ import "./updates/ha-update-auto-system";
 import "./updates/ha-update-changes";
 import "./updates/ha-update-coming-soon";
 import "./updates/ha-update-history";
+import "./updates/ha-update-progress-block";
 import "./updates/ha-update-usb";
 import { updateDisplayName } from "./updates/ha-update-queue-card";
+import type { ProgressView } from "./updates/update-progress-feed";
+import { UpdateProgressFeed } from "./updates/update-progress-feed";
+import {
+  progressKindOf,
+  queueOrderOf,
+  queuePositionOf,
+  shortSystemName,
+} from "./updates/update-progress-model";
+import type { ProgressText } from "./updates/update-progress-strings";
+import { makeProgressText } from "./updates/update-progress-strings";
 import { UpdateQueueController } from "./updates/update-queue-controller";
 import {
   orderUpdateQueue,
@@ -96,6 +107,8 @@ import {
   pageShowsSpinner,
   RetryingLoad,
 } from "./updates/update-page-loading";
+
+type Localizer = HomeAssistant["localize"];
 
 type UpdateRowVariant = "install" | "skipped" | "manual" | "current";
 
@@ -142,6 +155,32 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
 
   private _queue = new UpdateQueueController(this, () => this.hass);
 
+  private _progress = new UpdateProgressFeed(this, () => this.hass);
+
+  private _progressTextFor?: Localizer;
+
+  private _progressTextMode?: string;
+
+  private _progressTextFn?: ProgressText;
+
+  // The labels of the progress block, in the chosen language mode, with a
+  // readable English text for any key a translation file does not have yet.
+  private _pt(): ProgressText {
+    if (
+      !this._progressTextFn ||
+      this._progressTextFor !== this.hass.localize ||
+      this._progressTextMode !== this._lang.mode
+    ) {
+      this._progressTextFor = this.hass.localize;
+      this._progressTextMode = this._lang.mode;
+      this._progressTextFn = makeProgressText((key, values) => {
+        const text = this._lang.text(this.hass.localize, key, values);
+        return text && text !== key ? text : "";
+      });
+    }
+    return this._progressTextFn;
+  }
+
   private _text(key: string, values?: Record<string, string | number>): string {
     return this._lang.text(
       this.hass.localize,
@@ -164,6 +203,10 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     if (changedProps.has("hass")) {
       // A step that is running, or a stored queue after a reload.
       this._queue.tick();
+      this._progress.sync(
+        filterUpdateEntities(this.hass.states, this.hass.formatEntityName)
+      );
+      this._progress.prune();
       const old = changedProps.get("hass") as HomeAssistant | undefined;
       if (old && old.connected === false && this.hass.connected !== false) {
         this._supervisorLoad.retryNow();
@@ -387,6 +430,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                         </div>`
                       : nothing
                   }
+                  ${this._renderFinished(
+                    new Set(installableUpdates.map((item) => item.entity_id))
+                  )}
                   <div
                     class="visually-hidden"
                     role="status"
@@ -545,11 +591,15 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     const hasNotes =
       !!notesUrl || supportsFeature(entity, UpdateEntityFeature.RELEASE_NOTES);
     const showNotes = variant === "install" || variant === "manual";
+    const view =
+      variant === "install" ? this._progress.view(entity) : undefined;
+    const shownName = this._rowTitle(entity, name);
 
     return html`
       <div class="row">
         <button
           class="row-main"
+          aria-label=${name}
           .entityId=${entity.entity_id}
           @click=${this._openMoreInfo}
         >
@@ -559,7 +609,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
             .stateObj=${entity}
           ></state-badge>
           <span class="text">
-            <span class="name">${name}</span>
+            <span class="name" title=${name}>${shownName}</span>
             ${sub ? html`<span class="sub">${sub}</span>` : nothing}
             ${this._renderAutoResult(entity)}
           </span>
@@ -647,11 +697,155 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                 }
                 ${
                   blockText && variant === "install" && !installing
-                    ? html`<span class="block-reason">${blockText}</span>`
+                    ? this._renderWaiting(entity, blockText)
                     : nothing
                 }
               `
         }
+        ${
+          view
+            ? html`<ha-update-progress-block
+                class="progress"
+                .view=${view}
+                .text=${this._pt()}
+                .name=${name}
+                .notesUrl=${this._notesUrlOf(entity, view)}
+                .dismissLabel=${this.hass.localize("ui.update_progress.dismiss")}
+                @update-progress-dismiss=${this._dismissProgress}
+              ></ha-update-progress-block>`
+            : nothing
+        }
+      </div>
+    `;
+  }
+
+  // The shorter title of a row: the system updates drop "Home Assistant" and
+  // "Update", other updates drop a trailing "Update". The full name stays in
+  // the accessible name and the tooltip.
+  private _rowTitle(entity: UpdateEntity, name: string): string {
+    const kind = progressKindOf(
+      entity,
+      this.hass.entities?.[entity.entity_id]?.platform
+    );
+    if (kind === "core" || kind === "supervisor" || kind === "os") {
+      return shortSystemName(name);
+    }
+    return name.replace(/\s+update$/i, "").trim() || name;
+  }
+
+  private _notesUrlOf(
+    entity: UpdateEntity,
+    view: ProgressView
+  ): string | undefined {
+    const kind = view.kind;
+    if (kind === "core" || kind === "supervisor" || kind === "os") {
+      return notesPageUrlForVersion(view.record.toVersion);
+    }
+    return entity.attributes.release_url || undefined;
+  }
+
+  private _dismissProgress(ev: CustomEvent<{ entityId: string }>): void {
+    this._progress.dismiss(ev.detail.entityId);
+  }
+
+  // What a waiting update waits for, where it stands in the queue and why.
+  private _renderWaiting(
+    entity: UpdateEntity,
+    blockText: string
+  ): TemplateResult {
+    const t = this._pt();
+    const kind = progressKindOf(
+      entity,
+      this.hass.entities?.[entity.entity_id]?.platform
+    );
+    const order = this._queue.active
+      ? queueOrderOf(this._queue.queue)
+      : orderUpdateQueue(
+          this._filterInstallableUpdateEntities(
+            this.hass.states,
+            this.hass.formatEntityName
+          )
+        ).map((item) => item.entity_id);
+    const place =
+      order.length > 1
+        ? queuePositionOf(order, entity.entity_id, kind)
+        : undefined;
+    const after = place?.afterEntityId
+      ? updateDisplayName(this.hass, place.afterEntityId)
+      : undefined;
+    return html`<div class="waiting block-reason">
+      ${
+        place
+          ? html`<span class="place"
+              >${
+                after
+                  ? t("queue_after", {
+                      position: place.position,
+                      total: place.total,
+                      name: after,
+                    })
+                  : t("queue_place", {
+                      position: place.position,
+                      total: place.total,
+                    })
+              }</span
+            >`
+          : nothing
+      }
+      <span>${blockText}</span>
+      <span
+        >${
+          place?.restartsSystem ||
+          kind === "core" ||
+          kind === "supervisor" ||
+          kind === "os"
+            ? t("waiting_alone")
+            : t("waiting_one_at_a_time")
+        }</span
+      >
+    </div>`;
+  }
+
+  // Updates that ended a moment ago and are no longer a row of the list to
+  // install: the result stays visible until it is closed.
+  private _renderFinished(
+    shownIds: Set<string>
+  ): TemplateResult | typeof nothing {
+    const finished = filterUpdateEntities(
+      this.hass.states,
+      this.hass.formatEntityName
+    )
+      .filter((entity) => !shownIds.has(entity.entity_id))
+      .map((entity) => ({ entity, view: this._progress.view(entity) }))
+      .filter(
+        (item): item is { entity: UpdateEntity; view: ProgressView } =>
+          !!item.view && !item.view.running
+      );
+    if (!finished.length) {
+      return nothing;
+    }
+    return html`
+      <div class="rows">
+        ${finished.map(({ entity, view }) => {
+          const name = this.hass.formatEntityName(entity) || entity.entity_id;
+          return html`<div class="row finished">
+            <div class="finished-title">
+              <state-badge .hass=${this.hass} .stateObj=${entity}></state-badge>
+              <span class="name" title=${name}
+                >${this._rowTitle(entity, name)}</span
+              >
+            </div>
+            <ha-update-progress-block
+              class="progress"
+              .view=${view}
+              .text=${this._pt()}
+              .name=${name}
+              .notesUrl=${this._notesUrlOf(entity, view)}
+              .dismissLabel=${this.hass.localize("ui.update_progress.dismiss")}
+              @update-progress-dismiss=${this._dismissProgress}
+            ></ha-update-progress-block>
+          </div>`;
+        })}
       </div>
     `;
   }
@@ -1369,9 +1563,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         flex-wrap: wrap;
         align-items: center;
         gap: var(--ha-space-2);
-        min-height: 72px;
-        padding: var(--ha-space-2) var(--ha-space-4);
-        border-radius: var(--ha-border-radius-5xl);
+        min-height: var(--ha-list-row-min, 52px);
+        padding: var(--ha-space-1) var(--ha-space-3);
+        border-radius: var(--ha-list-row-radius, 16px);
         background: var(--card-background-color);
         animation: ha-rise var(--ha-animation-duration-enter, 450ms)
           var(--ha-motion-spring, ease) both;
@@ -1409,9 +1603,40 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         min-width: 0;
       }
       .name {
-        font-size: var(--ha-font-size-l);
-        font-weight: var(--ha-font-weight-bold);
-        overflow-wrap: anywhere;
+        font-size: var(--ha-list-row-title-size, 14px);
+        font-weight: var(--ha-list-row-title-weight, 600);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      state-badge {
+        flex: none;
+        width: var(--ha-list-row-icon-tile, 36px);
+        height: var(--ha-list-row-icon-tile, 36px);
+      }
+      .progress {
+        flex: 1 1 100%;
+        min-width: 0;
+        margin-bottom: var(--ha-space-2);
+      }
+      .finished {
+        flex-direction: column;
+        align-items: stretch;
+        padding-block: var(--ha-space-2);
+      }
+      .finished-title {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3);
+        min-width: 0;
+      }
+      .waiting {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+      }
+      .waiting .place {
+        font-family: var(--ha-font-family-code, monospace);
       }
       .sub {
         font-size: var(--ha-font-size-s);
