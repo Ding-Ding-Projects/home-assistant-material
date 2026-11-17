@@ -1,15 +1,48 @@
 {
  "format": 1,
- "generated": "2026-11-17T12:27:08Z",
+ "generated": "2026-11-17T12:59:08Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 490,
+ "newest_build": 495,
  "releases": [
+  {
+   "build": 495,
+   "core": "2026.11.1.495",
+   "supervisor": "2026.11.0.495",
+   "os": "18.5.495",
+   "tag": null,
+   "source": "9ad470a94",
+   "date": "2026-11-17T07:31:37-05:00",
+   "previous_build": 490,
+   "changes": [
+    {
+     "sha": "9ad470a94",
+     "date": "2026-11-17T07:31:37-05:00",
+     "title": "Fix the false update failure, the room wizard save, and the doubled search",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Found by using the features for real instead of admiring them from a distance.\n\n- Update queue: on a real 481 to 490 run Core reached the new version and the card still announced that it \"did not update\", next to a list that showed it as current. The install call is cut off when Core restarts; only one kind of cut-off was treated as harmless, and a step failed that way was never looked at again. Now a rejection during a restart is judged by the result, any failure heals once the target version is reached (including straight after the page reloads onto the new build), a restored step never re-issues an install, and a failure message can no longer be empty. - \"Update everything\" now goes through the two-key confirmation. - Going back to an earlier build leaves a one-time line after the reload saying whether it finished. - Room setup wizard: it sent empty floor and icon values, which Core refuses on create, so a room could not be made without both. Empty optional fields are now left out. - A dialog can declare that it has its own search; the add-action picker and two others no longer show two search fields. - On a phone the editor's search card sits in the flow instead of over the row",
+     "detail_yue": "修正假嘅更新失敗、房間精靈儲存唔到同雙重搜尋\n\n今次係真係落手用功能先發現，唔係遠遠望住讚好。\n\n- 更新隊列：真機由 481 升到 490，Core 明明升咗，張卡仲話「更新 唔到」，隔籬個清單又顯示佢係最新。原因係 Core 重新啟動嗰陣安裝 呼叫被中斷，以前只當一種中斷係冇事，而且咁樣失敗咗就唔會再睇。 而家重啟期間嘅拒絕會睇結果先判斷，目標版本一到就自動改返成功 （包括頁面重新載入去新版本之後），還原返嚟嘅步驟唔會重發安裝， 失敗訊息亦都唔會再係空白。 - 「全部更新」而家要過雙鑰匙確認。 - 返去舊版本之後，重新載入會有一次性提示講完成咗未。 - 房間設定精靈：以前會送空白嘅樓層同圖示，Core 建立時唔收，搞到 冇揀齊就建立唔到房間。而家空白嘅選填欄位會直接唔送。 - 對話框可以聲明自己有搜尋；新增動作揀選器同另外兩個唔會再出 兩個搜尋框。 - 手機上面編輯器嘅搜尋卡跟返版面排，唔再浮喺啲行上面；底部動作列 變成一行精簡版。\n\n檢查：型別維持兩個已知錯誤，8419 個測試通過（三個已知失敗）。喺 本機建置 390 同 1440 闊度實際操作過：精靈淨係入名都建立到房間， 入門自動化儲存時係關閉；自動化嘅建立、儲存、試行同重播；輔助項目 示範；經雙鑰匙新增同移除輔助項目。隊列修正有測試重演真實失敗， 但仲要再行一次真機先算證實。"
+    },
+    {
+     "sha": "23c7f5d99",
+     "date": "2026-11-17T05:54:35-05:00",
+     "title": "Cloud host page, backup self-check, helper demos, offline pack on the Updates page",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "- Cloud host page under Settings then System: the risk said first, one \"Set up\" behind the two-key confirmation, a live five-step list, the provider's own sign-in opened in a new tab and never stored, status with an outside check, and Pause, Resume and Remove. Without the Supervisor it shows the host script route instead of a button that cannot work, and in full hosting mode it repeats the server's own reason when the tunnel runner is not installed. - Backup self-check: after a backup, a background task reads the archive to the end, compares it with the record, tries the backup key, confirms the expected parts are inside and compares copies across locations. The result shows on the backup overview, in the list and on the details page; a failure raises a repair. The key is never stored in or returned with the result. It checks that a backup opens, not that a restore would succeed, and says so in the code. - Making a helper now shows a working demo of that kind: a switch that flips, a slider bounded by the form's own limits, a counter, a timer that really counts down, a week strip for schedules. Nothing is created until Create is pressed, and a kind added without a demo fails the typ",
+     "detail_yue": "雲端主機頁面、備份自我檢查、輔助項目示範、更新頁嘅離線更新包\n\n- 雲端主機頁面（設定 → 系統）：先講風險，「設定」要過雙鑰匙確認， 五步即時進度，登入去供應商自己嘅頁面開新分頁、唔會儲低，仲有外部 檢查、暫停、繼續同移除。冇 Supervisor 就顯示主機腳本嘅做法，唔會 俾粒冇用嘅掣；完整託管模式未裝隧道執行器，就照伺服器原話講。 - 備份自我檢查：備份完之後背景讀晒成個封存、同紀錄對一對、試下 備份鑰匙、睇下應有嘅部分齊唔齊、再對比唔同位置嘅副本。結果喺備份 總覽、清單同詳情頁都見到，唔合格會出修復提示。鑰匙唔會儲入或者 跟結果傳返出嚟。佢檢查嘅係「打唔打得開」，唔係保證還原一定成功， 程式碼入面都有寫明。 - 新增輔助項目而家有一個識郁嘅示範：會撳嘅開關、跟住表格上下限嘅 滑桿、計數器、真係倒數嘅計時器、排程嘅一週條。未撳「建立」之前 乜都唔會建立；加新種類而冇示範，型別檢查會即刻唔過。 - 更新頁嘅 USB 部分識得離線更新包，逐件列出，老實講邊件裝咗、 邊件要網絡。 - 上次睇到嘅小修補：裝置健康嘅圖示、開發者工具得返一個標題同行高 貼返內容、手機上面主標題識得換行。\n\n檢查：前端型別維持兩個已知錯誤，8408 個測試通過（三個已知失敗）， 本機建置 390 同 1440 闊度睇過零頁面錯誤。Core：十一個自我檢查測試 喺 Linux 容器通過；有一個無關嘅現有測試（要求乾淨簽出）喺嗰度失敗， 未證實純粹係環境問題；另有一個測試檔喺嗰個容器載入唔到。"
+    }
+   ]
+  },
   {
    "build": 490,
    "core": "2026.11.1.490",
    "supervisor": "2026.11.0.490",
    "os": "18.5.490",
-   "tag": null,
+   "tag": "v2026.11.1.490",
    "source": "b0535fcdf",
    "date": "2026-11-17T04:35:51-05:00",
    "previous_build": 487,
@@ -4474,30 +4507,6 @@
      ],
      "detail": "Batch 28. The tab strip finally has opinions: it docks to any edge, groups, pins, locks, searches four ways and has its own right-click menu. Before this it was a row of buttons that mostly knew how to be a row of buttons.\n\n- Tab options: dock left/right/top/bottom, pinned region, groups with picker, menu, editor and look, per-tab look, tab and group locks, overflow list, bulk close with preview, four separate searches. Settings section tabs are real tabs with overflow, pin, hide and reorder. The phone Pages sheet has per-page actions and bulk close. Driven in a local build in headless Edge at all four edges and at phone width; seven defects found there are fixed in this commit. - App install progress: bar, steps and a log terminal on the app page, the store card and the activity tray. Driven on a throwaway full-mode instance. The Supervisor only reports a percentage, so no layer list. - Drop a picture, video or audio file on any page: overlay, upload queue in the activity tray, message with a jump to Media or Images. Seen with simulated drags. - Larger uploads and automatic conversion of dropped files, a phone entry point, and search inside the automation editor are IN PROGRESS in",
      "detail_yue": "第 28 批。分頁條終於有主見：四邊都泊得、可以分組、釘住、上鎖、四種搜尋， 仲有自己嘅右鍵選單。以前佢只係一排識得做一排嘅掣。安裝應用程式有進度條同 日誌終端機；拖個檔案落任何一頁就上載；維修失敗會老實講，整爛埋第二樣都會 講。上載加大、自動轉檔、手機入口同自動化編輯器搜尋仲做緊，過到編譯同單元 測試，但未喺瀏覽器睇過，唔好當佢完成。"
-    }
-   ]
-  },
-  {
-   "build": 123,
-   "core": "2026.11.1.123",
-   "supervisor": "2026.11.0.123",
-   "os": "18.5.123",
-   "tag": "v2026.11.1.123",
-   "source": "003ecf227",
-   "date": "2026-11-11T21:22:46-05:00",
-   "previous_build": 122,
-   "changes": [
-    {
-     "sha": "003ecf227",
-     "date": "2026-11-11T21:22:46-05:00",
-     "title": "Fix the toast regression of build 122; operating system update end state; host controls; pass fixes",
-     "areas": [
-      "docs",
-      "core",
-      "interface"
-     ],
-     "detail": "- Toasts: a stacked toast kept the fixed toast's offsets and was pushed sideways and upward, with its buttons off a phone screen. It is placed by the stack only now. Measured in a local build at 390, 320 and 1440 px. Build 122 should be skipped. - Updates: an operating system update is staged and takes effect after a restart, but was reported as finished at once. It now ends with \"Installed. Restart to finish\", Restart now and Later, checks the running version after the restart and says so if the old one came back. - Host: reboot, shutdown and moving the data disk are offered only where the Supervisor lists them; the app store's Repositories page shows the built-in repositories. - From the browser pass on build 122: toolbar chips, row checkbox reach, the \"Shown\" count following the search, sub-tab labels, page catalog titles, the automation editor's bottom bar, the Blueprints note, dark bar contrast, dialog button heights, and the reason a blueprint could not be fetched (server side, with tests). - Full mode documentation: the copy command sets the core's port to 80, and the notes reflect the run with the published images of release 122.\n\nChecked: type check clean; 6,301 frontend t",
-     "detail_yue": "122 版出咗個烏龍：啲提示訊息成舊飛咗去右上角，手機度粒掣出晒界。而家由 疊羅漢嗰個容器擺位，返返正中。作業系統更新之前啱啱開始就話「搞掂」，其實 未重新開機，而家老老實實話「裝好咗，重開先至生效」。仲有瀏覽器逐樣度返 嘅一輪執漏，同埋完整模式搬家指令補返改埠嗰步。"
     }
    ]
   }
