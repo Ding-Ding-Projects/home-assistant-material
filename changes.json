@@ -1,15 +1,59 @@
 {
  "format": 1,
- "generated": "2026-11-17T18:59:00Z",
+ "generated": "2026-11-17T19:24:29Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 503,
+ "newest_build": 509,
  "releases": [
+  {
+   "build": 509,
+   "core": "2026.11.1.509",
+   "supervisor": "2026.11.0.509",
+   "os": "18.5.509",
+   "tag": null,
+   "source": "465bb72ba",
+   "date": "2026-11-17T13:12:32-05:00",
+   "previous_build": 503,
+   "changes": [
+    {
+     "sha": "465bb72ba",
+     "date": "2026-11-17T13:12:32-05:00",
+     "title": "Phone sweep: no more blank Updates page after an update, and smaller everything",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Found by real runs - After an update reloaded the Updates page onto the new build, the page sat on a blank spinner: it waited for a backup status message that does not come while the system is still starting, and the Supervisor call beside it had no time limit. The page now shows itself after two seconds at most; each block loads on its own, times out, and retries when the connection returns. A queue that has just finished is kept for an hour so \"Updates finished\" survives the reload instead of vanishing with it.\n\nKnown leftovers, each seen fixed at 390 px - The Updates page says \"Updates\" once. - An action, trigger or condition editor opens nearly full height on a phone instead of in the bottom half. - The Check result in the editor is a line, not a tall empty block. - The Media page keeps search and its menu in the top bar on a phone; Upload moved into the menu. - List pages on a phone have one header row: back, title, search, menu.\n\nFrom opening all 143 pages at 390 px in dark and light - Toolbar buttons that were 40 px are 44 to 48 px on 118 more pages; the tiny 10 px labels and badges are gone from 129 pages. - Settings: the Review and Fix buttons are no longer cut at the righ",
+     "detail_yue": "手機巡查：更新之後更新頁唔再空白，樣樣都細返啲\n\n真機運行搵到嘅 - 更新完重新載入去新版本之後，更新頁淨係得個空白轉圈：佢等緊一個 系統啟動期間唔會嚟嘅備份狀態訊息，隔籬嗰個 Supervisor 呼叫又冇 時限。而家最多等兩秒就顯示頁面；每一塊自己載入、有時限、連線返嚟 會重試。啱啱完成嘅隊列會保留一個鐘，等「更新完成」唔會跟住重新 載入一齊消失。\n\n已知未完成嘅，全部喺 390 px 見到修好 - 更新頁個「更新」得返一個。 - 手機上面動作、觸發同條件嘅編輯器差唔多全高打開，唔再縮喺下半。 - 編輯器嘅「檢查」結果係一行字，唔再係一大嚿空白。 - 媒體頁手機頂欄留返搜尋同選單，「上載」搬入選單。 - 手機清單頁頭得一行：返回、標題、搜尋、選單。\n\n將 143 頁全部喺 390 px、光暗兩款打開一次之後 - 多咗 118 頁嘅工具掣由 40 px 變成 44 至 48 px；129 頁嗰啲 10 px 細字同徽章冇晒。 - 設定頁：「檢視」同「修正」掣唔再喺右邊斬咗。 - 輔助項目：「建立輔助項目」卡顯示三種，其餘收入「睇晒」。媒體磚 矮咗，兩個一行。\n\n留返下一輪，老實講：編輯器自己嘅切換掣、搜尋框同新增掣仲係原廠樣； 屋企資料、網絡同分區嘅卡都係；今輪冇加新動畫。\n\n檢查：型別維持兩個已知錯誤，8504 個測試通過（三個已知失敗）。 轉圈嘅修正用瀏覽器扣起同拒絕呼叫嚟證實，另外有單元測試，但未經 真正重啟驗證。"
+    },
+    {
+     "sha": "bd80ca4bb",
+     "date": "2026-11-17T12:56:48-05:00",
+     "title": "Cloud host: a container that is not there counts as stopped",
+     "areas": [
+      "docs",
+      "supervisor"
+     ],
+     "detail": "The first real run of the tunnel runner failed in five seconds. Set up begins by clearing away any old sign-in container; on a fresh instance there is none, the stop raised \"not found\", and a handler one line too early turned that into \"could not stop the tunnel\" before the code meant to ignore it ever saw it. Remove hit the same wall, so the error could not be cleared from the page. The test stand-in had been too polite to raise it.\n\nNow a missing container counts as stopped. Remove always ends in \"not set up\" and reports anything it could not clean as a short note instead of an error. Resume from an error before sign-in starts the sign-in again. The stand-in raises what the real interface raises, and a test replays the exact sequence from the real run.\n\nChecks: 87 tests pass in a Linux container. Still not run by anyone: a real sign-in, tunnel creation, the DNS route, reachability from outside.",
+     "detail_yue": "雲端主機：唔存在嘅容器當作已經停咗\n\n隧道執行器第一次真機運行五秒就失敗。「設定」一開始會清走舊嘅登入 容器；全新嘅機冇呢個容器，停止嗰下掟出「搵唔到」，而早咗一行嘅 處理將佢變成「停唔到隧道」，本來打算忽略佢嗰段程式連見都未見過。 「移除」撞正同一幅牆，所以個錯誤喺頁面度清唔走。測試替身之前太 客氣，冇掟呢個錯誤出嚟。\n\n而家唔存在嘅容器當作已停。「移除」一定會返去「未設定」，清唔到 嘅嘢用一句短註解交代，唔係當錯誤。登入之前出錯嘅話，「繼續」會 重新開始登入。替身而家會掟返真介面會掟嘅錯誤，仲有個測試照住 真機嘅次序重演一次。\n\n檢查：Linux 容器入面 87 個測試通過。仍然冇人行過：真正登入、 建立隧道、DNS 指向、由外面連入嚟。"
+    },
+    {
+     "sha": "a1312548c",
+     "date": "2026-11-17T12:02:39-05:00",
+     "title": "Rich editors for every entity, phone-sized interface, automatic system updates",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "Every entity kind has a visual editor - 62 of 62 domains and 247 of 247 actions now have an editor made for them; it was 28 domains. The Speak action, which used to offer two empty boxes and a dictionary with nothing in it, has speaker tiles, a counted message with insert chips, the engine's own languages and options, and a test button that only fires when pressed and says it really speaks. - The kind of value decides the control: a colour uses the colour wheel, white temperature the gradient slider, a duration the duration picker, a long list a searchable list box. Controls a device cannot act on are not drawn. - Three tests hold the line: one fails when a domain or action has no editor, one when a colour, time, duration, icon or entity is drawn by the wrong control, one when the list drifts from the real action definitions.\n\nSized for a phone - The first pass at modern read as large. On a narrow screen titles are now about 22 px, numerals 32 to 40 px, tiles short and two across, pills 48 px, with tighter padding; wide windows keep their look. - List rows are compact by default (52 to 60 px) with a \"List density\" choice in Personal settings: Compact, Comfortable or Cosy. - A rule ",
+     "detail_yue": "每種實體都有豐富編輯器、手機尺寸嘅介面、系統自動更新\n\n每種實體都有視覺編輯器 - 62 個網域同 247 個動作全部有度身訂造嘅編輯器，之前得 28 個網域。 「朗讀」以前係兩格空白加一個空字典，而家有喇叭磚、有字數嘅訊息同 插入掣、引擎自己嘅語言同選項，仲有一粒撳咗先會行、講明「真係會 讀出嚟」嘅測試掣。 - 數值類型決定控制：顏色用色輪，色溫用漸變滑桿，時長用時長選擇器， 長清單用可搜尋嘅清單框。裝置做唔到嘅控制唔會畫出嚟。 - 三個測試守住：有網域或者動作冇編輯器就紅燈；顏色、時間、時長、 圖示、實體用錯控制就紅燈；清單同真實動作定義對唔上都紅燈。\n\n為手機而設嘅尺寸 - 第一輪「現代化」做到變咗「好大」。而家窄螢幕上面標題約 22 px， 數字 32 至 40 px，磚矮咗兼兩個一行，藥丸掣 48 px，留白收窄； 闊螢幕維持原樣。 - 清單行預設精簡（52 至 60 px），個人設定多咗「清單密度」：精簡、 寬鬆或者緊湊。 - 設定頁磚嘅手機規則之前因為喺樣式表嘅位置而冇生效，而家生效。\n\n更多頁面翻新 - 大約 55 個設定頁共用嘅卡片、設定行、展開面板同表格版面：標題粗啲 兼識換行、每行係色塊磚、說明文字唔細過 13 px。 - 頂層頁面（活動、歷史、媒體、地圖等）用返共用頁首；活動同歷史嘅 摺疊篩選欄變成一行藥丸，手機就係一粒「篩選」加底部面板。佢哋嘅 空白狀態而家真係會顯示圖示同動作。\n\nCore、Supervisor 同作業系統自動更新 - 按主人決定，呢三樣而家可以自動更新。三個開關，各自預設關閉， 開啟要過雙鑰匙確認。由伺服器負責，次序係 Supervisor、Core、作業 系統，喺時間窗（預設 03:00 至 05:00）之內、等夠 0 至 14 日之後 先做，會先備份；有更新、備份或者還原進行緊就唔郁，失敗過嘅版本 唔會再試，亦唔會降級。失敗會出修復提示，可以揀「而家試」或者 「跳過」。 - USB 安裝、USB 復原同返去舊版本仍然要人手做。\n\n檢查：前端型別維持兩個已知錯誤，8492 個測試通過（三個已知失敗）， 本機建置喺 390 px 睇過零頁面錯誤；自動更新嘅 48 個伺服器測試喺 Linux 容器通過。未經真機證實：時間窗內真係自動裝到一次系統更新。"
+    }
+   ]
+  },
   {
    "build": 503,
    "core": "2026.11.1.503",
    "supervisor": "2026.11.0.503",
    "os": "18.5.503",
-   "tag": null,
+   "tag": "v2026.11.1.503",
    "source": "ba18c19f9",
    "date": "2026-11-17T10:29:46-05:00",
    "previous_build": 498,
@@ -4498,29 +4542,6 @@
      ],
      "detail": "Batch 32. Two halves with different amounts of proof, said plainly.\n\nSeen in a local build: - A settings page or a tool chosen in the New tab catalog opens as a tab of its own, with its icon and title. A second choice focuses the existing tab. The most specific open tab is the selected one. These tabs pin, group, lock and take a look like any other, are saved with the account, and came back after a reload and in a second browser. A page the account may not see is hidden, not deleted.\n\nNOT yet seen in a browser (unit tests, lint and type check only): - Settings section tabs: their own right-click menu, groups, per-tab looks, locks, hide by text with a preview and undo, a search in the More list, and a place in \"Search all tabs\". - Phone Pages sheet: locks, groups as foldable sections, per-page looks, move into and out of a group. - The phone Pages sheet does not list the new settings and tool tabs yet.\n\nChecks: type check clean apart from the two known gallery errors; full suite 7,014 passed with the 3 known build-script failures.",
      "detail_yue": "第 32 批，兩半嘅證據唔同，照直講。喺本機 build 睇過：設定頁同工具可以自己 開成分頁，有圖示有標題，再揀一次就跳返去嗰個分頁，唔會開多個。未喺瀏覽器 睇過、只係過咗單元測試同型別檢查：設定分頁嘅右鍵選單、分組、外觀、鎖同 按文字隱藏；手機頁面表嘅鎖、分組同外觀。手機頁面表仲未識列新嘅設定分頁。"
-    }
-   ]
-  },
-  {
-   "build": 128,
-   "core": "2026.11.1.128",
-   "supervisor": "2026.11.0.128",
-   "os": "18.5.128",
-   "tag": "v2026.11.1.128",
-   "source": "6330c10d9",
-   "date": "2026-11-12T04:43:42-05:00",
-   "previous_build": 127,
-   "changes": [
-    {
-     "sha": "6330c10d9",
-     "date": "2026-11-12T04:43:42-05:00",
-     "title": "Tab options: close the known gaps, add a dock setting",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Batch 31. The leftovers from the first tab pass, each fixed and then seen in a local build. The menu key used to open two menus at once, which is one more than anybody asked for.\n\n- \"Close other tabs\" preview lists every tab that stays, with its reason. - The group picker no longer closes the all-tabs search it was opened from. - Move to start/end for a grouped tab stays inside its group. - Menu key and Shift+F10 open exactly one menu; Escape returns focus. - Search and name fields in tab panels take focus on open. - The selected tab scrolls fully into view. - Automation editor save bar sits at the page bottom with a bottom strip. - New \"Tab strip position\" row in Profile.\n\nStill not built, recorded in the changelog: settings pages and tools as tabs of their own; groups, looks and locks for settings section tabs and the phone Pages sheet.\n\nChecks: type check clean apart from the two known gallery errors; full suite 6,896 passed with the 3 known build-script failures.",
-     "detail_yue": "第 31 批。分頁功能第一輪留低嘅手尾，逐樣修好再喺本機 build 睇過。選單鍵 以前一撳出兩個選單，多咗一個冇人要嘅。仲未做嘅照直寫喺更新紀錄：設定頁 同工具未可以自己開成分頁；設定分頁同手機頁面表未有分組、外觀同鎖。"
     }
    ]
   }
