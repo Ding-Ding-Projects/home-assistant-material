@@ -105,10 +105,14 @@ class PanelTools extends LitElement {
                               .value=${tab.panel}
                               .selected=${page === tab.panel}
                             >
-                              ${localize(tab.translationKey as LocalizeKeys)}
-                              <span slot="details" class="more-description"
-                                >${modeText(localize, tab.descriptionKey)}</span
-                              >
+                              <span class="more-text">
+                                <span class="more-name"
+                                  >${localize(tab.translationKey as LocalizeKeys)}</span
+                                >
+                                <span class="more-description"
+                                  >${modeText(localize, tab.descriptionKey)}</span
+                                >
+                              </span>
                             </ha-dropdown-item>
                           `
                         )}
@@ -228,9 +232,21 @@ class PanelTools extends LitElement {
     .pill ha-svg-icon {
       --mdc-icon-size: 20px;
     }
+    .more-text {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+      min-width: 0;
+      max-width: 280px;
+      white-space: normal;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+    .more-name {
+      font-weight: var(--ha-font-weight-medium);
+    }
     .more-description {
       display: block;
-      max-width: 280px;
       white-space: normal;
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);

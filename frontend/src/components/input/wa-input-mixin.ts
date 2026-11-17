@@ -210,7 +210,31 @@ export const WaInputMixin = <T extends Constructor<LitElement>>(
       return valid;
     }
 
+    /**
+     * Set once the person typed in, clicked into or tabbed through the field.
+     * A field that only held the initial focus is not "left" when focus moves
+     * on, so it does not show a required error before anything was done.
+     */
+    protected _touched = false;
+
+    private readonly _markTouched = (): void => {
+      this._touched = true;
+    };
+
+    public connectedCallback(): void {
+      super.connectedCallback();
+      this.addEventListener("keydown", this._markTouched);
+      this.addEventListener("pointerdown", this._markTouched);
+    }
+
+    public disconnectedCallback(): void {
+      super.disconnectedCallback();
+      this.removeEventListener("keydown", this._markTouched);
+      this.removeEventListener("pointerdown", this._markTouched);
+    }
+
     protected _handleInput(): void {
+      this._touched = true;
       this.value = this._formControl?.value ?? undefined;
       if (this._invalid && this.checkValidity()) {
         this._invalid = false;
@@ -222,7 +246,7 @@ export const WaInputMixin = <T extends Constructor<LitElement>>(
     }
 
     protected _handleBlur(): void {
-      if (this.autoValidate) {
+      if (this.autoValidate && this._touched) {
         this._invalid = !this.checkValidity();
       }
     }

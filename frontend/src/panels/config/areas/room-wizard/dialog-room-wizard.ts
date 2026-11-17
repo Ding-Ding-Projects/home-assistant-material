@@ -154,6 +154,8 @@ class DialogRoomWizard
   }
 
   private _dialogClosed(): void {
+    // Escape closes the dialog without going through closeDialog.
+    this._open = false;
     fireEvent(this, "dialog-closed", { dialog: this.localName });
   }
 
@@ -225,7 +227,6 @@ class DialogRoomWizard
           step: index + 1,
           total: WIZARD_STEPS.length,
         })}
-        prevent-scrim-close
         @closed=${this._dialogClosed}
       >
         <div class="wizard">
@@ -921,7 +922,19 @@ class DialogRoomWizard
         a {
           color: var(--primary-color);
         }
+        ha-alert ha-button {
+          flex: none;
+        }
+        ha-alert ha-button::part(base) {
+          white-space: nowrap;
+        }
         @media (max-width: 600px) {
+          .strip li {
+            flex: none;
+          }
+          .strip li.current {
+            flex: 1 1 auto;
+          }
           .tiles {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }

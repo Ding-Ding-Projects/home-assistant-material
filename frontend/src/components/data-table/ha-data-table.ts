@@ -460,7 +460,12 @@ export class HaDataTable extends LitElement {
       return;
     }
 
-    if (this._headerRow.scrollWidth > this._headerRow.clientWidth) {
+    // A phone's rows are stacked cards as wide as the screen: the sideways
+    // scrolling tool row above them never makes them wider.
+    if (
+      !this.narrow &&
+      this._headerRow.scrollWidth > this._headerRow.clientWidth
+    ) {
       this.style.setProperty(
         "--table-row-width",
         `${this._headerRow.scrollWidth}px`
@@ -631,6 +636,14 @@ export class HaDataTable extends LitElement {
 
     const filteredDataLength = this._filteredData?.length || 0;
 
+    // The empty state stands alone: no column header row above it.
+    const emptyStateShown =
+      !filteredDataLength &&
+      !this.loading &&
+      !!this._filteredData &&
+      !this.loadError &&
+      !(this.data.length && !this._filteredDataSourceLength);
+
     const items = this._filteredData
       ? this._groupData(
           this._filteredData,
@@ -690,7 +703,9 @@ export class HaDataTable extends LitElement {
           })}
         >
           <div
-            class="mdc-data-table__header-row"
+            class="mdc-data-table__header-row ${classMap({
+              "empty-state-shown": emptyStateShown,
+            })}"
             role="row"
             aria-rowindex="1"
             @scroll=${this._scrollContent}
@@ -873,7 +888,10 @@ export class HaDataTable extends LitElement {
                   ? nothing
                   : html`
                       <div class="mdc-data-table__content">
-                        <div class="mdc-data-table__row" role="row">
+                        <div
+                          class="mdc-data-table__row empty-state-row"
+                          role="row"
+                        >
                           <div
                             class="mdc-data-table__cell grows center"
                             role="cell"
@@ -1871,6 +1889,19 @@ export class HaDataTable extends LitElement {
           width: var(--table-row-width, 100%);
         }
 
+        .mdc-data-table__row.empty-state-row {
+          height: auto;
+          min-height: var(--data-table-row-height, 52px);
+        }
+        .mdc-data-table__row.empty-state-row .mdc-data-table__cell {
+          height: auto;
+          overflow: visible;
+          white-space: normal;
+        }
+        .mdc-data-table__header-row.empty-state-shown {
+          display: none;
+        }
+
         .mdc-data-table__row.empty-row {
           height: var(
             --data-table-empty-row-height,
@@ -2443,6 +2474,11 @@ export class HaDataTable extends LitElement {
         :host([row-cards][narrow]) .mdc-data-table__header-row {
           height: auto;
           min-height: var(--ha-space-10);
+        }
+        /* Row cards keep 16 px to each side of the screen on a phone. */
+        :host([row-cards][narrow]) .mdc-data-table__row {
+          margin-inline: var(--ha-space-4);
+          width: calc(100% - var(--ha-space-8));
         }
         :host([header-row-empty]) .mdc-data-table__header-row {
           display: none;

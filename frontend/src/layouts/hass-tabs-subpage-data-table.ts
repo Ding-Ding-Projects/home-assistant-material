@@ -234,6 +234,20 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   @property({ attribute: "footer-text" }) public footerText?: string;
 
   /**
+   * Builds the footer line from the number of rows the table actually shows,
+   * search included, so the count never goes stale while the person types.
+   * Used instead of `footerText` when set.
+   */
+  @property({ attribute: false }) public footerFor?: (shown: number) => string;
+
+  private get _footerLine(): string | undefined {
+    if (this.footerFor && this._matchingRows !== undefined) {
+      return this.footerFor(this._matchingRows);
+    }
+    return this.footerText;
+  }
+
+  /**
    * Add a "Select" button to the footer row that enters selection mode.
    * @type {Boolean}
    */
@@ -463,7 +477,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
    * the page summary.
    */
   private get _showFooterText(): boolean {
-    if (!this.footerText) {
+    if (!this._footerLine || this._tableIsEmpty) {
       return false;
     }
     return !(
@@ -473,7 +487,15 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     );
   }
 
+  /** No row is shown, so the empty state stands alone. */
+  private get _tableIsEmpty(): boolean {
+    return this._matchingRows === 0;
+  }
+
   private get _hasFooter(): boolean {
+    if (this._tableIsEmpty) {
+      return false;
+    }
     return this._showFooterText || (this.footerSelect && this.selectable);
   }
 
@@ -893,7 +915,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       ? html`<div class="list-footer">
           ${
             this._showFooterText
-              ? html`<span class="list-footer-text">${this.footerText}</span>`
+              ? html`<span class="list-footer-text">${this._footerLine}</span>`
               : nothing
           }
           ${
@@ -1080,7 +1102,14 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                 ${
                   this.narrow
                     ? html`
-                        <div slot="header">
+                        <div slot="header" class="narrow-header">
+                          ${
+                            this._pageTitle
+                              ? html`<h1 class="narrow-title">
+                                  ${this._pageTitle}
+                                </h1>`
+                              : nothing
+                          }
                           <slot name="header">
                             <div class="search-toolbar">${searchBar}</div>
                           </slot>
@@ -2026,6 +2055,25 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         --ha-input-search-border-radius: 28px;
       }
     }
+    .narrow-header {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      min-width: 0;
+    }
+    /* The same heavy, wrapping title the wide page header carries. */
+    .narrow-title {
+      margin: 0;
+      font: inherit;
+      font-size: var(--ha-font-size-2xl);
+      font-weight: 800;
+      font-stretch: 116%;
+      letter-spacing: -0.02em;
+      line-height: var(--ha-line-height-condensed);
+      color: var(--primary-text-color);
+      white-space: normal;
+      overflow-wrap: break-word;
+    }
     .search-toolbar {
       display: flex;
       align-items: center;
@@ -2102,10 +2150,21 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       /* Always its own row in the flow: never positioned over the list or the
          empty state below it */
       position: relative;
-      flex: none;
+      /* As wide as the screen, so the row itself scrolls and fades at its
+         edge instead of widening the whole table. */
+      flex: 0 0 100%;
+      width: 100%;
+      max-width: 100%;
     }
     .narrow-header-row.no-tools {
       display: none;
+    }
+    /* End room, so the last chip never looks cut by the screen edge. */
+    .narrow-header-row::after {
+      content: "";
+      flex: none;
+      width: var(--ha-space-4);
+      height: 1px;
     }
     :host([narrow]) .narrow-header-row ha-assist-chip,
     :host([narrow]) .narrow-header-row ha-filter-pane-chip {

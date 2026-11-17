@@ -1114,6 +1114,12 @@ export class HaConfigDeviceDashboard extends LitElement {
     this._quick = { ...this._quick, [key]: chip.selected };
   }
 
+  private _footerFor = (shown: number): string =>
+    this.hass.localize("ui.panel.config.devices.picker.footer", {
+      shown,
+      total: Object.keys(this.hass.devices).length,
+    });
+
   protected render(): TemplateResult {
     const { devicesOutput: allDevices } = this._devicesAndFilterDomains(
       this.hass.devices,
@@ -1183,13 +1189,7 @@ export class HaConfigDeviceDashboard extends LitElement {
         selectable
         always-show-checkboxes
         footer-select
-        .footerText=${this.hass.localize(
-          "ui.panel.config.devices.picker.footer",
-          {
-            shown: devicesOutput.length,
-            total: Object.keys(this.hass.devices).length,
-          }
-        )}
+        .footerFor=${this._footerFor}
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}
         .filter=${this._tableSettings.search}

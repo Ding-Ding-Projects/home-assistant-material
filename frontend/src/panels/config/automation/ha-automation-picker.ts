@@ -778,6 +778,12 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
       : count;
   }
 
+  private _footerFor = (shown: number): string =>
+    this.hass.localize("ui.panel.config.automation.picker.footer", {
+      shown,
+      total: this.automations.length,
+    });
+
   protected render(): TemplateResult {
     const automations = this._automations(
       this.automations,
@@ -834,10 +840,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         keep-hidden-selection
         always-show-checkboxes
         footer-select
-        .footerText=${this.hass.localize(
-          "ui.panel.config.automation.picker.footer",
-          { shown: automations.length, total: this.automations.length }
-        )}
+        .footerFor=${this._footerFor}
         ?bulk-bar=${this._selected.length > 0}
         @selection-changed=${this._handleSelectionChanged}
         @filtered-rows-changed=${this._filteredRowsChanged}

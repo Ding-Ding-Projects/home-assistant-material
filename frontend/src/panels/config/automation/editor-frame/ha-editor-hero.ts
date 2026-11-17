@@ -73,8 +73,29 @@ export class HaEditorHero extends LitElement {
     const t = this.hass.localize;
     const and = t(`${PREFIX}join_and`);
     const join = (list: string[]) => list.join(and);
+    // A trigger description may already begin with the word the sentence
+    // adds ("When the sun sets"); drop the duplicate, in any letter case.
+    const marker = "\u0000";
+    const lead = t(`${PREFIX}sentence_when`, { when: marker })
+      .split(marker)[0]
+      .trim()
+      .toLowerCase();
+    const bare = (text: string): string => {
+      const trimmed = text.trim();
+      if (!lead) {
+        return trimmed;
+      }
+      const lower = trimmed.toLowerCase();
+      if (
+        lower.startsWith(`${lead} `) ||
+        (!/[a-z]/.test(lead) && lower.startsWith(lead))
+      ) {
+        return trimmed.slice(lead.length).trim();
+      }
+      return trimmed;
+    };
     const when = parts.when.length
-      ? t(`${PREFIX}sentence_when`, { when: join(parts.when) })
+      ? t(`${PREFIX}sentence_when`, { when: join(parts.when.map(bare)) })
       : "";
     const onlyIf = parts.onlyIf.length
       ? t(`${PREFIX}sentence_if`, { conditions: join(parts.onlyIf) })

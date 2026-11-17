@@ -50,6 +50,9 @@ const DRY = "ui.panel.config.automation.editor.dry_run.";
 const CHECK = "ui.panel.config.automation.editor.status_bar.";
 const REPLAY = "ui.panel.config.automation.editor.dry_run_replay.";
 
+/** Set on the document while the bar is shown; read by the toast strip. */
+const BAR_HEIGHT_PROPERTY = "--ha-editor-bottom-bar-height";
+
 /** The keyboard is up when the visible height drops by more than this. */
 const KEYBOARD_PX = 150;
 
@@ -137,17 +140,37 @@ export class HaAutomationBottomBar extends LitElement {
 
   private _resultKey?: string;
 
+  private _resizeObserver?: ResizeObserver;
+
   public connectedCallback() {
     super.connectedCallback();
     registerProblemCover(this);
     window.visualViewport?.addEventListener("resize", this._handleViewport);
     this._handleViewport();
+    // Toasts sit above this bar, never over it: tell the strip how tall it is.
+    this._resizeObserver = new ResizeObserver(() => this._publishHeight());
+    this._resizeObserver.observe(this);
   }
 
   public disconnectedCallback() {
     super.disconnectedCallback();
     releaseProblemCover(this);
     window.visualViewport?.removeEventListener("resize", this._handleViewport);
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = undefined;
+    document.documentElement.style.removeProperty(BAR_HEIGHT_PROPERTY);
+  }
+
+  private _publishHeight(): void {
+    const height = this.offsetHeight;
+    if (height) {
+      document.documentElement.style.setProperty(
+        BAR_HEIGHT_PROPERTY,
+        `${height}px`
+      );
+    } else {
+      document.documentElement.style.removeProperty(BAR_HEIGHT_PROPERTY);
+    }
   }
 
   private _handleViewport = () => {

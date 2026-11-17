@@ -261,6 +261,13 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         .narrow=${this.narrow}
         .header=${this._ui("caption")}
       >
+        ${
+          this.narrow
+            ? nothing
+            : // The large title below is the page's title: the header keeps
+              // only its tools on a wide screen.
+              html`<span slot="header"></span>`
+        }
         <div slot="toolbar-icon">
           <ha-dropdown @wa-select=${this._handleOverflowAction}>
             <ha-icon-button

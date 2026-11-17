@@ -320,6 +320,18 @@ class HassSubpage extends LitElement {
         }
         :host(:not([narrow])) .main-title {
           margin-inline-start: var(--ha-space-2);
+          /* The title gets its room first: when the tools do not fit beside
+             it, they drop to their own row instead of squeezing the title
+             onto several lines. */
+          flex: 1 1 22rem;
+          min-width: min(22rem, 100%);
+        }
+        :host(:not([narrow])) .toolbar-content {
+          flex-wrap: wrap;
+          row-gap: var(--ha-space-2);
+        }
+        :host(:not([narrow])) .tool-pill {
+          margin-inline-start: auto;
         }
         .summary {
           margin-top: var(--ha-space-1);

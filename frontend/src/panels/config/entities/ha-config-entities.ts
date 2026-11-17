@@ -928,6 +928,12 @@ export class HaConfigEntities extends LitElement {
     this._writeFilters();
   }
 
+  private _footerFor = (shown: number): string =>
+    this.hass.localize("ui.panel.config.entities.picker.footer", {
+      shown,
+      total: this._entities.length + this._entitiesWithoutUniqueId.length,
+    });
+
   protected render() {
     if (!this.hass || this._entities === undefined) {
       return html` <hass-loading-screen></hass-loading-screen> `;
@@ -1020,13 +1026,7 @@ export class HaConfigEntities extends LitElement {
         selectable
         always-show-checkboxes
         footer-select
-        .footerText=${this.hass.localize(
-          "ui.panel.config.entities.picker.footer",
-          {
-            shown: filteredEntities.length,
-            total: this._entities.length + this._entitiesWithoutUniqueId.length,
-          }
-        )}
+        .footerFor=${this._footerFor}
         .selected=${this._selected.length}
         .initialGroupColumn=${this._tableSettings.grouping}
         .initialCollapsedGroups=${this._activeCollapsed}

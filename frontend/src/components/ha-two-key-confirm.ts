@@ -1097,6 +1097,8 @@ export class HaTwoKeyConfirm extends LitElement {
       position: relative;
       z-index: 0;
       grid-column: 2;
+      /* Between the keys on the same row, not on a row of its own. */
+      grid-row: 1;
       width: var(--tk-core-size);
       aspect-ratio: 1;
       color: var(--tk-core);

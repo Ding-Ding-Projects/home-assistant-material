@@ -40,6 +40,10 @@ class TestInput extends WaInputMixin(LitElement) {
     this._handleInput();
   }
 
+  public touch(): void {
+    this._touched = true;
+  }
+
   public handleBlur(): void {
     this._handleBlur();
   }
@@ -69,14 +73,22 @@ describe("WaInputMixin validity", () => {
   });
 
   describe("with native element internals", () => {
-    it("marks invalid on blur when auto-validate is set", () => {
+    it("marks invalid on blur when auto-validate is set and the field was used", () => {
       const el = createInput({ autoValidate: true, controlValid: false });
+      el.touch();
       el.handleBlur();
       expect(el.isInvalid).toBe(true);
     });
 
+    it("does not mark a field invalid that only held the initial focus", () => {
+      const el = createInput({ autoValidate: true, controlValid: false });
+      el.handleBlur();
+      expect(el.isInvalid).toBe(false);
+    });
+
     it("keeps valid on blur when the control is valid", () => {
       const el = createInput({ autoValidate: true, controlValid: true });
+      el.touch();
       el.handleBlur();
       expect(el.isInvalid).toBe(false);
     });

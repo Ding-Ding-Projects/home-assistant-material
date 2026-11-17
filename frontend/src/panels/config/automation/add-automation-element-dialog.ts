@@ -244,6 +244,9 @@ class DialogAddAutomationElement extends DialogMixin<AddAutomationElementDialogP
 
   // #region variables
 
+  @query("ha-input-search")
+  private _searchElement?: HTMLElement;
+
   @query("ha-automation-add-items")
   private _itemsListElement?: HaAutomationAddItems;
 
@@ -623,7 +626,7 @@ class DialogAddAutomationElement extends DialogMixin<AddAutomationElementDialogP
             ? html`
                 <ha-input-search
                   appearance="outlined"
-                  ?autofocus=${!this._narrow}
+                  autofocus
                   .value=${this._filter}
                   @input=${this._handleFilterInput}
                 ></ha-input-search>
@@ -1134,6 +1137,10 @@ class DialogAddAutomationElement extends DialogMixin<AddAutomationElementDialogP
   // The content renders before the dialog is shown, so the group and item
   // being replaced can only be scrolled to now.
   private _handleAfterShow() {
+    if (this._bottomSheetMode) {
+      // The sheet only focuses elements of its own; the search is slotted in.
+      this._searchElement?.focus();
+    }
     if (this._selectedGroup) {
       this._groupsElement?.scrollToSelected();
     }
