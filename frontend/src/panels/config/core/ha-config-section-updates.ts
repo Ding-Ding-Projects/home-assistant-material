@@ -46,6 +46,7 @@ import {
 } from "../../../data/auto-update";
 import type { ManagerState } from "../../../data/backup_manager";
 import { subscribeBackupEvents } from "../../../data/backup_manager";
+import { notesPageUrlForVersion } from "../../../data/build-notes";
 import { extractApiErrorMessage } from "../../../data/hassio/common";
 import type {
   HassioSupervisorInfo,
@@ -509,7 +510,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     const latest = entity.attributes.latest_version;
     const installing = updateIsInstalling(entity);
     const system = isSystemUpdate(entity);
-    const notesUrl = entity.attributes.release_url;
+    // Core, Supervisor and the operating system open their page on the
+    // public updates log; everything else keeps the link its author gave.
+    const notesUrl =
+      (system ? notesPageUrlForVersion(latest) : undefined) ||
+      entity.attributes.release_url;
     const hasNotes =
       !!notesUrl || supportsFeature(entity, UpdateEntityFeature.RELEASE_NOTES);
     const showNotes = variant === "install" || variant === "manual";

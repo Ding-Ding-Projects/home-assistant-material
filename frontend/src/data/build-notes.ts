@@ -136,6 +136,22 @@ export const notesDataUrl = (): string =>
 export const notesPageUrl = (build: number): string =>
   `${PUBLIC_UPDATES_ORIGIN}/releases/${Math.trunc(build)}/`;
 
+/**
+ * The public notes page for a system version such as `2026.11.1.509` or
+ * `18.5.481`. The build number is the last part of the version. Returns
+ * `undefined` when the version does not end in a build number.
+ */
+export const notesPageUrlForVersion = (
+  version: string | null | undefined
+): string | undefined => {
+  const last = version?.trim().split(".").pop();
+  if (!last || !/^\d+$/.test(last)) {
+    return undefined;
+  }
+  const build = Number(last);
+  return build > 0 ? notesPageUrl(build) : undefined;
+};
+
 /** How long the loaded file is reused before it is read again. */
 export const NOTES_CACHE_MS = 300_000;
 

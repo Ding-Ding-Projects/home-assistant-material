@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   findNotes,
   notesPageUrl,
+  notesPageUrlForVersion,
   parseNotes,
   summaryForMode,
   whatForMode,
@@ -81,5 +82,15 @@ describe("build notes", () => {
       "https://ding-ding-projects.github.io/home-assistant-material-updates/releases/457/"
     );
     expect(notesPageUrl(457.9)).toBe(notesPageUrl(457));
+  });
+
+  it("finds the notes page from a system version", () => {
+    // Core and the operating system number their builds differently but end
+    // in the same build number, so both rows open the same page.
+    expect(notesPageUrlForVersion("2026.11.1.509")).toBe(notesPageUrl(509));
+    expect(notesPageUrlForVersion("18.5.481")).toBe(notesPageUrl(481));
+    expect(notesPageUrlForVersion("2026.11.0.dev0")).toBeUndefined();
+    expect(notesPageUrlForVersion("")).toBeUndefined();
+    expect(notesPageUrlForVersion(null)).toBeUndefined();
   });
 });
