@@ -165,6 +165,20 @@ export const pageHeaderStyles = css`
   :host(:not([narrow])) .main-title .page-title {
     font-size: 32px;
   }
+  /* Phone: a compact title and 44 px round buttons, so the content below
+     the header stays on screen. */
+  :host([narrow]) .main-title .page-title,
+  :host([narrow]) .main-title h1.page-title {
+    font-size: 22px;
+    font-weight: 700;
+    font-stretch: 100%;
+  }
+  :host([narrow]) ha-icon-button-arrow-prev,
+  :host([narrow]) ha-menu-button {
+    width: 44px;
+    height: 44px;
+    --mdc-icon-button-size: 44px;
+  }
   @media (prefers-reduced-motion: reduce) {
     .toolbar,
     ha-icon-button-arrow-prev,

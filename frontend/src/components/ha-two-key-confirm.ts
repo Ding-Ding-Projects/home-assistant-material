@@ -1473,7 +1473,7 @@ export class HaTwoKeyConfirm extends LitElement {
        and the keys sit side by side below it. */
     @container (max-width: 460px) {
       .deck {
-        --tk-core-size: clamp(140px, 56cqi, 200px);
+        --tk-core-size: clamp(120px, 46cqi, 168px);
       }
       .core {
         grid-column: 1 / -1;
@@ -1482,8 +1482,8 @@ export class HaTwoKeyConfirm extends LitElement {
       }
       .key {
         grid-row: 2;
-        min-height: 150px;
-        padding: var(--ha-space-3) var(--ha-space-2);
+        min-height: 128px;
+        padding: var(--ha-space-2);
       }
       .key[data-key="one"] {
         grid-column: 1;

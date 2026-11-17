@@ -2417,8 +2417,8 @@ export class HaDataTable extends LitElement {
           text-overflow: ellipsis;
         }
         :host([row-cards][narrow]) .primary {
-          font-size: var(--ha-font-size-l);
-          font-weight: var(--ha-font-weight-bold, 700);
+          font-size: var(--ha-list-row-title-size, var(--ha-font-size-m));
+          font-weight: var(--ha-list-row-title-weight, 600);
         }
         .secondary ha-svg-icon {
           --mdc-icon-size: 16px;
@@ -2492,10 +2492,16 @@ export class HaDataTable extends LitElement {
           text-transform: uppercase;
         }
         :host([row-cards]) {
-          /* A row is at least 64 px tall, whatever a page asks for */
-          --_row-h: max(var(--data-table-row-height, 64px), 64px);
-          --_row-gap: 8px;
-          --_row-radius: 20px;
+          /* Compact by default: a row is 52 px tall and never more than 60,
+             whatever a page asks for. "Comfortable" density (set on the
+             document by the personal preference) gives the taller rows. */
+          --_row-h: clamp(
+            var(--ha-list-row-min, 52px),
+            var(--data-table-row-height, 52px),
+            var(--ha-list-row-max, 60px)
+          );
+          --_row-gap: var(--ha-list-row-gap, 6px);
+          --_row-radius: var(--ha-list-row-radius, 16px);
           /* The row surface: the theme's tonal container, or the page's text
              colour mixed into the card colour so it always stands out from
              the page behind it. */
@@ -2550,6 +2556,34 @@ export class HaDataTable extends LitElement {
           z-index: -1;
           border-radius: var(--_row-radius);
           background: var(--_row-surface);
+        }
+        /* Row-card lists stay tight: narrower icon and checkbox columns,
+           40 px group headers and 12 px cell padding on a phone. */
+        :host([row-cards][narrow]) {
+          --_cell-padding-inline: 12px;
+        }
+        :host([row-cards]) .mdc-data-table__header-cell--icon,
+        :host([row-cards]) .mdc-data-table__cell--icon {
+          min-width: 52px;
+          flex: 0 0 52px !important;
+        }
+        :host([row-cards]) .mdc-data-table__header-cell--checkbox,
+        :host([row-cards]) .mdc-data-table__cell--checkbox {
+          width: 48px;
+          min-width: 48px;
+        }
+        :host([row-cards]) .group-header {
+          height: 40px;
+          padding-top: 0;
+        }
+        /* Names wrap to at most two lines with an ellipsis on the second;
+           secondary text stays one line. */
+        :host([row-cards][narrow]) .primary {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          white-space: normal;
+          overflow-wrap: anywhere;
         }
         /* Rows rise in once, when the list first shows. Only the first eight
            follow each other; a row the virtualizer recycles on scroll never
@@ -2636,8 +2670,8 @@ export class HaDataTable extends LitElement {
           position: absolute;
           top: 50%;
           left: 50%;
-          width: 40px;
-          height: 40px;
+          width: var(--ha-list-row-icon-tile, 34px);
+          height: var(--ha-list-row-icon-tile, 34px);
           transform: translate(-50%, -50%);
           z-index: -1;
           border-radius: var(--ha-border-radius-lg);

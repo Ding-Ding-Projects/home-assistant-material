@@ -157,5 +157,20 @@ export class HaEditorHero extends LitElement {
       line-height: 1.3;
       overflow-wrap: anywhere;
     }
+    /* Phone: a compact hero. */
+    @media (max-width: 600px) {
+      :host {
+        padding: var(--ha-space-3, 12px) var(--ha-space-4, 16px);
+        margin-bottom: var(--ha-space-3, 12px);
+        border-radius: 24px;
+      }
+      .label {
+        font-size: 12px;
+      }
+      .sentence {
+        margin-top: var(--ha-space-1);
+        font-size: 16px;
+      }
+    }
   `;
 }

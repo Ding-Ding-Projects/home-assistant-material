@@ -351,6 +351,15 @@ class HassSubpage extends LitElement {
         .narrow .main-title {
           margin-inline-start: var(--ha-space-2);
         }
+        /* Phone: a compact header, about 56 px tall. */
+        :host([narrow]) .toolbar-content {
+          min-height: 56px;
+          padding: 6px 8px;
+        }
+        :host([narrow]) .summary {
+          font-size: 13px;
+          margin-top: 0;
+        }
 
         .content {
           position: relative;

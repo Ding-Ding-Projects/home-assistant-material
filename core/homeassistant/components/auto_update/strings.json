@@ -1,0 +1,8 @@
+{
+  "issues": {
+    "system_update_failed": {
+      "title": "Automatic update failed",
+      "description": "The automatic update of {name} to version {version} did not work: {error}\n\nIt is not tried again for this version. Open the updates page to try it now or to skip this version."
+    }
+  }
+}

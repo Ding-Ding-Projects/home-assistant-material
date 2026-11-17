@@ -1026,6 +1026,19 @@ export class HaHelperDemo extends LitElement {
         transform: scale(1);
       }
     }
+    /* Phone: a smaller numeral and tighter padding. */
+    @media (max-width: 600px) {
+      .demo {
+        padding: var(--ha-space-3, 12px);
+      }
+      .numeral {
+        font-size: 32px;
+      }
+      .body {
+        gap: var(--ha-space-2, 8px);
+        padding-block-start: var(--ha-space-2, 8px);
+      }
+    }
     @media (prefers-reduced-motion: reduce) {
       .timer-face.finished .numeral {
         animation: none;

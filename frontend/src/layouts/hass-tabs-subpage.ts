@@ -933,6 +933,13 @@ export class HassTabsSubpage extends LitElement {
           text-overflow: ellipsis;
           white-space: nowrap;
         }
+        :host([narrow]) .summary {
+          font-size: 13px;
+          margin-top: 0;
+        }
+        :host([narrow]) .toolbar-content {
+          min-height: 56px;
+        }
         .breadcrumb {
           display: block;
           font-size: var(--ha-font-size-s);

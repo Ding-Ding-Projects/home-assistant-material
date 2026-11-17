@@ -353,10 +353,10 @@ export class HaForm extends LitElement implements HaFormElement {
       display: block;
     }
     .root > *:not([own-margin]):not(:last-child) {
-      margin-bottom: 24px;
+      margin-bottom: var(--ha-space-4, 16px);
     }
     ha-alert[own-margin] {
-      margin-bottom: 4px;
+      margin-bottom: var(--ha-space-2, 8px);
     }
   `;
 }

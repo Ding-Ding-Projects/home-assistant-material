@@ -45,8 +45,9 @@ def _set_update(
     )
 
 
-def _mock_install(hass: HomeAssistant) -> list[ServiceCall]:
+async def _mock_install(hass: HomeAssistant) -> list[ServiceCall]:
     """Record install calls and apply the update like a real entity does."""
+    assert await async_setup_component(hass, UPDATE_DOMAIN, {})
     calls: list[ServiceCall] = []
 
     async def install(call: ServiceCall) -> None:
@@ -76,7 +77,7 @@ def test_effective_enabled(
 
 async def test_installs_only_when_enabled(hass: HomeAssistant) -> None:
     """Nothing installs until automatic updating is switched on."""
-    calls = _mock_install(hass)
+    calls = await _mock_install(hass)
     assert await async_setup_component(hass, DOMAIN, {})
     _set_update(hass, "update.one")
     await hass.async_block_till_done()
@@ -90,7 +91,7 @@ async def test_installs_only_when_enabled(hass: HomeAssistant) -> None:
 
 async def test_protected_updates_are_never_installed(hass: HomeAssistant) -> None:
     """The system updates keep their manual button."""
-    calls = _mock_install(hass)
+    calls = await _mock_install(hass)
     assert await async_setup_component(hass, DOMAIN, {})
     hass.data[DATA_MANAGER].async_set_all(True)
     for entity_id in PROTECTED_ENTITY_IDS:
@@ -101,7 +102,7 @@ async def test_protected_updates_are_never_installed(hass: HomeAssistant) -> Non
 
 async def test_skipped_version_is_left_alone(hass: HomeAssistant) -> None:
     """A version the person skipped is not installed."""
-    calls = _mock_install(hass)
+    calls = await _mock_install(hass)
     assert await async_setup_component(hass, DOMAIN, {})
     hass.data[DATA_MANAGER].async_set_all(True)
     _set_update(hass, "update.one", skipped="2.0")
@@ -119,6 +120,7 @@ async def test_failure_is_not_retried_for_the_same_version(
         attempts.append(call.data["entity_id"])
         raise HomeAssistantError("disk full")
 
+    assert await async_setup_component(hass, UPDATE_DOMAIN, {})
     hass.services.async_register(UPDATE_DOMAIN, "install", failing)
     assert await async_setup_component(hass, DOMAIN, {})
     manager = hass.data[DATA_MANAGER]
@@ -161,6 +163,7 @@ async def test_unconfirmed_install_is_reported_once(hass: HomeAssistant) -> None
     async def silent(call: ServiceCall) -> None:
         attempts.append(call.data["entity_id"])
 
+    assert await async_setup_component(hass, UPDATE_DOMAIN, {})
     hass.services.async_register(UPDATE_DOMAIN, "install", silent)
     assert await async_setup_component(hass, DOMAIN, {})
     manager = hass.data[DATA_MANAGER]
@@ -168,5 +171,7 @@ async def test_unconfirmed_install_is_reported_once(hass: HomeAssistant) -> None
     with patch("homeassistant.components.auto_update.CONFIRM_WAIT", 0.01):
         _set_update(hass, "update.one")
         await hass.async_block_till_done()
+        while manager._task is not None and not manager._task.done():
+            await manager._task
     assert attempts == ["update.one"]
     assert manager.results["update.one"]["ok"] is False

@@ -731,6 +731,43 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
             width: 100%;
           }
         }
+        /* Phone: a compact title, a 48 px search and a smaller attention
+           block, so the first rows are on screen. */
+        :host([narrow]) .hero {
+          gap: var(--ha-space-3);
+          margin-bottom: var(--ha-space-3);
+        }
+        :host([narrow]) .hero h1 {
+          font-size: 22px;
+          font-weight: 700;
+          font-stretch: 100%;
+          letter-spacing: -0.01em;
+          line-height: 1.2;
+        }
+        :host([narrow]) .search {
+          --ha-input-search-height: 48px;
+          --ha-input-search-border-radius: 24px;
+        }
+        :host([narrow]) .attention {
+          gap: var(--ha-space-3);
+          margin-bottom: var(--ha-space-3);
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border-radius: 24px;
+        }
+        :host([narrow]) .numeral {
+          font-size: 40px;
+        }
+        :host([narrow]) .attention-body {
+          gap: var(--ha-space-2);
+        }
+        :host([narrow]) .attention-body > strong {
+          font-size: 16px;
+        }
+        :host([narrow]) .attention-links a {
+          min-height: 48px;
+          padding: var(--ha-space-1) var(--ha-space-3);
+          border-radius: 24px;
+        }
 
         ha-tip {
           margin-top: var(--ha-space-6);

@@ -814,6 +814,28 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
           align-items: center;
           width: 100%;
         }
+
+        /* Phone: a 22 px title, 16 px padding and 48 px footer buttons. */
+        @media (max-width: 600px) {
+          :host([type="standard"]:not([fullscreen])) wa-dialog {
+            --ha-dialog-border-radius: 28px 28px 0 0;
+          }
+          .header-title {
+            font-size: var(--ha-dialog-header-title-font-size, 22px);
+          }
+          .body {
+            padding: var(
+              --dialog-content-padding,
+              0 var(--ha-space-4) var(--ha-space-4) var(--ha-space-4)
+            );
+          }
+          ::slotted([slot="footer"]) {
+            padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-4)
+              var(--ha-space-4);
+            gap: var(--ha-space-2);
+            --ha-button-height: 48px;
+          }
+        }
       `,
     ];
   }

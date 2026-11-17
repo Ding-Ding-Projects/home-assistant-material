@@ -8,6 +8,12 @@ import { getStorage } from "../decorators/storage";
 import { narrator } from "../narration/narrator";
 import { attentionModes } from "./attention-modes";
 import { focusSpotlight } from "./focus-spotlight";
+import {
+  applyListDensity,
+  DEFAULT_LIST_DENSITY,
+  normalizeListDensity,
+} from "./list-density";
+import type { ListDensity } from "./list-density";
 import { oneThingAtATime } from "./one-thing";
 import { applyOverlay, overlaySignature } from "./preference-schedule";
 import {
@@ -108,6 +114,8 @@ export interface PersonalPreferences {
   oneThingAtATime: boolean;
   /** How strongly the two-key confirmation looks and moves. */
   confirmationDrama: ConfirmationDrama;
+  /** How tall list rows are: compact, comfortable or cosy. */
+  listDensity: ListDensity;
   /** A comfort setting in this browser, see `effectivePreferences`. */
   schoolMode: boolean;
   /** The name School mode is shown under. */
@@ -145,6 +153,7 @@ export const DEFAULT_PERSONAL_PREFERENCES: PersonalPreferences = {
   dialogEmojis: true,
   oneThingAtATime: false,
   confirmationDrama: DEFAULT_CONFIRMATION_DRAMA,
+  listDensity: DEFAULT_LIST_DENSITY,
   schoolMode: false,
   schoolName: "School mode",
   schoolRules: ["plain_english", "low_stimulation", "quiet_sounds"],
@@ -264,6 +273,7 @@ export const normalizePersonalPreferences = (
       source.confirmationDrama,
       d.confirmationDrama
     ),
+    listDensity: normalizeListDensity(source.listDensity, d.listDensity),
     schoolMode: asBool(source.schoolMode, d.schoolMode),
     schoolName: asName(source.schoolName, d.schoolName),
     schoolRules: asRules(source.schoolRules, d.schoolRules),
@@ -599,6 +609,7 @@ export const applyPersonalPreferences = (
   attentionModes.apply(preferences);
   narrator.setEnabled(preferences.narratorEnabled);
   oneThingAtATime.setEnabled(preferences.oneThingAtATime);
+  applyListDensity(preferences.listDensity);
 };
 
 let initialized = false;

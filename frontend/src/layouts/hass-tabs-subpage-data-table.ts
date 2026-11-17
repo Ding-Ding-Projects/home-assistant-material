@@ -2063,11 +2063,12 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     }
     /* The same heavy, wrapping title the wide page header carries. */
     .narrow-title {
+      /* Room above so the title never touches the top edge of a phone. */
       margin: 0;
+      padding: var(--ha-space-2) var(--ha-space-1) var(--ha-space-1);
       font: inherit;
-      font-size: var(--ha-font-size-2xl);
-      font-weight: 800;
-      font-stretch: 116%;
+      font-size: 22px;
+      font-weight: 700;
       letter-spacing: -0.02em;
       line-height: var(--ha-line-height-condensed);
       color: var(--primary-text-color);
@@ -2168,7 +2169,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     }
     :host([narrow]) .narrow-header-row ha-assist-chip,
     :host([narrow]) .narrow-header-row ha-filter-pane-chip {
-      --ha-button-height: 48px;
+      --ha-button-height: 44px;
     }
 
     /* The row fades where more chips wait beyond its edge. */

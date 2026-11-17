@@ -446,6 +446,38 @@ export class HuiAwayDigestCard extends LitElement implements LovelaceCard {
       outline: 3px solid var(--primary-color);
       outline-offset: 2px;
     }
+    /* Phone: a compact title, three tiles across and tighter rows. */
+    @media (max-width: 600px) {
+      .digest {
+        gap: var(--ha-space-3);
+        padding: var(--ha-space-4);
+        border-radius: 24px;
+      }
+      h2 {
+        font-size: 20px;
+        font-weight: 700;
+        font-stretch: 100%;
+      }
+      .sentence {
+        font-size: 14px;
+      }
+      .tiles {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--ha-space-2);
+      }
+      .tile {
+        padding: var(--ha-space-3);
+        border-radius: 16px;
+      }
+      .numeral {
+        font-size: 32px;
+        font-stretch: 100%;
+      }
+      .row {
+        padding: var(--ha-space-2) var(--ha-space-3);
+        border-radius: 16px;
+      }
+    }
   `;
 }
 

@@ -138,16 +138,18 @@ export class HaFormExpandable extends LitElement implements HaFormElement {
       display: block;
     }
     .content {
-      padding: 12px;
+      padding: var(--ha-space-4);
     }
     .content p {
-      margin: 0 0 24px;
+      margin: 0 0 var(--ha-space-4);
+      font-size: calc(13px * var(--ha-font-size-scale, 1));
     }
     ha-expansion-panel {
       display: block;
       --expansion-panel-content-padding: 0;
-      border-radius: var(--ha-border-radius-md);
-      --ha-card-border-radius: var(--ha-border-radius-md);
+      border-radius: var(--ha-border-radius-2xl);
+      --ha-expansion-border-radius: var(--ha-border-radius-2xl);
+      --ha-card-border-radius: var(--ha-border-radius-2xl);
     }
     ha-svg-icon,
     ha-icon {
@@ -155,7 +157,7 @@ export class HaFormExpandable extends LitElement implements HaFormElement {
     }
     .count {
       margin-inline-start: var(--ha-space-2);
-      font-size: var(--ha-font-size-s);
+      font-size: calc(13px * var(--ha-font-size-scale, 1));
       font-weight: var(--ha-font-weight-normal);
       color: var(--secondary-text-color);
     }

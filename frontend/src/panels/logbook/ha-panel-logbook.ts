@@ -4,22 +4,24 @@ import {
   mdiDownload,
   mdiFilterRemove,
   mdiTextBoxOutline,
-  mdiTuneVariant,
 } from "@mdi/js";
 import type { HassServiceTarget } from "home-assistant-js-websocket";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, query, state } from "lit/decorators";
-import { classMap } from "lit/directives/class-map";
+import {
+  customElement,
+  property,
+  query,
+  queryAll,
+  state,
+} from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fromUnixTime } from "date-fns";
 import { ensureArray } from "../../common/array/ensure-array";
 import { storage } from "../../common/decorators/storage";
-import type {
-  HASSDomEvent,
-  HASSDomTargetEvent,
-} from "../../common/dom/fire_event";
+import type { HASSDomEvent } from "../../common/dom/fire_event";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
+import { playPageEntry } from "../../common/motion/page-entry";
 import { navigate } from "../../common/navigate";
 import { constructUrlCurrentPath } from "../../common/url/construct-url";
 import {
@@ -40,18 +42,17 @@ import "../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../components/ha-dropdown";
 import "../../components/ha-dropdown-item";
 import "../../components/ha-empty-state";
-import "../../components/ha-filter-entity-types";
-import "../../components/ha-filter-integrations";
-import "../../components/ha-filter-logbook-causes";
-import "../../components/ha-filter-pane-chip";
-import "../../components/ha-filter-pane";
-import type { HaFilterPane } from "../../components/ha-filter-pane";
 import "../../components/ha-icon-button";
+import "../../components/ha-source-filter-bar";
+import type {
+  HaSourceFilterBar,
+  SourceFilterKey,
+} from "../../components/ha-source-filter-bar";
+import "../../components/ha-svg-icon";
 import {
   applySourceFilters,
   countSourceFilters,
   setSourceFilter,
-  sourceFiltersStyles,
   countTargets,
 } from "../../components/ha-sources-picker";
 import type { SourceFilters } from "../../components/ha-sources-picker";
@@ -64,7 +65,6 @@ import { filterLogbookCompatibleEntities } from "../../data/logbook";
 import { resolveEntityIDs } from "../../data/selector";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
-import "../home/components/ha-panel-heading";
 import "./ha-logbook";
 import "./ha-logbook-stats";
 import type { HaLogbook } from "./ha-logbook";
@@ -99,13 +99,14 @@ export class HaPanelLogbook extends LitElement {
 
   @state() private _filters: LogbookFilters = {};
 
-  // Only one filter is expanded at a time, so that it can use the height
-  // that is left in the pane.
-  @state() private _expandedFilter?: string;
+  // Whether the filter dialog or sheet is open, so that a phone waits for it
+  // to close before it fetches the new results.
+  @state() private _sheetOpen = false;
 
-  @state() private _showSources?: boolean;
+  @query("ha-source-filter-bar") private _filterBar?: HaSourceFilterBar;
 
-  @query("ha-filter-pane") private _filterPane?: HaFilterPane;
+  // The blocks that rise when the page is first shown.
+  @queryAll(".entry") private _entryBlocks!: NodeListOf<Element>;
 
   @state() private _entitySources?: EntitySources;
 
@@ -149,8 +150,23 @@ export class HaPanelLogbook extends LitElement {
       <ha-top-app-bar-fixed
         .narrow=${this.narrow}
         .backButton=${!!this._showBack}
+        .summary=${this.hass.localize("ui.panel.logbook.summary")}
       >
         <div slot="title">${this.hass.localize("panel.logbook")}</div>
+
+        ${
+          this.narrow
+            ? nothing
+            : html`<ha-button
+                slot="primaryAction"
+                appearance="filled"
+                variant="neutral"
+                @click=${this._downloadData}
+              >
+                <ha-svg-icon slot="start" .path=${mdiDownload}></ha-svg-icon>
+                ${this.hass.localize("ui.panel.logbook.download_data")}
+              </ha-button>`
+        }
 
         <ha-dropdown slot="actionItems" @wa-select=${this._handleMenuAction}>
           <ha-icon-button
@@ -159,10 +175,14 @@ export class HaPanelLogbook extends LitElement {
             .path=${mdiDotsVertical}
           ></ha-icon-button>
 
-          <ha-dropdown-item value="download">
-            ${this.hass.localize("ui.panel.logbook.download_data")}
-            <ha-svg-icon slot="icon" .path=${mdiDownload}></ha-svg-icon>
-          </ha-dropdown-item>
+          ${
+            this.narrow
+              ? html`<ha-dropdown-item value="download">
+                  ${this.hass.localize("ui.panel.logbook.download_data")}
+                  <ha-svg-icon slot="icon" .path=${mdiDownload}></ha-svg-icon>
+                </ha-dropdown-item>`
+              : nothing
+          }
 
           <ha-dropdown-item value="reset" .disabled=${this._isDefaultState()}>
             ${this.hass.localize("ui.common.reset")}
@@ -185,88 +205,36 @@ export class HaPanelLogbook extends LitElement {
 
         <div class="content">
           <div class="main">
-            ${
-              this._sourcesShown()
-                ? html`<ha-filter-pane
-                    .narrow=${this.narrow}
-                    .label=${sourcesLabel}
-                    .path=${mdiTuneVariant}
-                    .count=${sourceCount}
-                    .resultCount=${entityIds?.length}
-                    @close-filter-pane=${this._closeSources}
-                    @clear-filter=${this._clearSources}
-                  >
-                    <ha-sources-picker
-                      .hass=${this.hass}
-                      .value=${this._targetPickerValue}
-                      .filters=${this._filters}
-                      .entitySources=${this._entitySources}
-                      .entityFilter=${this._filterFunc}
-                      .description=${this.hass.localize(
-                        "ui.panel.logbook.no_targets"
-                      )}
-                      @value-changed=${this._targetsChanged}
-                    ></ha-sources-picker>
-                    <div
-                      class=${classMap({
-                        filters: true,
-                        expanded: !!this._expandedFilter,
-                      })}
-                    >
-                      <ha-filter-entity-types
-                        .value=${this._filters.types}
-                        .expanded=${
-                          this._expandedFilter === "ha-filter-entity-types"
-                        }
-                        @data-table-filter-changed=${this._typesChanged}
-                        @expanded-changed=${this._filterExpanded}
-                      ></ha-filter-entity-types>
-                      <ha-filter-integrations
-                        .value=${this._filters.integrations}
-                        .expanded=${
-                          this._expandedFilter === "ha-filter-integrations"
-                        }
-                        @data-table-filter-changed=${this._integrationsChanged}
-                        @expanded-changed=${this._filterExpanded}
-                      ></ha-filter-integrations>
-                      <ha-filter-logbook-causes
-                        .value=${this._filters.causes}
-                        .expanded=${
-                          this._expandedFilter === "ha-filter-logbook-causes"
-                        }
-                        @data-table-filter-changed=${this._causesChanged}
-                        @expanded-changed=${this._filterExpanded}
-                      ></ha-filter-logbook-causes>
-                    </div>
-                  </ha-filter-pane>`
-                : nothing
-            }
             <div class="content-column">
-              <ha-panel-heading
-                .heading=${this.hass.localize("panel.logbook")}
-                .summary=${this.hass.localize("ui.panel.logbook.summary")}
-                .narrow=${this.narrow}
-              ></ha-panel-heading>
               ${
                 this.narrow
                   ? nothing
                   : html`<ha-logbook-stats
+                      class="entry"
                       .hass=${this.hass}
                       .entries=${this._entries}
                     ></ha-logbook-stats>`
               }
-              <div class="toolbar">
-                ${
-                  this._sourcesShown() && !this.narrow
-                    ? nothing
-                    : html`<ha-filter-pane-chip
-                        .label=${sourcesLabel}
-                        .path=${mdiTuneVariant}
-                        .count=${filterCount}
-                        .active=${sourceCount > 0}
-                        @click=${this._toggleSources}
-                      ></ha-filter-pane-chip>`
-                }
+              <div class="toolbar entry">
+                <ha-source-filter-bar
+                  .hass=${this.hass}
+                  .narrow=${this.narrow}
+                  .targets=${this._targetPickerValue}
+                  .filters=${this._filters}
+                  .entitySources=${this._entitySources}
+                  .entityFilter=${this._filterFunc}
+                  .noTargetsText=${this.hass.localize(
+                    "ui.panel.logbook.no_targets"
+                  )}
+                  .sourcesLabel=${this.hass.localize("ui.panel.logbook.sources")}
+                  .sourcesCountLabel=${sourcesLabel}
+                  .resultCount=${entityIds?.length}
+                  show-causes
+                  @sources-changed=${this._targetsChanged}
+                  @source-filter-changed=${this._filterChanged}
+                  @sources-cleared=${this._clearSources}
+                  @filter-sheet-changed=${this._sheetChanged}
+                ></ha-source-filter-bar>
                 <ha-date-range-nav
                   .startDate=${this._time.range[0]}
                   .endDate=${this._time.range[1]}
@@ -290,7 +258,7 @@ export class HaPanelLogbook extends LitElement {
                   sourceCount > 0
                     ? html`<ha-empty-state
                         slot="empty"
-                        .icon=${mdiTextBoxOutline}
+                        tone="filtered"
                         .heading=${this.hass.localize(
                           "ui.panel.logbook.no_results_title"
                         )}
@@ -298,7 +266,12 @@ export class HaPanelLogbook extends LitElement {
                           "ui.panel.logbook.no_results"
                         )}
                       >
+                        <ha-svg-icon
+                          slot="icon"
+                          .path=${mdiTextBoxOutline}
+                        ></ha-svg-icon>
                         <ha-button
+                          slot="actions"
                           appearance="plain"
                           @click=${this._openSources}
                         >
@@ -321,61 +294,28 @@ export class HaPanelLogbook extends LitElement {
     this._entries = (ev.target as HaLogbook).getEntries();
   }
 
-  private _sourcesShown(): boolean {
-    return this._showSources ?? !this.narrow;
-  }
-
-  private _toggleSources() {
-    this._showSources = !this._sourcesShown();
-  }
-
   private _openSources() {
-    if (this._sourcesShown()) {
-      this._filterPane?.highlight();
-      return;
-    }
-    this._showSources = true;
+    this._filterBar?.openSources();
   }
 
-  private _closeSources() {
-    this._showSources = false;
-  }
-
-  private _typesChanged(
-    ev: HASSDomEvent<HASSDomEvents["data-table-filter-changed"]>
+  private _sheetChanged(
+    ev: HASSDomEvent<HASSDomEvents["filter-sheet-changed"]>
   ) {
-    this._setFilter("types", ev);
+    this._sheetOpen = ev.detail.open;
   }
 
-  private _integrationsChanged(
-    ev: HASSDomEvent<HASSDomEvents["data-table-filter-changed"]>
+  private _filterChanged(
+    ev: HASSDomEvent<HASSDomEvents["source-filter-changed"]>
   ) {
-    this._setFilter("integrations", ev);
-  }
-
-  private _causesChanged(
-    ev: HASSDomEvent<HASSDomEvents["data-table-filter-changed"]>
-  ) {
-    this._setFilter("causes", ev);
+    this._setFilter(ev.detail.key, ev.detail.value);
   }
 
   private _setFilter(
-    key: keyof LogbookFilters,
-    ev: HASSDomEvent<HASSDomEvents["data-table-filter-changed"]>
+    key: SourceFilterKey,
+    value: HASSDomEvents["source-filter-changed"]["value"]
   ) {
-    this._filters = setSourceFilter(this._filters, key, ev.detail.value);
+    this._filters = setSourceFilter(this._filters, key, value);
     this._storedFilters = this._filters;
-  }
-
-  private _filterExpanded(
-    ev: HASSDomEvent<HASSDomEvents["expanded-changed"]> &
-      HASSDomTargetEvent<HTMLElement>
-  ) {
-    if (ev.detail.expanded) {
-      this._expandedFilter = ev.target.localName;
-    } else if (this._expandedFilter === ev.target.localName) {
-      this._expandedFilter = undefined;
-    }
   }
 
   private _clearSources() {
@@ -398,7 +338,7 @@ export class HaPanelLogbook extends LitElement {
 
     // On narrow screens, the sources sheet covers the results, so only apply
     // the sources once it is closed instead of on every source change.
-    if (!this.narrow || !this._sourcesShown()) {
+    if (!this.narrow || !this._sheetOpen) {
       this._shownEntityIds = this._getEntityIds();
       this._shownCauses = this._filters.causes;
     }
@@ -406,6 +346,7 @@ export class HaPanelLogbook extends LitElement {
 
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
+    playPageEntry(Array.from(this._entryBlocks));
     this.hass.loadBackendTranslation("title");
     // The filters label themselves with keys from the config panel.
     this.hass.loadFragmentTranslation("config");
@@ -708,24 +649,17 @@ export class HaPanelLogbook extends LitElement {
   static get styles() {
     return [
       haStyle,
-      sourceFiltersStyles,
       css`
         :host {
           --ha-generic-picker-width: min(400px, calc(100vw - 32px));
           --ha-generic-picker-max-width: 400px;
-          /* The target picker chips need more room than a plain filter list. */
-          --ha-filter-pane-width: 340px;
         }
 
+        /* The page fills what is left under the header, whatever its height. */
         .content {
           display: flex;
           flex-direction: column;
-          height: calc(
-            100vh - var(--header-height, 0px) - var(
-                --safe-area-inset-top,
-                0px
-              ) - var(--safe-area-inset-bottom, 0px)
-          );
+          height: 100%;
           box-sizing: border-box;
           overflow: hidden;
         }
@@ -755,6 +689,16 @@ export class HaPanelLogbook extends LitElement {
           direction: var(--direction);
           overflow-x: auto;
           scrollbar-width: none;
+        }
+        /* A fade at both edges shows that the row scrolls sideways. */
+        :host([narrow]) .toolbar {
+          mask-image: linear-gradient(
+            to right,
+            transparent 0,
+            #000 16px,
+            #000 calc(100% - 16px),
+            transparent 100%
+          );
         }
 
         .toolbar::-webkit-scrollbar {

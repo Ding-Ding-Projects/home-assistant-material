@@ -948,7 +948,7 @@ export class HassioNetwork extends LitElement {
           font-weight: var(--ha-font-weight-medium);
         }
         .adapter-detail {
-          font-size: var(--ha-font-size-s);
+          font-size: calc(13px * var(--ha-font-size-scale, 1));
           color: var(--secondary-text-color);
         }
         .adapter-badge {
@@ -959,7 +959,7 @@ export class HassioNetwork extends LitElement {
             var(--primary-color) 22%,
             var(--card-background-color)
           );
-          font-size: var(--ha-font-size-s);
+          font-size: calc(13px * var(--ha-font-size-scale, 1));
         }
       `,
     ];

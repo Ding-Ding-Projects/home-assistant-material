@@ -1379,10 +1379,10 @@ ${rejected
           height: 100%;
         }
         hass-tabs-subpage-data-table {
-          --data-table-row-height: 60px;
+          --data-table-row-height: 52px;
         }
         hass-tabs-subpage-data-table.narrow {
-          --data-table-row-height: 72px;
+          --data-table-row-height: 56px;
         }
         a {
           text-decoration: none;

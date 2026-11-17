@@ -107,6 +107,23 @@ export class HaEmptyState extends LitElement {
     .actions {
       margin-top: var(--ha-space-2, 8px);
     }
+    /* Phone: a 56 px icon circle, an 18 px heading and tighter padding. */
+    @media (max-width: 600px) {
+      :host {
+        padding: var(--ha-space-4, 16px);
+      }
+      .icon {
+        width: 56px;
+        height: 56px;
+        --mdc-icon-size: 28px;
+      }
+      .heading {
+        font-size: 18px;
+      }
+      .description {
+        font-size: 14px;
+      }
+    }
   `;
 }
 

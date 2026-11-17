@@ -49,4 +49,23 @@ export const editorFrameStyles = css`
     --ha-card-border-radius: 20px;
     --ha-automation-row-radius: 20px;
   }
+  /* Phone: smaller block numbers, tighter blocks. */
+  @media (max-width: 600px) {
+    .section,
+    .card {
+      border-radius: 24px;
+      padding: var(--ha-space-3, 12px) var(--ha-space-4, 16px);
+    }
+    .section .header .name::before,
+    .card .header .name::before {
+      min-width: 28px;
+      height: 28px;
+      font-size: 16px;
+    }
+    .section,
+    .starting-points,
+    .quick-add {
+      margin-block: 0 var(--ha-space-3, 12px);
+    }
+  }
 `;

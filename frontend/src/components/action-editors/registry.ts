@@ -40,6 +40,22 @@ export const resolveActionEditor = (
 
 export const TAILORED_DOMAINS = Object.keys(DOMAIN_EDITORS);
 
+/**
+ * Whether one service has its own builder. Sibling tiles alone do not count:
+ * every service of every entity domain must be listed with its controls, even
+ * when the list is empty because the service takes no data.
+ */
+export const hasTailoredService = (
+  domain: string,
+  service: string
+): boolean => {
+  const editor = DOMAIN_EDITORS[domain];
+  return (
+    editor !== undefined &&
+    (service in editor.controls || "*" in editor.controls)
+  );
+};
+
 /** Element tag that renders the visual form of each action type. */
 export const ACTION_TYPE_EDITORS: Record<string, string> = {
   choose: "ha-automation-action-choose",

@@ -48,15 +48,20 @@ import { SirenEntityFeature } from "../data/siren";
 import type { HassServiceTargetWithExclude } from "../data/target";
 import type { HomeAssistant, ValueChangedEvent } from "../types";
 import { documentationUrl } from "../util/documentation-url";
+import { showToast } from "../util/toast";
 import "./action-editors/ha-action-quick-controls";
 import {
-  applyControlValue,
+  applyQuickChange,
   buildQuickControls,
   claimedKeys,
+  unsupportedKeys,
+  type QuickContext,
   type QuickControl,
+  type QuickEngineInfo,
   type QuickEntity,
   type QuickFieldInfo,
 } from "./action-editors/descriptors";
+import { getTTSEngine, getTTSEngineOptions } from "../data/tts";
 import { getSelectorFallbackValue } from "./ha-form/get-selector-fallback-value";
 import "./ha-action-field-adapter";
 import "./ha-icon-button";
@@ -181,6 +186,11 @@ export class HaServiceControl extends LitElement {
 
   @state() private _manifest?: IntegrationManifest;
 
+  /** Speech engine facts loaded from the backend, by entity id. */
+  @state() private _engines: Record<string, QuickEngineInfo> = {};
+
+  private _engineRequests = new Set<string>();
+
   @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
 
   private _stickySelector: Record<string, Selector> = {};
@@ -302,6 +312,47 @@ export class HaServiceControl extends LitElement {
         yamlEditor.setValue(this._value.data);
       }
     }
+  }
+
+  protected updated(changedProperties: PropertyValues<this>) {
+    super.updated(changedProperties);
+    this._loadEngines();
+  }
+
+  /** Reads what each targeted speech engine supports, once per language. */
+  private _loadEngines() {
+    const action = this._value?.action;
+    if (!action || computeDomain(action) !== "tts") return;
+    const info = this._getServiceInfo(action, this.hass.services);
+    const language =
+      typeof this._value?.data?.language === "string" &&
+      !hasTemplate(this._value.data.language)
+        ? this._value.data.language
+        : undefined;
+    (this._getTargetedEntities(info?.target, this._value) ?? [])
+      .filter((entityId) => computeDomain(entityId) === "tts")
+      .forEach((entityId) => {
+        const request = `${entityId}|${language ?? ""}`;
+        if (this._engineRequests.has(request)) return;
+        this._engineRequests.add(request);
+        Promise.all([
+          getTTSEngine(this.hass.callWS, entityId),
+          getTTSEngineOptions(this.hass.callWS, entityId, language),
+        ])
+          .then(([engine, options]) => {
+            this._engines = {
+              ...this._engines,
+              [entityId]: {
+                languages: engine.provider.supported_languages,
+                options: options.supported_options,
+                commonOptions: options.common_options,
+              },
+            };
+          })
+          .catch(() => {
+            // The free name and value list still works without engine facts.
+          });
+      });
   }
 
   private _getServiceInfo = memoizeOne(
@@ -557,10 +608,12 @@ export class HaServiceControl extends LitElement {
         ? this.hass.services[domain]?.[serviceName]?.description_placeholders
         : undefined;
 
-    const quickControls = wholeData
-      ? []
-      : this._quickControls(serviceData, targetEntities);
+    // Even an action with no data fields gets its sibling tiles and cautions.
+    const quickControls = this._quickControls(serviceData, targetEntities);
     const quickClaimed = claimedKeys(quickControls);
+    const quickHidden = wholeData
+      ? new Set<string>()
+      : this._quickUnsupported(serviceData, targetEntities, quickControls);
 
     const description =
       (serviceName &&
@@ -656,11 +709,20 @@ export class HaServiceControl extends LitElement {
               serviceData,
               domain,
               serviceName,
-              descriptionPlaceholders
+              descriptionPlaceholders,
+              "name"
+            )}
+            .fieldDescriptions=${this._quickLabels(
+              serviceData,
+              domain,
+              serviceName,
+              descriptionPlaceholders,
+              "description"
             )}
             .disabled=${this.disabled}
             @quick-control-changed=${this._quickChanged}
             @quick-action-changed=${this._quickActionChanged}
+            @quick-run-action=${this._quickRun}
           ></ha-action-quick-controls>`
         : nothing
     }
@@ -671,7 +733,10 @@ export class HaServiceControl extends LitElement {
           : nothing
         : serviceData?.fields.map((dataField) => {
             if (!dataField.fields) {
-              if (quickClaimed.has(dataField.key)) {
+              if (
+                quickClaimed.has(dataField.key) ||
+                quickHidden.has(dataField.key)
+              ) {
                 return nothing;
               }
               return this._renderField(
@@ -731,8 +796,26 @@ export class HaServiceControl extends LitElement {
     serviceData: ExtHassService | undefined,
     targetEntities: string[] | null
   ): QuickControl[] {
+    const ctx = this._quickContext(serviceData, targetEntities);
+    return ctx ? buildQuickControls(ctx) : [];
+  }
+
+  /** Fields a tailored editor hides because no targeted entity supports them. */
+  private _quickUnsupported(
+    serviceData: ExtHassService | undefined,
+    targetEntities: string[] | null,
+    controls: QuickControl[]
+  ): Set<string> {
+    const ctx = this._quickContext(serviceData, targetEntities);
+    return ctx ? unsupportedKeys(ctx, controls) : new Set();
+  }
+
+  private _quickContext(
+    serviceData: ExtHassService | undefined,
+    targetEntities: string[] | null
+  ): QuickContext | undefined {
     const action = this._value?.action;
-    if (!action || !serviceData) return [];
+    if (!action || !serviceData) return undefined;
     const [domain] = action.split(".", 1);
     const fields: Record<string, QuickFieldInfo> = {};
     serviceData.fields.forEach((field) => {
@@ -759,29 +842,31 @@ export class HaServiceControl extends LitElement {
       .map((entityId) => this.hass.states[entityId])
       .filter((entity): entity is NonNullable<typeof entity> => !!entity);
     const data = this._value?.data;
-    return buildQuickControls({
+    return {
       action,
       data:
         data && typeof data === "object" && !Array.isArray(data) ? data : {},
       fields,
       domainServices: Object.keys(this.hass.services[domain] ?? {}),
       entities,
-    });
+      engines: this._engines,
+    };
   }
 
   private _quickLabels(
     serviceData: ExtHassService | undefined,
     domain: string | undefined,
     serviceName: string | undefined,
-    placeholders: Record<string, string> | undefined
+    placeholders: Record<string, string> | undefined,
+    part: "name" | "description" = "name"
   ): Record<string, string> {
     const labels: Record<string, string> = {};
-    serviceData?.fields.forEach((field) => {
+    serviceData?.flatFields.forEach((field) => {
       const label =
         this.hass.localize(
-          `component.${domain}.services.${serviceName}.fields.${field.key}.name`,
+          `component.${domain}.services.${serviceName}.fields.${field.key}.${part}`,
           placeholders
-        ) || field.name;
+        ) || field[part];
       if (label) labels[field.key] = label;
     });
     return labels;
@@ -793,12 +878,29 @@ export class HaServiceControl extends LitElement {
     ev.stopPropagation();
     const { key, value } = ev.detail;
     const current = this._value?.data;
-    const data = applyControlValue(current, key, value);
+    const data = applyQuickChange(current, key, value);
     if (data === current) return;
     if (value === undefined || value === "") delete this._stickySelector[key];
     fireEvent(this, "value-changed", {
       value: { ...this._value, data: data ?? {} },
     });
+  };
+
+  /** Runs the action once, only when the person presses the test button. */
+  private _quickRun = (ev: Event) => {
+    ev.stopPropagation();
+    const action = this._value?.action;
+    if (!action || this.disabled) return;
+    const data = { ...this._value?.data, ...this._value?.target };
+    this.hass
+      .callService(computeDomain(action), computeObjectId(action), data)
+      .catch(() => {
+        showToast(this, {
+          message: this.hass.localize(
+            "ui.components.action-editors.run_failed"
+          ),
+        });
+      });
   };
 
   private _quickActionChanged = (ev: CustomEvent<{ action: string }>) => {

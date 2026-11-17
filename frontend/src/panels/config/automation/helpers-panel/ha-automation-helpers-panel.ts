@@ -425,5 +425,22 @@ export class HaAutomationHelpersPanel extends LitElement {
       );
       color: var(--ha-color-on-primary-container, var(--primary-text-color));
     }
+    /* Phone: a smaller title and tighter panel. */
+    @media (max-width: 600px) {
+      .panel {
+        padding: var(--ha-space-3, 12px) var(--ha-space-4, 16px);
+        margin-bottom: var(--ha-space-3, 12px);
+        border-radius: 24px;
+      }
+      .title {
+        font-size: 18px;
+        font-stretch: 100%;
+        font-weight: 700;
+      }
+      .row {
+        padding: var(--ha-space-2) var(--ha-space-3);
+        border-radius: 16px;
+      }
+    }
   `;
 }

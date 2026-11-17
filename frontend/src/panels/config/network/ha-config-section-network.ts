@@ -121,17 +121,18 @@ class HaConfigSectionNetwork extends LitElement {
     .intro h2 {
       margin: 0;
       font-family: var(--ha-font-family-heading, inherit);
-      font-size: var(--ha-font-size-3xl);
-      font-weight: var(--ha-font-weight-medium);
-      line-height: var(--ha-line-height-condensed);
+      font-size: calc(34px * var(--ha-font-size-scale, 1));
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
     }
     .intro p {
-      margin: var(--ha-space-1) 0 0;
+      margin: var(--ha-space-2) 0 0;
+      font-size: calc(15px * var(--ha-font-size-scale, 1));
       color: var(--secondary-text-color);
       line-height: var(--ha-line-height-normal);
     }
     .content {
-      --ha-card-header-font-size: var(--ha-font-size-l);
       box-sizing: border-box;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -149,6 +150,21 @@ class HaConfigSectionNetwork extends LitElement {
       .content {
         grid-template-columns: minmax(0, 1fr);
         padding: var(--ha-space-3) var(--ha-space-3) var(--ha-space-6);
+      }
+    }
+    /* Phone: a 22 px headline and tighter gaps. */
+    @media (max-width: 600px) {
+      .content {
+        gap: var(--ha-space-3);
+      }
+      /* The header already shows the page name on a phone; saying it twice
+         only pushes the settings down. The sentence under it stays. */
+      .intro h2 {
+        display: none;
+      }
+      .intro p {
+        font-size: calc(14px * var(--ha-font-size-scale, 1));
+        margin-top: var(--ha-space-1);
       }
     }
     supervisor-hostname,

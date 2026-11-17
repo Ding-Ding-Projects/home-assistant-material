@@ -255,6 +255,21 @@ class PanelTools extends LitElement {
       display: block;
       flex: 1;
     }
+    /* Phone: a 22 px title and 44 px pills. */
+    @media (max-width: 600px) {
+      .header {
+        gap: var(--ha-space-2);
+        padding: var(--ha-space-3) var(--ha-space-3) 0;
+      }
+      h1 {
+        font-size: 22px;
+      }
+      .pill {
+        min-height: 44px;
+        padding: 0 var(--ha-space-4);
+        font-size: 14px;
+      }
+    }
   `;
 }
 

@@ -92,7 +92,10 @@ class HaAlert extends LitElement {
   static styles = css`
     .issue-type {
       position: relative;
-      padding: var(--ha-alert-padding, 8px);
+      padding: var(--ha-alert-padding, 14px 16px);
+      border-radius: var(--ha-border-radius-2xl);
+      font-size: calc(14px * var(--ha-font-size-scale, 1));
+      line-height: 1.4;
       display: flex;
     }
     .icon {
@@ -108,7 +111,7 @@ class HaAlert extends LitElement {
       opacity: 0.12;
       pointer-events: none;
       content: "";
-      border-radius: var(--ha-border-radius-sm);
+      border-radius: var(--ha-border-radius-2xl);
     }
     .icon.no-title {
       align-self: center;

@@ -228,12 +228,17 @@ export class HaExpansionPanel extends LitElement {
   static styles = css`
     :host {
       display: block;
+      border-radius: var(--ha-expansion-border-radius, 24px);
+      background: var(
+        --ha-expansion-background,
+        var(--ha-color-fill-neutral-quiet-resting, transparent)
+      );
     }
 
     .top {
       display: flex;
       align-items: center;
-      border-radius: var(--ha-card-border-radius, var(--ha-border-radius-lg));
+      border-radius: var(--ha-expansion-border-radius, 24px);
     }
 
     .top.expanded {
@@ -250,7 +255,15 @@ export class HaExpansionPanel extends LitElement {
       border-width: 1px;
       border-style: solid;
       border-color: var(--outline-color);
+      background: none;
       border-radius: var(--ha-card-border-radius, var(--ha-border-radius-lg));
+    }
+    :host([outlined]) .top {
+      border-radius: var(--ha-card-border-radius, var(--ha-border-radius-lg));
+    }
+    :host([outlined]) .top.expanded {
+      border-bottom-left-radius: 0px;
+      border-bottom-right-radius: 0px;
     }
 
     .summary-icon {
@@ -278,12 +291,13 @@ export class HaExpansionPanel extends LitElement {
     #summary {
       flex: 1;
       display: flex;
-      padding: var(--expansion-panel-summary-padding, 0 8px);
-      min-height: 48px;
+      padding: var(--expansion-panel-summary-padding, 0 16px);
+      min-height: 64px;
       align-items: center;
       cursor: pointer;
       overflow: hidden;
-      font-weight: var(--ha-font-weight-medium);
+      font-size: calc(16px * var(--ha-font-size-scale, 1));
+      font-weight: var(--ha-font-weight-semibold, 600);
       outline: none;
     }
     #summary.noCollapse {
@@ -302,7 +316,7 @@ export class HaExpansionPanel extends LitElement {
     }
 
     .container {
-      padding: var(--expansion-panel-content-padding, 0 8px);
+      padding: var(--expansion-panel-content-padding, 0 16px);
       overflow: hidden;
       transition:
         height var(--ha-animation-duration-normal, 250ms)
@@ -321,7 +335,31 @@ export class HaExpansionPanel extends LitElement {
     .secondary {
       display: block;
       color: var(--secondary-text-color);
-      font-size: var(--ha-font-size-s);
+      margin-top: 2px;
+      font-size: calc(13px * var(--ha-font-size-scale, 1));
+      font-weight: var(--ha-font-weight-normal);
+      line-height: 1.35;
+    }
+
+    #summary:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: -2px;
+      border-radius: inherit;
+    }
+
+    /* Phone: a 56 px summary with a 15 px label. */
+    @media (max-width: 600px) {
+      #summary {
+        min-height: 56px;
+        font-size: calc(15px * var(--ha-font-size-scale, 1));
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .container,
+      .summary-icon {
+        transition: none;
+      }
     }
   `;
 }

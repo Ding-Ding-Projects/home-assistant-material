@@ -92,7 +92,9 @@ class HaPanelMap extends LitElement {
       css`
         .stage {
           position: relative;
-          height: calc(100vh - var(--header-height));
+          height: calc(
+            100vh - var(--total-top-app-bar-height, var(--header-height))
+          );
         }
         ha-map {
           height: 100%;

@@ -733,12 +733,43 @@ export class HaAutomationDryRun extends LitElement {
           font-size: var(--ha-font-size-s);
           color: var(--secondary-text-color);
         }
-        @media (max-width: 480px) {
+        /* Phone: a 40 px count and compact blocks. */
+        @media (max-width: 600px) {
+          .page {
+            gap: var(--ha-space-3);
+          }
+          h2 {
+            font-size: 20px;
+            font-weight: 700;
+            font-stretch: 100%;
+          }
           .count {
-            font-size: 72px;
+            font-size: 40px;
+            line-height: 1;
+            font-stretch: 100%;
           }
           .hero {
-            border-radius: 32px;
+            border-radius: 24px;
+            padding: var(--ha-space-3) var(--ha-space-4);
+            gap: var(--ha-space-3);
+          }
+          .big {
+            font-size: 16px;
+            font-stretch: 100%;
+          }
+          .timeline {
+            border-radius: 24px;
+            padding: var(--ha-space-3) var(--ha-space-4);
+          }
+          .track {
+            height: 44px;
+          }
+          .row {
+            border-radius: 16px;
+            padding: var(--ha-space-2) var(--ha-space-3);
+          }
+          .pill {
+            padding: 0 var(--ha-space-4);
           }
         }
       `,

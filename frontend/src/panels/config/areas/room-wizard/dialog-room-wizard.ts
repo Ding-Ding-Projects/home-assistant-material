@@ -948,6 +948,15 @@ class DialogRoomWizard
           .strip .current .label {
             display: block;
           }
+          h2 {
+            font-size: 18px;
+          }
+          .step-body {
+            gap: var(--ha-space-3);
+          }
+          .tiles {
+            gap: var(--ha-space-2);
+          }
         }
       `,
     ];

@@ -45,14 +45,22 @@ export class HaCard extends LitElement {
     :host ::slotted(.card-header) {
       color: var(--ha-card-header-color, var(--primary-text-color));
       font-family: var(--ha-card-header-font-family, inherit);
-      font-size: var(--ha-card-header-font-size, var(--ha-font-size-2xl));
-      letter-spacing: -0.012em;
-      line-height: var(--ha-line-height-condensed);
-      padding: var(--ha-space-5) var(--ha-space-4) var(--ha-space-6);
+      font-size: var(
+        --ha-card-header-font-size,
+        calc(26px * var(--ha-font-size-scale, 1))
+      );
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      padding: var(--ha-space-6) var(--ha-space-5) var(--ha-space-5);
       display: block;
       margin-block-start: 0;
       margin-block-end: 0;
-      font-weight: var(--ha-font-weight-title, var(--ha-font-weight-normal));
+      font-weight: var(--ha-card-header-font-weight, 800);
+      /* A heading wraps instead of being cut off by a one-line ellipsis. */
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
 
     /* clean-css ignore:start */
@@ -67,12 +75,30 @@ export class HaCard extends LitElement {
     /* clean-css ignore:end */
 
     :host ::slotted(.card-content) {
-      padding: var(--ha-space-4);
+      padding: var(--ha-space-4) var(--ha-space-5) var(--ha-space-5);
     }
 
     :host ::slotted(.card-actions) {
-      border-top: 1px solid var(--divider-color, #e8e8e8);
-      padding: var(--ha-space-2);
+      border-top: none;
+      padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-4);
+    }
+
+    /* Phone: a 20 px header and 16 px padding keep cards compact. */
+    @media (max-width: 600px) {
+      .card-header,
+      :host ::slotted(.card-header) {
+        font-size: var(
+          --ha-card-header-font-size,
+          calc(20px * var(--ha-font-size-scale, 1))
+        );
+        padding: var(--ha-space-4) var(--ha-space-4) var(--ha-space-3);
+      }
+      :host ::slotted(.card-content) {
+        padding: var(--ha-space-3) var(--ha-space-4) var(--ha-space-4);
+      }
+      :host ::slotted(.card-actions) {
+        padding: var(--ha-space-1) var(--ha-space-3) var(--ha-space-3);
+      }
     }
   `;
 

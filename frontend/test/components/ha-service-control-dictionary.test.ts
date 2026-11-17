@@ -36,7 +36,7 @@ const mount = async (
   element.hass = {
     localize: (key: string) => key,
     language: "en",
-    services: { tts: { speak: { fields } } },
+    services: { example: { speak: { fields } } },
     states: {},
     entities: {},
     areas: {},
@@ -45,7 +45,7 @@ const mount = async (
     labels: {},
     loadBackendTranslation: vi.fn(),
   } as unknown as HomeAssistant;
-  element.value = { action: "tts.speak", data };
+  element.value = { action: "example.speak", data };
   document.body.append(element);
   await element.updateComplete;
   return element;
@@ -139,7 +139,7 @@ describe("service action dictionaries", () => {
     element.hass = {
       ...element.hass,
       services: {
-        light: {
+        example: {
           turn_on: {
             fields: {
               effect: {
@@ -159,7 +159,7 @@ describe("service action dictionaries", () => {
       },
     } as unknown as HomeAssistant;
     element.value = {
-      action: "light.turn_on",
+      action: "example.turn_on",
       target: { entity_id: ["light.effect", "light.basic"] },
       data: { effect: "rainbow" },
     };
@@ -266,7 +266,7 @@ describe("service action dictionaries", () => {
       })
     );
     expect(changes[changes.length - 1]).toEqual({
-      action: "tts.speak",
+      action: "example.speak",
       data: { options: { voice: "legacy" }, vendor: 2 },
     });
   });
@@ -319,7 +319,7 @@ describe("service action dictionaries", () => {
     ) as HTMLElement & { checked: boolean };
     toggle.checked = true;
     toggle.dispatchEvent(new Event("change"));
-    expect(next).toEqual({ action: "tts.speak", data: { options: {} } });
+    expect(next).toEqual({ action: "example.speak", data: { options: {} } });
   });
 });
 
@@ -349,7 +349,7 @@ describe("fallback dictionary ownership", () => {
       })
     );
     expect(next).toEqual({
-      action: "tts.speak",
+      action: "example.speak",
       data: { entity_id: "media_player.room", vendor: 2 },
     });
   });

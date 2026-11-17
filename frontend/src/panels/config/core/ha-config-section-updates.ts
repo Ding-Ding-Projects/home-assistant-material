@@ -76,6 +76,7 @@ import { haMotionKeyframes } from "../../../resources/motion-styles";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
+import "./updates/ha-update-auto-system";
 import "./updates/ha-update-changes";
 import "./updates/ha-update-coming-soon";
 import "./updates/ha-update-history";
@@ -701,6 +702,14 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
             aria-label=${localize("ui.panel.config.updates.auto_backup")}
           ></ha-switch>
         </div>
+        ${
+          info.system
+            ? html`<ha-update-auto-system
+                .hass=${this.hass}
+                .system=${info.system}
+              ></ha-update-auto-system>`
+            : nothing
+        }
       </section>
     `;
   }

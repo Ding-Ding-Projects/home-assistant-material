@@ -644,12 +644,14 @@ class HaConfigSectionGeneral extends LitElement {
       .intro h2 {
         margin: 0;
         font-family: var(--ha-font-family-heading, inherit);
-        font-size: var(--ha-font-size-3xl);
-        font-weight: var(--ha-font-weight-medium);
-        line-height: var(--ha-line-height-condensed);
+        font-size: calc(34px * var(--ha-font-size-scale, 1));
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
       }
       .intro p {
-        margin: var(--ha-space-1) 0 0;
+        margin: var(--ha-space-2) 0 0;
+        font-size: calc(15px * var(--ha-font-size-scale, 1));
         color: var(--secondary-text-color);
         line-height: var(--ha-line-height-normal);
       }
@@ -692,8 +694,8 @@ class HaConfigSectionGeneral extends LitElement {
       }
       h3 {
         margin: 0 0 var(--ha-space-3);
-        font-size: var(--ha-font-size-l);
-        font-weight: var(--ha-font-weight-medium);
+        font-size: calc(20px * var(--ha-font-size-scale, 1));
+        font-weight: 800;
       }
       a.find-value {
         margin-top: var(--ha-space-2);
@@ -730,7 +732,7 @@ class HaConfigSectionGeneral extends LitElement {
       }
       .hint {
         margin: 0;
-        font-size: var(--ha-font-size-s);
+        font-size: calc(13px * var(--ha-font-size-scale, 1));
         color: var(--secondary-text-color);
       }
       .actions {
@@ -749,6 +751,39 @@ class HaConfigSectionGeneral extends LitElement {
       ha-checkbox {
         display: block;
         margin-top: var(--ha-space-3);
+      }
+      /* Phone: a 22 px headline and compact cards. */
+      @media (max-width: 600px) {
+        .intro {
+          margin-bottom: var(--ha-space-3);
+        }
+        .intro h2 {
+          font-size: calc(22px * var(--ha-font-size-scale, 1));
+          font-weight: 700;
+        }
+        .intro p {
+          font-size: calc(14px * var(--ha-font-size-scale, 1));
+          margin-top: var(--ha-space-1);
+        }
+        .columns,
+        .column,
+        .pair {
+          gap: var(--ha-space-3);
+        }
+        .card {
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border-radius: 24px;
+        }
+        h3 {
+          font-size: calc(18px * var(--ha-font-size-scale, 1));
+          margin-bottom: var(--ha-space-2);
+        }
+        .map-card {
+          border-radius: 24px;
+        }
+        .map-preview {
+          height: 200px;
+        }
       }
       @media (pointer: coarse) {
         .tools ha-button {

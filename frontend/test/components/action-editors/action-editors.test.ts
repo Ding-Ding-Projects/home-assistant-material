@@ -46,9 +46,7 @@ describe("registry resolution", () => {
       "tailored"
     );
     expect(resolveActionEditor("vacuum.start")?.kind).toBe("tailored");
-    expect(resolveActionEditor("persistent_notification.create")?.kind).toBe(
-      "form"
-    );
+    expect(resolveActionEditor("example_integration.do_it")?.kind).toBe("form");
   });
 
   it("ignores actions without a domain and a service", () => {
@@ -127,7 +125,12 @@ describe("supported-feature gating", () => {
       "transition",
     ]);
     const kelvin = controls.find((c) => c.key === "color_temp_kelvin");
-    expect(kelvin).toMatchObject({ kind: "slider", min: 2200, max: 6000 });
+    // Colour temperature is the tree's own gradient temperature slider.
+    expect(kelvin).toMatchObject({
+      kind: "selector",
+      valueType: "color_temp",
+      selector: { color_temp: { unit: "kelvin", min: 2200, max: 6000 } },
+    });
   });
 
   it("shows nothing for an on/off light", () => {
@@ -263,6 +266,10 @@ describe("the generic rich form", () => {
       ["loud", "switch"],
       ["level", "slider"],
       ["size", "tiles"],
+      // A number written as a box becomes a stepper, never a bare box.
+      ["free", "stepper"],
+      // Long lists become a searchable list box.
+      ["many", "selector"],
     ]);
   });
 
@@ -361,7 +368,11 @@ describe("config round trip", () => {
     expect(withTitle[0]).toMatchObject({ kind: "text", value: "Hello" });
     const light = context("light.turn_on", ["rgb_color"], [], {});
     const colour = roundTrip(light, "rgb_color", [255, 0, 0]);
-    expect(colour[0]).toMatchObject({ kind: "swatches", value: [255, 0, 0] });
+    expect(colour[0]).toMatchObject({
+      kind: "color",
+      space: "rgb",
+      value: [255, 0, 0],
+    });
   });
 
   it("removes the key when a control is cleared and returns the same object when nothing changes", () => {
@@ -377,7 +388,7 @@ describe("config round trip", () => {
       ...context("light.turn_on", ["brightness_pct"], [], {}),
       fields: {
         brightness_pct: numberField,
-        flash: { selector: { object: {} } },
+        unrelated: { selector: { object: {} } },
       },
     });
     expect([...claimedKeys(controls)]).toEqual(["brightness_pct"]);

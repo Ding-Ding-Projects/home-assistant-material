@@ -551,9 +551,9 @@ class HaConfigDeviceHealth extends LitElement {
           flex-wrap: wrap;
           align-items: center;
           gap: var(--ha-space-3) var(--ha-space-4);
-          min-height: 72px;
-          padding: var(--ha-space-4) var(--ha-space-5);
-          border-radius: var(--ha-border-radius-3xl);
+          min-height: calc(var(--ha-list-row-min, 52px) + 8px);
+          padding: var(--ha-space-2) var(--ha-space-4);
+          border-radius: var(--ha-list-row-radius, 16px);
           background: var(
             --md-sys-color-surface-container,
             var(--card-background-color)
@@ -601,6 +601,51 @@ class HaConfigDeviceHealth extends LitElement {
           height: 100%;
           border-radius: 4px;
           background: var(--warning-color);
+        }
+        /* Phone: a compact hero, two small tiles across and tighter rows. */
+        :host([narrow]) .hero {
+          gap: var(--ha-space-2);
+          margin-bottom: var(--ha-space-3);
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border-radius: 24px;
+          --mdc-icon-size: 28px;
+        }
+        :host([narrow]) .hero-text {
+          min-width: 0;
+        }
+        :host([narrow]) h2 {
+          font-size: 20px;
+          font-weight: 700;
+          font-stretch: 100%;
+        }
+        :host([narrow]) .hero p {
+          font-size: 14px;
+        }
+        :host([narrow]) .tiles {
+          gap: var(--ha-space-2);
+          margin-bottom: var(--ha-space-3);
+        }
+        :host([narrow]) .tile {
+          padding: var(--ha-space-3);
+          border-radius: 20px;
+        }
+        :host([narrow]) .numeral {
+          font-size: 32px;
+          font-stretch: 100%;
+        }
+        :host([narrow]) .tile-label {
+          font-size: 14px;
+        }
+        :host([narrow]) .rows {
+          gap: var(--ha-space-2);
+        }
+        :host([narrow]) .row {
+          min-height: var(--ha-list-row-min, 52px);
+          padding: var(--ha-space-2) var(--ha-space-3);
+          gap: var(--ha-space-2) var(--ha-space-3);
+        }
+        :host([narrow]) .row-main {
+          min-width: 0;
         }
         @media (prefers-reduced-motion: reduce) {
           .tile {

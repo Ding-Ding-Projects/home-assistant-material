@@ -503,6 +503,11 @@ export class DialogHelperDetail extends DirtyStateProviderMixin<
         ha-list {
           height: calc(60vh - 184px);
         }
+        @media (max-width: 600px) {
+          .form {
+            padding: var(--ha-space-4);
+          }
+        }
         @media all and (max-width: 450px), all and (max-height: 500px) {
           ha-list {
             height: calc(

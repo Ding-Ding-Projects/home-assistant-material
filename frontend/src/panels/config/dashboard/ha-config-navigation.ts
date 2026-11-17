@@ -322,21 +322,13 @@ class HaConfigNavigation extends LitElement {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: var(--ha-space-3);
       }
-      @media (max-width: 460px) {
-        .tiles {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-        .numeral {
-          font-size: 44px;
-        }
-      }
       .tile {
         position: relative;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
         gap: var(--ha-space-1);
-        min-height: 168px;
+        min-height: var(--ha-list-tile-min, 120px);
         box-sizing: border-box;
         padding: var(--ha-space-5);
         border: none;
@@ -396,17 +388,17 @@ class HaConfigNavigation extends LitElement {
       .rows {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-        gap: 8px;
+        gap: var(--ha-list-row-gap, 6px);
       }
       .row {
         display: flex;
         align-items: center;
         gap: var(--ha-space-3);
-        min-height: 60px;
+        min-height: var(--ha-list-row-min, 52px);
         box-sizing: border-box;
         padding: var(--ha-space-2) var(--ha-space-4);
         border: none;
-        border-radius: 20px;
+        border-radius: var(--ha-list-row-radius, 16px);
         background: var(--card-background-color);
         color: var(--primary-text-color);
         font: inherit;
@@ -425,8 +417,8 @@ class HaConfigNavigation extends LitElement {
         flex: none;
         display: grid;
         place-items: center;
-        width: 40px;
-        height: 40px;
+        width: var(--ha-list-row-icon-tile, 34px);
+        height: var(--ha-list-row-icon-tile, 34px);
         border-radius: var(--ha-border-radius-lg);
         background: var(--ha-color-fill-primary-normal-resting);
         color: var(--ha-color-on-primary-normal, var(--primary-text-color));
@@ -438,6 +430,11 @@ class HaConfigNavigation extends LitElement {
         flex-direction: column;
       }
       .row .name {
+        font-size: var(--ha-list-row-title-size, var(--ha-font-size-m));
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
         font-weight: var(--ha-font-weight-medium);
       }
       .row .summary {
@@ -482,6 +479,33 @@ class HaConfigNavigation extends LitElement {
         margin: -1px;
         padding: 0;
         border: 0;
+      }
+      /* Phone: two compact tiles across, about 96 px tall. */
+      @media (max-width: 600px) {
+        .tiles {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: var(--ha-space-2);
+        }
+        .tile {
+          min-height: min(var(--ha-list-tile-min, 120px), 96px);
+          padding: var(--ha-space-3);
+          border-radius: 24px;
+        }
+        .tile .icon {
+          inset-block-start: var(--ha-space-2);
+          inset-inline-end: var(--ha-space-2);
+          width: 32px;
+          height: 32px;
+        }
+        .tile .name {
+          font-size: 14px;
+        }
+        .numeral {
+          font-size: 36px;
+        }
+        .eyebrow {
+          margin-top: var(--ha-space-4);
+        }
       }
     `,
   ];

@@ -262,7 +262,7 @@ export class HuiEntityPickerTable extends LitElement {
       height: 100%;
     }
     ha-data-table.show-entity-id {
-      --data-table-row-height: 64px;
+      --data-table-row-height: 52px;
     }
   `;
 }

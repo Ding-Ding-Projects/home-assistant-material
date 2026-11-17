@@ -1830,7 +1830,7 @@ ${rejected
           display: block;
         }
         hass-tabs-subpage-data-table {
-          --data-table-row-height: 60px;
+          --data-table-row-height: 52px;
         }
         .bulk {
           position: fixed;
@@ -1852,7 +1852,7 @@ ${rejected
           width: calc(100% - var(--ha-space-8));
         }
         hass-tabs-subpage-data-table.narrow {
-          --data-table-row-height: 72px;
+          --data-table-row-height: 56px;
         }
         ha-assist-chip {
           --ha-assist-chip-container-shape: 10px;

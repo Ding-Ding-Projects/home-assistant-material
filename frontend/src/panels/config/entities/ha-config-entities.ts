@@ -2030,10 +2030,10 @@ ${rejected
       haStyle,
       css`
         hass-tabs-subpage-data-table {
-          --data-table-row-height: 60px;
+          --data-table-row-height: 52px;
         }
         hass-tabs-subpage-data-table.narrow {
-          --data-table-row-height: 72px;
+          --data-table-row-height: 56px;
         }
         hass-loading-screen {
           --app-header-background-color: var(--sidebar-background-color);

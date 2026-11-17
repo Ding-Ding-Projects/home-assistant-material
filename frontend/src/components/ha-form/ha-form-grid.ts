@@ -94,10 +94,10 @@ export class HaFormGrid extends LitElement implements HaFormElement {
       display: grid !important;
       grid-template-columns: repeat(
         var(--form-grid-column-count, auto-fit),
-        minmax(var(--form-grid-min-width, 200px), 1fr)
+        minmax(min(100%, var(--form-grid-min-width, 280px)), 1fr)
       );
-      grid-column-gap: var(--ha-space-2);
-      grid-row-gap: var(--ha-space-6);
+      grid-column-gap: var(--ha-space-4);
+      grid-row-gap: var(--ha-space-4);
     }
     :host > ha-form {
       display: block;

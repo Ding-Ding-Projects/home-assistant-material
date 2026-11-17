@@ -311,10 +311,13 @@ class PanelCalendar extends SubscribeMixin(LitElement) {
           display: flex;
           flex-direction: column;
           height: calc(
-            100vh - var(--header-height, 0px) - var(
-                --safe-area-inset-top,
+            100vh - var(
+                --total-top-app-bar-height,
+                var(--header-height, 0px)
+              ) - var(--safe-area-inset-top, 0px) - var(
+                --safe-area-inset-bottom,
                 0px
-              ) - var(--safe-area-inset-bottom, 0px)
+              )
           );
         }
         ha-full-calendar {

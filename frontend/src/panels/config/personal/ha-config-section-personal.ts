@@ -8,6 +8,7 @@ import {
   state,
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { styleMap } from "lit/directives/style-map";
 import { mdiCheckCircle, mdiChevronRight, mdiDotsVertical } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { navigate } from "../../../common/navigate";
@@ -21,6 +22,11 @@ import {
   CONFIRMATION_DRAMA_LEVELS,
   normalizeConfirmationDrama,
 } from "../../../common/confirm/two-key-drama";
+import {
+  LIST_DENSITIES,
+  LIST_DENSITY_VARIABLES,
+  normalizeListDensity,
+} from "../../../common/preferences/list-density";
 import { renderBilingual } from "../../../common/language-mode/bilingual-text";
 import {
   fillPlaceholders,
@@ -197,7 +203,10 @@ const ROW_FIELD: Record<
  * Rows that show a tile at the top of the page although no schedule or
  * instance default reaches them, so they are not in `ROW_FIELD`.
  */
-const OVERVIEW_ONLY_ROWS = new Set<string>(["confirmation_drama"]);
+const OVERVIEW_ONLY_ROWS = new Set<string>([
+  "confirmation_drama",
+  "list_density",
+]);
 
 const GROUPS: GroupId[] = [
   "language",
@@ -917,6 +926,48 @@ export class HaConfigSectionPersonal extends LitElement {
           .active=${p.confirmationDrama}
           @value-changed=${this._dramaChanged}
         ></ha-button-toggle-group>`,
+      },
+      {
+        id: "list_density",
+        group: "attention",
+        label: this._t("list_density.label"),
+        description: this._tl("list_density.description"),
+        defaultText: this._t("list_density.default"),
+        reach: this._tl("list_density.reach"),
+        active: true,
+        valueText: this._t(`list_density.${p.listDensity}`),
+        isDefault: follows("listDensity"),
+        reset: () => this._follow(["listDensity"]),
+        control: html`<div class="density">
+          <ha-button-toggle-group
+            .buttons=${LIST_DENSITIES.map((value) => ({
+              value,
+              label: this._t(`list_density.${value}`),
+            }))}
+            .active=${p.listDensity}
+            @value-changed=${this._densityChanged}
+          ></ha-button-toggle-group>
+          <div
+            class="density-preview"
+            style=${styleMap(LIST_DENSITY_VARIABLES[p.listDensity])}
+            aria-hidden="true"
+          >
+            ${[1, 2, 3].map(
+              () =>
+                html`<div class="density-row">
+                  <span class="density-icon"></span>
+                  <span class="density-text">
+                    <span class="density-name"
+                      >${this._t("list_density.preview_name")}</span
+                    >
+                    <span class="density-secondary"
+                      >${this._t("list_density.preview_secondary")}</span
+                    >
+                  </span>
+                </div>`
+            )}
+          </div>
+        </div>`,
       },
       {
         id: "low_stimulation",
@@ -2068,6 +2119,10 @@ export class HaConfigSectionPersonal extends LitElement {
     });
   };
 
+  private _densityChanged = (ev: CustomEvent<{ value: string }>) => {
+    this._change({ listDensity: normalizeListDensity(ev.detail.value) });
+  };
+
   private _rateChanged = (ev: Event) => {
     this._change({
       narratorRate:
@@ -2261,6 +2316,57 @@ export class HaConfigSectionPersonal extends LitElement {
     .count {
       margin: 0;
       color: var(--secondary-text-color);
+    }
+    .density {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-3);
+      min-width: 0;
+    }
+    .density-preview {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-list-row-gap, 6px);
+      padding: var(--ha-space-2);
+      border-radius: var(--ha-border-radius-xl);
+      background: var(--primary-background-color);
+    }
+    .density-row {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-3);
+      box-sizing: border-box;
+      min-height: var(--ha-list-row-min, 52px);
+      padding: 0 var(--ha-space-3);
+      border-radius: var(--ha-list-row-radius, 16px);
+      background: var(--card-background-color);
+    }
+    .density-icon {
+      flex: none;
+      width: var(--ha-list-row-icon-tile, 34px);
+      height: var(--ha-list-row-icon-tile, 34px);
+      border-radius: var(--ha-border-radius-lg);
+      background: color-mix(
+        in srgb,
+        var(--primary-color) 18%,
+        var(--card-background-color)
+      );
+    }
+    .density-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .density-name {
+      font-size: var(--ha-list-row-title-size, 14px);
+      font-weight: var(--ha-list-row-title-weight, 600);
+    }
+    .density-secondary {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .overview {
       display: grid;

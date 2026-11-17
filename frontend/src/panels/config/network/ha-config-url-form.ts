@@ -417,7 +417,7 @@ class ConfigUrlForm extends SubscribeMixin(LitElement) {
 
     ha-alert {
       display: block;
-      margin: 16px calc(var(--ha-space-4) * -1);
+      margin: 16px calc(var(--ha-space-5) * -1);
     }
 
     .card-actions {

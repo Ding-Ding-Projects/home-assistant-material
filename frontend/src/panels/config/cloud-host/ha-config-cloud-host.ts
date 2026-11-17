@@ -795,6 +795,39 @@ http:
           align-items: center;
           gap: var(--ha-space-3);
         }
+        /* Phone: a compact hero, smaller headings and tighter cards. */
+        :host([narrow]) .hero {
+          gap: var(--ha-space-2);
+          margin-bottom: var(--ha-space-3);
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border-radius: 24px;
+          --mdc-icon-size: 28px;
+        }
+        :host([narrow]) .hero-text {
+          min-width: 0;
+        }
+        :host([narrow]) h2 {
+          font-size: 20px;
+          font-weight: 700;
+          font-stretch: 100%;
+        }
+        :host([narrow]) h3 {
+          font-size: 18px;
+        }
+        :host([narrow]) .hero p {
+          font-size: 14px;
+        }
+        :host([narrow]) .card {
+          margin-bottom: var(--ha-space-3);
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border-radius: 24px;
+        }
+        :host([narrow]) .big {
+          min-height: 48px;
+        }
+        :host([narrow]) .step-text {
+          min-width: 0;
+        }
         @media (prefers-reduced-motion: reduce) {
           * {
             transition: none !important;

@@ -53,7 +53,16 @@ export class HaSettingsRow extends LitElement {
   static styles = css`
     :host {
       display: flex;
+      flex-wrap: wrap;
+      box-sizing: border-box;
+      min-height: 60px;
+      margin-block: var(--ha-space-1);
       padding: 0 var(--ha-space-4);
+      border-radius: var(--ha-settings-row-border-radius, 20px);
+      background: var(
+        --ha-settings-row-background,
+        var(--ha-color-fill-neutral-quiet-resting, transparent)
+      );
       align-content: normal;
       align-self: auto;
       align-items: center;
@@ -87,12 +96,17 @@ export class HaSettingsRow extends LitElement {
       display: block;
       padding-top: var(--ha-space-1);
       font-family: var(--ha-font-family-body);
-      font-size: var(--ha-font-size-s);
+      font-size: calc(13px * var(--ha-font-size-scale, 1));
       -webkit-font-smoothing: var(--ha-font-smoothing);
       -moz-osx-font-smoothing: var(--ha-moz-osx-font-smoothing);
       font-weight: var(--ha-font-weight-normal);
-      line-height: normal;
+      line-height: 1.35;
       color: var(--secondary-text-color);
+    }
+    ::slotted([slot="heading"]) {
+      font-size: calc(15.5px * var(--ha-font-size-scale, 1));
+      font-weight: var(--ha-font-weight-semibold, 600);
+      line-height: 1.3;
     }
     .body[two-line] {
       min-height: calc(72px - 16px);
@@ -104,7 +118,7 @@ export class HaSettingsRow extends LitElement {
     :host(:not([narrow])) .content {
       display: var(--settings-row-content-display, flex);
       justify-content: flex-end;
-      flex: 1;
+      flex: 1 1 auto;
       min-width: 0;
       padding: var(--settings-row-content-padding-block, var(--ha-space-4)) 0;
     }
@@ -117,8 +131,18 @@ export class HaSettingsRow extends LitElement {
     :host([narrow]) {
       align-items: normal;
       flex-direction: column;
-      border-top: 1px solid var(--divider-color);
+      flex-wrap: nowrap;
+      border-top: none;
       padding-bottom: var(--ha-space-2);
+    }
+    /* Phone: a 56 px row with a 15 px label and 13 px description. */
+    :host([narrow]) {
+      min-height: 56px;
+      padding-inline: var(--ha-space-3);
+      border-radius: var(--ha-settings-row-border-radius, 16px);
+    }
+    :host([narrow]) ::slotted([slot="heading"]) {
+      font-size: calc(15px * var(--ha-font-size-scale, 1));
     }
     ::slotted(ha-switch) {
       padding: var(--settings-row-switch-padding-block, var(--ha-space-4)) 0;
@@ -127,12 +151,20 @@ export class HaSettingsRow extends LitElement {
       white-space: normal;
     }
     .prefix-wrap {
-      flex: var(--settings-row-prefix-flex, 1);
+      flex: var(--settings-row-prefix-flex, 1 1 220px);
+      min-width: 0;
       display: var(--settings-row-prefix-display);
     }
     :host([narrow]) .prefix-wrap {
+      flex: 0 0 auto;
       display: flex;
       align-items: center;
+    }
+    :host([slim]) {
+      min-height: 0;
+      margin-block: 0;
+      border-radius: 0;
+      background: none;
     }
     :host([slim]),
     :host([slim]) .content,
