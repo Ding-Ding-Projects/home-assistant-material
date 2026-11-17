@@ -1,4 +1,10 @@
-import { mdiCog, mdiDotsVertical, mdiPlus, mdiUpload } from "@mdi/js";
+import {
+  mdiCog,
+  mdiDotsVertical,
+  mdiPlus,
+  mdiProgressClock,
+  mdiUpload,
+} from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -43,6 +49,8 @@ import "./components/overview/ha-backup-overview-progress";
 import "./components/overview/ha-backup-overview-settings";
 import "./components/overview/ha-backup-overview-summary";
 import "./components/config/ha-backup-config-encryption-key";
+import type { RunSnapshot } from "./helper/backup-progress";
+import { progressText } from "./helper/backup-progress-text";
 import { latestSelfChecked } from "./helper/backup-self-check";
 import { showBackupOnboardingDialog } from "./dialogs/show-dialog-backup_onboarding";
 import { showGenerateBackupDialog } from "./dialogs/show-dialog-generate-backup";
@@ -79,6 +87,8 @@ class HaConfigBackupOverview extends LitElement {
     string,
     { uploaded_bytes: number; total_bytes: number }
   > = {};
+
+  @property({ attribute: false }) public run?: RunSnapshot;
 
   @state() private _config?: BackupConfig;
 
@@ -216,6 +226,17 @@ class HaConfigBackupOverview extends LitElement {
     fireEvent(this, "ha-refresh-backup-info");
   }
 
+  private get _runningKind() {
+    switch (this.manager.manager_state) {
+      case "restore_backup":
+        return "restore";
+      case "receive_backup":
+        return "receive";
+      default:
+        return "create";
+    }
+  }
+
   private get _latestSelfChecked() {
     return latestSelfChecked(this.backups);
   }
@@ -284,13 +305,15 @@ class HaConfigBackupOverview extends LitElement {
           }
           <div class="top">
             ${
-              backupInProgress
+              backupInProgress || this.run
                 ? html`
                     <ha-backup-overview-progress
                       .hass=${this.hass}
                       .manager=${this.manager}
                       .agents=${this.agents}
                       .uploadProgress=${this.uploadProgress}
+                      .run=${this.run}
+                      .backups=${this.backups}
                     >
                     </ha-backup-overview-progress>
                   `
@@ -317,13 +340,32 @@ class HaConfigBackupOverview extends LitElement {
             <div class="actions">
               <ha-button
                 size="l"
-                .loading=${backupInProgress}
                 .disabled=${backupInProgress}
+                aria-describedby=${backupInProgress ? "no-cancel" : nothing}
                 @click=${this._newBackup}
               >
-                <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-                ${this.hass.localize("ui.panel.config.backup.overview.new_backup")}
+                <ha-svg-icon
+                  slot="start"
+                  .path=${backupInProgress ? mdiProgressClock : mdiPlus}
+                ></ha-svg-icon>
+                ${
+                  backupInProgress
+                    ? progressText(
+                        this.hass,
+                        `button.running.${this._runningKind}`
+                      )
+                    : this.hass.localize(
+                        "ui.panel.config.backup.overview.new_backup"
+                      )
+                }
               </ha-button>
+              ${
+                backupInProgress
+                  ? html`<span id="no-cancel" class="caption"
+                      >${progressText(this.hass, "button.no_cancel")}</span
+                    >`
+                  : nothing
+              }
               ${
                 !this._needsOnboarding && this.config
                   ? html`<ha-button
@@ -468,6 +510,10 @@ class HaConfigBackupOverview extends LitElement {
         }
         .actions ha-button {
           width: 100%;
+        }
+        .caption {
+          font-size: var(--ha-font-size-xs);
+          color: var(--secondary-text-color);
         }
         .more {
           display: grid;

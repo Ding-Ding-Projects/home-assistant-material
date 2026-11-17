@@ -123,20 +123,22 @@ class HaBackupOverviewLocations extends LitElement {
                 ${this._renderIcon(location.agentId)}
                 <span>${name}</span>
               </div>
-              <div class="count">
-                ${this.hass.localize(
-                  "ui.panel.config.backup.overview.locations.count",
-                  { count: location.count }
-                )}
-              </div>
-              <div class="size">
-                ${
-                  location.count
-                    ? bytesToString(location.size)
-                    : this.hass.localize(
-                        "ui.panel.config.backup.overview.locations.empty"
-                      )
-                }
+              <div class="figures">
+                <div class="count">
+                  ${this.hass.localize(
+                    "ui.panel.config.backup.overview.locations.count",
+                    { count: location.count }
+                  )}
+                </div>
+                <div class="size">
+                  ${
+                    location.count
+                      ? bytesToString(location.size)
+                      : this.hass.localize(
+                          "ui.panel.config.backup.overview.locations.empty"
+                        )
+                  }
+                </div>
               </div>
             </div>
           `;
@@ -168,16 +170,21 @@ class HaBackupOverviewLocations extends LitElement {
       css`
         .locations {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: var(--ha-space-4);
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(min(100%, 150px), 1fr)
+          );
+          gap: var(--ha-space-2);
         }
         .card {
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
-          gap: var(--ha-space-1);
+          justify-content: center;
+          gap: 2px;
           min-width: 0;
-          padding: var(--ha-space-5) var(--ha-space-6);
+          min-height: 56px;
+          padding: var(--ha-space-2) var(--ha-space-3);
           border-radius: var(--ha-border-radius-3xl);
           background: var(--card-background-color);
           cursor: pointer;
@@ -190,7 +197,7 @@ class HaBackupOverviewLocations extends LitElement {
           display: flex;
           align-items: center;
           gap: var(--ha-space-2);
-          font-size: var(--ha-font-size-s);
+          font-size: 16px;
           font-weight: var(--ha-font-weight-medium);
           color: var(--secondary-text-color);
         }
@@ -203,11 +210,18 @@ class HaBackupOverviewLocations extends LitElement {
           flex: none;
           color: var(--primary-text-color);
         }
+        .figures {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: var(--ha-space-2);
+        }
         .count {
           font-family: var(--ha-font-family-heading, inherit);
-          font-size: var(--ha-font-size-2xl);
+          font-size: 20px;
           font-weight: var(--ha-font-weight-medium);
           line-height: var(--ha-line-height-condensed);
+          min-width: 0;
         }
         .size {
           font-size: var(--ha-font-size-s);

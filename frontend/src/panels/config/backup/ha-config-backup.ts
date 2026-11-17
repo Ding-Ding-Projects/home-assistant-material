@@ -13,11 +13,15 @@ import {
   fetchBackupConfig,
   fetchBackupInfo,
 } from "../../../data/backup";
-import type { ManagerStateEvent } from "../../../data/backup_manager";
+import type {
+  BackupSubscriptionEvent,
+  ManagerStateEvent,
+} from "../../../data/backup_manager";
 import {
   DEFAULT_MANAGER_STATE,
   subscribeBackupEvents,
 } from "../../../data/backup_manager";
+import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import type { CloudStatus } from "../../../data/cloud";
 import { subscribeConfigEntries } from "../../../data/config_entries";
 import type { RouterOptions } from "../../../layouts/hass-router-page";
@@ -31,6 +35,14 @@ import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
 import "./ha-config-backup-backups";
 import "./ha-config-backup-overview";
+import type { RunSnapshot } from "./helper/backup-progress";
+import {
+  adoptStoredRun,
+  applyBackupEvent,
+  BACKUP_RUN_STORAGE_KEY,
+  restoreRun,
+  serializeRun,
+} from "./helper/backup-progress";
 import { getVisibleBackupAgents } from "./helper/visible-agents";
 
 declare global {
@@ -64,6 +76,10 @@ class HaConfigBackup extends SubscribeMixin(HassRouterPage) {
     { uploaded_bytes: number; total_bytes: number }
   > = {};
 
+  @state() private _run?: RunSnapshot;
+
+  private _runRestoreChecked = false;
+
   private _debouncedFetchBackupAgents = debounce(
     () => this._fetchBackupAgents(),
     500,
@@ -73,6 +89,7 @@ class HaConfigBackup extends SubscribeMixin(HassRouterPage) {
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
     this._fetchAll();
+    this.addEventListener("ha-dismiss-backup-run", this._dismissRun);
     this.addEventListener("ha-refresh-backup-info", () => {
       this._fetchBackupInfo();
     });
@@ -83,6 +100,41 @@ class HaConfigBackup extends SubscribeMixin(HassRouterPage) {
       this._fetchBackupAgents();
     });
   }
+
+  // Follows the running operation (or the one that just ended) for the
+  // progress card. The server replays its latest events on subscribe, which
+  // restores the stage and byte counts after a reload; the times this page
+  // recorded are kept in session storage.
+  private _trackRun(event: BackupSubscriptionEvent) {
+    const isHassio = isComponentLoaded(this.hass.config, "hassio");
+    if (!("agent_id" in event) && !this._runRestoreChecked) {
+      this._runRestoreChecked = true;
+      let stored: RunSnapshot | undefined;
+      try {
+        stored = restoreRun(sessionStorage.getItem(BACKUP_RUN_STORAGE_KEY));
+      } catch (_err) {
+        stored = undefined;
+      }
+      const adopted = adoptStoredRun(stored, event);
+      if (adopted) {
+        this._run = adopted;
+      }
+    }
+    this._run = applyBackupEvent(this._run, event, Date.now(), isHassio);
+    try {
+      if (this._run && this._run.state === "in_progress") {
+        sessionStorage.setItem(BACKUP_RUN_STORAGE_KEY, serializeRun(this._run));
+      } else {
+        sessionStorage.removeItem(BACKUP_RUN_STORAGE_KEY);
+      }
+    } catch (_err) {
+      // Storage can be unavailable; the card then restarts its timers
+    }
+  }
+
+  private _dismissRun = () => {
+    this._run = undefined;
+  };
 
   private _fetchAll() {
     this._fetching = true;
@@ -168,6 +220,7 @@ class HaConfigBackup extends SubscribeMixin(HassRouterPage) {
     pageEl.agents = getVisibleBackupAgents(this._agents);
     pageEl.fetching = this._fetching;
     pageEl.uploadProgress = this._uploadProgress;
+    pageEl.run = this._run;
 
     if (!changedProps || changedProps.has("route")) {
       switch (this._currentPage) {
@@ -193,6 +246,7 @@ class HaConfigBackup extends SubscribeMixin(HassRouterPage) {
         { type: ["service"] }
       ),
       subscribeBackupEvents(this.hass!, (event) => {
+        this._trackRun(event);
         if ("agent_id" in event) {
           this._uploadProgress = {
             ...this._uploadProgress,

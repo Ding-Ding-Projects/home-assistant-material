@@ -80,14 +80,15 @@ class HaUpdateOutput extends LitElement {
         ${this._renderBody()}
         ${
           this._expanded
-            ? html`<label class="follow">
-                <input
-                  type="checkbox"
-                  .checked=${this._follow}
-                  @change=${this._setFollow}
-                />
+            ? html`<ha-button
+                class="follow"
+                size="small"
+                appearance=${this._follow ? "filled" : "plain"}
+                aria-pressed=${this._follow ? "true" : "false"}
+                @click=${this._setFollow}
+              >
                 ${t("output.follow")}
-              </label>`
+              </ha-button>`
             : nothing
         }
         <p class="note">${t("output.masked_note")}</p>
@@ -130,8 +131,8 @@ ${shown.join("\n")}</pre>
     this._expanded = !this._expanded;
   }
 
-  private _setFollow(ev: Event): void {
-    this._follow = (ev.target as HTMLInputElement).checked;
+  private _setFollow(): void {
+    this._follow = !this._follow;
   }
 
   private async _copy(): Promise<void> {
