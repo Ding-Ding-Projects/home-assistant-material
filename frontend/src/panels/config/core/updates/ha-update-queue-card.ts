@@ -1,0 +1,314 @@
+import {
+  mdiAlertCircle,
+  mdiCheckCircle,
+  mdiClockOutline,
+  mdiSkipNextCircle,
+} from "@mdi/js";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { LitElement, css, html, nothing } from "lit";
+import { customElement, property } from "lit/decorators";
+import { LanguageModeController } from "../../../../common/language-mode/language-mode-controller";
+import "../../../../components/ha-button";
+import "../../../../components/ha-spinner";
+import "../../../../components/ha-svg-icon";
+import "../../../../components/progress/ha-progress-bar";
+import type { UpdateEntity } from "../../../../data/update";
+import { haStyle } from "../../../../resources/styles";
+import type { HomeAssistant } from "../../../../types";
+import type { QueueStep } from "./update-queue";
+import { queueIsActive, queueProgress } from "./update-queue";
+import type { UpdateQueueController } from "./update-queue-controller";
+
+const PREFIX = "ui.panel.config.updates.queue";
+
+/** The name an update is shown under. */
+export const updateDisplayName = (
+  hass: HomeAssistant,
+  entityId: string
+): string => {
+  const entity = hass.states[entityId] as UpdateEntity | undefined;
+  if (!entity) {
+    return entityId;
+  }
+  return (
+    entity.attributes.title || hass.formatEntityName(entity) || entity.entity_id
+  );
+};
+
+const STATE_ICON: Partial<Record<QueueStep["state"], string>> = {
+  waiting: mdiClockOutline,
+  done: mdiCheckCircle,
+  failed: mdiAlertCircle,
+  skipped: mdiSkipNextCircle,
+};
+
+/** The card at the top of the updates page while "Update everything" runs. */
+@customElement("ha-update-queue-card")
+class HaUpdateQueueCard extends LitElement {
+  @property({ attribute: false }) public hass!: HomeAssistant;
+
+  @property({ attribute: false }) public controller!: UpdateQueueController;
+
+  private _lang = new LanguageModeController(this);
+
+  private _t(key: string, values?: Record<string, string | number>): string {
+    return this._lang.text(this.hass.localize, `${PREFIX}.${key}`, values);
+  }
+
+  protected render(): TemplateResult | typeof nothing {
+    const queue = this.controller.queue;
+    if (!queue) {
+      return nothing;
+    }
+    const active = queueIsActive(queue);
+    const progress = queueProgress(queue);
+    const current = queue.steps.find(
+      (step) => step.state === "updating" || step.state === "failed"
+    );
+    const currentName = current
+      ? updateDisplayName(this.hass, current.entityId)
+      : "";
+    const done = queue.steps.filter((step) => step.state === "done").length;
+    const currentEntity = current
+      ? (this.hass.states[current.entityId] as UpdateEntity | undefined)
+      : undefined;
+    const stepPercent = currentEntity?.attributes.update_percentage;
+
+    let title: string;
+    let text: string | undefined;
+    if (queue.failure) {
+      title = this._t("failed_title", { name: currentName });
+      text = this._t(`failed_text_${queue.failure.reason}`, {
+        error: this.controller.failureMessage ?? "",
+      });
+    } else if (active) {
+      title = this._t("progress_title", {
+        position: progress.position,
+        total: progress.total,
+        name: currentName,
+      });
+      text = queue.stopRequested
+        ? this._t("stopping", { name: currentName })
+        : undefined;
+    } else {
+      title = queue.stopRequested
+        ? this._t("stopped_title")
+        : this._t("finished_title");
+      text = this._t("finished_text", { done, total: progress.total });
+    }
+
+    const progressText = this._t("progress_text", {
+      finished: progress.finished,
+      total: progress.total,
+    });
+
+    return html`
+      <section class="card" aria-labelledby="queue-title">
+        <h2 id="queue-title" class=${queue.failure ? "failed" : ""}>
+          ${title}
+        </h2>
+        ${text ? html`<p class="lead">${text}</p>` : nothing}
+        <ha-progress-bar
+          .value=${progress.percent}
+          .label=${`${this._t("progress_label")}: ${progressText}`}
+        ></ha-progress-bar>
+        <p class="progress-text">
+          ${progressText}${
+            active && typeof stepPercent === "number"
+              ? html` · ${currentName}: ${stepPercent}%`
+              : nothing
+          }
+        </p>
+        ${
+          active && typeof stepPercent === "number"
+            ? html`<ha-progress-bar
+                class="step-bar"
+                .value=${stepPercent}
+                .label=${`${currentName}: ${stepPercent}%`}
+              ></ha-progress-bar>`
+            : nothing
+        }
+        <ol class="steps" aria-label=${this._t("steps_label")}>
+          ${queue.steps.map((step) => this._renderStep(step))}
+        </ol>
+        <div class="actions">
+          ${
+            queue.failure
+              ? html`
+                  <ha-button appearance="filled" @click=${this._retry}>
+                    ${this._t("retry")}
+                  </ha-button>
+                  <ha-button appearance="outlined" @click=${this._skip}>
+                    ${this._t("skip")}
+                  </ha-button>
+                `
+              : active
+                ? html`
+                    <ha-button
+                      appearance="outlined"
+                      .disabled=${queue.stopRequested}
+                      @click=${this._stop}
+                    >
+                      ${this._t("stop")}
+                    </ha-button>
+                    <span class="note">${this._t("stop_note")}</span>
+                  `
+                : html`<ha-button appearance="filled" @click=${this._dismiss}>
+                    ${this._t("dismiss")}
+                  </ha-button>`
+          }
+        </div>
+      </section>
+    `;
+  }
+
+  private _renderStep(step: QueueStep): TemplateResult {
+    const icon = STATE_ICON[step.state];
+    return html`
+      <li class="step ${step.state}">
+        <span class="step-icon" aria-hidden="true">
+          ${
+            step.state === "updating"
+              ? html`<ha-spinner size="small"></ha-spinner>`
+              : icon
+                ? html`<ha-svg-icon .path=${icon}></ha-svg-icon>`
+                : nothing
+          }
+        </span>
+        <span class="step-name"
+          >${updateDisplayName(this.hass, step.entityId)}</span
+        >
+        <span class="step-state">${this._t(`state_${step.state}`)}</span>
+      </li>
+    `;
+  }
+
+  private _stop(): void {
+    this.controller.stopAfterCurrent();
+  }
+
+  private _retry(): void {
+    this.controller.retry();
+  }
+
+  private _skip(): void {
+    this.controller.skip();
+  }
+
+  private _dismiss(): void {
+    this.controller.dismiss();
+  }
+
+  static get styles(): CSSResultGroup {
+    return [
+      haStyle,
+      css`
+        :host {
+          display: block;
+        }
+        .card {
+          box-sizing: border-box;
+          padding: var(--ha-space-5) var(--ha-space-6);
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--card-background-color);
+          border: 2px solid var(--primary-color);
+        }
+        h2 {
+          margin: 0 0 var(--ha-space-2);
+          font-size: var(--ha-font-size-l);
+          font-weight: var(--ha-font-weight-medium);
+          overflow-wrap: anywhere;
+        }
+        h2.failed {
+          color: var(--error-color);
+        }
+        .lead {
+          margin: 0 0 var(--ha-space-3);
+          line-height: var(--ha-line-height-normal);
+          overflow-wrap: anywhere;
+        }
+        ha-progress-bar {
+          --ha-progress-bar-track-height: 12px;
+          --ha-progress-bar-indicator-color: var(--primary-color);
+        }
+        .step-bar {
+          --ha-progress-bar-track-height: 8px;
+          margin-block-start: var(--ha-space-2);
+        }
+        .progress-text {
+          margin: var(--ha-space-2) 0 var(--ha-space-3);
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+        .steps {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-1);
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+        .step {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
+          min-height: 40px;
+        }
+        .step-icon {
+          display: inline-flex;
+          flex: none;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          color: var(--secondary-text-color);
+        }
+        .step.done .step-icon {
+          color: var(--success-color);
+        }
+        .step.failed .step-icon,
+        .step.failed .step-state {
+          color: var(--error-color);
+        }
+        .step.updating .step-name {
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .step-name {
+          flex: 1;
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+        .step-state {
+          flex: none;
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+        .actions {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-2) var(--ha-space-4);
+          margin-block-start: var(--ha-space-4);
+        }
+        .actions ha-button {
+          min-height: 48px;
+        }
+        .note {
+          flex: 1 1 200px;
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          ha-progress-bar {
+            --ha-progress-bar-animation-duration: 0s;
+          }
+        }
+      `,
+    ];
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "ha-update-queue-card": HaUpdateQueueCard;
+  }
+}

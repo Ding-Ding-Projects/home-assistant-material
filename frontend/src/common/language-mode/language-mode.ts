@@ -27,6 +27,7 @@ export const YUE_PREFIXES = [
   "ui.panel.config.dashboard.",
   "ui.panel.config.updates.check_updates",
   "ui.panel.config.updates.build_data.",
+  "ui.panel.config.updates.queue.",
   "ui.panel.config.updates.coming_soon.",
   "ui.panel.config.updates.compare.",
   "ui.panel.config.system_dashboard.restart_homeassistant",

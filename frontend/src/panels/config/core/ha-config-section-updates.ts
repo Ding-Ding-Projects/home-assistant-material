@@ -20,6 +20,7 @@ import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { supportsFeature } from "../../../common/entity/supports-feature";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { navigate } from "../../../common/navigate";
 import "../../../components/animation/ha-fade-in";
 import "../../../components/entity/state-badge";
@@ -65,7 +66,10 @@ import {
   updateIsInstalling,
   UpdateEntityFeature,
 } from "../../../data/update";
-import { showAlertDialog } from "../../../dialogs/generic/show-dialog-box";
+import {
+  showAlertDialog,
+  showConfirmationDialog,
+} from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import { haStyle } from "../../../resources/styles";
@@ -73,6 +77,13 @@ import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
 import "./updates/ha-update-changes";
 import "./updates/ha-update-coming-soon";
+import { updateDisplayName } from "./updates/ha-update-queue-card";
+import { UpdateQueueController } from "./updates/update-queue-controller";
+import {
+  orderUpdateQueue,
+  updateBlockReason,
+  updateRole,
+} from "./updates/update-queue";
 import { showJoinBetaDialog } from "./updates/show-dialog-join-beta";
 
 type UpdateRowVariant = "install" | "skipped" | "manual" | "current";
@@ -95,6 +106,26 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   @state() private _supervisorInfo?: HassioSupervisorInfo;
 
   @state() private _autoInfo?: AutoUpdateInfo;
+
+  private _lang = new LanguageModeController(this);
+
+  private _queue = new UpdateQueueController(this, () => this.hass);
+
+  private _text(key: string, values?: Record<string, string | number>): string {
+    return this._lang.text(
+      this.hass.localize,
+      `ui.panel.config.updates.queue.${key}`,
+      values
+    );
+  }
+
+  protected willUpdate(changedProps: PropertyValues<this>) {
+    super.willUpdate(changedProps);
+    if (changedProps.has("hass")) {
+      // A step that is running, or a stored queue after a reload.
+      this._queue.tick();
+    }
+  }
 
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
@@ -271,20 +302,32 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                       ? backupInProgressAlert
                       : nothing
                   }
-                  ${this._renderHero(installableUpdates, readyCount)}
-                  ${this._renderAutomatic()}
+                  ${this._renderHero(readyCount)} ${this._renderAutomatic()}
                   <ha-update-coming-soon
                     .hass=${this.hass}
                   ></ha-update-coming-soon>
+                  ${this._renderQueue(installableUpdates)}
                   ${
                     installableUpdates.length
                       ? html`<div class="rows">
                           ${installableUpdates.map((entity) =>
-                            this._renderRow(entity, "install")
+                            this._renderRow(
+                              entity,
+                              "install",
+                              this._blockText(entity, installableUpdates)
+                            )
                           )}
                         </div>`
                       : nothing
                   }
+                  <div
+                    class="visually-hidden"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    ${this._announcementText()}
+                  </div>
                   ${
                     notInstallableUpdates.length
                       ? this._renderListSection(
@@ -325,15 +368,8 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     `;
   }
 
-  private _renderHero(
-    installable: UpdateEntity[],
-    readyCount: number
-  ): TemplateResult {
+  private _renderHero(readyCount: number): TemplateResult {
     const localize = this.hass.localize;
-    const updateAll = this._updateAllEntityIds(installable);
-    const installing =
-      installable.length > 0 &&
-      installable.every((entity) => updateIsInstalling(entity));
     return html`
       <div class="hero-row">
         <section class="hero" aria-labelledby="hero-title">
@@ -358,18 +394,6 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
           </p>
         </section>
         <div class="hero-actions">
-          ${
-            updateAll.length > 1
-              ? html`<ha-button
-                  appearance="filled"
-                  .disabled=${installing}
-                  @click=${this._updateAll}
-                >
-                  <ha-svg-icon slot="start" .path=${mdiUpdate}></ha-svg-icon>
-                  ${localize("ui.panel.config.updates.update_all")}
-                </ha-button>`
-              : nothing
-          }
           <ha-button appearance="outlined" @click=${this._checkUpdates}>
             <ha-svg-icon slot="start" .path=${mdiRefresh}></ha-svg-icon>
             ${localize("ui.panel.config.updates.check_now")}
@@ -396,7 +420,8 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
 
   private _renderRow(
     entity: UpdateEntity,
-    variant: UpdateRowVariant
+    variant: UpdateRowVariant,
+    blockText?: string
   ): TemplateResult {
     const localize = this.hass.localize;
     const name = this.hass.formatEntityName(entity) || entity.entity_id;
@@ -492,10 +517,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                           size="s"
                           .entityId=${entity.entity_id}
                           .disabled=${
-                            this._backupInProgress() &&
-                            this._isAppUpdate(entity)
+                            !!blockText ||
+                            (this._backupInProgress() &&
+                              this._isAppUpdate(entity))
                           }
-                          @click=${system ? this._openMoreInfo : this._updateOne}
+                          @click=${system ? this._openSystemUpdate : this._updateOne}
                         >
                           ${localize("ui.common.update")}
                         </ha-button>`
@@ -510,8 +536,87 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                         >`
                       : nothing
                 }
+                ${
+                  blockText && variant === "install" && !installing
+                    ? html`<span class="block-reason">${blockText}</span>`
+                    : nothing
+                }
               `
         }
+      </div>
+    `;
+  }
+
+  private _blockText(
+    entity: UpdateEntity,
+    updates: UpdateEntity[]
+  ): string | undefined {
+    const reason = updateBlockReason(entity, updates, this._queue.active);
+    if (!reason) {
+      return undefined;
+    }
+    return reason.kind === "queue_running"
+      ? this._text("waiting_queue")
+      : this._text("waiting_for", {
+          name: updateDisplayName(this.hass, reason.entityId!),
+        });
+  }
+
+  private _announcementText(): string {
+    const note = this._queue.announcement;
+    if (!note) {
+      return "";
+    }
+    switch (note.kind) {
+      case "start":
+        return this._text("announce_start", {
+          name: updateDisplayName(this.hass, note.entityId),
+        });
+      case "done":
+        return this._text("announce_done", {
+          name: updateDisplayName(this.hass, note.entityId),
+        });
+      case "failed":
+        return this._text("announce_failed", {
+          name: updateDisplayName(this.hass, note.entityId),
+        });
+      case "stopped":
+        return this._text("announce_stopped");
+      default:
+        return this._text("announce_finished");
+    }
+  }
+
+  private _renderQueue(
+    installable: UpdateEntity[]
+  ): TemplateResult | typeof nothing {
+    if (this._queue.queue) {
+      return html`<ha-update-queue-card
+        .hass=${this.hass}
+        .controller=${this._queue}
+      ></ha-update-queue-card>`;
+    }
+    const ready = orderUpdateQueue(installable);
+    if (ready.length < 2) {
+      return nothing;
+    }
+    const running = installable.find((entity) => updateIsInstalling(entity));
+    const reason = running
+      ? this._text("waiting_for", {
+          name: updateDisplayName(this.hass, running.entity_id),
+        })
+      : undefined;
+    return html`
+      <div class="queue-bar">
+        <ha-button
+          appearance="filled"
+          .disabled=${!!running}
+          @click=${this._confirmQueue}
+        >
+          <ha-svg-icon slot="start" .path=${mdiUpdate}></ha-svg-icon>
+          ${this._text("button", { count: ready.length })}
+        </ha-button>
+        ${reason ? html`<span class="block-reason">${reason}</span>` : nothing}
       </div>
     `;
   }
@@ -766,17 +871,76 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     );
   }
 
-  // The Core, Operating System and Supervisor updates are left out: each of
-  // them restarts something, so they are started one at a time from their row.
-  private _updateAllEntityIds(installable: UpdateEntity[]): string[] {
-    return installable
-      .filter(
-        (entity) =>
-          !isSystemUpdate(entity) &&
-          !updateIsInstalling(entity) &&
-          !(this._backupInProgress() && this._isAppUpdate(entity))
-      )
-      .map((entity) => entity.entity_id);
+  // Checked again when a button is pressed, because the screen may be a
+  // moment behind another update that has just started.
+  private _isBlockedNow(entityId: string): boolean {
+    const entity = this.hass.states[entityId] as UpdateEntity | undefined;
+    if (!entity) {
+      return true;
+    }
+    const updates = this._filterInstallableUpdateEntities(
+      this.hass.states,
+      this.hass.formatEntityName
+    );
+    return !!updateBlockReason(entity, updates, this._queue.active);
+  }
+
+  private _roleText(entity: UpdateEntity): string {
+    return this._text(`role_${updateRole(entity)}`);
+  }
+
+  private async _confirmQueue(): Promise<void> {
+    const updates = this._filterInstallableUpdateEntities(
+      this.hass.states,
+      this.hass.formatEntityName
+    );
+    const ready = orderUpdateQueue(updates);
+    if (
+      ready.length < 2 ||
+      this._queue.active ||
+      updates.some((entity) => updateIsInstalling(entity))
+    ) {
+      return;
+    }
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._text("confirm_title"),
+      text: html`
+        <p>${this._text("confirm_intro", { count: ready.length })}</p>
+        <ol>
+          ${ready.map(
+            (entity) =>
+              html`<li>
+                <strong
+                  >${updateDisplayName(this.hass, entity.entity_id)}</strong
+                >: ${this._roleText(entity)}
+              </li>`
+          )}
+        </ol>
+      `,
+      confirmText: this._text("confirm_action"),
+      dismissText: this.hass.localize("ui.common.cancel"),
+    });
+    if (!confirmed) {
+      return;
+    }
+    // The list may have changed while the dialog was open.
+    this._queue.start(
+      orderUpdateQueue(
+        this._filterInstallableUpdateEntities(
+          this.hass.states,
+          this.hass.formatEntityName
+        )
+      ),
+      this._autoInfo?.backup ?? false
+    );
+  }
+
+  private _openSystemUpdate(ev: Event): void {
+    const entityId = (ev.currentTarget as any).entityId as string;
+    if (this._isBlockedNow(entityId)) {
+      return;
+    }
+    this._openMoreInfo(ev);
   }
 
   private _openMoreInfo(ev: Event): void {
@@ -837,16 +1001,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     checkForEntityUpdates(this, this.hass);
   }
 
-  private async _updateAll(): Promise<void> {
-    const installable = this._filterInstallableUpdateEntities(
-      this.hass.states,
-      this.hass.formatEntityName
-    );
-    await this._install(this._updateAllEntityIds(installable));
-  }
-
   private async _updateOne(ev: Event): Promise<void> {
     const entityId = (ev.currentTarget as any).entityId as string;
+    if (this._isBlockedNow(entityId)) {
+      return;
+    }
     await this._install([entityId]);
   }
 
@@ -1083,12 +1242,58 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       .version ha-svg-icon {
         --mdc-icon-size: 16px;
       }
+      .row ha-button {
+        --ha-button-height: 48px;
+      }
+      .auto-switch {
+        min-height: 48px;
+      }
+      .block-reason {
+        flex: 1 1 100%;
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+        overflow-wrap: anywhere;
+      }
+      .queue-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--ha-space-2) var(--ha-space-4);
+      }
+      .queue-bar ha-button {
+        --ha-button-height: 48px;
+      }
+      .queue-bar .block-reason {
+        flex: 1 1 200px;
+      }
+      /* On a phone the title has its own full line; the versions sit under
+         it and the controls wrap in a row below. */
       :host([narrow]) .row {
         flex-wrap: wrap;
       }
       :host([narrow]) .row-main {
         flex: 1 1 100%;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: start;
+        column-gap: var(--ha-space-3);
+        row-gap: var(--ha-space-1);
+      }
+      :host([narrow]) .row-main state-badge {
+        grid-row: 1 / span 3;
+      }
+      :host([narrow]) .row-main .text,
+      :host([narrow]) .row-main .version,
+      :host([narrow]) .row-main .chip {
+        grid-column: 2;
+        justify-self: start;
+        min-width: 0;
+      }
+      :host([narrow]) .row-main .version {
         flex-wrap: wrap;
+      }
+      :host([narrow]) .row-main {
+        min-height: 48px;
       }
       .chip {
         flex: none;

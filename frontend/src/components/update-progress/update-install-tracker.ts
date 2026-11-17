@@ -753,7 +753,8 @@ const depsFromHass = (hass: HomeAssistant): UpdateTrackerDeps => ({
 export const installUpdatesTracked = async (
   hass: HomeAssistant,
   entityIds: string[],
-  notifyOnError = true
+  notifyOnError = true,
+  backup = false
 ): Promise<void> => {
   const deps = depsFromHass(hass);
   const followed: { id: string; generation: number }[] = [];
@@ -762,14 +763,28 @@ export const installUpdatesTracked = async (
     if (entity && computeStateDomain(entity) === "update") {
       followed.push({
         id: entityId,
-        generation: updateInstallTracker.begin(deps, entity, {
-          entity_id: entityId,
-        }),
+        generation: updateInstallTracker.begin(
+          deps,
+          entity,
+          backup
+            ? { entity_id: entityId, backup: true }
+            : { entity_id: entityId }
+        ),
       });
     }
   }
   try {
-    await installUpdates(hass, entityIds, notifyOnError);
+    if (backup) {
+      await hass.callService(
+        "update",
+        "install",
+        { entity_id: entityIds, backup: true },
+        undefined,
+        notifyOnError
+      );
+    } else {
+      await installUpdates(hass, entityIds, notifyOnError);
+    }
     followed.forEach(({ id, generation }) =>
       updateInstallTracker.finishCall(id, undefined, undefined, generation)
     );
