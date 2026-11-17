@@ -33,6 +33,7 @@ from .audio import APIAudio
 from .auth import APIAuth
 from .backups import APIBackups
 from .cli import APICli
+from .cloud_host import APICloudHost
 from .const import CONTENT_TYPE_TEXT, WEBSOCKETS, AppVersion
 from .discovery import APIDiscovery
 from .dns import APICoreDNS
@@ -143,6 +144,7 @@ class RestAPI(CoreSysAttributes):
             self._register_auth(app)
             self._register_backups(app)
             self._register_cli(app)
+            self._register_cloud_host(app)
             self._register_discovery(app)
             self._register_dns(app)
             self._register_docker(app)
@@ -368,6 +370,23 @@ class RestAPI(CoreSysAttributes):
             ]
         )
 
+    def _register_cloud_host(self, app: web.Application) -> None:
+        """Register cloud host functions."""
+        api_cloud_host = APICloudHost()
+        api_cloud_host.coresys = self.coresys
+
+        app.add_routes(
+            [
+                web.get("/cloud_host/info", api_cloud_host.info),
+                web.get("/cloud_host/sign_in", api_cloud_host.sign_in),
+                web.post("/cloud_host/setup", api_cloud_host.setup),
+                web.post("/cloud_host/pause", api_cloud_host.pause),
+                web.post("/cloud_host/resume", api_cloud_host.resume),
+                web.post("/cloud_host/remove", api_cloud_host.remove),
+                web.post("/cloud_host/check", api_cloud_host.check),
+            ]
+        )
+
     def _register_os(self, app: web.Application) -> None:
         """Register OS functions."""
         api_os = APIOS()
@@ -381,6 +400,7 @@ class RestAPI(CoreSysAttributes):
                     "/os/offline_update/candidates", api_os.offline_update_candidates
                 ),
                 web.post("/os/offline_update", api_os.offline_update),
+                web.post("/os/offline_update/pack", api_os.offline_update_pack),
                 web.get("/os/config/swap", api_os.config_swap_info),
                 web.post("/os/config/swap", api_os.config_swap_options),
                 web.post("/os/config/sync", api_os.config_sync),

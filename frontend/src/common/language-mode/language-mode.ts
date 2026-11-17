@@ -25,6 +25,8 @@ export const YUE_PREFIXES = [
   "ui.panel.config.backup.hosting.",
   "ui.panel.history.comparison.",
   "ui.panel.config.personal.",
+  "ui.panel.config.device_health.",
+  "ui.panel.config.tools.nav.",
   // Single strings, not whole blocks: the settings home banners and the apps page.
   "ui.panel.config.dashboard.",
   "ui.panel.config.updates.check_updates",
@@ -51,9 +53,11 @@ export const YUE_PREFIXES = [
   "ui.panel.config.updates.queue.",
   "ui.panel.config.updates.coming_soon.",
   "ui.panel.config.updates.compare.",
+  "ui.panel.config.updates.history.",
   "ui.panel.config.updates.usb.",
   "ui.panel.config.updates.build_notes.",
   "ui.panel.config.system_dashboard.restart_homeassistant",
+  "ui.panel.config.areas.room_wizard.",
   // The navigation rail, the panel names and the notification drawer.
   "ui.sidebar.",
   "panel.",
@@ -63,6 +67,7 @@ export const YUE_PREFIXES = [
   // The home page cards.
   "ui.panel.lovelace.cards.home_hero.",
   "ui.panel.lovelace.cards.home_greeting.",
+  "ui.panel.lovelace.cards.away_digest.",
   "ui.panel.lovelace.cards.lights_summary.",
   "ui.panel.lovelace.cards.security_locks.",
   "ui.panel.lovelace.cards.security_alarm.",
@@ -135,6 +140,7 @@ export const YUE_PREFIXES = [
   "ui.panel.config.automation.editor.search.",
   "ui.panel.config.automation.editor.frame.",
   "ui.panel.config.automation.editor.helper_panel.",
+  "ui.panel.config.automation.editor.dry_run_replay.",
   "ui.panel.config.guided_setup.no_entries",
   "ui.panel.config.guided_setup.can_set_up",
   "ui.panel.config.guided_setup.domain_level",

@@ -1,7 +1,7 @@
 """OS support on supervisor."""
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
@@ -40,6 +40,7 @@ from ..jobs.decorator import Job
 from ..jobs.job_group import JobGroup
 from ..resolution.const import ContextType, IssueType, SuggestionType
 from .data_disk import DataDisk
+from .offline_pack import INSTALL_ORDER, PackPartKind, PackVerifyError
 from .offline_update import (
     VERDICT_REASONS,
     OfflineUpdateCandidate,
@@ -535,6 +536,7 @@ class OSManager(JobGroup):
                         for bundle in bundles
                         if bundle.candidate.drive_id == drive_id
                         and bundle.candidate.path == path
+                        and bundle.candidate.kind == "bundle"
                     ]
                     if not found:
                         raise HassOSOfflineUpdateNotFoundError(None, _LOGGER.warning)
@@ -582,6 +584,142 @@ class OSManager(JobGroup):
                 await self.sys_run_in_executor(
                     partial(local_bundle.unlink, missing_ok=True)
                 )
+
+    @Job(
+        name="os_manager_update_from_pack",
+        conditions=[
+            JobCondition.HAOS,
+            JobCondition.HEALTHY,
+            JobCondition.MOUNT_AVAILABLE,
+            JobCondition.RUNNING,
+            JobCondition.SUPERVISOR_UPDATED,
+        ],
+        on_condition=HassOSJobError,
+        concurrency=JobConcurrency.REJECT,
+    )
+    async def update_from_pack(
+        self,
+        drive_id: str,
+        path: str,
+        *,
+        validation_complete: asyncio.Event | None = None,
+    ) -> dict[str, list[dict[str, str]]]:
+        """Install an offline update pack from a removable drive.
+
+        Every part is verified against the manifest before anything is touched,
+        and the whole pack is refused when one part does not match. Parts are
+        handled in the order Supervisor, Core, operating system. Only the
+        operating system has an install path that reads a file; the others are
+        reported as needing the network instead of being installed.
+        """
+        job = self.sys_jobs.current
+        job.reference = drive_id
+
+        bundle_name = f"hassos-offline-{uuid4().hex}.raucb"
+        local_bundle = Path(self.sys_config.path_tmp, bundle_name)
+        ext_bundle = Path(self.sys_config.path_extern_tmp, bundle_name)
+
+        def stage_progress(start: int, end: int) -> Callable[[float], None]:
+            reported = start
+
+            def report(fraction: float) -> None:
+                nonlocal reported
+                if (percent := start + int(fraction * (end - start))) > reported:
+                    reported = percent
+                    job.update(progress=percent)
+
+            return report
+
+        async with self._exclusive_update():
+            try:
+                async with self._offline_updates.session(wait=True) as bundles:
+                    found = [
+                        bundle
+                        for bundle in bundles
+                        if bundle.candidate.drive_id == drive_id
+                        and bundle.candidate.path == path
+                        and bundle.candidate.kind == "pack"
+                    ]
+                    if not found:
+                        raise HassOSOfflineUpdateNotFoundError(None, _LOGGER.warning)
+                    if len(found) > 1:
+                        raise HassOSOfflineUpdateNotAllowedError(
+                            _LOGGER.warning,
+                            reason="the same pack exists on more than one "
+                            "partition of the drive",
+                        )
+
+                    candidate = found[0].candidate
+                    manifest = found[0].manifest
+                    os_part = manifest.part(PackPartKind.OS) if manifest else None
+                    if candidate.verdict != OfflineUpdateVerdict.OK or os_part is None:
+                        raise HassOSOfflineUpdateNotAllowedError(
+                            _LOGGER.warning,
+                            reason=VERDICT_REASONS[candidate.verdict],
+                        )
+                    version = AwesomeVersion(candidate.version)
+
+                    if validation_complete:
+                        validation_complete.set()
+
+                    job.update(progress=0, stage="verifying")
+                    try:
+                        await self._offline_updates.verify_pack_parts(
+                            found[0], stage_progress(0, 40)
+                        )
+                    except PackVerifyError as err:
+                        raise HassOSOfflineUpdateNotAllowedError(
+                            _LOGGER.error, reason=str(err)
+                        ) from err
+
+                    job.update(progress=40, stage="copying")
+                    sha256 = await self._offline_updates.copy_file(
+                        found[0].file_path.parent / str(os_part.file),
+                        os_part.size,
+                        local_bundle,
+                        stage_progress(40, 70),
+                    )
+                    if sha256 != os_part.sha256:
+                        raise HassOSOfflineUpdateNotAllowedError(
+                            _LOGGER.error,
+                            reason="the operating system part changed while it "
+                            "was copied",
+                        )
+
+                results = []
+                for kind in INSTALL_ORDER:
+                    part = manifest.part(kind) if manifest else None
+                    if kind is not PackPartKind.OS:
+                        status = "needs_network" if part and part.available else "skipped"
+                        results.append(
+                            {
+                                "kind": kind.value,
+                                "status": status,
+                                "reason": "no update path reads this part from a file"
+                                if status == "needs_network"
+                                else "not in this pack",
+                            }
+                        )
+                        continue
+
+                    _LOGGER.info(
+                        "Installing Home Assistant Operating System %s from pack "
+                        "(SHA-256 %s)",
+                        version,
+                        sha256,
+                    )
+                    job.update(progress=70, stage="installing", extra={"sha256": sha256})
+                    await self._install_bundle(
+                        ext_bundle, version, reject_unverified=True
+                    )
+                    results.append({"kind": kind.value, "status": "installed"})
+                job.update(progress=100)
+            finally:
+                await self.sys_run_in_executor(
+                    partial(local_bundle.unlink, missing_ok=True)
+                )
+
+        return {"parts": results}
 
     @Job(
         name="os_manager_update_raspberrypi_firmware",

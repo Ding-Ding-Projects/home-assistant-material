@@ -199,6 +199,25 @@ class HaPanelDevStateRenderer extends LitElement {
             <div class="id-name-container">
               <div class="id-name-row">
                 <ha-svg-icon
+                  @click=${this._entityMoreInfo}
+                  .entity=${item}
+                  alt=${this._i18n.localize(
+                    "ui.panel.config.tools.tabs.states.more_info"
+                  )}
+                  title=${this._i18n.localize(
+                    "ui.panel.config.tools.tabs.states.more_info"
+                  )}
+                  .path=${mdiInformationOutline}
+                ></ha-svg-icon>
+                <span class="friendly-name">
+                  ${
+                    this._formatEntityName(item, { type: "entity" }) ||
+                    item.entity_id
+                  }
+                </span>
+              </div>
+              <div class="id-name-row">
+                <ha-svg-icon
                   @click=${this._copyEntity}
                   .entity=${item}
                   alt=${this._i18n.localize(
@@ -212,22 +231,6 @@ class HaPanelDevStateRenderer extends LitElement {
                 <a href="#" .entity=${item} @click=${this._entitySelected}
                   >${item.entity_id}</a
                 >
-              </div>
-              <div class="id-name-row">
-                <ha-svg-icon
-                  @click=${this._entityMoreInfo}
-                  .entity=${item}
-                  alt=${this._i18n.localize(
-                    "ui.panel.config.tools.tabs.states.more_info"
-                  )}
-                  title=${this._i18n.localize(
-                    "ui.panel.config.tools.tabs.states.more_info"
-                  )}
-                  .path=${mdiInformationOutline}
-                ></ha-svg-icon>
-                <span class="secondary">
-                  ${this._formatEntityName(item, { type: "entity" })}
-                </span>
               </div>
             </div>
           </span>
@@ -307,10 +310,25 @@ class HaPanelDevStateRenderer extends LitElement {
     return [
       haStyle,
       css`
-        :host([virtualize]) {
+        :host {
           display: block;
+          min-width: 0;
+          max-width: 100%;
+          overflow-x: auto;
+        }
+
+        :host([virtualize]) {
           height: 100%;
           overflow: auto;
+        }
+
+        .cell .friendly-name {
+          font-weight: var(--ha-font-weight-medium);
+          overflow-wrap: anywhere;
+        }
+
+        .entities a {
+          overflow-wrap: anywhere;
         }
 
         .entities {

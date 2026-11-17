@@ -26,7 +26,11 @@ The device must still start far enough to run the operating system, the update s
 
 The automatic fallback that already exists keeps working: if a freshly installed system copy fails to start, the device returns to the previous copy on its own. This feature is for the cases that fallback does not handle.
 
-## Preparing the stick by hand
+## Preparing the stick
+
+The Deploy Assistant can write the request file (and the update file for a reinstall) for you: see [Making a stick with the Deploy Assistant](offline-update-pack.md#making-a-stick-with-the-deploy-assistant). It needs a stick that is already labelled `HA-RECOVERY` and does not relabel or format anything. For updating a device without internet from a whole build, see the [offline update pack](offline-update-pack.md).
+
+By hand:
 
 You need a USB stick of any size and another computer.
 

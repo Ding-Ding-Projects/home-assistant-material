@@ -15,7 +15,7 @@
   function icon(n, cls) { var p = S.icons[n] || S.icons.InformationOutline; return '<svg class="ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true"><path d="' + p + '"></path></svg>'; }
 
   // ---------- Stored choices (this window only; instances live in the app's data folder) ----------
-  var TABS = ['deploy', 'instances', 'backups', 'downloads', 'hosts', 'activity', 'extensions', 'tools', 'convert', 'base64', 'draw', 'minecraft', 'models', 'disks', 'support', 'changes', 'run', 'features', 'articles', 'status', 'design', 'settings', 'help'];
+  var TABS = ['deploy', 'instances', 'backups', 'downloads', 'hosts', 'activity', 'extensions', 'tools', 'convert', 'base64', 'draw', 'minecraft', 'models', 'disks', 'stick', 'support', 'changes', 'run', 'features', 'articles', 'status', 'design', 'settings', 'help'];
   var DEF = {
     lang: 'en', funEn: 5, funYue: 5, emoji: true, vocab: null, school: false, dimsum: true, tickets: [], otp: [], lowStim: false, spotlight: false,
     theme: 'system', seed: '#00639B', density: 'comfortable', textScale: 1, reduceMotion: false, contrast: false, focusRing: true, bigTargets: false,
@@ -40,7 +40,7 @@
 
   // ---------- Words ----------
   var W = {
-    deploy: ['Deploy', '部署'], instances: ['Instances', '實例'], backups: ['Backups', '備份'], hosts: ['SSH hosts', 'SSH 主機'], activity: ['Activity', '活動'], settings: ['Settings', '設定'], help: ['Help', '說明'], extensions: ['Extensions', '擴充'], tools: ['Tools', '工具'], support: ['Support', '支援'], changes: ['Changes', '更新紀錄'], run: ['Run it', '點樣行'], convert: ['Convert', '轉換'], base64: ['Base64', 'Base64'], draw: ['Draw', '畫畫'], minecraft: ['Minecraft', 'Minecraft'], models: ['AI models', 'AI 模型'], disks: ['Virtual disks', '虛擬磁碟'], setup: ['Setup', '安裝'], features: ['Features', '功能'], articles: ['Articles', '文章'], status: ['Status', '狀態'], design: ['Design', '設計'], modes: ['Modes', '模式'], sound: ['Sound and voice', '聲音同讀音'], schedule: ['Schedule', '時間表'], identity: ['Name and logo', '名同標誌'], updatesSet: ['Updates', '更新'], adhd: ['ADHD modes', 'ADHD 模式'],
+    deploy: ['Deploy', '部署'], instances: ['Instances', '實例'], backups: ['Backups', '備份'], hosts: ['SSH hosts', 'SSH 主機'], activity: ['Activity', '活動'], settings: ['Settings', '設定'], help: ['Help', '說明'], extensions: ['Extensions', '擴充'], tools: ['Tools', '工具'], support: ['Support', '支援'], changes: ['Changes', '更新紀錄'], run: ['Run it', '點樣行'], convert: ['Convert', '轉換'], base64: ['Base64', 'Base64'], draw: ['Draw', '畫畫'], minecraft: ['Minecraft', 'Minecraft'], models: ['AI models', 'AI 模型'], disks: ['Virtual disks', '虛擬磁碟'], stick: ['USB stick', 'USB 手指'], setup: ['Setup', '安裝'], features: ['Features', '功能'], articles: ['Articles', '文章'], status: ['Status', '狀態'], design: ['Design', '設計'], modes: ['Modes', '模式'], sound: ['Sound and voice', '聲音同讀音'], schedule: ['Schedule', '時間表'], identity: ['Name and logo', '名同標誌'], updatesSet: ['Updates', '更新'], adhd: ['ADHD modes', 'ADHD 模式'],
     search: ['Search', '搵嘢'], newtab: ['New tab', '新分頁'], openall: ['Open every tab', '打開晒所有分頁'], close: ['Close', '閂'], cancel: ['Cancel', '取消'], next: ['Next', '下一步'], back: ['Back', '返轉頭'],
     skip: ['Skip', '跳過'], done: ['Done', '搞掂'], reset: ['Reset', '還原'], copy: ['Copy', '複製'], export: ['Export', '匯出'], undo: ['Undo', '還原返'], clear: ['Clear', '清除'],
     notifications: ['Notifications', '通知'], access: ['Accessibility tools', '無障礙工具'], theme: ['Switch light and dark', '轉光暗'], palette: ['Search everything', '搵晒所有嘢'],
@@ -53,6 +53,14 @@
     searchFor: ['Search everything for this', '搵晒同呢樣有關嘢'], resetLook: ['Reset its appearance', '還原佢嘅外觀'], filterMenu: ['Search this menu', '搵呢個選單'],
     welcome: ['Welcome', '歡迎'], explain: ['About this setting', '關於呢個設定'], def: ['Default', '預設'], reaches: ['What it reaches', '影響範圍'],
     docker: ['Docker on this computer', '呢部電腦嘅 Docker'], pi: ['Raspberry Pi', 'Raspberry Pi'], downloads: ['Downloads', '下載'], ssh: ['SSH host', 'SSH 主機'], virtualbox: ['VirtualBox', 'VirtualBox'], vmware: ['VMware', 'VMware'],
+    piDescription: ['Write and verify the Raspberry Pi image, connect the Pi, then check its network address. Owner setup happens separately in the browser.', '寫入同核對 Raspberry Pi 映像，接駁 Pi，再檢查網絡地址。擁有者設定會另外喺瀏覽器進行。'], piModel: ['Raspberry Pi model', 'Raspberry Pi 型號'], piChooseWrite: ['Choose the card and write', '選擇記憶卡並寫入'], piEraseHint: ['Choose a drive and type ERASE to confirm before writing. Native administrator consent is still required.', '寫入之前要選擇磁碟，並輸入 ERASE 確認。仍然需要原生管理員授權。'],
+    piPrepare: ['Prepare installation media', '準備安裝媒體'],
+    piImaging: ['Preparing and verifying the image', '準備同核對緊映像'],
+    piImageStage: ['Download and check image', '下載同核對映像'], piWriteStage: ['Write the card', '寫入記憶卡'], piVerifyStage: ['Verify written image', '核對已寫入嘅映像'], piConnectStage: ['Connect and power on', '接駁網絡同電源'], piBootStage: ['Appliance boot and network readiness', '裝置開機同網絡就緒'], piOwnerStage: ['Owner account and sign-in', '擁有者帳戶同登入'],
+    piImageVerified: ['Written image verified', '已核對寫入嘅映像'], piConnectHelp: ['Safely remove the card, insert it into the Pi, connect Ethernet and power, then check readiness. The browser setup does not start the appliance.', '安全移除記憶卡，插入 Pi，接駁網絡線同電源，再檢查就緒狀態。瀏覽器設定唔係用嚟啟動裝置。'],
+    piOwnerHelp: ['The appliance starts before browser setup. Create the owner account, or sign in to an existing account, only after the address responds. This assistant does not create or store that account.', '裝置會喺瀏覽器設定之前啟動。地址有回應之後，先建立擁有者帳戶或者登入現有帳戶。呢個助手唔會建立或儲存嗰個帳戶。'],
+    'awaiting-device': ['Waiting for the appliance', '等候裝置'], piAmbiguous: ['A responder was found; confirm the address', '搵到有回應嘅裝置；請確認地址'], piIdentityNote: ['This checks the address, not the physical identity of the Pi. Confirm it is your intended device before owner setup.', '呢項檢查只核實地址，唔會核實 Pi 嘅實體身分。設定擁有者之前，請確認係你要用嘅裝置。'], piOwnerComplete: ['Owner setup is complete; sign in with the existing account.', '擁有者設定已完成；請用現有帳戶登入。'], piOwnerUnknown: ['Owner setup status is not verified. Open the checked address to continue.', '尚未核實擁有者設定狀態。打開已檢查嘅地址繼續。'], piManualAddress: ['Enter or confirm an address', '輸入或確認地址'], piWriteStopped: ['Writing or verification did not complete. Review the drive and start a new write only when intended.', '寫入或核對未完成。請檢查磁碟，確認需要重寫先開始新一次寫入。'],
+    piCheck: ['Check network readiness', '檢查網絡就緒狀態'], piRetry: ['Check again without rewriting', '再檢查，唔重寫記憶卡'], piAddress: ['Pi address', 'Pi 地址'], piAddressHelp: ['Enter the Pi hostname or LAN address. Checking it never rewrites the card.', '輸入 Pi 主機名稱或區域網絡地址。檢查地址唔會重寫記憶卡。'], piAddressMissing: ['Enter the Pi address first.', '請先輸入 Pi 地址。'], piChecking: ['Checking the appliance address', '檢查緊裝置地址'], piNotReady: ['Network readiness not yet verified', '尚未核實網絡就緒'], piNetworkReady: ['Appliance reachable', '已連接到裝置'], piOwnerPending: ['Owner setup is a separate step', '擁有者設定係獨立步驟'], piOpenSetup: ['Open owner setup or sign in', '打開擁有者設定或登入'], piNoRewrite: ['The verified image remains on the card. Retry only checks the network; it does not write the drive again.', '已核對嘅映像會保留喺記憶卡。重試只會檢查網絡，唔會再寫入磁碟。'], piDemo: ['Simulation only: no card was written and no appliance was contacted.', '只係示範：冇寫入記憶卡，亦冇連接任何裝置。'],
     running: ['Running', '運行緊'], stopped: ['Stopped', '停咗'], starting: ['Starting', '開緊'], deploying: ['Deploying', '部署緊'], failed: ['Failed', '失敗'], missing: ['Missing', '搵唔到'], unreachable: ['Unreachable', '連唔到']
   };
   function w(k) { var p = W[k] || [k, k]; return st.lang === 'yue' ? (p[1] || p[0]) : p[0]; }
@@ -76,7 +84,7 @@
     return st.lang === 'yue' ? yue : st.lang === 'both' ? en + ' ' + yue : en;
   }
 
-  var CHANGES = [{"version":"1.5","commit":"236ce3bb8cc6e1bc6fbfd418e65dc1981579080b","items":["With your wording file in use, a new deployment's container, Compose project or virtual machine is named with your file's word for that kind of deployment, in lower case with dashes. Without a file, and for deployments made earlier, the name is unchanged.","A small terminal shows every running job as it happens: deploys, Raspberry Pi cards, Minecraft consoles, the world generator and Chocolatey. Coloured lines, it follows new output unless you scroll up, and you can filter it, copy it, unwrap long lines or fill the window with it.","The Minecraft overview is a dashboard: who is playing (with message and kick), ticks per second, processor and memory, world size, backups, a live load chart, quick actions, the last console lines with a command line, and the address as a QR code.","Every tab has a header with an icon and its key facts.","A polish pass: the Name, Port and Image fields line up, the current wizard step is a rounded pill with its name kept on a phone, drop-down lists match the text fields, long status tags wrap inside their card, page actions sit under the title on a phone, and the live chart centres its waiting message."]},{"version":"1.4","commit":"915595cc9b3a2b10f6bb78c533e150568c029f31","items":["Minecraft servers: create Vanilla, Paper, Purpur, Fabric, Quilt, Forge, NeoForge or Bedrock servers from the official catalogues (every Mojang version, with channel filters), on Java or Docker, here or on an SSH host. Start, stop, restart, a live console with history, every server setting with its own control, game rules, operators, allowlist and bans, plugins and mods from Modrinth checked by SHA-512, backups and restore, version changes with a backup first, a daily schedule, and a world generator with a chunk grid you draw on, writing to a folder or a ZIP.","AI models: install Ollama from its official release (checked by SHA-256) or with Chocolatey, start and stop it, the full ollama.com library with every variant, a careful fit verdict for this computer, a pull list with progress and cancel, model details, copy, unload, delete, and a local chat.","Virtual disks (Windows): VHD, VHDX, VHD Set and ISO. A library with formats, sizes, partitions and attach state; create (with partitioning and formatting), attach and detach (also at every sign-in), grow and shrink, compact in every mode, convert, merge, child disks, online and read-only, and VHD Set checkpoints. Every operation shows its PowerShell and DiskPart script first and runs through one administrator prompt.","Chocolatey: anything missing (Docker Desktop, VirtualBox, VMware, Java, Git, Python, Node.js, Ollama, VS Code) installs in one click, and Chocolatey itself is installed first when needed. build.bat does the same for building.","Convert, Base64 and Draw tabs, QR codes, ZIP exports, a shared School mode with a PIN, the unlock ladder, Windows Snap layouts, and a fuller extension manager."]},{"version":"1.3","commit":"847f8541063a05e978830f9cde8aa8ba79a73625","items":["ADHD modes, each off by default: Focus, Low stimulation, Time awareness, One thing at a time and Momentum.","A narrator for what happens, off by default, in English, Cantonese or both, with a voice picker per language, speed and pitch.","Schedule rules: change the theme, language, density, motion or colour by days, times and dates, or while a Home Assistant switch is on; your own settings come back afterwards.","The dim sum surprise shows a photo from the public dim sum catalog, 1 time in 10 at start; its switch stays on. Each release has a dim sum code name.","Deleting now takes two keys and a slider, with an emergency exit.","The accessibility button gains read-aloud pause and stop, keyboard help, reset and a way to hide it.","Your own logo from a picture, export in eleven text formats with Open in VS Code, bulk actions on backups and hosts, a history of your records with restore, a clear button in every text box, a live processor chart, and changelog links to each commit.","FEATURES.md lists every feature the interface contract asks for and where the app stands."]},{"version":"1.2","commit":"1c3cc844825a106bbaa37f4497692e839b39309b","items":["New tabs that work offline: Run it, Features, Articles, Status, and Design, which shows every board of this app's design full size.","Tools, Authenticator: scan a one-time code's QR code from an image, a pasted screenshot or the camera.","Settings, Updates: an update self-test walks the releases, the feed, the package and its checksums, the installer, and whether an update was seen applied after a restart, and lets you copy the result.","After an update is applied, the app says so on its next start and keeps a record.","Only the camera and clipboard writing are allowed to the window; every other permission is refused."]},{"version":"1.1","commit":"6271ef36ece5a1e10c6745f57e9f33a129547ea7","items":["The Deploy tab is a two-pane app: pick where it runs on the left, see and change everything it will do on the right, and deploy with one button or Ctrl Enter.","New tabs: Extensions, Tools, Support and Changes.","Extensions: add small helpers in their own folder. Each one says what it may see, asks before it starts and again when that changes, runs in its own process, and never receives passwords or keys. Health report and Link sheet come built in.","Updates: on Windows the app updates itself in the background and asks you to restart. The update is not code-signed, and the banner says so. On macOS and Linux it tells you a new version is out.","Settings: school mode, a reading voice, a dark theme on a schedule, your own name and logo, and the dim sum surprise (names only).","The version and build time show on the first screen and in About.","Open an instance's Compose file in VS Code, or its folder, from its menu.","The filters and totals on Instances fold away."]},{"version":"1.0","commit":"6271ef36ece5a1e10c6745f57e9f33a129547ea7","items":["One-click deploys to Docker on this computer, an SSH host, VirtualBox and VMware, with a free port and name chosen for you and the link at the end.","Raspberry Pi card writer for the Pi 3, 4 and 5, with a read-back check.","Instance manager with start, stop, restart, update, logs, live processor use and backups on a schedule.","Every image downloaded and checked automatically, here and on your SSH hosts."]}];
+  var CHANGES = [{"version":"1.5","commit":"236ce3bb8cc6e1bc6fbfd418e65dc1981579080b","items":["With your wording file in use, a new deployment's container, Compose project or virtual machine is named with your file's word for that kind of deployment, in lower case with dashes. Without a file, and for deployments made earlier, the name is unchanged.\r","A small terminal shows every running job as it happens: deploys, Raspberry Pi cards, Minecraft consoles, the world generator and Chocolatey. Coloured lines, it follows new output unless you scroll up, and you can filter it, copy it, unwrap long lines or fill the window with it.\r","The Minecraft overview is a dashboard: who is playing (with message and kick), ticks per second, processor and memory, world size, backups, a live load chart, quick actions, the last console lines with a command line, and the address as a QR code.\r","Every tab has a header with an icon and its key facts.\r","A polish pass: the Name, Port and Image fields line up, the current wizard step is a rounded pill with its name kept on a phone, drop-down lists match the text fields, long status tags wrap inside their card, page actions sit under the title on a phone, and the live chart centres its waiting message.\r"]},{"version":"1.4","commit":"915595cc9b3a2b10f6bb78c533e150568c029f31","items":["Minecraft servers: create Vanilla, Paper, Purpur, Fabric, Quilt, Forge, NeoForge or Bedrock servers from the official catalogues (every Mojang version, with channel filters), on Java or Docker, here or on an SSH host. Start, stop, restart, a live console with history, every server setting with its own control, game rules, operators, allowlist and bans, plugins and mods from Modrinth checked by SHA-512, backups and restore, version changes with a backup first, a daily schedule, and a world generator with a chunk grid you draw on, writing to a folder or a ZIP.\r","AI models: install Ollama from its official release (checked by SHA-256) or with Chocolatey, start and stop it, the full ollama.com library with every variant, a careful fit verdict for this computer, a pull list with progress and cancel, model details, copy, unload, delete, and a local chat.\r","Virtual disks (Windows): VHD, VHDX, VHD Set and ISO. A library with formats, sizes, partitions and attach state; create (with partitioning and formatting), attach and detach (also at every sign-in), grow and shrink, compact in every mode, convert, merge, child disks, online and read-only, and VHD Set checkpoints. Every operation shows its PowerShell and DiskPart script first and runs through one administrator prompt.\r","Chocolatey: anything missing (Docker Desktop, VirtualBox, VMware, Java, Git, Python, Node.js, Ollama, VS Code) installs in one click, and Chocolatey itself is installed first when needed. build.bat does the same for building.\r","Convert, Base64 and Draw tabs, QR codes, ZIP exports, a shared School mode with a PIN, the unlock ladder, Windows Snap layouts, and a fuller extension manager.\r"]},{"version":"1.3","commit":"847f8541063a05e978830f9cde8aa8ba79a73625","items":["ADHD modes, each off by default: Focus, Low stimulation, Time awareness, One thing at a time and Momentum.\r","A narrator for what happens, off by default, in English, Cantonese or both, with a voice picker per language, speed and pitch.\r","Schedule rules: change the theme, language, density, motion or colour by days, times and dates, or while a Home Assistant switch is on; your own settings come back afterwards.\r","The dim sum surprise shows a photo from the public dim sum catalog, 1 time in 10 at start; its switch stays on. Each release has a dim sum code name.\r","Deleting now takes two keys and a slider, with an emergency exit.\r","The accessibility button gains read-aloud pause and stop, keyboard help, reset and a way to hide it.\r","Your own logo from a picture, export in eleven text formats with Open in VS Code, bulk actions on backups and hosts, a history of your records with restore, a clear button in every text box, a live processor chart, and changelog links to each commit.\r","FEATURES.md lists every feature the interface contract asks for and where the app stands.\r"]},{"version":"1.2","commit":"1c3cc844825a106bbaa37f4497692e839b39309b","items":["New tabs that work offline: Run it, Features, Articles, Status, and Design, which shows every board of this app's design full size.\r","Tools, Authenticator: scan a one-time code's QR code from an image, a pasted screenshot or the camera.\r","Settings, Updates: an update self-test walks the releases, the feed, the package and its checksums, the installer, and whether an update was seen applied after a restart, and lets you copy the result.\r","After an update is applied, the app says so on its next start and keeps a record.\r","Only the camera and clipboard writing are allowed to the window; every other permission is refused.\r"]},{"version":"1.1","commit":"6271ef36ece5a1e10c6745f57e9f33a129547ea7","items":["The Deploy tab is a two-pane app: pick where it runs on the left, see and change everything it will do on the right, and deploy with one button or Ctrl Enter.\r","New tabs: Extensions, Tools, Support and Changes.\r","Extensions: add small helpers in their own folder. Each one says what it may see, asks before it starts and again when that changes, runs in its own process, and never receives passwords or keys. Health report and Link sheet come built in.\r","Updates: on Windows the app updates itself in the background and asks you to restart. The update is not code-signed, and the banner says so. On macOS and Linux it tells you a new version is out.\r","Settings: school mode, a reading voice, a dark theme on a schedule, your own name and logo, and the dim sum surprise (names only).\r","The version and build time show on the first screen and in About.\r","Open an instance's Compose file in VS Code, or its folder, from its menu.\r","The filters and totals on Instances fold away.\r"]},{"version":"1.0","commit":"6271ef36ece5a1e10c6745f57e9f33a129547ea7","items":["One-click deploys to Docker on this computer, an SSH host, VirtualBox and VMware, with a free port and name chosen for you and the link at the end.\r","Raspberry Pi card writer for the Pi 3, 4 and 5, with a read-back check.\r","Instance manager with start, stop, restart, update, logs, live processor use and backups on a schedule.\r","Every image downloaded and checked automatically, here and on your SSH hosts.\r"]}];
   // ---------- Personal wording (same checks as the product) ----------
   var VL = { bytes: 262144, depth: 8, key: 160, value: 1000 };
   function parseVocab(text) {
@@ -201,6 +209,10 @@
     var m = q.match(/^\/(.+)\/([dgimsuvy]*)$/);
     if (m) { try { var re = new RegExp(m[1], m[2].replace(/[gy]/g, '')); return { ok: true, test: function (s) { return re.test(s); }, re: re }; } catch (e) { return { ok: false, error: e.message, test: function () { return false; } }; } }
     var low = q.toLowerCase(); return { ok: true, test: function (s) { return String(s).toLowerCase().indexOf(low) >= 0; } };
+  }
+  function findField(id, ph, value) {
+    return '<div class="find" role="search"><span aria-hidden="true">' + icon('Magnify', 's') + '</span><input id="' + id + '" type="search" placeholder="' + esc(ph) + '" aria-label="' + esc(ph) + '" value="' + esc(value || '') + '" autocomplete="off">' +
+      '<button class="ib" style="width:40px;height:40px" data-regex="' + id + '" aria-label="Build a pattern search for: ' + esc(ph) + '" title="Pattern workbench">' + icon('Regex', 's') + '</button></div>';
   }
 
 
@@ -567,7 +579,8 @@
   // ---------- What the computer reports ----------
   var D = { instances: [], hosts: [], schedule: { on: false, time: '03:00', keep: 7, consistent: true } };
   var checks = {}; // target -> result of its check
-  var progress = {}; // instance id -> { steps: [], fraction, log: [] , done, ok, error }
+  var progress = {};
+  var piChecks = {}; // instance id -> { steps: [], fraction, log: [] , done, ok, error }
   var activity = []; // every log line and action, newest last
   var stats = {}; // instance id -> recent CPU values
   var about = {};
@@ -585,7 +598,7 @@
   };
   var dls = [];
   var PIM = [['rpi5', 'Raspberry Pi 5'], ['rpi4', 'Raspberry Pi 4 and 400'], ['rpi3', 'Raspberry Pi 3']];
-  function stateTag(s) { var tone = { running: 'g', starting: 'p', deploying: 'p', stopped: '', failed: 'err', missing: 'a', unreachable: 'a' }[s] || ''; return '<span class="tag ' + tone + '"' + (tone === 'err' ? ' style="background:var(--errc);color:var(--on-errc)"' : '') + '>' + L(s || 'stopped') + '</span>'; }
+  function stateTag(s) { var tone = { running: 'g', starting: 'p', deploying: 'p', stopped: '', failed: 'err', missing: 'a', unreachable: 'a', 'awaiting-device': 'a' }[s] || ''; return '<span class="tag ' + tone + '"' + (tone === 'err' ? ' style="background:var(--errc);color:var(--on-errc)"' : '') + '>' + L(s || 'stopped') + '</span>'; }
   function addActivity(id, line, kind) { activity.push({ t: Date.now(), id: id, line: line, kind: kind || 'log' }); if (activity.length > 3000) activity.splice(0, 500); }
   function instName(id) { var i = D.instances.filter(function (x) { return x.id === id; })[0]; return i ? i.name : id; }
   function fmtSize(n) { return n > 1e9 ? (n / 1e9).toFixed(1) + ' GB' : n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.round((n || 0) / 1e3) + ' KB'; }
@@ -619,7 +632,8 @@
     var c = checks[t], ready = t === 'pi' || (c && c.ok);
     var stage = latest && latest.p.done && latest.p.ok ? 4 : latest && !latest.p.done ? 3 : ready ? 3 : 2;
     var names = ['Choose where', 'Check', 'Deploy', 'Open'];
-    var stepper = '<ol class="stepper" aria-label="Steps" data-k="stepper">' + names.map(function (n, i) { var k = i + 1, cls = k < stage || (k === 4 && stage === 4) ? 'ok' : k === stage ? 'cur' : ''; return '<li class="' + cls + '"' + (k === stage ? ' aria-current="step"' : '') + '><span class="sq ' + (cls === 'ok' ? 'ok' : cls === 'cur' ? 'now' : 'todo') + '">' + (cls === 'ok' ? icon('Check', 's') : k) + '</span><span class="ll ell">' + n + '</span></li>'; }).join('') + '</ol>';
+    if (t === 'pi') { var piLatest = latest ? latest.inst : D.instances.filter(function (item) { return item.target === 'pi'; }).slice(-1)[0]; names = ['piVerifyStage', 'piConnectStage', 'piBootStage', 'piOwnerStage']; stage = !piLatest || !piLatest.imagingVerified ? 1 : piReady(piLatest) ? 4 : piLatest.piPhase === 'insert' ? 2 : 3; }
+    var stepper = '<ol class="stepper" aria-label="Steps" data-k="stepper">' + names.map(function (n, i) { var k = i + 1, cls = k < stage || (k === 4 && stage === 4 && (t !== 'pi' || piLatest.ownerSetup === 'complete')) ? 'ok' : k === stage ? 'cur' : ''; return '<li class="' + cls + '"' + (k === stage ? ' aria-current="step"' : '') + '><span class="sq ' + (cls === 'ok' ? 'ok' : cls === 'cur' ? 'now' : 'todo') + '">' + (cls === 'ok' ? icon('Check', 's') : k) + '</span><span class="ll ell">' + (t === 'pi' ? L(n) : esc(n)) + '</span></li>'; }).join('') + '</ol>';
     var list = '<div class="tlist" role="listbox" aria-label="Where it runs" data-k="places">' + PLACES.map(function (p) {
       var cc = checks[p], dot = p === 'pi' ? 'g' : !cc ? '' : cc.ok ? 'g' : 'a', sub = p === 'pi' ? 'SD card or USB drive' : !cc ? 'Checking…' : cc.ok ? 'Ready' : 'Needs setup';
       var n = D.instances.filter(function (i) { return i.target === p; }).length;
@@ -627,9 +641,9 @@
     }).join('') + '</div>';
     var panel;
     if (t === 'pi') {
-      panel = '<p class="bm mu">' + esc(TDESC.pi) + '</p><div class="plan"><label><span class="ll">Model</span><select class="select" id="pimodel" aria-label="Raspberry Pi model">' + PIM.map(function (m) { return '<option value="' + m[0] + '">' + m[1] + '</option>'; }).join('') + '</select></label></div>' +
-        '<div class="flow" aria-label="What happens">' + STEPS.pi.map(function (k, i) { return '<span class="tag">' + (i + 1) + ' · ' + esc(STEPNAME[k]) + '</span>'; }).join('') + '</div>' +
-        '<div class="wfoot"><button class="btn fill lg" data-act="pi" id="wizgo">' + icon('Harddisk', 's') + 'Choose the card and write</button><span class="bs mu">Asks which drive, then asks you to type ERASE before anything is written.</span></div>';
+      panel = '<p class="bm mu">' + L('piDescription') + '</p><div class="plan"><label><span class="ll">Model</span><select class="select" id="pimodel" aria-label="Raspberry Pi model">' + PIM.map(function (m) { return '<option value="' + m[0] + '">' + m[1] + '</option>'; }).join('') + '</select></label></div>' +
+        '<div class="flow" aria-label="What happens">' + ['piImageStage', 'piWriteStage', 'piVerifyStage', 'piConnectStage', 'piBootStage', 'piOwnerStage'].map(function (k, i) { return '<span class="tag">' + (i + 1) + ' · ' + L(k) + '</span>'; }).join('') + '</div>' +
+        '<div class="wfoot"><button class="btn fill lg" data-act="pi" id="wizgo">' + icon('Harddisk', 's') + L('piChooseWrite') + '</button><span class="bs mu">' + L('piEraseHint') + '</span></div>';
     } else {
       var vm = t === 'virtualbox' || t === 'vmware', v = wiz.vals[t];
       var note = c && !c.ok ? '<div class="note"><span>' + icon('InformationOutline') + '</span><span class="bm">' + esc(c.detail) + ' ' + esc(c.fix || '') + (c.link ? ' <a href="' + esc(c.link) + '" data-ext="' + esc(c.link) + '">How to install</a>' : '') + (CHOCO_FOR[t] ? ' ' + chocoButton(CHOCO_FOR[t]) : '') + '</span></div>' : '';
@@ -644,7 +658,8 @@
         '<div class="flow" aria-label="What happens">' + STEPS[t].map(function (k, i) { return '<span class="tag">' + (i + 1) + ' · ' + esc(STEPNAME[k]) + '</span>'; }).join('') + '</div>' +
         '<div class="wfoot"><button class="btn fill lg" id="wizgo" data-act="wizgo"' + (v ? '' : ' disabled') + '>' + icon('RocketLaunch', 's') + L('deploy') + '</button><span class="kbd">Ctrl Enter</span><span class="grow"></span><button class="btn text sm" data-act="wizreset">' + icon('Restore', 's') + 'Fresh defaults</button></div>';
     }
-    var head = '<div class="row" style="gap:12px"><span class="sq big">' + icon(TICON[t]) + '</span><div class="col grow" style="gap:4px;min-width:0"><h2 class="tl">' + L(t) + '</h2>' + (t === 'pi' ? '<span class="tag g">' + icon('Check', 's') + ' Ready</span>' : !c ? '<span class="tag">Checking…</span>' : c.ok ? '<span class="tag g">' + icon('Check', 's') + ' ' + esc(c.detail) + '</span>' : '<span class="tag a">' + icon('Alert', 's') + ' Needs setup</span>') + '</div>' + (t === 'pi' ? '' : '<button class="ib" data-recheck="' + t + '" aria-label="Check ' + esc(w(t)) + ' again">' + icon('Refresh', 's') + '</button>') + '</div>';
+    if (t === 'pi' && piLatest && !progress[piLatest.id]) panel += piStatusPanel(piLatest);
+    var head = '<div class="row" style="gap:12px"><span class="sq big">' + icon(TICON[t]) + '</span><div class="col grow" style="gap:4px;min-width:0"><h2 class="tl">' + L(t) + '</h2>' + (t === 'pi' ? '<span class="tag">' + L('piPrepare') + '</span>' : !c ? '<span class="tag">Checking…</span>' : c.ok ? '<span class="tag g">' + icon('Check', 's') + ' ' + esc(c.detail) + '</span>' : '<span class="tag a">' + icon('Alert', 's') + ' Needs setup</span>') + '</div>' + (t === 'pi' ? '' : '<button class="ib" data-recheck="' + t + '" aria-label="Check ' + esc(w(t)) + ' again">' + icon('Refresh', 's') + '</button>') + '</div>';
     var running = Object.keys(progress).filter(function (id) { return D.instances.some(function (i) { return i.id === id; }) || !progress[id].done; });
     var recent = D.instances.slice().sort(function (a2, b2) { return String(b2.created).localeCompare(a2.created); }).slice(0, 5);
     return pageHead('RocketLaunch', 'New instance', 'Choose where it runs on the left; the right side already holds a free name and port. Deploy is one click.', null, '<div class="pacts">' + provenance() + (DEMO ? '<span class="tag a">Demo: nothing is deployed</span>' : '') + '</div>').replace('data-k="phead"', 'data-k="deploy-title"') + stepper +
@@ -653,6 +668,7 @@
       (recent.length ? '<section class="section" data-k="recent"><div class="row"><h2 class="tm grow">Recent</h2><button class="btn text sm" data-go="instances:top">Every instance (' + D.instances.length + ')</button></div><div class="recent">' + recent.map(function (i) { return '<div class="row-item"><span class="sq">' + icon(TICON[i.target] || 'Docker') + '</span><span class="col grow" style="min-width:0"><span class="ll ell">' + esc(i.name) + '</span><span class="bs mu mono ell">' + esc(i.url || '') + '</span></span>' + stateTag(i.state) + (i.url ? '<button class="btn text sm" data-ext="' + esc(i.url) + '">' + icon('OpenInNew', 's') + L('open') + '</button>' : '') + '</div>'; }).join('') + '</div></section>' : '') + foot();
   };
   function wizGo() {
+    if (backupHost.file) { void backupHostStart(); return; }
     var t = wizTarget(); if (t === 'pi') { piDialog(); return; }
     var v = wiz.vals[t]; if (!v) return;
     var port = Number(v.port);
@@ -663,8 +679,54 @@
     oneClick(t, o);
   }
 
+  function piReady(inst) { return inst.piPhase === 'ready' && !!inst.url; }
+  function piStatusPanel(inst) {
+    var verified = inst.imagingVerified === true, ready = piReady(inst), busy = !!piChecks[inst.id];
+    var heading = !verified && inst.state === 'deploying' ? 'piImaging' : ready ? 'piNetworkReady' : inst.piPhase === 'ambiguous' ? 'piAmbiguous' : busy || inst.piPhase === 'wait' ? 'piChecking' : verified ? 'piNotReady' : 'piWriteStopped';
+    var owner = inst.ownerSetup === 'complete' ? 'piOwnerComplete' : inst.ownerSetup === 'required' ? 'piOwnerHelp' : 'piOwnerUnknown';
+    return '<section class="col" style="gap:12px" aria-label="' + esc(w('piBootStage')) + '">' +
+      (DEMO ? '<p class="bs mu">' + L('piDemo') + '</p>' : '') +
+      '<p class="ll" role="status">' + L(heading) + '</p>' +
+      (verified ? '<p class="bm">' + icon('Check', 's') + ' ' + L('piImageVerified') + '</p><p class="bm mu">' + L('piConnectHelp') + '</p>' : '') +
+      (verified ? '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn tonal" data-pi-check="' + esc(inst.id) + '"' + (busy ? ' disabled' : '') + '>' + icon('Refresh', 's') + L('piRetry') + '</button><button class="btn tonal" data-pi-address="' + esc(inst.id) + '"' + (busy ? ' disabled' : '') + '>' + L('piManualAddress') + '</button></div><p class="bs mu">' + L('piNoRewrite') + '</p>' : '') +
+      (ready ? '<a class="mono bm brk" href="' + esc(inst.url) + '" data-ext="' + esc(inst.url) + '">' + esc(inst.url) + '</a>' : '') +
+      '<h4 class="tm">' + L('piOwnerStage') + '</h4><p class="bm mu">' + L(ready ? owner : 'piOwnerPending') + '</p>' +
+      '<p class="bs mu">' + L('piIdentityNote') + '</p>' +
+      (ready ? '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn fill" data-ext="' + esc(inst.url) + '">' + L('piOpenSetup') + '</button><button class="btn text" data-copy="' + esc(inst.url) + '">' + L('copy') + '</button></div>' : '') + '</section>';
+  }
+  function piProgressCard(inst, p) {
+    var keys = ['image', 'write', 'verify', 'insert', 'wait', 'owner'];
+    var labels = ['piImageStage', 'piWriteStage', 'piVerifyStage', 'piConnectStage', 'piBootStage', 'piOwnerStage'];
+    var current = keys.indexOf(inst.piPhase || p.step), verified = inst.imagingVerified === true, ready = piReady(inst);
+    var rows = keys.map(function (key, index) {
+      var done = index < 3 ? verified || index < current : index < 5 ? ready : ready && inst.ownerSetup === 'complete';
+      var active = !done && (index === current || (key === 'wait' && ['unreachable', 'ambiguous'].indexOf(inst.piPhase) >= 0));
+      var mark = done ? icon('Check', 's') : String(index + 1);
+      return '<li class="row" style="gap:12px"' + (active ? ' aria-current="step"' : '') + '><span class="sq ' + (done ? 'ok' : active ? 'now' : 'todo') + '">' + mark + '</span><span class="ll">' + L(labels[index]) + '</span></li>';
+    }).join('');
+    return '<article class="pcard" data-k="progress-' + esc(inst.id) + '"><h3 class="tm">' + esc(inst.name) + ' · ' + L('pi') + '</h3><ol class="col steps" style="gap:10px;padding:0;list-style:none">' + rows + '</ol>' + piStatusPanel(inst) +
+      (p.error ? '<p class="field-err" role="alert">' + esc(p.error) + '</p>' : '') + '<details><summary>' + L('logs') + '</summary>' + termHtml('deploy-' + inst.id, inst.name, p.log || [], { running: !p.done, prompt: 'ham ›' }) + '</details></article>';
+  }
+  async function piCheck(id, url) {
+    var inst = D.instances.filter(function (item) { return item.id === id && item.target === 'pi'; })[0];
+    if (!inst || !inst.imagingVerified || piChecks[id]) return;
+    piChecks[id] = true; render();
+    try { await API.action(id, 'check', url ? { url: url } : {}); await reload(); }
+    catch (error) { toast(error.message); }
+    finally { delete piChecks[id]; render(); }
+  }
+  function piAddressDialog(id) {
+    var inst = D.instances.filter(function (item) { return item.id === id && item.target === 'pi'; })[0];
+    if (!inst || !inst.imagingVerified) return;
+    dialog(w('piManualAddress'), '<p class="bm">' + L('piAddressHelp') + '</p><p class="bs mu">' + L('piIdentityNote') + '</p><label class="col" style="gap:4px"><span class="ll">' + L('piAddress') + '</span><input class="input mono" id="pi-address" autocomplete="off" spellcheck="false" value="' + esc(inst.url || inst.piCandidateUrl || '') + '" placeholder="http://homeassistant.local"></label><span id="pi-address-error" class="field-err" role="alert"></span><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="pi-address-check">' + L('piCheck') + '</button></div>');
+    $('#pi-address').focus();
+    function submit() { var value = $('#pi-address').value.trim(); if (!value) { $('#pi-address-error').textContent = w('piAddressMissing'); return; } closeDialog(); piCheck(id, value); }
+    $('#pi-address-check').onclick = submit;
+    $('#pi-address').addEventListener('keydown', function (event) { if (event.key === 'Enter') { event.preventDefault(); submit(); } });
+  }
   function progressCard(id) {
     var p = progress[id]; var inst = D.instances.filter(function (x) { return x.id === id; })[0] || { name: id, target: 'docker' };
+    if (inst.target === 'pi') return piProgressCard(inst, p);
     var list = STEPS[inst.target] || STEPS.docker; var idx = list.indexOf(p.step);
     var rows = list.map(function (k, i) {
       var state = p.done && p.ok ? 'done' : i < idx ? 'done' : i === idx ? (p.done && !p.ok ? 'bad' : 'now') : 'todo';
@@ -713,6 +775,7 @@
       (run && i.stats ? '<div class="row" style="gap:12px"><span class="bs mu">CPU ' + i.stats.cpu.toFixed(1) + '% · memory ' + esc(i.stats.mem) + '</span><span class="grow"></span>' + spark(i.id) + '</div>' : '') +
       '<div class="row" style="gap:6px;flex-wrap:wrap">' + (i.target === 'pi' && i.state !== 'deploying' ? (i.url ? '<button class="btn fill sm" data-ext="' + esc(i.url) + '">' + icon('OpenInNew', 's') + L('open') + '</button>' : '') + '<span class="bs mu">Backups and updates: inside Home Assistant on the Pi, under Settings, System.</span>' : i.state === 'deploying' ? '<button class="btn tonal sm" data-go="deploy:top">' + icon('ProgressClock', 's') + 'Show the progress</button>' : run ? '<button class="btn fill sm" data-ext="' + esc(i.url) + '">' + icon('OpenInNew', 's') + L('open') + '</button><button class="btn tonal sm" data-a="stop" data-id="' + i.id + '"' + (busy ? ' disabled' : '') + '>' + L('stop') + '</button>' : i.state === 'failed' ? '<button class="btn fill sm" data-retry="' + i.id + '">Try again</button>' : '<button class="btn fill sm" data-a="start" data-id="' + i.id + '"' + (busy ? ' disabled' : '') + '>' + L('start') + '</button>') +
       (i.target === 'pi' ? '' : '<button class="btn tonal sm" data-a="backup" data-id="' + i.id + '"' + (busy ? ' disabled' : '') + '>' + icon('BackupRestore', 's') + L('backupNow') + '</button>') + '</div>' +
+      (i.target === 'pi' ? piStatusPanel(i) : '') +
       '<details' + (view.open[i.id] ? ' open' : '') + ' data-iopen="' + i.id + '"><summary class="ll" style="cursor:pointer;min-height:40px">' + (i.backups || []).length + ((i.backups || []).length === 1 ? ' backup' : ' backups') + ' · details</summary>' +
       '<dl class="kv bs"><dt>Created</dt><dd>' + esc(when(i.created)) + '</dd><dt>Port</dt><dd>' + (i.port || 'set by VMware') + '</dd><dt>Data</dt><dd class="mono brk">' + brkPath(i.dir) + '</dd>' + (i.lanUrl ? '<dt>Other devices</dt><dd class="mono brk">' + brkPath(i.lanUrl) + '</dd>' : '') + '</dl>' +
       ((i.backups || []).slice(0, 5).map(function (b) { return '<div class="row" style="gap:8px"><span class="bs grow">' + esc(when(b.at)) + (b.note ? ' · ' + esc(b.note) : '') + (b.size ? ' · ' + fmtSize(b.size) : b.kind === 'snapshot' ? ' · snapshot' : '') + '</span><button class="btn text sm" data-restore="' + i.id + ':' + b.id + '">' + L('restore') + '</button></div>'; }).join('') || '<p class="bs mu">No backups yet.</p>') + '</details></article>';
@@ -1002,7 +1065,7 @@
       '<button class="ib nodrag opt" data-act="theme" aria-label="' + esc(w('theme')) + '">' + icon('ThemeLightDark') + '</button>' + (st.axHidden ? '' : '<button class="ib nodrag" data-act="access" aria-label="' + esc(w('access')) + '">' + icon('HumanHandsup') + '</button>') + '' +
       '<button class="ib nodrag" data-act="bell" aria-label="' + esc(w('notifications')) + '" style="position:relative">' + icon('Bell') + '<span class="badge" id="bellcount" hidden>0</span></button>' + winBtns + '</header>' +
       '<div id="updslot"></div><nav class="tabstrip" role="tablist" aria-label="Pages" data-k="tabs"></nav><main class="main" id="main">' + TABS.map(function (t) { return '<section class="pane" role="tabpanel" id="p-' + t + '" aria-labelledby="t-' + t + '" hidden></section>'; }).join('') + '</main></div><div class="toasts" aria-live="polite"></div>';
-    tabstrip(); bell();
+    nativeViewportInit(); tabstrip(); bell();
   }
   function tabstrip() {
     var nav = $('.tabstrip'); var order = st.tabs.open.slice().sort(function (a, b) { return (st.tabs.pinned.indexOf(b) >= 0) - (st.tabs.pinned.indexOf(a) >= 0); });
@@ -1026,14 +1089,14 @@
   function render() {
     if (st.tabs.open.indexOf(st.active) < 0) st.active = st.tabs.open[0] || 'deploy';
     if (!st.tabs.open.length) { st.tabs.open = ['deploy']; st.active = 'deploy'; }
-    var a = document.activeElement, fid = a && a.id, pos = a && a.selectionStart, scroll = window.scrollY;
+    var a = document.activeElement, fid = a && a.id, pos = a && a.selectionStart, scroll = nativeContentScrollTop();
     var openDetails = $$('#p-' + st.active + ' details[open]').map(function (d) { return d.closest('[data-k]') ? d.closest('[data-k]').dataset.k : ''; });
     tabstrip(); var us = $('#updslot'); if (us) us.innerHTML = updBar() + adhdBar(); $('#app').classList.toggle('adhd-focus', adhd('focus'));
     TABS.forEach(function (t) { var p = $('#p-' + t); p.hidden = t !== st.active; p.innerHTML = t === st.active ? R[t]() : ''; });
     openDetails.forEach(function (k) { var d = $('[data-k="' + k + '"] details'); if (d) d.open = true; });
     decorate(); applyVocab($('#app'));
     if (fid && $('#' + fid)) { var n = $('#' + fid); n.focus({ preventScroll: true }); try { if (pos != null) n.setSelectionRange(pos, pos); } catch (e) { /* not a text field */ } }
-    window.scrollTo(0, scroll);
+    nativeContentScrollTo(scroll);
     $$('.logbox').forEach(function (l) { l.scrollTop = l.scrollHeight; });
     if (st.active === 'tools') { otpDraw(); colour(); }
     if (st.active === 'instances') lcFrame();
@@ -1042,6 +1105,7 @@
     if (st.active === 'minecraft' && mcv.sub === 'generate') mgDraw();
     if (st.active === 'minecraft' && mcv.sub === 'console') { var mcb = $('#mccon'); if (mcb) mcb.scrollTop = mcb.scrollHeight; }
     if (API.overlay && API.platform === 'win32') API.overlay(isDark());
+    nativeViewportSync();
     if (st.active === 'activity') historyPanel();
     document.title = st.name + ' · ' + w(st.active);
   }
@@ -1230,6 +1294,8 @@
       if (ch === 'step') { var g = progress[p.id] = progress[p.id] || { log: [], done: false }; if (p.key === 'done') return; if (g.step !== p.key) g.log.push('ham › ' + (STEPNAME[p.key] || p.key)); g.step = p.key; g.text = p.text; g.fraction = p.fraction || 0; soon(); }
       if (ch === 'busy') { addActivity(p.id, 'Working: ' + p.action, 'action'); }
       if (ch === 'done') {
+        var piInst = D.instances.filter(function (item) { return item.id === p.id && item.target === 'pi'; })[0];
+        if (piInst && (p.action === 'deploy' || p.action === 'check')) { var piProgress = progress[p.id] = progress[p.id] || { log: [] }; piProgress.done = true; piProgress.ok = p.ok; piProgress.error = p.error; piProgress.t1 = Date.now(); delete piChecks[p.id]; reload().then(function () { soon(); }); return; }
         var name = instName(p.id);
         addActivity(p.id, p.action + (p.ok ? ' finished' : ' failed: ' + p.error), 'action');
         if (p.action === 'deploy') { var pr = progress[p.id] = progress[p.id] || { log: [] }; pr.done = true; pr.ok = p.ok; pr.error = p.error; pr.t1 = Date.now(); if (p.ok) { finishedOne(); narrate('deploy', name + ' is ready to open.', name + ' 已經準備好，可以打開。'); } else narrate('deployfail', name + ' did not deploy: ' + p.error, name + ' 部署唔到：' + p.error, true); if (p.ok) { beep('on'); toast(name + ': ' + msg('deployed'), { emoji: '🎉' }); reload().then(function () { var i = D.instances.filter(function (x) { return x.id === p.id; })[0]; if (st.openAfter && i && i.url) openUrl(i.url); render(); }); } else { beep('bad'); toast(name + ': ' + msg('failedMsg') + ' ' + p.error); } }
@@ -1278,14 +1344,16 @@
       if ((b = t.closest('[data-axshow]'))) { setVal('axHidden', !st.axHidden, 'Accessibility button'); shell(); render(); return; }
       if ((b = t.closest('[data-fst]'))) { fview.state = b.dataset.fst; render(); return; }
       if ((b = t.closest('[data-fgr]'))) { fview.group = b.dataset.fgr; render(); return; }
-      if ((b = t.closest('[data-article]'))) { fview.article = b.dataset.article || null; if (st.active !== 'articles') go('articles:top'); else { render(); window.scrollTo(0, 0); } return; }
+      if ((b = t.closest('[data-article]'))) { fview.article = b.dataset.article || null; if (st.active !== 'articles') go('articles:top'); else { render(); nativeContentScrollTo(0); } return; }
       if ((b = t.closest('[data-board]'))) { boardDialog(b.dataset.board, b.dataset.btitle); return; }
       if ((b = t.closest('[data-pick]'))) { st.wizTarget = b.dataset.pick; save(); render(); var f = $('#place-' + st.wizTarget); if (f) f.focus(); return; }
       if ((b = t.closest('[data-oneclick]'))) { oneClick(b.dataset.oneclick); return; }
       if ((b = t.closest('[data-options]'))) { optionsDialog(b.dataset.options); return; }
       if ((b = t.closest('[data-recheck]'))) { var tg = b.dataset.recheck; checks[tg] = null; render(); API.check(tg, tg === 'ssh' ? ($('#sshhost') || {}).value : '').then(function (r) { checks[tg] = r; render(); }); return; }
       if ((b = t.closest('[data-dismiss]'))) { delete progress[b.dataset.dismiss]; render(); return; }
-      if ((b = t.closest('[data-retry]'))) { var ri = D.instances.filter(function (x) { return x.id === b.dataset.retry; })[0]; if (ri) { delete progress[ri.id]; API.action(ri.id, 'remove', true).then(function () { oneClick(ri.target, { name: ri.name, port: ri.port, tag: ri.tag, hostId: ri.hostId }); }); } return; }
+      if ((b = t.closest('[data-pi-check]'))) { piCheck(b.dataset.piCheck); return; }
+      if ((b = t.closest('[data-pi-address]'))) { piAddressDialog(b.dataset.piAddress); return; }
+      if ((b = t.closest('[data-retry]'))) { var ri = D.instances.filter(function (x) { return x.id === b.dataset.retry; })[0]; if (ri && ri.target === 'pi') { piCheck(ri.id); return; } if (ri) { delete progress[ri.id]; API.action(ri.id, 'remove', true).then(function () { oneClick(ri.target, { name: ri.name, port: ri.port, tag: ri.tag, hostId: ri.hostId }); }); } return; }
       if ((b = t.closest('[data-a]'))) { doAction(b.dataset.id, b.dataset.a, b.dataset.a === 'backup' ? 'Manual' : undefined); return; }
       if ((b = t.closest('[data-imenu]'))) { var r = b.getBoundingClientRect(); instMenu(b.dataset.imenu, r.left - 200, r.bottom); return; }
       if ((b = t.closest('[data-restore]'))) { var pr2 = b.dataset.restore.split(':'), inst = D.instances.filter(function (x) { return x.id === pr2[0]; })[0], bk = inst && inst.backups.filter(function (x) { return x.id === pr2[1]; })[0]; if (!bk) return; superConfirm('Restore ' + inst.name, ['It goes back to ' + when(bk.at) + '.', inst.target === 'docker' || inst.target === 'ssh' ? 'The current config is kept beside it as config.before-restore.' : 'The machine is powered off and returned to the snapshot; changes since then are lost.', 'It restarts afterwards.'], 'RESTORE', function () { doAction(inst.id, 'restore', bk.id); }); return; }
@@ -1429,7 +1497,7 @@
       if (e.ctrlKey && e.shiftKey && (e.key === 'F' || e.key === 'f')) { e.preventDefault(); palette(); return; }
       if (e.ctrlKey && !e.shiftKey && e.key === 'Enter' && st.active === 'deploy' && !$('#ov')) { e.preventDefault(); wizGo(); return; }
       var lb = e.target.closest && e.target.closest('[data-pick]'); if (lb && /Arrow(Up|Down)/.test(e.key)) { e.preventDefault(); var pi2 = PLACES.indexOf(lb.dataset.pick) + (e.key === 'ArrowDown' ? 1 : -1); st.wizTarget = PLACES[(pi2 + PLACES.length) % PLACES.length]; save(); render(); $('#place-' + st.wizTarget).focus(); return; }
-      if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) { e.preventDefault(); oneClick(st.defaultTarget); return; }
+      if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) { e.preventDefault(); if (backupHost.file) void backupHostStart(); else oneClick(st.defaultTarget); return; }
       if ((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu') { var el = document.activeElement && document.activeElement.closest('[data-k]'); if (el) { e.preventDefault(); var r = el.getBoundingClientRect(); var card = el.closest('.icard'); if (card) instMenu(card.id.slice(5), r.left + 12, r.top + 12); else menuFor(el, r.left + 12, r.top + 12); } }
       if (e.key === 'Escape') { if ($('.popover')) closePop(); else if ($('#ov')) closeDialog(); else if ($('.panel')) $('.panel').remove(); }
     });
@@ -2515,11 +2583,425 @@
     if (ch === 'ol-install') toast(p.text + (p.fraction ? ' ' + Math.round(p.fraction * 100) + '%' : ''));
     if (ch === 'ol-state') olLoad().then(function () { if (st.active === 'models') render(); });
   });
+  // ---------- Host an uploaded backup ----------
+  // Only native-issued opaque handles enter the renderer. Archive bytes and
+  // local paths never pass through this view or the settings/history store.
+  var backupHost = { file: null, jobs: [], busy: false, requestId: '', error: '', bridge: null, drives: [], drive: '', submittedTarget: '', submittedOptions: null, piAddresses: '', piAddressByJob: {} };
+  Object.assign(W, {
+    bhTitle: ['Host a backup', '託管備份'],
+    bhPick: ['Choose ZIP or native backup archive', '選擇 ZIP 或原生備份封存檔'],
+    bhOriginal: ['Keep original active automations. The source instance is unchanged; restored automations may run in this new instance.', '保留原本已啟用嘅自動化。來源實例維持不變；還原後嘅自動化可能喺新實例執行。'],
+    bhKey: ['Encryption key, if protected', '如有加密，請輸入加密金鑰'],
+    bhStart: ['Host and restore this backup', '託管並還原呢個備份'],
+    bhFresh: ['Return to a new empty instance', '返回建立空白實例'],
+    bhPending: ['Waiting for verified startup, restore, and LAN reachability.', '等候驗證啟動、還原同區域網絡連線。'],
+    bhUnavailable: ['Backup hosting is unavailable in this build or demonstration.', '呢個版本或示範未有備份託管功能。'],
+    bhError: ['The operation could not be confirmed. Refresh jobs before retrying.', '未能確認操作，請重新整理工作狀態後再試。'],
+    bhRefresh: ['Refresh hosting jobs', '重新整理託管工作'],
+    bhResume: ['Resume or check this existing job', '繼續或檢查現有工作'],
+    bhResumeOrigin: ['Resume or check this job from the interface that created it.', '請返回建立呢個工作嘅介面繼續或檢查。'],
+    bhResumeHelp: ['Continue this same instance using its saved image and port. If restore was already submitted, only its status is checked.', '沿用已儲存映像同連接埠繼續同一實例。如果已經提交還原，只會檢查狀態。'],
+    bhOnboardingWait: ['Waiting for first-run services to become ready', '等候首次啟動服務準備好'],
+    bhCancel: ['Cancel job', '取消工作'],
+    bhSetup: ['Pair this computer with a Home Assistant backup page', '將呢部電腦同 Home Assistant 備份頁配對'],
+    bhSetupHelp: ['Enable on a private LAN address, then enter the HTTPS address and certificate fingerprint on the backup page. Approve the matching client in the native confirmation.', '喺私人區域網絡地址啟用，再喺備份頁輸入 HTTPS 地址同憑證指紋，並喺原生確認視窗批准相符用戶端。'],
+    bhEnable: ['Enable backup hosting', '啟用備份託管'],
+    bhAddress: ['Private LAN address', '私人區域網絡地址'],
+    bhFingerprint: ['Certificate fingerprint', '憑證指紋'],
+    bhPiAddresses: ['Local addresses for the newly written Raspberry Pi (optional)', '新寫入 Raspberry Pi 嘅區域網絡地址（可選）'],
+    bhPiAddressHelp: ['Enter up to 16 private IPv4 addresses, separated by commas or spaces. Only the supplied addresses are tried; a blank field permits a bounded local-name lookup. No network scan is performed. The device must present this job’s exact certificate.', '最多輸入 16 個私人 IPv4 地址，以逗號或空格分隔。只會嘗試指定地址；留空就只會進行有限嘅本機名稱查詢，唔會掃描網絡。裝置必須出示呢個工作指定嘅憑證。'],
+    bhPiRetry: ['Try these addresses for this device', '用呢啲地址尋找呢部裝置'],
+    bhPiInvalid: ['Enter at most 16 private IPv4 addresses. Ranges, public addresses, URLs, and host names are not accepted.', '請輸入最多 16 個私人 IPv4 地址，唔接受地址範圍、公網地址、網址或主機名稱。'],
+    bhDrive: ['SD card or USB drive, erased only after native confirmation', 'SD 卡或 USB 儲存裝置，原生確認後先會清除'],
+    bhDrives: ['Find removable drives', '尋找可移除儲存裝置'],
+    bhNoDrive: ['Select a removable drive', '選擇可移除儲存裝置'],
+    bhQueued: ['Queued', '已排程'], bhRunning: ['Hosting in progress', '正在託管'],
+    bhReady: ['Restored and reachable', '已還原並可連接'], bhFailed: ['Hosting failed', '託管失敗'],
+    bhCancelled: ['Cancelled', '已取消'], bhNeedsKey: ['Encryption key required', '需要加密金鑰'],
+    bhSetupRequired: ['Setup required', '需要設定'], bhNative: ['Waiting for native approval', '等候原生視窗批准'],
+    bhHardware: ['Waiting for hardware', '等候硬件'], bhRestart: ['Waiting for restart', '等候重新啟動'],
+    bhRestore: ['Restoring the backup', '正在還原備份'], bhVerify: ['Verifying reachability', '正在驗證連線'],
+    bhAccepted: ['Restore accepted; verification pending', '已接受還原，等候驗證'],
+    bhSelected: ['Selected backup', '已選備份'],
+    bhCancelling: ['Cancelling: waiting for the current operation to settle', '取消中：等候目前操作安全完成'],
+    bhHostKey: ['Review SSH host key and resume', '核對 SSH 主機金鑰並繼續'],
+    bhHostKeyPending: ['Review the exact host and fingerprint in the native confirmation. Nothing is approved automatically.', '請喺原生確認視窗核對指定主機同指紋，程式唔會自動批准。'],
+    bhHostKeyUnavailable: ['Reopen this job in an updated Deploy Assistant to retrieve its saved host and retry handle.', '請喺更新後嘅 Deploy Assistant 重新開啟工作，以取得已儲存主機同重試憑證。'],
+    bhAuth: ['Sign-in required to verify the restored instance', '需要登入以驗證已還原實例'],
+    bhSignIn: ['Open sign-in to verify', '開啟登入頁以進行驗證'],
+    bhSignInPending: ['The LAN address answered. Sign in to continue verification; this job is not complete.', '區域網絡地址已有回應。請登入以繼續驗證，呢個工作尚未完成。']
+  });
+  function backupHostPiAddresses(value) {
+    if (typeof value !== 'string' || value.length > 512) throw new Error('bhPiInvalid');
+    var values = value.trim() ? value.trim().split(/[\s,;]+/) : [];
+    if (values.length > 16) throw new Error('bhPiInvalid');
+    values.forEach(function (address) {
+      if (!/^(?:0|[1-9]\d{0,2})(?:\.(?:0|[1-9]\d{0,2})){3}$/.test(address)) throw new Error('bhPiInvalid');
+      var octets = address.split('.').map(Number);
+      if (octets.some(function (n) { return n > 255; }) || !(octets[0] === 10 || (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) || (octets[0] === 192 && octets[1] === 168))) throw new Error('bhPiInvalid');
+    });
+    return Array.from(new Set(values));
+  }
+  function backupHostNeedsKey(j) { return j.state === 'needs_attention' && j.error_code === 'incorrect_password'; }
+  function backupHostNeedsSshApproval(j) { return j.target === 'ssh' && ['needs_attention', 'needs_resume'].indexOf(j.state) >= 0 && ['host_key_approval_required', 'host_key_changed'].indexOf(j.error_code) >= 0; }
+  function backupHostCanApproveSsh(j) { return backupHostNeedsSshApproval(j) && typeof j.host_id === 'string' && !!j.host_id && typeof j.upload_handle === 'string' && !!j.upload_handle; }
+  function backupHostCanResume(j) { return j.can_resume === true && ['needs_resume', 'needs_attention'].indexOf(j.state) >= 0 && ['docker', 'ssh', 'virtualbox', 'vmware', 'pi'].indexOf(j.target) >= 0 && typeof j.request_id === 'string' && !!j.request_id && typeof j.upload_handle === 'string' && !!j.upload_handle && !backupHostNeedsSshApproval(j) && j.error_code !== 'target_already_configured'; }
+  function backupHostBlocksStart(j) { return backupHostActive(j) && !(backupHostNeedsKey(j) && j.request_id === backupHost.requestId); }
+  function backupHostActive(j) { return ['ready', 'failed', 'cancelled'].indexOf(j.state) < 0; }
+  function backupHostUrl(j) {
+    if (j.state !== 'ready' || !j.lan_url) return '';
+    try { var u = new URL(j.lan_url); return /^(https?:)$/.test(u.protocol) && !u.username && !u.password ? u.href : ''; } catch (_) { return ''; }
+  }
+  function backupHostSignInUrl(j) {
+    if (j.state !== 'authentication_needed' || j.lan_url_verified !== true || typeof j.lan_url_verified_at !== 'string' || j.lan_url_verified_at.length > 64 || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(j.lan_url_verified_at) || !Number.isFinite(Date.parse(j.lan_url_verified_at))) return '';
+    try { var u = new URL(j.lan_url); return /^(https?:)$/.test(u.protocol) && !u.username && !u.password ? u.href : ''; } catch (_) { return ''; }
+  }
+  function backupHostState(j) {
+    return L(({ queued: 'bhQueued', running: 'bhRunning', ready: 'bhReady', failed: 'bhFailed', cancelled: 'bhCancelled', cancelling: 'bhCancelling', needs_key: 'bhNeedsKey', setup_required: 'bhSetupRequired', pending_native_approval: 'bhNative', waiting_hardware: 'bhHardware', waiting_restart: 'bhRestart', waiting_for_restart: 'bhRestart', restoring: 'bhRestore', needs_resume: 'bhSetupRequired', needs_attention: 'bhSetupRequired', waiting_for_hardware: 'bhHardware', writing_card: 'bhHardware', waiting_for_boot: 'bhHardware', authentication_needed: 'bhAuth', restore_accepted: 'bhAccepted' })[j.state] || 'bhRunning');
+  }
+  function backupHostCards() {
+    return '<section class="section backup-host-jobs" aria-live="polite">' + (backupHost.error ? '<p role="alert">' + L(backupHost.error) + '</p>' : '') + backupHost.jobs.map(function (j) {
+      var url = backupHostUrl(j), signInUrl = backupHostSignInUrl(j);
+      return '<article class="pcard"><h3 class="tm">' + L(j.target) + ': ' + backupHostState(j) + '</h3><p class="bm">' +
+        L(({ waiting_for_onboarding: 'bhOnboardingWait', restore: 'bhRestore', verify: 'bhVerify', restore_accepted: 'bhAccepted', restore_submitted: 'bhRestore', restore_rejected: 'bhNeedsKey', restart: 'bhRestart', waiting_for_boot: 'bhHardware' })[j.phase] || (j.state === 'ready' ? 'bhReady' : 'bhPending')) + '</p>' +
+        (j.error_code ? '<p role="alert"><code>' + esc(j.error_code) + '</code></p>' : '') +
+        (j.target === 'pi' && j.state === 'waiting_for_boot' && j.upload_handle ? '<label class="col"><span class="ll">' + L('bhPiAddresses') + '</span><textarea class="input" rows="3" maxlength="512" autocomplete="off" data-bh-pi-address="' + esc(j.id) + '" id="bh-pi-address-' + esc(j.id) + '">' + esc(backupHost.piAddressByJob[j.id] || '') + '</textarea><span class="bs mu">' + L('bhPiAddressHelp') + '</span></label><button class="btn tonal" data-bh-pi-retry="' + esc(j.id) + '"' + (backupHost.busy ? ' disabled' : '') + '>' + L('bhPiRetry') + '</button>' : '') +
+        (['needs_resume', 'needs_attention'].indexOf(j.state) >= 0 && j.can_resume !== true ? '<p class="bm">' + L('bhResumeOrigin') + '</p>' : '') +
+        (backupHostCanResume(j) ? '<p class="bm">' + L('bhResumeHelp') + '</p><label class="col"><span class="ll">' + L('bhKey') + '</span><input class="input" type="password" autocomplete="off" data-bh-resume-key id="bh-resume-key-' + esc(j.id) + '"></label><button class="btn tonal" data-bh-resume="' + esc(j.id) + '"' + (backupHost.busy ? ' disabled' : '') + '>' + L('bhResume') + '</button>' : '') +
+        (backupHostNeedsSshApproval(j) ? '<p class="bm">' + L(backupHostCanApproveSsh(j) ? 'bhHostKeyPending' : 'bhHostKeyUnavailable') + '</p>' + (backupHostCanApproveSsh(j) ? '<button class="btn tonal" data-bh-ssh-approve="' + esc(j.id) + '"' + (backupHost.busy ? ' disabled' : '') + '>' + L('bhHostKey') + '</button>' : '') : '') +
+        (signInUrl ? '<p class="bm">' + L('bhSignInPending') + '</p><a class="btn tonal" href="' + esc(signInUrl) + '" data-ext="' + esc(signInUrl) + '">' + L('bhSignIn') + '</a>' : '') +
+        (url ? '<a class="btn tonal" href="' + esc(url) + '" data-ext="' + esc(url) + '">' + esc(url) + '</a>' : '') +
+        (backupHostActive(j) && j.state !== 'cancelling' ? '<button class="btn text" data-bh-cancel="' + esc(j.id) + '">' + L('bhCancel') + '</button>' : '') + '</article>';
+    }).join('') + '</section>';
+  }
+  function backupHostPanel() {
+    var file = backupHost.file;
+    return '<section class="card backup-host-panel" aria-labelledby="backup-host-title"><h2 class="tl" id="backup-host-title">' + L('bhTitle') + '</h2>' +
+      '<p class="bm">' + L('bhOriginal') + '</p><div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn tonal" data-act="bh-pick"' + (backupHost.busy || backupHost.jobs.some(backupHostActive) ? ' disabled' : '') + '>' + L('bhPick') + '</button>' +
+      '<button class="btn text" data-act="bh-refresh">' + L('bhRefresh') + '</button><button class="btn text" data-act="bh-setup">' + L('bhSetup') + '</button></div>' +
+      (file ? '<p class="bm">' + L('bhSelected') + ': <b>' + esc(file.name) + '</b> · ' + fmtSize(file.size) + '</p><label class="col"><span class="ll">' + L('bhKey') + '</span><input class="input" type="password" id="bh-password" autocomplete="off"></label><button class="btn text" data-act="bh-clear">' + L('bhFresh') + '</button>' : '') +
+      '</section>';
+  }
+  var renderDeployWithoutBackup = R.deploy;
+  R.deploy = function () {
+    var body = renderDeployWithoutBackup();
+    if (backupHost.file) {
+      body = body.replace(/data-act="wizgo"/g, 'data-act="bh-start"').replace(/data-act="pi" id="wizgo"/g, 'data-act="bh-start" id="wizgo"');
+      // The target configuration remains the existing rich form. Only its action
+      // goes through the backup coordinator rather than the empty-instance path.
+      body = body.replace(/(<button[^>]*data-act="bh-start"[^>]*>)[\s\S]*?(<\/button>)/g, '$1' + L('bhStart') + '$2');
+      body = body.replace(/(<button[^>]*data-act="bh-start")/g, '$1' + (backupHost.busy || backupHost.jobs.some(backupHostBlocksStart) ? ' disabled' : ''));
+      if (wizTarget() === 'pi') body = body.replace('<div class="wfoot">', '<div class="plan"><label><span class="ll">' + L('bhDrive') + '</span><select class="select" id="bh-drive"><option value="">' + L('bhNoDrive') + '</option>' + backupHost.drives.map(function (d) { return '<option value="' + esc(d.drive_handle) + '"' + (d.drive_handle === backupHost.drive ? ' selected' : '') + '>' + esc(d.name) + ' · ' + fmtSize(d.size) + '</option>'; }).join('') + '</select></label><button class="btn tonal" data-act="bh-drives">' + L('bhDrives') + '</button><label><span class="ll">' + L('bhPiAddresses') + '</span><textarea class="input" id="bh-pi-addresses" rows="3" maxlength="512" autocomplete="off" aria-describedby="bh-pi-address-help">' + esc(backupHost.piAddresses) + '</textarea><span class="bs mu" id="bh-pi-address-help">' + L('bhPiAddressHelp') + '</span></label></div><div class="wfoot">');
+    }
+    return backupHostPanel() + backupHostCards() + body;
+  };
+  var renderBackupsWithoutHosting = R.backups;
+  R.backups = function () { return '<div class="row"><button class="btn fill" data-act="bh-pick">' + L('bhTitle') + '</button><button class="btn tonal" data-act="bh-setup">' + L('bhSetup') + '</button></div>' + backupHostCards() + renderBackupsWithoutHosting(); };
+  // Preserve a currently typed key across synchronous view redraws without
+  // putting it in HTML attributes, persistent settings, or job/history records.
+  var renderWithoutBackupKey = render;
+  render = function () {
+    var field = $('#bh-password'), key = field ? field.value : '';
+    var resumeKeys = $$('[data-bh-resume-key]').map(function (input) { return { id: input.id, value: input.value }; });
+    renderWithoutBackupKey();
+    var next = $('#bh-password');
+    if (next && backupHost.file && !backupHost.busy) next.value = key;
+    key = '';
+    resumeKeys.forEach(function (item) { var input = document.getElementById(item.id); if (input && !backupHost.busy) input.value = item.value; item.value = ''; });
+  };
+  var backupHostTimer;
+  async function backupHostRefresh() {
+    clearTimeout(backupHostTimer);
+    if (DEMO || !API.backupHostJobs) return;
+    try { backupHost.jobs = (await API.backupHostJobs()).jobs; backupHost.error = ''; if (backupHost.jobs.some(function (j) { return j.request_id === backupHost.requestId && (j.state === 'ready' || j.state === 'cancelled'); })) backupHost.file = null; }
+    catch (_) { backupHost.error = 'bhError'; }
+    if (st.active === 'deploy' || st.active === 'backups') soon();
+    if (backupHost.jobs.some(backupHostActive)) backupHostTimer = setTimeout(backupHostRefresh, 3000);
+  }
+  async function backupHostStart() {
+    if (backupHost.busy || !backupHost.file || backupHost.jobs.some(backupHostBlocksStart)) return;
+    var retry = backupHost.jobs.some(function (j) { return j.request_id === backupHost.requestId && backupHostNeedsKey(j); });
+    var target = retry ? backupHost.submittedTarget : wizTarget(), v = wiz.vals[target] || {}, input = $('#bh-password'), password = input ? input.value : '';
+    if (input) input.value = '';
+    var options = {};
+    ['name', 'hostId'].forEach(function (key) { if (v[key]) options[key] = v[key]; });
+    if (!retry && (target === 'docker' || target === 'ssh') && typeof v.tag === 'string' && v.tag.trim()) options.tag = v.tag.trim();
+    if (!retry && ['docker', 'ssh', 'virtualbox'].indexOf(target) >= 0 && v.port != null && String(v.port).trim() !== '') {
+      var port = Number(v.port);
+      if (!Number.isInteger(port) || port < 1 || port > 65535) { backupHost.error = 'bhError'; soon(); return; }
+      options.port = port;
+    }
+    ['memoryMb', 'cpus', 'diskGb'].forEach(function (key) { if (v[key] !== '' && v[key] != null) options[key] = Number(v[key]); });
+    if (target === 'pi' && !retry) {
+      try { options.pi_addresses = backupHostPiAddresses(backupHost.piAddresses); } catch (_) { backupHost.error = 'bhPiInvalid'; soon(); return; }
+      options.model = ($('#pimodel') || {}).value || 'rpi5';
+      options.drive_handle = ($('#bh-drive') || {}).value || '';
+      if (!options.drive_handle) { backupHost.error = 'bhNoDrive'; soon(); return; }
+    }
+    if (retry) options = backupHost.submittedOptions;
+    else { backupHost.submittedTarget = target; backupHost.submittedOptions = options; }
+    backupHost.busy = true; backupHost.error = ''; soon();
+    try {
+      var j = await API.backupHostStart({ request_id: backupHost.requestId, upload_handle: backupHost.file.upload_handle, target: target, options: options, ...(password ? { password: password } : {}) });
+      backupHost.jobs = backupHost.jobs.filter(function (old) { return old.id !== j.id; }).concat([j]);
+      await backupHostRefresh();
+    } catch (_) { backupHost.error = 'bhError'; }
+    finally { password = ''; backupHost.busy = false; soon(); }
+  }
+  async function backupHostResume(jobId) {
+    if (backupHost.busy || DEMO) return;
+    var job = backupHost.jobs.find(function (item) { return item.id === jobId; });
+    if (!job || !backupHostCanResume(job)) return;
+    var field = document.getElementById('bh-resume-key-' + job.id);
+    var password = field ? field.value : '';
+    if (field) field.value = '';
+    backupHost.busy = true; backupHost.error = ''; soon();
+    try {
+      // Omit options so the coordinator retains the original fixed image and
+      // port. It owns phase reconciliation and never replays an uncertain restore.
+      await API.backupHostStart({ request_id: job.request_id, upload_handle: job.upload_handle, target: job.target, ...(password ? { password: password } : {}) });
+      await backupHostRefresh();
+    } catch (_) { backupHost.error = 'bhError'; }
+    finally { password = ''; backupHost.busy = false; soon(); }
+  }
+  async function backupHostRetryPi(jobId) {
+    if (backupHost.busy || DEMO) return;
+    var job = backupHost.jobs.find(function (item) { return item.id === jobId; });
+    if (!job || job.target !== 'pi' || job.state !== 'waiting_for_boot' || !job.upload_handle) return;
+    var addresses;
+    try { addresses = backupHostPiAddresses(backupHost.piAddressByJob[jobId] || ''); }
+    catch (_) { backupHost.error = 'bhPiInvalid'; soon(); return; }
+    backupHost.busy = true; backupHost.error = ''; soon();
+    try {
+      await API.backupHostStart({ request_id: job.request_id, upload_handle: job.upload_handle, target: 'pi', options: { pi_addresses: addresses } });
+      await backupHostRefresh();
+    } catch (_) { backupHost.error = 'bhError'; }
+    finally { backupHost.busy = false; soon(); }
+  }
+  async function backupHostApproveSsh(jobId) {
+    if (backupHost.busy || DEMO || typeof API.sshHostKeyApprove !== 'function') return;
+    var job = backupHost.jobs.find(function (item) { return item.id === jobId; });
+    if (!job || !backupHostCanApproveSsh(job)) return;
+    backupHost.busy = true; backupHost.error = ''; soon();
+    try {
+      // The native dialog owns consent. Never send an approval flag or derive
+      // the host from whichever target happens to be selected in the form.
+      var result = await API.sshHostKeyApprove(job.host_id);
+      if (result && result.approved === true && result.host_id === job.host_id) {
+        await API.backupHostStart({ request_id: job.request_id, upload_handle: job.upload_handle, target: job.target });
+        await backupHostRefresh();
+      }
+    } catch (_) { backupHost.error = 'bhError'; }
+    finally { backupHost.busy = false; soon(); }
+  }
+  async function backupHostSetup() {
+    if (DEMO || !API.hostBridgeStatus) { toast(w('bhUnavailable')); return; }
+    try {
+      var bridge = await API.hostBridgeStatus(); backupHost.bridge = bridge;
+      dialog(w('bhSetup'), '<p class="bm">' + L('bhSetupHelp') + '</p><label class="col"><span class="ll">' + L('bhAddress') + '</span><select class="select" id="bh-address">' + (bridge.bind_addresses || []).map(function (a) { return '<option value="' + esc(a) + '">' + esc(a) + '</option>'; }).join('') + '</select></label><button class="btn fill" id="bh-enable"' + ((bridge.bind_addresses || []).length ? '' : ' disabled') + '>' + L('bhEnable') + '</button><div id="bh-bridge-result" aria-live="polite"></div>', { focus: '#bh-address' });
+      $('#bh-enable').onclick = async function () {
+        this.disabled = true;
+        try {
+          var result = await API.hostBridgeEnable({ address: $('#bh-address').value });
+          var out = $('#bh-bridge-result');
+          if (out) out.innerHTML = '<p class="bm">' + esc(result.address || '') + '</p><p class="bm">' + L('bhFingerprint') + '</p><code style="overflow-wrap:anywhere">' + esc(result.certificate_fingerprint || '') + '</code><p>' + L('bhSetupHelp') + '</p>';
+        } catch (_) { var out = $('#bh-bridge-result'); if (out) out.textContent = w('bhError'); }
+        finally { var button = $('#bh-enable'); if (button) button.disabled = false; }
+      };
+    } catch (_) { toast(w('bhError')); }
+  }
+  document.addEventListener('click', async function (event) {
+    var button = event.target.closest('[data-act^="bh-"], [data-bh-cancel], [data-bh-ssh-approve], [data-bh-pi-retry], [data-bh-resume]');
+    if (!button || button.disabled) return;
+    if (DEMO || !API.backupPick) { toast(w('bhUnavailable')); return; }
+    try {
+      var action = button.dataset.act;
+      if (action === 'bh-pick') {
+        if (backupHost.busy || backupHost.jobs.some(backupHostActive)) return;
+        backupHost.busy = true;
+        try { var file = await API.backupPick(); if (file) { backupHost.file = file; backupHost.requestId = crypto.randomUUID(); backupHost.error = ''; go('deploy:top'); } }
+        finally { backupHost.busy = false; soon(); }
+      } else if (action === 'bh-start') await backupHostStart();
+      else if (action === 'bh-refresh') await backupHostRefresh();
+      else if (action === 'bh-clear') { if (backupHost.jobs.some(backupHostActive)) return; backupHost.file = null; backupHost.requestId = ''; backupHost.piAddresses = ''; soon(); }
+      else if (action === 'bh-setup') await backupHostSetup();
+      else if (action === 'bh-drives') { backupHost.drives = await API.backupPiDrives(); soon(); }
+      else if (button.dataset.bhResume) await backupHostResume(button.dataset.bhResume);
+      else if (button.dataset.bhPiRetry) await backupHostRetryPi(button.dataset.bhPiRetry);
+      else if (button.dataset.bhSshApprove) await backupHostApproveSsh(button.dataset.bhSshApprove);
+      else if (button.dataset.bhCancel) { await API.backupHostCancel(button.dataset.bhCancel); await backupHostRefresh(); }
+    } catch (_) { backupHost.error = 'bhError'; soon(); }
+  });
+  document.addEventListener('input', function (event) { if (event.target.id === 'bh-pi-addresses') backupHost.piAddresses = event.target.value; if (event.target.dataset.bhPiAddress) backupHost.piAddressByJob[event.target.dataset.bhPiAddress] = event.target.value; });
+  document.addEventListener('change', function (event) { if (event.target.id === 'bh-drive') backupHost.drive = event.target.value; });
+  window.addEventListener('beforeunload', function () { clearTimeout(backupHostTimer); backupHost.piAddresses = ''; backupHost.piAddressByJob = {}; var input = $('#bh-password'); if (input) input.value = ''; $$('[data-bh-resume-key]').forEach(function (field) { field.value = ''; }); });
+  // The native caption is outside the scrollable application viewport. Padding
+  // on the document cannot enforce this boundary after scrollIntoView or focus.
+  var nativeViewportActive = false;
+  var nativeViewportWatching = false;
+
+  function nativeCaptionBounds(rect, visible, width, height) {
+    if (!visible) return { bottom: 0, left: 0, width: 0 };
+    var y = rect && Number.isFinite(rect.y) ? rect.y : 0;
+    var h = rect && Number.isFinite(rect.height) ? rect.height : 48;
+    var x = rect && Number.isFinite(rect.x) ? rect.x : 0;
+    var w = rect && Number.isFinite(rect.width) ? rect.width : Math.max(0, width - 140);
+    return { bottom: Math.max(0, Math.min(height, y + h)), left: Math.max(0, x), width: Math.max(0, Math.min(width - x, w)) };
+  }
+
+  function nativePopoverPosition(frame, popup, requested) {
+    var left = Math.max(frame.left + 8, Math.min(requested.left, frame.right - popup.width - 8));
+    var top = Math.max(frame.top + 8, Math.min(requested.top, frame.bottom - popup.height - 8));
+    return { left: left - frame.left, top: top - frame.top };
+  }
+
+  function nativeClampPopovers() {
+    if (!nativeViewportActive) return;
+    var app = $('#app'), frame = app.getBoundingClientRect();
+    $$('.popover', app).forEach(function (popup) {
+      var rect = popup.getBoundingClientRect();
+      // Existing producers supply viewport coordinates. Once normalized, use
+      // the actual rectangle during resize instead of subtracting twice.
+      var requested = popup.dataset.nativePositioned ? rect : {
+        left: Number.parseFloat(popup.style.left) || frame.left,
+        top: Number.parseFloat(popup.style.top) || frame.top,
+      };
+      var position = nativePopoverPosition(frame, rect, requested);
+      popup.style.left = position.left + 'px';
+      popup.style.top = position.top + 'px';
+      popup.dataset.nativePositioned = 'true';
+    });
+  }
+
+  function nativeViewportSync() {
+    var overlay = navigator.windowControlsOverlay;
+    var enabled = !DEMO && API.platform === 'win32' && (!overlay || overlay.visible);
+    var bounds = nativeCaptionBounds(overlay && overlay.getTitlebarAreaRect(), enabled, innerWidth, innerHeight);
+    nativeViewportActive = enabled && bounds.bottom > 0;
+    var root = document.documentElement;
+    root.classList.toggle('native-caption-viewport', nativeViewportActive);
+    root.style.setProperty('--native-caption-bottom', bounds.bottom + 'px');
+    root.style.setProperty('--native-caption-left', bounds.left + 'px');
+    root.style.setProperty('--native-caption-width', bounds.width + 'px');
+    if (nativeViewportActive) root.style.setProperty('--native-caption-surface', getComputedStyle($('#app')).getPropertyValue('--surf'));
+    nativeClampPopovers();
+  }
+
+  function nativeViewportInit() {
+    nativeViewportSync();
+    if (nativeViewportWatching || DEMO || API.platform !== 'win32') return;
+    nativeViewportWatching = true;
+    window.addEventListener('resize', nativeViewportSync);
+    if (navigator.windowControlsOverlay) navigator.windowControlsOverlay.addEventListener('geometrychange', nativeViewportSync);
+    // All menu producers append to this root. Observe insertion, not the whole
+    // document's changing attributes, and clamp before the next paint.
+    new MutationObserver(function (records) {
+      if (records.some(function (record) { return Array.from(record.addedNodes).some(function (node) { return node.nodeType === 1 && node.classList.contains('popover'); }); })) nativeClampPopovers();
+    }).observe($('#app'), { childList: true });
+  }
+
+  function nativeContentScrollTop() {
+    var shell = nativeViewportActive && $('.shell');
+    return shell ? shell.scrollTop : window.scrollY;
+  }
+  function nativeContentScrollTo(top) {
+    var shell = nativeViewportActive && $('.shell');
+    if (shell) shell.scrollTo(0, top); else window.scrollTo(0, top);
+  }
+  // ---------- USB stick maker ----------
+  // Three steps: what the stick is for, which stick, then write and check. The page holds only
+  // opaque handles the app issued; drives are listed read only, and nothing is formatted or deleted.
+  var stk = { step: 1, purpose: 'update', action: 'reset-apps', vols: null, vol: '', pack: null, bundle: null, plan: null, armed: false, busy: false, progress: null, result: null, error: '' };
+  Object.assign(W, {
+    stkTitle: ['USB stick maker', 'USB 手指製作'],
+    stkSub: ['Put an offline update pack or a recovery request on a USB stick. Files are added to what the stick already holds; nothing is formatted or deleted.', '將離線更新包或復原要求放入 USB 手指。只會加入檔案，唔會格式化或刪除任何嘢。'],
+    stkStep1: ['What is the stick for?', '呢支手指用嚟做乜？'],
+    stkStep2: ['Choose the stick', '揀手指'],
+    stkStep3: ['Write and check', '寫入同核對'],
+    stkUpdate: ['Offline updates', '離線更新'],
+    stkUpdateHelp: ['Update a device that has no internet. Each part of the pack is checked against its manifest before it is written, and read back from the stick afterwards.', '更新冇網絡嘅裝置。每個部分寫入前會對照清單核對，寫完再由手指讀返核對。'],
+    stkRecovery: ['Recovery', '復原'],
+    stkRecoveryHelp: ['A one-shot request for a device that misbehaves. The stick must already be labelled HA-RECOVERY; this app does not relabel or format drives.', '一次性要求，用嚟修復有問題嘅裝置。手指標籤必須已經係 HA-RECOVERY；呢個程式唔會改標籤或格式化。'],
+    stkOnlyRemovable: ['Only removable drives are listed, with their size and label. System drives are never shown.', '只會列出可移除磁碟同其大細同標籤，唔會顯示系統磁碟。'],
+    stkRefresh: ['Refresh the list', '重新整理'],
+    stkNone: ['No removable drive with a mounted volume was found. Plug one in and refresh.', '搵唔到已掛載嘅可移除磁碟。插入後請重新整理。'],
+    stkPickPack: ['Choose the pack (ZIP or folder)', '揀更新包（ZIP 或資料夾）'],
+    stkPickBundle: ['Choose the update file (.raucb)', '揀更新檔（.raucb）'],
+    stkArm: ['I have checked the drive and its name above, and want to add these files to it', '我已核對上面嘅磁碟同名稱，同意將呢啲檔案加入'],
+    stkWrite: ['Write to the stick', '寫入手指'],
+    stkNext: ['Next', '下一步'],
+    stkBack: ['Back', '返轉頭'],
+    stkPlan: ['Check the plan', '檢查計劃'],
+    stkDone: ['Written and read back correctly. Eject the stick before unplugging it.', '已寫入並讀返核對無誤。拔出前請先彈出。'],
+    stkDemo: ['Writing a stick works in the desktop app. This page shows the steps only.', '寫入手指要喺桌面程式入面做。呢頁只係示範步驟。']
+  });
+  var STK_ACTIONS = [['reset-apps', 'Reset apps', 'Resets the apps container storage. Settings and the Home Assistant configuration are kept.'], ['reinstall-os', 'Reinstall the operating system', 'Reinstalls from the update file you choose. Needs the file for your board.'], ['factory-reset', 'Factory reset', 'Erases everything on the device when it next starts.']];
+  async function stkLoad() { if (DEMO) { stk.vols = []; return; } try { stk.vols = await API.stickVolumes(); } catch (e) { stk.vols = []; stk.error = e.message; } }
+  function stkVol() { return (stk.vols || []).filter(function (v) { return v.handle === stk.vol; })[0]; }
+  function stkSteps() {
+    return '<ol class="chipline" aria-label="Steps">' + [1, 2, 3].map(function (n) { return '<li class="tag ' + (stk.step === n ? 'g' : '') + '" ' + (stk.step === n ? 'aria-current="step"' : '') + '>' + n + '. ' + esc(w('stkStep' + n)) + '</li>'; }).join('') + '</ol>';
+  }
+  function stkBody() {
+    if (stk.step === 1) {
+      var card = function (id, title, help) { return '<button class="card" style="padding:16px;text-align:start" data-stk="purpose" data-v="' + id + '" aria-pressed="' + (stk.purpose === id) + '"><b>' + esc(w(title)) + '</b><span class="bm mu">' + esc(w(help)) + '</span></button>'; };
+      var more = stk.purpose === 'recovery' ? '<fieldset class="col" style="gap:8px;border:0;padding:0"><legend class="ll">Recovery action</legend>' + STK_ACTIONS.map(function (a) { return '<button class="btn ' + (stk.action === a[0] ? 'fill' : 'tonal') + ' sm" data-stk="action" data-v="' + a[0] + '" aria-pressed="' + (stk.action === a[0]) + '">' + esc(a[1]) + '</button><span class="bs mu">' + esc(a[2]) + '</span>'; }).join('') + '</fieldset>' : '';
+      return '<div class="col" style="gap:12px">' + card('update', 'stkUpdate', 'stkUpdateHelp') + card('recovery', 'stkRecovery', 'stkRecoveryHelp') + more + '<div class="row" style="gap:8px"><button class="btn fill" data-stk="to2">' + esc(w('stkNext')) + '</button></div></div>';
+    }
+    if (stk.step === 2) {
+      if (stk.vols == null) { stkLoad().then(function () { if (st.active === 'stick') render(); }); return '<p class="bm mu" role="status">Looking for removable drives…</p>'; }
+      var list = stk.vols.length ? stk.vols.map(function (v) { return '<label class="card row" style="padding:12px;gap:10px;align-items:center"><input type="radio" name="stkvol" data-stk="vol" value="' + esc(v.handle) + '" ' + (stk.vol === v.handle ? 'checked' : '') + '><span class="col grow" style="gap:2px"><b>' + esc(v.label || '(no label)') + '</b><span class="bs mu">' + esc(v.mount) + ' · ' + esc(v.fs || 'unknown') + ' · ' + esc(fmtSize(v.size)) + ', ' + esc(fmtSize(v.free)) + ' free · ' + esc(v.bus) + '</span></span></label>'; }).join('') : '<p class="bm mu" role="status">' + esc(w('stkNone')) + '</p>';
+      var source = stk.purpose === 'update'
+        ? '<div class="row" style="gap:8px;align-items:center"><button class="btn tonal" data-stk="pickpack">' + esc(w('stkPickPack')) + '</button><span class="bm">' + (stk.pack ? esc(stk.pack.name) + ' · board ' + esc(stk.pack.board) + ' · ' + esc(fmtSize(stk.pack.bytes)) + ' · checked' : 'No pack chosen') + '</span></div>' + (stk.pack ? '<ul class="bs">' + stk.pack.parts.map(function (p) { return '<li>' + esc(p.kind) + (p.version ? ' ' + esc(p.version) : '') + ': ' + (p.available ? esc(fmtSize(p.size)) + ' in the pack' : 'not in this pack') + '</li>'; }).join('') + '</ul><p class="bs mu">Only the operating system part installs without internet. The Supervisor and Core parts are carried and checked, then update over the network.</p>' : '')
+        : (stk.action === 'reinstall-os' ? '<div class="row" style="gap:8px;align-items:center"><button class="btn tonal" data-stk="pickbundle">' + esc(w('stkPickBundle')) + '</button><span class="bm">' + (stk.bundle ? esc(stk.bundle.name) : 'No file chosen') + '</span></div>' : '');
+      var ready = stk.vol && (stk.purpose === 'recovery' ? (stk.action !== 'reinstall-os' || stk.bundle) : stk.pack);
+      return '<div class="col" style="gap:12px"><p class="bm mu">' + esc(w('stkOnlyRemovable')) + '</p>' + list + '<div class="row" style="gap:8px"><button class="btn text" data-stk="refresh">' + esc(w('stkRefresh')) + '</button></div>' + source + (stk.error ? '<p class="bm" role="alert">' + esc(stk.error) + '</p>' : '') + '<div class="row" style="gap:8px"><button class="btn text" data-stk="to1">' + esc(w('stkBack')) + '</button><button class="btn fill" data-stk="plan" ' + (ready ? '' : 'disabled') + '>' + esc(w('stkPlan')) + '</button></div></div>';
+    }
+    var p = stk.plan; if (!p) return '<p class="bm mu">Go back and choose the stick.</p>';
+    var blocked = p.blocked.length ? '<div class="note"><span>' + icon('InformationOutline') + '</span><span class="bm" role="alert">' + p.blocked.map(esc).join('<br>') + '</span></div>' : '';
+    var files = '<ul class="bs">' + p.files.map(function (f) { return '<li class="mono">' + esc(f.name) + ' · ' + esc(fmtSize(f.size)) + '</li>'; }).join('') + '</ul>';
+    var res = stk.result ? '<div class="note"><span>' + icon('InformationOutline') + '</span><span class="bm" role="status">' + (stk.result.ok ? esc(w('stkDone')) : esc(stk.result.error)) + '</span></div>' + '<ul class="bs">' + stk.result.results.map(function (r) { return '<li class="mono">' + (r.ok ? 'OK ' : 'FAILED ') + esc(r.name) + ' · ' + esc(r.sha256.slice(0, 16)) + '…</li>'; }).join('') + '</ul>' : '';
+    var prog = stk.busy ? '<progress id="stkprog" class="prog" max="100" value="' + Math.round(((stk.progress || {}).fraction || 0) * 100) + '" aria-label="Progress"></progress><p class="bs mu" id="stkphase" role="status">' + esc((stk.progress || {}).phase || 'starting') + '</p>' : '';
+    var controls = p.blocked.length || stk.result ? '' : '<div class="col" style="gap:10px"><button class="btn tonal" role="switch" aria-checked="' + stk.armed + '" data-stk="arm">' + (stk.armed ? 'Armed: ' : 'Not armed: ') + esc(w('stkArm')) + '</button><button class="btn fill" data-stk="write" ' + (stk.armed && !stk.busy ? '' : 'disabled') + '>' + esc(w('stkWrite')) + '</button></div>';
+    return '<div class="col" style="gap:12px"><p class="bm"><b>' + esc(p.target) + '</b></p><p class="bm">' + esc(p.summary) + '</p>' + files + blocked + controls + prog + res + '<div class="row" style="gap:8px"><button class="btn text" data-stk="to2" ' + (stk.busy ? 'disabled' : '') + '>' + esc(w('stkBack')) + '</button></div></div>';
+  }
+  R.stick = function () {
+    return pageHead('Harddisk', w('stkTitle'), esc(w('stkSub')), null, '') + '<div class="section col" style="gap:14px">' + (DEMO ? '<p class="bm mu" role="status">' + esc(w('stkDemo')) + '</p>' : '') + stkSteps() + stkBody() + '</div>';
+  };
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-stk]') : null; if (!b || b.disabled) return;
+    var a = b.dataset.stk, v = b.dataset.v;
+    if (a === 'purpose') { stk.purpose = v; stk.pack = stk.bundle = stk.plan = null; stk.result = null; render(); }
+    else if (a === 'action') { stk.action = v; stk.plan = null; render(); }
+    else if (a === 'to1') { stk.step = 1; render(); }
+    else if (a === 'to2') { stk.step = 2; stk.armed = false; stk.result = null; stk.plan = null; stk.error = ''; render(); }
+    else if (a === 'refresh') { stk.vols = null; stk.vol = ''; stk.plan = null; render(); }
+    else if (a === 'vol') { stk.vol = b.value; stk.plan = null; }
+    else if (a === 'pickpack') { if (DEMO) { toast(w('stkDemo')); return; } stk.error = ''; API.stickPickPack().then(function (p) { if (p) { stk.pack = p; stk.plan = null; } render(); }, function (er) { stk.error = er.message; render(); }); }
+    else if (a === 'pickbundle') { if (DEMO) { toast(w('stkDemo')); return; } API.stickPickBundle().then(function (p) { if (p) { stk.bundle = p; stk.plan = null; } render(); }, function (er) { stk.error = er.message; render(); }); }
+    else if (a === 'plan') {
+      if (DEMO) { toast(w('stkDemo')); return; }
+      var radio = document.querySelector('input[name="stkvol"]:checked'); if (radio) stk.vol = radio.value;
+      API.stickPlan({ purpose: stk.purpose === 'recovery' ? 'recovery' : 'update', volume: stk.vol, pack: stk.pack && stk.pack.handle, bundle: stk.bundle && stk.bundle.handle, action: stk.action }).then(function (p) { stk.plan = p; stk.step = 3; stk.armed = false; stk.result = null; stk.error = ''; render(); }, function (er) { stk.error = er.message; render(); });
+    }
+    else if (a === 'arm') { stk.armed = !stk.armed; render(); }
+    else if (a === 'write') {
+      if (!stk.armed || stk.busy || !stk.plan) return;
+      stk.busy = true; stk.progress = { phase: 'starting', fraction: 0 }; render();
+      API.stickWrite({ plan: stk.plan.handle, armed: stk.armed, confirmed: true }).then(function (r) { stk.busy = false; stk.result = r; stk.armed = false; render(); toast(r.ok ? w('stkDone') : r.error); }, function (er) { stk.busy = false; stk.armed = false; stk.result = { ok: false, error: er.message, results: [] }; render(); });
+    }
+  });
+  if (!DEMO && API.on) API.on(function (ch, p) {
+    if (ch !== 'stick-progress') return;
+    stk.progress = p; var bar = $('#stkprog'), phase = $('#stkphase');
+    if (bar) bar.value = Math.round(p.fraction * 100);
+    if (phase) phase.textContent = p.phase === 'writing' ? 'Writing to the stick' : p.phase === 'checking' ? 'Reading every file back to check it' : 'Checking the pack';
+  });
   // ---------- Start ----------
   (async function () {
     try { about = await API.about(); } catch (e) { about = {}; }
     try { dls = await API.downloads(); } catch (e) { dls = []; }
     await reload(); apply(); shell(); render(); wire();
+    if (!DEMO && API.backupHostJobs) void backupHostRefresh();
     try { exts = await API.extensions(); } catch (e) { exts = []; }
     try { extRuns = API.extRuns ? await API.extRuns() : []; } catch (e) { extRuns = []; }
     try { if (API.school) schoolApply(await API.school()); } catch (e) { /* the shared folder may be unreadable */ }

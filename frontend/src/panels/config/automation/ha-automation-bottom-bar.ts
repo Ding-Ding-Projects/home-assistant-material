@@ -38,6 +38,7 @@ import type {
   DryRunVerdict,
 } from "./automation-dry-run";
 import { dryRunAutomation } from "./automation-dry-run";
+import { showAutomationDryRunDialog } from "./dry-run/show-dialog-automation-dry-run";
 import { isSaveDisabled } from "./run-helpers";
 import {
   registerProblemCover,
@@ -47,6 +48,7 @@ import {
 const PREFIX = "ui.panel.config.automation.editor.bottom_bar.";
 const DRY = "ui.panel.config.automation.editor.dry_run.";
 const CHECK = "ui.panel.config.automation.editor.status_bar.";
+const REPLAY = "ui.panel.config.automation.editor.dry_run_replay.";
 
 /** The keyboard is up when the visible height drops by more than this. */
 const KEYBOARD_PX = 150;
@@ -307,6 +309,9 @@ export class HaAutomationBottomBar extends LitElement {
           ></ha-icon-button>
         </div>
         <p class="note">${t(`${DRY}note`)}</p>
+        <ha-button appearance="plain" @click=${this._openReplay}>
+          ${t(`${REPLAY}open`)}
+        </ha-button>
         <p class="summary" role="status">
           ${t(`${DRY}conditions_${result.conditions}`)}
           ${t(`${DRY}counts`, {
@@ -428,6 +433,14 @@ export class HaAutomationBottomBar extends LitElement {
 
   private _closeDryRun() {
     this._dryResult = undefined;
+  }
+
+  /** Opens the past-period replay with the automation as it is on screen. */
+  private _openReplay() {
+    if (!this.config) {
+      return;
+    }
+    showAutomationDryRunDialog(this, { config: this.config });
   }
 
   private _save() {

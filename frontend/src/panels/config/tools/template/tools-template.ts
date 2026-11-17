@@ -732,8 +732,11 @@ ${
           overflow-wrap: anywhere;
           margin: 0;
           font-family: var(--ha-font-family-heading, inherit);
-          font-size: var(--ha-font-size-xl);
-          font-weight: var(--ha-font-weight-medium);
+          font-size: 24px;
+          font-weight: var(--ha-font-weight-bold, 700);
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
         }
 
         .result-meta {

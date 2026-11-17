@@ -449,8 +449,9 @@ export class ToolsYamlConfig extends LitElement {
         h2 {
           margin: 0;
           font-family: var(--ha-font-family-heading, inherit);
-          font-size: var(--ha-font-size-xl);
-          font-weight: var(--ha-font-weight-medium);
+          font-size: 24px;
+          font-weight: var(--ha-font-weight-bold, 700);
+          line-height: var(--ha-line-height-condensed);
           white-space: normal;
           overflow: visible;
           text-overflow: clip;
@@ -479,7 +480,7 @@ export class ToolsYamlConfig extends LitElement {
 
         .status-text p {
           color: var(--secondary-text-color);
-          font-size: var(--ha-font-size-s);
+          font-size: 13px;
         }
 
         .tile {
@@ -550,16 +551,23 @@ export class ToolsYamlConfig extends LitElement {
           padding: 0;
           display: flex;
           flex-direction: column;
-          gap: var(--ha-space-2);
+          gap: 8px;
         }
 
         .reload-row {
+          box-sizing: border-box;
           display: flex;
           align-items: center;
           gap: var(--ha-space-3);
+          min-height: 60px;
           padding: var(--ha-space-2) var(--ha-space-4);
-          border-radius: var(--ha-border-radius-xl);
+          border-radius: 20px;
           background: var(--card-background-color);
+        }
+
+        .reload-row ha-call-service-button {
+          flex: none;
+          margin-inline-start: auto;
         }
 
         .reload-name {
@@ -571,7 +579,7 @@ export class ToolsYamlConfig extends LitElement {
 
         .reload-count {
           color: var(--secondary-text-color);
-          font-size: var(--ha-font-size-s);
+          font-size: 13px;
         }
       `,
     ];

@@ -224,6 +224,23 @@ class APIOS(CoreSysAttributes):
         return await update_task
 
     @api_process
+    async def offline_update_pack(self, request: web.Request) -> dict[str, Any] | None:
+        """Install an offline update pack from a removable drive."""
+        body = await api_validate(SCHEMA_OFFLINE_UPDATE, request)
+
+        update_task, job_id = await background_task(
+            self.sys_os,
+            self.sys_os.update_from_pack,
+            drive_id=body[ATTR_DRIVE_ID],
+            path=body[ATTR_PATH],
+        )
+
+        if not update_task.done():
+            return {ATTR_JOB_ID: job_id}
+
+        return await update_task
+
+    @api_process
     def config_sync(self, request: web.Request) -> Awaitable[None]:
         """Trigger config reload on OS."""
         return asyncio.shield(self.sys_os.config_sync())

@@ -78,6 +78,7 @@ import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
 import "./updates/ha-update-changes";
 import "./updates/ha-update-coming-soon";
+import "./updates/ha-update-history";
 import "./updates/ha-update-usb";
 import { updateDisplayName } from "./updates/ha-update-queue-card";
 import { UpdateQueueController } from "./updates/update-queue-controller";
@@ -378,6 +379,12 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                     .hass=${this.hass}
                     .narrow=${this.narrow}
                   ></ha-update-changes>
+                  <ha-update-history
+                    .hass=${this.hass}
+                    .supervisorAvailable=${!!this._supervisorInfo}
+                    .busy=${this._queue.active || this._usbRunning}
+                    .backup=${this._autoInfo?.backup ?? false}
+                  ></ha-update-history>
                   ${this._renderFootnote()}
                 </div>
               `

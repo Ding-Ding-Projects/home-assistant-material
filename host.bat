@@ -10,6 +10,10 @@ rem Add --full to any of these to use the full hosting mode instead (compose.ful
 rem container that runs its own Docker engine, so apps, the app store, backups with apps and real
 rem updates work. See docs\features\hosting\full-mode.md. For example: host.bat --full --detached
 rem
+rem Add --cloud to also start the cloud host, a tunnel that reaches this instance from outside
+rem without opening a router port (plain mode only). It needs HA_MATERIAL_TUNNEL_TOKEN set in your
+rem environment or in an untracked .env file. See docs\features\hosting\cloud-host.md.
+rem
 rem Leaving the log view does not stop anything. Existing data and other containers are left alone.
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
@@ -20,8 +24,23 @@ set "DATA_NOTE=%CD%\config"
 set "MAX_TRIES=60"
 set "MODE="
 set "FULL="
+set "CLOUD="
 for %%A in (%*) do (
-  if /i "%%~A"=="--full" (set "FULL=1") else (set "MODE=%%~A")
+  if /i "%%~A"=="--full" (set "FULL=1") else if /i "%%~A"=="--cloud" (set "CLOUD=1") else (set "MODE=%%~A")
+)
+if defined CLOUD (
+  if defined FULL (
+    call :fail "--cloud works with the plain mode only. In the full mode, set the cloud host up in Settings."
+    exit /b 1
+  )
+  set "TOKEN_SET="
+  if defined HA_MATERIAL_TUNNEL_TOKEN set "TOKEN_SET=1"
+  if not defined TOKEN_SET if exist ".env" findstr /r /c:"^HA_MATERIAL_TUNNEL_TOKEN=[^ ]" ".env" >nul 2>&1 && set "TOKEN_SET=1"
+  if not defined TOKEN_SET (
+    call :fail "HA_MATERIAL_TUNNEL_TOKEN is empty. Create a tunnel in your provider account, then set HA_MATERIAL_TUNNEL_TOKEN in your environment or in an untracked .env file next to compose.yaml (never in a tracked file), and run this again. See docs\features\hosting\cloud-host.md."
+    exit /b 1
+  )
+  set "COMPOSE_PROFILES=cloud"
 )
 if defined FULL (
   set "COMPOSE_FILE=compose.full.yaml"
@@ -87,6 +106,17 @@ if defined ADDRESS (
   echo   On your network:   the address of this machine could not be read; use its IP address with port %PORT%.
 )
 echo   Data is kept in:   !DATA_NOTE!
+if defined CLOUD (
+  set "TUNNEL_ADDRESS="
+  for /f "usebackq tokens=1" %%T in (`docker inspect --format "{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}" home-assistant-material-cloud-tunnel 2^>nul`) do if not defined TUNNEL_ADDRESS set "TUNNEL_ADDRESS=%%T"
+  if not defined TUNNEL_ADDRESS set "TUNNEL_ADDRESS=the tunnel container address"
+  echo.
+  echo Cloud host: the tunnel container is started.
+  echo   Next: add to configuration.yaml under http:  use_x_forwarded_for: true  and
+  echo         trusted_proxies: [!TUNNEL_ADDRESS!]  then restart Home Assistant.
+  echo   Point the tunnel public hostname at http://homeassistant:%PORT% in the provider dashboard.
+  echo   This instance is now reachable from the internet; use a strong password and two-step sign-in.
+)
 if /i "%MODE%"=="--detached" exit /b 0
 
 :logview

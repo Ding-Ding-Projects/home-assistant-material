@@ -1,78 +1,23 @@
-import { mdiDotsVertical } from "@mdi/js";
+import { mdiChevronDown, mdiDotsVertical } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult, PropertyValues } from "lit";
-import { css, html, LitElement } from "lit";
-import { customElement, property, query } from "lit/decorators";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
+import { isComponentLoaded } from "../../../common/config/is_component_loaded";
+import { modeText } from "../../../common/language-mode/language-mode";
 import { isNavigationClick } from "../../../common/dom/is-navigation-click";
 import { navigate } from "../../../common/navigate";
 import "../../../components/ha-dropdown";
+import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-icon-button-arrow-prev";
-import "../../../components/ha-tab-group";
-import "../../../components/ha-tab-group-tab";
+import "../../../components/ha-svg-icon";
 import "../../../components/ha-top-app-bar-fixed";
-import { isComponentLoaded } from "../../../common/config/is_component_loaded";
+import type { LocalizeKeys } from "../../../common/translations/localize";
 import type { HomeAssistant, Route } from "../../../types";
+import { partitionTools, resolveToolPanel } from "./tools-navigation";
 import "./tools-router";
-import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
-
-const TOOLS_TABS = [
-  {
-    panel: "yaml",
-    translationKey: "ui.panel.config.tools.tabs.yaml.title",
-  },
-  {
-    panel: "state",
-    translationKey: "ui.panel.config.tools.tabs.states.title",
-  },
-  {
-    panel: "action",
-    translationKey: "ui.panel.config.tools.tabs.actions.title",
-  },
-  {
-    panel: "action-history",
-    translationKey: "ui.panel.config.tools.tabs.action_history.title",
-    component: "logbook",
-  },
-  {
-    panel: "template",
-    translationKey: "ui.panel.config.tools.tabs.templates.title",
-  },
-  {
-    panel: "event",
-    translationKey: "ui.panel.config.tools.tabs.events.title",
-  },
-  {
-    panel: "debug-console",
-    translationKey: "ui.panel.config.tools.tabs.debug_console.title",
-    // Only loaded when enabled in YAML.
-    component: "debug_console",
-  },
-  {
-    panel: "statistics",
-    translationKey: "ui.panel.config.tools.tabs.statistics.title",
-  },
-  {
-    panel: "assist",
-    translationKey: "ui.panel.config.tools.tabs.assist.tab",
-  },
-  {
-    panel: "base64",
-    translationKey: "ui.panel.config.tools.tabs.base64.title",
-  },
-  {
-    panel: "colour",
-    translationKey: "ui.panel.config.tools.tabs.colour.title",
-  },
-  {
-    panel: "converter",
-    translationKey: "ui.panel.config.tools.tabs.converter.title",
-  },
-  {
-    panel: "drawing",
-    translationKey: "ui.panel.config.tools.tabs.drawing.title",
-  },
-] as const;
 
 @customElement("ha-panel-tools")
 class PanelTools extends LitElement {
@@ -82,15 +27,20 @@ class PanelTools extends LitElement {
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
 
-  @query("ha-tab-group") private _tabGroup?: HTMLElement;
-
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
     this.hass.loadBackendTranslation("title");
   }
 
   protected render(): TemplateResult {
-    const page = this._page;
+    const page = resolveToolPanel(this._page);
+    const { main, more } = partitionTools(
+      (tab) =>
+        !tab.component || isComponentLoaded(this.hass.config, tab.component)
+    );
+    const moreActive = more.some((tab) => tab.panel === page);
+    const localize = this.hass.localize;
+
     return html`
       <ha-top-app-bar-fixed .narrow=${this.narrow}>
         <ha-icon-button-arrow-prev
@@ -98,77 +48,104 @@ class PanelTools extends LitElement {
           @click=${this._handleBack}
         ></ha-icon-button-arrow-prev>
         <div slot="title">
-          ${this.hass.localize("ui.panel.config.dashboard.tools.main")}
+          ${localize("ui.panel.config.dashboard.tools.main")}
         </div>
         <ha-dropdown slot="actionItems" @wa-select=${this._handleMenuAction}>
           <ha-icon-button
             slot="trigger"
-            .label=${this.hass.localize("ui.common.menu")}
+            .label=${localize("ui.common.menu")}
             .path=${mdiDotsVertical}
           ></ha-icon-button>
           <ha-dropdown-item value="debug">
-            ${this.hass.localize("ui.panel.config.tools.tabs.debug.title")}
+            ${localize("ui.panel.config.tools.tabs.debug.title")}
           </ha-dropdown-item>
         </ha-dropdown>
-        <ha-tab-group @wa-tab-show=${this._handlePageSelected} slot="subRow">
-          ${TOOLS_TABS.filter(
-            (tab) =>
-              !("component" in tab) ||
-              isComponentLoaded(this.hass.config, tab.component)
-          ).map(
-            (tab) => html`
-              <ha-tab-group-tab
-                slot="nav"
-                panel=${tab.panel}
-                .active=${page === tab.panel}
-              >
-                <a
-                  href="/config/tools/${tab.panel}"
-                  @click=${this._handleTabAnchorClick}
-                  >${this.hass.localize(tab.translationKey)}</a
-                >
-              </ha-tab-group-tab>
-            `
-          )}
-        </ha-tab-group>
-        <tools-router
-          .route=${this.route}
-          .narrow=${this.narrow}
-          .hass=${this.hass}
-        ></tools-router>
+        <div class="wrapper">
+          <header class="header">
+            <h1>${localize("ui.panel.config.dashboard.tools.main")}</h1>
+            <nav
+              class="pills"
+              aria-label=${modeText(localize, "ui.panel.config.tools.nav.label")}
+            >
+              ${main.map(
+                (tab) => html`
+                  <a
+                    class=${classMap({ pill: true, active: page === tab.panel })}
+                    href="/config/tools/${tab.panel}"
+                    aria-current=${page === tab.panel ? "page" : "false"}
+                    @click=${this._handleAnchorClick}
+                    >${localize(tab.translationKey as LocalizeKeys)}</a
+                  >
+                `
+              )}
+              ${
+                more.length
+                  ? html`
+                      <ha-dropdown
+                        class="more"
+                        placement="bottom-end"
+                        @wa-select=${this._handleMoreSelect}
+                      >
+                        <button
+                          slot="trigger"
+                          type="button"
+                          class=${classMap({ pill: true, active: moreActive })}
+                          aria-haspopup="menu"
+                        >
+                          ${modeText(
+                            localize,
+                            "ui.panel.config.tools.nav.more",
+                            {
+                              count: more.length,
+                            }
+                          )}
+                          <ha-svg-icon .path=${mdiChevronDown}></ha-svg-icon>
+                        </button>
+                        ${more.map(
+                          (tab) => html`
+                            <ha-dropdown-item
+                              class="more-item"
+                              .value=${tab.panel}
+                              .selected=${page === tab.panel}
+                            >
+                              ${localize(tab.translationKey as LocalizeKeys)}
+                              <span slot="details" class="more-description"
+                                >${modeText(localize, tab.descriptionKey)}</span
+                              >
+                            </ha-dropdown-item>
+                          `
+                        )}
+                      </ha-dropdown>
+                    `
+                  : nothing
+              }
+            </nav>
+          </header>
+          <tools-router
+            .route=${this.route}
+            .narrow=${this.narrow}
+            .hass=${this.hass}
+          ></tools-router>
+        </div>
       </ha-top-app-bar-fixed>
     `;
   }
 
-  protected updated(changedProps: PropertyValues<this>) {
-    super.updated(changedProps);
-    if (changedProps.has("route")) {
-      // Keep the selected tab fully inside the scrolling tab strip.
-      this.updateComplete.then(() => {
-        this._tabGroup
-          ?.querySelector(`ha-tab-group-tab[panel="${this._page}"]`)
-          ?.scrollIntoView({ inline: "center", block: "nearest" });
-      });
-    }
-  }
-
-  private _handleTabAnchorClick(ev: MouseEvent) {
-    ev.stopPropagation();
+  private _handleAnchorClick(ev: MouseEvent) {
     const href = isNavigationClick(ev);
     if (href) {
       navigate(href);
     }
   }
 
-  private _handlePageSelected(ev: CustomEvent<{ name: string }>) {
-    const newPage = ev.detail.name;
-    if (!newPage) {
+  private _handleMoreSelect(ev: HaDropdownSelectEvent) {
+    ev.stopPropagation();
+    const panel = ev.detail.item.value;
+    if (!panel) {
       return;
     }
-    if (newPage !== this._page) {
-      navigate(`/config/tools/${newPage}`);
-    } else {
-      scrollTo({ behavior: "smooth", top: 0 });
+    if (panel !== resolveToolPanel(this._page)) {
+      navigate(`/config/tools/${panel}`);
     }
   }
 
@@ -188,24 +165,82 @@ class PanelTools extends LitElement {
   }
 
   static readonly styles: CSSResultGroup = css`
+    .wrapper {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+    .header {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-3);
+      padding: var(--ha-space-4) var(--ha-space-4) 0;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+    h1 {
+      margin: 0;
+      font-family: var(--ha-font-family-heading, inherit);
+      font-size: var(--ha-font-size-3xl);
+      font-weight: var(--ha-font-weight-bold, 700);
+      line-height: var(--ha-line-height-condensed);
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      overflow-wrap: anywhere;
+    }
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-2);
+      align-items: center;
+    }
+    .pill {
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--ha-space-1);
+      min-height: 48px;
+      padding: 0 var(--ha-space-5);
+      border: 1px solid var(--divider-color);
+      border-radius: 999px;
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font-family: inherit;
+      font-size: var(--ha-font-size-m);
+      font-weight: var(--ha-font-weight-medium);
+      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .pill:hover {
+      background: var(--secondary-background-color);
+    }
+    .pill:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .pill.active {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .pill ha-svg-icon {
+      --mdc-icon-size: 20px;
+    }
+    .more-description {
+      display: block;
+      max-width: 280px;
+      white-space: normal;
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+    }
     tools-router {
       display: block;
-      height: 100%;
-    }
-    ha-tab-group {
-      --ha-tab-active-text-color: var(--app-header-text-color, white);
-      --ha-tab-indicator-color: var(--app-header-text-color, white);
-      --ha-tab-track-color: transparent;
-    }
-    ha-tab-group-tab::part(base) {
-      padding: 0;
-    }
-    ha-tab-group-tab a {
-      color: inherit;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      padding: 1em 1.5em;
+      flex: 1;
     }
   `;
 }

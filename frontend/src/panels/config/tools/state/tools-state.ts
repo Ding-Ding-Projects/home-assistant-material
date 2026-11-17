@@ -709,12 +709,25 @@ class HaPanelDevState extends LitElement {
           min-width: 0;
         }
 
-        h1 {
+        h1,
+        h2 {
           margin: 0;
           font-family: var(--ha-font-family-heading, inherit);
-          font-size: var(--ha-font-size-3xl);
-          font-weight: var(--ha-font-weight-medium);
+          font-weight: var(--ha-font-weight-bold, 700);
           line-height: var(--ha-line-height-condensed);
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
+          overflow-wrap: anywhere;
+        }
+
+        h1 {
+          font-size: 28px;
+        }
+
+        .set-card ha-alert {
+          display: block;
+          --ha-alert-padding: var(--ha-space-3);
         }
 
         .summary,
@@ -741,6 +754,9 @@ class HaPanelDevState extends LitElement {
 
         .set-card {
           box-sizing: border-box;
+          position: relative;
+          z-index: 1;
+          min-width: 0;
           display: flex;
           flex-direction: column;
           gap: var(--ha-space-3);
@@ -750,10 +766,7 @@ class HaPanelDevState extends LitElement {
         }
 
         h2 {
-          margin: 0;
-          font-family: var(--ha-font-family-heading, inherit);
-          font-size: var(--ha-font-size-xl);
-          font-weight: var(--ha-font-weight-medium);
+          font-size: 24px;
         }
 
         .field-label {
@@ -783,9 +796,7 @@ class HaPanelDevState extends LitElement {
 
         .entity-id span {
           min-width: 0;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          overflow-wrap: anywhere;
         }
 
         .state-input {

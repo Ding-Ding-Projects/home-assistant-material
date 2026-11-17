@@ -250,6 +250,17 @@ iframe.demo{width:100%;height:820px;border:0;border-radius:24px;box-shadow:0 0 0
 #cvout:empty::before{content:'Results show here.';color:var(--onv)}
 
 /* Deploy Assistant only. */
+/* A real viewport boundary keeps scrolled content and fixed overlays out of
+   native caption controls. The measured caption geometry is set at runtime. */
+html.native-caption-viewport,html.native-caption-viewport body{height:100%;overflow:hidden}
+html.native-caption-viewport{background:var(--native-caption-surface)}
+html.native-caption-viewport::before{content:'';position:fixed;top:0;left:var(--native-caption-left);width:var(--native-caption-width);height:var(--native-caption-bottom);-webkit-app-region:drag}
+.native-caption-viewport #app{position:fixed;inset:var(--native-caption-bottom) 0 0;min-height:0;overflow:hidden;contain:layout paint}
+.native-caption-viewport #app>.shell{height:100%;min-height:0;overflow:auto;overscroll-behavior:contain}
+.native-caption-viewport .wcospace{display:none}
+.native-caption-viewport #app>.popover{max-height:calc(100% - 16px);max-width:min(360px,calc(100% - 16px));box-sizing:border-box}
+.native-caption-viewport #app>.overlay{box-sizing:border-box;padding:min(6vh,24px) 12px 12px}
+.native-caption-viewport #app>.overlay>.dialog{max-height:100%;box-sizing:border-box}
 .drag{-webkit-app-region:drag}.drag button,.drag input,.drag a,.nodrag{-webkit-app-region:no-drag}
 .winctl{display:flex;gap:2px;margin-left:8px}.winctl .ib{width:40px;height:40px}.winctl .wclose:hover{background:var(--err);color:var(--on-err,#fff)}
 .dhero{padding:8px 0 20px}
@@ -403,6 +414,13 @@ h2#history,h2#notifications,h2#records{margin:32px 0 8px}
 .phead>.col.grow{flex:1 1 320px}
 .phead .bm.mu{text-wrap:balance}
 
+/* Backup hosting uses the same theme and remains fully reachable on narrow screens. */
+.backup-host-panel{padding:var(--sp,20px);display:grid;gap:12px;margin-block-end:20px}
+.backup-host-panel input,.backup-host-panel select{min-height:48px;min-width:0;width:100%;box-sizing:border-box}
+.backup-host-panel .btn,.backup-host-jobs .btn{min-height:48px;white-space:normal;overflow-wrap:anywhere}
+.backup-host-jobs{display:grid;gap:12px}
+.backup-host-jobs .pcard{min-width:0;overflow-wrap:anywhere}
+@media(max-width:600px){.backup-host-panel .row{align-items:stretch}.backup-host-panel .row>.btn{flex:1 1 100%}}
 /* Polish pass, 1.7 */
 /* Plan fields line up: a field with a clear button no longer stretches to the height of a neighbour that has a hint line. */
 .plan label>.clrwrap{flex:0 0 auto}

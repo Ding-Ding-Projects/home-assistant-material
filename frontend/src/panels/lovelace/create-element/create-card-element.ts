@@ -79,6 +79,7 @@ const LAZY_LOAD_TYPES = {
   error: () => import("../cards/hui-error-card"),
   "home-summary": () => import("../cards/hui-home-summary-card"),
   "home-greeting": () => import("../cards/hui-home-greeting-card"),
+  "away-digest": () => import("../../home-digest/ha-away-digest"),
   "home-hero": () => import("../cards/hui-home-hero-card"),
   "lights-summary": () => import("../cards/hui-lights-summary-card"),
   "room-lights": () => import("../cards/hui-room-lights-card"),

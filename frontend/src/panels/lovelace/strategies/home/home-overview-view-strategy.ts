@@ -737,9 +737,23 @@ export class HomeOverviewViewStrategy extends ReactiveElement {
       ],
     };
 
+    // The summary of what happened while you were away. The card hides itself
+    // unless the person was away at least the chosen gap.
+    const awayDigestSection: LovelaceSectionConfig = {
+      type: "grid",
+      column_span: maxColumns,
+      cards: [
+        {
+          type: "away-digest",
+          grid_options: { columns: "full" },
+        },
+      ],
+    };
+
     const sections = (
       [
         emptyStateSection,
+        awayDigestSection,
         heroSection,
         mobileAlertsSection,
         favoritesSection,

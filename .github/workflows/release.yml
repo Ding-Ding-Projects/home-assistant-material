@@ -893,3 +893,68 @@ jobs:
           path: recovery/
           if-no-files-found: warn
           retention-days: 14
+
+  # Adds one offline update pack per board to the release the publish job created.
+  # It runs only after that release exists and only for a manual run, like the
+  # publish job, and changes nothing in it except attaching the pack files. A pack
+  # carries the operating system bundle of its board. The Supervisor and Core images
+  # are not exported to files by this workflow, so their parts are listed as not
+  # available (see docs/features/hosting/offline-update-pack.md).
+  pack:
+    name: Add the offline update packs to the release
+    needs: [prepare, publish]
+    if: needs.prepare.outputs.heavy == 'true' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    env:
+      TAG: ${{ needs.prepare.outputs.tag }}
+      BUILD: ${{ needs.prepare.outputs.build }}
+      CORE: ${{ needs.prepare.outputs.core }}
+      SUPERVISOR: ${{ needs.prepare.outputs.supervisor }}
+      BOARDS: ${{ needs.prepare.outputs.boards }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Fetch the operating system bundles
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-os-*
+          path: staged
+          merge-multiple: false
+
+      - name: Build the packs and attach them to the release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          mkdir packs
+          for id in $(jq -r '.[].id' <<< "${BOARDS}"); do
+            bundle="$(compgen -G "staged/release-os-${id}/haos_${id}-*.raucb" | head -n 1 || true)"
+            if [ -z "${bundle}" ]; then
+              echo "::warning::No update bundle for ${id}. No pack is made for it."
+              continue
+            fi
+            python3 scripts/ci/make-offline-pack.py \
+              --out "packs/${id}" --build "${BUILD}" --board "${id}" \
+              --os-bundle "${bundle}" \
+              --supervisor-version "${SUPERVISOR}" --core-version "${CORE}" \
+              --zip "packs/ham-offline-pack-${BUILD}-${id}.zip"
+          done
+          compgen -G "packs/*.zip" >/dev/null || { echo "::error::No pack was built."; exit 1; }
+          gh release upload "${TAG}" packs/*.zip
+          gh release view "${TAG}" --json isDraft,isPrerelease,assets > readback.json
+          python3 - <<'PY'
+          import glob, json, os, sys
+          readback = json.load(open("readback.json"))
+          remote = {a["name"]: a["size"] for a in readback["assets"]}
+          problems = [f"{p} missing or wrong size" for p in glob.glob("packs/*.zip")
+                      if remote.get(os.path.basename(p)) != os.path.getsize(p)]
+          if readback["isDraft"] or readback["isPrerelease"]:
+              problems.append("release is a draft or a prerelease")
+          sys.exit("; ".join(problems) if problems else 0)
+          PY

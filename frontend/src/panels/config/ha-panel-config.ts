@@ -92,6 +92,10 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-devices",
         load: () => import("./devices/ha-config-devices"),
       },
+      "device-health": {
+        tag: "ha-config-device-health",
+        load: () => import("./device-health/ha-config-device-health"),
+      },
       system: {
         tag: "ha-config-system-navigation",
         load: () => import("./core/ha-config-system-navigation"),

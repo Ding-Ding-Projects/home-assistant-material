@@ -744,8 +744,12 @@ class ToolsBase64 extends LitElement {
         h2 {
           flex: 1;
           margin: 0;
-          font-size: var(--ha-font-size-m);
-          font-weight: var(--ha-font-weight-medium);
+          font-size: 24px;
+          font-weight: var(--ha-font-weight-bold, 700);
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
+          overflow-wrap: anywhere;
         }
         textarea,
         pre {

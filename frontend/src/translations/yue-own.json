@@ -174,6 +174,25 @@
       },
       "config": {
         "tools": {
+          "nav": {
+            "label": "工具",
+            "more": "更多工具（{count}）",
+            "description": {
+              "yaml": "檢查設定，唔使重新啟動都可以重新載入部分設定。",
+              "state": "睇晒所有實體同佢哋而家嘅狀態同屬性。",
+              "action": "用你揀嘅資料執行動作，再睇結果。",
+              "action_history": "回顧執行過嘅動作同佢哋做咗啲乜。",
+              "template": "試用範本，睇吓佢會顯示乜嘢。",
+              "event": "監聽事件，亦可以自己觸發事件。",
+              "debug_console": "喺你嘅系統上執行程式碼，同時睇輸出。",
+              "statistics": "搵出同修正長期統計入面嘅問題。",
+              "assist": "測試 Assist 聽得明乜嘢，點樣回答。",
+              "base64": "將文字或檔案編碼做 Base64，或者解碼返原樣。",
+              "colour": "揀一種顏色，轉做唔同格式。",
+              "converter": "喺瀏覽器入面轉換圖片同其他檔案。",
+              "drawing": "喺一塊只留喺呢個瀏覽器嘅畫板上面畫圖。"
+            }
+          },
           "tabs": {
             "converter": {
               "error_image_timeout": "圖片處理等候太耐。請試用較細嘅圖片或另一個瀏覽器。"
@@ -425,6 +444,62 @@
               "created": "已整好「{name}」。",
               "use_here": "喺呢個自動化用佢"
             },
+            "dry_run_replay": {
+              "kicker": "試行",
+              "open": "重播過去一段時間",
+              "title": "呢個自動化會做咗啲乜？",
+              "period_label": "時段",
+              "period_day": "過去一日",
+              "period_week": "過去一個星期",
+              "period_custom": "揀日期",
+              "from": "由",
+              "to": "到",
+              "run": "重播",
+              "running": "重播緊記錄嘅歷史",
+              "empty": "揀一個時段，睇下呢個自動化會做咗啲乜。",
+              "invalid_range": "請揀一個喺開始日期之後嘅結束日期。",
+              "clamped": "時段已縮短到最長 {days} 日，並以今日為止。",
+              "hero_one": "次會執行",
+              "hero_other": "次會執行",
+              "hero_detail": "觸發器響過 {fired} 次，{stopped} 次畀條件擋咗，{unknown} 次睇唔出。",
+              "hero_none": "呢個時段觸發器冇響過。",
+              "safe_chip": "冇真係開關過任何嘢",
+              "timeline_title": "呢個時段",
+              "legend_run": "會執行",
+              "legend_stopped": "擋咗",
+              "legend_unknown": "睇唔出",
+              "badge_run": "{time} · 會執行",
+              "badge_stopped": "{time} · 擋咗",
+              "badge_unknown": "{time} · 睇唔出",
+              "fired_because": "觸發：{trigger}",
+              "seen": "{entity} 當時係 {value}。",
+              "seen_value": "當時嘅數值：{value}。",
+              "stopped_at": "喺呢度擋咗：{condition}。{seen}",
+              "unknown_at": "呢度睇唔出：{condition}。{reason}",
+              "would_do": "會做：",
+              "no_actions": "呢個自動化冇動作。",
+              "more_actions": "仲有 {count} 個",
+              "trigger_cannot": "{trigger} 無法由記錄嘅歷史重播，所以冇列出佢嘅觸發。",
+              "missing_history": "呢啲冇記錄歷史：{entities}。需要佢哋嘅步驟會標示為睇唔出。",
+              "truncated": "只顯示頭 {max} 次，共 {total} 次。",
+              "limits_history": "記錄嘅歷史只可以追溯到記錄器保留嘅時間。",
+              "limits_excluded": "冇記錄嘅實體無法重播。",
+              "limits_cap": "最多列出 {max} 次觸發。重播用嘅係畫面上嘅自動化（儲存咗或者未儲存都得），而且從來唔會執行任何動作。",
+              "reason_attribute": "佢讀取屬性或者範本，而歷史冇記錄呢啲。",
+              "reason_entity": "佢冇指明可以讀取嘅實體。",
+              "reason_template": "佢用咗範本或者另一個實體嘅狀態。",
+              "reason_for": "佢嘅等待時間讀唔到。",
+              "reason_bound": "佢嘅界限唔係普通數字。",
+              "reason_not_numeric": "{detail} 當時冇數字。",
+              "reason_time_entity": "佢係同實體比較，而唔係普通時間。",
+              "reason_sun_time": "歷史入面冇嗰日嘅日出日落時間。",
+              "reason_zone": "唔知道區域 {detail} 嘅名稱。",
+              "reason_trigger_id": "佢檢查嘅觸發器編號讀唔到。",
+              "reason_history": "{detail} 冇記錄歷史。",
+              "reason_history_short": "記錄嘅歷史太短，睇唔出佢維持咗幾耐。",
+              "reason_kind": "{detail} 條件無法由歷史判斷。",
+              "reason_event": "佢嘅日出日落事件讀唔到。"
+            },
             "actions": {
               "type": {
                 "event": {
@@ -595,6 +670,39 @@
               }
             }
           }
+        },
+        "device_health": {
+          "caption": "裝置健康",
+          "description": "電量低、突然冇聲同信號弱嘅裝置",
+          "unnamed": "未命名裝置",
+          "no_area": "未分區域",
+          "hero_attention": "{count} 部裝置需要留意",
+          "hero_ok": "所有裝置睇落都健康",
+          "hero_sentence_attention": "最差嘅排最前。開啟裝置就睇到佢匯報啲乜。",
+          "hero_sentence_ok": "而家冇裝置電量低、冇聲或者信號弱。",
+          "tiles_label": "按健康狀況篩選裝置",
+          "tile_low_battery": "電量低",
+          "tile_silent": "冇聲",
+          "tile_weak_signal": "信號弱",
+          "tile_healthy": "健康",
+          "list_label": "裝置，最差嘅排最前",
+          "fact_battery": "電量 {level}%",
+          "fact_battery_flag": "電池匯報話電量低",
+          "fact_silent": "由 {time} 起冇聲",
+          "fact_silent_unknown": "冇匯報",
+          "fact_signal_dbm": "信號 {value} dBm",
+          "fact_signal_lqi": "連線質素 {value}／255",
+          "fact_signal_percent": "信號 {value}%",
+          "fact_healthy": "匯報正常",
+          "fact_no_health": "唔匯報健康狀況",
+          "days_left": "大約仲有 {count} 日",
+          "battery_bar_label": "電量",
+          "open_device": "開啟裝置",
+          "open_device_named": "開啟 {name}",
+          "empty_heading": "一切健康",
+          "empty_description": "冇裝置電量低、冇聲或者信號弱。會匯報健康狀況嘅裝置列喺下面。",
+          "filtered_empty": "呢一組冇裝置",
+          "no_devices": "暫時未有裝置"
         },
         "personal": {
           "caption": "個人設定",
@@ -870,6 +978,19 @@
             "description": "記住你上一次去到邊一頁。下次打開應用程式如果喺另一頁，會提供一個掣帶你返去。",
             "default": "關。",
             "reach": "喺所有地方生效。只會將頁面地址記喺你嘅帳戶度，最多提供 7 日。"
+          },
+          "away_digest": {
+            "label": "你唔喺度嗰陣",
+            "description": "隔咗一排先返嚟打開主頁嘅時候，會顯示一個簡短摘要：需要睇一睇嘅嘢、行過嘅自動化、開過嘅門窗，同埋返咗屋企嘅人。",
+            "default": "開。",
+            "reach": "喺主頁生效。只會讀取呢個系統嘅日誌同而家嘅狀態，唔會傳去任何地方。你上次喺度嘅時間只會記喺呢部裝置度。"
+          },
+          "away_digest_gap": {
+            "label": "最少離開",
+            "description": "要離開幾耐，先會顯示摘要。",
+            "default": "2 個鐘。",
+            "reach": "畀主頁嘅「你唔喺度嗰陣」摘要用。摘要關咗嘅時候，呢個設定冇作用。",
+            "value": "{count} 個鐘"
           },
           "momentum_bar": {
             "offer": "繼續上次嘅位置：{path}",
@@ -1416,6 +1537,37 @@
             "group_shown": "顯示 {shown} 個",
             "start_note": "第 {build} 版建置係呢個比較嘅起點。佢係呢度安裝咗嘅版本，所以喺佢之前嘅內容唔會列出。"
           },
+          "history": {
+            "title": "更新紀錄",
+            "intro": "呢個瀏覽器見過喺度安裝過嘅 Home Assistant Core 建置，以及每一版行咗幾耐。紀錄只會儲存喺呢個瀏覽器。",
+            "now": "而家",
+            "build": "第 {build} 版",
+            "installed_at": "安裝於 {time}",
+            "changes_one": "呢一版有 1 個更改",
+            "changes_many": "呢一版有 {count} 個更改",
+            "earlier": "之前嘅版本",
+            "none_earlier": "呢部裝置暫時未見過更早嘅版本。版本被新版取代之後，就會出現喺度。",
+            "ran_for": "行咗 {duration}",
+            "duration_days": "{days} 日 {hours} 小時",
+            "duration_hours": "{hours} 小時 {minutes} 分鐘",
+            "duration_minutes": "{minutes} 分鐘",
+            "go_back": "返回第 {build} 版",
+            "block_not_admin": "只有管理員先可以返回較早嘅版本。",
+            "block_no_supervisor": "返回較早嘅版本需要 Supervisor，但呢個安裝冇。",
+            "block_queue_running": "更新佇列或者 USB 儲存裝置嘅更新執行緊嘅時候，唔可以返回舊版。",
+            "block_update_running": "有另一個更新執行緊嘅時候，唔可以返回舊版。",
+            "block_rollback_running": "已經喺度返回舊版。",
+            "confirm_title": "返回第 {build} 版？",
+            "confirm_intro": "Home Assistant Core 會換成第 {build} 版，然後重新啟動。較新版本建立嘅設定同資料，舊版可能用唔到。",
+            "confirm_backup_on": "會先做備份。",
+            "confirm_backup_off": "唔會先做備份。想先備份嘅話，請喺自動更新入面開啟備份選項。",
+            "confirm_action": "返回第 {build} 版",
+            "job_running": "正在返回第 {build} 版。期間 Home Assistant 會重新啟動。",
+            "job_done": "Home Assistant 已經再次行緊第 {build} 版。",
+            "job_failed": "返回第 {build} 版未能完成。之前行緊嘅版本仍然係已安裝嘅版本。",
+            "job_failed_error": "返回第 {build} 版未能開始：{error}",
+            "dismiss": "關閉"
+          },
           "usb": {
             "title": "由 USB 儲存裝置安裝",
             "intro": "喺另一部電腦下載呢部裝置用嘅更新檔案，再複製去一支 USB 手指。將手指插入呢部裝置，然後喺度搵更新檔案。",
@@ -1480,6 +1632,91 @@
         },
         "system_dashboard": {
           "restart_homeassistant": "重新啟動 Home Assistant"
+        },
+        "areas": {
+          "room_wizard": {
+            "title": "設定房間",
+            "steps": {
+              "name": "名稱",
+              "devices": "裝置",
+              "starters": "起手式",
+              "done": "完成"
+            },
+            "step_of": "第 {step} 步，共 {total} 步",
+            "resumed": "由你上次停低嘅地方繼續。",
+            "start_over": "重新開始",
+            "name_heading": "幫房間改個名",
+            "name_hint": "先改個名，想嘅話可以再揀樓層同圖示。",
+            "name_label": "房間名稱",
+            "name_required": "請輸入房間名稱。",
+            "floor_label": "樓層",
+            "icon_label": "圖示",
+            "use_existing": "繼續設定一個已經有嘅房間",
+            "existing_label": "現有房間",
+            "devices_heading": "{room} 入面有啲乜？",
+            "devices_summary": "有 {count} 部裝置未有房間。撳一下屬於呢度嘅裝置。由名稱估到嘅已經幫你剔咗。",
+            "devices_none": "所有裝置都已經有房間，可以略過呢一步。",
+            "hint_name": "名稱有「{room}」",
+            "hint_none": "名稱睇唔出線索",
+            "kind": {
+              "light": "燈",
+              "opening": "開關感應器",
+              "motion": "動作感應器",
+              "temperature": "溫度感應器",
+              "plug": "智能插座",
+              "other": "裝置"
+            },
+            "starters_heading": "啱你揀咗嘅裝置嘅起手式",
+            "starters_hint": "剔選想建立嘅自動化，每個建立出嚟都係關住嘅。",
+            "need_have": "需要：{needs}。呢個房間有。",
+            "need_missing": "需要：{needs}。揀一部有呢樣嘢嘅裝置就可以解鎖。",
+            "need": {
+              "light": "一盞燈",
+              "opening": "一個開關感應器",
+              "motion": "一個動作感應器",
+              "temperature": "一個溫度感應器"
+            },
+            "starters_note": "起手式建立出嚟都係關住嘅，每個都可以喺編輯器打開睇一睇，冇剔嘅一律唔會建立。",
+            "next_devices": "下一步：裝置",
+            "next_starters": "下一步：起手式",
+            "create_starters": "建立 {count} 個起手式",
+            "skip_step": "略過呢一步",
+            "working": "處理緊…",
+            "done_heading": "{room} 設定好喇",
+            "done_room": "打開 {room}",
+            "done_devices": "已經將 {count} 部裝置搬入房間。",
+            "done_no_devices": "冇搬入任何裝置。",
+            "done_automations": "已建立嘅自動化，全部都係關住嘅。打開其中一個睇一睇：",
+            "done_no_automations": "冇建立任何起手式。",
+            "error_area": "房間儲存唔到：{error}",
+            "error_devices": "有啲裝置搬唔到：{error}",
+            "error_automations": "有個起手式建立唔到：{error}",
+            "starter": {
+              "light_when_dark": {
+                "title": "{room}：天黑開燈",
+                "description": "日落時開晒 {room} 嘅燈。啱用嘅話可以喺編輯器改觸發條件。"
+              },
+              "open_too_long": {
+                "title": "{room}：開咗太耐通知我",
+                "description": "{room} 嘅門或者窗開咗 {open_minutes} 分鐘，就發通知。",
+                "message": "{room} 嘅門或者窗已經開咗 {open_minutes} 分鐘。"
+              },
+              "motion_light": {
+                "title": "{room}：有動作就開燈",
+                "description": "{room} 一有動作就開燈，冇動作 {off_minutes} 分鐘後就熄燈。"
+              },
+              "temp_high": {
+                "title": "{room}：太熱通知我",
+                "description": "{room} 嘅溫度高過 {high} 就發通知。數值可以喺編輯器改。",
+                "message": "{room} 而家高過 {high}。"
+              },
+              "temp_low": {
+                "title": "{room}：太凍通知我",
+                "description": "{room} 嘅溫度低過 {low} 就發通知。數值可以喺編輯器改。",
+                "message": "{room} 而家低過 {low}。"
+              }
+            }
+          }
         }
       },
       "profile": {
@@ -1615,6 +1852,33 @@
             "pause": "暫停",
             "play": "播放",
             "next": "下一首"
+          },
+          "away_digest": {
+            "title": "你唔喺度嗰陣",
+            "region_label": "你唔喺度嗰陣",
+            "rows_label": "重點",
+            "away_for": "你離開咗 {duration}",
+            "duration_minutes": "{count} 分鐘",
+            "duration_hours": "{count} 個鐘",
+            "duration_days": "{count} 日",
+            "lead_nothing": "乜都冇發生。",
+            "lead_quiet": "好平靜。",
+            "lead_busy": "幾忙嘅一段時間。",
+            "needs_none": "冇嘢需要睇。",
+            "needs_look": "有 {count} 樣嘢需要睇一睇。",
+            "capped": "只顯示最近 7 日。",
+            "loading": "睇緊發生過乜嘢...",
+            "failed": "載入唔到你唔喺度嗰陣發生嘅嘢。",
+            "tile_attention": "需要睇一睇",
+            "tile_automations": "行過嘅自動化",
+            "tile_openings": "開過嘅門窗",
+            "tile_arrivals": "返咗屋企嘅人",
+            "row_unavailable": "{name} 用唔到",
+            "row_battery": "{name} 嘅電量得 {percent}%",
+            "row_arrival": "{name} 返咗屋企",
+            "row_opening": "{name} 開咗",
+            "row_now": "而家",
+            "dismiss": "知道，收埋佢"
           },
           "home_greeting": {
             "morning": "早晨",

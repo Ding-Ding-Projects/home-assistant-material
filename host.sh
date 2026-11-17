@@ -10,6 +10,10 @@
 # container that runs its own Docker engine, so apps, the app store, backups with apps and real
 # updates work. See docs/features/hosting/full-mode.md. For example: ./host.sh --full --detached
 #
+# Add --cloud to also start the cloud host, a tunnel that reaches this instance from outside
+# without opening a router port (plain mode only). It needs HA_MATERIAL_TUNNEL_TOKEN set in your
+# environment or in an untracked .env file. See docs/features/hosting/cloud-host.md.
+#
 # Leaving the log view does not stop anything. Existing data and other containers are left alone.
 set -u
 cd "$(dirname "$0")"
@@ -20,10 +24,12 @@ DATA_NOTE="$(pwd)/config"
 MAX_TRIES=60
 
 FULL=0
+CLOUD=0
 mode=""
 for arg in "$@"; do
   case "$arg" in
     --full) FULL=1 ;;
+    --cloud) CLOUD=1 ;;
     *) mode="$arg" ;;
   esac
 done
@@ -36,6 +42,15 @@ if [ "$FULL" = 1 ]; then
 fi
 
 fail() { printf '\nFAILED: %s\n' "$1" >&2; exit 1; }
+
+if [ "$CLOUD" = 1 ]; then
+  [ "$FULL" = 1 ] && fail "--cloud works with the plain mode only. In the full mode, set the cloud host up in Settings."
+  token_set=0
+  [ -n "${HA_MATERIAL_TUNNEL_TOKEN:-}" ] && token_set=1
+  if [ "$token_set" = 0 ] && [ -f .env ] && grep -Eq "^[[:space:]]*HA_MATERIAL_TUNNEL_TOKEN=[^[:space:]]" .env; then token_set=1; fi
+  [ "$token_set" = 1 ] || fail "HA_MATERIAL_TUNNEL_TOKEN is empty. Create a tunnel in your provider account, then set HA_MATERIAL_TUNNEL_TOKEN in your environment or in an untracked .env file next to compose.yaml (never in a tracked file), and run this again. See docs/features/hosting/cloud-host.md."
+  export COMPOSE_PROFILES=cloud
+fi
 
 command -v docker >/dev/null 2>&1 || fail "Docker is not installed. Install Docker, then run this again."
 docker info >/dev/null 2>&1 || fail "Docker is installed but not running. Start Docker, then run this again."
@@ -84,6 +99,16 @@ start() {
     echo "  On your network:   the address of this machine could not be read; use its IP address with port $PORT."
   fi
   echo "  Data is kept in:   $DATA_NOTE"
+  if [ "$CLOUD" = 1 ]; then
+    local tunnel_address
+    tunnel_address="$(docker inspect --format "{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}" home-assistant-material-cloud-tunnel 2>/dev/null | awk '{print $1}')"
+    echo
+    echo "Cloud host: the tunnel container is started."
+    echo "  Next: add to configuration.yaml under http:  use_x_forwarded_for: true  and"
+    echo "        trusted_proxies: [${tunnel_address:-the tunnel container address}]  then restart Home Assistant."
+    echo "  Point the tunnel public hostname at http://homeassistant:$PORT in the provider dashboard."
+    echo "  This instance is now reachable from the internet; use a strong password and two-step sign-in."
+  fi
 }
 
 status_line() {

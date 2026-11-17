@@ -100,6 +100,7 @@ async def test_api_os_offline_update_candidates(
                 "board": "generic-x86-64",
                 "version": "17.0",
                 "verdict": "ok",
+                "kind": "bundle",
             }
         ]
     }

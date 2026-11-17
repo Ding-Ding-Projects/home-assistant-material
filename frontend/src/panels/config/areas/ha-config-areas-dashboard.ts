@@ -62,6 +62,10 @@ import {
 } from "./show-dialog-area-registry-detail";
 import { showAreasFloorsOrderDialog } from "./show-dialog-areas-floors-order";
 import { showFloorRegistryDetailDialog } from "./show-dialog-floor-registry-detail";
+import {
+  loadRoomWizardDialog,
+  showRoomWizardDialog,
+} from "./room-wizard/show-dialog-room-wizard";
 
 const UNASSIGNED_FLOOR = "__unassigned__";
 
@@ -203,6 +207,10 @@ export class HaConfigAreasDashboard extends LitElement {
               </p>
             </div>
             <div class="page-actions">
+              <ha-button appearance="outlined" @click=${this._setUpRoom}>
+                <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                ${this.hass.localize("ui.panel.config.areas.room_wizard.title")}
+              </ha-button>
               <ha-button appearance="outlined" @click=${this._createFloor}>
                 <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
                 ${this.hass.localize("ui.panel.config.areas.picker.add_floor")}
@@ -443,6 +451,11 @@ export class HaConfigAreasDashboard extends LitElement {
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
     loadAreaRegistryDetailDialog();
+    loadRoomWizardDialog();
+  }
+
+  private _setUpRoom() {
+    showRoomWizardDialog(this);
   }
 
   private _openAreaDetails(ev) {

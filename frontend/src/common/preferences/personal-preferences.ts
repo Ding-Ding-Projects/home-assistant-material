@@ -69,6 +69,8 @@ export const SCHOOL_NAME_MAX = 40;
 
 export const FUNNY_LEVEL_MIN = 1;
 export const FUNNY_LEVEL_MAX = 5;
+export const AWAY_GAP_MIN_HOURS = 1;
+export const AWAY_GAP_MAX_HOURS = 24;
 export const VOLUME_MIN = 0;
 export const VOLUME_MAX = 100;
 
@@ -96,6 +98,10 @@ export interface PersonalPreferences {
   timeAwareness: boolean;
   /** Offers to take you back to the page you were last on. */
   momentum: boolean;
+  /** Shows a summary of what happened while you were away on the Home page. */
+  awayDigest: boolean;
+  /** How many hours away before the summary is offered. */
+  awayDigestGapHours: number;
   /** Shows one fitting emoji in dialogs that provide one. */
   dialogEmojis: boolean;
   /** Keeps one expansion panel open at a time among its siblings. */
@@ -134,6 +140,8 @@ export const DEFAULT_PERSONAL_PREFERENCES: PersonalPreferences = {
   quietDays: [0, 1, 2, 3, 4, 5, 6],
   timeAwareness: false,
   momentum: false,
+  awayDigest: true,
+  awayDigestGapHours: 2,
   dialogEmojis: true,
   oneThingAtATime: false,
   confirmationDrama: DEFAULT_CONFIRMATION_DRAMA,
@@ -243,6 +251,13 @@ export const normalizePersonalPreferences = (
     quietDays: asDays(source.quietDays, d.quietDays),
     timeAwareness: asBool(source.timeAwareness, d.timeAwareness),
     momentum: asBool(source.momentum, d.momentum),
+    awayDigest: asBool(source.awayDigest, d.awayDigest),
+    awayDigestGapHours: clampInt(
+      source.awayDigestGapHours,
+      AWAY_GAP_MIN_HOURS,
+      AWAY_GAP_MAX_HOURS,
+      d.awayDigestGapHours
+    ),
     dialogEmojis: asBool(source.dialogEmojis, d.dialogEmojis),
     oneThingAtATime: asBool(source.oneThingAtATime, d.oneThingAtATime),
     confirmationDrama: normalizeConfirmationDrama(

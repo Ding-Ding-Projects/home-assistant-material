@@ -31,5 +31,34 @@ services:
       retries: 6
       start_period: 90s
 
+  # Cloud host (optional): reaches this instance from outside through a tunnel, without opening a
+  # port on the router. It only starts with the "cloud" profile, so nothing changes without it:
+  #
+  #   host.bat --cloud       or       ./host.sh --cloud
+  #
+  # The tunnel credential is read from the environment variable HA_MATERIAL_TUNNEL_TOKEN of the
+  # person starting it (or from an untracked .env file next to this file). It is never stored in
+  # this file. In the provider's dashboard, point the tunnel's public hostname at
+  # http://homeassistant:8123 (the service above, on this compose network).
+  # Read docs/features/hosting/cloud-host.md first: this makes the instance reachable from the
+  # internet.
+  cloud-tunnel:
+    profiles: ["cloud"]
+    image: cloudflare/cloudflared:2025.11.1
+    container_name: home-assistant-material-cloud-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --metrics 0.0.0.0:2000 run
+    environment:
+      TUNNEL_TOKEN: ${HA_MATERIAL_TUNNEL_TOKEN:-}
+    # No ports are published: the tunnel only makes outbound connections.
+    depends_on:
+      - homeassistant
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:2000", "ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
 # Device discovery (mDNS, SSDP) works best with host networking, which Docker only offers on
 # Linux. There, replace the "ports" block with:  network_mode: host

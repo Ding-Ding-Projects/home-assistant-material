@@ -2457,3 +2457,35 @@ class MountJobError(MountError, JobException):
 
 class NetworkInterfaceNotFound(HassioError):
     """Raise on network interface not found."""
+
+
+# Cloud host
+
+
+class CloudHostError(HassioError):
+    """Base error for the cloud host."""
+
+
+class CloudHostInvalidHostnameError(CloudHostError, APIError):
+    """Raise when a cloud host hostname is not a plain DNS name."""
+
+    error_key = "cloud_host_invalid_hostname_error"
+    message_template = "The hostname must be a plain DNS name such as ha.example.com"
+
+
+class CloudHostStateError(CloudHostError, APIConflict):
+    """Raise when an action does not fit the current cloud host state."""
+
+    error_key = "cloud_host_state_error"
+    message_template = "This cannot be done while the cloud host is {state}"
+
+    def __init__(
+        self, logger: Callable[..., None] | None = None, *, state: str
+    ) -> None:
+        """Initialize exception."""
+        self.extra_fields = {"state": state}
+        super().__init__(None, logger)
+
+
+class CloudHostRunnerError(CloudHostError):
+    """Raise when the tunnel runner cannot do what was asked."""

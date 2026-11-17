@@ -65,6 +65,8 @@ import type {
   PersonalPreferences,
 } from "../../../common/preferences/personal-preferences";
 import {
+  AWAY_GAP_MAX_HOURS,
+  AWAY_GAP_MIN_HOURS,
   DEFAULT_PERSONAL_PREFERENCES,
   effectivePreferences,
   FUNNY_LEVEL_MAX,
@@ -982,6 +984,47 @@ export class HaConfigSectionPersonal extends LitElement {
         reset: () => this._follow(["momentum"]),
         control: toggle(p.momentum, this._t("momentum.label"), (ev) =>
           this._change({ momentum: ev.target.checked })
+        ),
+      },
+      {
+        id: "away_digest",
+        group: "attention",
+        label: this._t("away_digest.label"),
+        description: this._tl("away_digest.description"),
+        defaultText: this._t("away_digest.default"),
+        reach: this._tl("away_digest.reach"),
+        active: true,
+        valueText: this._onOff(p.awayDigest),
+        isDefault: follows("awayDigest"),
+        reset: () => this._follow(["awayDigest"]),
+        control: toggle(p.awayDigest, this._t("away_digest.label"), (ev) =>
+          this._change({ awayDigest: ev.target.checked })
+        ),
+      },
+      {
+        id: "away_digest_gap",
+        group: "attention",
+        label: this._t("away_digest_gap.label"),
+        description: this._tl("away_digest_gap.description"),
+        defaultText: this._t("away_digest_gap.default"),
+        reach: this._tl("away_digest_gap.reach"),
+        active: p.awayDigest,
+        valueText: this._t("away_digest_gap.value", {
+          count: p.awayDigestGapHours,
+        }),
+        isDefault: follows("awayDigestGapHours"),
+        reset: () => this._follow(["awayDigestGapHours"]),
+        control: slider(
+          p.awayDigestGapHours,
+          AWAY_GAP_MIN_HOURS,
+          AWAY_GAP_MAX_HOURS,
+          this._t("away_digest_gap.label"),
+          (ev) =>
+            this._change({
+              awayDigestGapHours:
+                (ev.target as HaSlider).value ?? d.awayDigestGapHours,
+            }),
+          !p.awayDigest
         ),
       },
       {

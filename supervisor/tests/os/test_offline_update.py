@@ -291,6 +291,7 @@ async def test_discover_describes_candidate(coresys: CoreSys, stick: Path) -> No
             "board": "generic-x86-64",
             "version": "13.0",
             "verdict": "ok",
+            "kind": "bundle",
         }
     ]
 

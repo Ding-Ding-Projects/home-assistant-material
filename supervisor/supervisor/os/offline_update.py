@@ -36,6 +36,16 @@ from ..host.const import HostFeature
 from ..mounts.const import ID_USAGE_FILESYSTEM, SUPPORTED_LOCAL_FILESYSTEMS, MountType
 from ..mounts.mount import DiskMount
 from ..mounts.validate import MountData
+from .offline_pack import (
+    MANIFEST_MAX_SIZE,
+    MANIFEST_NAME,
+    RE_PACK_FOLDER,
+    PackManifest,
+    PackManifestError,
+    PackPartKind,
+    parse_manifest,
+    verify_pack,
+)
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -68,6 +78,8 @@ class OfflineUpdateVerdict(StrEnum):
     TOO_LARGE = "too_large"
     NO_SPACE = "no_space"
     UNSUPPORTED = "unsupported"
+    INCOMPLETE = "incomplete"
+    NO_OS_PART = "no_os_part"
 
 
 VERDICT_REASONS: Final[dict[OfflineUpdateVerdict, str]] = {
@@ -82,6 +94,12 @@ VERDICT_REASONS: Final[dict[OfflineUpdateVerdict, str]] = {
     ),
     OfflineUpdateVerdict.UNSUPPORTED: (
         "installing from a drive is not supported on this system"
+    ),
+    OfflineUpdateVerdict.INCOMPLETE: (
+        "a file listed in the pack is missing or has the wrong size"
+    ),
+    OfflineUpdateVerdict.NO_OS_PART: (
+        "the pack has no operating system part that can be installed without internet"
     ),
 }
 
@@ -100,10 +118,12 @@ class OfflineUpdateCandidate:
     board: str
     version: str
     verdict: OfflineUpdateVerdict
+    kind: str = "bundle"
+    pack: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Return the candidate as plain data."""
-        return {
+        data: dict[str, Any] = {
             "drive_id": self.drive_id,
             "vendor": self.vendor,
             "model": self.model,
@@ -115,7 +135,12 @@ class OfflineUpdateCandidate:
             "board": self.board,
             "version": self.version,
             "verdict": self.verdict.value,
+            "kind": self.kind,
         }
+        if self.pack is not None:
+            data["pack"] = self.pack
+            data["filename"] = self.path.rsplit("/", 2)[-2]
+        return data
 
 
 @dataclass(slots=True, frozen=True)
@@ -124,6 +149,7 @@ class FoundBundle:
 
     candidate: OfflineUpdateCandidate
     file_path: Path
+    manifest: PackManifest | None = None
 
 
 def update_board_name(board: str, version: AwesomeVersion) -> str:
@@ -197,6 +223,65 @@ def _scan_filesystem(root: Path) -> list[tuple[str, int]]:
     for name in sorted(folders):
         found.extend(_scan_folder(root / name, f"{name}/"))
     return sorted(found)
+
+
+def _read_pack(folder: Path) -> tuple[PackManifest, bool] | None:
+    """Read the manifest of a pack folder and report whether every part is there."""
+    manifest_path = folder / MANIFEST_NAME
+    try:
+        info = manifest_path.lstat()
+        if not stat.S_ISREG(info.st_mode) or info.st_size > MANIFEST_MAX_SIZE:
+            return None
+        manifest = parse_manifest(manifest_path.read_bytes())
+    except (OSError, PackManifestError) as err:
+        _LOGGER.debug("Ignoring pack folder %s: %s", folder, err)
+        return None
+
+    complete = True
+    for part in manifest.parts:
+        if not part.available or part.file is None:
+            continue
+        try:
+            info = (folder / part.file).lstat()
+        except OSError:
+            complete = False
+            continue
+        if not stat.S_ISREG(info.st_mode) or info.st_size != part.size:
+            complete = False
+    return manifest, complete
+
+
+def _scan_packs(root: Path) -> list[tuple[str, PackManifest, bool]]:
+    """Look for offline packs as (manifest path, manifest, complete)."""
+    parents = [("", root)]
+    try:
+        with os.scandir(root) as entries:
+            parents.extend(
+                (f"{entry.name}/", Path(entry.path))
+                for entry in sorted(entries, key=lambda item: item.name)
+                if entry.name.lower() in BUNDLE_FOLDERS
+                and entry.is_dir(follow_symlinks=False)
+            )
+    except OSError as err:
+        _LOGGER.debug("Can't scan %s for packs: %s", root, err)
+
+    found: list[tuple[str, PackManifest, bool]] = []
+    for prefix, parent in parents:
+        try:
+            with os.scandir(parent) as entries:
+                folders = sorted(
+                    entry.name
+                    for entry in entries
+                    if RE_PACK_FOLDER.match(entry.name)
+                    and entry.is_dir(follow_symlinks=False)
+                )
+        except OSError as err:
+            _LOGGER.debug("Can't scan %s for packs: %s", parent, err)
+            continue
+        for name in folders:
+            if (result := _read_pack(parent / name)) is not None:
+                found.append((f"{prefix}{name}/{MANIFEST_NAME}", *result))
+    return found
 
 
 def _free_space(path: Path) -> int:
@@ -437,7 +522,68 @@ class OfflineUpdates(CoreSysAttributes):
                     )
                 )
 
+            for relative, manifest, complete in await self.sys_run_in_executor(
+                _scan_packs, root
+            ):
+                bundles.append(
+                    self._pack_entry(
+                        drive, block, root, relative, manifest, complete, free_space
+                    )
+                )
+
         return bundles
+
+    def _pack_entry(
+        self,
+        drive: Any,
+        block: Any,
+        root: Path,
+        relative: str,
+        manifest: PackManifest,
+        complete: bool,
+        free_space: int,
+    ) -> FoundBundle:
+        """Describe a pack found on a drive, with the verdict for this system."""
+        os_manager = self.sys_os
+        os_part = manifest.part(PackPartKind.OS)
+        size = sum(part.size for part in manifest.parts if part.available)
+
+        if os_part is None or not os_part.available or os_part.version is None:
+            verdict = OfflineUpdateVerdict.NO_OS_PART
+        elif not complete:
+            verdict = OfflineUpdateVerdict.INCOMPLETE
+        else:
+            try:
+                verdict = evaluate_bundle(
+                    board=manifest.board,
+                    version=AwesomeVersion(os_part.version),
+                    size=os_part.size,
+                    installed_board=os_manager.board,
+                    installed_version=os_manager.version,
+                    pending_version=os_manager.version_pending,
+                    free_space=free_space,
+                )
+            except AwesomeVersionException, TypeError:
+                verdict = OfflineUpdateVerdict.UNSUPPORTED
+
+        return FoundBundle(
+            OfflineUpdateCandidate(
+                drive_id=drive.id,
+                vendor=drive.vendor,
+                model=drive.model,
+                label=block.id_label,
+                filesystem=block.id_type,
+                path=relative,
+                size=size,
+                board=manifest.board,
+                version=os_part.version if os_part and os_part.version else "",
+                verdict=verdict,
+                kind="pack",
+                pack=manifest.summary(),
+            ),
+            root / relative,
+            manifest,
+        )
 
     async def discover(self) -> list[OfflineUpdateCandidate]:
         """List update bundles on removable drives."""
@@ -457,8 +603,41 @@ class OfflineUpdates(CoreSysAttributes):
 
         The partial copy is left for the caller to remove.
         """
-        size = bundle.candidate.size
-        source = await self.sys_run_in_executor(_open_source, bundle.file_path, size)
+        return await self.copy_file(
+            bundle.file_path, bundle.candidate.size, target, on_progress
+        )
+
+    async def verify_pack_parts(
+        self, bundle: FoundBundle, on_progress: Callable[[float], None]
+    ) -> None:
+        """Verify size and SHA-256 of every part of a mounted pack.
+
+        Raises PackVerifyError for the first part that does not match.
+        """
+        manifest = bundle.manifest
+        if manifest is None:
+            raise HassOSOfflineUpdateNotFoundError
+        total = sum(part.size for part in manifest.parts if part.available)
+
+        def report(done: int) -> None:
+            on_progress(min(done / total, 1.0))
+
+        await self.sys_run_in_executor(
+            verify_pack, bundle.file_path.parent, manifest, report
+        )
+
+    async def copy_file(
+        self,
+        file_path: Path,
+        size: int,
+        target: Path,
+        on_progress: Callable[[float], None],
+    ) -> str:
+        """Copy a file of a known size to a local path and return its SHA-256.
+
+        The partial copy is left for the caller to remove.
+        """
+        source = await self.sys_run_in_executor(_open_source, file_path, size)
         try:
             destination = await self.sys_run_in_executor(_create_target, target)
         except OSError as err:

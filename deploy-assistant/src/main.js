@@ -214,6 +214,44 @@ app.whenReady().then(() => {
   h('autoDownload', (on) => { mgr.setAutoDownload(on); if (on) dl.all(); return on; });
   h('drives', () => pi.listDrives());
   h('writePi', (o) => mgr.writePi(o));
+  // USB stick maker. The page only ever holds opaque handles: drives come from a read-only listing,
+  // packs and update files from the native file dialog, and a write needs two separate confirmations.
+  const stickStore = new Map();
+  const stickKeep = (kind, value) => { const id = require('node:crypto').randomUUID(); stickStore.set(id, { kind, value, expires: Date.now() + 3600000 }); return id; };
+  const stickGet = (id, kind) => { const e = stickStore.get(id); if (!e || e.kind !== kind || e.expires < Date.now()) throw new Error('That choice has expired. Choose it again.'); return e.value; };
+  h('stickVolumes', async () => {
+    const stickUsb = require('./backend/usb-stick');
+    for (const [k, e] of stickStore) if (e.kind === 'volume') stickStore.delete(k);
+    return (await stickUsb.listVolumes()).map((v) => ({ handle: stickKeep('volume', v), label: v.label, fs: v.fs, size: v.size, free: v.free, bus: v.bus, mount: v.mount }));
+  });
+  h('stickPickPack', async () => {
+    const stickUsb = require('./backend/usb-stick');
+    const r = await dialog.showOpenDialog(win, { title: 'Choose an offline update pack: its ZIP or its folder', properties: ['openFile', 'openDirectory'], filters: [{ name: 'Offline update pack', extensions: ['zip'] }] });
+    if (r.canceled) return null;
+    let folder = r.filePaths[0];
+    if (/\.zip$/i.test(folder)) folder = await stickUsb.unpackZip(folder, fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'ham-pack-')));
+    const pack = await stickUsb.readPack(folder, { onProgress: (fraction) => send('stick-progress', { phase: 'checking-pack', fraction }) });
+    return { handle: stickKeep('pack', pack), name: pack.name, board: pack.manifest.board, build: pack.manifest.build, bytes: pack.bytes, parts: pack.manifest.parts.map((p) => ({ kind: p.kind, available: p.available, version: p.version, size: p.size || 0 })) };
+  });
+  h('stickPickBundle', async () => {
+    const r = await dialog.showOpenDialog(win, { title: 'Choose the update file for your board', properties: ['openFile'], filters: [{ name: 'Update file', extensions: ['raucb'] }] });
+    return r.canceled ? null : { handle: stickKeep('bundle', r.filePaths[0]), name: path.basename(r.filePaths[0]) };
+  });
+  h('stickPlan', (o) => {
+    const stickUsb = require('./backend/usb-stick');
+    const volume = stickGet(o.volume, 'volume');
+    const plan = o.purpose === 'recovery'
+      ? stickUsb.planRecovery(volume, { action: o.action, bundle: o.bundle ? stickGet(o.bundle, 'bundle') : null })
+      : stickUsb.planOfflinePack(stickGet(o.pack, 'pack'), volume);
+    return { handle: stickKeep('plan', plan), summary: plan.summary, blocked: plan.blocked, bytes: plan.bytes, files: plan.files.map((f) => ({ name: f.name, size: f.size })), target: volume.label || volume.mount };
+  });
+  h('stickWrite', async (o) => {
+    if (!o || o.armed !== true || o.confirmed !== true) throw new Error('Both confirmations are needed before anything is written.');
+    const plan = stickGet(o.plan, 'plan');
+    stickStore.delete(o.plan);
+    const result = await require('./backend/usb-stick').copyAndVerify(plan, { onProgress: (p) => send('stick-progress', p) });
+    return { ok: result.ok, error: result.error, results: result.results.map((x) => ({ name: x.name, size: x.size, sha256: x.sha256, ok: x.ok })) };
+  });
   h('extensions', () => ext.list());
   h('extEnable', (id, on) => { ext.setEnabled(id, on); return ext.list(); });
   h('extRun', (id, c) => ext.run(id, c));
