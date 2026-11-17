@@ -14,6 +14,7 @@ from .config import Day, ScheduleRecurrence
 from .const import DATA_MANAGER, LOGGER
 from .manager import (
     BackupManager,
+    BackupManagerState,
     BackupNoCoreArchiveError,
     BackupVersionTooNewError,
     DecryptOnDowloadNotSupported,
@@ -22,7 +23,17 @@ from .manager import (
     ManagerStateEvent,
 )
 from .models import BackupNotFound, Folder
-from .self_check import async_self_check, could_not_check_result, update_issue
+from .self_check import (
+    COPY_COULD_NOT_CHECK,
+    METHOD_NONE,
+    REMOTE_MODES,
+    CopyResult,
+    SelfCheckSettings,
+    async_check_location,
+    async_self_check,
+    could_not_check_result,
+    update_issue,
+)
 
 
 def _with_self_check(
@@ -75,6 +86,9 @@ def async_register_websocket_handlers(hass: HomeAssistant, with_hassio: bool) ->
     websocket_api.async_register_command(hass, handle_create_with_automatic_settings)
     websocket_api.async_register_command(hass, handle_delete)
     websocket_api.async_register_command(hass, handle_self_check)
+    websocket_api.async_register_command(hass, handle_self_check_location)
+    websocket_api.async_register_command(hass, handle_self_check_config_info)
+    websocket_api.async_register_command(hass, handle_self_check_config_update)
     websocket_api.async_register_command(hass, handle_restore)
     websocket_api.async_register_command(hass, handle_subscribe_events)
 
@@ -164,8 +178,23 @@ async def handle_self_check(
 ) -> None:
     """Check that a stored backup can be read, without restoring it."""
     manager = hass.data[DATA_MANAGER]
+    if manager.self_checks.running:
+        connection.send_error(
+            msg["id"], "self_check_running", "A self-check is already running"
+        )
+        return
+    if manager.state is not BackupManagerState.IDLE:
+        connection.send_error(
+            msg["id"],
+            "backup_manager_busy",
+            "A backup, upload or restore is running",
+        )
+        return
+    settings = await manager.self_checks.async_get_settings()
     try:
-        result = await async_self_check(manager, msg["backup_id"])
+        result = await manager.self_checks.async_run_exclusive(
+            lambda: async_self_check(manager, msg["backup_id"], settings=settings)
+        )
     except Exception:  # noqa: BLE001
         LOGGER.exception("Unexpected error in the self-check of %s", msg["backup_id"])
         result = None
@@ -181,6 +210,120 @@ async def handle_self_check(
     if result is not None:
         update_issue(hass, msg["backup_id"], result)
     connection.send_result(msg["id"], {"self_check": stored})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "backup/self_check/location",
+        probatio.Required("backup_id"): str,
+        probatio.Required("agent_id"): str,
+        probatio.Optional("full_download", default=False): bool,
+    }
+)
+@websocket_api.async_response
+async def handle_self_check_location(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Check the copy of a backup at one location again."""
+    manager = hass.data[DATA_MANAGER]
+    if msg["agent_id"] not in manager.backup_agents:
+        connection.send_error(
+            msg["id"], "unknown_agent", f"Unknown location {msg['agent_id']}"
+        )
+        return
+    if manager.self_checks.running:
+        connection.send_error(
+            msg["id"], "self_check_running", "A self-check is already running"
+        )
+        return
+    if manager.state is not BackupManagerState.IDLE:
+        connection.send_error(
+            msg["id"],
+            "backup_manager_busy",
+            "A backup, upload or restore is running",
+        )
+        return
+    settings = await manager.self_checks.async_get_settings()
+    try:
+        copy = await manager.self_checks.async_run_exclusive(
+            lambda: async_check_location(
+                manager,
+                msg["backup_id"],
+                msg["agent_id"],
+                full_download=msg["full_download"],
+                settings=settings,
+            )
+        )
+    except Exception:  # noqa: BLE001
+        LOGGER.exception(
+            "Unexpected error in the self-check of %s at %s",
+            msg["backup_id"],
+            msg["agent_id"],
+        )
+        copy = CopyResult(
+            agent_id=msg["agent_id"],
+            method=METHOD_NONE,
+            status=COPY_COULD_NOT_CHECK,
+            reason="unexpected_error",
+        )
+    if copy is None:
+        connection.send_error(msg["id"], BackupNotFound.error_code, "Backup not found")
+        return
+    stored = manager.known_backups.set_self_check_copy(msg["backup_id"], copy.to_dict())
+    connection.send_result(msg["id"], {"copy": copy.to_dict(), "self_check": stored})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {probatio.Required("type"): "backup/self_check/config/info"}
+)
+@websocket_api.async_response
+async def handle_self_check_config_info(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return the settings of the self-check of remote copies."""
+    manager = hass.data[DATA_MANAGER]
+    settings = await manager.self_checks.async_get_settings()
+    connection.send_result(
+        msg["id"],
+        {
+            "config": settings.to_dict(),
+            "defaults": SelfCheckSettings().to_dict(),
+            "modes": list(REMOTE_MODES),
+        },
+    )
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "backup/self_check/config/update",
+        probatio.Optional("remote_mode"): probatio.In(REMOTE_MODES),
+        probatio.Optional("max_full_download_bytes"): probatio.Any(
+            probatio.All(int, probatio.Range(min=1)), None
+        ),
+    }
+)
+@websocket_api.async_response
+async def handle_self_check_config_update(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Change the settings of the self-check of remote copies."""
+    manager = hass.data[DATA_MANAGER]
+    changes = {
+        key: msg[key]
+        for key in ("remote_mode", "max_full_download_bytes")
+        if key in msg
+    }
+    settings = await manager.self_checks.async_update_settings(**changes)
+    connection.send_result(msg["id"], {"config": settings.to_dict()})
 
 
 @websocket_api.require_admin

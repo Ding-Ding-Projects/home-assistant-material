@@ -96,7 +96,7 @@
       "title": "Automatic backup could not be uploaded to the configured locations"
     },
     "backup_self_check_failed": {
-      "description": "The self-check of backup {backup_name} found a problem: {failed_checks}. Open the backup in the backup settings to see which checks failed, and create a new backup.",
+      "description": "The self-check of backup {backup_name} found a problem: {failed_checks}. {details} Open the backup in the backup settings to see which checks failed, and create a new backup.",
       "title": "A backup did not pass its self-check"
     }
   },

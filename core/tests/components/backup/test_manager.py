@@ -3992,6 +3992,7 @@ async def test_initiate_backup_per_agent_encryption(
     result = await ws_client.receive_json()
     assert result["event"] == {"manager_state": BackupManagerState.IDLE}
 
+    await hass.data[DATA_MANAGER].self_checks.async_wait()
     await ws_client.send_json_auto_id(
         {"type": "backup/details", "backup_id": backup_id}
     )
@@ -4016,6 +4017,7 @@ async def test_initiate_backup_per_agent_encryption(
         "homeassistant_included": True,
         "homeassistant_version": "2024.12.9",
         "name": "test",
+        "self_check": ANY,
         "with_automatic_settings": False,
     }
 

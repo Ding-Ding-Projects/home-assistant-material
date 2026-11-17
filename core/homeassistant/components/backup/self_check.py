@@ -1,8 +1,10 @@
 """Self-check of stored backups.
 
-The self-check reads every stored copy of a backup end to end and reports what
-can be verified without restoring it. It never restores anything and never
-exposes or logs the backup encryption key.
+The self-check reads the local copy of a backup end to end and reports what
+can be verified without restoring it. Remote copies get a light check by
+default (the copy exists, can be opened and has the expected size); a full
+download is opt-in. It never restores anything and never exposes or logs the
+backup encryption key.
 """
 
 import asyncio
@@ -22,9 +24,11 @@ from securetar import (
     SecureTarReadError,
 )
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.storage import Store
+from homeassistant.helpers.typing import UNDEFINED, UndefinedType
 from homeassistant.util import dt as dt_util
 from homeassistant.util.async_iterator import AsyncIteratorReader
 from homeassistant.util.json import json_loads_object
@@ -36,6 +40,40 @@ from .util import UnsupportedSecureTarVersion, _sanitize_backup_name
 
 if TYPE_CHECKING:
     from .manager import BackupManager, ManagerBackup
+
+REMOTE_MODE_OFF = "off"
+REMOTE_MODE_LIGHT = "light"
+REMOTE_MODE_FULL = "full"
+REMOTE_MODES = (REMOTE_MODE_OFF, REMOTE_MODE_LIGHT, REMOTE_MODE_FULL)
+
+DEFAULT_MAX_FULL_DOWNLOAD_BYTES = 1024**3
+LIGHT_CHECK_TIMEOUT = 60
+SETTINGS_STORAGE_KEY = "backup.self_check"
+SETTINGS_STORAGE_VERSION = 1
+
+METHOD_FULL = "full"
+METHOD_LIGHT = "light"
+METHOD_NONE = "none"
+
+COPY_VERIFIED_IN_FULL = "verified_in_full"
+COPY_PRESENT_SIZE_MATCHES = "present_size_matches"
+COPY_PRESENT_SIZE_DIFFERS = "present_size_differs"
+COPY_CONTENT_DIFFERS = "content_differs"
+COPY_DAMAGED = "damaged"
+COPY_MISSING = "missing"
+COPY_COULD_NOT_CHECK = "could_not_check"
+COPY_NOT_CHECKED = "not_checked"
+
+_COPY_PROBLEMS = frozenset(
+    {COPY_PRESENT_SIZE_DIFFERS, COPY_CONTENT_DIFFERS, COPY_DAMAGED, COPY_MISSING}
+)
+_COPY_UNCERTAIN = frozenset({COPY_COULD_NOT_CHECK, COPY_NOT_CHECKED})
+_COPY_PROBLEM_TEXT = {
+    COPY_PRESENT_SIZE_DIFFERS: "the copy has a different size than expected",
+    COPY_CONTENT_DIFFERS: "the copy differs from the other copies",
+    COPY_DAMAGED: "the copy is damaged or incomplete",
+    COPY_MISSING: "the copy is missing",
+}
 
 STATUS_PASSED = "passed"
 STATUS_FAILED = "failed"
@@ -86,11 +124,77 @@ class CheckResult:
 
 
 @dataclass(kw_only=True, slots=True)
+class SelfCheckSettings:
+    """Settings of the self-check of remote copies."""
+
+    remote_mode: str = REMOTE_MODE_LIGHT
+    max_full_download_bytes: int | None = DEFAULT_MAX_FULL_DOWNLOAD_BYTES
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON serializable dict."""
+        return {
+            "remote_mode": self.remote_mode,
+            "max_full_download_bytes": self.max_full_download_bytes,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Any) -> SelfCheckSettings:
+        """Return settings from stored data, falling back to the defaults."""
+        settings = cls()
+        if not isinstance(data, dict):
+            return settings
+        if data.get("remote_mode") in REMOTE_MODES:
+            settings.remote_mode = data["remote_mode"]
+        if "max_full_download_bytes" in data:
+            limit = data["max_full_download_bytes"]
+            if limit is None or (
+                isinstance(limit, int) and not isinstance(limit, bool) and limit > 0
+            ):
+                settings.max_full_download_bytes = limit
+        return settings
+
+
+@dataclass(kw_only=True, slots=True)
+class CopyResult:
+    """The result of checking the copy of a backup at one location."""
+
+    agent_id: str
+    method: str
+    status: str
+    reason: str | None = None
+    size_reported: int | None = None
+    size_expected: int | None = None
+    size_read: int | None = None
+    opened: bool | None = None
+    downgraded: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON serializable dict without unset fields."""
+        return {
+            key: value
+            for key, value in (
+                ("agent_id", self.agent_id),
+                ("method", self.method),
+                ("status", self.status),
+                ("reason", self.reason),
+                ("size_reported", self.size_reported),
+                ("size_expected", self.size_expected),
+                ("size_read", self.size_read),
+                ("opened", self.opened),
+                ("downgraded", self.downgraded),
+            )
+            if value is not None
+        }
+
+
+@dataclass(kw_only=True, slots=True)
 class SelfCheckResult:
     """The result of a self-check of one backup."""
 
     checked_at: str
     checks: list[CheckResult]
+    copies: list[CopyResult] = field(default_factory=list)
+    settings: SelfCheckSettings | None = None
 
     @property
     def status(self) -> str:
@@ -104,11 +208,15 @@ class SelfCheckResult:
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON serializable dict."""
-        return {
+        result: dict[str, Any] = {
             "status": self.status,
             "checked_at": self.checked_at,
             "checks": [check.to_dict() for check in self.checks],
+            "copies": [copy.to_dict() for copy in self.copies],
         }
+        if self.settings is not None:
+            result["settings"] = self.settings.to_dict()
+        return result
 
 
 def could_not_check_result(reason: str) -> dict[str, Any]:
@@ -322,9 +430,13 @@ def scan_copy(
         reader.drain()
     except BackupError as err:
         scan.source_error = err.error_code
-    except OSError as err:
+    except HomeAssistantError, OSError:
         scan.source_error = "read_error"
-        LOGGER.debug("Self-check could not read a copy: %s", err)
+        LOGGER.debug("Self-check could not read a copy", exc_info=True)
+    except Exception:  # noqa: BLE001
+        # A provider stream that breaks half way, for example on throttling
+        scan.source_error = "read_error"
+        LOGGER.debug("Self-check lost the stream of a copy", exc_info=True)
     scan.size = reader.size
     scan.sha256 = reader.sha256
     return scan
@@ -503,48 +615,176 @@ def _check_database(scan: _Scan | None, backup: AgentBackup) -> CheckResult:
     )
 
 
-def _check_copies(
-    copies: dict[str, tuple[bool, int, _Scan]],
-) -> CheckResult:
-    """Check that every copy has the size it reports and the copies agree."""
+def _check_copies(copies: list[CopyResult]) -> CheckResult:
+    """Check that every copy is the expected one and the copies agree."""
     check = CHECK_COPIES_MATCH
     if len(copies) < 2:
         return CheckResult(check=check, status=STATUS_NOT_APPLICABLE)
-    unreadable = sorted(
-        agent_id for agent_id, (_, _, scan) in copies.items() if scan.source_error
-    )
-    readable = {
-        agent_id: value
-        for agent_id, value in copies.items()
-        if not value[2].source_error
-    }
-    mismatching: list[str] = [
-        agent_id
-        for agent_id, (_, reported, scan) in readable.items()
-        if scan.size != reported
-    ]
-    # Copies with the same protection hold the same bytes
-    by_protection: dict[bool, dict[str, str]] = {}
-    for agent_id, (protected, _, scan) in readable.items():
-        by_protection.setdefault(protected, {})[agent_id] = scan.sha256
-    for digests in by_protection.values():
-        if len(set(digests.values())) > 1:
-            mismatching.extend(digests)
-    if mismatching:
+    problems = sorted(copy.agent_id for copy in copies if copy.status in _COPY_PROBLEMS)
+    if problems:
         return CheckResult(
             check=check,
             status=STATUS_FAILED,
             reason="copy_mismatch",
-            detail=sorted(set(mismatching)),
+            detail=problems,
         )
-    if unreadable or len(readable) < 2:
+    not_checked = sorted(
+        copy.agent_id for copy in copies if copy.status == COPY_NOT_CHECKED
+    )
+    unreadable = sorted(
+        copy.agent_id for copy in copies if copy.status == COPY_COULD_NOT_CHECK
+    )
+    if not_checked and not unreadable:
+        return CheckResult(
+            check=check,
+            status=STATUS_COULD_NOT_CHECK,
+            reason="remote_checks_off",
+            detail=not_checked,
+        )
+    if unreadable or not_checked:
         return CheckResult(
             check=check,
             status=STATUS_COULD_NOT_CHECK,
             reason="copy_not_readable",
-            detail=unreadable or None,
+            detail=sorted(unreadable + not_checked),
         )
     return CheckResult(check=check, status=STATUS_PASSED)
+
+
+def _judge_full(agent_id: str, scan: _Scan, reported_size: int) -> CopyResult:
+    """Judge a copy which was downloaded and read to its end."""
+    result = CopyResult(
+        agent_id=agent_id,
+        method=METHOD_FULL,
+        status=COPY_VERIFIED_IN_FULL,
+        size_reported=reported_size,
+        size_read=scan.size,
+    )
+    if scan.source_error == BackupNotFound.error_code:
+        result.status = COPY_MISSING
+        result.reason = scan.source_error
+        result.size_read = None
+    elif scan.source_error:
+        result.status = COPY_COULD_NOT_CHECK
+        result.reason = scan.source_error
+        result.size_read = None
+    elif scan.archive_error:
+        result.status = COPY_DAMAGED
+        result.reason = scan.archive_error
+    elif scan.size != reported_size:
+        result.status = COPY_PRESENT_SIZE_DIFFERS
+        result.reason = "size_mismatch"
+    return result
+
+
+def _mark_digest_differences(
+    results: dict[str, CopyResult],
+    scans: dict[str, _Scan],
+    protection: dict[str, bool],
+) -> None:
+    """Mark fully read copies with the same protection but different bytes."""
+    by_protection: dict[bool, dict[str, str]] = {}
+    for agent_id, result in results.items():
+        if result.status == COPY_VERIFIED_IN_FULL and agent_id in scans:
+            by_protection.setdefault(protection[agent_id], {})[agent_id] = scans[
+                agent_id
+            ].sha256
+    for digests in by_protection.values():
+        if len(set(digests.values())) > 1:
+            for agent_id in digests:
+                results[agent_id].status = COPY_CONTENT_DIFFERS
+                results[agent_id].reason = "digest_differs_from_other_copy"
+
+
+async def _async_open_first_chunk(
+    manager: BackupManager, agent_id: str, backup_id: str
+) -> bool:
+    """Open a remote copy and read its first chunk, then stop.
+
+    Returns False if the stream was empty.
+    """
+    stream = await manager.backup_agents[agent_id].async_download_backup(backup_id)
+    try:
+        async for chunk in stream:
+            return bool(chunk)
+        return False
+    finally:
+        if (aclose := getattr(stream, "aclose", None)) is not None:
+            try:
+                await aclose()
+            except Exception:  # noqa: BLE001
+                LOGGER.debug("Self-check could not close a stream", exc_info=True)
+
+
+def _error_reason(err: BaseException) -> str:
+    """Return a short reason code for an error while checking a copy."""
+    if isinstance(err, BackupError):
+        return err.error_code
+    if isinstance(err, TimeoutError):
+        return "timeout"
+    return "read_error"
+
+
+async def _async_light_check(
+    manager: BackupManager,
+    agent_id: str,
+    backup_id: str,
+    reported_size: int,
+    expected_size: int | None,
+    *,
+    downgraded: str | None = None,
+) -> CopyResult:
+    """Check a remote copy without downloading it.
+
+    The copy is opened and its first chunk is read. Its size, as the location
+    reports it, is compared with the size of the reference copy.
+    """
+    result = CopyResult(
+        agent_id=agent_id,
+        method=METHOD_LIGHT,
+        status=COPY_COULD_NOT_CHECK,
+        size_reported=reported_size,
+        size_expected=expected_size,
+        downgraded=downgraded,
+    )
+    if expected_size is not None and reported_size != expected_size:
+        result.status = COPY_PRESENT_SIZE_DIFFERS
+        result.reason = "size_mismatch"
+        return result
+    try:
+        async with asyncio.timeout(LIGHT_CHECK_TIMEOUT):
+            opened = await _async_open_first_chunk(manager, agent_id, backup_id)
+    except BackupNotFound:
+        result.status = COPY_MISSING
+        result.reason = BackupNotFound.error_code
+        return result
+    except (BackupError, OSError, HomeAssistantError) as err:
+        result.reason = _error_reason(err)
+        return result
+    except Exception:  # noqa: BLE001
+        LOGGER.debug("Self-check could not open a copy", exc_info=True)
+        result.reason = "read_error"
+        return result
+    result.opened = opened
+    if not opened:
+        result.reason = "empty_copy"
+    elif expected_size is None:
+        result.reason = "no_reference_size"
+    else:
+        result.status = COPY_PRESENT_SIZE_MATCHES
+    return result
+
+
+def _remote_reference_size(backup: ManagerBackup, remote_ids: list[str]) -> int | None:
+    """Return the size at least two remote copies agree on."""
+    sizes: dict[int, int] = {}
+    for agent_id in remote_ids:
+        size = backup.agents[agent_id].size
+        sizes[size] = sizes.get(size, 0) + 1
+    if not sizes:
+        return None
+    size, count = max(sizes.items(), key=lambda item: item[1])
+    return size if count >= 2 else None
 
 
 def _agent_order(manager: BackupManager, agent_ids: Iterable[str]) -> list[str]:
@@ -593,6 +833,9 @@ async def _async_scan_copy(
             if isinstance(err, BackupError)
             else "read_error"
         )
+    except Exception:  # noqa: BLE001
+        LOGGER.debug("Self-check could not open a copy", exc_info=True)
+        return _Scan(source_error="read_error")
     finally:
         if reader is not None:
             if isinstance(reader, AsyncIteratorReader):
@@ -601,23 +844,76 @@ async def _async_scan_copy(
                 await hass.async_add_executor_job(reader.close)
 
 
+def _copy_method(
+    settings: SelfCheckSettings, *, is_local: bool, size: int
+) -> tuple[str, str | None]:
+    """Return how a copy is checked, and why a full check was downgraded."""
+    if is_local or settings.remote_mode == REMOTE_MODE_FULL:
+        if (
+            not is_local
+            and settings.max_full_download_bytes is not None
+            and size > settings.max_full_download_bytes
+        ):
+            return METHOD_LIGHT, "over_size_limit"
+        return METHOD_FULL, None
+    if settings.remote_mode == REMOTE_MODE_LIGHT:
+        return METHOD_LIGHT, None
+    return METHOD_NONE, None
+
+
 async def async_self_check(
-    manager: BackupManager, backup_id: str
+    manager: BackupManager,
+    backup_id: str,
+    *,
+    settings: SelfCheckSettings | None = None,
 ) -> SelfCheckResult | None:
     """Run the self-check on every copy of a backup.
 
-    Returns None if no agent has the backup.
+    The local copy is always read in full. Remote copies are checked as the
+    settings say. Returns None if no agent has the backup.
     """
-    backup, _ = await manager.async_get_backup(backup_id)
+    settings = settings or SelfCheckSettings()
+    backup, agent_errors = await manager.async_get_backup(backup_id)
     if backup is None:
         return None
     password = manager.config.data.create_backup.password
 
     order = _agent_order(manager, backup.agents)
+    remote_ids = [
+        agent_id for agent_id in order if agent_id not in manager.local_backup_agents
+    ]
+    protection = {agent_id: backup.agents[agent_id].protected for agent_id in order}
+    remote_reference = _remote_reference_size(backup, remote_ids)
     scans: dict[str, _Scan] = {}
+    results: dict[str, CopyResult] = {}
     primary_id: str | None = None
+    reference_size: int | None = None
     for agent_id in order:
         status = backup.agents[agent_id]
+        is_local = agent_id in manager.local_backup_agents
+        method, downgraded = _copy_method(settings, is_local=is_local, size=status.size)
+        if method == METHOD_NONE:
+            results[agent_id] = CopyResult(
+                agent_id=agent_id,
+                method=METHOD_NONE,
+                status=COPY_NOT_CHECKED,
+                reason="remote_checks_off",
+                size_reported=status.size,
+            )
+            continue
+        if method == METHOD_LIGHT:
+            expected = (
+                reference_size if reference_size is not None else remote_reference
+            )
+            results[agent_id] = await _async_light_check(
+                manager,
+                agent_id,
+                backup_id,
+                status.size,
+                expected,
+                downgraded=downgraded,
+            )
+            continue
         analyse = primary_id is None
         scan = await _async_scan_copy(
             manager,
@@ -628,22 +924,28 @@ async def async_self_check(
             password=password,
         )
         scans[agent_id] = scan
-        if analyse and not scan.source_error:
-            primary_id = agent_id
+        if not scan.source_error:
+            if analyse:
+                primary_id = agent_id
+            if is_local and reference_size is None:
+                reference_size = scan.size
+        results[agent_id] = _judge_full(agent_id, scan, status.size)
+    _mark_digest_differences(results, scans, protection)
+
+    for agent_id, err in agent_errors.items():
+        if agent_id not in results:
+            results[agent_id] = CopyResult(
+                agent_id=agent_id,
+                method=METHOD_NONE,
+                status=COPY_COULD_NOT_CHECK,
+                reason=_error_reason(err),
+            )
 
     primary = scans[primary_id] if primary_id else None
     primary_status = backup.agents[primary_id] if primary_id else None
     # The record the content is compared with is that of the copy that was read
     record = _agent_backup_record(backup, primary_status)
 
-    copies = {
-        agent_id: (
-            backup.agents[agent_id].protected,
-            backup.agents[agent_id].size,
-            scan,
-        )
-        for agent_id, scan in scans.items()
-    }
     key_scan = primary
     checks = [
         _check_archive_complete(
@@ -654,9 +956,107 @@ async def async_self_check(
         _check_key(key_scan, record, password),
         _check_parts(primary, record),
         _check_database(primary, record),
-        _check_copies(copies),
+        _check_copies(list(results.values())),
     ]
-    return SelfCheckResult(checked_at=dt_util.utcnow().isoformat(), checks=checks)
+    if not scans and any(copy.method == METHOD_LIGHT for copy in results.values()):
+        for check in checks:
+            if check.reason == "no_readable_copy":
+                check.reason = "remote_copy_not_downloaded"
+    return SelfCheckResult(
+        checked_at=dt_util.utcnow().isoformat(),
+        checks=checks,
+        copies=list(results.values()),
+        settings=settings,
+    )
+
+
+async def async_check_location(
+    manager: BackupManager,
+    backup_id: str,
+    agent_id: str,
+    *,
+    full_download: bool,
+    settings: SelfCheckSettings | None = None,
+) -> CopyResult | None:
+    """Check the copy of one backup at one location.
+
+    A full download is done only when asked for. Returns None if no location
+    has the backup at all.
+    """
+    settings = settings or SelfCheckSettings()
+    backup, agent_errors = await manager.async_get_backup(backup_id)
+    if backup is None and agent_id not in agent_errors:
+        return None
+    if backup is None or agent_id not in backup.agents:
+        if agent_id in agent_errors:
+            return CopyResult(
+                agent_id=agent_id,
+                method=METHOD_NONE,
+                status=COPY_COULD_NOT_CHECK,
+                reason=_error_reason(agent_errors[agent_id]),
+            )
+        return CopyResult(
+            agent_id=agent_id,
+            method=METHOD_NONE,
+            status=COPY_MISSING,
+            reason=BackupNotFound.error_code,
+        )
+    status = backup.agents[agent_id]
+    password = manager.config.data.create_backup.password
+    is_local = agent_id in manager.local_backup_agents
+    local_other = next(
+        (
+            other
+            for other in _agent_order(manager, backup.agents)
+            if other in manager.local_backup_agents and other != agent_id
+        ),
+        None,
+    )
+
+    if not is_local and not full_download:
+        expected = backup.agents[local_other].size if local_other else None
+        if expected is None:
+            remote_ids = [
+                other
+                for other in backup.agents
+                if other not in manager.local_backup_agents and other != agent_id
+            ]
+            expected = _remote_reference_size(backup, [agent_id, *remote_ids])
+        return await _async_light_check(
+            manager, agent_id, backup_id, status.size, expected
+        )
+
+    reference: _Scan | None = None
+    local_other_protected = False
+    if local_other is not None:
+        local_other_protected = backup.agents[local_other].protected
+        reference = await _async_scan_copy(
+            manager,
+            local_other,
+            backup_id,
+            analyse=False,
+            protected=local_other_protected,
+            password=password,
+        )
+    scan = await _async_scan_copy(
+        manager,
+        agent_id,
+        backup_id,
+        analyse=reference is None or reference.source_error is not None,
+        protected=status.protected,
+        password=password,
+    )
+    result = _judge_full(agent_id, scan, status.size)
+    if (
+        result.status == COPY_VERIFIED_IN_FULL
+        and reference is not None
+        and not reference.source_error
+        and local_other_protected == status.protected
+        and reference.sha256 != scan.sha256
+    ):
+        result.status = COPY_CONTENT_DIFFERS
+        result.reason = "digest_differs_from_other_copy"
+    return result
 
 
 def _agent_backup_record(backup: ManagerBackup, status: Any) -> AgentBackup:
@@ -676,10 +1076,26 @@ def _agent_backup_record(backup: ManagerBackup, status: Any) -> AgentBackup:
     )
 
 
+def _issue_details(result: SelfCheckResult) -> str:
+    """Describe which locations have a problem."""
+    lines = [
+        f"{copy.agent_id} ({_COPY_PROBLEM_TEXT[copy.status]})"
+        for copy in result.copies
+        if copy.status in _COPY_PROBLEMS
+    ]
+    if lines:
+        return "Locations with a problem: " + ", ".join(lines) + "."
+    return "The problem was found in the content of the archive that was read."
+
+
 def update_issue(
     hass: HomeAssistant, backup_name: str, result: SelfCheckResult
 ) -> None:
-    """Raise or clear the repairs issue for a failed self-check."""
+    """Raise or clear the repairs issue for a failed self-check.
+
+    Only a real mismatch or a missing copy raises the issue. A check that could
+    not be done never does.
+    """
     failed = [check.check for check in result.checks if check.status == STATUS_FAILED]
     if not failed:
         ir.async_delete_issue(hass, DOMAIN, ISSUE_ID)
@@ -696,17 +1112,79 @@ def update_issue(
         translation_placeholders={
             "backup_name": str(backup_name),
             "failed_checks": ", ".join(failed),
+            "details": _issue_details(result),
         },
     )
 
 
+async def _async_wait_until_idle(manager: BackupManager) -> None:
+    """Wait until no backup, upload or restore is running."""
+    from .manager import BackupManagerState  # noqa: PLC0415
+
+    if manager.state is BackupManagerState.IDLE:
+        return
+    idle = asyncio.Event()
+
+    @callback
+    def _on_event(_: Any) -> None:
+        if manager.state is BackupManagerState.IDLE:
+            idle.set()
+
+    unsubscribe = manager.async_subscribe_events(_on_event)
+    try:
+        if manager.state is BackupManagerState.IDLE:
+            return
+        await idle.wait()
+    finally:
+        unsubscribe()
+
+
 class SelfCheckRunner:
-    """Run self-checks as their own cancellable tasks."""
+    """Run self-checks as their own cancellable tasks, one at a time."""
 
     def __init__(self, manager: BackupManager) -> None:
         """Initialize the runner."""
         self._manager = manager
         self._tasks: dict[str, asyncio.Task[None]] = {}
+        self._lock = asyncio.Lock()
+        self._store: Store[dict[str, Any]] | None = None
+        self._settings: SelfCheckSettings | None = None
+
+    @property
+    def running(self) -> bool:
+        """Return if a self-check is running."""
+        return self._lock.locked()
+
+    async def async_get_settings(self) -> SelfCheckSettings:
+        """Return the settings of the self-check."""
+        if self._settings is None:
+            self._store = Store(
+                self._manager.hass, SETTINGS_STORAGE_VERSION, SETTINGS_STORAGE_KEY
+            )
+            self._settings = SelfCheckSettings.from_dict(await self._store.async_load())
+        return self._settings
+
+    async def async_update_settings(
+        self,
+        *,
+        remote_mode: str | None = None,
+        max_full_download_bytes: int | UndefinedType | None = UNDEFINED,
+    ) -> SelfCheckSettings:
+        """Change and store the settings of the self-check."""
+        settings = await self.async_get_settings()
+        if remote_mode is not None:
+            settings.remote_mode = remote_mode
+        if max_full_download_bytes is not UNDEFINED:
+            settings.max_full_download_bytes = max_full_download_bytes
+        assert self._store is not None
+        await self._store.async_save(settings.to_dict())
+        return settings
+
+    async def async_run_exclusive(self, coro_factory: Any) -> Any:
+        """Run a self-check once no other one runs and nothing else is going on."""
+        async with self._lock:
+            await _async_wait_until_idle(self._manager)
+            return await coro_factory()
 
     def schedule(self, backup_id: str) -> None:
         """Run the self-check of a backup in the background."""
@@ -734,7 +1212,10 @@ class SelfCheckRunner:
         """Run the self-check and store the result."""
         manager = self._manager
         try:
-            result = await async_self_check(manager, backup_id)
+            settings = await self.async_get_settings()
+            result = await self.async_run_exclusive(
+                lambda: async_self_check(manager, backup_id, settings=settings)
+            )
         except asyncio.CancelledError:
             raise
         except Exception:  # noqa: BLE001

@@ -1799,6 +1799,27 @@ class KnownBackups:
         backup.self_check = result
         self._manager.store.save()
 
+    def set_self_check_copy(
+        self, backup_id: str, copy: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Store the result of checking one location again.
+
+        Returns the stored self-check result of the backup, or None if the
+        backup has none yet, in which case nothing is stored.
+        """
+        if (backup := self._backups.get(backup_id)) is None or not isinstance(
+            stored := backup.self_check, dict
+        ):
+            return None
+        copies = [
+            other
+            for other in stored.get("copies", [])
+            if other.get("agent_id") != copy["agent_id"]
+        ]
+        stored["copies"] = [*copies, copy]
+        self._manager.store.save()
+        return stored
+
     def get(self, backup_id: str) -> KnownBackup | None:
         """Get a backup."""
         return self._backups.get(backup_id)
