@@ -1,0 +1,205 @@
+import type { DeviceEditorMap } from "../types";
+import {
+  dFor,
+  dFromAttribute,
+  dInteger,
+  dNumber,
+  dObject,
+  dSlider,
+  dSwitch,
+  dText,
+  dTiles,
+  dZone,
+  device,
+} from "./shared";
+
+const TOGGLE = { types: ["turned_on", "turned_off"], extra: [dFor()] };
+
+/** Device triggers of every integration that ships `device_trigger.py`. */
+export const DEVICE_TRIGGER_EDITORS: DeviceEditorMap = Object.fromEntries([
+  device("alarm_control_panel", "trigger", {
+    entityDomain: "alarm_control_panel",
+    types: [
+      "triggered",
+      "disarmed",
+      "arming",
+      "armed_home",
+      "armed_away",
+      "armed_night",
+      "armed_vacation",
+    ],
+    extra: [dFor()],
+  }),
+  device("arcam_fmj", "trigger", {
+    entityDomain: "media_player",
+    types: ["turn_on"],
+  }),
+  device("binary_sensor", "trigger", {
+    entityDomain: "binary_sensor",
+    extra: [dFor()],
+  }),
+  device("bthome", "trigger", { subtype: true }),
+  device("button", "trigger", { entityDomain: "button", types: ["pressed"] }),
+  device("climate", "trigger", {
+    entityDomain: "climate",
+    types: [
+      "current_temperature_changed",
+      "current_humidity_changed",
+      "hvac_mode_changed",
+    ],
+    extra: [
+      dTiles(
+        "to",
+        ["off", "heat", "cool", "heat_cool", "auto", "dry", "fan_only"],
+        ["hvac_mode_changed"]
+      ),
+      dNumber("above", ["current_temperature_changed"]),
+      dNumber("below", ["current_temperature_changed"]),
+      dSlider("above", 0, 100, ["current_humidity_changed"], "%"),
+      dSlider("below", 0, 100, ["current_humidity_changed"], "%"),
+      dFor(),
+    ],
+  }),
+  device("cover", "trigger", {
+    entityDomain: "cover",
+    types: [
+      "position",
+      "tilt_position",
+      "opened",
+      "closed",
+      "opening",
+      "closing",
+    ],
+    extra: [
+      dSlider("above", 0, 100, ["position", "tilt_position"], "%"),
+      dSlider("below", 0, 100, ["position", "tilt_position"], "%"),
+      dFor(),
+    ],
+  }),
+  device("deconz", "trigger", { subtype: true }),
+  device("device_tracker", "trigger", {
+    entityDomain: "device_tracker",
+    types: ["enters", "leaves"],
+    extra: [dZone()],
+  }),
+  device("fan", "trigger", { entityDomain: "fan", ...TOGGLE }),
+  device("homekit_controller", "trigger", { subtype: true }),
+  device("hue", "trigger", { subtype: true }),
+  device("humidifier", "trigger", {
+    entityDomain: "humidifier",
+    types: ["target_humidity_changed", "turned_on", "turned_off"],
+    extra: [
+      dSlider("above", 0, 100, ["target_humidity_changed"], "%"),
+      dSlider("below", 0, 100, ["target_humidity_changed"], "%"),
+      dFor(),
+    ],
+  }),
+  device("knx", "trigger", {
+    types: ["telegram"],
+    extra: [
+      dText("destination"),
+      dSwitch("group_value_write"),
+      dSwitch("group_value_response"),
+      dSwitch("group_value_read"),
+      dSwitch("incoming"),
+      dSwitch("outgoing"),
+    ],
+  }),
+  device("kodi", "trigger", {
+    entityDomain: "media_player",
+    types: ["turn_on", "turn_off"],
+  }),
+  device("lcn", "trigger", {
+    types: [
+      "transmitter",
+      "transponder",
+      "fingerprint",
+      "codelock",
+      "send_keys",
+    ],
+    extra: [
+      dTiles("action", ["hit", "make", "break"], ["transmitter", "send_keys"]),
+      dText("code", ["transponder", "fingerprint", "codelock"]),
+      dInteger("level", 0, 255, ["transmitter"]),
+      dInteger("key", 0, 255, ["transmitter"]),
+      dText("key", ["send_keys"]),
+    ],
+  }),
+  device("lg_netcast", "trigger"),
+  device("light", "trigger", { entityDomain: "light", ...TOGGLE }),
+  device("lock", "trigger", {
+    entityDomain: "lock",
+    types: [
+      "jammed",
+      "locked",
+      "locking",
+      "open",
+      "opening",
+      "unlocked",
+      "unlocking",
+    ],
+    extra: [dFor()],
+  }),
+  device("lutron_caseta", "trigger", { subtype: true }),
+  device("media_player", "trigger", {
+    entityDomain: "media_player",
+    types: [
+      "turned_on",
+      "turned_off",
+      "buffering",
+      "idle",
+      "paused",
+      "playing",
+    ],
+    extra: [dFor()],
+  }),
+  device("mqtt", "trigger", { subtype: true }),
+  device("nest", "trigger"),
+  device("netatmo", "trigger", { entityDomain: "climate", subtype: true }),
+  device("philips_js", "trigger"),
+  device("remote", "trigger", { entityDomain: "remote", ...TOGGLE }),
+  device("rfxtrx", "trigger", { subtype: true }),
+  device("samsungtv", "trigger"),
+  device("select", "trigger", {
+    entityDomain: "select",
+    types: ["current_option_changed"],
+    extra: [
+      dFromAttribute("from", "options"),
+      dFromAttribute("to", "options"),
+      dFor(),
+    ],
+  }),
+  device("sensor", "trigger", {
+    entityDomain: "sensor",
+    extra: [dNumber("above"), dNumber("below"), dFor()],
+  }),
+  device("shelly", "trigger", { subtype: true }),
+  device("switch", "trigger", { entityDomain: "switch", ...TOGGLE }),
+  device("tasmota", "trigger", { subtype: true }),
+  device("update", "trigger", { entityDomain: "update", ...TOGGLE }),
+  device("vacuum", "trigger", {
+    entityDomain: "vacuum",
+    types: ["cleaning", "docked"],
+    extra: [dFor()],
+  }),
+  device("webostv", "trigger"),
+  device("wemo", "trigger"),
+  device("xiaomi_ble", "trigger", { subtype: true }),
+  device("yolink", "trigger"),
+  device("zha", "trigger", { subtype: true }),
+  device("zwave_js", "trigger", {
+    subtype: true,
+    extra: [
+      dText("command_class"),
+      dText("property"),
+      dText("property_key"),
+      dInteger("endpoint", 0, 255),
+      dObject("from"),
+      dObject("to"),
+      dText("event_type"),
+      dText("event"),
+      dText("label"),
+      dFor(),
+    ],
+  }),
+]);
