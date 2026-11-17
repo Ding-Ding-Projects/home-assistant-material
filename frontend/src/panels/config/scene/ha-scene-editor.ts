@@ -1983,6 +1983,7 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
         }
         #root {
           padding-top: var(--ha-space-4);
+          counter-reset: frame-block;
         }
         :host([narrow]) #root {
           padding-inline: var(--ha-space-3);
@@ -2012,7 +2013,7 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
         }
         .pair {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
           gap: var(--ha-space-3);
         }
         .pair > * {
@@ -2023,9 +2024,13 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
           align-items: center;
           gap: var(--ha-space-3);
           padding: var(--ha-space-3) var(--ha-space-4);
-          border-radius: var(--ha-border-radius-xl);
-          background: var(--card-background-color);
+          border-radius: 20px;
+          background: var(
+            --md-sys-color-surface-container,
+            var(--card-background-color)
+          );
           color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
         }
         .banner ha-svg-icon {
           flex: none;
@@ -2036,16 +2041,42 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
           min-width: 0;
         }
         .card {
-          padding: var(--ha-space-5) var(--ha-space-6);
+          counter-increment: frame-block;
+          padding: var(--ha-space-5) var(--ha-space-5);
           border-radius: var(--ha-border-radius-3xl);
-          background: var(--card-background-color);
+          background: var(
+            --md-sys-color-surface-container,
+            var(--card-background-color)
+          );
         }
         .card h2 {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
           margin: 0 0 var(--ha-space-3);
           font-family: var(--ha-font-family-heading, inherit);
           font-size: var(--ha-font-size-xl);
-          font-weight: var(--ha-font-weight-medium);
+          font-weight: 700;
           line-height: var(--ha-line-height-condensed);
+          overflow-wrap: anywhere;
+        }
+        /* The blocks count themselves like the automation editor's. */
+        .card h2::before {
+          content: counter(frame-block);
+          display: inline-flex;
+          flex: none;
+          align-items: center;
+          justify-content: center;
+          min-width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          font-size: var(--ha-font-size-m, 14px);
+          font-weight: 800;
+          background: var(--ha-color-primary-container, var(--primary-color));
+          color: var(
+            --ha-color-on-primary-container,
+            var(--text-primary-color)
+          );
         }
         .card h3 {
           margin: var(--ha-space-3) 0 0;
@@ -2055,7 +2086,7 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
         .rows {
           display: flex;
           flex-direction: column;
-          gap: var(--ha-space-1);
+          gap: 6px;
           margin: 0;
           padding: 0;
           list-style: none;
@@ -2063,10 +2094,18 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
         .row {
           display: flex;
           align-items: center;
-          border-radius: var(--ha-border-radius-xl);
+          min-height: 52px;
+          border-radius: 20px;
+          background: var(
+            --md-sys-color-surface-container-high,
+            var(--secondary-background-color)
+          );
         }
         .row.selected {
-          background: var(--ha-color-fill-primary-quiet-resting);
+          background: var(
+            --md-sys-color-secondary-container,
+            var(--ha-color-fill-primary-quiet-resting)
+          );
         }
         .row-main {
           display: flex;
@@ -2091,10 +2130,10 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
           flex: none;
           align-items: center;
           justify-content: center;
-          width: 40px;
-          height: 40px;
-          border-radius: var(--ha-border-radius-lg);
-          background: var(--ha-color-fill-neutral-quiet-resting);
+          width: 36px;
+          height: 36px;
+          border-radius: 12px;
+          background: var(--primary-background-color);
           color: var(--secondary-text-color);
         }
         .row-text {
@@ -2103,7 +2142,7 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
           min-width: 0;
         }
         .row-name {
-          font-weight: var(--ha-font-weight-medium);
+          font-weight: 600;
           overflow-wrap: anywhere;
         }
         .row-state {
@@ -2198,6 +2237,13 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
         }
         .try-row ha-button {
           min-height: 44px;
+        }
+        :host([narrow]) .card {
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border-radius: 24px;
+        }
+        :host([narrow]) .row ha-icon-button {
+          --ha-icon-button-size: 44px;
         }
         ha-editor-save-bar {
           --ha-editor-save-bar-max-width: 1100px;

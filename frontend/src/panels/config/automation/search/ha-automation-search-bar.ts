@@ -4,10 +4,11 @@ import {
   mdiChevronUp,
   mdiClose,
   mdiFormatListBulleted,
+  mdiMagnify,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { consume } from "../../../../common/decorators/consume";
 import { computeAreaName } from "../../../../common/entity/compute_area_name";
@@ -62,6 +63,11 @@ export class HaAutomationSearchBar extends LitElement {
   private _search?: AutomationSearchSnapshot;
 
   @state() private _entitiesOpen = false;
+
+  /** The field shows once the person asks for it, or while a search is active. */
+  @state() private _fieldOpen = false;
+
+  @query("ha-input-search.field") private _field?: HaInputSearch;
 
   @state() private _entityQuery = "";
 
@@ -126,45 +132,61 @@ export class HaAutomationSearchBar extends LitElement {
     }
     const total = search.matches.length;
     const filterCount = search.entityFilter.length;
+    const fieldShown = this._fieldOpen || search.active;
     return html`
       <div class="bar" role="search" aria-label=${this._t("title")}>
-        <div class="row">
-          <ha-input-search
-            class="field"
-            appearance="outlined"
-            .placeholder=${this._t("placeholder")}
-            .accessibleLabel=${this._t("label")}
-            .value=${search.query}
-            @input=${this._queryChanged}
-            @keydown=${this._fieldKeydown}
-          ></ha-input-search>
-          ${
-            search.active
-              ? html`<div class="nav">
-                  ${this._renderCount(search)}
-                  <ha-icon-button
-                    .label=${this._t("previous")}
-                    .path=${mdiChevronUp}
-                    .disabled=${!total}
-                    @click=${this._previous}
-                  ></ha-icon-button>
-                  <ha-icon-button
-                    .label=${this._t("next")}
-                    .path=${mdiChevronDown}
-                    .disabled=${!total}
-                    @click=${this._next}
-                  ></ha-icon-button>
-                  <ha-icon-button
-                    .label=${this._t("clear")}
-                    .path=${mdiClose}
-                    @click=${this._clear}
-                  ></ha-icon-button>
-                </div>`
-              : nothing
-          }
-        </div>
+        ${
+          fieldShown
+            ? html`<div class="row">
+                <ha-input-search
+                  class="field"
+                  appearance="outlined"
+                  .placeholder=${this._t("placeholder")}
+                  .accessibleLabel=${this._t("label")}
+                  .value=${search.query}
+                  @input=${this._queryChanged}
+                  @keydown=${this._fieldKeydown}
+                ></ha-input-search>
+                ${
+                  search.active
+                    ? html`<div class="nav">
+                        ${this._renderCount(search)}
+                        <ha-icon-button
+                          .label=${this._t("previous")}
+                          .path=${mdiChevronUp}
+                          .disabled=${!total}
+                          @click=${this._previous}
+                        ></ha-icon-button>
+                        <ha-icon-button
+                          .label=${this._t("next")}
+                          .path=${mdiChevronDown}
+                          .disabled=${!total}
+                          @click=${this._next}
+                        ></ha-icon-button>
+                        <ha-icon-button
+                          .label=${this._t("clear")}
+                          .path=${mdiClose}
+                          @click=${this._clear}
+                        ></ha-icon-button>
+                      </div>`
+                    : nothing
+                }
+              </div>`
+            : nothing
+        }
         ${this._renderPatternError(search)}
         <div class="row options">
+          ${
+            !fieldShown
+              ? html`<ha-icon-button
+                  class="open-field"
+                  .label=${this._t("label")}
+                  .path=${mdiMagnify}
+                  aria-expanded="false"
+                  @click=${this._openField}
+                ></ha-icon-button>`
+              : nothing
+          }
           <ha-switch
             .checked=${search.onlyMatching}
             title=${this._t("only_matching_hint")}
@@ -455,6 +477,9 @@ export class HaAutomationSearchBar extends LitElement {
     } else if (ev.key === "Escape" && this._search?.active) {
       ev.stopPropagation();
       this._clear();
+    } else if (ev.key === "Escape" && this._fieldOpen) {
+      ev.stopPropagation();
+      this._fieldOpen = false;
     }
   }
 
@@ -468,6 +493,13 @@ export class HaAutomationSearchBar extends LitElement {
 
   private _clear() {
     this._search?.clear();
+    this._fieldOpen = false;
+  }
+
+  private async _openField() {
+    this._fieldOpen = true;
+    await this.updateComplete;
+    this._field?.focus();
   }
 
   private _onlyMatchingChanged(ev: Event) {
@@ -518,14 +550,14 @@ export class HaAutomationSearchBar extends LitElement {
     .bar {
       display: flex;
       flex-direction: column;
-      gap: var(--ha-space-2);
-      padding: var(--ha-space-3);
-      border-radius: var(--ha-border-radius-3xl, 28px);
+      gap: var(--ha-space-1);
+      padding: var(--ha-space-2) var(--ha-space-3);
+      border-radius: 24px;
       background: var(
-        --ha-color-surface-container,
-        var(--card-background-color)
+        --md-sys-color-surface-container,
+        var(--ha-color-surface-container, var(--card-background-color))
       );
-      border: 1px solid var(--divider-color);
+      border: none;
       box-sizing: border-box;
       max-width: 100%;
       max-height: calc(100vh - 160px);

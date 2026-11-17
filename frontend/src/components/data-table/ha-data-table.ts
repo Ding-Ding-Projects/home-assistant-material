@@ -1624,7 +1624,8 @@ export class HaDataTable extends LitElement {
   private _saveScrollPos(e: HASSDomTargetEvent<HTMLDivElement>) {
     this._savedScrollPos = e.target.scrollTop;
 
-    if (this._headerRow) {
+    // Only write when it differs: a write invalidates layout on every scroll.
+    if (this._headerRow && this._headerRow.scrollLeft !== e.target.scrollLeft) {
       this._headerRow.scrollLeft = e.target.scrollLeft;
     }
 
@@ -1670,14 +1671,28 @@ export class HaDataTable extends LitElement {
       return;
     }
 
-    const scrollerTop = scroller.getBoundingClientRect().top;
+    // Read the rows' own positions from their inline transform (the
+    // virtualizer writes `translate(x, y)` in content space) so no layout is
+    // forced per header on every frame; fall back to measuring only when a row
+    // carries no readable position.
+    const scrollTop = scroller.scrollTop;
+    let scrollerTop: number | undefined;
     let group: string | undefined;
     let currentTop = -Infinity;
 
     scroller
       .querySelectorAll<HTMLElement & { group: string }>(".group-header-row")
       .forEach((row) => {
-        const top = row.getBoundingClientRect().top - scrollerTop;
+        const match = /translate\(\s*[-\d.]+px,\s*([-\d.]+)px\s*\)/.exec(
+          row.style.transform
+        );
+        let top: number;
+        if (match) {
+          top = Number(match[1]) - scrollTop;
+        } else {
+          scrollerTop ??= scroller.getBoundingClientRect().top;
+          top = row.getBoundingClientRect().top - scrollerTop;
+        }
         // Rows can sit at fractional positions, so a header less than a
         // pixel below the top counts as reached
         if (top < 1 && top > currentTop) {

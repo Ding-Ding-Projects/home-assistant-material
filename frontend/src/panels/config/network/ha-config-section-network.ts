@@ -145,6 +145,12 @@ class HaConfigSectionNetwork extends LitElement {
     :host([narrow]) .content,
     .content {
       --network-gap: var(--ha-space-4);
+      /* Every card on the page is a tonal rounded block without an outline. */
+      --ha-card-border-width: 0px;
+      --ha-card-background: var(
+        --md-sys-color-surface-container,
+        var(--card-background-color)
+      );
     }
     @media (max-width: 800px) {
       .content {
@@ -165,6 +171,10 @@ class HaConfigSectionNetwork extends LitElement {
       .intro p {
         font-size: calc(14px * var(--ha-font-size-scale, 1));
         margin-top: var(--ha-space-1);
+      }
+      .content {
+        --ha-card-border-radius: 24px;
+        --ha-card-header-font-size: 18px;
       }
     }
     supervisor-hostname,

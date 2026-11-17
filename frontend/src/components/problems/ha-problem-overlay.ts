@@ -181,9 +181,12 @@ export class HaProblemOverlay extends LitElement {
   private _measure() {
     const show = this._settings.enabled || this._spot !== undefined;
     const boxes: Box[] = [];
-    const coverRects = show ? problemCoverRects() : [];
-    if (show) {
-      for (const problem of activeProblems()) {
+    // With no problem to outline there is nothing to measure: skip the cover
+    // scan and every layout read, so a scroll costs nothing here.
+    const problems = show ? activeProblems() : [];
+    const coverRects = problems.length ? problemCoverRects() : [];
+    if (problems.length) {
+      for (const problem of problems) {
         if (!this._settings.enabled && problem.id !== this._spot) {
           continue;
         }

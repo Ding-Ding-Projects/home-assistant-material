@@ -35,7 +35,7 @@ export class HaStartingPoints extends LitElement {
   /** Set to give the group a name for assistive technology when there is no heading. */
   @property() public label?: string;
 
-  /** One swipeable row instead of a grid, so the editor below stays in reach on a phone. */
+  /** Short tiles two across, so the editor below stays in reach on a phone. */
   @property({ type: Boolean, reflect: true }) public compact = false;
 
   protected render() {
@@ -55,6 +55,7 @@ export class HaStartingPoints extends LitElement {
               <button
                 type="button"
                 class="card"
+                title=${item.description}
                 data-id=${item.id}
                 @click=${this._select}
               >
@@ -96,22 +97,40 @@ export class HaStartingPoints extends LitElement {
       grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
       gap: var(--ha-space-3, 12px);
     }
+    /* A phone shows the tiles two across and short, all in view at once. */
     :host([compact]) .cards {
-      grid-template-columns: none;
-      grid-auto-flow: column;
-      grid-auto-columns: min(78%, 280px);
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      padding-bottom: var(--ha-space-2, 8px);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--ha-space-2, 8px);
     }
-    :host([compact]) [role="listitem"] {
-      scroll-snap-align: start;
+    :host([compact]) .card {
+      flex-direction: row;
+      align-items: center;
+      gap: var(--ha-space-2, 8px);
+      min-height: 88px;
+      padding: var(--ha-space-3, 12px);
+      border: none;
+      border-radius: 20px;
+      background: var(
+        --md-sys-color-surface-container,
+        var(--secondary-background-color)
+      );
     }
-    :host([compact]) .description {
+    :host([compact]) .icon {
+      flex: none;
+      width: 36px;
+      height: 36px;
+    }
+    :host([compact]) .title {
+      font-size: var(--ha-font-size-m, 14px);
+      font-weight: 600;
+      line-height: 1.25;
       display: -webkit-box;
-      -webkit-line-clamp: 2;
+      -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
+    }
+    :host([compact]) .description {
+      display: none;
     }
     .card {
       display: flex;

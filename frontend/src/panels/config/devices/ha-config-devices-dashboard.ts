@@ -677,6 +677,7 @@ export class HaConfigDeviceDashboard extends LitElement {
             : device.domains.length
               ? html`<img
                   alt=""
+                  decoding="async"
                   crossorigin="anonymous"
                   referrerpolicy="no-referrer"
                   src=${brandsUrl(

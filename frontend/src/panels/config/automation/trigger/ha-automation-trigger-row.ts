@@ -32,6 +32,7 @@ import { consume } from "../../../../common/decorators/consume";
 import { ensureArray } from "../../../../common/array/ensure-array";
 import { storage } from "../../../../common/decorators/storage";
 import { fireEvent } from "../../../../common/dom/fire_event";
+import { collapseRow } from "../../../../common/motion/moments";
 import { preventDefaultStopPropagation } from "../../../../common/dom/prevent_default_stop_propagation";
 import { stopPropagation } from "../../../../common/dom/stop_propagation";
 import { capitalizeFirstLetter } from "../../../../common/string/capitalize-first-letter";
@@ -942,7 +943,9 @@ export default class HaAutomationTriggerRow extends LitElement {
     });
   };
 
-  private _onDelete = () => {
+  private _onDelete = async () => {
+    // The row closes first, so the rows below move up instead of jumping.
+    await collapseRow(this);
     fireEvent(this, "value-changed", { value: null });
 
     if (this._selected) {

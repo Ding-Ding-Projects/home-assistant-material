@@ -991,7 +991,35 @@ class HaConfigAreaPage extends LitElement {
           background-color: var(--primary-color);
         }
         :host([narrow]) .hero {
-          padding: var(--ha-space-5) var(--ha-space-4);
+          min-height: 112px;
+          gap: var(--ha-space-2);
+          padding: var(--ha-space-4);
+          border-radius: 24px;
+        }
+        :host([narrow]) .hero h1 {
+          font-size: 24px;
+          font-weight: 700;
+        }
+        :host([narrow]) .cards {
+          gap: var(--ha-space-3);
+          margin-bottom: var(--ha-space-3);
+        }
+        :host([narrow]) ha-card {
+          --ha-card-border-radius: 24px;
+        }
+        :host([narrow]) ha-card > h2 {
+          padding: var(--ha-space-3) var(--ha-space-4) var(--ha-space-1);
+          font-size: var(--ha-font-size-m);
+          font-weight: 700;
+        }
+        :host([narrow]) .note,
+        :host([narrow]) .no-entries {
+          padding: var(--ha-space-1) var(--ha-space-4) var(--ha-space-3);
+          text-align: start;
+        }
+        :host([narrow]) .row-icon {
+          width: 36px;
+          height: 36px;
         }
         .hero-text {
           min-width: 0;
@@ -1025,6 +1053,11 @@ class HaConfigAreaPage extends LitElement {
           align-items: start;
         }
         ha-card {
+          --ha-card-border-width: 0px;
+          --ha-card-background: var(
+            --md-sys-color-surface-container,
+            var(--card-background-color)
+          );
           border-radius: var(--ha-border-radius-3xl);
           min-width: 0;
         }

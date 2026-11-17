@@ -45,7 +45,7 @@ export const pageEntryProfile = (
   return { enabled: true, rise: PAGE_ENTRY_RISE_PX, scale: 0.96 };
 };
 
-const readDrama = (): ConfirmationDrama => {
+export const readDrama = (): ConfirmationDrama => {
   try {
     return normalizeConfirmationDrama(
       getPersonalPreferences().confirmationDrama
@@ -55,7 +55,7 @@ const readDrama = (): ConfirmationDrama => {
   }
 };
 
-const isReduced = (): boolean => {
+export const isReduced = (): boolean => {
   try {
     return currentMotionLock() !== undefined;
   } catch (_err) {

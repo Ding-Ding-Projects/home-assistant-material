@@ -32,7 +32,6 @@ import { isNavigationClick } from "../../../common/dom/is-navigation-click";
 import { goBack, navigate } from "../../../common/navigate";
 import { promiseTimeout } from "../../../common/util/promise-timeout";
 import "../../../components/ha-button";
-import "../../../components/ha-button-toggle-group";
 import {
   EditorPrefsController,
   getEditorLevel,
@@ -80,7 +79,7 @@ import "../../../layouts/hass-subpage";
 import { KeyboardShortcutMixin } from "../../../mixins/keyboard-shortcut-mixin";
 import { PreventUnsavedMixin } from "../../../mixins/prevent-unsaved-mixin";
 import { haStyle, haStyleScrollbar } from "../../../resources/styles";
-import type { Entries, ToggleButton, ValueChangedEvent } from "../../../types";
+import type { Entries, ValueChangedEvent } from "../../../types";
 import { isMac } from "../../../util/is_mac";
 import { repositoryUrl } from "../automation-history/automation-history-query-params";
 import { showEditorToast } from "./editor-toast";
@@ -800,31 +799,75 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
   }
 
   private _renderLevelBar() {
-    const buttons: ToggleButton[] = (
-      ["simple", "advanced", "yaml"] as EditorLevel[]
-    ).map((value) => ({
-      value,
-      label: this.hass.localize(
-        `ui.panel.config.automation.editor.level.${value}` as any
-      ),
-    }));
+    const levels = ["simple", "advanced", "yaml"] as EditorLevel[];
+    const active = levelForView(this.mode, getEditorLevel());
+    const disabled = this.readOnly && this.mode === "yaml";
     return html`<div class="level-bar">
-      <span class="level-label" id="level-label"
-        >${this.hass.localize(
+      <div
+        class="level-switch"
+        role="radiogroup"
+        aria-label=${this.hass.localize(
           "ui.panel.config.automation.editor.level.label" as any
-        )}</span
+        )}
+        @keydown=${this._levelKeydown}
       >
-      <ha-button-toggle-group
-        role="group"
-        aria-labelledby="level-label"
-        .buttons=${buttons}
-        .active=${levelForView(this.mode, getEditorLevel())}
-        size="s"
-        no-wrap
-        .disabled=${this.readOnly && this.mode === "yaml"}
-        @value-changed=${this._levelChanged}
-      ></ha-button-toggle-group>
+        ${levels.map(
+          (value) =>
+            html`<button
+              type="button"
+              role="radio"
+              class="level-pill"
+              data-level=${value}
+              aria-checked=${active === value ? "true" : "false"}
+              tabindex=${active === value ? "0" : "-1"}
+              ?disabled=${disabled}
+              @click=${this._levelClicked}
+            >
+              ${this.hass.localize(
+                `ui.panel.config.automation.editor.level.${value}` as any
+              )}
+            </button>`
+        )}
+      </div>
     </div>`;
+  }
+
+  private _levelClicked(ev: Event) {
+    const level = (ev.currentTarget as HTMLElement).dataset
+      .level as EditorLevel;
+    this._levelChanged(
+      new CustomEvent("value-changed", { detail: { value: level } })
+    );
+  }
+
+  private _levelKeydown(ev: KeyboardEvent) {
+    const step =
+      ev.key === "ArrowRight" || ev.key === "ArrowDown"
+        ? 1
+        : ev.key === "ArrowLeft" || ev.key === "ArrowUp"
+          ? -1
+          : 0;
+    if (!step) {
+      return;
+    }
+    const pills = Array.from(
+      (ev.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>(
+        ".level-pill:not([disabled])"
+      )
+    );
+    const current = pills.findIndex((pill) => pill === ev.target);
+    if (current === -1) {
+      return;
+    }
+    // Arrow keys move and select, the way a radio group does; the direction
+    // follows the reading direction.
+    const rtl =
+      getComputedStyle(ev.currentTarget as HTMLElement).direction === "rtl";
+    const next =
+      pills[(current + (rtl ? -step : step) + pills.length) % pills.length];
+    ev.preventDefault();
+    next.focus();
+    next.click();
   }
 
   private async _levelChanged(ev: CustomEvent<{ value: EditorLevel }>) {
@@ -1721,25 +1764,78 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
           flex: none;
         }
         .level-bar {
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          gap: var(--ha-space-3);
           margin: 0 auto;
           max-width: 1040px;
-          padding: var(--ha-space-3) 20px 0;
+          padding: var(--ha-space-2) 12px 0;
+          display: flex;
+          justify-content: flex-end;
         }
-        /* The Simple / Advanced / Code switch is a pill segmented control. */
-        .level-bar ha-button-toggle-group {
-          --ha-button-toggle-group-radius: var(--ha-border-radius-pill, 999px);
+        /* The Simple / Advanced / YAML control: one round segmented pill, the
+           same look as the section tabs. Full width and 44 px tall on a phone,
+           directly under the title. */
+        .level-switch {
+          display: inline-flex;
+          gap: 0;
+          padding: 4px;
+          border-radius: 999px;
+          background: var(
+            --md-sys-color-surface-container-highest,
+            var(--ha-color-fill-neutral-quiet-resting)
+          );
         }
-        .level-bar ha-button-toggle-group::part(base),
-        .level-bar ha-button-toggle-group::part(button) {
-          min-height: 48px;
-        }
-        .level-label {
+        .level-pill {
+          flex: 1 1 0;
+          min-height: 44px;
+          min-width: 44px;
+          padding: 0 var(--ha-space-5, 20px);
+          border: none;
+          border-radius: 999px;
+          background: transparent;
           color: var(--secondary-text-color);
-          font-size: var(--ha-font-size-s, 0.875rem);
+          font: inherit;
+          font-weight: 600;
+          cursor: pointer;
+          transition:
+            background-color 200ms ease,
+            color 200ms ease,
+            transform 250ms cubic-bezier(0.2, 1.5, 0.3, 1);
+        }
+        .level-pill:active {
+          transform: scale(0.96);
+        }
+        .level-pill[aria-checked="true"] {
+          background: var(
+            --md-sys-color-secondary-container,
+            var(--ha-color-fill-primary-quiet-resting)
+          );
+          color: var(
+            --md-sys-color-on-secondary-container,
+            var(--primary-text-color)
+          );
+        }
+        .level-pill:focus-visible {
+          outline: var(--wa-focus-ring);
+          outline-offset: -2px;
+        }
+        .level-pill[disabled] {
+          opacity: 0.5;
+          cursor: default;
+        }
+        @media (max-width: 600px) {
+          .level-bar {
+            justify-content: stretch;
+          }
+          .level-switch {
+            width: 100%;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .level-pill {
+            transition: none;
+          }
+          .level-pill:active {
+            transform: none;
+          }
         }
         manual-automation-editor,
         blueprint-automation-editor {

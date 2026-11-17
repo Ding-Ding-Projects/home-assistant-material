@@ -40,7 +40,7 @@ export const rowStyles = css`
   }
   h3 {
     font-size: inherit;
-    font-weight: inherit;
+    font-weight: 600;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -50,8 +50,14 @@ export const rowStyles = css`
     max-width: 100%;
   }
 
+  /* A step is a compact tonal row, not an outlined box. */
   ha-card {
     transition: outline var(--ha-animation-duration-fast, 150ms);
+    --ha-card-border-width: 0px;
+    --ha-card-background: var(
+      --md-sys-color-surface-container-high,
+      var(--secondary-background-color)
+    );
   }
   .warning ul {
     margin: 4px 0;
@@ -303,7 +309,7 @@ export const automationRowsStyles = css`
   .rows {
     display: flex;
     flex-direction: column;
-    gap: var(--ha-space-4);
+    gap: 6px;
   }
   .rows.no-sidebar {
     margin-inline-end: 0;
@@ -426,7 +432,7 @@ export const automationRowsStyles = css`
     justify-content: center;
     align-items: center;
     height: 24px;
-    margin-block: calc((var(--ha-space-4) + 24px) / -2);
+    margin-block: calc((6px + 24px) / -2);
     position: relative;
     z-index: 1;
     pointer-events: none;

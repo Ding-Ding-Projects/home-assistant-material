@@ -133,8 +133,8 @@ export class HaAutomationRow extends LitElement {
       padding-left: var(--ha-space-3);
       padding-inline-start: var(--ha-space-3);
       padding-inline-end: initial;
-      min-height: 48px;
-      align-items: flex-start;
+      min-height: 52px;
+      align-items: center;
       cursor: pointer;
       overflow: hidden;
       outline: none;
@@ -155,16 +155,33 @@ export class HaAutomationRow extends LitElement {
       border: 1px solid var(--ha-color-border-neutral-normal);
       border-radius: var(--ha-border-radius-md);
       padding: var(--ha-space-1);
-      margin-top: 10px;
+      margin-block: 10px;
       display: flex;
       justify-content: center;
       align-items: center;
       transform: rotate(45deg);
     }
+    /* The icon sits on a small tonal tile, centred in the row. */
     .leading-icon-wrapper {
-      padding-top: var(--ha-space-3);
       position: relative;
       z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      min-width: 36px;
+      height: 36px;
+      margin-block: var(--ha-space-2);
+      padding-inline: var(--ha-space-1);
+      box-sizing: border-box;
+      border-radius: 12px;
+      background: var(
+        --md-sys-color-secondary-container,
+        var(--ha-color-fill-neutral-quiet-resting)
+      );
+    }
+    :host([building-block]) .leading-icon-wrapper {
+      background: none;
     }
     ::slotted([slot="leading-icon"]) {
       color: var(--ha-color-on-neutral-quiet);

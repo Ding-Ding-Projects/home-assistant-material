@@ -6,7 +6,6 @@ import { fireEvent } from "../../../../common/dom/fire_event";
 import { preventDefaultStopPropagation } from "../../../../common/dom/prevent_default_stop_propagation";
 import { stopPropagation } from "../../../../common/dom/stop_propagation";
 import "../../../../components/ha-card";
-import "../../../../components/ha-dialog-header";
 import "../../../../components/ha-dropdown";
 import "../../../../components/ha-icon-button";
 import { ScrollableFadeMixin } from "../../../../mixins/scrollable-fade-mixin";
@@ -57,16 +56,18 @@ export default class HaAutomationSidebarCard extends ScrollableFadeMixin(
           yaml: this.yamlMode,
         })}
       >
-        <ha-dialog-header>
+        <div class="sheet-header">
           <ha-icon-button
-            slot="navigationIcon"
+            class="close"
             .label=${this.hass.localize("ui.common.close")}
             .path=${mdiClose}
             @click=${this._closeSidebar}
           ></ha-icon-button>
-          <slot slot="title" name="title"></slot>
-          <slot slot="subtitle" name="subtitle"></slot>
-          <slot name="overflow-menu" slot="actionItems">
+          <div class="titles">
+            <span class="kind"><slot name="subtitle"></slot></span>
+            <span class="title"><slot name="title"></slot></span>
+          </div>
+          <slot name="overflow-menu">
             <ha-dropdown
               @click=${preventDefaultStopPropagation}
               @keydown=${stopPropagation}
@@ -80,7 +81,7 @@ export default class HaAutomationSidebarCard extends ScrollableFadeMixin(
               <slot name="menu-items"></slot>
             </ha-dropdown>
           </slot>
-        </ha-dialog-header>
+        </div>
         ${
           this.warnings
             ? html`<ha-automation-editor-warning
@@ -128,7 +129,15 @@ export default class HaAutomationSidebarCard extends ScrollableFadeMixin(
           }
         }
 
-        ha-dialog-header {
+        /* The sheet header: close, the kind as a small label above a 20 px
+           title, and the menu. Nothing wraps into two cramped lines. */
+        .sheet-header {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+          min-height: 64px;
+          padding: var(--ha-space-2) var(--ha-space-2);
+          box-sizing: border-box;
           border-radius: var(--ha-card-border-radius);
           border-bottom-left-radius: 0;
           border-bottom-right-radius: 0;
@@ -137,6 +146,42 @@ export default class HaAutomationSidebarCard extends ScrollableFadeMixin(
             --ha-dialog-surface-background,
             var(--mdc-theme-surface, #fff)
           );
+        }
+        .sheet-header ha-icon-button {
+          flex: none;
+          --ha-icon-button-size: 44px;
+        }
+        .titles {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-width: 0;
+        }
+        .kind {
+          display: block;
+          font-size: 12px;
+          line-height: 16px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: var(--secondary-text-color);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .kind ::slotted(*) {
+          font: inherit;
+        }
+        .title {
+          display: block;
+          font-size: 20px;
+          line-height: 26px;
+          font-weight: 700;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        ::slotted([slot="menu-items"]) {
+          display: block;
         }
 
         .card-content {

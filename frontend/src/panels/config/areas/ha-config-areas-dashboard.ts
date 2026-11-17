@@ -839,6 +839,62 @@ export class HaConfigAreasDashboard extends LitElement {
       .container {
         padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-6);
       }
+      /* The header already names the page; the sentence under it stays. */
+      .page-heading h1 {
+        display: none;
+      }
+      .page-heading p {
+        margin: 0;
+        font-size: var(--ha-font-size-m);
+      }
+      .page-header {
+        gap: var(--ha-space-2);
+        padding-top: 0;
+      }
+      .page-actions {
+        gap: var(--ha-space-2);
+      }
+      .header h2 {
+        margin: var(--ha-space-3) 0 var(--ha-space-1);
+        font-size: var(--ha-font-size-m);
+      }
+      /* Each area is one short row: a small picture, its name and facts, and
+         the edit button. */
+      .areas {
+        grid-template-columns: minmax(0, 1fr);
+        grid-gap: var(--ha-space-2);
+      }
+      .areas > * {
+        max-width: none;
+      }
+      .areas ha-card {
+        display: flex;
+        align-items: stretch;
+        min-height: 72px;
+        --ha-card-border-radius: 20px;
+      }
+      .areas .picture {
+        flex: none;
+        width: 72px;
+        height: auto;
+        min-height: 72px;
+      }
+      .areas .temperature {
+        inset-inline-start: var(--ha-space-1);
+        bottom: var(--ha-space-1);
+        padding: 0 var(--ha-space-1);
+        font-size: 11px;
+      }
+      .areas .card-body {
+        flex: 1;
+        min-width: 0;
+        padding: var(--ha-space-2) var(--ha-space-1) var(--ha-space-2)
+          var(--ha-space-3);
+      }
+      .areas .name {
+        font-size: var(--ha-font-size-m);
+        font-weight: 600;
+      }
     }
   `;
 }

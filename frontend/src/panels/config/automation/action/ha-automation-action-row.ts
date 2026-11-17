@@ -42,6 +42,7 @@ import {
 import { configKey } from "../../../../common/problems/missing-entities";
 import { clearProblem } from "../../../../common/problems/problem-store";
 import { fireEvent } from "../../../../common/dom/fire_event";
+import { collapseRow } from "../../../../common/motion/moments";
 import { preventDefaultStopPropagation } from "../../../../common/dom/prevent_default_stop_propagation";
 import { stopPropagation } from "../../../../common/dom/stop_propagation";
 import { computeDomain } from "../../../../common/entity/compute_domain";
@@ -1182,7 +1183,9 @@ export default class HaAutomationActionRow extends LitElement {
     });
   };
 
-  private _onDelete = () => {
+  private _onDelete = async () => {
+    // The row closes first, so the rows below move up instead of jumping.
+    await collapseRow(this);
     fireEvent(this, "value-changed", { value: null });
     if (this._selected) {
       fireEvent(this, "close-sidebar");

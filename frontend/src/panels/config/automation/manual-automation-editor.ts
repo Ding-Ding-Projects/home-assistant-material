@@ -1,4 +1,3 @@
-import { mdiPlus } from "@mdi/js";
 import type { HassEntity } from "home-assistant-js-websocket";
 import { load, YAML11_SCHEMA } from "js-yaml";
 import type { CSSResultGroup, PropertyValues } from "lit";
@@ -221,48 +220,6 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
               .content=${this.config.description}
             ></ha-markdown>`
           : nothing
-      }
-      ${
-        this.disabled
-          ? nothing
-          : html`<div
-              class="quick-add"
-              role="toolbar"
-              aria-label=${this.hass.localize(
-                "ui.panel.config.automation.editor.quick_add"
-              )}
-            >
-              <ha-button
-                appearance="filled"
-                size="small"
-                aria-keyshortcuts="T"
-                @click=${this._quickAddTrigger}
-                ><ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon
-                >${this.hass.localize(
-                  "ui.panel.config.automation.editor.triggers.add"
-                )}</ha-button
-              >
-              <ha-button
-                appearance="filled"
-                size="small"
-                aria-keyshortcuts="C"
-                @click=${this._quickAddCondition}
-                ><ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon
-                >${this.hass.localize(
-                  "ui.panel.config.automation.editor.conditions.add"
-                )}</ha-button
-              >
-              <ha-button
-                appearance="filled"
-                size="small"
-                aria-keyshortcuts="A"
-                @click=${this._quickAddAction}
-                ><ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon
-                >${this.hass.localize(
-                  "ui.panel.config.automation.editor.actions.add"
-                )}</ha-button
-              >
-            </div>`
       }
       ${
         this._isEmpty()
@@ -928,12 +885,6 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
           margin-top: 0;
         }
         .starting-points {
-          margin-bottom: var(--ha-space-4);
-        }
-        .quick-add {
-          display: flex;
-          flex-wrap: wrap;
-          gap: var(--ha-space-2);
           margin-bottom: var(--ha-space-4);
         }
         .header {

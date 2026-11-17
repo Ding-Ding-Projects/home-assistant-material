@@ -101,78 +101,84 @@ class HaConfigSectionGeneral extends LitElement {
           }
           <div class="columns">
             <div class="column">
-              <ha-input
-                name="name"
-                .label=${this.hass.localize(
-                  "ui.panel.config.core.section.core.core_config.location_name"
-                )}
-                .disabled=${disabled}
-                .value=${this._name}
-                @change=${this._handleChange}
-              ></ha-input>
-              ${this._tools("name", disabled)}
-              <div class="pair">
-                <div>
-                  <ha-country-picker
+              <section class="card fields">
+                <div class="field">
+                  <ha-input
+                    name="name"
                     .label=${this.hass.localize(
-                      "ui.panel.config.core.section.core.core_config.country"
+                      "ui.panel.config.core.section.core.core_config.location_name"
                     )}
-                    name="country"
                     .disabled=${disabled}
-                    .value=${this._country}
-                    @value-changed=${this._handleValueChanged}
-                  ></ha-country-picker>
-                  ${this._tools("country", disabled)}
+                    .value=${this._name}
+                    @change=${this._handleChange}
+                  ></ha-input
+                  >${this._tools("name", disabled)}
                 </div>
-                <div>
-                  <ha-language-picker
-                    native-name
-                    .label=${this.hass.localize(
-                      "ui.panel.config.core.section.core.core_config.language"
-                    )}
-                    name="language"
-                    .value=${this._language}
-                    .disabled=${disabled}
-                    @closed=${stopPropagation}
-                    @value-changed=${this._handleValueChanged}
-                  ></ha-language-picker>
-                  ${this._tools("language", disabled)}
+                <div class="pair">
+                  <div class="field">
+                    <ha-country-picker
+                      .label=${this.hass.localize(
+                        "ui.panel.config.core.section.core.core_config.country"
+                      )}
+                      name="country"
+                      .disabled=${disabled}
+                      .value=${this._country}
+                      @value-changed=${this._handleValueChanged}
+                    ></ha-country-picker>
+                    ${this._tools("country", disabled)}
+                  </div>
+                  <div class="field">
+                    <ha-language-picker
+                      native-name
+                      .label=${this.hass.localize(
+                        "ui.panel.config.core.section.core.core_config.language"
+                      )}
+                      name="language"
+                      .value=${this._language}
+                      .disabled=${disabled}
+                      @closed=${stopPropagation}
+                      @value-changed=${this._handleValueChanged}
+                    ></ha-language-picker>
+                    ${this._tools("language", disabled)}
+                  </div>
+                  <div class="field">
+                    <ha-timezone-picker
+                      .label=${this.hass.localize(
+                        "ui.panel.config.core.section.core.core_config.time_zone"
+                      )}
+                      name="timeZone"
+                      .disabled=${disabled}
+                      .value=${this._timeZone}
+                      @value-changed=${this._handleValueChanged}
+                      hide-clear-icon
+                    ></ha-timezone-picker>
+                    ${this._tools("time_zone", disabled)}
+                  </div>
+                  <div class="currency">
+                    <div class="field">
+                      <ha-currency-picker
+                        .label=${this.hass.localize(
+                          "ui.panel.config.core.section.core.core_config.currency"
+                        )}
+                        name="currency"
+                        .disabled=${disabled}
+                        .value=${this._currency}
+                        @value-changed=${this._handleValueChanged}
+                      ></ha-currency-picker>
+                      ${this._tools("currency", disabled)}
+                    </div>
+                    <a
+                      href="https://en.wikipedia.org/wiki/ISO_4217#Active_codes"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="find-value"
+                      >${this.hass.localize(
+                        "ui.panel.config.core.section.core.core_config.find_currency_value"
+                      )}</a
+                    >
+                  </div>
                 </div>
-                <div>
-                  <ha-timezone-picker
-                    .label=${this.hass.localize(
-                      "ui.panel.config.core.section.core.core_config.time_zone"
-                    )}
-                    name="timeZone"
-                    .disabled=${disabled}
-                    .value=${this._timeZone}
-                    @value-changed=${this._handleValueChanged}
-                    hide-clear-icon
-                  ></ha-timezone-picker>
-                  ${this._tools("time_zone", disabled)}
-                </div>
-                <div>
-                  <ha-currency-picker
-                    .label=${this.hass.localize(
-                      "ui.panel.config.core.section.core.core_config.currency"
-                    )}
-                    name="currency"
-                    .disabled=${disabled}
-                    .value=${this._currency}
-                    @value-changed=${this._handleValueChanged}
-                  ></ha-currency-picker>
-                  <a
-                    href="https://en.wikipedia.org/wiki/ISO_4217#Active_codes"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="find-value"
-                    >${this.hass.localize(
-                      "ui.panel.config.core.section.core.core_config.find_currency_value"
-                    )}</a
-                  >
-                  ${this._tools("currency", disabled)}
-                </div>
-              </div>
+              </section>
               <section class="card">
                 <h3>
                   ${this.hass.localize(
@@ -185,30 +191,35 @@ class HaConfigSectionGeneral extends LitElement {
             </div>
             <div class="column">
               ${this._renderMap(canEdit)} ${this._tools("location", true)}
-              <ha-input
-                name="elevation"
-                type="number"
-                .label=${this.hass.localize(
-                  "ui.panel.config.core.section.core.core_config.elevation"
-                )}
-                .disabled=${disabled}
-                .value=${
-                  this._elevation !== undefined ? String(this._elevation) : ""
-                }
-                @change=${this._handleChange}
-              >
-                <span slot="end"
-                  >${this.hass.localize(
-                    "ui.panel.config.core.section.core.core_config.elevation_meters"
-                  )}</span
-                >
-              </ha-input>
-              ${this._tools("elevation", disabled)}
-              <p class="hint">
-                ${this.hass.localize(
-                  "ui.panel.config.core.section.core.core_config.location_hint"
-                )}
-              </p>
+              <section class="card fields">
+                <div class="field">
+                  <ha-input
+                    name="elevation"
+                    type="number"
+                    .label=${this.hass.localize(
+                      "ui.panel.config.core.section.core.core_config.elevation"
+                    )}
+                    .disabled=${disabled}
+                    .value=${
+                      this._elevation !== undefined
+                        ? String(this._elevation)
+                        : ""
+                    }
+                    @change=${this._handleChange}
+                  >
+                    <span slot="end"
+                      >${this.hass.localize(
+                        "ui.panel.config.core.section.core.core_config.elevation_meters"
+                      )}</span
+                    > </ha-input
+                  >${this._tools("elevation", disabled)}
+                </div>
+                <p class="hint">
+                  ${this.hass.localize(
+                    "ui.panel.config.core.section.core.core_config.location_hint"
+                  )}
+                </p>
+              </section>
             </div>
           </div>
           <div class="actions">
@@ -690,7 +701,10 @@ class HaConfigSectionGeneral extends LitElement {
       .card {
         padding: var(--ha-space-5) var(--ha-space-6);
         border-radius: var(--ha-border-radius-3xl);
-        background: var(--card-background-color);
+        background: var(
+          --md-sys-color-surface-container,
+          var(--card-background-color)
+        );
       }
       h3 {
         margin: 0 0 var(--ha-space-3);
@@ -741,9 +755,26 @@ class HaConfigSectionGeneral extends LitElement {
         gap: var(--ha-space-2);
         margin-top: var(--ha-space-4);
       }
+      /* A field and its information button share one row. */
+      .fields {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-3);
+      }
+      .field {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-1);
+        min-width: 0;
+      }
+      .field > :first-child {
+        flex: 1;
+        min-width: 0;
+      }
       .tools {
         display: flex;
-        flex-wrap: wrap;
+        flex: none;
+        flex-wrap: nowrap;
         align-items: center;
         justify-content: flex-end;
         gap: var(--ha-space-1);

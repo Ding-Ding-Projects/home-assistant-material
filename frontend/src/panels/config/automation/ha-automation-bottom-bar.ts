@@ -14,6 +14,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import { fireEvent } from "../../../common/dom/fire_event";
+import { playTickDraw, playTilePop } from "../../../common/motion/moments";
 import { ctrlOrCmdLabel } from "../../../common/keyboard/ctrl-or-cmd";
 import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
@@ -154,6 +155,7 @@ export class HaAutomationBottomBar extends LitElement {
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    window.clearTimeout(this._savedTickTimer);
     releaseProblemCover(this);
     window.visualViewport?.removeEventListener("resize", this._handleViewport);
     this._resizeObserver?.disconnect();
@@ -185,7 +187,24 @@ export class HaAutomationBottomBar extends LitElement {
     return JSON.stringify([triggers, conditions, actions]);
   }
 
+  /** True for a moment after a save went through, to draw the tick. */
+  @state() private _savedTick = false;
+
+  private _savedTickTimer?: number;
+
   protected willUpdate(changedProps: PropertyValues<this>) {
+    if (
+      changedProps.has("saving") &&
+      changedProps.get("saving") === true &&
+      !this.saving &&
+      !this.dirty
+    ) {
+      this._savedTick = true;
+      window.clearTimeout(this._savedTickTimer);
+      this._savedTickTimer = window.setTimeout(() => {
+        this._savedTick = false;
+      }, 1500);
+    }
     if (
       changedProps.has("config") &&
       (this._checkResult || this._dryResult) &&
@@ -279,16 +298,45 @@ export class HaAutomationBottomBar extends LitElement {
                   .loading=${this.saving}
                   @click=${this._save}
                 >
-                  <ha-svg-icon
-                    slot="start"
-                    .path=${mdiContentSave}
-                  ></ha-svg-icon>
+                  ${
+                    this._savedTick
+                      ? html`<svg
+                          slot="start"
+                          class="saved-tick"
+                          viewBox="0 0 24 24"
+                          width="20"
+                          height="20"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M5 12.5l4.5 4.5L19 7.5"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>`
+                      : html`<ha-svg-icon
+                          slot="start"
+                          .path=${mdiContentSave}
+                        ></ha-svg-icon>`
+                  }
                   ${t("ui.common.save")}
                 </ha-button>`
           }
         </div>
       </div>
     `;
+  }
+
+  protected updated(changedProps: PropertyValues) {
+    if (changedProps.has("_savedTick") && this._savedTick) {
+      const root = this.renderRoot;
+      playTickDraw(root.querySelector<SVGPathElement>(".saved-tick path"));
+      playTilePop(root.querySelector(".saved-tick"));
+      playTilePop(root.querySelector(".status"));
+    }
   }
 
   private _statusText(): string {

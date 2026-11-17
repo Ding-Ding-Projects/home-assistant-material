@@ -6,7 +6,8 @@ import {
 } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
-import { customElement, property } from "lit/decorators";
+import { customElement, property, query } from "lit/decorators";
+import { playRingFlash, playShake } from "../../../../common/motion/moments";
 import { LanguageModeController } from "../../../../common/language-mode/language-mode-controller";
 import "../../../../components/ha-button";
 import "../../../../components/ha-spinner";
@@ -54,8 +55,36 @@ class HaUpdateQueueCard extends LitElement {
 
   private _lang = new LanguageModeController(this);
 
+  @query(".ring") private _ring?: SVGElement;
+
+  @query(".card") private _card?: HTMLElement;
+
+  // What the card showed last, so the finish and the failure play once.
+  private _wasActive = false;
+
+  private _wasFailed = false;
+
   private _t(key: string, values?: Record<string, string | number>): string {
     return this._lang.text(this.hass.localize, `${PREFIX}.${key}`, values);
+  }
+
+  protected updated(): void {
+    const queue = this.controller.queue;
+    if (!queue) {
+      this._wasActive = false;
+      this._wasFailed = false;
+      return;
+    }
+    const active = queueIsActive(queue);
+    const failed = !!queue.failure && !this.controller.checking;
+    if (this._wasActive && !active && !failed && !queue.stopRequested) {
+      playRingFlash(this._ring);
+    }
+    if (failed && !this._wasFailed) {
+      playShake(this._card);
+    }
+    this._wasActive = active;
+    this._wasFailed = failed;
   }
 
   protected render(): TemplateResult | typeof nothing {
@@ -111,12 +140,27 @@ class HaUpdateQueueCard extends LitElement {
 
     return html`
       <section class="card" aria-labelledby="queue-title">
-        <h2
-          id="queue-title"
-          class=${queue.failure && !checking ? "failed" : ""}
-        >
-          ${title}
-        </h2>
+        <div class="title-row">
+          <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
+            <g transform="rotate(-90 18 18)">
+              <circle class="ring-track" cx="18" cy="18" r="15" />
+              <circle
+                class="ring-arc"
+                cx="18"
+                cy="18"
+                r="15"
+                pathLength="100"
+                stroke-dasharray="${Math.max(0, Math.min(100, progress.percent))} 100"
+              />
+            </g>
+          </svg>
+          <h2
+            id="queue-title"
+            class=${queue.failure && !checking ? "failed" : ""}
+          >
+            ${title}
+          </h2>
+        </div>
         ${text ? html`<p class="lead">${text}</p>` : nothing}
         <ha-progress-bar
           .value=${progress.percent}
@@ -254,6 +298,44 @@ class HaUpdateQueueCard extends LitElement {
         }
         h2.failed {
           color: var(--error-color);
+        }
+        .title-row {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
+          margin-bottom: var(--ha-space-2);
+        }
+        .title-row h2 {
+          margin: 0;
+          flex: 1;
+          min-width: 0;
+        }
+        /* The ring fills as the queue advances and closes when it finishes. */
+        .ring {
+          flex: none;
+          width: 36px;
+          height: 36px;
+        }
+        .ring circle {
+          fill: none;
+          stroke-width: 4;
+        }
+        .ring-track {
+          stroke: color-mix(
+            in srgb,
+            var(--primary-text-color) 14%,
+            transparent
+          );
+        }
+        .ring-arc {
+          stroke: var(--primary-color);
+          stroke-linecap: round;
+          transition: stroke-dasharray 400ms ease-out;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .ring-arc {
+            transition: none;
+          }
         }
         .lead {
           margin: 0 0 var(--ha-space-3);
