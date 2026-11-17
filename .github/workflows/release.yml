@@ -245,6 +245,8 @@ jobs:
           set -euo pipefail
           tar xzf translations.tar.gz -C core/homeassistant
           rm translations.tar.gz
+          # Upstream's files know nothing of this fork's integrations or edited strings.
+          python3 scripts/ci/build-own-translations.py core/homeassistant
           echo "${GITHUB_SHA};${GITHUB_REF};${GITHUB_EVENT_NAME};${GITHUB_ACTOR}" > core/rootfs/OFFICIAL_IMAGE
           ls core/home_assistant_frontend-*.whl
 
