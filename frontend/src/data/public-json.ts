@@ -41,19 +41,31 @@ export const rateLimitResetFromHeaders = (
   return undefined;
 };
 
+/** How long one public read may take. */
+export const PUBLIC_FETCH_TIMEOUT_MS = 10000;
+
 /** Reads one public JSON file. Never throws. */
 export const fetchPublicJson = async (
   url: string,
   signal?: AbortSignal
 ): Promise<PublicFetchResult<unknown>> => {
   let response: Response;
+  // A read that does not answer in time counts as offline, so a block that
+  // waits for it shows its own state instead of loading for ever.
+  const limit = new AbortController();
+  const timer = setTimeout(() => limit.abort(), PUBLIC_FETCH_TIMEOUT_MS);
+  const onAbort = () => limit.abort();
+  signal?.addEventListener("abort", onAbort);
   try {
-    response = await fetch(url, { signal, credentials: "omit" });
-  } catch (err) {
-    if (signal?.aborted || (err as { name?: string })?.name === "AbortError") {
+    response = await fetch(url, { signal: limit.signal, credentials: "omit" });
+  } catch (_err) {
+    if (signal?.aborted) {
       return { ok: false, reason: "aborted" };
     }
     return { ok: false, reason: "offline" };
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
   }
   if (response.status === 404) {
     return { ok: false, reason: "not_found" };

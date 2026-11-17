@@ -26,16 +26,16 @@ import type { HistoryEntry, RollbackBlock } from "./update-history";
 import {
   anyUpdateInProgress,
   historyRows,
+  loadPendingGoBack,
   installCoreVersion,
   loadHistory,
-  loadPendingGoBack,
   recordVersion,
-  resolvePendingGoBack,
   rollbackBlockReason,
   rollbackTargets,
   splitDuration,
   storeHistory,
   storePendingGoBack,
+  takeGoBackNotice,
 } from "./update-history";
 import { evaluateStep } from "./update-queue";
 
@@ -126,31 +126,18 @@ export class HaUpdateHistory extends LitElement {
   // A way back that was started before this page loaded: report how it ended,
   // once, and forget it.
   private _resolvePending(): void {
-    const pending = loadPendingGoBack();
     // While this page runs the way back itself, its own result is shown.
-    if (!pending || !this.hass?.config || this._job) {
+    if (!this.hass?.config || this._job) {
       return;
     }
-    const now = Date.now();
-    const verdict = resolvePendingGoBack(
-      pending,
+    const notice = takeGoBackNotice(
       this._history,
       this.hass.config.version,
-      now
+      Date.now()
     );
-    if (verdict.kind === "pending") {
-      return;
+    if (notice) {
+      this._notice = notice;
     }
-    storePendingGoBack(undefined);
-    if (verdict.kind === "clear") {
-      return;
-    }
-    const build = parseBuildNumber(pending.version);
-    this._notice = {
-      kind: verdict.kind,
-      build: build !== undefined ? String(build) : pending.version,
-      time: verdict.kind === "done" ? verdict.time : now,
-    };
   }
 
   // The time of day in the language of the chosen mode.

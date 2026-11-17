@@ -610,6 +610,19 @@ export class HaAutomationBottomBar extends LitElement {
             clip-path: inset(50%);
             white-space: nowrap;
           }
+          /* A check result is a short line above the buttons, never a tall
+             block: the row stops growing and the full text stays in its
+             title and for screen readers. */
+          .status:not(.short) {
+            flex: none;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            overflow: hidden;
+            padding-block: 0;
+            font-size: var(--ha-font-size-s, 0.875rem);
+            line-height: 1.3;
+          }
           .buttons {
             display: flex;
             flex-wrap: nowrap;

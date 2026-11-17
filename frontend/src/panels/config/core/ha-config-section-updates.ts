@@ -89,6 +89,11 @@ import {
   updateRole,
 } from "./updates/update-queue";
 import { showJoinBetaDialog } from "./updates/show-dialog-join-beta";
+import {
+  BACKUP_WAIT_MS,
+  pageShowsSpinner,
+  RetryingLoad,
+} from "./updates/update-page-loading";
 
 type UpdateRowVariant = "install" | "skipped" | "manual" | "current";
 
@@ -114,6 +119,22 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   // True while an operating system update from USB storage is copying or
   // installing; every other Update button waits for it.
   @state() private _usbRunning = false;
+
+  // The backup state did not arrive in time: the page shows itself anyway.
+  @state() private _backupWaitOver = false;
+
+  private _backupWaitTimer?: ReturnType<typeof setTimeout>;
+
+  // The Supervisor info loads on its own, with a time limit and retries, so
+  // a Supervisor that is still starting never keeps the page from showing.
+  private _supervisorLoad = new RetryingLoad(
+    () => fetchHassioSupervisorInfo(this.hass),
+    () => {
+      if (this._supervisorLoad.status === "ready") {
+        this._supervisorInfo = this._supervisorLoad.value;
+      }
+    }
+  );
 
   private _lang = new LanguageModeController(this);
 
@@ -141,6 +162,10 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     if (changedProps.has("hass")) {
       // A step that is running, or a stored queue after a reload.
       this._queue.tick();
+      const old = changedProps.get("hass") as HomeAssistant | undefined;
+      if (old && old.connected === false && this.hass.connected !== false) {
+        this._supervisorLoad.retryNow();
+      }
     }
   }
 
@@ -148,8 +173,20 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     super.firstUpdated(changedProps);
 
     if (isComponentLoaded(this.hass.config, "hassio")) {
-      this._refreshSupervisorInfo();
+      this._supervisorLoad.start();
     }
+    if (this._backupState === undefined && this._watchesBackups()) {
+      this._backupWaitTimer = setTimeout(() => {
+        this._backupWaitOver = true;
+      }, BACKUP_WAIT_MS);
+    }
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._supervisorLoad.stop();
+    clearTimeout(this._backupWaitTimer);
+    this._backupWaitTimer = undefined;
   }
 
   protected hassSubscribe(): Promise<UnsubscribeFunc>[] {
@@ -194,7 +231,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   }
 
   private _backupStateLoading(): boolean {
-    return this._backupState === undefined && this._watchesBackups();
+    return pageShowsSpinner(
+      this._backupState,
+      this._watchesBackups(),
+      this._backupWaitOver
+    );
   }
 
   private _backupInProgressAlert() {
@@ -1216,6 +1257,30 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       .check {
         --ha-button-height: 56px;
         --ha-button-border-radius: var(--ha-border-radius-pill);
+      }
+      /* The phone header already carries the page title, so the large title is
+         kept for assistive technology only and the button sits on its own. */
+      :host([narrow]) h1 {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+      :host([narrow]) .page-head {
+        justify-content: flex-end;
+        padding: 0;
+      }
+      :host([narrow]) .check {
+        --ha-button-height: 48px;
+      }
+      :host([narrow]) .ready {
+        padding: var(--ha-space-4);
+        border-radius: var(--ha-border-radius-4xl, 24px);
+      }
+      :host([narrow]) .ready h2 {
+        font-size: var(--ha-font-size-2xl, 22px);
       }
       .ready {
         box-sizing: border-box;

@@ -145,7 +145,7 @@ class PanelMediaBrowser extends LitElement {
           @media-refresh=${this._refreshMedia}
         ></ha-media-manage-button>
         ${
-          this.hass.user?.is_admin
+          this.hass.user?.is_admin && !this.narrow
             ? html`<ha-icon-button
                 slot="actionItems"
                 .label=${this.hass.localize("ui.drop_upload.add_media")}
@@ -160,6 +160,14 @@ class PanelMediaBrowser extends LitElement {
             .label=${this.hass.localize("ui.common.menu")}
             .path=${mdiDotsVertical}
           ></ha-icon-button>
+          ${
+            this.hass.user?.is_admin && this.narrow
+              ? html`<ha-dropdown-item value="upload">
+                  ${this.hass.localize("ui.drop_upload.add_media")}
+                  <ha-svg-icon slot="icon" .path=${mdiUpload}></ha-svg-icon>
+                </ha-dropdown-item>`
+              : nothing
+          }
           <ha-dropdown-item
             value="auto"
             class=${
@@ -211,6 +219,11 @@ class PanelMediaBrowser extends LitElement {
 
   private _handleMenuAction(ev: HaDropdownSelectEvent) {
     const value = ev.detail.item.value;
+
+    if (value === "upload") {
+      this._addMedia();
+      return;
+    }
 
     if (["auto", "grid", "list"].includes(value)) {
       this._preferredLayout = value as MediaPlayerLayoutType;

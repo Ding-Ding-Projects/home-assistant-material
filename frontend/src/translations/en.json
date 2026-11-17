@@ -1369,6 +1369,7 @@
         "close_filter": "Close filters",
         "exit_selection_mode": "Exit selection mode",
         "enter_selection_mode": "Enter selection mode",
+        "open_search": "Search this list",
         "sort_by": "Sort by {sortColumn}",
         "group_by": "Group by {groupColumn}",
         "dont_group_by": "Don't group",

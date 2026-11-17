@@ -47,7 +47,12 @@ export interface QueueState {
   failure?: QueueFailure;
   /** The backup choice made when the queue was started. */
   backup: boolean;
+  /** When the queue finished; a finished queue is kept for an hour. */
+  finishedAt?: number;
 }
+
+/** How long a finished queue is remembered across a reload. */
+export const FINISHED_KEEP_MS = 60 * 60 * 1000;
 
 // The hassio integration fixes these entity ids and titles; neither is
 // translated, so both are safe to compare.
@@ -320,7 +325,20 @@ export const parseStoredQueue = (
       });
     }
     const failure = data.failure;
+    const open = steps.some(
+      (step) => step.state === "waiting" || step.state === "updating"
+    );
+    const finishedAt =
+      typeof data.finishedAt === "number" ? data.finishedAt : undefined;
+    if (
+      !open &&
+      !failure &&
+      (finishedAt === undefined || Date.now() - finishedAt > FINISHED_KEEP_MS)
+    ) {
+      return undefined;
+    }
     return {
+      finishedAt,
       version: 1,
       steps,
       backup: data.backup === true,
@@ -353,13 +371,17 @@ export const loadStoredQueue = (): QueueState | undefined => {
 /** Keeps only ids, versions and states; error text is not stored. */
 export const storeQueue = (queue: QueueState | undefined): void => {
   try {
+    if (!queue) {
+      window.sessionStorage.removeItem(STORAGE_KEY);
+      return;
+    }
     const open =
-      !!queue &&
-      (!!queue.failure ||
-        queue.steps.some(
-          (s) => s.state === "waiting" || s.state === "updating"
-        ));
-    if (!queue || !open) {
+      !!queue.failure ||
+      queue.steps.some((s) => s.state === "waiting" || s.state === "updating");
+    // A queue that has just finished is kept, so a reload onto the new build
+    // still shows "finished" until the person closes the card.
+    const keepFinished = !open && queue.steps.some((s) => s.state === "done");
+    if (!open && !keepFinished) {
       window.sessionStorage.removeItem(STORAGE_KEY);
       return;
     }
@@ -367,6 +389,7 @@ export const storeQueue = (queue: QueueState | undefined): void => {
       STORAGE_KEY,
       JSON.stringify({
         ...queue,
+        finishedAt: open ? undefined : (queue.finishedAt ?? Date.now()),
         failure: queue.failure
           ? { entityId: queue.failure.entityId, reason: queue.failure.reason }
           : undefined,

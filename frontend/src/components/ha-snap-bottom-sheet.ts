@@ -63,6 +63,13 @@ export class HaSnapBottomSheet extends LitElement {
   @property({ type: Number, attribute: "min-height" })
   public minHeight?: number;
 
+  /**
+   * The share of the viewport height the sheet takes when it rests at "half".
+   * A sheet that holds a form can rest nearly full height.
+   */
+  @property({ type: Number, attribute: "half-share" })
+  public halfShare = HALF_VIEWPORT_SHARE;
+
   /** Names the sheet for assistive technologies */
   @property() public label?: string;
 
@@ -96,7 +103,7 @@ export class HaSnapBottomSheet extends LitElement {
   }
 
   public get halfHeight(): number {
-    return window.innerHeight * HALF_VIEWPORT_SHARE;
+    return window.innerHeight * this.halfShare;
   }
 
   public snapTo(position: BottomSheetPosition) {
@@ -212,7 +219,12 @@ export class HaSnapBottomSheet extends LitElement {
     if (this._dragHeight !== undefined) {
       return `${this._dragHeight}px`;
     }
-    return this._position === "collapsed" ? this._collapsedHeight() : undefined;
+    if (this._position === "collapsed") {
+      return this._collapsedHeight();
+    }
+    return this._position === "half" && this.halfShare !== HALF_VIEWPORT_SHARE
+      ? `${this.halfShare * 100}dvh`
+      : undefined;
   }
 
   private _showPopovers() {

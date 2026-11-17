@@ -2130,6 +2130,18 @@ export class HaMediaPlayerBrowse extends LitElement {
 
         :host([narrow]) div.children {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+          grid-gap: var(--ha-space-3);
+          padding: var(--ha-space-3);
+        }
+
+        /* Short tiles, two across: a square tile is a whole screen of
+           nothing on a phone. Posters keep their tall shape. */
+        :host([narrow]) .children:not(.portrait) ha-card .thumbnail {
+          padding-bottom: 68%;
+        }
+
+        :host([narrow]) .child .folder {
+          --mdc-icon-size: 48px;
         }
 
         :host([narrow]) .breadcrumb .title {

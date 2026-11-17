@@ -370,3 +370,43 @@ export const resolvePendingGoBack = (
   }
   return { kind: "pending" };
 };
+
+/** The one-time line about a way back, as the history card shows it. */
+export interface GoBackNotice {
+  kind: "done" | "failed";
+  /** The build number, or the whole version when it has none. */
+  build: string;
+  time: number;
+}
+
+/**
+ * What the page says when it loads. Reads the stored way back, decides it
+ * from the history and the installed version, forgets the record when it is
+ * settled and returns the line to show, once. A page that loads on the target
+ * build itself reports it as done; a record that is still undecided stays
+ * stored and says nothing.
+ */
+export const takeGoBackNotice = (
+  history: readonly HistoryEntry[],
+  currentVersion: string | null | undefined,
+  now: number
+): GoBackNotice | undefined => {
+  const pending = loadPendingGoBack();
+  if (!pending || !currentVersion) {
+    return undefined;
+  }
+  const verdict = resolvePendingGoBack(pending, history, currentVersion, now);
+  if (verdict.kind === "pending") {
+    return undefined;
+  }
+  storePendingGoBack(undefined);
+  if (verdict.kind === "clear") {
+    return undefined;
+  }
+  const build = parseBuildNumber(pending.version);
+  return {
+    kind: verdict.kind,
+    build: build !== undefined ? String(build) : pending.version,
+    time: verdict.kind === "done" ? verdict.time : now,
+  };
+};

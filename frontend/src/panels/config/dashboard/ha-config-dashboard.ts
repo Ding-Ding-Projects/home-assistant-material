@@ -727,8 +727,16 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
             align-items: flex-start;
             padding: var(--ha-space-4);
           }
+          .attention-body {
+            align-self: stretch;
+            width: 100%;
+          }
           .attention-links {
             width: 100%;
+          }
+          .attention-links a {
+            flex-basis: 100%;
+            min-width: 0;
           }
         }
         /* Phone: a compact title, a 48 px search and a smaller attention

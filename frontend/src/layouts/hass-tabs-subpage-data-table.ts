@@ -14,6 +14,7 @@ import {
   mdiFilterVariantRemove,
   mdiFormatListChecks,
   mdiInboxOutline,
+  mdiMagnify,
   mdiMenuDown,
   mdiPlus,
   mdiTableCog,
@@ -284,6 +285,10 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
   @state() private _hasFilterChips = false;
 
+  // On a phone the search field opens from an icon beside the title, so the
+  // header stays one row.
+  @state() private _searchOpen = false;
+
   /** How many rows the table shows after the search and the filters. */
   @state() private _matchingRows?: number;
 
@@ -413,7 +418,13 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
   protected supportedShortcuts(): SupportedShortcuts {
     return {
-      f: () => this._searchInput.focus(),
+      f: () => {
+        if (this.narrow && !this._searchOpen) {
+          this._openSearch();
+          return;
+        }
+        this._searchInput?.focus();
+      },
     };
   }
 
@@ -610,6 +621,10 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       .patternSamples=${this._patternSamples(this.data, this.columns)}
     >
     </ha-input-search>`;
+
+    // A phone shows the title and a search icon; the field opens from the
+    // icon, and stays open while it holds text or the person is using it.
+    const titleRow = !!this._pageTitle && !this._searchOpen && !this.filter;
 
     const sortByMenu = Object.values(this.columns).find((col) => col.sortable)
       ? html`
@@ -1102,17 +1117,35 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                 ${
                   this.narrow
                     ? html`
-                        <div slot="header" class="narrow-header">
+                        <div
+                          slot="header"
+                          class=${classMap({
+                            "narrow-header": true,
+                            "title-row": titleRow,
+                          })}
+                        >
                           ${
-                            this._pageTitle
+                            titleRow
                               ? html`<h1 class="narrow-title">
-                                  ${this._pageTitle}
-                                </h1>`
-                              : nothing
+                                    ${this._pageTitle}
+                                  </h1>
+                                  <ha-icon-button
+                                    class="open-search"
+                                    .label=${localize(
+                                      "ui.components.subpage-data-table.open_search"
+                                    )}
+                                    .path=${mdiMagnify}
+                                    @click=${this._openSearch}
+                                  ></ha-icon-button>`
+                              : html`<slot name="header">
+                                  <div
+                                    class="search-toolbar"
+                                    @keydown=${this._searchKeydown}
+                                  >
+                                    ${searchBar}
+                                  </div>
+                                </slot>`
                           }
-                          <slot name="header">
-                            <div class="search-toolbar">${searchBar}</div>
-                          </slot>
                         </div>
                       `
                     : ""
@@ -1787,6 +1820,18 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     fireEvent(this, "search-changed", { value: this.filter });
   }
 
+  private _openSearch = async () => {
+    this._searchOpen = true;
+    await this.updateComplete;
+    this._searchInput?.focus();
+  };
+
+  private _searchKeydown = (ev: KeyboardEvent) => {
+    if (ev.key === "Escape" && !this.filter) {
+      this._searchOpen = false;
+    }
+  };
+
   private _pageTitleChanged(ev: CustomEvent<{ title: string }>): void {
     this._pageTitle = ev.detail.title;
   }
@@ -2060,6 +2105,26 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       flex-direction: column;
       gap: var(--ha-space-2);
       min-width: 0;
+    }
+    /* Title and search icon share one 56 px row beside the back button. */
+    .narrow-header.title-row {
+      flex-direction: row;
+      align-items: center;
+      gap: var(--ha-space-1);
+    }
+    .narrow-header.title-row .narrow-title {
+      flex: 1;
+      min-width: 0;
+      padding-block: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .open-search {
+      flex: none;
+      min-width: 48px;
+      min-height: 48px;
+      color: var(--secondary-text-color);
     }
     /* The same heavy, wrapping title the wide page header carries. */
     .narrow-title {

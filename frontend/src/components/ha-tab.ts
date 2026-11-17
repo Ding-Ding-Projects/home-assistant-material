@@ -139,7 +139,7 @@ export class HaTab extends LitElement {
 
     /* Five tabs share a phone width, a smaller label keeps long names whole */
     :host([narrow]) .name {
-      font-size: var(--ha-font-size-xs);
+      font-size: max(var(--ha-font-size-xs), 12px);
       letter-spacing: 0;
       /* A name of several words that does not fit on one line takes a second
          line. A word is never broken in the middle: a word that still does

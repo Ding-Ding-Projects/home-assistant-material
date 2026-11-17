@@ -966,7 +966,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
         ${this.hass.localize("ui.panel.config.helpers.picker.create_title")}
       </h2>
       <ul class="kinds">
-        ${kinds.map(
+        ${(this.narrow ? kinds.slice(0, 3) : kinds).map(
           (kind) =>
             html`<li>
               <button

@@ -2521,16 +2521,16 @@ export class HaPhoneBar extends LitElement {
       position: absolute;
       top: -2px;
       inset-inline-end: 6px;
-      min-width: 18px;
-      height: 18px;
+      min-width: 20px;
+      height: 20px;
       padding: 0 4px;
       box-sizing: border-box;
       border-radius: var(--ha-border-radius-pill);
       background-color: var(--primary-text-color);
       color: var(--primary-background-color);
-      font-size: var(--ha-font-size-xs);
+      font-size: max(var(--ha-font-size-xs), 12px);
       font-weight: var(--ha-font-weight-medium);
-      line-height: 18px;
+      line-height: 20px;
       text-align: center;
     }
     /* In both-languages mode the two languages sit on two short lines, so a
@@ -2540,7 +2540,7 @@ export class HaPhoneBar extends LitElement {
       flex-direction: column;
       align-items: center;
       max-width: 100%;
-      font-size: var(--ha-font-size-s);
+      font-size: max(var(--ha-font-size-s), 13px);
       font-weight: var(--ha-font-weight-medium);
       line-height: 1.15;
       text-align: center;

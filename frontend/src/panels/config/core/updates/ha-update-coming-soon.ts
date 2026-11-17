@@ -1606,9 +1606,26 @@ export class HaUpdateComingSoon extends LitElement {
             animation: none;
           }
         }
+        /* Phone: a compact block, with a small ring and a title of about
+           22 px, so the build state does not fill the screen. */
         @media (max-width: 480px) {
           .hero {
-            padding: var(--ha-space-5);
+            gap: var(--ha-space-3);
+            padding: var(--ha-space-4);
+            border-radius: var(--ha-border-radius-4xl, 24px);
+          }
+          .ring {
+            width: 112px;
+            margin-inline: 0;
+          }
+          .percent {
+            font-size: 30px;
+          }
+          .title {
+            font-size: 22px;
+          }
+          .version-line {
+            font-size: var(--ha-font-size-l);
           }
         }
       `,

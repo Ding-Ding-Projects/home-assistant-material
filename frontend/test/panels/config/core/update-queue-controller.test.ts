@@ -146,7 +146,8 @@ describe("update queue controller", () => {
     const controller = makeController(() => hass);
     controller.hostConnected();
     expect(installUpdatesTracked).not.toHaveBeenCalled();
-    expect(loadStoredQueue()).toBeUndefined();
+    // The finished queue is kept for the card to say so after a reload.
+    expect(loadStoredQueue()?.steps[0].state).toBe("done");
     controller.hostDisconnected();
   });
 

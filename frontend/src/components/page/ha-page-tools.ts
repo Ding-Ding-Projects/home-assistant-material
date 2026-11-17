@@ -11,6 +11,7 @@ import {
   mdiLockOpenVariantOutline,
   mdiMagnify,
   mdiStop,
+  mdiTune,
   mdiVolumeHigh,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
@@ -233,7 +234,7 @@ export class HaPageTools extends LitElement {
         <ha-icon-button
           class=${classMap({ on: this._locked })}
           .label=${localize("ui.page_tools.label")}
-          .path=${this._locked ? mdiLock : mdiMagnify}
+          .path=${this._locked ? mdiLock : mdiTune}
           @click=${this._openTools}
         ></ha-icon-button>
       `;
@@ -797,10 +798,10 @@ export class HaPageTools extends LitElement {
     ha-icon-button.step {
       --ha-icon-button-size: 32px;
     }
-    @media (pointer: coarse) {
+    @media (pointer: coarse), (max-width: 600px) {
       ha-icon-button,
       ha-icon-button.step {
-        --ha-icon-button-size: 44px;
+        --ha-icon-button-size: 48px;
       }
     }
     ha-icon-button.on {
