@@ -1,15 +1,58 @@
 {
  "format": 1,
- "generated": "2026-11-17T16:43:40Z",
+ "generated": "2026-11-17T17:18:21Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 498,
+ "newest_build": 503,
  "releases": [
+  {
+   "build": 503,
+   "core": "2026.11.1.503",
+   "supervisor": "2026.11.0.503",
+   "os": "18.5.503",
+   "tag": null,
+   "source": "ba18c19f9",
+   "date": "2026-11-17T10:29:46-05:00",
+   "previous_build": 498,
+   "changes": [
+    {
+     "sha": "ba18c19f9",
+     "date": "2026-11-17T10:29:46-05:00",
+     "title": "Add design canvas 36: rich editors for every entity kind",
+     "areas": [
+      "design"
+     ],
+     "detail": "The Speak action greeted people with two empty boxes and a dictionary that proudly announced it had no options yet. These four boards say what it should be instead, and set the rule for every other action: the kind of value decides the control. A colour gets a colour picker, not a text box hoping someone remembers hue numbers; a time gets a time picker; a list of extra settings gets named rows.\n\nBoards: Speak redrawn, the colour picker for a light, the catalogue of which control each kind of value gets, and what every entity kind's editor contains, on a wide window and on a phone.\n\nReferences only. No product page changed in this commit.",
+     "detail_yue": "新增設計畫布 36：每種實體都有嘅豐富編輯器\n\n「朗讀」動作以前係兩格空白框，再加一個好得戚話自己「未有選項」 嘅字典。呢四塊畫板畫返佢應該係點，仲定咗一條通用規矩：數值係乜 類型，就用乜控制。顏色用調色盤，唔係一格文字框等人記色相數字； 時間用時間選擇器；額外設定用有名有姓嘅行。\n\n畫板：重畫嘅朗讀、燈嘅調色盤、每種數值配邊種控制嘅目錄，同埋每種 實體嘅編輯器入面有乜，闊螢幕同手機都有。\n\n純參考，今次冇改任何產品頁面。"
+    },
+    {
+     "sha": "e0034b7c4",
+     "date": "2026-11-17T10:18:51-05:00",
+     "title": "Cloud host page: show the exact proxy lines once the tunnel runs",
+     "areas": [
+      "interface"
+     ],
+     "detail": "When the tunnel is running the Supervisor now reports its address, so the page stops waving vaguely at \"the tunnel container address\" and shows the three lines to add, with a Copy button and a plain sentence that Home Assistant needs a restart and that the page does not edit the configuration itself. The sign-in step says what really happens now (sign in at the provider and the page moves on by itself), and Remove says that the address record at the provider may remain.\n\nSeen on a local build at 390 and 1440 px with pretend Supervisor answers; the real tunnel was not involved.",
+     "detail_yue": "雲端主機頁面：隧道行緊就顯示要加嘅代理設定\n\n隧道運行期間 Supervisor 會報佢個位址，所以頁面唔使再含糊咁講 「隧道容器位址」，直接顯示要加嗰三行，有複製掣，仲有一句講明 Home Assistant 要重新啟動，同埋頁面唔會自己改設定。登入嗰步寫返 而家真正嘅流程（喺供應商度登入之後頁面會自己行落去），移除就講明 供應商嗰邊嘅網址紀錄可能仲喺度。\n\n喺本機建置 390 同 1440 闊度用假嘅 Supervisor 回應睇過；冇用到真 隧道。"
+    },
+    {
+     "sha": "fc18b0d04",
+     "date": "2026-11-17T09:59:57-05:00",
+     "title": "Cloud host: let the Supervisor run the tunnel client",
+     "areas": [
+      "docs",
+      "supervisor"
+     ],
+     "detail": "Until now full hosting mode could only apologise: the control side existed, the part that actually starts the tunnel did not. This adds it, following the same pattern as the Supervisor's other managed containers: a pinned official image, no published ports, no extra privileges, and a private data folder that no backup includes.\n\nSet up starts the client's own sign-in and returns nothing but the provider's sign-in address, refusing anything that is not on the provider's login domain. Once the owner has signed in there, the tunnel is created, the address is routed to it and the tunnel runs against Core's internal address. Every command is built from fixed arguments plus the validated address, with no shell and a timeout on each step. Errors are short fixed reasons that never carry an address, a path or file content. While running, the info route also reports the tunnel container's address so the page can show the exact proxy lines to add; Core's configuration is never edited automatically.\n\nVerified: 80 tests pass in a Linux container, including command construction, sign-in address parsing against the client's real output shape, refusals, timeouts and secret-free errors. Not verifie",
+     "detail_yue": "雲端主機：俾 Supervisor 真係行到隧道程式\n\n之前完整託管模式淨係識得講唔好意思：控制嗰邊有齊，但真正啟動隧道 嗰部分冇。今次補返，跟足 Supervisor 其他受管理容器嘅做法：鎖定版本 嘅官方映像、唔開任何連接埠、冇額外權限，仲有一個任何備份都唔會 包含嘅私人資料夾。\n\n「設定」會啟動程式自己嘅登入流程，淨係交返供應商嘅登入網址，唔係 喺供應商登入網域嘅一律拒絕。主人喺嗰邊登入完，先會建立隧道、將 網址指過去，然後對住 Core 嘅內部位址運行。每個指令都係固定參數 加埋驗證過嘅網址，冇用殼層，每一步都有時限。錯誤訊息係固定嘅 短原因，唔會帶住網址、路徑或者檔案內容。運行期間資訊路由會報埋 隧道容器嘅位址，等頁面可以顯示要加嘅代理設定；Core 嘅設定唔會 自動改。\n\n已驗證：Linux 容器入面 80 個測試通過，包括指令組合、照住程式真實 輸出格式嘅登入網址解析、各種拒絕、時限同唔洩密嘅錯誤。冇人驗證過： 真正登入、建立隧道、DNS 指向，同埋由外面連唔連到。如果對程式嘅 假設錯咗，設定會以錯誤狀態結束，唔會亂估。"
+    }
+   ]
+  },
   {
    "build": 498,
    "core": "2026.11.1.498",
    "supervisor": "2026.11.0.498",
    "os": "18.5.498",
-   "tag": null,
+   "tag": "v2026.11.1.498",
    "source": "55c0ed5bd",
    "date": "2026-11-17T09:35:06-05:00",
    "previous_build": 495,
@@ -4478,51 +4521,6 @@
      ],
      "detail": "Batch 31. The leftovers from the first tab pass, each fixed and then seen in a local build. The menu key used to open two menus at once, which is one more than anybody asked for.\n\n- \"Close other tabs\" preview lists every tab that stays, with its reason. - The group picker no longer closes the all-tabs search it was opened from. - Move to start/end for a grouped tab stays inside its group. - Menu key and Shift+F10 open exactly one menu; Escape returns focus. - Search and name fields in tab panels take focus on open. - The selected tab scrolls fully into view. - Automation editor save bar sits at the page bottom with a bottom strip. - New \"Tab strip position\" row in Profile.\n\nStill not built, recorded in the changelog: settings pages and tools as tabs of their own; groups, looks and locks for settings section tabs and the phone Pages sheet.\n\nChecks: type check clean apart from the two known gallery errors; full suite 6,896 passed with the 3 known build-script failures.",
      "detail_yue": "第 31 批。分頁功能第一輪留低嘅手尾，逐樣修好再喺本機 build 睇過。選單鍵 以前一撳出兩個選單，多咗一個冇人要嘅。仲未做嘅照直寫喺更新紀錄：設定頁 同工具未可以自己開成分頁；設定分頁同手機頁面表未有分組、外觀同鎖。"
-    }
-   ]
-  },
-  {
-   "build": 127,
-   "core": "2026.11.1.127",
-   "supervisor": "2026.11.0.127",
-   "os": "18.5.127",
-   "tag": "v2026.11.1.127",
-   "source": "81e559530",
-   "date": "2026-11-12T02:48:16-05:00",
-   "previous_build": 124,
-   "changes": [
-    {
-     "sha": "81e559530",
-     "date": "2026-11-12T02:48:16-05:00",
-     "title": "Records for batches 28 to 30: handoff, closeout note, feature status",
-     "areas": [
-      "docs"
-     ],
-     "detail": "Documentation only. Says what landed in the last three batches and, for each part, exactly how far it was checked and what was never seen. The records were three batches behind, which is a long time for a file whose whole job is to be current.",
-     "detail_yue": "紀錄補返第 28 至 30 批：交接、收尾提示同功能狀態。只係文件，寫清楚每樣 嘢驗到邊度、邊樣未見過。紀錄落後咗三批，一個專登用嚟「最新」嘅檔案落後 成咁，都幾諷刺。"
-    },
-    {
-     "sha": "4b47fc250",
-     "date": "2026-11-12T02:19:28-05:00",
-     "title": "Image store folders, download/rename/convert in Manage, dim sum surprise",
-     "areas": [
-      "docs",
-      "core",
-      "interface"
-     ],
-     "detail": "Batch 30. The image store learns what a folder is, the Manage dialog learns that people sometimes want their files back, and one launch in ten now greets you with a dumpling.\n\n- Image store folders: create, open, rename, move, remove (images move up, none is deleted). Image ids, files on disk and serve addresses are unchanged, so pictures already used elsewhere keep working. Uploads go into the folder being looked at. Server tests: 177 passed. Driven in a local build at 1440, 390 and 320 px. - Manage, for media and images: download one item, download a selection as a zip (up to 200 MB), edit a name, convert with the built-in converter into a new item beside the original. The convert dialog's format choice is a proper radio group built from buttons (this last change is lint and unit-test checked only). - Dim sum surprise: one fresh draw per launch, shown one time in ten, as a small card that never takes focus. The settings switch cannot be turned off. School mode hides it. One single-item download in ten arrives as a zip with the file unchanged plus a dish picture, and says so. Pictures come only from the public catalogue through a new small server component; nothing is bundled. Ser",
-     "detail_yue": "第 30 批。圖片庫終於識咩叫資料夾；管理視窗明白人有時想攞返自己啲檔案， 可以下載、改名、轉檔；而十次開機有一次會有件點心出嚟同你打招呼，個開關 熄極都熄唔到，呢個係功能，唔係故障。點心相只會由公開目錄攞，伺服器自己 去攞同存低，源碼入面一張相都冇。卡片係迫住抽中先見到，真正隨機抽中嗰次 未親眼見過，照直講。"
-    },
-    {
-     "sha": "7b23aef30",
-     "date": "2026-11-12T01:15:50-05:00",
-     "title": "Finish editor search, upload limits and conversion, add media on phones",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Batch 29. The three pieces the last commit called unfinished are now finished and were driven in a local build.\n\n- Automation and script editor: a search bar across every step at any depth with match count and next/previous, a search on every nested list, and a filter by the entities the automation uses. The search bar was tightened after the browser pass so it stops eating a phone screen. - Uploads: 2 GB for the media library and 50 MB for the image store, with a percentage while uploading; dropped pictures the image store cannot take are converted, oversized ones are re-encoded to fit and the loss is stated. Server tests for both upload endpoints: 151 passed. - \"Add media\" for phones: the Pages sheet menu now has the entry, so a device that cannot drag can still add files. That one entry is unit tested only. - Records: changelog and the automation feature index.\n\nImage store folder work in progress in the tree is deliberately left out of this commit.\n\nChecks: type check clean apart from the two known gallery errors; full suite 6,824 passed with the 3 known build-script failures.",
-     "detail_yue": "第 29 批。上一個提交話未做完嗰三樣，而家做完喇，仲喺本機 build 入面跑過。 自動化編輯器有搜尋、每個巢狀清單都有自己嘅搜尋、仲可以按用到嘅實體篩選； 上載放寬到 2 GB 同 50 MB，唔啱格式嘅圖會自動轉；手機拖唔到嘢，所以頁面 選單加咗「加入媒體」。圖片資料夾仲做緊，今次特登唔放入嚟。"
     }
    ]
   }
