@@ -1,0 +1,25 @@
+[Unit]
+Description=Home Assistant OS USB Recovery
+Documentation=https://github.com/home-assistant/operating-system
+# Only ever started by the appearance of a device labelled HA-RECOVERY (see
+# [Install]); without such a stick this unit is never loaded into a job.
+# Nothing depends on it: no other unit Requires/Wants/After-orders on it.
+ConditionPathExists=/dev/disk/by-label/HA-RECOVERY
+RefuseManualStart=true
+# Run late, so the boot and data partitions are mounted and the update service
+# is up when it is needed. These are ordering hints only, not requirements.
+After=dev-disk-by\x2dlabel-HA\x2dRECOVERY.device mnt-boot.mount mnt-data.mount rauc.service haos-config.service
+BindsTo=dev-disk-by\x2dlabel-HA\x2dRECOVERY.device
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/haos-recovery
+# The script always exits 0; the listed codes are tolerated for safety.
+SuccessExitStatus=1 2
+# Never block forever: a large update bundle may take a while, a hang may not.
+TimeoutStartSec=30min
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=dev-disk-by\x2dlabel-HA\x2dRECOVERY.device
