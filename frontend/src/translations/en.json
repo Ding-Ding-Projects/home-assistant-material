@@ -6509,6 +6509,7 @@
           "all_current_hint": "There is nothing to install right now.",
           "check_now": "Check now",
           "notes": "Notes",
+          "whats_new": "What's new in build {build}",
           "version_change": "{installed} to {latest}",
           "before_updating": "Before updating",
           "backups_title": "Backups",

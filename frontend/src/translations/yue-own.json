@@ -1491,6 +1491,7 @@
           "beta_on": "你而家用緊 {channel} 頻道。",
           "current": "最新",
           "notes": "附註",
+          "whats_new": "{build} 版本有乜新嘢",
           "show_all_current": "顯示全部 {count} 個",
           "show_fewer": "顯示少啲",
           "show_skipped": "顯示已略過嘅更新",
