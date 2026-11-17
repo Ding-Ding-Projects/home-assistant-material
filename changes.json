@@ -1,15 +1,57 @@
 {
  "format": 1,
- "generated": "2026-11-17T14:47:07Z",
+ "generated": "2026-11-17T15:10:44Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 495,
+ "newest_build": 498,
  "releases": [
+  {
+   "build": 498,
+   "core": "2026.11.1.498",
+   "supervisor": "2026.11.0.498",
+   "os": "18.5.498",
+   "tag": null,
+   "source": "55c0ed5bd",
+   "date": "2026-11-17T09:35:06-05:00",
+   "previous_build": 495,
+   "changes": [
+    {
+     "sha": "55c0ed5bd",
+     "date": "2026-11-17T09:35:06-05:00",
+     "title": "One-screen two-key confirmation, honest go-back line, calm queue card",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Found by a second real run, on build 495.\n\n- Going back to an earlier build worked, but the follow-up line could not know that: the older build has no history card, so by the time a newer build looked, a fifteen-minute timer was the only witness and it testified \"did not finish\". The line is now decided by evidence: success recorded while the call was still in flight, a history entry for the target after the start, or the target being installed. \"Did not finish\" needs the instance to still be on the build it started from. Otherwise it says nothing. - After the page reloads onto a new build, the update queue card was red for about nine seconds before correcting itself. A restored step now shows a neutral \"Checking the update\" until there is real data. - The two-key confirmation is one screen: the explanation sits above the keys and slider, with no Continue step in front. The keys work exactly as before. - Backups list: the self-check column has a header and room for its icon, the hosting header reads in full, and the last step of making a backup is titled for what it does.\n\nChecks: types at the two known gallery errors, 8429 tests pass with the three known build-script failures. See",
+     "detail_yue": "雙鑰匙確認變一個畫面、返舊版嘅提示講真話、隊列卡唔再大驚小怪\n\n喺 495 版第二次真機運行度搵到。\n\n- 返去舊版本其實成功，但之後嗰行提示冇辦法知：舊版本冇紀錄卡， 等到新版本睇嗰陣，得返個十五分鐘計時器做證人，佢就話「未完成」。 而家睇證據：呼叫仲進行緊嗰陣記低成功、開始之後有目標版本嘅紀錄、 或者目標版本真係裝咗。要部機仲停喺出發嗰個版本先會講「未完成」， 其他情況唔出聲。 - 頁面重新載入去新版本之後，更新隊列卡會紅足九秒先自己改正。而家 還原返嚟嘅步驟會先顯示中性嘅「檢查緊更新」，有真數據先判斷。 - 雙鑰匙確認變成一個畫面：說明放喺鑰匙同滑桿上面，前面冇咗「繼續」 嗰一步。鑰匙嘅用法完全冇變。 - 備份清單：自我檢查嗰欄有標題同夠位放圖示，託管欄標題顯示齊， 建立備份最後一步個標題改返啱。\n\n檢查：型別維持兩個已知錯誤，8429 個測試通過（三個已知失敗）。喺 本機建置睇過：返舊版三種結果、備份清單，仲有喺 390 同 1440 闊度 經單畫面雙鑰匙真係刪除咗一個輔助項目。隊列卡嘅改動只有測試，要有 Supervisor 先睇到。"
+    },
+    {
+     "sha": "520ed7588",
+     "date": "2026-11-17T08:38:17-05:00",
+     "title": "Record the polish, the new features and what a real run proved",
+     "areas": [
+      "docs"
+     ],
+     "detail": "The handoff now says which build is on the home instance, what was proven by actually using it, what is fixed but not yet shipped, and the limits that a cheerful summary would rather skip: the tunnel has never been started, only the operating system installs offline, and no USB stick has met any of this code.",
+     "detail_yue": "記低翻新、新功能同真機行過證實咗啲乜\n\n交接檔而家寫明屋企部機用緊邊個版本、邊啲係真係用過先證實、邊啲 修好咗但未出街，仲有啲開心總結唔想提嘅限制：隧道從未啟動過、 離線淨係裝到作業系統、冇一支 USB 手指掂過呢啲程式。"
+    },
+    {
+     "sha": "093dccafb",
+     "date": "2026-11-17T08:31:17-05:00",
+     "title": "Fix eleven faults found by clicking through the new features",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Each was seen broken on a real build and seen fixed on a real build.\n\n- Room wizard: Escape closes it and the draft is kept; the \"Start over\" button stays on one line; the step strip no longer cuts \"Devices\" on a phone. - Editor sentence: \"When When the sun sets\" lost its echo. - Editor header: the title keeps its line and the tools move down when they do not fit; the add-action sheet's search is focused on a phone. - A name field no longer turns red before anyone has typed in it. This is in the shared input, so every form benefits. - The editor's search card no longer covers rows; the two-key control shows whole without scrolling. - \"More tools\" on a phone keeps tool names in whole words. - The empty state sits below the filter chips instead of on them, and the column header hides while a list is empty. - List footers count the rows actually shown; list pages have a title, side gutters and a chip row that fades instead of cutting a chip on a phone. - Toasts sit above the editor's bottom bar on a phone. - The Updates page shows its title once.\n\nOne thing left: on a phone, the note under the slider in the two-key delete dialog still scrolls. The keys, dial and slider are visible.\n\nC",
+     "detail_yue": "修正實際操作新功能時搵到嘅十一個問題\n\n每一個都喺真建置見過壞、亦都喺真建置見過修好。\n\n- 房間精靈：Escape 閂到，草稿照留；「重新開始」掣唔再斷行；手機上 面步驟條唔再斬咗「裝置」。 - 編輯器句子：「When When the sun sets」少返個回音。 - 編輯器頁首：標題企返一行，工具唔夠位就落下一行；手機上面新增 動作面板一開就對焦搜尋。 - 名稱欄位未打字之前唔會再變紅。呢個喺共用輸入元件度改，全部表格 都受惠。 - 編輯器個搜尋卡唔再遮住啲行；雙鑰匙控制唔使捲都見晒。 - 手機上面「更多工具」個工具名唔再喺字中間斷開。 - 空白狀態排返喺篩選掣下面，唔再疊上去；清單空嗰陣欄標題會收埋。 - 清單頁尾會數返真正顯示緊嘅行數；手機上面清單頁有標題、兩邊有 留白，篩選列係淡出唔係斬一半。 - 手機上面提示訊息會排喺編輯器底部列上面。 - 更新頁個標題得返一個。\n\n仲有一樣未搞掂：手機上面雙鑰匙刪除對話框，滑桿下面嗰段說明仲要 捲先見到；鑰匙、轉盤同滑桿就見晒。\n\n檢查：型別維持兩個已知錯誤，8420 個測試通過（三個已知失敗）。"
+    }
+   ]
+  },
   {
    "build": 495,
    "core": "2026.11.1.495",
    "supervisor": "2026.11.0.495",
    "os": "18.5.495",
-   "tag": null,
+   "tag": "v2026.11.1.495",
    "source": "9ad470a94",
    "date": "2026-11-17T07:31:37-05:00",
    "previous_build": 490,
@@ -4481,32 +4523,6 @@
      ],
      "detail": "Batch 29. The three pieces the last commit called unfinished are now finished and were driven in a local build.\n\n- Automation and script editor: a search bar across every step at any depth with match count and next/previous, a search on every nested list, and a filter by the entities the automation uses. The search bar was tightened after the browser pass so it stops eating a phone screen. - Uploads: 2 GB for the media library and 50 MB for the image store, with a percentage while uploading; dropped pictures the image store cannot take are converted, oversized ones are re-encoded to fit and the loss is stated. Server tests for both upload endpoints: 151 passed. - \"Add media\" for phones: the Pages sheet menu now has the entry, so a device that cannot drag can still add files. That one entry is unit tested only. - Records: changelog and the automation feature index.\n\nImage store folder work in progress in the tree is deliberately left out of this commit.\n\nChecks: type check clean apart from the two known gallery errors; full suite 6,824 passed with the 3 known build-script failures.",
      "detail_yue": "第 29 批。上一個提交話未做完嗰三樣，而家做完喇，仲喺本機 build 入面跑過。 自動化編輯器有搜尋、每個巢狀清單都有自己嘅搜尋、仲可以按用到嘅實體篩選； 上載放寬到 2 GB 同 50 MB，唔啱格式嘅圖會自動轉；手機拖唔到嘢，所以頁面 選單加咗「加入媒體」。圖片資料夾仲做緊，今次特登唔放入嚟。"
-    }
-   ]
-  },
-  {
-   "build": 124,
-   "core": "2026.11.1.124",
-   "supervisor": "2026.11.0.124",
-   "os": "18.5.124",
-   "tag": "v2026.11.1.124",
-   "source": "447cde08f",
-   "date": "2026-11-12T00:52:01-05:00",
-   "previous_build": 123,
-   "changes": [
-    {
-     "sha": "447cde08f",
-     "date": "2026-11-12T00:52:01-05:00",
-     "title": "Tab options, app install progress, drop-to-upload, repair failure line",
-     "areas": [
-      "docs",
-      "core",
-      "deploy",
-      "interface",
-      "supervisor"
-     ],
-     "detail": "Batch 28. The tab strip finally has opinions: it docks to any edge, groups, pins, locks, searches four ways and has its own right-click menu. Before this it was a row of buttons that mostly knew how to be a row of buttons.\n\n- Tab options: dock left/right/top/bottom, pinned region, groups with picker, menu, editor and look, per-tab look, tab and group locks, overflow list, bulk close with preview, four separate searches. Settings section tabs are real tabs with overflow, pin, hide and reorder. The phone Pages sheet has per-page actions and bulk close. Driven in a local build in headless Edge at all four edges and at phone width; seven defects found there are fixed in this commit. - App install progress: bar, steps and a log terminal on the app page, the store card and the activity tray. Driven on a throwaway full-mode instance. The Supervisor only reports a percentage, so no layer list. - Drop a picture, video or audio file on any page: overlay, upload queue in the activity tray, message with a jump to Media or Images. Seen with simulated drags. - Larger uploads and automatic conversion of dropped files, a phone entry point, and search inside the automation editor are IN PROGRESS in",
-     "detail_yue": "第 28 批。分頁條終於有主見：四邊都泊得、可以分組、釘住、上鎖、四種搜尋， 仲有自己嘅右鍵選單。以前佢只係一排識得做一排嘅掣。安裝應用程式有進度條同 日誌終端機；拖個檔案落任何一頁就上載；維修失敗會老實講，整爛埋第二樣都會 講。上載加大、自動轉檔、手機入口同自動化編輯器搜尋仲做緊，過到編譯同單元 測試，但未喺瀏覽器睇過，唔好當佢完成。"
     }
    ]
   }
