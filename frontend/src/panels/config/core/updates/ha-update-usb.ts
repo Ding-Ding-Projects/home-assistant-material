@@ -3,6 +3,8 @@ import {
   mdiCheckCircle,
   mdiChevronDown,
   mdiClockOutline,
+  mdiCloudOffOutline,
+  mdiMinusCircleOutline,
   mdiRefresh,
   mdiUsbFlashDrive,
 } from "@mdi/js";
@@ -28,17 +30,23 @@ import {
 } from "../../../../data/hassio/host";
 import type {
   OfflineCandidate,
+  OfflinePackSummary,
   OfflineProgress,
+  PackPartOutcome,
 } from "../../../../data/hassio/os-offline-update";
 import {
   canInstallCandidate,
   driveName,
   fetchOfflineUpdateCandidates,
   isOfflineJob,
+  isOfflinePackJob,
   megabytes,
   offlineErrorKind,
   offlineUpdateSupported,
+  packNeedsNetwork,
+  packRows,
   progressFromJob,
+  progressFromPackJob,
   startOfflineUpdate,
 } from "../../../../data/hassio/os-offline-update";
 import { showConfirmationDialog } from "../../../../dialogs/generic/show-dialog-box";
@@ -60,6 +68,9 @@ declare global {
 interface UsbRun extends OfflineProgress {
   jobId: string;
   version: string;
+  /** Set when the run installs a pack; its parts are listed in the result. */
+  isPack: boolean;
+  pack?: OfflinePackSummary;
 }
 
 /**
@@ -131,6 +142,7 @@ export class HaUpdateUsb extends LitElement {
   private _isRunning(): boolean {
     return (
       this._starting ||
+      this._run?.stage === "verifying" ||
       this._run?.stage === "copying" ||
       this._run?.stage === "installing"
     );
@@ -163,7 +175,7 @@ export class HaUpdateUsb extends LitElement {
   private async _resumeRun(): Promise<void> {
     const job = await this._findJob();
     if (job && !job.done) {
-      this._follow(job.uuid, "");
+      this._follow(job.uuid, "", isOfflinePackJob(job));
     }
   }
 
@@ -228,9 +240,10 @@ export class HaUpdateUsb extends LitElement {
     ) {
       return;
     }
+    const isPack = candidate.kind === "pack";
     const confirmed = await showConfirmationDialog(this, {
-      title: this._t("confirm_title"),
-      text: this._t("confirm_text", {
+      title: this._t(isPack ? "pack_confirm_title" : "confirm_title"),
+      text: this._t(isPack ? "pack_confirm_text" : "confirm_text", {
         version: candidate.version,
         drive: driveName(candidate),
       }),
@@ -246,7 +259,7 @@ export class HaUpdateUsb extends LitElement {
     this._run = undefined;
     try {
       const { job_id: jobId } = await startOfflineUpdate(this.hass, candidate);
-      this._follow(jobId, candidate.version);
+      this._follow(jobId, candidate.version, isPack, candidate.pack);
     } catch (err: any) {
       const kind = offlineErrorKind(err);
       this._startError =
@@ -271,11 +284,23 @@ export class HaUpdateUsb extends LitElement {
     this._install(candidate);
   };
 
-  private _follow(jobId: string, version: string): void {
+  private _follow(
+    jobId: string,
+    version: string,
+    isPack = false,
+    pack?: OfflinePackSummary
+  ): void {
     this._unsub?.();
     this._unsub = undefined;
     window.clearInterval(this._pollTimer);
-    this._run = { jobId, version, stage: "copying", percent: 0 };
+    this._run = {
+      jobId,
+      version,
+      isPack,
+      pack,
+      stage: isPack ? "verifying" : "copying",
+      percent: 0,
+    };
     this.hass.connection
       .subscribeMessage<{ event?: string; data?: SupervisorJobData }>(
         (message) => {
@@ -318,7 +343,7 @@ export class HaUpdateUsb extends LitElement {
       return;
     }
     // A stale event must never move the bar backwards.
-    const next = progressFromJob(job);
+    const next = run.isPack ? progressFromPackJob(job) : progressFromJob(job);
     const finished = next.stage === "done" || next.stage === "failed";
     this._run = {
       ...run,
@@ -518,6 +543,11 @@ export class HaUpdateUsb extends LitElement {
             <strong>${this._t(`verdict_${candidate.verdict}`)}</strong>
           </span>
           <span class="file-meta">${this._t(`hint_${candidate.verdict}`)}</span>
+          ${
+            candidate.pack
+              ? this._renderPackParts(candidate.pack, false)
+              : nothing
+          }
         </div>
         ${
           ok
@@ -528,7 +558,7 @@ export class HaUpdateUsb extends LitElement {
                   .disabled=${blocked || this._isRunning()}
                   @click=${this._onInstall}
                 >
-                  ${this._t("install")}
+                  ${this._t(candidate.pack ? "pack_install" : "install")}
                 </ha-button>
                 ${
                   blocked
@@ -543,6 +573,52 @@ export class HaUpdateUsb extends LitElement {
             : nothing
         }
       </li>
+    `;
+  }
+
+  private _outcomeIcon(outcome: PackPartOutcome): string {
+    return outcome === "installed"
+      ? mdiCheckCircle
+      : outcome === "needs_network"
+        ? mdiCloudOffOutline
+        : mdiMinusCircleOutline;
+  }
+
+  /**
+   * The parts of a pack, one per row. Before the install a row says whether
+   * the part is in the pack; after it, what happened to the part.
+   */
+  private _renderPackParts(
+    pack: OfflinePackSummary,
+    finished: boolean
+  ): TemplateResult {
+    return html`
+      <ul class="parts">
+        ${packRows(pack).map(({ part, outcome }) => {
+          const name = this._t(`part_${part.kind}`);
+          const label = part.version ? `${name} ${part.version}` : name;
+          const stateText = finished
+            ? this._t(`part_result_${outcome}`)
+            : this._t(part.available ? "part_present" : "part_absent");
+          const path = finished
+            ? this._outcomeIcon(outcome)
+            : part.available
+              ? mdiCheckCircle
+              : mdiMinusCircleOutline;
+          return html`<li class="part ${classMap({ off: !part.available })}">
+            <span class="part-name">
+              <ha-svg-icon .path=${path}></ha-svg-icon>
+              ${label}
+            </span>
+            <span class="part-state">${stateText}</span>
+          </li>`;
+        })}
+      </ul>
+      ${
+        !finished
+          ? html`<p class="file-meta">${this._t("pack_before_note")}</p>`
+          : nothing
+      }
     `;
   }
 
@@ -572,6 +648,18 @@ export class HaUpdateUsb extends LitElement {
             </p>
           </div>
         </div>
+        ${
+          run.pack
+            ? html`${this._renderPackParts(run.pack, true)}
+                <p class="file-meta">
+                  ${
+                    packNeedsNetwork(run.pack)
+                      ? this._t("pack_network_note")
+                      : this._t("pack_offline_note")
+                  }
+                </p>`
+            : nothing
+        }
         ${
           this._restartError
             ? html`<ha-alert alert-type="error"
@@ -606,9 +694,12 @@ export class HaUpdateUsb extends LitElement {
       `;
     }
     const copying = run.stage === "copying";
-    const label = copying
-      ? this._t("stage_copying")
-      : this._t("stage_installing");
+    const verifying = run.stage === "verifying";
+    const label = verifying
+      ? this._t("stage_verifying")
+      : copying
+        ? this._t("stage_copying")
+        : this._t("stage_installing");
     return html`
       <div class="progress" role="status">
         <div class="progress-head">
@@ -623,15 +714,31 @@ export class HaUpdateUsb extends LitElement {
           .label=${`${this._t("progress_label")}: ${label}`}
         ></ha-progress-bar>
         <ol class="steps" aria-hidden="true">
-          <li class=${classMap({ on: copying, past: !copying })}>
+          ${
+            run.isPack
+              ? html`<li class=${classMap({ on: verifying, past: !verifying })}>
+                  ${this._t("stage_verifying")}
+                </li>`
+              : nothing
+          }
+          <li
+            class=${classMap({
+              on: copying,
+              past: run.stage === "installing",
+            })}
+          >
             ${this._t("stage_copying")}
           </li>
-          <li class=${classMap({ on: !copying })}>
+          <li class=${classMap({ on: run.stage === "installing" })}>
             ${this._t("stage_installing")}
           </li>
         </ol>
         <p class="file-meta">
-          ${copying ? this._t("do_not_remove") : this._t("remove_note")}
+          ${
+            verifying || copying
+              ? this._t("do_not_remove")
+              : this._t("remove_note")
+          }
         </p>
       </div>
     `;
@@ -825,6 +932,42 @@ export class HaUpdateUsb extends LitElement {
         .verdict ha-svg-icon {
           --mdc-icon-size: 20px;
           flex: none;
+        }
+        .parts {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-1);
+          margin: var(--ha-space-2) 0 0;
+          padding: 0;
+          list-style: none;
+        }
+        .part {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ha-space-2);
+          min-height: 40px;
+          padding: var(--ha-space-1) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--card-background-color);
+          font-size: var(--ha-font-size-s);
+        }
+        .part.off {
+          color: var(--secondary-text-color);
+        }
+        .part-name {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .part-name ha-svg-icon {
+          --mdc-icon-size: 20px;
+          flex: none;
+        }
+        .part-state {
+          color: var(--secondary-text-color);
         }
         .file-action {
           display: flex;

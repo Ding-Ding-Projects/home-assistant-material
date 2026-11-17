@@ -23,9 +23,12 @@ export const YUE_PREFIXES = [
   "ui.components.empty-state.",
   "ui.components.action-editors.",
   "ui.panel.config.backup.hosting.",
+  "ui.panel.config.backup.self_check.",
   "ui.panel.history.comparison.",
   "ui.panel.config.personal.",
   "ui.panel.config.device_health.",
+  "ui.panel.config.helpers.demo.",
+  "ui.panel.config.cloud_host.",
   "ui.panel.config.tools.nav.",
   // Single strings, not whole blocks: the settings home banners and the apps page.
   "ui.panel.config.dashboard.",

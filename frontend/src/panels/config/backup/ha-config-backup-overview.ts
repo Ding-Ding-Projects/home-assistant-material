@@ -34,6 +34,7 @@ import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../types";
 import { showAlertDialog } from "../../lovelace/custom-card-helpers";
 import "./components/overview/ha-backup-overview-backups";
+import "./components/ha-backup-self-check";
 import "./components/overview/ha-backup-overview-latest";
 import "./components/overview/ha-backup-overview-locations";
 import "./components/overview/ha-backup-overview-app-update-backup";
@@ -42,6 +43,7 @@ import "./components/overview/ha-backup-overview-progress";
 import "./components/overview/ha-backup-overview-settings";
 import "./components/overview/ha-backup-overview-summary";
 import "./components/config/ha-backup-config-encryption-key";
+import { latestSelfChecked } from "./helper/backup-self-check";
 import { showBackupOnboardingDialog } from "./dialogs/show-dialog-backup_onboarding";
 import { showGenerateBackupDialog } from "./dialogs/show-dialog-generate-backup";
 import { showNewBackupDialog } from "./dialogs/show-dialog-new-backup";
@@ -214,6 +216,10 @@ class HaConfigBackupOverview extends LitElement {
     fireEvent(this, "ha-refresh-backup-info");
   }
 
+  private get _latestSelfChecked() {
+    return latestSelfChecked(this.backups);
+  }
+
   private get _needsOnboarding() {
     return this.config && !this.config.automatic_backups_configured;
   }
@@ -334,6 +340,17 @@ class HaConfigBackupOverview extends LitElement {
               }
             </div>
           </div>
+
+          ${
+            this._latestSelfChecked
+              ? html`<ha-backup-self-check
+                  variant="overview"
+                  .hass=${this.hass}
+                  .backup=${this._latestSelfChecked.backup}
+                  @backup-self-check-new-backup=${this._newBackup}
+                ></ha-backup-self-check>`
+              : nothing
+          }
 
           <ha-backup-overview-locations
             .hass=${this.hass}

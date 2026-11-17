@@ -657,6 +657,7 @@ async def test_initiate_backup(
         "version": 2,
     }
 
+    await hass.data[DATA_MANAGER].self_checks.async_wait()
     await ws_client.send_json_auto_id(
         {"type": "backup/details", "backup_id": backup_id}
     )
@@ -681,6 +682,7 @@ async def test_initiate_backup(
         "homeassistant_included": True,
         "homeassistant_version": "2024.12.9",
         "name": expected_name,
+        "self_check": ANY,
         "with_automatic_settings": False,
     }
 
@@ -907,9 +909,11 @@ async def test_initiate_backup_with_agent_error(
         "homeassistant_included": True,
         "homeassistant_version": "2024.12.9",
         "name": "Custom backup 2025.1.0",
+        "self_check": ANY,
         "with_automatic_settings": False,
     }
 
+    await hass.data[DATA_MANAGER].self_checks.async_wait()
     await ws_client.send_json_auto_id({"type": "backup/info"})
     result = await ws_client.receive_json()
     backups_response = result["result"].pop("backups")
@@ -939,6 +943,7 @@ async def test_initiate_backup_with_agent_error(
             "failed_addons": [],
             "failed_agent_ids": ["test.remote"],
             "failed_folders": [],
+            "self_check": ANY,
         }
     ]
 
@@ -3330,8 +3335,8 @@ async def test_restore_backup_newer_version_refused_before_scheduling(
     version: str,
 ) -> None:
     """Test a backup from a newer year.month is refused before the restore is scheduled."""
-    result, mocked_write_text, mocked_service_call = (
-        await _restore_with_backup_version(hass, hass_ws_client, version, True)
+    result, mocked_write_text, mocked_service_call = await _restore_with_backup_version(
+        hass, hass_ws_client, version, True
     )
 
     assert not result["success"]

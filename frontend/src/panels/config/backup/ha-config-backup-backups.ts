@@ -1,5 +1,8 @@
 import {
+  mdiAlertOutline,
+  mdiCheckCircleOutline,
   mdiDelete,
+  mdiHelpCircleOutline,
   mdiServerNetwork,
   mdiMonitor,
   mdiDotsVertical,
@@ -12,6 +15,7 @@ import {
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
@@ -107,6 +111,7 @@ import {
   planBackupDelete,
   summarizeBackupDelete,
 } from "./backup-bulk-actions";
+import { summarizeSelfCheck } from "./helper/backup-self-check";
 import { downloadBackup } from "./helper/download_backup";
 import { showHostBackupDialog } from "./dialogs/show-dialog-host-backup";
 import { modeText } from "../../../common/language-mode/language-mode";
@@ -301,6 +306,41 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
               }
             </div>
           `;
+        },
+      },
+      self_check: {
+        title: "",
+        label: modeText(localize, "ui.panel.config.backup.self_check.title"),
+        showNarrow: true,
+        minWidth: "48px",
+        maxWidth: "48px",
+        template: (backup) => {
+          const checkState = summarizeSelfCheck(backup.self_check)?.state;
+          if (!checkState) {
+            return nothing;
+          }
+          const label = modeText(
+            localize,
+            `ui.panel.config.backup.self_check.badge.${checkState}`
+          );
+          return html`<ha-svg-icon
+            role="img"
+            aria-label=${label}
+            title=${label}
+            style=${styleMap({
+              color:
+                checkState === "passed"
+                  ? "var(--success-color)"
+                  : "var(--warning-color)",
+            })}
+            .path=${
+              checkState === "passed"
+                ? mdiCheckCircleOutline
+                : checkState === "failed"
+                  ? mdiAlertOutline
+                  : mdiHelpCircleOutline
+            }
+          ></ha-svg-icon>`;
         },
       },
       hosting: {

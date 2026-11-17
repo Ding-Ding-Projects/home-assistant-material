@@ -1,4 +1,8 @@
-import { mdiHeartPulse } from "@mdi/js";
+import {
+  mdiCheckCircleOutline,
+  mdiFilterVariantRemove,
+  mdiHeartPulse,
+} from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, queryAll, state } from "lit/decorators";
@@ -175,7 +179,9 @@ class HaConfigDeviceHealth extends LitElement {
         .heading=${this.hass.localize(
           "ui.panel.config.device_health.no_devices"
         )}
-      ></ha-empty-state>`;
+      >
+        <ha-svg-icon slot="icon" .path=${mdiHeartPulse}></ha-svg-icon>
+      </ha-empty-state>`;
     }
     if (!this._filter && counts.attention === 0) {
       return html`
@@ -187,7 +193,9 @@ class HaConfigDeviceHealth extends LitElement {
           .description=${this.hass.localize(
             "ui.panel.config.device_health.empty_description"
           )}
-        ></ha-empty-state>
+        >
+          <ha-svg-icon slot="icon" .path=${mdiCheckCircleOutline}></ha-svg-icon>
+        </ha-empty-state>
         ${this._renderRows(shown)}
       `;
     }
@@ -197,7 +205,9 @@ class HaConfigDeviceHealth extends LitElement {
         .heading=${this.hass.localize(
           "ui.panel.config.device_health.filtered_empty"
         )}
-      ></ha-empty-state>`;
+      >
+        <ha-svg-icon slot="icon" .path=${mdiFilterVariantRemove}></ha-svg-icon>
+      </ha-empty-state>`;
     }
     return this._renderRows(shown);
   }
@@ -458,6 +468,9 @@ class HaConfigDeviceHealth extends LitElement {
         }
         h2 {
           margin: 0;
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
           font-size: var(--ha-font-size-3xl);
           font-weight: 800;
           font-stretch: 116%;

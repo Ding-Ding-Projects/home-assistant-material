@@ -3,6 +3,7 @@ import {
   HISTORY_LIMIT,
   anyUpdateInProgress,
   historyRows,
+  installCoreVersion,
   parseStoredHistory,
   recordVersion,
   rollbackBlockReason,
@@ -221,5 +222,29 @@ describe("parseStoredHistory", () => {
       ],
     });
     expect(parseStoredHistory(raw)).toEqual([entry("x.y.z.2", 3)]);
+  });
+});
+
+describe("installCoreVersion", () => {
+  // The Supervisor reads version, backup and background from this call and
+  // accepts an older version. A wrong key would be ignored silently and the
+  // latest version would be installed instead of the chosen one.
+  it("sends the chosen older version and the backup choice to the Core update call", async () => {
+    const calls: any[] = [];
+    const hass = {
+      callWS: async (msg: any) => {
+        calls.push(msg);
+      },
+    } as any;
+    await installCoreVersion(hass, "2026.11.1.450", true);
+    expect(calls).toEqual([
+      {
+        type: "supervisor/api",
+        endpoint: "/core/update",
+        method: "post",
+        timeout: null,
+        data: { version: "2026.11.1.450", backup: true },
+      },
+    ]);
   });
 });

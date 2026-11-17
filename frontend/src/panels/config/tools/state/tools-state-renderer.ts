@@ -184,6 +184,8 @@ class HaPanelDevStateRenderer extends LitElement {
     const deviceName = device ? computeDeviceName(device) : undefined;
     const areaName = area ? computeAreaName(area) : undefined;
 
+    const attributeText = this._attributeString(item);
+
     return html`
       <div
         class=${classMap({
@@ -245,7 +247,9 @@ class HaPanelDevStateRenderer extends LitElement {
           <span class="padded">${areaName || "\u2014"}</span>
         </div>
         <div class="cell" role="cell">
-          <span class="padded">${this._attributeString(item)}</span>
+          <span class="padded attributes" title=${attributeText}
+            >${attributeText}</span
+          >
         </div>
       </div>
     `;
@@ -261,17 +265,17 @@ class HaPanelDevStateRenderer extends LitElement {
     return Array.isArray(value) ? value.join(", ") : value;
   }
 
-  private _attributeString(entity) {
-    const output = "";
-
+  private _attributeString(entity): string {
     if (entity && entity.attributes) {
-      return Object.keys(entity.attributes).map(
-        (key) =>
-          `${key}: ${this._formatAttributeValue(entity.attributes[key])}\n`
-      );
+      return Object.keys(entity.attributes)
+        .map(
+          (key) =>
+            `${key}: ${this._formatAttributeValue(entity.attributes[key])}\n`
+        )
+        .join("");
     }
 
-    return output;
+    return "";
   }
 
   private _copyEntity = async (
@@ -342,6 +346,7 @@ class HaPanelDevStateRenderer extends LitElement {
 
         .entities .row.odd,
         .entities .row.even {
+          min-height: 60px;
           margin-block-end: var(--ha-space-1);
           border-radius: var(--ha-border-radius-xl);
           background-color: var(--card-background-color);
@@ -427,6 +432,16 @@ class HaPanelDevStateRenderer extends LitElement {
 
         .entities .row .cell:nth-child(5) {
           white-space: pre-wrap;
+        }
+
+        /* Attributes can be long. Show the first lines so a row is only as
+           tall as its entity and state; the full text is in the tooltip. */
+        .cell .attributes {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 3;
+          overflow: hidden;
+          font-size: var(--ha-font-size-s);
         }
 
         .hide-device .filter-devices {

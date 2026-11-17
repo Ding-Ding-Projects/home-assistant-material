@@ -47,9 +47,6 @@ class PanelTools extends LitElement {
           slot="navigationIcon"
           @click=${this._handleBack}
         ></ha-icon-button-arrow-prev>
-        <div slot="title">
-          ${localize("ui.panel.config.dashboard.tools.main")}
-        </div>
         <ha-dropdown slot="actionItems" @wa-select=${this._handleMenuAction}>
           <ha-icon-button
             slot="trigger"

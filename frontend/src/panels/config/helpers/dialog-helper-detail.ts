@@ -43,6 +43,8 @@ import type { HomeAssistant } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
 import type { Helper, HelperDomain, HelperFormItem } from "./const";
 import { isHelperDomain } from "./const";
+import "./demos/ha-helper-demo";
+import "./demos/ha-helper-glimpse";
 import type { ShowDialogHelperDetailParams } from "./show-dialog-helper-detail";
 
 type HelperCreators = Record<
@@ -195,6 +197,11 @@ export class DialogHelperDetail extends DirtyStateProviderMixin<
       content = html`
         <div class="form" @value-changed=${this._valueChanged}>
           ${this._error ? html`<div class="error">${this._error}</div>` : ""}
+          <ha-helper-demo
+            .hass=${this.hass}
+            .domain=${this._domain}
+            .config=${this._item}
+          ></ha-helper-demo>
           ${dynamicElement(`ha-${this._domain}-form`, {
             hass: this.hass,
             item: this._item,
@@ -282,6 +289,14 @@ export class DialogHelperDetail extends DirtyStateProviderMixin<
                   referrerpolicy="no-referrer"
                 />
                 <span class="item-text"> ${label} </span>
+                ${
+                  domain in HELPERS
+                    ? html`<ha-helper-glimpse
+                        class="glimpse"
+                        .domain=${domain}
+                      ></ha-helper-glimpse>`
+                    : nothing
+                }
                 ${
                   isLoaded
                     ? html`<ha-icon-next slot="meta"></ha-icon-next>`
@@ -475,6 +490,12 @@ export class DialogHelperDetail extends DirtyStateProviderMixin<
         }
         .form {
           padding: var(--ha-space-6);
+        }
+        ha-helper-demo {
+          margin-bottom: var(--ha-space-4);
+        }
+        .glimpse {
+          margin-inline-start: var(--ha-space-3);
         }
         ha-input-search {
           margin: 0 var(--ha-space-4) var(--ha-space-3);

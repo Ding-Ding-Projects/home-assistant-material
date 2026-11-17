@@ -43,6 +43,7 @@ import type { HomeAssistant } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
 import "./components/ha-backup-details-restore";
 import "./components/ha-backup-details-summary";
+import "./components/ha-backup-self-check";
 import { showHostBackupDialog } from "./dialogs/show-dialog-host-backup";
 import { modeText } from "../../../common/language-mode/language-mode";
 import { showRestoreBackupDialog } from "./dialogs/show-dialog-restore-backup";
@@ -185,6 +186,12 @@ class HaConfigBackupDetails extends LitElement {
                       @backup-restore=${this._restore}
                       .hass=${this.hass}
                     ></ha-backup-details-restore>
+                    <ha-backup-self-check
+                      variant="details"
+                      .hass=${this.hass}
+                      .backup=${this._backup}
+                      @backup-self-check-updated=${this._selfCheckUpdated}
+                    ></ha-backup-self-check>
                     <ha-card>
                       <div class="card-header">
                         ${this.hass.localize(
@@ -314,6 +321,13 @@ class HaConfigBackupDetails extends LitElement {
         </div>
       </hass-subpage>
     `;
+  }
+
+  private _selfCheckUpdated(ev: CustomEvent) {
+    if (!this._backup) {
+      return;
+    }
+    this._backup = { ...this._backup, self_check: ev.detail.selfCheck };
   }
 
   private _restore(ev: CustomEvent) {

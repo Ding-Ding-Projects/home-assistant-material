@@ -123,6 +123,32 @@ export interface BackupContent {
     [key: string]: string | boolean | undefined;
   };
   with_automatic_settings: boolean | null;
+  // Missing when the backup was never checked or Core is older
+  self_check?: BackupSelfCheck;
+}
+
+export type BackupSelfCheckStatus =
+  "passed" | "failed" | "not_applicable" | "could_not_check";
+
+export type BackupSelfCheckId =
+  | "archive_complete"
+  | "metadata_matches"
+  | "key_unlocks"
+  | "parts_present"
+  | "database_present"
+  | "copies_match";
+
+export interface BackupSelfCheckResult {
+  check: BackupSelfCheckId | string;
+  status: BackupSelfCheckStatus;
+  reason?: string;
+  detail?: string[];
+}
+
+export interface BackupSelfCheck {
+  status: "passed" | "failed" | "could_not_check";
+  checked_at: string;
+  checks: BackupSelfCheckResult[];
 }
 
 export interface BackupData {
@@ -250,6 +276,15 @@ export const fetchBackupDetails = (
 ): Promise<BackupDetails> =>
   hass.callWS({
     type: "backup/details",
+    backup_id: id,
+  });
+
+export const runBackupSelfCheck = (
+  hass: HomeAssistant,
+  id: string
+): Promise<{ self_check: BackupSelfCheck }> =>
+  hass.callWS({
+    type: "backup/self_check",
     backup_id: id,
   });
 

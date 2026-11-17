@@ -1,5 +1,6 @@
 """Websocket commands for the Backup integration."""
 
+from dataclasses import asdict
 from typing import Any
 
 import probatio
@@ -12,13 +13,28 @@ from homeassistant.helpers import config_validation as cv
 from .config import Day, ScheduleRecurrence
 from .const import DATA_MANAGER, LOGGER
 from .manager import (
+    BackupManager,
     BackupNoCoreArchiveError,
     BackupVersionTooNewError,
     DecryptOnDowloadNotSupported,
     IncorrectPasswordError,
+    ManagerBackup,
     ManagerStateEvent,
 )
 from .models import BackupNotFound, Folder
+from .self_check import async_self_check, could_not_check_result, update_issue
+
+
+def _with_self_check(
+    manager: BackupManager, backup: ManagerBackup | None
+) -> ManagerBackup | dict[str, Any] | None:
+    """Add the stored self-check result to a backup, when there is one."""
+    if backup is None:
+        return None
+    known = manager.known_backups.get(backup.backup_id)
+    if known is None or known.self_check is None:
+        return backup
+    return {**asdict(backup), "self_check": known.self_check}
 
 
 def _agent_error_translations(
@@ -58,6 +74,7 @@ def async_register_websocket_handlers(hass: HomeAssistant, with_hassio: bool) ->
     websocket_api.async_register_command(hass, handle_create)
     websocket_api.async_register_command(hass, handle_create_with_automatic_settings)
     websocket_api.async_register_command(hass, handle_delete)
+    websocket_api.async_register_command(hass, handle_self_check)
     websocket_api.async_register_command(hass, handle_restore)
     websocket_api.async_register_command(hass, handle_subscribe_events)
 
@@ -83,7 +100,9 @@ async def handle_info(
                 agent_id: str(err) for agent_id, err in agent_errors.items()
             },
             "agent_error_translations": _agent_error_translations(agent_errors),
-            "backups": list(backups.values()),
+            "backups": [
+                _with_self_check(manager, backup) for backup in backups.values()
+            ],
             "last_attempted_automatic_backup": (
                 manager.config.data.last_attempted_automatic_backup
             ),
@@ -116,9 +135,8 @@ async def handle_details(
     msg: dict[str, Any],
 ) -> None:
     """Get backup details for a specific backup."""
-    backup, agent_errors = await hass.data[DATA_MANAGER].async_get_backup(
-        msg["backup_id"]
-    )
+    manager = hass.data[DATA_MANAGER]
+    backup, agent_errors = await manager.async_get_backup(msg["backup_id"])
     connection.send_result(
         msg["id"],
         {
@@ -126,9 +144,43 @@ async def handle_details(
                 agent_id: str(err) for agent_id, err in agent_errors.items()
             },
             "agent_error_translations": _agent_error_translations(agent_errors),
-            "backup": backup,
+            "backup": _with_self_check(manager, backup),
         },
     )
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "backup/self_check",
+        probatio.Required("backup_id"): str,
+    }
+)
+@websocket_api.async_response
+async def handle_self_check(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Check that a stored backup can be read, without restoring it."""
+    manager = hass.data[DATA_MANAGER]
+    try:
+        result = await async_self_check(manager, msg["backup_id"])
+    except Exception:  # noqa: BLE001
+        LOGGER.exception("Unexpected error in the self-check of %s", msg["backup_id"])
+        result = None
+        stored = could_not_check_result("unexpected_error")
+    else:
+        if result is None:
+            connection.send_error(
+                msg["id"], BackupNotFound.error_code, "Backup not found"
+            )
+            return
+        stored = result.to_dict()
+    manager.known_backups.set_self_check(msg["backup_id"], stored)
+    if result is not None:
+        update_issue(hass, msg["backup_id"], result)
+    connection.send_result(msg["id"], {"self_check": stored})
 
 
 @websocket_api.require_admin

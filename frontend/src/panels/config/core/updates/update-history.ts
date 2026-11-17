@@ -218,8 +218,12 @@ export const storeHistory = (history: readonly HistoryEntry[]): void => {
 };
 
 /**
- * Installs a given Core version through the Supervisor's Core update call,
- * which takes a version and whether to make a backup first.
+ * Installs a given Core version through the Supervisor's `POST /core/update`.
+ * The Supervisor reads the keys `version`, `backup` and `background` (default
+ * false) and does not compare the version with the installed one, so an older
+ * version is accepted; only the installed version itself is refused. Without
+ * `background` the call returns when the update has finished, and a failed
+ * image pull comes back as the error, so the page shows the real reason.
  */
 export const installCoreVersion = (
   hass: HomeAssistant,

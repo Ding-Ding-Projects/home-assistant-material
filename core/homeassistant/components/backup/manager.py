@@ -15,7 +15,16 @@ import shutil
 import sys
 import tarfile
 import time
-from typing import IO, TYPE_CHECKING, Any, Protocol, TypedDict, cast, override
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    NotRequired,
+    Protocol,
+    TypedDict,
+    cast,
+    override,
+)
 
 import aiohttp
 from securetar import SecureTarArchive, atomic_contents_add
@@ -71,6 +80,7 @@ from .models import (
     Folder,
     InvalidBackupFilename,
 )
+from .self_check import SelfCheckRunner, decode_stored
 from .store import BackupStore
 from .util import (
     DecryptedBackupStreamer,
@@ -395,6 +405,7 @@ class BackupManager:
         self.config = BackupConfig(hass, self)
         self._reader_writer = reader_writer
         self.known_backups = KnownBackups(self)
+        self.self_checks = SelfCheckRunner(self)
         self.store = BackupStore(hass, self)
 
         # Tasks and flags tracking backup and restore progress
@@ -1401,6 +1412,7 @@ class BackupManager:
                 )
             )
             await delete_backups_exceeding_configured_count(self)
+            self.self_checks.schedule(written_backup.backup.backup_id)
 
         finally:
             self._backup_task = None
@@ -1727,6 +1739,7 @@ class KnownBackups:
                 ],
                 failed_agent_ids=backup["failed_agent_ids"],
                 failed_folders=[Folder(f) for f in backup["failed_folders"]],
+                self_check=decode_stored(backup.get("self_check")),
             )
             for backup in stored_backups
         }
@@ -1774,6 +1787,18 @@ class KnownBackups:
             ]
         self._manager.store.save()
 
+    def set_self_check(self, backup_id: str, result: dict[str, Any]) -> None:
+        """Store the self-check result of a backup."""
+        if (backup := self._backups.get(backup_id)) is None:
+            backup = self._backups[backup_id] = KnownBackup(
+                backup_id=backup_id,
+                failed_addons=[],
+                failed_agent_ids=[],
+                failed_folders=[],
+            )
+        backup.self_check = result
+        self._manager.store.save()
+
     def get(self, backup_id: str) -> KnownBackup | None:
         """Get a backup."""
         return self._backups.get(backup_id)
@@ -1794,10 +1819,11 @@ class KnownBackup:
     failed_addons: list[AddonInfo]
     failed_agent_ids: list[str]
     failed_folders: list[Folder]
+    self_check: dict[str, Any] | None = None
 
     def to_dict(self) -> StoredKnownBackup:
         """Convert known backup to a dict."""
-        return {
+        stored: StoredKnownBackup = {
             "backup_id": self.backup_id,
             "failed_addons": [
                 {"name": a.name, "slug": a.slug, "version": a.version}
@@ -1806,6 +1832,9 @@ class KnownBackup:
             "failed_agent_ids": self.failed_agent_ids,
             "failed_folders": [f.value for f in self.failed_folders],
         }
+        if self.self_check is not None:
+            stored["self_check"] = self.self_check
+        return stored
 
 
 class StoredAddonInfo(TypedDict):
@@ -1823,6 +1852,7 @@ class StoredKnownBackup(TypedDict):
     failed_addons: list[StoredAddonInfo]
     failed_agent_ids: list[str]
     failed_folders: list[str]
+    self_check: NotRequired[dict[str, Any]]
 
 
 class CoreBackupReaderWriter(BackupReaderWriter):
@@ -2220,7 +2250,7 @@ class CoreBackupReaderWriter(BackupReaderWriter):
         # last line of defence.
         try:
             archive_info = await self._hass.async_add_executor_job(read_backup, path)
-        except (KeyError, OSError, tarfile.TarError, ValueError, TypeError):
+        except KeyError, OSError, tarfile.TarError, ValueError, TypeError:
             archive_info = None
         if (
             archive_info is not None

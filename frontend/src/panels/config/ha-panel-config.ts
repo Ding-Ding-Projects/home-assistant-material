@@ -96,6 +96,10 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-device-health",
         load: () => import("./device-health/ha-config-device-health"),
       },
+      "cloud-host": {
+        tag: "ha-config-cloud-host",
+        load: () => import("./cloud-host/ha-config-cloud-host"),
+      },
       system: {
         tag: "ha-config-system-navigation",
         load: () => import("./core/ha-config-system-navigation"),

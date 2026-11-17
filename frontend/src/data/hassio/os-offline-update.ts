@@ -12,7 +12,35 @@ import type { HomeAssistant } from "../../types";
 
 /** Why a file on a stick can or cannot be installed. */
 export type OfflineVerdict =
-  "ok" | "wrong_board" | "not_newer" | "too_large" | "no_space" | "unsupported";
+  | "ok"
+  | "wrong_board"
+  | "not_newer"
+  | "too_large"
+  | "no_space"
+  | "unsupported"
+  | "incomplete"
+  | "no_os_part";
+
+/** A single update file, or a pack folder with a manifest and several parts. */
+export type OfflineKind = "bundle" | "pack";
+
+export type OfflinePartKind = "supervisor" | "core" | "os";
+
+/** One part a pack lists. A part that is not available has no file. */
+export interface OfflinePackPart {
+  kind: OfflinePartKind;
+  available: boolean;
+  file: string;
+  size: number;
+  version: string;
+}
+
+/** The summary of a pack manifest as the Supervisor sends it. */
+export interface OfflinePackSummary {
+  build: string;
+  board: string;
+  parts: OfflinePackPart[];
+}
 
 export interface OfflineCandidate {
   drive_id: string;
@@ -26,9 +54,12 @@ export interface OfflineCandidate {
   board: string;
   version: string;
   verdict: OfflineVerdict;
+  kind: OfflineKind;
+  pack?: OfflinePackSummary;
 }
 
 export const OFFLINE_JOB_NAME = "os_manager_update_from_file";
+export const OFFLINE_PACK_JOB_NAME = "os_manager_update_from_pack";
 
 const VERDICTS: readonly OfflineVerdict[] = [
   "ok",
@@ -37,7 +68,11 @@ const VERDICTS: readonly OfflineVerdict[] = [
   "too_large",
   "no_space",
   "unsupported",
+  "incomplete",
+  "no_os_part",
 ];
+
+const PART_KINDS: readonly OfflinePartKind[] = ["supervisor", "core", "os"];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -50,6 +85,41 @@ export const toVerdict = (value: unknown): OfflineVerdict =>
   VERDICTS.includes(value as OfflineVerdict)
     ? (value as OfflineVerdict)
     : "unsupported";
+
+/** Reads the manifest summary of a pack. Parts of an unknown kind are left out. */
+export const parsePackSummary = (
+  value: unknown
+): OfflinePackSummary | undefined => {
+  if (!isRecord(value) || !Array.isArray(value.parts)) {
+    return undefined;
+  }
+  const parts: OfflinePackPart[] = [];
+  for (const entry of value.parts) {
+    if (
+      !isRecord(entry) ||
+      !PART_KINDS.includes(entry.kind as OfflinePartKind)
+    ) {
+      continue;
+    }
+    parts.push({
+      kind: entry.kind as OfflinePartKind,
+      available: entry.available === true,
+      file: str(entry.file),
+      size:
+        typeof entry.size === "number" && Number.isFinite(entry.size)
+          ? entry.size
+          : 0,
+      version: str(entry.version),
+    });
+  }
+  return {
+    build: str(value.build),
+    board: str(value.board),
+    parts: PART_KINDS.flatMap((kind) =>
+      parts.filter((part) => part.kind === kind)
+    ),
+  };
+};
 
 /** Only a file with the verdict "ok" can be installed. */
 export const canInstallCandidate = (candidate: OfflineCandidate): boolean =>
@@ -73,6 +143,12 @@ export const parseCandidates = (json: unknown): OfflineCandidate[] => {
     if (!driveId || !path) {
       continue;
     }
+    const pack = parsePackSummary(entry.pack);
+    if (entry.kind === "pack" && !pack) {
+      // A pack without its manifest summary cannot be shown or installed.
+      continue;
+    }
+    const kind: OfflineKind = pack ? "pack" : "bundle";
     result.push({
       drive_id: driveId,
       vendor: str(entry.vendor),
@@ -88,6 +164,8 @@ export const parseCandidates = (json: unknown): OfflineCandidate[] => {
       board: str(entry.board),
       version: str(entry.version),
       verdict: toVerdict(entry.verdict),
+      kind,
+      pack,
     });
   }
   return result;
@@ -139,7 +217,8 @@ export const offlineErrorKind = (error: unknown): OfflineErrorKind => {
 
 // ----------------------------------------------------------------- progress
 
-export type OfflineStage = "copying" | "installing" | "done" | "failed";
+export type OfflineStage =
+  "verifying" | "copying" | "installing" | "done" | "failed";
 
 export interface OfflineProgress {
   stage: OfflineStage;
@@ -176,9 +255,71 @@ const clamp = (value: number | null | undefined): number =>
     ? Math.min(100, Math.max(0, Math.round(value)))
     : 0;
 
+/**
+ * What the job of a pack tells. The pack job verifies every part first (0 to
+ * 40), copies the operating system part (40 to 70) and installs it (70 to
+ * 100), using the stage names the Supervisor sets on the job.
+ */
+export const progressFromPackJob = (
+  job: SupervisorJobData
+): OfflineProgress => {
+  const error = job.errors?.find((item) => item.message)?.message ?? undefined;
+  if (job.errors?.length && (job.done || error)) {
+    return { stage: "failed", percent: clamp(job.progress), message: error };
+  }
+  if (job.done) {
+    return { stage: "done", percent: 100 };
+  }
+  const stage: OfflineStage =
+    job.stage === "installing" || job.stage === "copying"
+      ? job.stage
+      : "verifying";
+  const [low, high] =
+    stage === "installing"
+      ? [70, 100]
+      : stage === "copying"
+        ? [40, 70]
+        : [0, 40];
+  const raw = typeof job.progress === "number" ? job.progress : low;
+  return { stage, percent: Math.min(high, Math.max(low, clamp(raw))) };
+};
+
 /** True for the job this feature starts, found by its name. */
 export const isOfflineJob = (job: SupervisorJobData): boolean =>
-  job.name === OFFLINE_JOB_NAME;
+  job.name === OFFLINE_JOB_NAME || job.name === OFFLINE_PACK_JOB_NAME;
+
+/** True for the job that installs a pack. */
+export const isOfflinePackJob = (job: SupervisorJobData): boolean =>
+  job.name === OFFLINE_PACK_JOB_NAME;
+
+// -------------------------------------------------------------------- packs
+
+/** What happens to one part of a pack. */
+export type PackPartOutcome = "installed" | "needs_network" | "skipped";
+
+/**
+ * Only the operating system part can be installed from a file; a Supervisor or
+ * Core part needs a network because both update by pulling an image. A part
+ * the pack does not carry is skipped. This mirrors what the Supervisor does.
+ * The Supervisor keeps the per-part result only in the reply of the job and
+ * not on the job record, so this page derives it from the pack summary.
+ */
+export const packPartOutcome = (part: OfflinePackPart): PackPartOutcome => {
+  if (!part.available) {
+    return "skipped";
+  }
+  return part.kind === "os" ? "installed" : "needs_network";
+};
+
+/** The parts of a pack as rows: each with its version and its outcome. */
+export const packRows = (
+  pack: OfflinePackSummary
+): { part: OfflinePackPart; outcome: PackPartOutcome }[] =>
+  pack.parts.map((part) => ({ part, outcome: packPartOutcome(part) }));
+
+/** True when some available part of the pack still needs a network. */
+export const packNeedsNetwork = (pack: OfflinePackSummary): boolean =>
+  pack.parts.some((part) => packPartOutcome(part) === "needs_network");
 
 // ---------------------------------------------------------------- Supervisor
 
@@ -206,11 +347,14 @@ export const fetchOfflineUpdateCandidates = async (
 /** Sends the drive and path of a candidate back unchanged. */
 export const startOfflineUpdate = async (
   hass: HomeAssistant,
-  candidate: Pick<OfflineCandidate, "drive_id" | "path">
+  candidate: Pick<OfflineCandidate, "drive_id" | "path" | "kind">
 ): Promise<{ job_id: string }> =>
   hass.callWS({
     type: "supervisor/api",
-    endpoint: "/os/offline_update",
+    endpoint:
+      candidate.kind === "pack"
+        ? "/os/offline_update/pack"
+        : "/os/offline_update",
     method: "post",
     timeout: null,
     data: { drive_id: candidate.drive_id, path: candidate.path },
