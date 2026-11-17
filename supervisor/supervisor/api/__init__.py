@@ -377,6 +377,10 @@ class RestAPI(CoreSysAttributes):
             [
                 web.get("/os/info", api_os.info),
                 web.post("/os/update", api_os.update),
+                web.get(
+                    "/os/offline_update/candidates", api_os.offline_update_candidates
+                ),
+                web.post("/os/offline_update", api_os.offline_update),
                 web.get("/os/config/swap", api_os.config_swap_info),
                 web.post("/os/config/swap", api_os.config_swap_options),
                 web.post("/os/config/sync", api_os.config_sync),

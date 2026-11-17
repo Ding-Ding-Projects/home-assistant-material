@@ -418,6 +418,44 @@ class HassOSUpdatePendingRebootError(HassOSUpdateError, APIError):
         super().__init__(None, logger)
 
 
+class HassOSUpdateInProgressError(HassOSUpdateError, APIConflict):
+    """Raise when another operating system update is already running."""
+
+    error_key = "hassos_update_in_progress_error"
+    message_template = "Another operating system update is already in progress"
+
+
+class HassOSOfflineUpdateNotFoundError(HassOSUpdateError, APINotFound):
+    """Raise when the selected update file is not on any removable drive."""
+
+    error_key = "hassos_offline_update_not_found_error"
+    message_template = (
+        "The selected update file was not found on the connected storage, "
+        "reconnect the drive and refresh the list"
+    )
+
+
+class HassOSOfflineUpdateNotAllowedError(HassOSUpdateError, APIError):
+    """Raise when the selected update file cannot be installed on this system."""
+
+    error_key = "hassos_offline_update_not_allowed_error"
+    message_template = "The selected update file cannot be installed: {reason}"
+
+    def __init__(
+        self, logger: Callable[..., None] | None = None, *, reason: str
+    ) -> None:
+        """Initialize exception."""
+        self.extra_fields = {"reason": reason}
+        super().__init__(None, logger)
+
+
+class HassOSOfflineUpdateRejectedError(HassOSUpdateError, APIError):
+    """Raise when Rauc refuses to install the update file."""
+
+    error_key = "hassos_offline_update_rejected_error"
+    message_template = "The update file is not signed for this system or is damaged"
+
+
 class HassOSJobError(HassOSError, JobException):
     """Function not supported by HassOS."""
 

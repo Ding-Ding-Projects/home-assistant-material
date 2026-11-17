@@ -20,8 +20,10 @@ from ..const import (
     ATTR_DISK_LED,
     ATTR_HEARTBEAT_LED,
     ATTR_ID,
+    ATTR_JOB_ID,
     ATTR_LATEST_VERSION,
     ATTR_NAME,
+    ATTR_PATH,
     ATTR_POWER_LED,
     ATTR_SERIAL,
     ATTR_SIZE,
@@ -45,19 +47,22 @@ from ..validate import version_tag
 from .const import (
     ATTR_BOOT_SLOT,
     ATTR_BOOT_SLOTS,
+    ATTR_CANDIDATES,
     ATTR_DATA_DISK,
     ATTR_DEV_PATH,
     ATTR_DEVICE,
     ATTR_DISKS,
+    ATTR_DRIVE_ID,
     ATTR_KEY,
     ATTR_KEYS,
     ATTR_MODEL,
+    ATTR_OFFLINE_UPDATE,
     ATTR_STATUS,
     ATTR_SYSTEM_HEALTH_LED,
     ATTR_VENDOR,
     BootSlot,
 )
-from .utils import api_process, api_validate
+from .utils import api_process, api_validate, background_task
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -79,6 +84,15 @@ SSH_KEYS_LIST_MIN_OS_AGENT_VERSION: AwesomeVersion = AwesomeVersion("1.11.0")
 SCHEMA_VERSION = vol.Schema({vol.Optional(ATTR_VERSION): version_tag})
 SCHEMA_SET_BOOT_SLOT = vol.Schema({vol.Required(ATTR_BOOT_SLOT): vol.Coerce(BootSlot)})
 SCHEMA_DISK = vol.Schema({vol.Required(ATTR_DEVICE): str})
+# Only a lookup key: the install handler accepts nothing the scan did not list
+SCHEMA_OFFLINE_UPDATE = vol.Schema(
+    {
+        vol.Required(ATTR_DRIVE_ID): vol.All(str, vol.Length(min=1, max=256)),
+        vol.Required(ATTR_PATH): vol.All(
+            str, vol.Length(min=1, max=300), vol.Match(r"^[^\x00-\x1f\x7f]+$")
+        ),
+    }
+)
 
 SCHEMA_YELLOW_OPTIONS = vol.Schema(
     {
@@ -163,6 +177,7 @@ class APIOS(CoreSysAttributes):
             ATTR_VERSION_LATEST: self.sys_os.latest_version,
             ATTR_VERSION_PENDING: self.sys_os.version_pending,
             ATTR_UPDATE_AVAILABLE: self.sys_os.need_update,
+            ATTR_OFFLINE_UPDATE: self.sys_os.offline_update_supported,
             ATTR_BOARD: self.sys_os.board,
             ATTR_BOOT: self.sys_dbus.rauc.boot_slot,
             ATTR_DATA_DISK: self.sys_os.datadisk.disk_used_id,
@@ -184,6 +199,29 @@ class APIOS(CoreSysAttributes):
         version = body.get(ATTR_VERSION, self.sys_os.latest_version)
 
         await asyncio.shield(self.sys_os.update(version))
+
+    @api_process
+    async def offline_update_candidates(self, request: web.Request) -> dict[str, Any]:
+        """List update files on removable drives."""
+        candidates = await self.sys_os.offline_update_candidates()
+        return {ATTR_CANDIDATES: [candidate.to_dict() for candidate in candidates]}
+
+    @api_process
+    async def offline_update(self, request: web.Request) -> dict[str, str] | None:
+        """Install the OS update from a file on a removable drive."""
+        body = await api_validate(SCHEMA_OFFLINE_UPDATE, request)
+
+        update_task, job_id = await background_task(
+            self.sys_os,
+            self.sys_os.update_from_file,
+            drive_id=body[ATTR_DRIVE_ID],
+            path=body[ATTR_PATH],
+        )
+
+        if not update_task.done():
+            return {ATTR_JOB_ID: job_id}
+
+        return await update_task
 
     @api_process
     def config_sync(self, request: web.Request) -> Awaitable[None]:

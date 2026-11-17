@@ -1,10 +1,15 @@
 """OS support on supervisor."""
 
+import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 import logging
 from pathlib import Path, PurePath
+import re
+from uuid import uuid4
 
 import aiohttp
 from awesomeversion import AwesomeVersion, AwesomeVersionException
@@ -18,20 +23,38 @@ from ..exceptions import (
     DBusNotConnectedError,
     HassOSError,
     HassOSJobError,
+    HassOSOfflineUpdateNotAllowedError,
+    HassOSOfflineUpdateNotFoundError,
+    HassOSOfflineUpdateRejectedError,
     HassOSSlotNotFound,
     HassOSSlotUpdateError,
     HassOSUpdateAlreadyInstalledError,
     HassOSUpdateError,
+    HassOSUpdateInProgressError,
     HassOSUpdatePendingRebootError,
     HostError,
 )
+from ..host.const import HostFeature
 from ..jobs.const import JobConcurrency, JobCondition
 from ..jobs.decorator import Job
 from ..jobs.job_group import JobGroup
 from ..resolution.const import ContextType, IssueType, SuggestionType
 from .data_disk import DataDisk
+from .offline_update import (
+    VERDICT_REASONS,
+    OfflineUpdateCandidate,
+    OfflineUpdates,
+    OfflineUpdateVerdict,
+)
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
+
+# Messages Rauc reports when it refuses a bundle before writing any slot
+RE_RAUC_BUNDLE_REJECTED = re.compile(
+    r"verif|signature|certificate|checksum|digest|invalid bundle"
+    r"|(?:load|open) bundle|bundle (?:format|payload)",
+    re.IGNORECASE,
+)
 
 # SSH service on Home Assistant OS consuming /root/.ssh/authorized_keys
 DROPBEAR_SERVICE = "dropbear.service"
@@ -109,6 +132,8 @@ class OSManager(JobGroup):
         self._board: str | None = None
         self._os_name: str | None = None
         self._slots: dict[str, SlotStatus] | None = None
+        self._update_lock = asyncio.Lock()
+        self._offline_updates = OfflineUpdates(coresys)
 
     @property
     def available(self) -> bool:
@@ -381,8 +406,36 @@ class OSManager(JobGroup):
         int_ota = Path(self.sys_config.path_tmp, f"hassos-{version!s}.raucb")
         ext_ota = Path(self.sys_config.path_extern_tmp, int_ota.name)
 
+        async with self._exclusive_update():
+            try:
+                await self._download_raucb(ota_url, int_ota)
+                await self._install_bundle(ext_ota, version)
+            finally:
+                # Also removes a partial bundle left behind by a failed download
+                await self.sys_run_in_executor(partial(int_ota.unlink, missing_ok=True))
+
+    @asynccontextmanager
+    async def _exclusive_update(self) -> AsyncIterator[None]:
+        """Allow only one OS update, from the internet or from a drive, at a time."""
+        if self._update_lock.locked():
+            raise HassOSUpdateInProgressError(None, _LOGGER.warning)
+
+        async with self._update_lock:
+            yield
+
+    async def _install_bundle(
+        self,
+        ext_ota: Path,
+        version: AwesomeVersion,
+        *,
+        reject_unverified: bool = False,
+    ) -> None:
+        """Install a bundle through Rauc, which verifies its signature itself.
+
+        The bundle must be on a path the host can read. Marks the update as
+        pending a reboot on success.
+        """
         try:
-            await self._download_raucb(ota_url, int_ota)
             async with self.sys_dbus.rauc.signal_completed() as signal:
                 # Start listening for signals before triggering install
                 # This prevents a race condition with install complete signal
@@ -392,10 +445,6 @@ class OSManager(JobGroup):
 
         except DBusError as err:
             raise HassOSUpdateError("Rauc communication error", _LOGGER.error) from err
-
-        finally:
-            # Also removes a partial bundle left behind by a failed download
-            await self.sys_run_in_executor(partial(int_ota.unlink, missing_ok=True))
 
         # Update success
         if 0 in completed:
@@ -413,14 +462,126 @@ class OSManager(JobGroup):
 
         # Update failed
         await self.sys_dbus.rauc.update()
+        last_error = self.sys_dbus.rauc.last_error
         _LOGGER.error(
-            "Home Assistant Operating System update failed with: %s",
-            self.sys_dbus.rauc.last_error,
+            "Home Assistant Operating System update failed with: %s", last_error
         )
         # The failed install overwrote the target slot, so a previously
         # installed update pending activation is gone as well
         self._version_pending = None
+        if reject_unverified and RE_RAUC_BUNDLE_REJECTED.search(last_error or ""):
+            raise HassOSOfflineUpdateRejectedError(None, _LOGGER.error)
         raise HassOSUpdateError
+
+    @property
+    def offline_update_supported(self) -> bool:
+        """Return true if updates can be installed from a removable drive."""
+        return (
+            self.available
+            and HostFeature.MOUNT in self.sys_host.features
+            and self.sys_dbus.udisks2.is_connected
+        )
+
+    async def offline_update_candidates(self) -> list[OfflineUpdateCandidate]:
+        """List OS update bundles on removable drives."""
+        if not self.offline_update_supported:
+            return []
+        return await self._offline_updates.discover()
+
+    @Job(
+        name="os_manager_update_from_file",
+        conditions=[
+            JobCondition.HAOS,
+            JobCondition.HEALTHY,
+            JobCondition.MOUNT_AVAILABLE,
+            JobCondition.RUNNING,
+            JobCondition.SUPERVISOR_UPDATED,
+        ],
+        on_condition=HassOSJobError,
+        concurrency=JobConcurrency.REJECT,
+    )
+    async def update_from_file(
+        self,
+        drive_id: str,
+        path: str,
+        *,
+        validation_complete: asyncio.Event | None = None,
+    ) -> None:
+        """Update HassOS from a bundle on a removable drive.
+
+        Needs no internet. The bundle is copied to local storage and the drive
+        is released before Rauc verifies and installs the copy.
+        """
+        job = self.sys_jobs.current
+        job.reference = drive_id
+
+        bundle_name = f"hassos-offline-{uuid4().hex}.raucb"
+        local_bundle = Path(self.sys_config.path_tmp, bundle_name)
+        ext_bundle = Path(self.sys_config.path_extern_tmp, bundle_name)
+        reported_percent = 0
+
+        def report_copy_progress(fraction: float) -> None:
+            """Report the copy as the first half of the job, once per percent."""
+            nonlocal reported_percent
+            if (percent := int(fraction * 50)) > reported_percent:
+                reported_percent = percent
+                job.update(progress=percent)
+
+        async with self._exclusive_update():
+            try:
+                async with self._offline_updates.session(wait=True) as bundles:
+                    found = [
+                        bundle
+                        for bundle in bundles
+                        if bundle.candidate.drive_id == drive_id
+                        and bundle.candidate.path == path
+                    ]
+                    if not found:
+                        raise HassOSOfflineUpdateNotFoundError(None, _LOGGER.warning)
+                    if len(found) > 1:
+                        raise HassOSOfflineUpdateNotAllowedError(
+                            _LOGGER.warning,
+                            reason="the same file exists on more than one "
+                            "partition of the drive",
+                        )
+
+                    candidate = found[0].candidate
+                    if candidate.verdict != OfflineUpdateVerdict.OK:
+                        raise HassOSOfflineUpdateNotAllowedError(
+                            _LOGGER.warning,
+                            reason=VERDICT_REASONS[candidate.verdict],
+                        )
+                    version = AwesomeVersion(candidate.version)
+
+                    # If being run in the background, notify caller that validation has completed
+                    if validation_complete:
+                        validation_complete.set()
+
+                    _LOGGER.info(
+                        "Copying update file %s from drive %s",
+                        candidate.path,
+                        candidate.drive_id,
+                    )
+                    job.update(progress=0, stage="copying")
+                    sha256 = await self._offline_updates.copy_bundle(
+                        found[0], local_bundle, report_copy_progress
+                    )
+
+                # The drive is released here, it may be removed from now on
+                _LOGGER.info(
+                    "Installing Home Assistant Operating System %s from drive "
+                    "(file %s, SHA-256 %s)",
+                    version,
+                    candidate.path,
+                    sha256,
+                )
+                job.update(progress=50, stage="installing", extra={"sha256": sha256})
+                await self._install_bundle(ext_bundle, version, reject_unverified=True)
+                job.update(progress=100)
+            finally:
+                await self.sys_run_in_executor(
+                    partial(local_bundle.unlink, missing_ok=True)
+                )
 
     @Job(
         name="os_manager_update_raspberrypi_firmware",

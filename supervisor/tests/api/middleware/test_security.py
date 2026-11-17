@@ -256,6 +256,8 @@ ROLE_PATHS = [
     ("post", "/addons/abc123/restart", {"admin", "manager"}),
     ("post", "/addons/abc123/security", {"admin"}),
     ("post", "/os/datadisk/wipe", {"admin"}),
+    ("get", "/os/offline_update/candidates", {"admin"}),
+    ("post", "/os/offline_update", {"admin"}),
     ("get", "/os/ssh/authorized_keys", set()),
     ("post", "/os/ssh/authorized_keys", set()),
     ("delete", "/os/ssh/authorized_keys", set()),
