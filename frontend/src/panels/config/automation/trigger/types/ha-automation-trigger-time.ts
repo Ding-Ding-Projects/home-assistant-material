@@ -126,7 +126,10 @@ export class HaTimeTrigger extends LitElement implements TriggerElement {
                   },
                 },
               },
-              { name: "offset", selector: { text: {} } },
+              {
+                name: "offset",
+                selector: { duration: { mode: "offset" } },
+              },
             ] as const)),
         {
           type: "multi_select",

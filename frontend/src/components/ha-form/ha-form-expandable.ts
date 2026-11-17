@@ -2,6 +2,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import type { HomeAssistant } from "../../types";
 import "../ha-expansion-panel";
+import { countFilledFields } from "./field-kinds";
 import "./ha-form";
 import type { HaForm } from "./ha-form";
 import type {
@@ -74,15 +75,16 @@ export class HaFormExpandable extends LitElement implements HaFormElement {
 
   // How many options are folded away, so a closed section says what is in it.
   private _renderCount() {
-    const count = this.schema.schema.filter(
-      (item) => item.type !== "constant" && item.type !== "divider"
-    ).length;
-    const text = count
-      ? this.hass?.localize("ui.components.form-expandable.options_count", {
-          count,
-        })
-      : "";
-    return text ? html`<span class="count">${text}</span>` : nothing;
+    const { filled, total } = countFilledFields(this.schema.schema, this.data);
+    if (!total) {
+      return nothing;
+    }
+    const options =
+      this.hass?.localize("ui.components.form-expandable.options_count", {
+        count: total,
+      }) ?? "";
+    const text = `${filled}/${total} · ${options}`;
+    return html`<span class="count">${text}</span>`;
   }
 
   protected render() {

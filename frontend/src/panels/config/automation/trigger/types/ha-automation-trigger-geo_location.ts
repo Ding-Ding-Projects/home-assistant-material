@@ -17,9 +17,12 @@ export class HaGeolocationTrigger extends LitElement {
   @property({ type: Boolean }) public disabled = false;
 
   private _schema = memoizeOne(
-    (localize: LocalizeFunc) =>
+    (localize: LocalizeFunc, sources: string[]) =>
       [
-        { name: "source", selector: { text: {} } },
+        {
+          name: "source",
+          selector: { select: { options: sources, custom_value: true } },
+        },
         { name: "zone", selector: { entity: { domain: "zone" } } },
         {
           name: "event",
@@ -52,10 +55,24 @@ export class HaGeolocationTrigger extends LitElement {
     };
   }
 
+  private _knownSources(): string[] {
+    const sources = new Set<string>();
+    for (const [entityId, stateObj] of Object.entries(this.hass.states)) {
+      const source = stateObj.attributes.source;
+      if (entityId.startsWith("geo_location.") && typeof source === "string") {
+        sources.add(source);
+      }
+    }
+    if (this.trigger.source) {
+      sources.add(this.trigger.source);
+    }
+    return [...sources].sort();
+  }
+
   protected render() {
     return html`
       <ha-form
-        .schema=${this._schema(this.hass.localize)}
+        .schema=${this._schema(this.hass.localize, this._knownSources())}
         .data=${this.trigger}
         .hass=${this.hass}
         .disabled=${this.disabled}

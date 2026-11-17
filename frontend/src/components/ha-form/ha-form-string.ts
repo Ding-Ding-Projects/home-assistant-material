@@ -7,13 +7,12 @@ import type { LocalizeFunc } from "../../common/translations/localize";
 import "../ha-icon-button";
 import "../input/ha-input";
 import type { HaInput } from "../input/ha-input";
+import { getStringFieldProps } from "./field-kinds";
 import type {
   HaFormElement,
   HaFormStringData,
   HaFormStringSchema,
 } from "./types";
-
-const MASKED_FIELDS = ["password", "secret", "token"];
 
 @customElement("ha-form-string")
 export class HaFormString extends LitElement implements HaFormElement {
@@ -44,10 +43,12 @@ export class HaFormString extends LitElement implements HaFormElement {
   }
 
   protected render(): TemplateResult {
+    const props = getStringFieldProps(this.schema);
     return html`
       <ha-input
-        .passwordToggle=${this.isPassword}
-        .type=${!this.isPassword ? this.stringType : "password"}
+        .passwordToggle=${props.passwordToggle}
+        .type=${props.type}
+        .inputmode=${props.inputMode}
         .label=${this.label}
         .value=${this.data || ""}
         .hint=${this.helper}
@@ -56,7 +57,7 @@ export class HaFormString extends LitElement implements HaFormElement {
         .autoValidate=${!!this.schema.required}
         .name=${this.schema.name}
         .autofocus=${!!this.schema.autofocus}
-        .autocomplete=${this.schema.autocomplete}
+        .autocomplete=${props.autocomplete}
         .inputId=${this.schema.name}
         .validationMessage=${
           this.schema.required
@@ -67,9 +68,7 @@ export class HaFormString extends LitElement implements HaFormElement {
         @change=${this._valueChanged}
       >
         ${
-          this.schema.description?.suffix
-            ? html`<span slot="end">${this.schema.description.suffix}</span>`
-            : nothing
+          props.suffix ? html`<span slot="end">${props.suffix}</span>` : nothing
         }
       </ha-input>
     `;
@@ -92,22 +91,6 @@ export class HaFormString extends LitElement implements HaFormElement {
     fireEvent(this, "value-changed", {
       value,
     });
-  }
-
-  protected get stringType(): "email" | "url" | "text" {
-    if (this.schema.format) {
-      if (["email", "url"].includes(this.schema.format)) {
-        return this.schema.format as "email" | "url";
-      }
-      if (this.schema.format === "fqdnurl") {
-        return "url";
-      }
-    }
-    return "text";
-  }
-
-  protected get isPassword(): boolean {
-    return MASKED_FIELDS.some((field) => this.schema.name.includes(field));
   }
 
   static styles = css`

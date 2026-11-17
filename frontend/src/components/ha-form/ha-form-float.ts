@@ -6,6 +6,7 @@ import type { HASSDomTargetEvent } from "../../common/dom/fire_event";
 import type { LocalizeFunc } from "../../common/translations/localize";
 import "../input/ha-input";
 import type { HaInput } from "../input/ha-input";
+import { getNumberFieldProps } from "./field-kinds";
 import type {
   HaFormElement,
   HaFormFloatData,
@@ -38,11 +39,15 @@ export class HaFormFloat extends LitElement implements HaFormElement {
   }
 
   protected render(): TemplateResult {
+    const props = getNumberFieldProps("float", this.schema);
     return html`
       <ha-input
         type="number"
-        inputMode="decimal"
+        .inputmode=${props.inputMode}
+        .min=${props.min}
+        .max=${props.max}
         step="any"
+        without-spin-buttons
         .label=${this.label}
         .hint=${this.helper}
         .value=${this.data !== undefined ? this.data : ""}
@@ -57,9 +62,7 @@ export class HaFormFloat extends LitElement implements HaFormElement {
         @input=${this._handleInput}
       >
         ${
-          this.schema.description?.suffix
-            ? html`<span slot="end">${this.schema.description?.suffix}</span>`
-            : nothing
+          props.suffix ? html`<span slot="end">${props.suffix}</span>` : nothing
         }
       </ha-input>
     `;

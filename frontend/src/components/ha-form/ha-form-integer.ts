@@ -1,15 +1,18 @@
 import type { PropertyValues, TemplateResult } from "lit";
+import { mdiMinus, mdiPlus } from "@mdi/js";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
 import type { HASSDomTargetEvent } from "../../common/dom/fire_event";
 import type { LocalizeFunc } from "../../common/translations/localize";
 import "../ha-checkbox";
+import "../ha-icon-button";
 import type { HaCheckbox } from "../ha-checkbox";
 import "../ha-input-helper-text";
 import "../ha-slider";
 import "../input/ha-input";
 import type { HaInput } from "../input/ha-input";
+import { getNumberFieldProps } from "./field-kinds";
 import type {
   HaFormElement,
   HaFormIntegerData,
@@ -54,13 +57,12 @@ export class HaFormInteger extends LitElement implements HaFormElement {
 
   private _showSlider(): boolean {
     return (
-      this.schema.valueMin !== undefined &&
-      this.schema.valueMax !== undefined &&
-      this.schema.valueMax - this.schema.valueMin < 256
+      getNumberFieldProps("integer", this.schema).presentation === "slider"
     );
   }
 
   protected render(): TemplateResult {
+    const props = getNumberFieldProps("integer", this.schema);
     if (this._showSlider()) {
       return html`
         <div>
@@ -88,6 +90,28 @@ export class HaFormInteger extends LitElement implements HaFormElement {
               }
               @change=${this._valueChanged}
             ></ha-slider>
+            <ha-input
+              class="slider-box"
+              type="number"
+              .inputmode=${"numeric"}
+              .min=${props.min}
+              .max=${props.max}
+              .step=${1}
+              .accessibleLabel=${this.label}
+              .value=${this.data?.toString() ?? ""}
+              .disabled=${
+                this.disabled ||
+                (this.data === undefined && !this.schema.required)
+              }
+              without-spin-buttons
+              @input=${this._valueChanged}
+            >
+              ${
+                props.suffix
+                  ? html`<span slot="end">${props.suffix}</span>`
+                  : nothing
+              }
+            </ha-input>
           </div>
           ${
             this.helper
@@ -103,7 +127,11 @@ export class HaFormInteger extends LitElement implements HaFormElement {
     return html`
       <ha-input
         type="number"
-        inputMode="numeric"
+        .inputmode=${props.inputMode}
+        .min=${props.min}
+        .max=${props.max}
+        .step=${props.step}
+        without-spin-buttons
         .label=${this.label}
         .hint=${this.helper}
         .value=${this.data?.toString() ?? ""}
@@ -117,11 +145,23 @@ export class HaFormInteger extends LitElement implements HaFormElement {
         }
         @input=${this._valueChanged}
       >
+        <ha-icon-button
+          slot="start"
+          .label=${this.localize?.("ui.components.number-buttons.decrement")}
+          .path=${mdiMinus}
+          .disabled=${this.disabled}
+          @click=${this._decrement}
+        ></ha-icon-button>
         ${
-          this.schema.description?.suffix
-            ? html`<span slot="end">${this.schema.description.suffix}</span>`
-            : nothing
+          props.suffix ? html`<span slot="end">${props.suffix}</span>` : nothing
         }
+        <ha-icon-button
+          slot="end"
+          .label=${this.localize?.("ui.components.number-buttons.increment")}
+          .path=${mdiPlus}
+          .disabled=${this.disabled}
+          @click=${this._increment}
+        ></ha-icon-button>
       </ha-input>
     `;
   }
@@ -179,6 +219,25 @@ export class HaFormInteger extends LitElement implements HaFormElement {
     });
   }
 
+  private _decrement = () => this._step(-1);
+
+  private _increment = () => this._step(1);
+
+  private _step(direction: 1 | -1) {
+    const props = getNumberFieldProps("integer", this.schema);
+    let value = (this.data ?? this.schema.default ?? 0) + direction;
+    if (props.min !== undefined) {
+      value = Math.max(props.min, value);
+    }
+    if (props.max !== undefined) {
+      value = Math.min(props.max, value);
+    }
+    if (value === this.data) {
+      return;
+    }
+    fireEvent(this, "value-changed", { value });
+  }
+
   private _valueChanged(
     ev: InputEvent & HASSDomTargetEvent<HaInput | HTMLInputElement>
   ) {
@@ -216,6 +275,10 @@ export class HaFormInteger extends LitElement implements HaFormElement {
     }
     ha-slider {
       flex: 1;
+    }
+    .slider-box {
+      width: 96px;
+      flex: none;
     }
     ha-input-helper-text {
       margin-top: var(--ha-space-1);

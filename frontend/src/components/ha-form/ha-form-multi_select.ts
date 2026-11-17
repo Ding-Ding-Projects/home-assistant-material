@@ -1,32 +1,36 @@
 import type { PropertyValues, TemplateResult } from "lit";
-import { css, html, LitElement } from "lit";
-import { customElement, property, query } from "lit/decorators";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property } from "lit/decorators";
+import memoizeOne from "memoize-one";
 import { fireEvent } from "../../common/dom/fire_event";
-import type { HASSDomTargetEvent } from "../../common/dom/fire_event";
-import "../ha-checkbox";
-import type { HaCheckbox } from "../ha-checkbox";
-import "../ha-dropdown";
-import "../ha-dropdown-item";
-import "../ha-icon-button";
-import "../ha-picker-field";
-
-import type { HaDropdown, HaDropdownSelectEvent } from "../ha-dropdown";
+import type { SelectSelector } from "../../data/selector";
+import type { ValueChangedEvent } from "../../types";
+import "../chips/ha-chip-set";
+import "../chips/ha-filter-chip";
+import "../ha-input-helper-text";
+import "../ha-selector/ha-selector-select";
+import { MULTI_SELECT_CHIP_LIMIT } from "./field-kinds";
 import type {
   HaFormElement,
   HaFormMultiSelectData,
   HaFormMultiSelectSchema,
 } from "./types";
 
-function optionValue(item: string | string[]): string {
-  return Array.isArray(item) ? item[0] : item;
+type RawOption = string | readonly string[];
+
+function optionValue(item: RawOption): string {
+  return Array.isArray(item) ? item[0] : (item as string);
 }
 
-function optionLabel(item: string | string[]): string {
-  return Array.isArray(item) ? item[1] || item[0] : item;
+function optionLabel(item: RawOption): string {
+  return Array.isArray(item) ? item[1] || item[0] : (item as string);
 }
 
-const SHOW_ALL_ENTRIES_LIMIT = 6;
-
+/**
+ * A few options are toggle chips, all visible at once. More options use the
+ * searchable multi picker. Either way the value is the array of selected
+ * option values.
+ */
 @customElement("ha-form-multi_select")
 export class HaFormMultiSelect extends LitElement implements HaFormElement {
   @property({ attribute: false }) public schema!: HaFormMultiSelectSchema;
@@ -35,13 +39,9 @@ export class HaFormMultiSelect extends LitElement implements HaFormElement {
 
   @property() public label!: string;
 
+  @property() public helper?: string;
+
   @property({ type: Boolean, reflect: true }) public disabled = false;
-
-  @query("ha-dropdown") private _dropdown!: HaDropdown;
-
-  public focus(): void {
-    this._dropdown?.focus();
-  }
 
   public reportValidity(): boolean {
     if (!this.schema.required || (this.data && this.data.length > 0)) {
@@ -50,177 +50,103 @@ export class HaFormMultiSelect extends LitElement implements HaFormElement {
     return false;
   }
 
+  private get _options(): RawOption[] {
+    return (
+      Array.isArray(this.schema.options)
+        ? this.schema.options
+        : Object.entries(this.schema.options)
+    ) as RawOption[];
+  }
+
+  private _selector = memoizeOne((options: RawOption[]): SelectSelector => ({
+    select: {
+      multiple: true,
+      options: options.map((item) => ({
+        value: optionValue(item),
+        label: optionLabel(item),
+      })),
+    },
+  }));
+
   protected render(): TemplateResult {
-    const options = Array.isArray(this.schema.options)
-      ? this.schema.options
-      : Object.entries(this.schema.options);
+    const options = this._options;
     const data = this.data || [];
 
-    // We will just render all checkboxes.
-    if (options.length < SHOW_ALL_ENTRIES_LIMIT) {
-      return html`<div>
-        ${this.label}${options.map((item: string | [string, string]) => {
-          const value = optionValue(item);
-          return html`
-            <ha-checkbox
-              .checked=${data.includes(value)}
-              .value=${value}
-              .disabled=${this.disabled}
-              @change=${this._valueChanged}
-            >
-              ${optionLabel(item)}
-            </ha-checkbox>
-          `;
-        })}
-      </div> `;
+    if (options.length > MULTI_SELECT_CHIP_LIMIT) {
+      return html`<ha-selector-select
+        .label=${this.label}
+        .helper=${this.helper}
+        .value=${data}
+        .disabled=${this.disabled}
+        .required=${this.schema.required || false}
+        .selector=${this._selector(options)}
+        @value-changed=${this._selectorChanged}
+      ></ha-selector-select>`;
     }
 
     return html`
-      <ha-dropdown
-        @wa-select=${this._toggleItem}
-        @wa-show=${this._showDropdown}
-        placement="bottom"
-        tabindex="0"
-        @keydown=${this._handleKeydown}
-      >
-        <ha-picker-field
-          slot="trigger"
-          .label=${this.label}
-          .value=${data
-            .map(
-              (value) =>
-                optionLabel(options.find((v) => optionValue(v) === value)) ||
-                value
-            )
-            .join(", ")}
-          .disabled=${this.disabled}
-          hide-clear-icon
-        >
-        </ha-picker-field>
-        ${options.map((item: string | [string, string]) => {
+      <div class="label" id="label">
+        ${this.label}${this.schema.required ? " *" : nothing}
+      </div>
+      <ha-chip-set aria-labelledby="label">
+        ${options.map((item) => {
           const value = optionValue(item);
-          const selected = data.includes(value);
-          return html`<ha-dropdown-item
-            .value=${value}
-            .action=${selected ? "remove" : "add"}
-            type="checkbox"
-            .checked=${selected}
-          >
-            ${optionLabel(item)}
-          </ha-dropdown-item>`;
+          return html`<ha-filter-chip
+            .label=${optionLabel(item)}
+            .selected=${data.includes(value)}
+            .disabled=${this.disabled}
+            @click=${this._chipClicked(value)}
+          ></ha-filter-chip>`;
         })}
-      </ha-dropdown>
+      </ha-chip-set>
+      ${
+        this.helper
+          ? html`<ha-input-helper-text>${this.helper}</ha-input-helper-text>`
+          : nothing
+      }
     `;
-  }
-
-  protected _toggleItem(ev: HaDropdownSelectEvent) {
-    ev.preventDefault(); // keep the dropdown open
-    const value = ev.detail.item.value;
-    const action = (ev.detail.item as any).action;
-
-    const oldData = this.data || [];
-    let newData: string[];
-    if (action === "add") {
-      newData = [...oldData, value];
-    } else {
-      newData = oldData.filter((d) => d !== value);
-    }
-    fireEvent(this, "value-changed", {
-      value: newData,
-    });
   }
 
   protected updated(changedProps: PropertyValues<this>): void {
     if (changedProps.has("schema")) {
-      this.toggleAttribute(
-        "own-margin",
-        Object.keys(this.schema.options).length >= SHOW_ALL_ENTRIES_LIMIT &&
-          !!this.schema.required
-      );
+      this.toggleAttribute("own-margin", !!this.schema.required);
     }
   }
 
-  private _valueChanged(ev: HASSDomTargetEvent<HaCheckbox>): void {
-    const { value, checked } = ev.target as HaCheckbox;
-    this._handleValueChanged(value, checked);
-  }
+  private _chipClicked = memoizeOne((value: string) => (ev: Event) => {
+    ev.stopPropagation();
+    this._toggle(value, !(this.data || []).includes(value));
+  });
 
-  private _handleValueChanged(value, checked: boolean): void {
-    let newValue: string[];
-
-    if (checked) {
-      if (!this.data) {
-        newValue = [value];
-      } else if (this.data.includes(value)) {
-        return;
-      } else {
-        newValue = [...this.data, value];
-      }
-    } else {
-      if (!this.data.includes(value)) {
-        return;
-      }
-      newValue = this.data.filter((v) => v !== value);
+  private _toggle(value: string, checked: boolean): void {
+    const current = this.data || [];
+    if (checked === current.includes(value)) {
+      return;
     }
-
     fireEvent(this, "value-changed", {
-      value: newValue,
+      value: checked ? [...current, value] : current.filter((v) => v !== value),
     });
   }
 
-  private _showDropdown(ev) {
-    if (this.disabled) {
-      ev.preventDefault();
-    }
-    this.style.setProperty(
-      "--dropdown-width",
-      `${this._dropdown.offsetWidth}px`
-    );
-  }
-
-  private _handleKeydown(ev) {
-    if ((ev.code === "Space" || ev.code === "Enter") && this._dropdown) {
-      this._dropdown.open = true;
-    }
+  private _selectorChanged(ev: ValueChangedEvent<string[]>) {
+    ev.stopPropagation();
+    fireEvent(this, "value-changed", { value: ev.detail.value });
   }
 
   static styles = css`
+    :host {
+      display: block;
+    }
     :host([own-margin]) {
       margin-bottom: 5px;
     }
-    ha-dropdown {
-      display: block;
+    .label {
+      margin-bottom: var(--ha-space-2);
+      color: var(--secondary-text-color);
+      font-size: calc(14px * var(--ha-font-size-scale, 1));
     }
-    ha-checkbox {
-      display: flex;
-      padding-inline-end: var(--ha-space-4);
-      padding-inline-start: initial;
-      min-height: 40px;
-      justify-content: center;
-      direction: var(--direction);
-    }
-    ha-icon-button {
-      color: var(--input-dropdown-icon-color);
-      position: absolute;
-      right: 1em;
-      top: 4px;
-      cursor: pointer;
-      inset-inline-end: 1em;
-      inset-inline-start: initial;
-      direction: var(--direction);
-    }
-    :host([opened]) ha-icon-button {
-      color: var(--primary-color);
-    }
-
-    ha-dropdown::part(menu) {
-      border-top-left-radius: 0;
-      border-top-right-radius: 0;
-      width: var(--dropdown-width);
-    }
-
-    :host([disabled]) ha-dropdown ha-picker-field {
-      cursor: not-allowed;
+    ha-input-helper-text {
+      margin-top: var(--ha-space-1);
     }
   `;
 }

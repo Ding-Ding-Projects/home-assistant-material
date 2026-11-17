@@ -8,11 +8,13 @@ import type { HomeAssistant, ValueChangedEvent } from "../../types";
 import "../ha-alert";
 import "../ha-selector/ha-selector";
 import { getHiddenSchemaFields } from "./conditions";
+import { enrichSelector } from "./field-kinds";
 import type {
   HaFormData,
   HaFormDataContainer,
   HaFormElement,
   HaFormSchema,
+  HaFormSelector,
 } from "./types";
 
 type HaFormDataChangedEvent = ValueChangedEvent<HaFormData>;
@@ -218,28 +220,13 @@ export class HaForm extends LitElement implements HaFormElement {
 
           return html`
             ${
-              error
-                ? html`
-                    <ha-alert own-margin alert-type="error">
-                      ${this._computeError(error, item)}
-                    </ha-alert>
-                  `
-                : warning
-                  ? html`
-                      <ha-alert own-margin alert-type="warning">
-                        ${this._computeWarning(warning, item)}
-                      </ha-alert>
-                    `
-                  : ""
-            }
-            ${
               "selector" in item
                 ? html`<ha-selector
                     .schema=${item}
                     .hass=${this.hass}
                     .narrow=${this.narrow}
                     .name=${item.name}
-                    .selector=${item.selector}
+                    .selector=${this._enrich(item)}
                     .value=${getValue(this.data, item)}
                     .label=${this._computeLabel(item, this.data)}
                     .disabled=${item.disabled || this.disabled || false}
@@ -264,10 +251,37 @@ export class HaForm extends LitElement implements HaFormElement {
                     ...this.getFormProperties(),
                   })
             }
+            ${
+              error
+                ? html`
+                    <ha-alert own-margin alert-type="error">
+                      ${this._computeError(error, item)}
+                    </ha-alert>
+                  `
+                : warning
+                  ? html`
+                      <ha-alert own-margin alert-type="warning">
+                        ${this._computeWarning(warning, item)}
+                      </ha-alert>
+                    `
+                  : ""
+            }
           `;
         })}
       </div>
     `;
+  }
+
+  private _enriched = new WeakMap<HaFormSchema, HaFormSelector["selector"]>();
+
+  // Cached so the selector keeps the same object between renders.
+  private _enrich(item: HaFormSelector): HaFormSelector["selector"] {
+    let selector = this._enriched.get(item);
+    if (!selector) {
+      selector = enrichSelector(item) as HaFormSelector["selector"];
+      this._enriched.set(item, selector);
+    }
+    return selector;
   }
 
   protected fieldElementName(type: string): string {
@@ -355,8 +369,12 @@ export class HaForm extends LitElement implements HaFormElement {
     .root > *:not([own-margin]):not(:last-child) {
       margin-bottom: var(--ha-space-4, 16px);
     }
-    ha-alert[own-margin] {
-      margin-bottom: var(--ha-space-2, 8px);
+    /* An error or warning sits directly under its field. */
+    .root > *:has(+ ha-alert[own-margin]) {
+      margin-bottom: var(--ha-space-1, 4px);
+    }
+    ha-alert[own-margin]:not(:last-child) {
+      margin-bottom: var(--ha-space-4, 16px);
     }
   `;
 }

@@ -1,16 +1,16 @@
 import type { TemplateResult } from "lit";
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
-import type { HASSDomTargetEvent } from "../../common/dom/fire_event";
-import "../ha-checkbox";
-import type { HaCheckbox } from "../ha-checkbox";
+import "../ha-switch";
+import type { HaSwitch } from "../ha-switch";
 import type {
   HaFormBooleanData,
   HaFormBooleanSchema,
   HaFormElement,
 } from "./types";
 
+/** A switch with its label and description beside it. */
 @customElement("ha-form-boolean")
 export class HaFormBoolean extends LitElement implements HaFormElement {
   @property({ attribute: false }) public schema!: HaFormBooleanSchema;
@@ -23,7 +23,7 @@ export class HaFormBoolean extends LitElement implements HaFormElement {
 
   @property({ type: Boolean }) public disabled = false;
 
-  @query("ha-checkbox", true) private _input?: HTMLElement;
+  @query("ha-switch", true) private _input?: HTMLElement;
 
   public focus() {
     if (this._input) {
@@ -33,30 +33,58 @@ export class HaFormBoolean extends LitElement implements HaFormElement {
 
   protected render(): TemplateResult {
     return html`
-      <ha-checkbox
-        .checked=${this.data}
+      <ha-switch
+        .checked=${this.data ?? false}
         .disabled=${this.disabled}
         @change=${this._valueChanged}
-        .hint=${this.helper}
       >
-        ${this.label}
-      </ha-checkbox>
+        <p class="primary">${this.label}</p>
+        ${this.helper ? html`<p class="secondary">${this.helper}</p>` : nothing}
+      </ha-switch>
     `;
   }
 
-  private _valueChanged(ev: HASSDomTargetEvent<HaCheckbox>) {
+  private _valueChanged(ev: Event) {
+    const checked = (ev.target as HaSwitch).checked;
+    if (checked === this.data) {
+      return;
+    }
     fireEvent(this, "value-changed", {
-      value: (ev.target as HaCheckbox).checked,
+      value: checked,
     });
   }
 
   static styles = css`
-    ha-checkbox {
-      min-height: 56px;
-      justify-content: center;
+    :host {
+      display: block;
     }
-    ha-checkbox::part(base) {
+    ha-switch {
+      display: flex;
+      width: 100%;
+      min-height: 48px;
       align-items: center;
+    }
+    /* The switch draws its control before the label; flip the row so the
+       label and description sit on the start side. */
+    ha-switch::part(base) {
+      width: 100%;
+      flex-direction: row-reverse;
+      justify-content: space-between;
+      gap: var(--ha-space-2);
+    }
+    ha-switch::part(label) {
+      margin-inline-start: 0;
+      line-height: var(--ha-line-height-normal);
+    }
+    p {
+      margin: 0;
+    }
+    .secondary {
+      direction: var(--direction);
+      padding-top: var(--ha-space-1);
+      color: var(--secondary-text-color);
+      font-size: calc(13px * var(--ha-font-size-scale, 1));
+      font-weight: var(--ha-font-weight-normal);
     }
   `;
 }
