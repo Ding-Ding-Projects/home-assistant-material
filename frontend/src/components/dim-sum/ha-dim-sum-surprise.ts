@@ -10,7 +10,11 @@ import {
   setDimSumRandomSource,
   takeLaunchDraw,
 } from "../../common/dim-sum/dim-sum-draw";
-import { readDimSumState } from "../../common/dim-sum/dim-sum-state";
+import { getTopOpenDialogTag } from "../../dialogs/make-dialog-manager";
+import {
+  isTypingInField,
+  readDimSumState,
+} from "../../common/dim-sum/dim-sum-state";
 import { spansForMode } from "../../common/language-mode/bilingual-text";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import {
@@ -28,6 +32,9 @@ import "../ha-icon-button";
 
 const POLL_MS = 500;
 const FADE_MS = 160;
+/** How long a pill waits for a dialog to close or typing to stop. */
+const STALE_MS = 60000;
+const RESERVED_PROPERTY = "--ha-dim-sum-reserved-height";
 
 /** Separates the two languages; the text lines keep it as a line break. */
 const LINE_BREAK = "\n";
@@ -62,6 +69,8 @@ export class HaDimSumSurprise extends LitElement {
 
   @state() private _paused = false;
 
+  @state() private _expanded = false;
+
   @query(".card") private _card?: HTMLElement;
 
   private _lang = new LanguageModeController(this);
@@ -77,6 +86,8 @@ export class HaDimSumSurprise extends LitElement {
   private _roll?: number;
 
   private _launchStartedAt = 0;
+
+  private _quietTimer?: number;
 
   public connectedCallback() {
     super.connectedCallback();
@@ -100,6 +111,8 @@ export class HaDimSumSurprise extends LitElement {
     super.disconnectedCallback();
     window.clearInterval(this._pollTimer);
     window.clearTimeout(this._dismissTimer);
+    window.clearInterval(this._quietTimer);
+    document.documentElement.style.removeProperty(RESERVED_PROPERTY);
   }
 
   private _poll = () => {
@@ -126,6 +139,11 @@ export class HaDimSumSurprise extends LitElement {
     if (!dish || !this.isConnected) {
       return;
     }
+    // Never over an open dialog and never while someone is typing: wait for
+    // both to pass, and drop the card when that takes too long.
+    if (!(await this._waitUntilQuiet())) {
+      return;
+    }
     this._still =
       document.documentElement.hasAttribute("data-a11y-reduce-motion") ||
       document.documentElement.hasAttribute("data-low-stimulation") ||
@@ -145,12 +163,66 @@ export class HaDimSumSurprise extends LitElement {
     this._startTimer();
   }
 
+  private _isBusy(): boolean {
+    return getTopOpenDialogTag() !== undefined || isTypingInField();
+  }
+
+  private _waitUntilQuiet(): Promise<boolean> {
+    if (!this._isBusy()) {
+      return Promise.resolve(true);
+    }
+    const startedAt = Date.now();
+    return new Promise((resolve) => {
+      window.clearInterval(this._quietTimer);
+      this._quietTimer = window.setInterval(() => {
+        if (!this.isConnected || Date.now() - startedAt > STALE_MS) {
+          window.clearInterval(this._quietTimer);
+          resolve(false);
+        } else if (!this._isBusy()) {
+          window.clearInterval(this._quietTimer);
+          resolve(true);
+        }
+      }, POLL_MS);
+    });
+  }
+
+  private _expand = (ev: Event) => {
+    if (this._expanded) {
+      return;
+    }
+    const onClose = ev
+      .composedPath()
+      .some((el) => (el as HTMLElement).localName === "ha-icon-button");
+    if (onClose) {
+      return;
+    }
+    // Focus moving onto the close button must not open the card.
+    if (ev.type === "focusin" && ev.target !== this._card) {
+      return;
+    }
+    this._expanded = true;
+  };
+
+  private _focusIn = (ev: Event) => {
+    this._pause();
+    this._expand(ev);
+  };
+
+  private _focusOut = (ev: FocusEvent) => {
+    this._resume();
+    const next = ev.relatedTarget;
+    if (!(next instanceof Node && this._card?.contains(next))) {
+      this._expanded = false;
+    }
+  };
+
   private _place() {
     const card = this._card;
     if (!card) {
       return;
     }
     card.style.setProperty("--dim-sum-phone-bar", phoneBarHeight());
+    this._publishHeight();
     try {
       if (!card.matches(":popover-open")) {
         card.showPopover();
@@ -158,6 +230,16 @@ export class HaDimSumSurprise extends LitElement {
     } catch (_err) {
       // The card stays in the page when popovers are not supported.
     }
+  }
+
+  /** Tells the page how much room to keep clear under its last row. */
+  private _publishHeight() {
+    const narrow = window.innerWidth <= 450 || window.innerHeight <= 500;
+    const height = this._dish && this._card ? this._card.offsetHeight + 8 : 0;
+    document.documentElement.style.setProperty(
+      RESERVED_PROPERTY,
+      narrow ? `${height}px` : "0px"
+    );
   }
 
   private _startTimer() {
@@ -207,6 +289,8 @@ export class HaDimSumSurprise extends LitElement {
         // Nothing to hide.
       }
       this._dish = undefined;
+      this._expanded = false;
+      document.documentElement.style.removeProperty(RESERVED_PROPERTY);
       this._leaving = false;
       this._paused = false;
       this._announcement = "";
@@ -250,7 +334,7 @@ export class HaDimSumSurprise extends LitElement {
 
   protected updated(changed: PropertyValues) {
     super.updated(changed);
-    if (this._dish && changed.has("_dish")) {
+    if (this._dish && (changed.has("_dish") || changed.has("_expanded"))) {
       this._place();
     }
   }
@@ -276,14 +360,17 @@ export class HaDimSumSurprise extends LitElement {
           still: this._still,
           leaving: this._leaving,
           paused: this._paused,
+          expanded: this._expanded,
         })}
         popover="manual"
+        tabindex="0"
         role="group"
         aria-label=${this._lang.text(this.hass.localize, "ui.dim_sum.card_label")}
+        @click=${this._expand}
         @mouseenter=${this._pause}
         @mouseleave=${this._resume}
-        @focusin=${this._pause}
-        @focusout=${this._resume}
+        @focusin=${this._focusIn}
+        @focusout=${this._focusOut}
       >
         <img
           class="photo"
@@ -321,16 +408,22 @@ export class HaDimSumSurprise extends LitElement {
     }
     .card {
       position: fixed;
+      /* Bottom centre, in the strip the toasts use: above the bottom bars and
+         above any toast already shown, so it never covers a row or a field. */
       inset: auto;
-      inset-inline-end: 16px;
-      inset-block-end: calc(16px + var(--dim-sum-phone-bar, 0px));
-      margin: 0;
+      inset-inline: 0;
+      inset-block-end: calc(
+        16px + var(--dim-sum-phone-bar, 0px) +
+          var(--ha-toast-reserved-height, 0px)
+      );
+      margin: 0 auto;
       padding: 0;
       border: 0;
       overflow: hidden;
-      width: min(320px, calc(100vw - 32px));
+      width: min(560px, calc(100vw - 32px));
       box-sizing: border-box;
       border-radius: 28px;
+      cursor: pointer;
       background: var(--card-background-color, #fff);
       color: var(--primary-text-color, #000);
       box-shadow: var(--ha-box-shadow-l, 0 6px 16px rgba(0, 0, 0, 0.3));
@@ -360,6 +453,43 @@ export class HaDimSumSurprise extends LitElement {
         animation: none;
         transition: none;
       }
+    }
+    .card:not(.expanded) {
+      display: flex;
+      align-items: center;
+      width: min(360px, calc(100vw - 32px));
+      border-radius: 999px;
+    }
+    .card:not(.expanded) .photo {
+      flex: none;
+      width: 44px;
+      height: 44px;
+      margin-inline-start: 8px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+    }
+    .card:not(.expanded) .body {
+      flex: 1;
+      min-width: 0;
+      padding: 0 4px 0 12px;
+    }
+    .card:not(.expanded) .greeting,
+    .card:not(.expanded) .bar {
+      display: none;
+    }
+    .card:not(.expanded) .name {
+      font-size: var(--ha-font-size-m, 1rem);
+    }
+    .card:not(.expanded) .name .line {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .card:not(.expanded) .name .line + .line {
+      display: none;
+    }
+    .card.expanded {
+      cursor: default;
     }
     .photo {
       display: block;

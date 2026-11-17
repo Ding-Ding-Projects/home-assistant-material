@@ -961,11 +961,17 @@ export class HassTabsSubpage extends LitElement {
         }
 
         .content .fab-bottom-space {
-          height: calc(64px + var(--safe-area-inset-bottom, 0px));
+          height: calc(
+            88px + var(--safe-area-inset-bottom, 0px) +
+              var(--ha-toast-reserved-height, 0px)
+          );
         }
 
         :host([narrow][show-tabs]) .content .fab-bottom-space {
-          height: calc(80px + var(--safe-area-inset-bottom, 0px));
+          height: calc(
+            104px + var(--safe-area-inset-bottom, 0px) +
+              var(--ha-toast-reserved-height, 0px)
+          );
         }
 
         #fab {

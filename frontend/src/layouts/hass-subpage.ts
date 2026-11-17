@@ -69,6 +69,10 @@ class HassSubpage extends LitElement {
   // On a phone, a page without a menu of its own folds its tools into a More sheet
   @state() private _foldTools = false;
 
+  /** A page filled the fab slot. Narrow pages then keep room under the content. */
+  @property({ type: Boolean, reflect: true, attribute: "has-fab" })
+  public hasFab = false;
+
   @query(".content > slot:not([name])")
   private _contentSlot?: HTMLSlotElement;
 
@@ -122,6 +126,13 @@ class HassSubpage extends LitElement {
                 : nothing
             }
           </div>
+          ${
+            this.narrow
+              ? nothing
+              : html`<div id="fab" class="docked" ?inert=${locked}>
+                  <slot name="fab" @slotchange=${this._fabChanged}></slot>
+                </div>`
+          }
           <div class="tool-pill">
             <ha-page-tools
               .compact=${this.narrow}
@@ -156,9 +167,13 @@ class HassSubpage extends LitElement {
           ? nothing
           : html`<ha-page-footer .locked=${locked}></ha-page-footer>`
       }
-      <div id="fab" ?inert=${locked}>
-        <slot name="fab"></slot>
-      </div>
+      ${
+        this.narrow
+          ? html`<div id="fab" ?inert=${locked}>
+              <slot name="fab" @slotchange=${this._fabChanged}></slot>
+            </div>`
+          : nothing
+      }
     `;
   }
 
@@ -177,6 +192,12 @@ class HassSubpage extends LitElement {
         : undefined,
     ].filter((part) => part && part !== this.header);
     return parts.length ? parts.join(", ") : undefined;
+  }
+
+  private _fabChanged(ev: Event): void {
+    this.hasFab =
+      (ev.target as HTMLSlotElement).assignedElements({ flatten: true })
+        .length > 0;
   }
 
   private _toolbarIconsChanged(ev: Event): void {
@@ -336,6 +357,25 @@ class HassSubpage extends LitElement {
           flex-direction: column;
         }
 
+        /* A floating button never covers the last line: the page scrolls
+           clear of it (56 px button and 16 px above and below), and clear of
+           any toast shown in the phone strip. The bottom bars are already part
+           of the safe area. */
+        :host([narrow]) .content {
+          padding-bottom: calc(
+            var(--safe-area-inset-bottom, 0px) +
+              var(--ha-toast-reserved-height, 0px) +
+              var(--ha-dim-sum-reserved-height, 0px)
+          );
+        }
+        :host([narrow][has-fab]) .content {
+          padding-bottom: calc(
+            var(--safe-area-inset-bottom, 0px) + 56px + 32px +
+              var(--ha-toast-reserved-height, 0px) +
+              var(--ha-dim-sum-reserved-height, 0px)
+          );
+        }
+
         :host([narrow]) .content {
           width: calc(
             100% - var(--safe-area-inset-left, 0px) - var(
@@ -368,6 +408,19 @@ class HassSubpage extends LitElement {
         }
         :host([narrow]) #fab.tabs {
           bottom: calc(84px + var(--safe-area-inset-bottom, 0px));
+        }
+        /* Wide screens dock the button in the header as a labelled pill. */
+        #fab.docked {
+          position: static;
+          inset: auto;
+          z-index: auto;
+          flex: none;
+          flex-wrap: nowrap;
+          margin-inline-end: var(--ha-space-3);
+          --ha-button-box-shadow: none;
+        }
+        #fab.docked ::slotted(*) {
+          --ha-button-height: 40px;
         }
         #fab[is-wide] {
           bottom: calc(

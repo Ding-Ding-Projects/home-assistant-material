@@ -397,6 +397,34 @@
         },
         "automation": {
           "editor": {
+            "frame": {
+              "no_unsaved": "冇未儲存嘅更改",
+              "unsaved": "有未儲存嘅更改",
+              "dry_run": "試行",
+              "dry_run_soon": "即將推出",
+              "hero_label": "一句講晒",
+              "join_and": "同埋",
+              "sentence_when": "當{when}，",
+              "sentence_if": "而且只喺{conditions}，",
+              "sentence_then": "就{actions}。"
+            },
+            "helper_panel": {
+              "title": "輔助項目",
+              "count_one": "呢個自動化用緊 {count} 個輔助項目",
+              "count_other": "呢個自動化用緊 {count} 個輔助項目",
+              "empty": "呢度暫時未用任何輔助項目。",
+              "make_title": "整一個新嘅",
+              "make": "整一個輔助項目",
+              "edit": "編輯",
+              "edit_label": "編輯 {name}",
+              "remove": "移除",
+              "remove_label": "移除 {name}",
+              "remove_used_by": "要移除「{name}」嗎？仲有呢啲用緊：{users}。喺度移除，所有地方都會冇咗。",
+              "remove_unavailable": "「{name}」喺度移除唔到，因為佢唔係喺介面整嘅輔助項目。",
+              "removed": "已移除「{name}」。",
+              "created": "已整好「{name}」。",
+              "use_here": "喺呢個自動化用佢"
+            },
             "actions": {
               "type": {
                 "event": {
@@ -2809,6 +2837,69 @@
         "friday": "星期五",
         "saturday": "星期六"
       },
+      "action-editors": {
+        "clear": "清除",
+        "decrease": "減少",
+        "increase": "增加",
+        "insert": "插入",
+        "colors": {
+          "red": "紅色",
+          "orange": "橙色",
+          "yellow": "黃色",
+          "green": "綠色",
+          "cyan": "青色",
+          "blue": "藍色",
+          "purple": "紫色",
+          "pink": "粉紅色",
+          "white": "白色"
+        },
+        "chips": {
+          "time": "而家時間",
+          "date": "今日日期",
+          "state": "實體狀態",
+          "trigger_entity": "觸發嘅實體"
+        },
+        "fields": {
+          "action": "動作",
+          "transition": "漸變時間",
+          "brightness_pct": "光暗",
+          "color_temp_kelvin": "色溫",
+          "rgb_color": "顏色",
+          "temperature": "目標溫度",
+          "target_temp_low": "下限目標",
+          "target_temp_high": "上限目標",
+          "hvac_mode": "模式",
+          "fan_mode": "風扇模式",
+          "preset_mode": "預設",
+          "swing_mode": "擺動模式",
+          "position": "位置",
+          "tilt_position": "傾斜角度",
+          "volume_level": "音量",
+          "is_volume_muted": "靜音",
+          "source": "來源",
+          "sound_mode": "音效模式",
+          "announce": "廣播",
+          "code": "密碼",
+          "caution_unlock": "呢個動作會開鎖或者開門。請確認佢只會喺應該執行嘅時候先執行。",
+          "caution_disarm": "呢個動作會解除警報。請確認佢只會喺應該執行嘅時候先執行。",
+          "percentage": "速度",
+          "oscillating": "擺動",
+          "direction": "方向",
+          "fan_speed": "風扇速度",
+          "duration": "時長",
+          "humidity": "目標濕度",
+          "mode": "模式",
+          "operation_mode": "運作模式",
+          "away_mode": "離家模式",
+          "value": "數值",
+          "option": "選項",
+          "datetime": "日期同時間",
+          "date": "日期",
+          "time": "時間",
+          "title": "標題",
+          "message": "訊息"
+        }
+      },
       "object-editor": {
         "add_custom_entry": "加入自訂項目",
         "custom_value": "自訂值或範本",
@@ -2983,7 +3074,13 @@
         "unavailable": "用唔到",
         "attention": "要留意",
         "turned_off": "已關閉",
-        "read_only": "唯讀"
+        "read_only": "唯讀",
+        "showing": "顯示緊 {shown} 項，共 {total} 項",
+        "clear": "清除"
+      },
+      "empty-state": {
+        "filtered_heading": "搵唔到相符嘅項目",
+        "clear_all": "清除搜尋同篩選"
       },
       "split_panels": {
         "start": "第一個面板",

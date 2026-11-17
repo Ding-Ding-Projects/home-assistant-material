@@ -249,8 +249,23 @@ export class HaAdaptiveDialog extends LitElement {
   static get styles() {
     return [
       css`
+        ha-icon-button[data-dialog="close"] {
+          --ha-icon-button-size: 48px;
+          --mdc-icon-button-size: 48px;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background-color: var(
+            --md-sys-color-secondary-container,
+            var(--ha-color-fill-neutral-quiet-resting)
+          );
+          color: var(
+            --md-sys-color-on-secondary-container,
+            var(--primary-text-color)
+          );
+        }
         ha-bottom-sheet {
-          --ha-bottom-sheet-border-radius: var(--ha-border-radius-2xl);
+          --ha-bottom-sheet-border-radius: 36px;
           --ha-bottom-sheet-surface-background: var(
             --ha-dialog-surface-background,
             var(--card-background-color, var(--ha-color-surface-default))

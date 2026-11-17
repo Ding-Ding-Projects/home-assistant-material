@@ -97,6 +97,7 @@ import {
   showAlertDialog,
   showConfirmationDialog,
 } from "../../../dialogs/generic/show-dialog-box";
+import { withFilterKeys } from "../../../components/layout/collapsible-statistics-logic";
 import { buildListStatistics } from "../../../components/layout/list-statistics";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
@@ -348,6 +349,35 @@ export class HaConfigDeviceDashboard extends LitElement {
 
   private _reloadConfigEntries() {
     fireEvent(this, "reload-config-entries");
+  }
+
+  // The statistic tile that matches what is switched on: the quick "needs
+  // attention" chip, or the status filter holding only "disabled"
+  private _activeStatistic(): string | undefined {
+    if (this._quick.attention) {
+      return "attention";
+    }
+    const states = this._filters["ha-filter-states"]?.value as
+      string[] | undefined;
+    return states?.length === 1 && states[0] === "disabled"
+      ? "disabled"
+      : undefined;
+  }
+
+  // A tile switches on the matching filter and the other one off; letting go
+  // of it, or the total, clears every filter like the clear button does
+  private _statisticSelected(ev: CustomEvent<{ key?: string }>) {
+    const key = ev.detail.key;
+    if (key === "attention") {
+      this._quick = { ...this._quick, attention: true };
+      this._setChipFilter("ha-filter-states", undefined);
+    } else if (key === "disabled") {
+      this._quick = { ...this._quick, attention: false };
+      this._setChipFilter("ha-filter-states", ["disabled"]);
+    } else {
+      this._quick = { ...this._quick, attention: false };
+      this._clearFilter();
+    }
   }
 
   private _clearFilter() {
@@ -1116,25 +1146,30 @@ export class HaConfigDeviceDashboard extends LitElement {
           { number: devicesOutput.length }
         )}
         .summary=${this._summary(devicesOutput)}
-        .statistics=${buildListStatistics(this.hass.localize, {
-          total: Object.keys(this.hass.devices).length,
-          shown: devicesOutput.length,
-          selected: this._selected.length,
-          extras: [
-            {
-              key: "attention",
-              value: devicesOutput.filter(
-                (device) => device.low_battery || device.offline
-              ).length,
-            },
-            {
-              key: "disabled",
-              value: Object.values(this.hass.devices).filter(
-                (device) => device.disabled_by
-              ).length,
-            },
-          ],
-        })}
+        .statistics=${withFilterKeys(
+          buildListStatistics(this.hass.localize, {
+            total: Object.keys(this.hass.devices).length,
+            shown: devicesOutput.length,
+            selected: this._selected.length,
+            extras: [
+              {
+                key: "attention",
+                value: devicesOutput.filter(
+                  (device) => device.low_battery || device.offline
+                ).length,
+              },
+              {
+                key: "disabled",
+                value: Object.values(this.hass.devices).filter(
+                  (device) => device.disabled_by
+                ).length,
+              },
+            ],
+          }),
+          ["attention", "disabled"]
+        )}
+        .activeStatistic=${this._activeStatistic()}
+        @statistic-selected=${this._statisticSelected}
         .columns=${this._columns(this.hass.localize)}
         .data=${devicesOutput}
         .loadError=${

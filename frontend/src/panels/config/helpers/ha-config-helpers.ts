@@ -126,6 +126,7 @@ import {
 } from "../../../dialogs/generic/show-dialog-box";
 import { showMoreInfoDialog } from "../../../dialogs/more-info/show-ha-more-info-dialog";
 import "../../../layouts/hass-loading-screen";
+import { withFilterKeys } from "../../../components/layout/collapsible-statistics-logic";
 import { buildListStatistics } from "../../../components/layout/list-statistics";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
@@ -765,25 +766,34 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
             number: helpers.length,
           }
         )}
-        .statistics=${buildListStatistics(this.hass.localize, {
-          total:
-            this._helperEntities.length +
-            (this._disabledEntityEntries?.length ?? 0),
-          shown: helpers.length,
-          selected: this._selected.length,
-          extras: [
-            {
-              key: "unavailable",
-              value: this._helperEntities.filter(
-                (entity) => entity.state === "unavailable"
-              ).length,
-            },
-            {
-              key: "disabled",
-              value: this._disabledEntityEntries?.length ?? 0,
-            },
-          ],
-        })}
+        .statistics=${withFilterKeys(
+          buildListStatistics(this.hass.localize, {
+            total:
+              this._helperEntities.length +
+              (this._disabledEntityEntries?.length ?? 0),
+            shown: helpers.length,
+            selected: this._selected.length,
+            extras: [
+              {
+                key: "unavailable",
+                value: this._helperEntities.filter(
+                  (entity) => entity.state === "unavailable"
+                ).length,
+              },
+              {
+                key: "disabled",
+                value: this._disabledEntityEntries?.length ?? 0,
+              },
+            ],
+          }),
+          // This page has no status filter yet, so only the total acts
+          []
+        )}
+        @statistic-selected=${this._clearFilter}
+        .emptyActionLabel=${this.hass.localize(
+          "ui.panel.config.helpers.picker.create_helper"
+        )}
+        @empty-action=${this._createHelper}
         selectable
         keep-hidden-selection
         .selected=${this._selected.length}

@@ -54,3 +54,42 @@ export const readDimSumState = (hass: HomeAssistant): DimSumAppState => {
     unsavedChanges: hasUnsavedChanges(),
   };
 };
+
+/** The element that has focus, looking through shadow roots. */
+const deepActiveElement = (root: Document | ShadowRoot): Element | null => {
+  let active = root.activeElement;
+  while (active?.shadowRoot?.activeElement) {
+    active = active.shadowRoot.activeElement;
+  }
+  return active;
+};
+
+const NON_TEXT_INPUTS = new Set([
+  "button",
+  "checkbox",
+  "radio",
+  "range",
+  "submit",
+  "reset",
+  "image",
+  "file",
+  "color",
+]);
+
+/** True while the person is typing in a text field, a text area or an editor. */
+export const isTypingInField = (root: Document = document): boolean => {
+  const active = deepActiveElement(root);
+  if (!active) {
+    return false;
+  }
+  if (active instanceof HTMLTextAreaElement) {
+    return true;
+  }
+  if (active instanceof HTMLInputElement) {
+    return !NON_TEXT_INPUTS.has(active.type);
+  }
+  return (
+    active instanceof HTMLSelectElement ||
+    (active as HTMLElement).isContentEditable === true
+  );
+};

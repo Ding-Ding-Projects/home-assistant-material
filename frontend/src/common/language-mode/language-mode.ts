@@ -20,6 +20,8 @@ import yueSource from "../../translations/yue-own.json";
 
 /** The translation blocks the Cantonese source covers. */
 export const YUE_PREFIXES = [
+  "ui.components.empty-state.",
+  "ui.components.action-editors.",
   "ui.panel.config.backup.hosting.",
   "ui.panel.history.comparison.",
   "ui.panel.config.personal.",
@@ -131,6 +133,8 @@ export const YUE_PREFIXES = [
   "ui.panel.config.guided_setup.save_close",
   "ui.panel.config.guided_setup.leave_text",
   "ui.panel.config.automation.editor.search.",
+  "ui.panel.config.automation.editor.frame.",
+  "ui.panel.config.automation.editor.helper_panel.",
   "ui.panel.config.guided_setup.no_entries",
   "ui.panel.config.guided_setup.can_set_up",
   "ui.panel.config.guided_setup.domain_level",

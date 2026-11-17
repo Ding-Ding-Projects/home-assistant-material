@@ -13,7 +13,9 @@ import {
   mdiExportVariant,
   mdiFilterVariantRemove,
   mdiFormatListChecks,
+  mdiInboxOutline,
   mdiMenuDown,
+  mdiPlus,
   mdiTableCog,
   mdiUnfoldLessHorizontal,
   mdiUnfoldMoreHorizontal,
@@ -48,6 +50,7 @@ import "../components/ha-adaptive-dialog";
 import "../components/ha-button";
 import "../components/ha-dialog-footer";
 import "../components/ha-dropdown";
+import "../components/ha-empty-state";
 import type { HaDropdownSelectEvent } from "../components/ha-dropdown";
 import "../components/ha-dropdown-item";
 import "../components/ha-filter-pane-chip";
@@ -250,6 +253,20 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
    * is shown. The folded state is kept in this browser for each page.
    */
   @property({ attribute: false }) public statistics?: CollapsibleStatistic[];
+
+  /**
+   * The `filterKey` of the statistic the page is filtering by. The strip marks
+   * it as pressed and shows how many rows are shown. The page listens for
+   * `statistic-selected` and owns the filter itself.
+   */
+  @property({ attribute: false }) public activeStatistic?: string;
+
+  /**
+   * Label of the create button shown when the list has nothing at all. Pressing
+   * it fires `empty-action`, which the page answers by opening its own create
+   * flow. Without a label no button is shown.
+   */
+  @property({ attribute: false }) public emptyActionLabel?: string;
 
   @state() private _hasFilterChips = false;
 
@@ -863,6 +880,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       ? html`<ha-collapsible-statistics
           .statistics=${statistics}
           .storageKey=${statisticsKey}
+          .activeKey=${this.activeStatistic}
         ></ha-collapsible-statistics>`
       : nothing;
 
@@ -960,6 +978,17 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         </div>`
       : nothing;
 
+    // With no rows at all, and nothing searched or filtered, there is nothing
+    // for sorting, grouping, columns or export to act on, so they are left out.
+    // A phone's tool row that would then hold nothing is not drawn at all.
+    const noData = !this.data.length && !this.filters && !this.filter;
+    const narrowRowEmpty =
+      noData &&
+      !showSelectionBar &&
+      !(this.hasFilters && !this.showFilters) &&
+      !selectModeBtn &&
+      !this._hasFilterChips;
+
     return html`
       <hass-tabs-subpage
         style=${styleMap({
@@ -1029,7 +1058,23 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         ${
           this.empty && !this.loading
             ? html`<div class="center">
-                <slot name="empty">${this.noDataText}</slot>
+                <slot name="empty">
+                  <ha-empty-state
+                    tone="start"
+                    .heading=${
+                      this.noDataText ??
+                      localize("ui.components.data-table.no-data")
+                    }
+                  >
+                    <ha-svg-icon
+                      slot="icon"
+                      .path=${mdiInboxOutline}
+                    ></ha-svg-icon>
+                    <slot name="empty-action" slot="actions"
+                      >${this._renderEmptyAction()}</slot
+                    >
+                  </ha-empty-state>
+                </slot>
               </div>`
             : html`<slot name="toolbar-icon" slot="toolbar-icon"></slot>
                 ${
@@ -1050,6 +1095,9 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                   .data=${this.data}
                   .loading=${this.loading}
                   .noDataText=${this.noDataText}
+                  .filtersActive=${(this.filters ?? 0) > 0}
+                  ?header-row-empty=${this.narrow && narrowRowEmpty}
+                  @clear-search-and-filters=${this._clearSearchAndFilters}
                   .loadError=${this.loadError}
                   .filter=${this.filter}
                   .selectable=${this._rowsSelectable}
@@ -1070,6 +1118,9 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                   ${this._groupActionsSlots.map(
                     (slot) => html`<slot name=${slot} slot=${slot}></slot>`
                   )}
+                  <slot name="empty-action" slot="empty-action"
+                    >${this._renderEmptyAction()}</slot
+                  >
                   ${
                     !this.narrow
                       ? html`
@@ -1094,9 +1145,11 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                                     ? html`<div class="chips-spacer"></div>`
                                     : nothing
                                 }${
-                                  this._compactTools
-                                    ? moreMenu
-                                    : html`${groupByMenu}${sortByMenu}${settingsButton}${exportButton}`
+                                  noData
+                                    ? nothing
+                                    : this._compactTools
+                                      ? moreMenu
+                                      : html`${groupByMenu}${sortByMenu}${settingsButton}${exportButton}`
                                 }
                               </div>
                             </slot>
@@ -1112,6 +1165,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                             class=${classMap({
                               "narrow-header-row": true,
                               "has-selection": showSelectionBar,
+                              "no-tools": narrowRowEmpty,
                             })}
                           >
                             ${
@@ -1124,7 +1178,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                                     }
                                     ${selectModeBtn}${chipsSlot}
                                     <div class="flex"></div>
-                                    ${moreMenu}`
+                                    ${noData ? nothing : moreMenu}`
                             }
                           </div>
                         `
@@ -1198,6 +1252,33 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
   private _clearFilters() {
     fireEvent(this, "clear-filter");
+  }
+
+  // The create action of an empty page. The page names it with
+  // `emptyActionLabel` and listens for `empty-action`; a page can also fill
+  // the `empty-action` slot with its own button.
+  private _renderEmptyAction() {
+    return this.emptyActionLabel
+      ? html`<ha-button appearance="filled" @click=${this._fireEmptyAction}>
+          <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+          ${this.emptyActionLabel}
+        </ha-button>`
+      : nothing;
+  }
+
+  private _fireEmptyAction() {
+    fireEvent(this, "empty-action");
+  }
+
+  // The empty state's action: forget the search text and switch off every
+  // filter, through the same events the search box and filter pane use.
+  private _clearSearchAndFilters() {
+    if (this.filter) {
+      this.filter = "";
+      this._typedSearch = "";
+      fireEvent(this, "search-changed", { value: "" });
+    }
+    this._clearFilters();
   }
 
   // A link with table params wins over what was picked before. The page is
@@ -2018,6 +2099,13 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       overflow-y: hidden;
       scrollbar-width: none;
       min-height: 56px;
+      /* Always its own row in the flow: never positioned over the list or the
+         empty state below it */
+      position: relative;
+      flex: none;
+    }
+    .narrow-header-row.no-tools {
+      display: none;
     }
     :host([narrow]) .narrow-header-row ha-assist-chip,
     :host([narrow]) .narrow-header-row ha-filter-pane-chip {
@@ -2231,5 +2319,6 @@ declare global {
       hiddenColumns: string[] | undefined;
     };
     "clear-filter": undefined;
+    "empty-action": undefined;
   }
 }

@@ -64,6 +64,10 @@ import {
 import { planFastRender } from "./tools/automation-fast";
 import { publishRelationChips } from "./tools/relation-chips";
 import type { FastPlan } from "./tools/automation-fast";
+import { playPageEntry } from "../../../common/motion/page-entry";
+import "./editor-frame/ha-editor-hero";
+import { editorFrameStyles } from "./editor-frame/editor-frame-styles";
+import "./helpers-panel/ha-automation-helpers-panel";
 import "./ha-automation-status-bar";
 import "./search/ha-automation-search-bar";
 import "./action/ha-automation-action";
@@ -131,6 +135,9 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
   protected collapsableElements?: NodeListOf<
     HaAutomationAction | HaAutomationCondition
   >;
+
+  @queryAll("ha-editor-hero, .section, ha-automation-helpers-panel")
+  private _entryBlocks?: NodeListOf<Element>;
 
   @state() private _toggleError?: string;
 
@@ -270,6 +277,10 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
             ></ha-starting-points>`
           : nothing
       }
+      <ha-editor-hero
+        .hass=${this.hass}
+        .config=${this.config}
+      ></ha-editor-hero>
       ${this._renderFastCard()}
       ${
         levelShows(getEditorLevel(), "search")
@@ -430,6 +441,13 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
           sidebar
         ></ha-automation-action>
       </section>
+      <ha-automation-helpers-panel
+        .hass=${this.hass}
+        .config=${this.config}
+        .selfEntityId=${this.stateObj?.entity_id}
+        .disabled=${this.disabled || this.saving}
+        @helper-use=${this._helperUse}
+      ></ha-automation-helpers-panel>
       ${
         levelShows(getEditorLevel(), "status_bar")
           ? html`<ha-automation-status-bar
@@ -619,6 +637,27 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
     this.resetPastedConfig();
     fireEvent(this, "value-changed", {
       value: { ...this.config!, triggers: ev.detail.value as Trigger[] },
+    });
+  }
+
+  protected override firstUpdated(changedProps: PropertyValues<this>): void {
+    super.firstUpdated(changedProps);
+    // The blocks rise once, when the editor first appears.
+    playPageEntry([...(this._entryBlocks ?? [])]);
+  }
+
+  /** Adds a condition that tests a helper that was just created here. */
+  private _helperUse(ev: CustomEvent<{ condition: Record<string, unknown> }>) {
+    ev.stopPropagation();
+    this.resetPastedConfig();
+    fireEvent(this, "value-changed", {
+      value: {
+        ...this.config!,
+        conditions: [
+          ...ensureArray(this.config.conditions ?? []),
+          ev.detail.condition as unknown as Condition,
+        ],
+      },
     });
   }
 
@@ -883,6 +922,7 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
   static get styles(): CSSResultGroup {
     return [
       manualEditorStyles,
+      editorFrameStyles,
       css`
         p {
           margin-top: 0;

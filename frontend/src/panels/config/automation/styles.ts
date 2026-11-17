@@ -402,6 +402,23 @@ export const automationRowsStyles = css`
     gap: var(--ha-space-2);
     order: 1;
   }
+  /* The add buttons are dashed, tall and rounded, and rows are tall. */
+  .buttons ha-button {
+    min-height: 48px;
+  }
+  .buttons ha-button[appearance="accent"]::part(base) {
+    background: transparent;
+    color: var(--primary-text-color);
+    border: 2px dashed var(--divider-color);
+    border-radius: 20px;
+    min-height: 48px;
+  }
+  ha-automation-trigger-row,
+  ha-automation-condition-row,
+  ha-automation-action-row,
+  ha-automation-option-row {
+    --ha-card-border-radius: 20px;
+  }
   /* The gap between two steps. It takes no room of its own: it sits over the
      space between the rows and shows on hover and on keyboard focus. */
   .insert-slot {

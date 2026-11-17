@@ -10,6 +10,7 @@ import "../../../../../components/ha-checkbox";
 import { getSelectorFallbackValue } from "../../../../../components/ha-form/get-selector-fallback-value";
 import "../../../../../components/ha-selector/ha-selector";
 import "../../../../../components/ha-settings-row";
+import "../../../../../components/action-editors/ha-automation-options-editor";
 import type { PlatformTrigger } from "../../../../../data/automation";
 import { TRIGGER_ROW_CONFIG_KEYS } from "../../../../../data/automation";
 import type { IntegrationManifest } from "../../../../../data/integration";
@@ -228,15 +229,17 @@ export class HaPlatformTrigger extends LitElement {
       }
       ${
         shouldRenderDataYaml
-          ? html`<ha-yaml-editor
+          ? html`<ha-automation-options-editor
+              .hass=${this.hass}
               .label=${this.hass.localize(
                 "ui.components.service-control.action_data"
               )}
-              .name=${"data"}
-              .readOnly=${this.disabled}
-              .defaultValue=${this.trigger?.options}
-              @value-changed=${this._dataChanged}
-            ></ha-yaml-editor>`
+              .value=${this.trigger?.options}
+              .disabled=${this.disabled}
+              .draftOwner=${this.trigger}
+              .draftKey=${"options"}
+              @value-changed=${this._optionsChanged}
+            ></ha-automation-options-editor>`
           : Object.entries(triggerDesc.fields).map(([fieldName, dataField]) =>
               this._renderField(
                 fieldName,
@@ -363,6 +366,14 @@ export class HaPlatformTrigger extends LitElement {
           : this.trigger.options?.[data_key];
     }
     return context;
+  }
+
+  private _optionsChanged(ev: CustomEvent<{ value: Record<string, unknown> }>) {
+    ev.stopPropagation();
+    if (this.disabled) return;
+    fireEvent(this, "value-changed", {
+      value: { ...this.trigger, options: ev.detail.value },
+    });
   }
 
   private _dataChanged(ev: CustomEvent) {
@@ -546,9 +557,10 @@ export class HaPlatformTrigger extends LitElement {
     }
     ha-service-picker,
     ha-entity-picker,
-    ha-yaml-editor {
+    ha-automation-options-editor {
       display: block;
       margin: 0 var(--ha-space-4);
+      padding: var(--ha-space-2) 0;
     }
     ha-selector.target-selector {
       display: block;
@@ -557,9 +569,6 @@ export class HaPlatformTrigger extends LitElement {
         --service-control-items-border-top,
         1px solid var(--divider-color)
       );
-    }
-    ha-yaml-editor {
-      padding: var(--ha-space-4) 0;
     }
     p {
       margin: 0 var(--ha-space-4);

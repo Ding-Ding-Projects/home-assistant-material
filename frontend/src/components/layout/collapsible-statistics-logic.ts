@@ -17,7 +17,83 @@ export interface CollapsibleStatistic {
   label: string;
   /** The number, or text that is already formatted. */
   value: number | string;
+  /**
+   * Makes the item a button that picks a filter on the page. The page decides
+   * what the key means. The key {@link STATISTIC_CLEAR_KEY} clears every
+   * filter instead. Without a key the item is plain text.
+   */
+  filterKey?: string;
 }
+
+/** The filter key of the item that clears everything, normally "Total". */
+export const STATISTIC_CLEAR_KEY = "all";
+
+/** The meaning of an item, which decides its tonal background. */
+export type StatisticTone = "neutral" | "primary" | "warning" | "quiet";
+
+const STATISTIC_TONES: Record<string, StatisticTone> = {
+  total: "neutral",
+  shown: "primary",
+  selected: "primary",
+  attention: "warning",
+  unavailable: "warning",
+  disabled: "quiet",
+  turned_off: "quiet",
+  read_only: "quiet",
+};
+
+/** The tone for an item id; an unknown id is neutral. */
+export const statisticTone = (id: string | undefined): StatisticTone =>
+  (id && STATISTIC_TONES[id]) || "neutral";
+
+/**
+ * The key to hold after an item was pressed: pressing the one that is already
+ * held lets go of it, and the clear key never holds.
+ */
+export const nextStatisticSelection = (
+  current: string | undefined,
+  pressed: string
+): string | undefined => {
+  if (pressed === STATISTIC_CLEAR_KEY || pressed === current) {
+    return undefined;
+  }
+  return pressed;
+};
+
+/**
+ * Gives the items named in `filterable` a filter key equal to their id, and
+ * the item with the id "total" the clear key. Items not named stay text.
+ */
+export const withFilterKeys = (
+  items: CollapsibleStatistic[],
+  filterable: string[]
+): CollapsibleStatistic[] =>
+  items.map((item) => {
+    if (item.id === "total") {
+      return { ...item, filterKey: STATISTIC_CLEAR_KEY };
+    }
+    return item.id && filterable.includes(item.id)
+      ? { ...item, filterKey: item.id }
+      : item;
+  });
+
+/**
+ * The numbers for the "Showing N of M" line, only while an item is held and
+ * the strip has both a shown and a total number.
+ */
+export const showingCounts = (
+  items: CollapsibleStatistic[],
+  activeKey: string | undefined
+): { shown: number; total: number } | undefined => {
+  if (!activeKey) {
+    return undefined;
+  }
+  const shown = items.find((item) => item.id === "shown")?.value;
+  const total = items.find((item) => item.id === "total")?.value;
+  return typeof shown === "number" && typeof total === "number"
+    ? { shown, total }
+    : undefined;
+};
 
 export type StatisticsStoredState = "expanded" | "collapsed";
 
@@ -53,6 +129,10 @@ export const limitStatistics = (raw: unknown): CollapsibleStatistic[] => {
       id: item.id,
       label: item.label.trim().slice(0, MAX_LABEL_LENGTH),
       value: item.value,
+      filterKey:
+        typeof item.filterKey === "string" && item.filterKey !== ""
+          ? item.filterKey
+          : undefined,
     }));
 };
 

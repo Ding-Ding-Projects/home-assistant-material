@@ -2,7 +2,7 @@ import type { ContextType } from "@lit/context";
 import { mdiFormatPaint, mdiLock, mdiLockOpenVariantOutline } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, state } from "lit/decorators";
+import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { consume } from "../../common/decorators/consume";
 import { fireEvent } from "../../common/dom/fire_event";
@@ -47,6 +47,10 @@ export class HaDialogTools extends LitElement {
   @consume({ context: internationalizationContext, subscribe: true })
   @state()
   private _i18n?: ContextType<typeof internationalizationContext>;
+
+  /** The dialog has its own search at the top, so this one is left out. */
+  @property({ type: Boolean, attribute: "hide-search" })
+  public hideSearch = false;
 
   @state() private _query = "";
 
@@ -128,16 +132,20 @@ export class HaDialogTools extends LitElement {
     const find = localize("ui.dialog_tools.find");
     return html`
       <div class="row">
-        <ha-input-search
-          appearance="outlined"
-          .placeholder=${find}
-          .accessibleLabel=${find}
-          .value=${this._query}
-          @input=${this._findInput}
-          @keydown=${this._findKeydown}
-        ></ha-input-search>
         ${
-          this._query.trim()
+          this.hideSearch
+            ? html`<span class="spacer"></span>`
+            : html`<ha-input-search
+                appearance="outlined"
+                .placeholder=${find}
+                .accessibleLabel=${find}
+                .value=${this._query}
+                @input=${this._findInput}
+                @keydown=${this._findKeydown}
+              ></ha-input-search>`
+        }
+        ${
+          this._query.trim() && !this.hideSearch
             ? html`<span
                 class=${classMap({ count: true, bad: this._finder.invalid })}
                 role="status"
@@ -340,7 +348,7 @@ export class HaDialogTools extends LitElement {
   static styles: CSSResultGroup = css`
     :host {
       display: block;
-      padding: var(--ha-space-2) var(--ha-space-4);
+      padding: var(--ha-space-1) var(--ha-space-6) var(--ha-space-3);
       color: var(--secondary-text-color);
     }
     .row {
@@ -351,8 +359,11 @@ export class HaDialogTools extends LitElement {
     ha-input-search {
       flex: 1;
       min-width: 0;
-      --ha-input-search-height: var(--ha-space-10);
-      --ha-input-search-border-radius: var(--ha-border-radius-pill);
+      --ha-input-search-height: 56px;
+      --ha-input-search-border-radius: 28px;
+    }
+    .spacer {
+      flex: 1;
     }
     .count {
       font-size: var(--ha-font-size-s);

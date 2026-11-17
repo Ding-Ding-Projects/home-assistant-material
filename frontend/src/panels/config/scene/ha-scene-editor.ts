@@ -38,6 +38,7 @@ import "../../../components/entity/ha-entity-picker";
 import "../../../components/appearance/ha-appearance-color-picker";
 import "../../../components/ha-area-picker";
 import "../../../components/ha-button";
+import "../automation/editor-frame/ha-editor-frame-actions";
 import "../../../components/ha-control-slider";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
@@ -327,6 +328,17 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
           "ui.panel.config.scene.caption"
         )}`}
       >
+        ${
+          this.narrow
+            ? nothing
+            : html`<ha-editor-frame-actions
+                slot="toolbar-icon"
+                .hass=${this.hass}
+                .dirty=${this.isDirtyState}
+                .saving=${this._saving}
+                @frame-save=${this._saveScene}
+              ></ha-editor-frame-actions>`
+        }
         <ha-dropdown
           slot="toolbar-icon"
           @wa-select=${this._handleMenuAction}

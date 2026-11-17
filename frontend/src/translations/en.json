@@ -1468,7 +1468,13 @@
         "unavailable": "Unavailable",
         "attention": "Need attention",
         "turned_off": "Turned off",
-        "read_only": "Read-only"
+        "read_only": "Read-only",
+        "showing": "Showing {shown} of {total}",
+        "clear": "Clear"
+      },
+      "empty-state": {
+        "filtered_heading": "No matches",
+        "clear_all": "Clear search and filters"
       },
       "split_panels": {
         "start": "First panel",
@@ -1968,6 +1974,69 @@
           "state": "state",
           "sum": "sum",
           "change": "change"
+        }
+      },
+      "action-editors": {
+        "clear": "Clear",
+        "decrease": "Decrease",
+        "increase": "Increase",
+        "insert": "Insert",
+        "colors": {
+          "red": "Red",
+          "orange": "Orange",
+          "yellow": "Yellow",
+          "green": "Green",
+          "cyan": "Cyan",
+          "blue": "Blue",
+          "purple": "Purple",
+          "pink": "Pink",
+          "white": "White"
+        },
+        "chips": {
+          "time": "Current time",
+          "date": "Today's date",
+          "state": "Entity state",
+          "trigger_entity": "Triggering entity"
+        },
+        "fields": {
+          "action": "Action",
+          "transition": "Transition",
+          "brightness_pct": "Brightness",
+          "color_temp_kelvin": "Colour temperature",
+          "rgb_color": "Colour",
+          "temperature": "Target temperature",
+          "target_temp_low": "Lower target",
+          "target_temp_high": "Upper target",
+          "hvac_mode": "Mode",
+          "fan_mode": "Fan mode",
+          "preset_mode": "Preset",
+          "swing_mode": "Swing mode",
+          "position": "Position",
+          "tilt_position": "Tilt",
+          "volume_level": "Volume",
+          "is_volume_muted": "Muted",
+          "source": "Source",
+          "sound_mode": "Sound mode",
+          "announce": "Announce",
+          "code": "Code",
+          "caution_unlock": "This action unlocks or opens a lock. Check that it only runs when it should.",
+          "caution_disarm": "This action disarms the alarm. Check that it only runs when it should.",
+          "percentage": "Speed",
+          "oscillating": "Oscillate",
+          "direction": "Direction",
+          "fan_speed": "Fan speed",
+          "duration": "Duration",
+          "humidity": "Target humidity",
+          "mode": "Mode",
+          "operation_mode": "Operation mode",
+          "away_mode": "Away mode",
+          "value": "Value",
+          "option": "Option",
+          "datetime": "Date and time",
+          "date": "Date",
+          "time": "Time",
+          "title": "Title",
+          "message": "Message"
         }
       },
       "service-picker": {
@@ -10839,6 +10908,34 @@
               "check_ok_none": "Valid. There are no conditions to test.",
               "check_error": "The check could not finish: {message}",
               "past_runs": "See past runs"
+            },
+            "frame": {
+              "no_unsaved": "No unsaved changes",
+              "unsaved": "Unsaved changes",
+              "dry_run": "Dry run",
+              "dry_run_soon": "Coming soon",
+              "hero_label": "In one sentence",
+              "join_and": " and ",
+              "sentence_when": "When {when},",
+              "sentence_if": "and only if {conditions},",
+              "sentence_then": "then {actions}."
+            },
+            "helper_panel": {
+              "title": "Helpers",
+              "count_one": "{count} helper in this automation",
+              "count_other": "{count} helpers in this automation",
+              "empty": "No helpers are used here yet.",
+              "make_title": "Make a new one",
+              "make": "Make a helper",
+              "edit": "Edit",
+              "edit_label": "Edit {name}",
+              "remove": "Remove",
+              "remove_label": "Remove {name}",
+              "remove_used_by": "Remove \"{name}\"? It is also used by: {users}. Removing it here removes it everywhere.",
+              "remove_unavailable": "\"{name}\" cannot be removed here. It is not a helper made in the interface.",
+              "removed": "Removed \"{name}\".",
+              "created": "Made \"{name}\".",
+              "use_here": "Use in this automation"
             },
             "bottom_bar": {
               "label": "Automation actions",

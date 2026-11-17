@@ -79,6 +79,7 @@ import {
   AutomationScriptEditorMixin,
   automationScriptEditorStyles,
 } from "../automation/ha-automation-script-editor-mixin";
+import "../automation/editor-frame/ha-editor-frame-actions";
 import "./manual-script-editor";
 import type { HaManualScriptEditor } from "./manual-script-editor";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
@@ -248,6 +249,18 @@ export class HaScriptEditor extends SubscribeMixin(
                 </ha-button>
               `
             : ""
+        }
+        ${
+          useBlueprint || this.narrow
+            ? nothing
+            : html`<ha-editor-frame-actions
+                slot="toolbar-icon"
+                .hass=${this.hass}
+                .dirty=${!this.readOnly && this.isDirtyState}
+                .saving=${this.saving}
+                .readOnly=${this.readOnly}
+                @frame-save=${this._handleSaveScript}
+              ></ha-editor-frame-actions>`
         }
         <ha-dropdown
           slot="toolbar-icon"

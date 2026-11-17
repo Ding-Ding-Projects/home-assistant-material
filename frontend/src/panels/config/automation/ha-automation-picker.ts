@@ -130,6 +130,7 @@ import {
   showAlertDialog,
   showConfirmationDialog,
 } from "../../../dialogs/generic/show-dialog-box";
+import { withFilterKeys } from "../../../components/layout/collapsible-statistics-logic";
 import { buildListStatistics } from "../../../components/layout/list-statistics";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
@@ -801,25 +802,34 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
           { number: automations.length }
         )}
         .summary=${this._summary(automations)}
-        .statistics=${buildListStatistics(this.hass.localize, {
-          total: this.automations.length,
-          shown: automations.length,
-          selected: this._selected.length,
-          extras: [
-            {
-              key: "turned_off",
-              value: this.automations.filter(
-                (automation) => automation.state === "off"
-              ).length,
-            },
-            {
-              key: "unavailable",
-              value: this.automations.filter(
-                (automation) => automation.state === "unavailable"
-              ).length,
-            },
-          ],
-        })}
+        .statistics=${withFilterKeys(
+          buildListStatistics(this.hass.localize, {
+            total: this.automations.length,
+            shown: automations.length,
+            selected: this._selected.length,
+            extras: [
+              {
+                key: "turned_off",
+                value: this.automations.filter(
+                  (automation) => automation.state === "off"
+                ).length,
+              },
+              {
+                key: "unavailable",
+                value: this.automations.filter(
+                  (automation) => automation.state === "unavailable"
+                ).length,
+              },
+            ],
+          }),
+          // This page has no status filter yet, so only the total acts
+          []
+        )}
+        @statistic-selected=${this._clearFilter}
+        .emptyActionLabel=${this.hass.localize(
+          "ui.panel.config.automation.picker.add_automation"
+        )}
+        @empty-action=${this._createNew}
         selectable
         keep-hidden-selection
         always-show-checkboxes

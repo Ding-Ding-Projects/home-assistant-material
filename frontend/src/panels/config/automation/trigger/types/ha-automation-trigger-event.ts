@@ -1,7 +1,8 @@
 import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { fireEvent } from "../../../../../common/dom/fire_event";
-import "../../../../../components/ha-yaml-editor";
+import { transferObjectDrafts } from "../../../../../common/object-editor/object-model";
+import "../../../../../components/action-editors/ha-automation-options-editor";
 import "../../../../../components/input/ha-input";
 import "../../../../../components/user/ha-users-picker";
 import type { EventTrigger } from "../../../../../data/automation";
@@ -33,15 +34,17 @@ export class HaEventTrigger extends LitElement implements TriggerElement {
         .disabled=${this.disabled}
         @change=${this._valueChanged}
       ></ha-input>
-      <ha-yaml-editor
+      <ha-automation-options-editor
+        .hass=${this.hass}
         .label=${this.hass.localize(
           "ui.panel.config.automation.editor.triggers.type.event.event_data"
         )}
-        .name=${"event_data"}
-        .readOnly=${this.disabled}
-        .defaultValue=${event_data}
+        .value=${event_data}
+        .disabled=${this.disabled}
+        .draftOwner=${this.trigger}
+        .draftKey=${"event_data"}
         @value-changed=${this._dataChanged}
-      ></ha-yaml-editor>
+      ></ha-automation-options-editor>
       <br />
       ${this.hass.localize(
         "ui.panel.config.automation.editor.triggers.type.event.context_users"
@@ -69,12 +72,12 @@ export class HaEventTrigger extends LitElement implements TriggerElement {
     handleChangeEvent(this, ev);
   }
 
-  private _dataChanged(ev: CustomEvent): void {
+  private _dataChanged(ev: CustomEvent<{ value: Record<string, unknown> }>) {
     ev.stopPropagation();
-    if (!ev.detail.isValid) {
-      return;
-    }
-    handleChangeEvent(this, ev);
+    if (this.disabled) return;
+    const value = { ...this.trigger, event_data: ev.detail.value };
+    transferObjectDrafts(this.trigger, value);
+    fireEvent(this, "value-changed", { value });
   }
 
   private _usersChanged(ev) {

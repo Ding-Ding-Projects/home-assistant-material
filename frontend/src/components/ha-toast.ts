@@ -337,7 +337,7 @@ export class HaToast extends LitElement {
       overflow: hidden;
       box-sizing: border-box;
       min-width: min(350px, calc(var(--safe-width) - var(--ha-space-4)));
-      max-width: min(650px, var(--safe-width));
+      max-width: min(560px, var(--safe-width));
       min-height: 48px;
       display: flex;
       align-items: center;
@@ -364,7 +364,7 @@ export class HaToast extends LitElement {
             --ha-motion-toasts-duration,
             var(--ha-animation-duration-fast, 150ms)
           )
-          var(--ha-motion-toasts-curve, ease);
+          var(--ha-motion-toasts-curve, cubic-bezier(0.2, 1.5, 0.3, 1));
     }
 
     .toast.visible {
@@ -481,9 +481,9 @@ export class HaToast extends LitElement {
 
     @media all and (max-width: 450px), all and (max-height: 500px) {
       .toast {
-        min-width: var(--safe-width);
-        max-width: var(--safe-width);
-        border-radius: var(--ha-border-radius-square);
+        min-width: calc(var(--safe-width) - 32px);
+        max-width: calc(var(--safe-width) - 32px);
+        border-radius: var(--ha-border-radius-sm);
       }
     }
   `;

@@ -92,6 +92,7 @@ import { showAutomationSaveDialog } from "./automation-save-dialog/show-dialog-a
 import { showAutomationSaveTimeoutDialog } from "./automation-save-timeout-dialog/show-dialog-automation-save-timeout";
 import { ADD_AUTOMATION_ELEMENT_QUERY_PARAM } from "./show-add-automation-element-dialog";
 import "./blueprint-automation-editor";
+import "./editor-frame/ha-editor-frame-actions";
 import "./ha-automation-bottom-bar";
 import type { HaAutomationBottomBar } from "./ha-automation-bottom-bar";
 import "./tools/ha-automation-tools-panel";
@@ -368,6 +369,20 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
                 </ha-button>
               `
             : ""
+        }
+        ${
+          useBlueprint || this.narrow
+            ? nothing
+            : html`<ha-editor-frame-actions
+                slot="toolbar-icon"
+                .hass=${this.hass}
+                .dirty=${!this.readOnly && this.isDirtyState}
+                .saving=${this.saving}
+                .readOnly=${this.readOnly}
+                dry-run-available
+                @frame-save=${this._handleSaveAutomation}
+                @frame-dry-run=${this._frameDryRun}
+              ></ha-editor-frame-actions>`
         }
         <ha-dropdown
           slot="toolbar-icon"
@@ -757,6 +772,7 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
             .dirty=${!this.readOnly && this.isDirtyState}
             .saving=${this.saving}
             .readOnly=${this.readOnly}
+            .frameInHeader=${!this.narrow && !useBlueprint}
             @automation-bar-save=${this._handleSaveAutomation}
             @automation-bar-run=${this._runActions}
           ></ha-automation-bottom-bar>
@@ -777,6 +793,10 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
         }
       </hass-subpage>
     `;
+  }
+
+  private _frameDryRun() {
+    this._bottomBar?.startDryRun();
   }
 
   private _renderLevelBar() {
@@ -1708,6 +1728,14 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
           margin: 0 auto;
           max-width: 1040px;
           padding: var(--ha-space-3) 20px 0;
+        }
+        /* The Simple / Advanced / Code switch is a pill segmented control. */
+        .level-bar ha-button-toggle-group {
+          --ha-button-toggle-group-radius: var(--ha-border-radius-pill, 999px);
+        }
+        .level-bar ha-button-toggle-group::part(base),
+        .level-bar ha-button-toggle-group::part(button) {
+          min-height: 48px;
         }
         .level-label {
           color: var(--secondary-text-color);

@@ -3,7 +3,13 @@ import type {
   VisibilityChangedEvent,
 } from "@lit-labs/virtualizer";
 import type { ContextType } from "@lit/context";
-import { mdiArrowDown, mdiArrowUp, mdiChevronUp } from "@mdi/js";
+import {
+  mdiArrowDown,
+  mdiArrowUp,
+  mdiChevronUp,
+  mdiFilterVariantRemove,
+  mdiInboxOutline,
+} from "@mdi/js";
 import deepClone from "deep-clone-simple";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
@@ -45,6 +51,8 @@ import type { HaCheckbox } from "../ha-checkbox";
 import "../skeleton/ha-skeleton-icon";
 import "../skeleton/ha-skeleton-text";
 import "../ha-svg-icon";
+import "../ha-empty-state";
+import { emptyTone } from "../empty-state-logic";
 import "../input/ha-input-search";
 import { tablePatternSamples } from "./pattern-samples";
 import { filterData, sortData } from "./sort-filter";
@@ -224,6 +232,20 @@ export class HaDataTable extends LitElement {
   public entityRows = false;
 
   @property({ attribute: false }) public noDataText?: string;
+
+  /**
+   * Whether the page has filters switched on beside the search text. Used to
+   * tell a list that hides everything from one that has nothing.
+   */
+  @property({ attribute: "filters-active", type: Boolean })
+  public filtersActive = false;
+
+  /**
+   * The slotted tool row of a phone has nothing in it, so the row is not drawn
+   * and takes no height.
+   */
+  @property({ attribute: "header-row-empty", type: Boolean, reflect: true })
+  public headerRowEmpty = false;
 
   /**
    * Error to show below the column headings, with a retry action, when loading the table's data failed.
@@ -856,17 +878,7 @@ export class HaDataTable extends LitElement {
                             class="mdc-data-table__cell grows center"
                             role="cell"
                           >
-                            ${
-                              this.data.length
-                                ? this._i18n?.localize?.(
-                                    "ui.components.data-table.no_match_filter"
-                                  ) || "No rows matching current filters"
-                                : this.noDataText ||
-                                  this._i18n?.localize?.(
-                                    "ui.components.data-table.no-data"
-                                  ) ||
-                                  "No data"
-                            }
+                            ${this._renderEmptyState()}
                           </div>
                         </div>
                       </div>
@@ -1275,6 +1287,55 @@ export class HaDataTable extends LitElement {
       return [...data, { empty: true }];
     }
   );
+
+  private _renderEmptyState(): TemplateResult {
+    const localize = this._i18n?.localize;
+    const tone = emptyTone({
+      dataCount: this.data.length,
+      searchActive: this._filter.trim() !== "",
+      filtersActive: this.filtersActive,
+    });
+    if (tone === "filtered") {
+      return html`<ha-empty-state
+        tone="filtered"
+        .heading=${
+          localize?.("ui.components.empty-state.filtered_heading") ||
+          "No matches"
+        }
+        .description=${
+          localize?.("ui.components.data-table.no_match_filter") ||
+          "No rows matching current filters"
+        }
+      >
+        <ha-svg-icon slot="icon" .path=${mdiFilterVariantRemove}></ha-svg-icon>
+        <ha-button
+          slot="actions"
+          appearance="filled"
+          @click=${this._clearSearchAndFilters}
+        >
+          ${
+            localize?.("ui.components.empty-state.clear_all") ||
+            "Clear search and filters"
+          }
+        </ha-button>
+      </ha-empty-state>`;
+    }
+    return html`<ha-empty-state
+      tone="start"
+      .heading=${
+        this.noDataText ||
+        localize?.("ui.components.data-table.no-data") ||
+        "No data"
+      }
+    >
+      <ha-svg-icon slot="icon" .path=${mdiInboxOutline}></ha-svg-icon>
+      <slot name="empty-action" slot="actions"></slot>
+    </ha-empty-state>`;
+  }
+
+  private _clearSearchAndFilters() {
+    fireEvent(this, "clear-search-and-filters");
+  }
 
   private _renderGroupHeader(
     groupName: string,
@@ -2383,6 +2444,9 @@ export class HaDataTable extends LitElement {
           height: auto;
           min-height: var(--ha-space-10);
         }
+        :host([header-row-empty]) .mdc-data-table__header-row {
+          display: none;
+        }
         /* The column header is quiet: small capitals, no bar */
         :host([row-cards]) .mdc-data-table__header-cell {
           color: var(--secondary-text-color);
@@ -2593,6 +2657,7 @@ declare global {
   // for fire event
   interface HASSDomEvents {
     "retry-load": undefined;
+    "clear-search-and-filters": undefined;
     "filtered-rows-changed": undefined;
     "selection-changed": SelectionChangedEvent;
     "row-click": RowClickedEvent;

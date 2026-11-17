@@ -159,7 +159,8 @@ export const pageHeaderStyles = css`
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    hyphens: none;
   }
   :host(:not([narrow])) .main-title .page-title {
     font-size: 32px;

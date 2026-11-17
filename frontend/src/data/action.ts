@@ -62,9 +62,8 @@ export const getAutomationActionType = (action: Action | undefined) => {
   ) as keyof typeof ACTION_ICONS;
 };
 
-export const YAML_ONLY_ACTION_TYPES = new Set<keyof typeof ACTION_ICONS>([
-  "variables",
-]);
+// Every action type now has a visual editor, so this set is empty.
+export const YAML_ONLY_ACTION_TYPES = new Set<keyof typeof ACTION_ICONS>([]);
 
 export const ACTION_COLLECTIONS: AutomationElementGroupCollection[] = [
   {

@@ -117,6 +117,7 @@ import {
 } from "../../../dialogs/generic/show-dialog-box";
 import { showMoreInfoDialog } from "../../../dialogs/more-info/show-ha-more-info-dialog";
 import "../../../layouts/hass-loading-screen";
+import { withFilterKeys } from "../../../components/layout/collapsible-statistics-logic";
 import { buildListStatistics } from "../../../components/layout/list-statistics";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
@@ -975,25 +976,36 @@ export class HaConfigEntities extends LitElement {
           "ui.panel.config.entities.picker.summary",
           { number: filteredEntities.length }
         )}. ${this.hass.localize("ui.panel.config.entities.picker.tagline")}`}
-        .statistics=${buildListStatistics(this.hass.localize, {
-          total: this._entities.length + this._entitiesWithoutUniqueId.length,
-          shown: filteredEntities.length,
-          selected: this._selected.length,
-          extras: [
-            {
-              key: "unavailable",
-              value: this._entities.filter(
-                (entity) =>
-                  this.hass.states[entity.entity_id]?.state === "unavailable"
-              ).length,
-            },
-            {
-              key: "disabled",
-              value: this._entities.filter((entity) => entity.disabled_by)
-                .length,
-            },
-          ],
-        })}
+        .statistics=${withFilterKeys(
+          buildListStatistics(this.hass.localize, {
+            total: this._entities.length + this._entitiesWithoutUniqueId.length,
+            shown: filteredEntities.length,
+            selected: this._selected.length,
+            extras: [
+              {
+                key: "unavailable",
+                value: this._entities.filter(
+                  (entity) =>
+                    this.hass.states[entity.entity_id]?.state === "unavailable"
+                ).length,
+              },
+              {
+                key: "disabled",
+                value: this._entities.filter((entity) => entity.disabled_by)
+                  .length,
+              },
+            ],
+          }),
+          ["unavailable", "disabled"]
+        )}
+        .activeStatistic=${this._activeStatistic()}
+        @statistic-selected=${this._statisticSelected}
+        .emptyActionLabel=${
+          includeAddDeviceFab
+            ? this.hass.localize("ui.panel.config.devices.add_device")
+            : undefined
+        }
+        @empty-action=${this._addDevice}
         has-filters
         .filters=${
           Object.values(this._filters).filter((filter) =>
@@ -1362,6 +1374,33 @@ export class HaConfigEntities extends LitElement {
 
   private _writeFilters() {
     this._filterParams.write(entitiesFilterQueryParams(this._filters));
+  }
+
+  // The statistic tile that matches the status filter, when that filter holds
+  // exactly that one status
+  private _activeStatistic(): string | undefined {
+    const states = this._filters["ha-filter-states"] as string[] | undefined;
+    return states?.length === 1 &&
+      (states[0] === "unavailable" || states[0] === "disabled")
+      ? states[0]
+      : undefined;
+  }
+
+  // A tile picks that status in the status filter; letting go of it, or the
+  // total, clears every filter like the clear button does
+  private _statisticSelected(ev: CustomEvent<{ key?: string }>) {
+    const key = ev.detail.key;
+    if (key !== "unavailable" && key !== "disabled") {
+      this._clearFilter();
+      return;
+    }
+    const value = [key];
+    this._storageFilters = {
+      ...this._storedFilters(),
+      "ha-filter-states": value,
+    };
+    this._filters = { ...this._filters, "ha-filter-states": value };
+    this._writeFilters();
   }
 
   private _clearFilter() {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   normalizeToastDuration,
+  toastMaxVisibleFor,
   ToastStack,
 } from "../../../src/common/toast/toast-stack";
 
@@ -117,5 +118,13 @@ describe("normalizeToastDuration", () => {
 
   it("keeps a progress toast until it is closed", () => {
     expect(normalizeToastDuration(2000, undefined, true)).toBe(-1);
+  });
+});
+
+describe("toastMaxVisibleFor", () => {
+  it("allows three toasts on a phone and two on a wide screen", () => {
+    expect(toastMaxVisibleFor(390, 844)).toBe(3);
+    expect(toastMaxVisibleFor(900, 400)).toBe(3);
+    expect(toastMaxVisibleFor(1440, 900)).toBe(2);
   });
 });

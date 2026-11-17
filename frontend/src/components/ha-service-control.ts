@@ -48,6 +48,15 @@ import { SirenEntityFeature } from "../data/siren";
 import type { HassServiceTargetWithExclude } from "../data/target";
 import type { HomeAssistant, ValueChangedEvent } from "../types";
 import { documentationUrl } from "../util/documentation-url";
+import "./action-editors/ha-action-quick-controls";
+import {
+  applyControlValue,
+  buildQuickControls,
+  claimedKeys,
+  type QuickControl,
+  type QuickEntity,
+  type QuickFieldInfo,
+} from "./action-editors/descriptors";
 import { getSelectorFallbackValue } from "./ha-form/get-selector-fallback-value";
 import "./ha-action-field-adapter";
 import "./ha-icon-button";
@@ -548,6 +557,11 @@ export class HaServiceControl extends LitElement {
         ? this.hass.services[domain]?.[serviceName]?.description_placeholders
         : undefined;
 
+    const quickControls = wholeData
+      ? []
+      : this._quickControls(serviceData, targetEntities);
+    const quickClaimed = claimedKeys(quickControls);
+
     const description =
       (serviceName &&
         this.hass.localize(
@@ -634,12 +648,32 @@ export class HaServiceControl extends LitElement {
           : ""
     }
     ${
+      quickControls.length
+        ? html`<ha-action-quick-controls
+            .hass=${this.hass}
+            .controls=${quickControls}
+            .fieldLabels=${this._quickLabels(
+              serviceData,
+              domain,
+              serviceName,
+              descriptionPlaceholders
+            )}
+            .disabled=${this.disabled}
+            @quick-control-changed=${this._quickChanged}
+            @quick-action-changed=${this._quickActionChanged}
+          ></ha-action-quick-controls>`
+        : nothing
+    }
+    ${
       wholeData
         ? actionDataRequired && this._value?.action
           ? this._renderDataDictionary(data, false)
           : nothing
         : serviceData?.fields.map((dataField) => {
             if (!dataField.fields) {
+              if (quickClaimed.has(dataField.key)) {
+                return nothing;
+              }
               return this._renderField(
                 dataField,
                 hasOptional,
@@ -692,6 +726,87 @@ export class HaServiceControl extends LitElement {
     }
     ${!wholeData ? this._renderDataDictionary(additionalData, true) : nothing} `;
   }
+
+  private _quickControls(
+    serviceData: ExtHassService | undefined,
+    targetEntities: string[] | null
+  ): QuickControl[] {
+    const action = this._value?.action;
+    if (!action || !serviceData) return [];
+    const [domain] = action.split(".", 1);
+    const fields: Record<string, QuickFieldInfo> = {};
+    serviceData.fields.forEach((field) => {
+      if (
+        field.fields ||
+        !field.selector ||
+        (field.filter && !this._filterField(field.filter, targetEntities)) ||
+        actionFieldAdapterKind(
+          action,
+          field.key,
+          this._value?.data?.[field.key]
+        )
+      ) {
+        return;
+      }
+      fields[field.key] = {
+        selector: field.selector as Record<string, any>,
+        default: field.default,
+        required: field.required,
+      };
+    });
+    const entities: QuickEntity[] = (targetEntities ?? [])
+      .filter((entityId) => computeDomain(entityId) === domain)
+      .map((entityId) => this.hass.states[entityId])
+      .filter((entity): entity is NonNullable<typeof entity> => !!entity);
+    const data = this._value?.data;
+    return buildQuickControls({
+      action,
+      data:
+        data && typeof data === "object" && !Array.isArray(data) ? data : {},
+      fields,
+      domainServices: Object.keys(this.hass.services[domain] ?? {}),
+      entities,
+    });
+  }
+
+  private _quickLabels(
+    serviceData: ExtHassService | undefined,
+    domain: string | undefined,
+    serviceName: string | undefined,
+    placeholders: Record<string, string> | undefined
+  ): Record<string, string> {
+    const labels: Record<string, string> = {};
+    serviceData?.fields.forEach((field) => {
+      const label =
+        this.hass.localize(
+          `component.${domain}.services.${serviceName}.fields.${field.key}.name`,
+          placeholders
+        ) || field.name;
+      if (label) labels[field.key] = label;
+    });
+    return labels;
+  }
+
+  private _quickChanged = (
+    ev: CustomEvent<{ key: string; value: unknown }>
+  ) => {
+    ev.stopPropagation();
+    const { key, value } = ev.detail;
+    const current = this._value?.data;
+    const data = applyControlValue(current, key, value);
+    if (data === current) return;
+    if (value === undefined || value === "") delete this._stickySelector[key];
+    fireEvent(this, "value-changed", {
+      value: { ...this._value, data: data ?? {} },
+    });
+  };
+
+  private _quickActionChanged = (ev: CustomEvent<{ action: string }>) => {
+    ev.stopPropagation();
+    this._serviceChanged(
+      new CustomEvent("value-changed", { detail: { value: ev.detail.action } })
+    );
+  };
 
   /** Legacy play-media actions keep their split data until explicitly edited. */
   private _usesLegacyMedia(service: ExtHassService | undefined): boolean {

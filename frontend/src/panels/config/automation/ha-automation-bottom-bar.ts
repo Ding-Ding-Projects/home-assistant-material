@@ -118,6 +118,13 @@ export class HaAutomationBottomBar extends LitElement {
    */
   @property({ type: Number }) public reserve = 0;
 
+  /**
+   * True when the header already shows the unsaved pill, Dry run and Save, so
+   * this bar keeps only Run now and Check and each action appears once.
+   */
+  @property({ type: Boolean, attribute: "frame-in-header" })
+  public frameInHeader = false;
+
   @state() private _checking = false;
 
   @state() private _dryRunning = false;
@@ -173,16 +180,20 @@ export class HaAutomationBottomBar extends LitElement {
     return html`
       ${this._renderDryRun()}
       <div class="bar" role="group" aria-label=${t(`${PREFIX}label`)}>
-        <span
-          class=${this._checkResult ? "status" : "status short"}
-          role="status"
-          aria-live="polite"
-          title=${this._statusText()}
-        >
-          ${this._statusText()}
-        </span>
         ${
-          this.readOnly
+          this.frameInHeader && !this._checkResult
+            ? nothing
+            : html`<span
+                class=${this._checkResult ? "status" : "status short"}
+                role="status"
+                aria-live="polite"
+                title=${this._statusText()}
+              >
+                ${this._statusText()}
+              </span>`
+        }
+        ${
+          this.readOnly || this.frameInHeader
             ? nothing
             : html`<span class="hint"
                 >${t(`${PREFIX}shortcut`, {
@@ -215,30 +226,41 @@ export class HaAutomationBottomBar extends LitElement {
               >${t(`${CHECK}${this._checking ? "checking" : "check"}`)}</span
             >
           </ha-button>
-          <ha-button
-            appearance="plain"
-            .disabled=${this._dryRunning || !this.config}
-            title=${t(`${DRY}hint`)}
-            aria-label=${t(`${DRY}${this._dryRunning ? "running" : "button"}`)}
-            @click=${this._dryRun}
-          >
-            <ha-svg-icon slot="start" .path=${mdiTestTube}></ha-svg-icon>
-            <span class="label"
-              >${t(`${DRY}${this._dryRunning ? "running" : "button"}`)}</span
-            >
-          </ha-button>
-          <ha-button
-            .disabled=${isSaveDisabled({
-              readOnly: this.readOnly,
-              saving: this.saving,
-              dirty: this.dirty,
-            })}
-            .loading=${this.saving}
-            @click=${this._save}
-          >
-            <ha-svg-icon slot="start" .path=${mdiContentSave}></ha-svg-icon>
-            ${t("ui.common.save")}
-          </ha-button>
+          ${
+            this.frameInHeader
+              ? nothing
+              : html`<ha-button
+                  appearance="plain"
+                  .disabled=${this._dryRunning || !this.config}
+                  title=${t(`${DRY}hint`)}
+                  aria-label=${t(`${DRY}${this._dryRunning ? "running" : "button"}`)}
+                  @click=${this._dryRun}
+                >
+                  <ha-svg-icon slot="start" .path=${mdiTestTube}></ha-svg-icon>
+                  <span class="label"
+                    >${t(`${DRY}${this._dryRunning ? "running" : "button"}`)}</span
+                  >
+                </ha-button>`
+          }
+          ${
+            this.frameInHeader
+              ? nothing
+              : html`<ha-button
+                  .disabled=${isSaveDisabled({
+                    readOnly: this.readOnly,
+                    saving: this.saving,
+                    dirty: this.dirty,
+                  })}
+                  .loading=${this.saving}
+                  @click=${this._save}
+                >
+                  <ha-svg-icon
+                    slot="start"
+                    .path=${mdiContentSave}
+                  ></ha-svg-icon>
+                  ${t("ui.common.save")}
+                </ha-button>`
+          }
         </div>
       </div>
     `;
@@ -379,6 +401,15 @@ export class HaAutomationBottomBar extends LitElement {
     this._checkResult = result;
   }
 
+  /** Runs the dry run, for the Dry run button in the editor header. */
+  public startDryRun(): void {
+    void this._dryRun();
+  }
+
+  public get dryRunBusy(): boolean {
+    return this._dryRunning;
+  }
+
   private async _dryRun() {
     if (this._dryRunning || !this.config) {
       return;
@@ -505,8 +536,11 @@ export class HaAutomationBottomBar extends LitElement {
           margin-inline-start: auto;
         }
         ha-button {
-          min-height: 44px;
-          min-width: 44px;
+          min-height: 48px;
+          min-width: 48px;
+        }
+        ha-button::part(base) {
+          border-radius: var(--ha-border-radius-pill, 999px);
         }
         ha-icon-button {
           min-width: 44px;

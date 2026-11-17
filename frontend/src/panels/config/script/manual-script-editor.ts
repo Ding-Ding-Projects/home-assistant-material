@@ -49,6 +49,10 @@ import {
 import { documentationUrl } from "../../../util/documentation-url";
 import { showEditorToast } from "../automation/editor-toast";
 import "../automation/action/ha-automation-action";
+import { playPageEntry } from "../../../common/motion/page-entry";
+import "../automation/editor-frame/ha-editor-hero";
+import { editorFrameStyles } from "../automation/editor-frame/editor-frame-styles";
+import "../automation/helpers-panel/ha-automation-helpers-panel";
 import "../automation/action/ha-automation-continue-on-error-all";
 import { inheritContinueOnError } from "../automation/action/continue-on-error-all";
 import "../automation/search/ha-automation-search-bar";
@@ -79,6 +83,9 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
   private _modeRowObserver?: ResizeObserver;
 
   private _observedModeRow?: HTMLDivElement;
+
+  @queryAll("ha-editor-hero, .card, ha-automation-helpers-panel")
+  private _entryBlocks?: NodeListOf<Element>;
 
   @queryAll("ha-automation-action, ha-script-fields")
   protected collapsableElements?: NodeListOf<
@@ -123,6 +130,30 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
     this._modeRowObserver = undefined;
     this._observedModeRow = undefined;
     super.disconnectedCallback();
+  }
+
+  protected override firstUpdated(changedProps: PropertyValues<this>): void {
+    super.firstUpdated(changedProps);
+    // The blocks rise once, when the editor first appears.
+    playPageEntry([...(this._entryBlocks ?? [])]);
+  }
+
+  /** Adds a step that tests a helper that was just created here. */
+  private _helperUse(ev: CustomEvent<{ condition: Record<string, unknown> }>) {
+    ev.stopPropagation();
+    fireEvent(this, "value-changed", {
+      value: {
+        ...this.config!,
+        sequence: [
+          ...(Array.isArray(this.config.sequence)
+            ? this.config.sequence
+            : this.config.sequence
+              ? [this.config.sequence]
+              : []),
+          ev.detail.condition,
+        ],
+      },
+    });
   }
 
   protected updated(changedProps: PropertyValues<this>) {
@@ -193,6 +224,11 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
             : nothing
         }
       </div>
+
+      <ha-editor-hero
+        .hass=${this.hass}
+        .config=${this.config}
+      ></ha-editor-hero>
 
       <div class="mode-row" role="group" aria-labelledby="mode-label">
         <span id="mode-label" class="mode-label">
@@ -321,6 +357,14 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
           sidebar
         ></ha-automation-action>
       </section>
+
+      <ha-automation-helpers-panel
+        .hass=${this.hass}
+        .config=${this.config}
+        .selfEntityId=${this.scriptId ? `script.${this.scriptId}` : undefined}
+        .disabled=${this.disabled || this.saving}
+        @helper-use=${this._helperUse}
+      ></ha-automation-helpers-panel>
 
       <div class="bottom-bar">
         <ha-button
@@ -634,6 +678,7 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
   static get styles(): CSSResultGroup {
     return [
       manualEditorStyles,
+      editorFrameStyles,
       css`
         .starting-points {
           margin-bottom: var(--ha-space-4);

@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   isErrorScreenShown,
   isServerBusy,
+  isTypingInField,
 } from "../../../src/common/dim-sum/dim-sum-state";
 import type { HomeAssistant } from "../../../src/types";
 
@@ -76,5 +77,22 @@ describe("isErrorScreenShown", () => {
     const host = document.createElement("div");
     host.appendChild(document.createElement("section"));
     expect(isErrorScreenShown(host)).toBe(false);
+  });
+});
+
+// Protects "never while the person is typing": the surprise waits while a
+// text field has focus and ignores buttons and checkboxes.
+describe("isTypingInField", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("is true for a focused text field and false for a button", () => {
+    document.body.innerHTML =
+      '<input id="a" type="text"><button id="b"></button>';
+    document.getElementById("a")!.focus();
+    expect(isTypingInField()).toBe(true);
+    document.getElementById("b")!.focus();
+    expect(isTypingInField()).toBe(false);
   });
 });

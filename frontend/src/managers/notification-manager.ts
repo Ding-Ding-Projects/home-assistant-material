@@ -22,6 +22,8 @@ import "../components/ha-icon-button";
 import "../components/ha-toast";
 import {
   normalizeToastDuration,
+  isNarrowToastViewport,
+  toastMaxVisibleFor,
   ToastStack,
 } from "../common/toast/toast-stack";
 import type { ToastStackItem } from "../common/toast/toast-stack";
@@ -60,6 +62,8 @@ export interface ToastActionParams {
     | { translationKey: LocalizeKeys; args?: Record<string, string | number> };
 }
 
+const RESERVED_STRIP_PROPERTY = "--ha-toast-reserved-height";
+
 type Notification = ToastStackItem<ShowToastParams>;
 
 @customElement("notification-manager")
@@ -86,7 +90,9 @@ class NotificationManager extends LitElement {
   @queryAll("ha-toast")
   private _toasts!: NodeListOf<HTMLElementTagNameMap["ha-toast"]>;
 
-  private _toastStack = new ToastStack<ShowToastParams>();
+  private _toastStack = new ToastStack<ShowToastParams>({
+    maxVisible: toastMaxVisibleFor(window.innerWidth, window.innerHeight),
+  });
 
   private _announced = new Map<string, string>();
 
@@ -98,14 +104,35 @@ class NotificationManager extends LitElement {
     this._updatePhoneBarHeight();
   }
 
+  protected updated(): void {
+    this._reserveStripHeight();
+  }
+
   public disconnectedCallback(): void {
     window.removeEventListener("resize", this._updatePhoneBarHeight);
+    document.documentElement.style.removeProperty(RESERVED_STRIP_PROPERTY);
     super.disconnectedCallback();
   }
 
   private _updatePhoneBarHeight = () => {
     this._phoneBarHeight = phoneBarHeight();
   };
+
+  /**
+   * On a phone the toasts sit in a strip above the bottom bars. While they are
+   * shown the page reads this height so its last row can scroll clear of them.
+   */
+  private _reserveStripHeight() {
+    const narrow = isNarrowToastViewport(window.innerWidth, window.innerHeight);
+    const height =
+      narrow && this._notifications.length && this._stack
+        ? this._stack.offsetHeight + 8
+        : 0;
+    document.documentElement.style.setProperty(
+      RESERVED_STRIP_PROPERTY,
+      `${height}px`
+    );
+  }
 
   private _text(
     value: NonNullable<ShowToastParams["message"]> | undefined
@@ -136,11 +163,7 @@ class NotificationManager extends LitElement {
 
     const normalizedParameters = {
       ...parameters,
-      dismissable:
-        parameters.dismissable ??
-        (parameters.severity === "warning" || parameters.severity === "error"
-          ? true
-          : undefined),
+      dismissable: parameters.dismissable ?? true,
       duration: normalizeToastDuration(
         parameters.duration,
         parameters.severity,
@@ -419,6 +442,12 @@ class NotificationManager extends LitElement {
       white-space: nowrap;
       border: 0;
     }
+    @media all and (max-width: 450px), all and (max-height: 500px) {
+      .stack {
+        max-width: calc(var(--safe-width) - 32px);
+        width: calc(var(--safe-width) - 32px);
+      }
+    }
     .more {
       padding: var(--ha-space-1) var(--ha-space-3);
       border-radius: var(--ha-border-radius-pill, 999px);
@@ -451,7 +480,7 @@ class NotificationManager extends LitElement {
             )
         )
       );
-      max-width: var(--safe-width);
+      max-width: min(560px, var(--safe-width));
       display: flex;
       flex-direction: column;
       align-items: center;

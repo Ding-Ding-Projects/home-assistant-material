@@ -185,3 +185,18 @@ export class ToastStack<T = unknown> {
     }
   }
 }
+
+/** The widest screen that still counts as a phone for toasts. */
+export const TOAST_NARROW_MAX_WIDTH = 450;
+export const TOAST_NARROW_MAX_HEIGHT = 500;
+export const TOAST_MAX_VISIBLE_WIDE = 2;
+
+/** True on a phone-sized window, where toasts use the reserved strip. */
+export const isNarrowToastViewport = (width: number, height: number): boolean =>
+  width <= TOAST_NARROW_MAX_WIDTH || height <= TOAST_NARROW_MAX_HEIGHT;
+
+/** Wide screens keep two toasts on screen at most; phones keep three. */
+export const toastMaxVisibleFor = (width: number, height: number): number =>
+  isNarrowToastViewport(width, height)
+    ? TOAST_MAX_VISIBLE
+    : TOAST_MAX_VISIBLE_WIDE;

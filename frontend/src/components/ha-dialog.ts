@@ -15,6 +15,10 @@ import { ifDefined } from "lit/directives/if-defined";
 import { consume } from "../common/decorators/consume";
 import type { HASSDomEvent } from "../common/dom/fire_event";
 import { fireEvent } from "../common/dom/fire_event";
+import {
+  currentDialogMotionMode,
+  shouldCloseSheet,
+} from "../common/motion/dialog-entry";
 import { withViewTransition } from "../common/util/view-transition";
 import { configContext, internationalizationContext } from "../data/context";
 import { ScrollableFadeMixin } from "../mixins/scrollable-fade-mixin";
@@ -140,6 +144,13 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
 
   @query(".body") public bodyContainer!: HTMLDivElement;
 
+  @query("wa-dialog") private _waDialog?: WaDialog;
+
+  /** The dialog has its own search at the top, so the shared one is left out. */
+  @state() private _ownSearch = false;
+
+  private _drag?: { startY: number; startTime: number; id: number };
+
   @state()
   @consume({ context: internationalizationContext, subscribe: true })
   private _i18n?: ContextType<typeof internationalizationContext>;
@@ -161,6 +172,15 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
 
   protected get scrollableElement(): HTMLElement | null {
     return this.bodyContainer;
+  }
+
+  protected willUpdate(changedProperties: PropertyValues<this>): void {
+    super.willUpdate(changedProperties);
+    if (changedProperties.has("open") && this.open) {
+      // Chosen before the dialog is shown, so the first frame already moves
+      // the way the personal "Confirmation drama" choice asks for.
+      this.setAttribute("motion", currentDialogMotionMode());
+    }
   }
 
   protected updated(changedProperties: PropertyValues<this>): void {
@@ -193,6 +213,14 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
         @wa-after-show=${this._handleAfterShow}
         @wa-after-hide=${this._handleAfterHide}
       >
+        <div
+          class="handle"
+          aria-hidden="true"
+          @pointerdown=${this._handleDragStart}
+          @pointermove=${this._handleDragMove}
+          @pointerup=${this._handleDragEnd}
+          @pointercancel=${this._handleDragEnd}
+        ></div>
         ${
           !this.withoutHeader
             ? html`<slot name="header">
@@ -241,26 +269,88 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
               </slot>`
             : nothing
         }
+        ${
+          this.withoutTools || this.type === "alert"
+            ? nothing
+            : html`<ha-dialog-tools
+                .hideSearch=${this._ownSearch}
+                @dialog-lock-changed=${this._lockChanged}
+              ></ha-dialog-tools>`
+        }
         <div class="content-wrapper">
           <div
             class="body ha-scrollbar"
             ?inert=${this._locked}
             @scroll=${this._handleBodyScroll}
           >
-            <slot></slot>
+            <slot @slotchange=${this._contentChanged}></slot>
           </div>
           ${this.renderScrollableFades()}
         </div>
-        ${
-          this.withoutTools || this.type === "alert"
-            ? nothing
-            : html`<ha-dialog-tools
-                @dialog-lock-changed=${this._lockChanged}
-              ></ha-dialog-tools>`
-        }
         <slot name="footer" slot="footer" ?inert=${this._locked}></slot>
       </wa-dialog>
     `;
+  }
+
+  /** Looks for a search of the dialog's own at the top of its content. */
+  private _contentChanged(ev: Event): void {
+    const first = (ev.target as HTMLSlotElement).assignedElements()[0];
+    this._ownSearch =
+      first !== undefined &&
+      (first.localName === "ha-input-search" ||
+        first.querySelector(
+          ":scope > ha-input-search, :scope > * > ha-input-search"
+        ) !== null);
+  }
+
+  private _handleDragStart(ev: PointerEvent): void {
+    if (this.preventScrimClose || !this._waDialog?.dialog) {
+      return;
+    }
+    this._drag = {
+      startY: ev.clientY,
+      startTime: ev.timeStamp,
+      id: ev.pointerId,
+    };
+    (ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId);
+    const surface = this._waDialog.dialog;
+    surface.style.transition = "none";
+  }
+
+  private _handleDragMove(ev: PointerEvent): void {
+    const surface = this._waDialog?.dialog;
+    if (!this._drag || !surface || ev.pointerId !== this._drag.id) {
+      return;
+    }
+    const distance = Math.max(0, ev.clientY - this._drag.startY);
+    surface.style.translate = `0 ${distance}px`;
+  }
+
+  private _handleDragEnd(ev: PointerEvent): void {
+    const surface = this._waDialog?.dialog;
+    const drag = this._drag;
+    if (!drag || !surface || ev.pointerId !== drag.id) {
+      return;
+    }
+    this._drag = undefined;
+    const distance = Math.max(0, ev.clientY - drag.startY);
+    const velocity = distance / Math.max(1, ev.timeStamp - drag.startTime);
+    if (ev.type === "pointerup" && shouldCloseSheet(distance, velocity)) {
+      // The same path as Escape and the close button.
+      this._waDialog!.open = false;
+      return;
+    }
+    surface.style.transition = "translate 200ms cubic-bezier(0.2, 1.5, 0.3, 1)";
+    surface.style.translate = "";
+  }
+
+  private _clearDrag(): void {
+    const surface = this._waDialog?.dialog;
+    if (surface) {
+      surface.style.translate = "";
+      surface.style.transition = "";
+    }
+    this._drag = undefined;
   }
 
   private _handleShow = async (ev: Event) => {
@@ -305,6 +395,7 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
   private _handleAfterHide = (ev: DialogHideEvent) => {
     if (ev.eventPhase === Event.AT_TARGET) {
       this._open = false;
+      this._clearDrag();
       this._setFullscreen(false);
       fireEvent(this, "closed");
     }
@@ -388,10 +479,7 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
             --ha-dialog-surface-background,
             var(--card-background-color, var(--ha-color-surface-default))
           );
-          --wa-panel-border-radius: var(
-            --ha-dialog-border-radius,
-            var(--ha-border-radius-4xl)
-          );
+          --wa-panel-border-radius: var(--ha-dialog-border-radius, 36px);
           max-width: var(--ha-dialog-max-width, var(--safe-width));
         }
         @media (prefers-reduced-motion: reduce) {
@@ -473,7 +561,9 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
           background-color: var(--mdc-dialog-scrim-color, none);
         }
 
-        @media all and (max-width: 450px), all and (max-height: 500px) {
+        /* A short, wide screen such as a phone on its side keeps the full
+           screen dialog. A narrow screen gets the bottom sheet further down. */
+        @media all and (min-width: 601px) and (max-height: 500px) {
           :host([type="standard"]) {
             --ha-dialog-border-radius: 0;
           }
@@ -500,6 +590,149 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
             /* Reset the transform to center the dialog */
             transform: none;
           }
+        }
+
+        /* The bottom sheet: narrow screens anchor a standard dialog to the
+           bottom edge, with a drag handle and a spring on the way in. */
+        .handle {
+          display: none;
+          flex: none;
+          height: 24px;
+          align-items: center;
+          justify-content: center;
+          cursor: grab;
+          touch-action: none;
+        }
+        .handle::after {
+          content: "";
+          width: 40px;
+          height: 4px;
+          border-radius: 2px;
+          background: var(--ha-bottom-sheet-handle-color, var(--divider-color));
+        }
+        :host([prevent-scrim-close]) .handle {
+          cursor: default;
+        }
+        @media (max-width: 600px) {
+          :host([type="standard"]:not([fullscreen])) .handle {
+            display: flex;
+          }
+          :host([type="standard"]:not([fullscreen])) wa-dialog {
+            --full-width: var(--ha-dialog-width-full, 100vw);
+            --width: var(--full-width);
+            --ha-dialog-border-radius: 36px 36px 0 0;
+          }
+          :host([type="standard"]:not([fullscreen])) wa-dialog::part(dialog) {
+            min-height: var(--ha-dialog-min-height, 0);
+            max-height: var(--ha-dialog-max-height, 92vh);
+            max-height: var(--ha-dialog-max-height, 92dvh);
+            margin: auto 0 0 0;
+            padding-bottom: var(--safe-area-inset-bottom);
+            padding-left: var(--safe-area-inset-left);
+            padding-right: var(--safe-area-inset-right);
+            transform: none;
+          }
+          :host([type="standard"]:not([fullscreen]))
+            ::slotted([slot="footer"]) {
+            padding-bottom: var(--ha-space-4);
+          }
+        }
+
+        /* Arrival, chosen by the personal confirmation drama setting. The
+           motion attribute is set before the dialog is shown. */
+        :host([motion="none"]) wa-dialog {
+          --show-duration: 0ms;
+          --hide-duration: 0ms;
+        }
+        :host([motion="fade"]) wa-dialog::part(dialog) {
+          animation-name: ha-dialog-fade;
+        }
+        :host([motion="rise"]) wa-dialog::part(dialog) {
+          animation-name: ha-dialog-rise;
+        }
+        :host([motion="rise-scale"]) wa-dialog::part(dialog) {
+          animation-name: ha-dialog-rise-scale;
+        }
+        :host([motion="rise"]) wa-dialog,
+        :host([motion="rise-scale"]) wa-dialog {
+          --show-duration: var(--ha-dialog-show-duration, 320ms);
+          --hide-duration: var(--ha-dialog-hide-duration, 160ms);
+        }
+        @media (max-width: 600px) {
+          :host([type="standard"][motion="rise"]:not([fullscreen]))
+            wa-dialog::part(dialog),
+          :host([type="standard"][motion="rise-scale"]:not([fullscreen]))
+            wa-dialog::part(dialog) {
+            animation-name: ha-dialog-sheet-rise;
+          }
+          :host([type="standard"][motion="rise"]:not([fullscreen])) wa-dialog,
+          :host([type="standard"][motion="rise-scale"]:not([fullscreen]))
+            wa-dialog {
+            --show-duration: var(--ha-dialog-show-duration, 350ms);
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          :host([motion]) wa-dialog::part(dialog) {
+            animation-name: none;
+          }
+        }
+        @keyframes ha-dialog-fade {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        @keyframes ha-dialog-rise {
+          from {
+            opacity: 0;
+            translate: 0 24px;
+            animation-timing-function: cubic-bezier(0.2, 1.5, 0.3, 1);
+          }
+          to {
+            opacity: 1;
+            translate: 0 0;
+          }
+        }
+        @keyframes ha-dialog-rise-scale {
+          from {
+            opacity: 0;
+            translate: 0 24px;
+            scale: 0.96;
+            animation-timing-function: cubic-bezier(0.2, 1.5, 0.3, 1);
+          }
+          to {
+            opacity: 1;
+            translate: 0 0;
+            scale: 1;
+          }
+        }
+        @keyframes ha-dialog-sheet-rise {
+          from {
+            translate: 0 100%;
+            animation-timing-function: cubic-bezier(0.2, 1.5, 0.3, 1);
+          }
+          to {
+            translate: 0 0;
+          }
+        }
+
+        /* The close button is a round tonal button. */
+        ha-icon-button[data-dialog="close"] {
+          --ha-icon-button-size: 48px;
+          --mdc-icon-button-size: 48px;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background-color: var(
+            --md-sys-color-secondary-container,
+            var(--ha-color-fill-neutral-quiet-resting)
+          );
+          color: var(
+            --md-sys-color-on-secondary-container,
+            var(--primary-text-color)
+          );
         }
 
         .header-title-container {
@@ -567,8 +800,8 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
 
         ::slotted([slot="footer"]) {
           display: flex;
-          padding: var(--ha-space-3) var(--ha-space-4) var(--ha-space-4)
-            var(--ha-space-4);
+          padding: var(--ha-space-3) var(--ha-space-6) var(--ha-space-6)
+            var(--ha-space-6);
           gap: var(--ha-space-3);
           justify-content: flex-end;
           align-items: center;

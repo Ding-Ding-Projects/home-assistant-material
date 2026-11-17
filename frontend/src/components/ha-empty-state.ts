@@ -1,119 +1,111 @@
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
-import "./ha-svg-icon";
+import { playPageEntry } from "../common/motion/page-entry";
+import type { EmptyStateTone } from "./empty-state-logic";
 
 /**
- * Centered placeholder for a surface that has nothing to show, with an icon, a
- * heading, an optional description and optional actions.
+ * A calm message for a list or page with nothing to show: a large icon, one
+ * sentence and one action.
  *
- * @slot - Actions that help the user fill the surface, e.g. a button.
+ * - `tone` picks the colour of the icon: "start" (nothing yet), "filtered"
+ *   (search or filters hide everything) or "missing".
+ * - `heading` is the one sentence; `description` is optional and smaller.
+ * - Slots: `icon` for the icon and `actions` for the one action.
+ * - The element has `role="status"`, so a screen reader announces it when it
+ *   appears.
+ * - It rises once when first shown, and not at all when the person asks for
+ *   reduced motion or has turned motion off.
  */
 @customElement("ha-empty-state")
 export class HaEmptyState extends LitElement {
-  /** SVG path of the icon shown above the heading. */
-  @property() public icon?: string;
+  @property({ reflect: true }) public tone: EmptyStateTone = "start";
 
-  @property() public heading?: string;
+  @property() public heading = "";
 
-  @property() public description?: string;
+  @property() public description = "";
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this.setAttribute("role", "status");
+  }
+
+  protected firstUpdated(): void {
+    playPageEntry([this]);
+  }
 
   protected render() {
     return html`
-      <div class="content">
-        ${
-          this.icon
-            ? html`<span
-                class=${
-                  document.documentElement.hasAttribute(
-                    "data-a11y-reduce-motion"
-                  )
-                    ? "tile"
-                    : "tile float"
-                }
-                ><ha-svg-icon .path=${this.icon}></ha-svg-icon
-              ></span>`
-            : nothing
-        }
-        ${this.heading ? html`<h2>${this.heading}</h2>` : nothing}
-        ${this.description ? html`<p>${this.description}</p>` : nothing}
-        <slot></slot>
-      </div>
+      <div class="icon" aria-hidden="true"><slot name="icon"></slot></div>
+      <p class="heading">${this.heading}</p>
+      ${
+        this.description
+          ? html`<p class="description">${this.description}</p>`
+          : nothing
+      }
+      <div class="actions"><slot name="actions"></slot></div>
     `;
   }
 
   static styles = css`
     :host {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      box-sizing: border-box;
-      height: 100%;
-      width: 100%;
-    }
-
-    .content {
-      display: flex;
       flex-direction: column;
       align-items: center;
-      gap: var(--ha-space-4);
+      gap: var(--ha-space-2, 8px);
       box-sizing: border-box;
-      max-width: 500px;
-      padding: var(--ha-space-8) var(--ha-space-4);
+      max-width: 420px;
+      margin: 0 auto;
+      padding: var(--ha-space-8, 32px) var(--ha-space-4, 16px);
       text-align: center;
-    }
-
-    .tile {
-      display: grid;
-      place-items: center;
-      width: 88px;
-      height: 88px;
-      border-radius: var(--ha-border-radius-3xl);
-      background: linear-gradient(
-        135deg,
-        color-mix(
-          in srgb,
-          var(--primary-color) 16%,
-          var(--card-background-color)
-        ),
-        color-mix(
-          in srgb,
-          var(--accent-color, var(--primary-color)) 12%,
-          var(--card-background-color)
-        )
+      color: var(--primary-text-color);
+      --empty-state-tint: var(--md-sys-color-primary, var(--primary-color));
+      --empty-state-tint-bg: var(
+        --md-sys-color-primary-container,
+        var(--ha-color-fill-primary-quiet-resting)
       );
     }
-
-    ha-svg-icon {
-      --mdc-icon-size: var(--ha-empty-state-icon-size, 40px);
-      color: var(--primary-color);
+    :host([tone="filtered"]) {
+      --empty-state-tint: var(
+        --md-sys-color-tertiary,
+        var(--secondary-text-color)
+      );
+      --empty-state-tint-bg: var(
+        --md-sys-color-tertiary-container,
+        var(--ha-color-fill-neutral-quiet-resting)
+      );
     }
-
-    @media (prefers-reduced-motion: no-preference) {
-      .tile.float {
-        animation: ha-empty-float 4s ease-in-out infinite;
-      }
+    :host([tone="missing"]) {
+      --empty-state-tint: var(--md-sys-color-error, var(--error-color));
+      --empty-state-tint-bg: var(
+        --md-sys-color-error-container,
+        var(--ha-color-fill-danger-quiet-resting)
+      );
     }
-
-    @keyframes ha-empty-float {
-      0%,
-      100% {
-        transform: translateY(0);
-      }
-      50% {
-        transform: translateY(-6px);
-      }
+    .icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: var(--empty-state-tint-bg);
+      color: var(--empty-state-tint);
+      --mdc-icon-size: 48px;
     }
-
-    h2 {
-      margin: 0;
-      font-size: var(--ha-font-size-xl);
-      font-weight: var(--ha-font-weight-medium);
-      line-height: var(--ha-line-height-condensed);
+    .heading {
+      margin: var(--ha-space-2, 8px) 0 0;
+      font-size: var(--ha-font-size-xl, 20px);
+      font-weight: 700;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
     }
-
-    p {
+    .description {
       margin: 0;
       color: var(--secondary-text-color);
+      overflow-wrap: anywhere;
+    }
+    .actions {
+      margin-top: var(--ha-space-2, 8px);
     }
   `;
 }

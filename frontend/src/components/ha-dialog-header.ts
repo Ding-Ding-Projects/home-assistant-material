@@ -74,30 +74,29 @@ export class HaDialogHeader extends LitElement {
         .header-bar {
           display: flex;
           flex-direction: row;
-          align-items: center;
-          padding: 0 var(--ha-space-1);
+          align-items: flex-start;
+          padding: var(--ha-space-4) var(--ha-space-4) var(--ha-space-2);
           box-sizing: border-box;
         }
         .header-content {
           flex: 1;
-          padding: 10px var(--ha-space-1);
+          padding: var(--ha-space-1) var(--ha-space-2);
           display: flex;
           flex-direction: column;
           justify-content: center;
-          min-height: var(--ha-space-12);
+          min-height: 48px;
           min-width: 0;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: var(--ha-dialog-header-white-space, nowrap);
+          overflow: visible;
+          white-space: var(--ha-dialog-header-white-space, normal);
+          overflow-wrap: anywhere;
         }
         .header-title {
-          height: var(
-            --ha-dialog-header-title-height,
-            calc(var(--ha-font-size-xl) + var(--ha-space-1))
-          );
-          font-size: var(--ha-font-size-xl);
+          height: var(--ha-dialog-header-title-height, auto);
+          font-size: clamp(28px, 7vw, 32px);
           line-height: var(--ha-line-height-condensed);
-          font-weight: var(--ha-font-weight-medium);
+          font-weight: 800;
+          font-stretch: 116%;
+          letter-spacing: -0.02em;
           color: var(--ha-dialog-header-title-color, var(--primary-text-color));
         }
         .header-subtitle {
@@ -108,9 +107,14 @@ export class HaDialogHeader extends LitElement {
             var(--secondary-text-color)
           );
         }
+        @media all and (min-width: 601px) {
+          .header-title {
+            font-size: clamp(32px, 4vw, 40px);
+          }
+        }
         @media all and (min-width: 450px) and (min-height: 500px) {
           .header-bar {
-            padding: 0 var(--ha-space-2);
+            padding: var(--ha-space-6) var(--ha-space-6) var(--ha-space-2);
           }
         }
         .header-navigation-icon {

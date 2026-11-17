@@ -111,6 +111,7 @@ import {
   showConfirmationDialog,
 } from "../../../dialogs/generic/show-dialog-box";
 import { showMoreInfoDialog } from "../../../dialogs/more-info/show-ha-more-info-dialog";
+import { withFilterKeys } from "../../../components/layout/collapsible-statistics-logic";
 import { buildListStatistics } from "../../../components/layout/list-statistics";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
@@ -499,19 +500,28 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
           "ui.panel.config.script.picker.summary",
           { number: scripts.length }
         )}. ${this.hass.localize("ui.panel.config.script.picker.description")}`}
-        .statistics=${buildListStatistics(this.hass.localize, {
-          total: this.scripts.length,
-          shown: scripts.length,
-          selected: this._selected.length,
-          extras: [
-            {
-              key: "unavailable",
-              value: this.scripts.filter(
-                (script) => script.state === "unavailable"
-              ).length,
-            },
-          ],
-        })}
+        .statistics=${withFilterKeys(
+          buildListStatistics(this.hass.localize, {
+            total: this.scripts.length,
+            shown: scripts.length,
+            selected: this._selected.length,
+            extras: [
+              {
+                key: "unavailable",
+                value: this.scripts.filter(
+                  (script) => script.state === "unavailable"
+                ).length,
+              },
+            ],
+          }),
+          // This page has no status filter yet, so only the total acts
+          []
+        )}
+        @statistic-selected=${this._clearFilter}
+        .emptyActionLabel=${this.hass.localize(
+          "ui.panel.config.script.picker.add_script"
+        )}
+        @empty-action=${this._createNew}
         has-filters
         .initialGroupColumn=${this._tableSettings.grouping}
         .initialCollapsedGroups=${this._activeCollapsed}

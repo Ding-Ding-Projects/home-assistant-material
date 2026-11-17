@@ -1,6 +1,6 @@
 import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HomeAssistant } from "../../src/types";
 import "../../src/managers/notification-manager";
 
@@ -75,7 +75,17 @@ const showAll = (
     Promise.resolve()
   );
 
+const originalWidth = window.innerWidth;
+const originalHeight = window.innerHeight;
+const resizeTo = (width: number, height: number) => {
+  Object.assign(window, { innerWidth: width, innerHeight: height });
+};
+
+// Phones keep three toasts; the wide limit is covered in its own test.
+beforeEach(() => resizeTo(400, 800));
+
 afterEach(() => {
+  resizeTo(originalWidth, originalHeight);
   host?.remove();
   host = undefined;
   vi.clearAllMocks();
@@ -91,6 +101,15 @@ describe("notification-manager stack", () => {
     expect(manager.shadowRoot!.querySelector(".more")!.textContent).toContain(
       '"count":2'
     );
+  });
+
+  it("keeps two toasts on a wide screen", async () => {
+    resizeTo(1200, 800);
+    const manager = await mountManager();
+    await showAll(manager, ["One", "Two", "Three"]);
+    await manager.updateComplete;
+
+    expect(labels(manager)).toEqual(["One", "Two"]);
   });
 
   it("makes older toasts progressively smaller through the depth property", async () => {
