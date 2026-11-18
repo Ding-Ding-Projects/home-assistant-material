@@ -15,6 +15,7 @@ import "../../components/ha-state-icon";
 import { apiContext, formattersContext } from "../../data/context";
 import { UNAVAILABLE, UNKNOWN } from "../../data/entity/entity";
 import { forwardHaptic } from "../../data/haptics";
+import { modeText } from "../../common/language-mode/language-mode";
 import type { LockEntity } from "../../data/lock";
 import { callProtectedLockService } from "../../data/lock";
 import {
@@ -49,6 +50,56 @@ export class HaStateControlLockToggle extends LitElement {
   @property({ type: Boolean, reflect: true }) public board = false;
 
   @state() private _isOn = false;
+
+  /** How far the slide thumb has been dragged, in pixels. */
+  @state() private _slideX = 0;
+
+  private _slideStart?: { x: number; max: number; id: number };
+
+  private _onSlideDown(ev: PointerEvent) {
+    const thumb = ev.currentTarget as HTMLElement;
+    const track = thumb.parentElement as HTMLElement;
+    const max = Math.max(track.clientWidth - thumb.offsetWidth - 8, 1);
+    this._slideStart = { x: ev.clientX, max, id: ev.pointerId };
+    thumb.setPointerCapture(ev.pointerId);
+  }
+
+  private _onSlideMove(ev: PointerEvent) {
+    if (!this._slideStart || ev.pointerId !== this._slideStart.id) {
+      return;
+    }
+    this._slideX = Math.min(
+      Math.max(ev.clientX - this._slideStart.x, 0),
+      this._slideStart.max
+    );
+  }
+
+  private _onSlideUp(ev: PointerEvent) {
+    if (!this._slideStart || ev.pointerId !== this._slideStart.id) {
+      return;
+    }
+    const done = this._slideX >= this._slideStart.max * 0.85;
+    this._slideStart = undefined;
+    this._slideX = 0;
+    if (done) {
+      this._turnOff();
+    }
+  }
+
+  private _onSlideKey(ev: KeyboardEvent) {
+    // A pointer press alone never unlocks; the keyboard and assistive
+    // technology activate the thumb as an ordinary button.
+    if (ev.key === "Enter" || ev.key === " " || ev.key === "ArrowRight") {
+      ev.preventDefault();
+      this._turnOff();
+    }
+  }
+
+  private _onSlideClick(ev: MouseEvent) {
+    if (ev.detail === 0) {
+      this._turnOff();
+    }
+  }
 
   public willUpdate(changedProps: PropertyValues<this>): void {
     super.willUpdate(changedProps);
@@ -141,6 +192,40 @@ export class HaStateControlLockToggle extends LitElement {
       `;
     }
 
+    if (this.board && this._isOn && !locking) {
+      return html`
+        <div class="slide" style=${styleMap({ "--tile-color": color })}>
+          <span class="slide-label" aria-hidden="true"
+            >${modeText(this._localize as any, "ui.entity_sheet.slide_to_unlock")}</span
+          >
+          <button
+            type="button"
+            class="thumb"
+            aria-label=${modeText(
+              this._localize as any,
+              "ui.entity_sheet.slide_to_unlock"
+            )}
+            style=${styleMap({ transform: `translateX(${this._slideX}px)` })}
+            .disabled=${this.stateObj.state === UNAVAILABLE}
+            @pointerdown=${this._onSlideDown}
+            @pointermove=${this._onSlideMove}
+            @pointerup=${this._onSlideUp}
+            @pointercancel=${this._onSlideUp}
+            @keydown=${this._onSlideKey}
+            @click=${this._onSlideClick}
+          >
+            <ha-state-icon
+              .stateObj=${this.stateObj}
+              .stateValue=${"locked"}
+            ></ha-state-icon>
+          </button>
+        </div>
+        <p class="tile-state" role="status" aria-live="polite">
+          ${this._formatters?.formatEntityState(this.stateObj)}
+        </p>
+      `;
+    }
+
     if (this.board) {
       return html`
         <button
@@ -211,6 +296,10 @@ export class HaStateControlLockToggle extends LitElement {
     stateControlToggleStyle,
     stateControlPulseStyle,
     css`
+      :host([board]) {
+        display: block;
+        width: 100%;
+      }
       .tile {
         appearance: none;
         position: relative;
@@ -237,6 +326,53 @@ export class HaStateControlLockToggle extends LitElement {
           height: 64px;
           border-radius: var(--ha-border-radius-pill, 32px);
         }
+      }
+      .slide {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 400px;
+        height: 64px;
+        margin: 0 auto;
+        border-radius: var(--ha-border-radius-pill, 32px);
+        background: color-mix(
+          in srgb,
+          var(--tile-color, var(--disabled-color)) 30%,
+          transparent
+        );
+        color: var(--primary-text-color);
+        overflow: hidden;
+        touch-action: pan-y;
+      }
+      .slide-label {
+        font-weight: var(--ha-font-weight-medium);
+        pointer-events: none;
+      }
+      .thumb {
+        appearance: none;
+        position: absolute;
+        left: 4px;
+        top: 4px;
+        width: 56px;
+        height: 56px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: var(--tile-color, var(--primary-color));
+        color: var(--text-primary-color, #fff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: grab;
+        touch-action: none;
+        --mdc-icon-size: 28px;
+      }
+      .thumb:focus-visible {
+        outline: 2px solid var(--primary-text-color);
+        outline-offset: 2px;
       }
       .tile::before {
         content: "";

@@ -1,14 +1,11 @@
-import { mdiMenu, mdiSwapVertical } from "@mdi/js";
-import type { CSSResultGroup, PropertyValues } from "lit";
+import type { CSSResultGroup } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { consume } from "../../../common/decorators/consume";
 import { consumeLocalize } from "../../../common/decorators/consume-context-entry";
 import { supportsFeature } from "../../../common/entity/supports-feature";
 import type { LocalizeFunc } from "../../../common/translations/localize";
-import "../../../components/ha-icon-button-group";
 import "../../../components/ha-relative-time";
-import "../../../components/ha-icon-button-toggle";
 import { formattersContext } from "../../../data/context";
 import {
   shouldShowFavoriteOptions,
@@ -27,8 +24,6 @@ import type { HomeAssistantFormatters } from "../../../types";
 import "../components/valves/ha-more-info-valve-favorite-positions";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 
-type Mode = "position" | "button";
-
 @customElement("more-info-valve")
 class MoreInfoValve extends LitElement {
   @state()
@@ -44,25 +39,6 @@ class MoreInfoValve extends LitElement {
   @property({ attribute: false }) public entry?: ExtEntityRegistryEntry | null;
 
   @property({ attribute: false }) public editMode?: boolean;
-
-  @state() private _mode?: Mode;
-
-  private _setMode(ev) {
-    this._mode = ev.currentTarget.mode;
-  }
-
-  protected willUpdate(changedProps: PropertyValues<this>): void {
-    super.willUpdate(changedProps);
-    if (changedProps.has("stateObj") && this.stateObj) {
-      const entityId = this.stateObj.entity_id;
-      const oldEntityId = changedProps.get("stateObj")?.entity_id;
-      if (!this._mode || entityId !== oldEntityId) {
-        this._mode = valveSupportsPosition(this.stateObj)
-          ? "position"
-          : "button";
-      }
-    }
-  }
 
   private get _stateOverride() {
     const stateDisplay = this._formatters.formatEntityState(this.stateObj!);
@@ -121,71 +97,30 @@ class MoreInfoValve extends LitElement {
         </div>
       </div>
       <div class="controls">
-        <div class="main-control">
-          ${
-            this._mode === "position"
+        ${
+          supportsPosition
+            ? html`
+                <ha-state-control-valve-position
+                  .stateObj=${this.stateObj}
+                ></ha-state-control-valve-position>
+              `
+            : nothing
+        }
+        ${
+          supportsOpenCloseOnly && !supportsPosition
+            ? html`
+                <ha-state-control-valve-toggle
+                  .stateObj=${this.stateObj}
+                ></ha-state-control-valve-toggle>
+              `
+            : supportsOpenClose
               ? html`
-                  ${
-                    supportsPosition
-                      ? html`
-                          <ha-state-control-valve-position
-                            .stateObj=${this.stateObj}
-                          ></ha-state-control-valve-position>
-                        `
-                      : nothing
-                  }
+                  <ha-state-control-valve-buttons
+                    .stateObj=${this.stateObj}
+                  ></ha-state-control-valve-buttons>
                 `
               : nothing
-          }
-          ${
-            this._mode === "button"
-              ? html`
-                  ${
-                    supportsOpenCloseOnly
-                      ? html`
-                          <ha-state-control-valve-toggle
-                            .stateObj=${this.stateObj}
-                          ></ha-state-control-valve-toggle>
-                        `
-                      : supportsOpenClose
-                        ? html`
-                            <ha-state-control-valve-buttons
-                              .stateObj=${this.stateObj}
-                            ></ha-state-control-valve-buttons>
-                          `
-                        : nothing
-                  }
-                `
-              : nothing
-          }
-            </div>
-          ${
-            supportsPosition && supportsOpenClose
-              ? html`
-                  <ha-icon-button-group>
-                    <ha-icon-button-toggle
-                      .label=${this._localize(
-                        `ui.dialogs.more_info_control.valve.switch_mode.position`
-                      )}
-                      .selected=${this._mode === "position"}
-                      .path=${mdiMenu}
-                      .mode=${"position"}
-                      @click=${this._setMode}
-                    ></ha-icon-button-toggle>
-                    <ha-icon-button-toggle
-                      .label=${this._localize(
-                        `ui.dialogs.more_info_control.valve.switch_mode.button`
-                      )}
-                      .selected=${this._mode === "button"}
-                      .path=${mdiSwapVertical}
-                      .mode=${"button"}
-                      @click=${this._setMode}
-                    ></ha-icon-button-toggle>
-                  </ha-icon-button-group>
-                `
-              : nothing
-          }
-        </div>
+        }
         ${
           showFavoriteControls
             ? html`
@@ -221,14 +156,6 @@ class MoreInfoValve extends LitElement {
         }
         .hero .since {
           color: var(--secondary-text-color);
-        }
-        .main-control {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-        }
-        .main-control > * {
-          margin: 0 var(--ha-space-2);
         }
       `,
     ];

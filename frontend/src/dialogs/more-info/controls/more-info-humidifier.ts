@@ -211,6 +211,10 @@ class MoreInfoHumidifier extends LitElement {
         :host {
           color: var(--primary-text-color);
         }
+        ha-state-control-humidifier-humidity {
+          /* A compact dial: about 160 px tall, largest type 28 px. */
+          width: min(100%, 160px);
+        }
         .hero {
           display: flex;
           flex-direction: column;

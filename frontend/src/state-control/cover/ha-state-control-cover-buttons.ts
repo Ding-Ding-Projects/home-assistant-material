@@ -225,7 +225,7 @@ export class HaStateControlCoverButtons extends LitElement {
       ${
         layout.type === "line"
           ? html`
-              <ha-control-button-group vertical>
+              <ha-control-button-group>
                 ${repeat(
                   layout.buttons,
                   (action) => action,
@@ -252,21 +252,21 @@ export class HaStateControlCoverButtons extends LitElement {
   }
 
   static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+    }
     ha-control-button-group {
-      height: 45vh;
-      max-height: 320px;
-      min-height: 200px;
+      width: 100%;
       --control-button-group-spacing: 10px;
-      --control-button-group-thickness: 100px;
+      --control-button-group-thickness: 56px;
     }
     .cross-container {
-      height: 45vh;
-      max-height: 320px;
-      min-height: 200px;
       display: grid;
       gap: 10px;
-      grid-template-columns: repeat(3, min(100px, 25vw, 15vh));
-      grid-template-rows: repeat(3, min(100px, 25vw, 15vh));
+      justify-content: center;
+      grid-template-columns: repeat(3, 56px);
+      grid-template-rows: repeat(3, 56px);
       grid-template-areas: ". open ." "close-tilt stop open-tilt" ". close .";
     }
     .cross-container > * {

@@ -67,7 +67,6 @@ export class HaStateControlValvePosition extends LitElement {
     return html`
       <ha-control-slider
         touch-action="none"
-        vertical
         .value=${this.value}
         min="0"
         max="100"
@@ -90,16 +89,18 @@ export class HaStateControlValvePosition extends LitElement {
   }
 
   static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+    }
     ha-control-slider {
-      height: 45vh;
-      max-height: 320px;
-      min-height: 200px;
-      --control-slider-thickness: 130px;
-      --control-slider-border-radius: var(--ha-border-radius-6xl);
+      width: 100%;
+      --control-slider-thickness: 52px;
+      --control-slider-border-radius: var(--ha-border-radius-3xl);
       --control-slider-color: var(--primary-color);
       --control-slider-background: var(--disabled-color);
       --control-slider-background-opacity: 0.2;
-      --control-slider-tooltip-font-size: var(--ha-font-size-xl);
+      --control-slider-tooltip-font-size: var(--ha-font-size-m);
     }
   `;
 }

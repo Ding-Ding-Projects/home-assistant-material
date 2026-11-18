@@ -5,6 +5,7 @@ import { customElement, property, state } from "lit/decorators";
 import { consume } from "../common/decorators/consume";
 import "../components/entity/state-badge";
 import "../components/ha-control-select-menu";
+import { SELECT_TILES_MAX_OPTIONS } from "../state-control/select/ha-state-control-select-tiles";
 import type { HaDropdownSelectEvent } from "../components/ha-dropdown";
 import { apiContext, formattersContext } from "../data/context";
 import { UNAVAILABLE } from "../data/entity/entity";
@@ -29,6 +30,17 @@ class StateCardSelect extends LitElement {
         this._formatters?.formatEntityState(this.stateObj, option) ?? option,
     }));
 
+    if (options.length <= SELECT_TILES_MAX_OPTIONS) {
+      return html`
+        <ha-state-control-select-tiles
+          .options=${options}
+          .value=${this.stateObj.state}
+          .disabled=${this.stateObj.state === UNAVAILABLE}
+          @tile-selected=${this._tileSelected}
+        ></ha-state-control-select-tiles>
+      `;
+    }
+
     return html`
       <state-badge .stateObj=${this.stateObj}></state-badge>
       <ha-control-select-menu
@@ -45,8 +57,15 @@ class StateCardSelect extends LitElement {
     `;
   }
 
+  private _tileSelected(ev: CustomEvent<{ value: string }>) {
+    this._select(ev.detail.value);
+  }
+
   private async _selectedOptionChanged(ev: HaDropdownSelectEvent) {
-    const option = ev.detail.item?.value;
+    this._select(ev.detail.item?.value);
+  }
+
+  private async _select(option?: string) {
     if (
       !option ||
       option === this.stateObj.state ||

@@ -98,7 +98,6 @@ export class HaStateControlInfoCoverTiltPosition extends LitElement {
     return html`
       <ha-control-slider
         touch-action="none"
-        vertical
         .value=${this.value}
         min="0"
         max="100"
@@ -125,19 +124,21 @@ export class HaStateControlInfoCoverTiltPosition extends LitElement {
 
   static get styles(): CSSResultGroup {
     return css`
+      :host {
+        display: block;
+        width: 100%;
+      }
       ha-control-slider {
-        height: 45vh;
-        max-height: 320px;
-        min-height: 200px;
-        --control-slider-thickness: 130px;
-        --control-slider-border-radius: var(--ha-border-radius-6xl);
+        width: 100%;
+        --control-slider-thickness: 52px;
+        --control-slider-border-radius: var(--ha-border-radius-3xl);
         --control-slider-color: var(--primary-color);
         --control-slider-background: var(--disabled-color);
         --control-slider-background-opacity: 0.2;
-        --control-slider-tooltip-font-size: var(--ha-font-size-xl);
+        --control-slider-tooltip-font-size: var(--ha-font-size-m);
       }
       .gradient {
-        background: linear-gradient(to bottom, ${GRADIENT});
+        background: linear-gradient(to right, ${GRADIENT});
         opacity: 0.6;
       }
     `;

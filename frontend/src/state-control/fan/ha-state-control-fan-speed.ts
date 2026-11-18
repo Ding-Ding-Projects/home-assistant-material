@@ -116,25 +116,22 @@ export class HaStateControlFanSpeed extends LitElement {
     const speeds = computeFanSpeeds(this.stateObj);
 
     if (speeds) {
-      const options = speeds
-        .map<ControlSelectOption>((speed) =>
-          isNumberedFanSpeed(speed)
-            ? {
-                value: speed,
-                label: formatNumber(speed, this._i18n.locale),
-                ariaLabel: this._localizeSpeed(speed),
-              }
-            : {
-                value: speed,
-                label: this._localizeSpeed(speed),
-                path: computeFanSpeedIcon(this.stateObj, speed),
-              }
-        )
-        .reverse();
+      const options = speeds.map<ControlSelectOption>((speed) =>
+        isNumberedFanSpeed(speed)
+          ? {
+              value: speed,
+              label: formatNumber(speed, this._i18n.locale),
+              ariaLabel: this._localizeSpeed(speed),
+            }
+          : {
+              value: speed,
+              label: this._localizeSpeed(speed),
+              path: computeFanSpeedIcon(this.stateObj, speed),
+            }
+      );
 
       return html`
         <ha-control-select
-          vertical
           .options=${options}
           .value=${this.speedValue}
           @value-changed=${this._speedValueChanged}
@@ -157,7 +154,6 @@ export class HaStateControlFanSpeed extends LitElement {
     return html`
       <ha-control-slider
         touch-action="none"
-        vertical
         min="0"
         max="100"
         .value=${this.sliderValue}
@@ -183,39 +179,33 @@ export class HaStateControlFanSpeed extends LitElement {
   }
 
   static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+    }
     ha-control-slider {
-      height: 45vh;
-      max-height: 320px;
-      min-height: 200px;
-      --control-slider-thickness: 130px;
-      --control-slider-border-radius: var(--ha-border-radius-6xl);
+      width: 100%;
+      --control-slider-thickness: 52px;
+      --control-slider-border-radius: var(--ha-border-radius-3xl);
       --control-slider-color: var(--primary-color);
       --control-slider-background: var(--disabled-color);
       --control-slider-background-opacity: 0.2;
-      --control-slider-tooltip-font-size: var(--ha-font-size-xl);
-    }
-    :host([board]) ha-control-slider,
-    :host([board]) ha-control-select {
-      height: 240px;
-      max-height: none;
-      min-height: 200px;
-      --control-slider-thickness: 112px;
-      --control-select-thickness: 112px;
-      --control-slider-border-radius: 56px;
-      --control-select-border-radius: 56px;
-      --control-slider-background: var(--secondary-text-color);
-      --control-slider-background-opacity: 0.1;
-      --control-select-background-opacity: 0.1;
+      --control-slider-tooltip-font-size: var(--ha-font-size-m);
     }
     ha-control-select {
-      height: 45vh;
-      max-height: 320px;
-      min-height: 200px;
-      --control-select-thickness: 130px;
-      --control-select-border-radius: var(--ha-border-radius-6xl);
+      width: 100%;
+      --control-select-thickness: 52px;
+      --control-select-border-radius: var(--ha-border-radius-3xl);
       --control-select-color: var(--primary-color);
       --control-select-background: var(--disabled-color);
       --control-select-background-opacity: 0.2;
+    }
+    :host([board]) ha-control-slider {
+      --control-slider-background: var(--secondary-text-color);
+      --control-slider-background-opacity: 0.1;
+    }
+    :host([board]) ha-control-select {
+      --control-select-background-opacity: 0.1;
     }
   `;
 }

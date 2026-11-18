@@ -2,7 +2,15 @@ import type { HassEntity } from "home-assistant-js-websocket";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../../../components/ha-relative-time";
+import "../../../components/map/ha-map";
+import { getEntityLocation } from "../../../common/entity/get_entity_location";
 import type { HomeAssistant } from "../../../types";
+import { modeText } from "../../../common/language-mode/language-mode";
+import { computeDomain } from "../../../common/entity/compute_domain";
+import {
+  STATE_NOTE_DOMAINS,
+  entityFirstControl,
+} from "../entity-first-controls";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 
 @customElement("more-info-default")
@@ -56,6 +64,14 @@ class MoreInfoDefault extends LitElement {
       });
     }
 
+    const domain = computeDomain(entityId);
+    const showMap =
+      entityFirstControl(computeDomain(entityId)) === "map" &&
+      getEntityLocation(this.stateObj, this.hass.states) != null;
+    const purpose = STATE_NOTE_DOMAINS.includes(domain)
+      ? modeText(localize as any, `ui.entity_sheet.purpose.${domain}`)
+      : undefined;
+
     return html`
       <div class="stack">
         <h2 class="headline">${this.hass.formatEntityState(this.stateObj)}</h2>
@@ -66,6 +82,12 @@ class MoreInfoDefault extends LitElement {
             .datetime=${this.stateObj.last_changed}
           ></ha-relative-time>
         </p>
+        ${
+          showMap
+            ? html`<ha-map .entities=${[entityId]} auto-fit></ha-map>`
+            : nothing
+        }
+        ${purpose ? html`<p class="subline purpose">${purpose}</p>` : nothing}
         <div class="facts">
           ${rows.map(
             (row) => html`
@@ -87,6 +109,11 @@ class MoreInfoDefault extends LitElement {
     css`
       :host {
         display: block;
+      }
+      ha-map {
+        display: block;
+        border-radius: var(--ha-border-radius-xl);
+        overflow: hidden;
       }
       .stack {
         align-items: stretch;

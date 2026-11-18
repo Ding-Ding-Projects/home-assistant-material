@@ -2476,7 +2476,7 @@ export class HaDataTable extends LitElement {
            still too long, a second line, before it is cut */
         :host([row-cards][narrow]) .secondary {
           display: -webkit-box;
-          -webkit-line-clamp: 2;
+          -webkit-line-clamp: 1;
           white-space: normal;
           overflow-wrap: anywhere;
         }
@@ -2494,6 +2494,7 @@ export class HaDataTable extends LitElement {
             .mdc-data-table__cell--icon
           ):not(.mdc-data-table__cell--checkbox) {
           flex: 0 1 auto !important;
+          white-space: nowrap;
         }
         :host([row-cards][narrow]) .primary {
           font-size: var(--ha-list-row-title-size, var(--ha-font-size-m));
@@ -2656,12 +2657,12 @@ export class HaDataTable extends LitElement {
           height: 40px;
           padding-top: 0;
         }
-        /* Names wrap to at most two lines with an ellipsis on the second;
-           secondary text stays one line. */
+        /* A row card holds one line of name and one of secondary text, so a
+           long name with a status chip never grows past 60 px. */
         :host([row-cards][narrow]) .primary {
           display: -webkit-box;
           -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
+          -webkit-line-clamp: 1;
           white-space: normal;
           overflow-wrap: anywhere;
         }

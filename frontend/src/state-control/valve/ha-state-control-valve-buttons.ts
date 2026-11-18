@@ -115,7 +115,7 @@ export class HaStateControlValveButtons extends LitElement {
     const buttons = getValveButtons(this.stateObj);
 
     return html`
-      <ha-control-button-group vertical>
+      <ha-control-button-group>
         ${repeat(
           buttons,
           (button) => button,
@@ -126,15 +126,17 @@ export class HaStateControlValveButtons extends LitElement {
   }
 
   static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+    }
     ha-control-button-group {
-      height: 45vh;
-      max-height: 320px;
-      min-height: 200px;
+      width: 100%;
       --control-button-group-spacing: 10px;
-      --control-button-group-thickness: 100px;
+      --control-button-group-thickness: 56px;
     }
     ha-control-button {
-      --control-button-border-radius: var(--ha-border-radius-6xl);
+      --control-button-border-radius: var(--ha-border-radius-3xl);
       --mdc-icon-size: 24px;
     }
   `;

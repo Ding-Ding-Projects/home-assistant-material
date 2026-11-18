@@ -1,13 +1,8 @@
-import { mdiMenu, mdiSwapVertical } from "@mdi/js";
-import type { CSSResultGroup, PropertyValues } from "lit";
-import { LitElement, css, html, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { consume } from "../../../common/decorators/consume";
-import { consumeLocalize } from "../../../common/decorators/consume-context-entry";
 import { supportsFeature } from "../../../common/entity/supports-feature";
-import type { LocalizeFunc } from "../../../common/translations/localize";
-import "../../../components/ha-icon-button-group";
-import "../../../components/ha-icon-button-toggle";
 import { formattersContext } from "../../../data/context";
 import {
   shouldShowFavoriteOptions,
@@ -16,7 +11,6 @@ import {
 import type { CoverEntity } from "../../../data/cover";
 import {
   CoverEntityFeature,
-  coverSupportsAnyPosition,
   coverSupportsPosition,
   coverSupportsTiltPosition,
   computeCoverPositionStateDisplay,
@@ -31,42 +25,17 @@ import "../../../components/ha-relative-time";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 
-type Mode = "position" | "button";
-
 @customElement("more-info-cover")
 class MoreInfoCover extends LitElement {
   @state()
   @consume({ context: formattersContext, subscribe: true })
   private _formatters!: HomeAssistantFormatters;
 
-  @state()
-  @consumeLocalize()
-  private _localize!: LocalizeFunc;
-
   @property({ attribute: false }) public stateObj?: CoverEntity;
 
   @property({ attribute: false }) public entry?: ExtEntityRegistryEntry | null;
 
   @property({ attribute: false }) public editMode?: boolean;
-
-  @state() private _mode?: Mode;
-
-  private _setMode(ev) {
-    this._mode = ev.currentTarget.mode;
-  }
-
-  protected willUpdate(changedProps: PropertyValues<this>): void {
-    super.willUpdate(changedProps);
-    if (changedProps.has("stateObj") && this.stateObj) {
-      const entityId = this.stateObj.entity_id;
-      const oldEntityId = changedProps.get("stateObj")?.entity_id;
-      if (!this._mode || entityId !== oldEntityId) {
-        this._mode = coverSupportsAnyPosition(this.stateObj)
-          ? "position"
-          : "button";
-      }
-    }
-  }
 
   private get _positionDisplay() {
     return computeCoverPositionStateDisplay(
@@ -126,81 +95,39 @@ class MoreInfoCover extends LitElement {
         }
       </p>
       <div class="controls">
-        <div class="main-control">
-          ${
-            this._mode === "position"
+        ${
+          supportsPosition
+            ? html`
+                <ha-state-control-cover-position
+                  .stateObj=${this.stateObj}
+                ></ha-state-control-cover-position>
+              `
+            : nothing
+        }
+        ${
+          supportsTiltPosition
+            ? html`
+                <ha-state-control-cover-tilt-position
+                  .stateObj=${this.stateObj}
+                ></ha-state-control-cover-tilt-position>
+              `
+            : nothing
+        }
+        ${
+          supportsOpenCloseOnly
+            ? html`
+                <ha-state-control-cover-toggle
+                  .stateObj=${this.stateObj}
+                ></ha-state-control-cover-toggle>
+              `
+            : supportsOpenClose || supportsTilt
               ? html`
-                  ${
-                    supportsPosition
-                      ? html`
-                          <ha-state-control-cover-position
-                            .stateObj=${this.stateObj}
-                          ></ha-state-control-cover-position>
-                        `
-                      : nothing
-                  }
-                  ${
-                    supportsTiltPosition
-                      ? html`
-                          <ha-state-control-cover-tilt-position
-                            .stateObj=${this.stateObj}
-                          ></ha-state-control-cover-tilt-position>
-                        `
-                      : nothing
-                  }
+                  <ha-state-control-cover-buttons
+                    .stateObj=${this.stateObj}
+                  ></ha-state-control-cover-buttons>
                 `
               : nothing
-          }
-          ${
-            this._mode === "button"
-              ? html`
-                  ${
-                    supportsOpenCloseOnly
-                      ? html`
-                          <ha-state-control-cover-toggle
-                            .stateObj=${this.stateObj}
-                          ></ha-state-control-cover-toggle>
-                        `
-                      : supportsOpenClose || supportsTilt
-                        ? html`
-                            <ha-state-control-cover-buttons
-                              .stateObj=${this.stateObj}
-                            ></ha-state-control-cover-buttons>
-                          `
-                        : nothing
-                  }
-                `
-              : nothing
-          }
-            </div>
-          ${
-            (supportsPosition || supportsTiltPosition) &&
-            (supportsOpenClose || supportsTilt)
-              ? html`
-                  <ha-icon-button-group>
-                    <ha-icon-button-toggle
-                      .label=${this._localize(
-                        `ui.dialogs.more_info_control.cover.switch_mode.position`
-                      )}
-                      .selected=${this._mode === "position"}
-                      .path=${mdiMenu}
-                      .mode=${"position"}
-                      @click=${this._setMode}
-                    ></ha-icon-button-toggle>
-                    <ha-icon-button-toggle
-                      .label=${this._localize(
-                        `ui.dialogs.more_info_control.cover.switch_mode.button`
-                      )}
-                      .selected=${this._mode === "button"}
-                      .path=${mdiSwapVertical}
-                      .mode=${"button"}
-                      @click=${this._setMode}
-                    ></ha-icon-button-toggle>
-                  </ha-icon-button-group>
-                `
-              : nothing
-          }
-        </div>
+        }
         ${
           showFavoriteControls
             ? html`
@@ -217,20 +144,7 @@ class MoreInfoCover extends LitElement {
   }
 
   static get styles(): CSSResultGroup {
-    return [
-      moreInfoControlStyle,
-      moreInfoBoardStyle,
-      css`
-        .main-control {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-        }
-        .main-control > * {
-          margin: 0 var(--ha-space-2);
-        }
-      `,
-    ];
+    return [moreInfoControlStyle, moreInfoBoardStyle];
   }
 }
 
