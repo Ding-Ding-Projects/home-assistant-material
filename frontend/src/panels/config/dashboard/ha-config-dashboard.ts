@@ -31,7 +31,8 @@ import "../../../components/ha-svg-icon";
 import "../../../components/ha-menu-button";
 import "../../../components/ha-tip";
 import { navigate } from "../../../common/navigate";
-import "../../../components/ha-top-bar-search";
+import { searchCountText } from "../../../components/ha-top-bar-search";
+import type { HASSDomEvent } from "../../../common/dom/fire_event";
 import "../../../components/page/ha-page-footer";
 import "../../../components/page/ha-page-lock-banner";
 import "../../../components/page/ha-page-tools";
@@ -157,6 +158,9 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
 
   /** The search is in the page's own bar, which never scrolls. */
   @state() private _searchOpen = false;
+
+  /** What the search shows, reported by the navigation below. */
+  @state() private _matches = { shown: 0, total: 0 };
 
   private _shortcuts = new ShortcutManager();
 
@@ -373,6 +377,14 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           .localize=${this.hass.localize}
           .label=${this._t("ui.panel.config.dashboard.search")}
           .value=${this._filter}
+          .countText=${
+            this._matches.total
+              ? searchCountText(this.hass.localize, {
+                  current: this._matches.shown,
+                  total: this._matches.total,
+                })
+              : undefined
+          }
           .open=${this._searchOpen}
           .wide=${!this.narrow}
           @top-bar-search-open=${this._openSearch}
@@ -498,6 +510,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           )}
           .narrow=${this.narrow}
           .filter=${this._filter}
+          @config-navigation-matches=${this._matchesChanged}
           .summaries=${this._summaries(
             this.hass.devices,
             this.hass.states,
@@ -534,6 +547,13 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
   private _closeSearch(ev: Event): void {
     ev.stopPropagation();
     this._searchOpen = false;
+  }
+
+  private _matchesChanged(
+    ev: HASSDomEvent<HASSDomEvents["config-navigation-matches"]>
+  ): void {
+    ev.stopPropagation();
+    this._matches = ev.detail;
   }
 
   private _filterChanged(ev: CustomEvent<{ value: string }>): void {

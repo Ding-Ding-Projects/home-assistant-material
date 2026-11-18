@@ -22,6 +22,7 @@ import {
   SENSOR_TIMESTAMP_DEVICE_CLASSES,
 } from "../../data/sensor";
 import { TIMESTAMP_STATE_DOMAINS } from "../const";
+import { entityModeLocalize } from "../language-mode/entity-language-mode";
 
 // Domains whose state is a timezone-agnostic date and/or time string.
 const DATE_TIME_DOMAINS = new Set(["date", "input_datetime", "time"]);
@@ -83,7 +84,7 @@ export const computeStateDisplayFromEntityAttributes = (
 };
 
 const computeStateToPartsFromEntityAttributes = (
-  localize: LocalizeFunc,
+  backendLocalize: LocalizeFunc,
   locale: FrontendLocaleData,
   config: HassConfig,
   entity: EntityRegistryDisplayEntry | undefined,
@@ -91,6 +92,8 @@ const computeStateToPartsFromEntityAttributes = (
   attributes: any,
   state: string
 ): ValuePart[] => {
+  // State words follow the language mode, see entity-language-mode.ts.
+  const localize = entityModeLocalize(backendLocalize);
   if (state === UNKNOWN || state === UNAVAILABLE) {
     return [
       {

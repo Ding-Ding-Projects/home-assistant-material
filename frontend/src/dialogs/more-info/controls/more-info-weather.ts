@@ -7,7 +7,7 @@ import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
 import { consume } from "../../../common/decorators/consume";
 import { DragScrollController } from "../../../common/controllers/drag-scroll-controller";
-import { formatDateWeekdayShort } from "../../../common/datetime/format_date";
+import { formatWeekdayShortForMode } from "../../../common/language-mode/mode-format";
 import { formatTime } from "../../../common/datetime/format_time";
 import { transform } from "../../../common/decorators/transform";
 import { formatNumber } from "../../../common/number/format_number";
@@ -373,7 +373,7 @@ class MoreInfoWeather extends LitElement {
                             ${
                               showDayHeader
                                 ? html`<div class="forecast-day-header">
-                                    ${formatDateWeekdayShort(
+                                    ${formatWeekdayShortForMode(
                                       new Date(dayForecast[0].datetime),
                                       this._i18n.locale,
                                       this._config
@@ -411,7 +411,7 @@ class MoreInfoWeather extends LitElement {
                                                           )
                                                     }
                                                   </div>`
-                                                : formatDateWeekdayShort(
+                                                : formatWeekdayShortForMode(
                                                     new Date(item.datetime),
                                                     this._i18n.locale,
                                                     this._config

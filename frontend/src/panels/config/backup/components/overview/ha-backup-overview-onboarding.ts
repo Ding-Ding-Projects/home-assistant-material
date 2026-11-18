@@ -89,6 +89,9 @@ class HaBackupOverviewBackups extends LitElement {
         p {
           margin: 0;
         }
+        .card-actions ha-button {
+          --ha-button-height: 44px;
+        }
         .card-actions {
           display: flex;
           justify-content: flex-end;

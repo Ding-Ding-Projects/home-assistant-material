@@ -142,6 +142,62 @@ describe("fillPlaceholders", () => {
   });
 });
 
+/**
+ * The names a string uses. `all` is every name, `required` the ones that are
+ * filled in as text. In "{count, plural, one {backup} other {backups}}" the
+ * name `count` only chooses a branch, so it is in `all` only, and the branch
+ * words "one", "backup" and "backups" are not names at all. Placeholders
+ * inside a branch are read like any others.
+ */
+const analysePlaceholders = (
+  text: string
+): { all: Set<string>; required: Set<string> } => {
+  const all = new Set<string>();
+  const required = new Set<string>();
+  const close = (source: string, open: number): number => {
+    let depth = 0;
+    for (let i = open; i < source.length; i++) {
+      if (source[i] === "{") depth++;
+      else if (source[i] === "}" && --depth === 0) return i;
+    }
+    return source.length - 1;
+  };
+  const walk = (source: string) => {
+    let i = 0;
+    while (i < source.length) {
+      if (source[i] !== "{") {
+        i++;
+        continue;
+      }
+      const end = close(source, i);
+      const inner = source.slice(i + 1, end);
+      const rule = /^\s*(\w+)\s*,\s*(plural|select|selectordinal)\s*,/.exec(
+        inner
+      );
+      if (rule) {
+        all.add(rule[1]);
+        let rest = inner.slice(rule[0].length);
+        // Each branch is a label and a braced body: "one {backup}".
+        while (rest.includes("{")) {
+          const open = rest.indexOf("{");
+          const branchEnd = close(rest, open);
+          walk(rest.slice(open + 1, branchEnd));
+          rest = rest.slice(branchEnd + 1);
+        }
+      } else {
+        const name = /^\s*(\w+)\s*(,[\s\S]*)?$/.exec(inner);
+        if (name) {
+          all.add(name[1]);
+          if (!name[2]) required.add(name[1]);
+        }
+      }
+      i = end + 1;
+    }
+  };
+  walk(text ?? "");
+  return { all, required };
+};
+
 // Protects the second translation source: a Cantonese string that names a
 // key English does not have would never show, and one that drops or renames
 // a placeholder would print a raw "{name}" or lose the value.
@@ -153,8 +209,7 @@ describe("the Cantonese source", () => {
     const ref = /^\[%key:(.+)%\]$/.exec(text);
     return ref ? resolve(english[ref[1].replace(/::/g, ".")] ?? "") : text;
   };
-  const placeholders = (text: string) =>
-    [...text.matchAll(/\{(\w+)[,}]/g)].map((match) => match[1]).sort();
+  const placeholders = (text: string) => [...analysePlaceholders(text).all];
 
   it("has strings", () => {
     expect(yueKeys().length).toBeGreaterThan(100);
@@ -164,15 +219,21 @@ describe("the Cantonese source", () => {
     yueKeys().forEach((key) => expect(hasCantoneseBlock(key), key).toBe(true));
   });
 
+  // The entity words are keyed like the backend's own lookup keys, which are
+  // not in en.json; entity-language-mode.test.ts checks them against the
+  // backend strings instead.
   it("only names keys that English has", () => {
-    yueKeys().forEach((key) => expect(english[key], key).toBeTypeOf("string"));
+    yueKeys()
+      .filter((key) => !key.startsWith("yue_entity."))
+      .forEach((key) => expect(english[key], key).toBeTypeOf("string"));
   });
 
   // A name English uses only to choose a plural form ("{count, plural, ...}")
   // is optional in Cantonese, which has no plural forms. Every other name
   // must appear, and no name English lacks may appear.
-  const plainPlaceholders = (text: string) =>
-    [...text.matchAll(/\{(\w+)\}/g)].map((match) => match[1]);
+  const plainPlaceholders = (text: string) => [
+    ...analysePlaceholders(text).required,
+  ];
 
   it("uses the same placeholders as English", () => {
     yueKeys().forEach((key) => {
@@ -189,6 +250,19 @@ describe("the Cantonese source", () => {
         `${key}: missing`
       ).toEqual([]);
     });
+  });
+
+  it("reads a plural rule's branch words as text, not as placeholders", () => {
+    const source =
+      "{count} automatic {count, plural,\n one {backup}\n other {backups}\n}";
+    const names = analysePlaceholders(source);
+    expect([...names.all]).toEqual(["count"]);
+    expect([...names.required]).toEqual(["count"]);
+    const nested = analysePlaceholders(
+      "{n, plural, one {{name} was} other {{name} were}} {size}"
+    );
+    expect([...nested.required].sort()).toEqual(["name", "size"]);
+    expect([...nested.all].sort()).toEqual(["n", "name", "size"]);
   });
 
   it("uses no plural or select rules", () => {

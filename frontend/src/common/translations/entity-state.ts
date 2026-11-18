@@ -6,6 +6,7 @@ import {
   type EntityNameItem,
   type EntityNameOptions,
 } from "../entity/compute_entity_name_display";
+import { entityModeLocalize } from "../language-mode/entity-language-mode";
 import type { LocalizeFunc } from "./localize";
 
 export type FormatEntityStateFunc = (
@@ -38,7 +39,7 @@ export type FormatEntityNameFunc = (
 ) => string;
 
 export const computeFormatFunctions = async (
-  localize: LocalizeFunc,
+  backendLocalize: LocalizeFunc,
   locale: FrontendLocaleData,
   config: HassConfig,
   entities: HomeAssistant["entities"],
@@ -53,6 +54,9 @@ export const computeFormatFunctions = async (
   formatEntityAttributeName: FormatEntityAttributeNameFunc;
   formatEntityName: FormatEntityNameFunc;
 }> => {
+  // The state words and attribute names follow the language mode; every other
+  // text passes through unchanged.
+  const localize = entityModeLocalize(backendLocalize);
   const { computeStateDisplay, computeStateToParts } =
     await import("../entity/compute_state_display");
   const {

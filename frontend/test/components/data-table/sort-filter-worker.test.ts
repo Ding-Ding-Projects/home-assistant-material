@@ -5,7 +5,25 @@ import "../../../src/components/data-table/sort-filter-worker";
 
 vi.mock("comlink", () => ({ expose: vi.fn() }));
 
-const { sortData } = vi.mocked(expose).mock.calls[0][0] as Api;
+const { sortData, filterData } = vi.mocked(expose).mock.calls[0][0] as Api;
+
+describe("text filtering", () => {
+  const columns = { name: { filterable: true } };
+  const rows = [{ name: "Next midnight" }, { name: "Kitchen lamp" }];
+
+  it("finds a row that contains the text", () => {
+    expect(filterData(rows, columns, "midnight")).toEqual([rows[0]]);
+  });
+
+  it("does not turn a short word into another word", () => {
+    // One letter away from "night" in "midnight", but not a typo of it.
+    expect(filterData(rows, columns, "light")).toEqual([]);
+  });
+
+  it("still forgives a typo in a longer word", () => {
+    expect(filterData(rows, columns, "midnaght")).toEqual([rows[0]]);
+  });
+});
 
 describe("numeric sorting", () => {
   it.each([

@@ -48,6 +48,7 @@ import {
   groupGuards,
   guardDescriptionKey,
   guardTitle,
+  commandValueText,
   isStandingDown,
   needsConfirmationToDisable,
   setDefenderFloor,
@@ -139,14 +140,25 @@ export class HaDefenderPage extends LitElement {
   /** The logged action in the viewer's language, such as the text for set temperature 24. */
   private _commandAction(entry: DefenderLogEntry): string {
     const name = String(entry.values.action ?? "");
-    const text = this._t(`command_action.${name}`);
-    if (!name || !text || text.startsWith("ui.panel.")) {
-      return commandAction(entry);
-    }
     const value = entry.values.value;
-    return value === undefined || value === null
-      ? text
-      : `${text} ${String(value)}`;
+    // Built once per language, so a mode or speed such as "off" or "cool"
+    // carries its own wording; a number is shown as written.
+    return composeForMode(this.hass.localize, (part) => {
+      const known = (text: string) => !!text && !text.startsWith("ui.panel.");
+      const action = name
+        ? part(`ui.panel.config.defenders.command_action.${name}`)
+        : "";
+      if (!known(action)) {
+        return commandAction(entry);
+      }
+      if (value === undefined || value === null) {
+        return action;
+      }
+      const word = part(
+        `ui.panel.config.defenders.command_value.${String(value)}`
+      );
+      return `${action} ${known(word) ? word : commandValueText(value)}`;
+    });
   }
 
   private get _path(): string {

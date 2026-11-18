@@ -113,6 +113,9 @@ export const YUE_PREFIXES = [
   "ui.panel.config.backup.overview.backups.title",
   "ui.panel.config.backup.overview.backups.total_size",
   "ui.panel.config.backup.overview.backups.show_all",
+  "ui.panel.config.backup.overview.backups.automatic",
+  "ui.panel.config.backup.overview.backups.manual",
+  "ui.panel.config.backup.overview.backups.app_update",
   "ui.panel.config.backup.backups.header",
   "ui.panel.config.backup.type.",
   "ui.components.subpage-data-table.filters",
@@ -246,6 +249,10 @@ export const YUE_PREFIXES = [
   "ui.panel.profile.passkeys.",
   "ui.panel.profile.refresh_tokens.header",
   "ui.page_tools.footer.",
+  // The entity state words and attribute names. These keys are not English
+  // keys: they mirror the backend's `component.<domain>.entity_component`
+  // lookup keys, see `entity-language-mode.ts`.
+  "yue_entity.",
 ] as const;
 
 export type Localize = (

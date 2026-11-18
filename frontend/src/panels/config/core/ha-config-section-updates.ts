@@ -7,7 +7,6 @@ import {
   mdiHistory,
   mdiLocationEnter,
   mdiLocationExit,
-  mdiNewBox,
   mdiRefresh,
   mdiUpdate,
 } from "@mdi/js";
@@ -622,33 +621,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
               : localize("ui.panel.config.updates.all_current_hint")
           }
         </p>
-        ${this._renderWhatsNew()}
       </section>
-    `;
-  }
-
-  /** Opens the page for the build that is running now on the updates log. */
-  private _renderWhatsNew(): TemplateResult | typeof nothing {
-    const version = this.hass.config.version;
-    const url = notesPageUrlForVersion(version);
-    if (!url) {
-      return nothing;
-    }
-    return html`
-      <ha-button
-        class="whats-new"
-        appearance="filled"
-        size="small"
-        href=${url}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <ha-svg-icon slot="start" .path=${mdiNewBox}></ha-svg-icon>
-        ${this._lang.localizer(this.hass.localize)(
-          "ui.panel.config.updates.whats_new",
-          { build: version.split(".").pop() ?? "" }
-        )}
-      </ha-button>
     `;
   }
 
@@ -1833,9 +1806,6 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       .ready p {
         margin: 0;
         line-height: var(--ha-line-height-normal);
-      }
-      .ready .whats-new {
-        margin-top: var(--ha-space-3);
       }
       h2 {
         margin: 0 0 var(--ha-space-3);

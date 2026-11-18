@@ -123,10 +123,13 @@ import "./ha-more-info-info";
 import "./ha-more-info-settings";
 import "./more-info-content";
 import {
-  BILINGUAL_SEPARATOR,
   withLanguageMode,
   type Localize,
 } from "../../common/language-mode/language-mode";
+import {
+  renderStackedLabel,
+  stackedLabelStyles,
+} from "../../common/language-mode/stacked-label";
 
 export interface MoreInfoDialogParams {
   entityId: string | null;
@@ -158,6 +161,9 @@ declare global {
 }
 
 const DEFAULT_VIEW: MoreInfoView = "info";
+
+// Size changes smaller than this are not worth a glide.
+const GROWTH_GLIDE_MIN_PX = 4;
 
 const TAB_VIEWS: MoreInfoView[] = ["info", "history", "settings", "related"];
 
@@ -226,6 +232,17 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
 
   private _observedInfo?: HTMLElement;
 
+  // Watches what is inside the content area so that content that arrives
+  // late (a history chart finishing its load) glides the sheet to its new
+  // height instead of jumping.
+  private _growthObserver?: ResizeObserver;
+
+  private _growthObserved = new Set<Element>();
+
+  private _lastContentHeight = 0;
+
+  private _gliding = false;
+
   public connectedCallback(): void {
     super.connectedCallback();
     this._unsubscribePreferences = subscribePersonalPreferences(
@@ -243,6 +260,9 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     this._unsubscribePreferences?.();
     this._unsubscribePreferences = undefined;
     this._resetStableContentHeight();
+    this._growthObserver?.disconnect();
+    this._growthObserver = undefined;
+    this._growthObserved.clear();
     window.removeEventListener(
       PERSONAL_PREFERENCES_NOT_SAVED_EVENT,
       this._preferencesNotSaved
@@ -699,13 +719,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
   // In both-language mode the label is "English · Cantonese"; it is stacked in
   // two lines so four tabs share one row on a phone.
   private _tabLabelContent(view: MoreInfoView) {
-    const label = this._tabLabel(view);
-    const parts = label.split(BILINGUAL_SEPARATOR);
-    if (parts.length !== 2) {
-      return label;
-    }
-    return html`<span>${parts[0]}</span
-      ><span class="tab-sub">${parts[1]}</span>`;
+    return renderStackedLabel(this._tabLabel(view));
   }
 
   private _tabClick(ev: Event) {
@@ -1442,6 +1456,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     if (Math.abs(target - before) < 2) {
       content.style.height = "";
       content.style.transition = "";
+      this._lastContentHeight = target;
       return;
     }
     content.style.height = `${before}px`;
@@ -1449,12 +1464,64 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     void content.offsetHeight;
     content.style.transition = "height 200ms var(--ha-easing-standard, ease)";
     content.style.height = `${target}px`;
+    this._gliding = true;
     const done = () => {
+      content.removeEventListener("transitionend", done);
       content.style.height = "";
       content.style.transition = "";
-      content.removeEventListener("transitionend", done);
+      this._gliding = false;
+      // Content that grew while the glide ran is caught up with one more.
+      const now = content.offsetHeight;
+      if (Math.abs(now - target) > GROWTH_GLIDE_MIN_PX) {
+        this._glideToNewHeight(target);
+      } else {
+        this._lastContentHeight = now;
+      }
     };
     content.addEventListener("transitionend", done);
+  }
+
+  // Content that finishes loading after a tab was shown changes the height of
+  // the content area; glide that change too. A change of a few pixels, a
+  // reader who has scrolled, and reduced motion are left alone.
+  private _onContentGrowth = () => {
+    const content = this._contentElement;
+    if (!content || this._gliding) {
+      return;
+    }
+    const before = this._lastContentHeight;
+    const now = content.offsetHeight;
+    if (
+      before > 0 &&
+      Math.abs(now - before) > GROWTH_GLIDE_MIN_PX &&
+      content.scrollTop === 0
+    ) {
+      this._glideToNewHeight(before);
+    }
+    this._lastContentHeight = content.offsetHeight;
+  };
+
+  private _observeContentGrowth() {
+    const content = this._contentElement;
+    if (!content || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    if (!this._growthObserver) {
+      this._growthObserver = new ResizeObserver(this._onContentGrowth);
+    }
+    const current = new Set<Element>(Array.from(content.children));
+    for (const el of this._growthObserved) {
+      if (!current.has(el)) {
+        this._growthObserver.unobserve(el);
+        this._growthObserved.delete(el);
+      }
+    }
+    for (const el of current) {
+      if (!this._growthObserved.has(el)) {
+        this._growthObserver.observe(el);
+        this._growthObserved.add(el);
+      }
+    }
   }
 
   protected updated(changedProps: PropertyValues) {
@@ -1502,6 +1569,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     }
 
     this._observeInfoHeight();
+    this._observeContentGrowth();
   }
 
   // Keeps the sheet from jumping between tabs: while the Details tab is
@@ -1612,6 +1680,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
       haStyleDialog,
       haStyleDialogFixedTop,
       haStyleScrollbar,
+      stackedLabelStyles,
       css`
         :host {
           /* The sheet is as tall as its content and stops at the maximum
@@ -1751,12 +1820,6 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           align-items: center;
           justify-content: center;
           line-height: var(--ha-line-height-condensed);
-        }
-
-        .tab-sub {
-          font-size: var(--ha-font-size-xs);
-          font-weight: var(--ha-font-weight-normal);
-          opacity: 0.8;
         }
 
         .tab:hover {

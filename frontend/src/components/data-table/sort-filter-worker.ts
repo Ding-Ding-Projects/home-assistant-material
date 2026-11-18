@@ -107,6 +107,9 @@ const filterDataExact = (
   });
 };
 
+/** Shorter terms are matched as written; they are never fuzzy. */
+const FUZZY_MIN_TERM_LENGTH = 6;
+
 const FUZZY_OPTIONS: IFuseOptions<DataTableRowData> = {
   ignoreDiacritics: true,
   isCaseSensitive: false,
@@ -209,7 +212,12 @@ const filterData = (
     return exactMatches;
   }
 
-  // No exact matches, fall back to fuzzy search
+  // No exact matches, fall back to fuzzy search, but only for terms long
+  // enough that one wrong letter is a typo and not another word: "light"
+  // would otherwise find "midnight", which has no "light" in it to show.
+  if (terms.some((term) => term.length < FUZZY_MIN_TERM_LENGTH)) {
+    return [];
+  }
   return filterDataFuzzy(data, filterKeys, terms);
 };
 

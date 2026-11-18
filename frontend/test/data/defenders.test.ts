@@ -7,6 +7,7 @@ import {
   formatHours,
   groupGuards,
   guardDescriptionKey,
+  commandValueText,
   guardTitle,
   isStandingDown,
   needsConfirmationToDisable,
@@ -202,5 +203,21 @@ describe("page helpers of the defenders", () => {
   it("names the third tab by what it measures", () => {
     expect(usageTabKey("cool")).toBe("tabs.usage_cool");
     expect(usageTabKey("heat")).toBe("tabs.usage_heat");
+  });
+});
+
+describe("raw engine names", () => {
+  it("makes an unknown guard id a tidy phrase", () => {
+    expect(guardTitle("comfort-sync")).toBe("Comfort sync");
+    expect(guardTitle("comfortSync")).toBe("Comfort sync");
+    expect(guardTitle("  odd__id.v2 ")).toBe("Odd id v2");
+    expect(guardTitle("")).toBe("");
+  });
+
+  it("writes a logged value as words and keeps numbers", () => {
+    expect(commandValueText("fan_only")).toBe("fan only");
+    expect(commandValueText("Cool")).toBe("cool");
+    expect(commandValueText(24)).toBe("24");
+    expect(commandValueText("24.5")).toBe("24.5");
   });
 });

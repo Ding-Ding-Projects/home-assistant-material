@@ -45,6 +45,15 @@ export class HaFilterPaneChip extends LitElement {
       --ha-assist-chip-container-shape: 10px;
     }
 
+    /* The chip keeps its look but gets a 44 px touch target: an invisible
+       strip above and below it. */
+    :host::after {
+      content: "";
+      position: absolute;
+      inset-block: -6px;
+      inset-inline: 0;
+    }
+
     .badge {
       position: absolute;
       top: -4px;

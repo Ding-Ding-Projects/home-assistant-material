@@ -1,13 +1,42 @@
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { PropertyValues } from "lit";
+import { refreshEntityLanguageMode } from "../common/language-mode/entity-language-mode";
+import { currentLanguageMode } from "../common/language-mode/language-mode";
+import { subscribePersonalPreferences } from "../common/preferences/personal-preferences";
 import { computeFormatFunctions } from "../common/translations/entity-state";
 import type { Constructor, HomeAssistant } from "../types";
 import type { HassBaseEl } from "./hass-base-mixin";
 
 export default <T extends Constructor<HassBaseEl>>(superClass: T) => {
   class StateDisplayMixin extends superClass {
+    private _unsubLanguageMode?: UnsubscribeFunc;
+
     protected hassConnected() {
       super.hassConnected();
       this._updateFormatFunctions();
+      this._watchLanguageMode();
+    }
+
+    // The state words follow the language mode, so the format functions are
+    // made again when the mode changes and the components show the new words.
+    private _watchLanguageMode() {
+      if (this._unsubLanguageMode) {
+        return;
+      }
+      try {
+        let mode = currentLanguageMode();
+        this._unsubLanguageMode = subscribePersonalPreferences(
+          (preferences) => {
+            if (preferences.languageMode !== mode) {
+              mode = preferences.languageMode;
+              refreshEntityLanguageMode();
+              this._updateFormatFunctions();
+            }
+          }
+        );
+      } catch (_err) {
+        // Browser storage is unavailable: the mode stays English.
+      }
     }
 
     protected willUpdate(changedProps: PropertyValues<this>) {

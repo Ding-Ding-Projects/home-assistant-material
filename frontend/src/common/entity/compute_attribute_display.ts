@@ -17,6 +17,7 @@ import { formatNumber } from "../number/format_number";
 import { capitalizeFirstLetter } from "../string/capitalize-first-letter";
 import { isDate } from "../string/is_date";
 import { isTimestamp } from "../string/is_timestamp";
+import { entityModeLocalize } from "../language-mode/entity-language-mode";
 import { blankBeforeUnit } from "../translations/blank_before_unit";
 import type { LocalizeFunc, LocalizeKeys } from "../translations/localize";
 import { computeDomain } from "./compute_domain";
@@ -45,7 +46,7 @@ export const computeAttributeValueDisplay = (
 };
 
 export const computeAttributeValueToParts = (
-  localize: LocalizeFunc,
+  backendLocalize: LocalizeFunc,
   stateObj: HassEntity,
   locale: FrontendLocaleData,
   config: HassConfig,
@@ -53,6 +54,8 @@ export const computeAttributeValueToParts = (
   attribute: string,
   value?: any
 ): ValuePart[] => {
+  // Attribute values follow the language mode, see entity-language-mode.ts.
+  const localize = entityModeLocalize(backendLocalize);
   const attributeValue =
     value !== undefined ? value : stateObj.attributes[attribute];
 
@@ -194,11 +197,13 @@ export const computeAttributeValueToParts = (
 };
 
 export const computeAttributeNameDisplay = (
-  localize: LocalizeFunc,
+  backendLocalize: LocalizeFunc,
   stateObj: HassEntity,
   entities: HomeAssistant["entities"],
   attribute: string
 ): string => {
+  // Attribute names follow the language mode, see entity-language-mode.ts.
+  const localize = entityModeLocalize(backendLocalize);
   const entityId = stateObj.entity_id;
   const deviceClass = stateObj.attributes.device_class;
   const domain = computeDomain(entityId);

@@ -33,6 +33,33 @@ class PanelTools extends LitElement {
   @query("hass-subpage")
   private _layout?: HTMLElementTagNameMap["hass-subpage"];
 
+  // Whether the bar's search was open, by tab: closing it on one tab does not
+  // close it on the next, and a tab with no words opens closed.
+  private _searchOpenByTab: Record<string, boolean> = {};
+
+  // The tab whose bar state was last put in order.
+  private _syncedPage?: string;
+
+  private _syncingSearch = false;
+
+  protected updated(changedProps: PropertyValues<this>) {
+    super.updated(changedProps);
+    const page = resolveToolPanel(this._page);
+    const search = this._searches[page];
+    if (!search?.searchable || !this._layout || this._syncedPage === page) {
+      return;
+    }
+    this._syncedPage = page;
+    const wantOpen = this._searchOpenByTab[page] ?? !!search.value;
+    this._syncingSearch = true;
+    if (wantOpen) {
+      this._layout.openSearch();
+    } else {
+      this._layout.closeSearch();
+    }
+    this._syncingSearch = false;
+  }
+
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
     this.hass.loadBackendTranslation("title");
@@ -60,6 +87,7 @@ class PanelTools extends LitElement {
         .searchCountText=${search?.countText}
         .searchSamples=${search?.samples}
         @top-bar-search-input=${this._searchInput}
+        @top-bar-search-open=${this._searchOpened}
         @top-bar-search-close=${this._searchClosed}
         @top-bar-search-step=${this._searchStep}
       >
@@ -188,6 +216,10 @@ class PanelTools extends LitElement {
     this._searches = { ...this._searches, [ev.detail.panel]: ev.detail };
   }
 
+  private _searchOpened() {
+    this._searchOpenByTab[resolveToolPanel(this._page)] = true;
+  }
+
   private _searchOpenRequested(ev: Event) {
     ev.stopPropagation();
     this._layout?.openSearch();
@@ -200,6 +232,10 @@ class PanelTools extends LitElement {
 
   private _searchClosed(ev: Event) {
     ev.stopPropagation();
+    if (this._syncingSearch) {
+      return;
+    }
+    this._searchOpenByTab[resolveToolPanel(this._page)] = false;
     this._activeSearch?.onClose?.();
   }
 

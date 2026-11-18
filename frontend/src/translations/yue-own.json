@@ -1851,6 +1851,9 @@
             "backups": {
               "title": "我嘅備份",
               "total_size": "合共 {size}",
+              "automatic": "{count} 份自動備份",
+              "manual": "{count} 份手動備份",
+              "app_update": "{count} 份應用程式更新備份",
               "show_all": "顯示所有備份"
             },
             "hero_eyebrow": "備份",
@@ -2841,6 +2844,19 @@
             "set_hvac_mode": "設定模式",
             "set_fan_mode": "設定風速",
             "turn_off": "熄機"
+          },
+          "command_value": {
+            "off": "熄機",
+            "cool": "冷氣",
+            "heat": "暖氣",
+            "dry": "抽濕",
+            "fan_only": "淨風扇",
+            "auto": "自動",
+            "heat_cool": "冷暖",
+            "low": "低速",
+            "medium": "中速",
+            "high": "高速",
+            "quiet": "靜音"
           },
           "guard_desc": {
             "hot_room_override": "去到太熱嘅溫度就唔再等，即刻開凍。",
@@ -7779,5 +7795,1128 @@
     "maintenance": "維護",
     "marketplace": "市集",
     "notfound": "搵唔到呢個頁面"
+  },
+  "yue_entity": {
+    "binary_sensor": {
+      "_": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        }
+      },
+      "battery": {
+        "state": {
+          "off": "正常",
+          "on": "低"
+        }
+      },
+      "battery_charging": {
+        "state": {
+          "off": "冇充電",
+          "on": "充電中"
+        }
+      },
+      "carbon_monoxide": {
+        "state": {
+          "off": "冇偵測到",
+          "on": "偵測到"
+        }
+      },
+      "cold": {
+        "state": {
+          "off": "正常",
+          "on": "冷"
+        }
+      },
+      "connectivity": {
+        "state": {
+          "off": "已斷線",
+          "on": "已連線"
+        }
+      },
+      "door": {
+        "state": {
+          "off": "閂咗",
+          "on": "打開"
+        }
+      },
+      "garage_door": {
+        "state": {
+          "off": "閂咗",
+          "on": "打開"
+        }
+      },
+      "gas": {
+        "state": {
+          "off": "冇偵測到",
+          "on": "偵測到"
+        }
+      },
+      "glass_break": {
+        "state": {
+          "off": "冇偵測到",
+          "on": "偵測到玻璃破裂"
+        }
+      },
+      "heat": {
+        "state": {
+          "off": "正常",
+          "on": "熱"
+        }
+      },
+      "light": {
+        "state": {
+          "off": "冇光線",
+          "on": "偵測到光線"
+        }
+      },
+      "lock": {
+        "state": {
+          "off": "鎖咗",
+          "on": "冇鎖"
+        }
+      },
+      "moisture": {
+        "state": {
+          "off": "乾燥",
+          "on": "濕"
+        }
+      },
+      "motion": {
+        "state": {
+          "off": "冇偵測到",
+          "on": "偵測到"
+        }
+      },
+      "moving": {
+        "state": {
+          "off": "冇郁",
+          "on": "移動緊"
+        }
+      },
+      "occupancy": {
+        "state": {
+          "off": "冇偵測到",
+          "on": "偵測到"
+        }
+      },
+      "opening": {
+        "state": {
+          "off": "閂咗",
+          "on": "打開"
+        }
+      },
+      "plug": {
+        "state": {
+          "off": "未插電",
+          "on": "已插電"
+        }
+      },
+      "power": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        }
+      },
+      "presence": {
+        "state": {
+          "off": "唔喺屋企",
+          "on": "喺屋企"
+        }
+      },
+      "problem": {
+        "state": {
+          "off": "正常",
+          "on": "有問題"
+        }
+      },
+      "running": {
+        "state": {
+          "off": "冇運行",
+          "on": "運行中"
+        }
+      },
+      "safety": {
+        "state": {
+          "off": "安全",
+          "on": "唔安全"
+        }
+      },
+      "smoke": {
+        "state": {
+          "off": "冇偵測到",
+          "on": "偵測到"
+        }
+      },
+      "sound": {
+        "state": {
+          "off": "冇偵測到",
+          "on": "偵測到"
+        }
+      },
+      "tamper": {
+        "state": {
+          "off": "冇偵測到",
+          "on": "偵測到被拆動"
+        }
+      },
+      "update": {
+        "state": {
+          "off": "已經係最新",
+          "on": "有更新"
+        }
+      },
+      "vibration": {
+        "state": {
+          "off": "冇偵測到",
+          "on": "偵測到"
+        }
+      },
+      "window": {
+        "state": {
+          "off": "閂咗",
+          "on": "打開"
+        }
+      }
+    },
+    "light": {
+      "_": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        },
+        "state_attributes": {
+          "brightness": {
+            "name": "亮度"
+          },
+          "color_mode": {
+            "name": "顏色模式",
+            "state": {
+              "brightness": "只有亮度",
+              "color_temp": "色溫",
+              "hs": "HS",
+              "onoff": "開／關",
+              "rgb": "RGB",
+              "rgbw": "RGBW",
+              "rgbww": "RGBWW",
+              "unknown": "未知",
+              "white": "白色",
+              "xy": "XY"
+            }
+          },
+          "color_temp_kelvin": {
+            "name": "色溫（Kelvin）"
+          },
+          "effect": {
+            "name": "效果",
+            "state": {
+              "off": "關"
+            }
+          },
+          "effect_list": {
+            "name": "可用效果"
+          },
+          "max_color_temp_kelvin": {
+            "name": "最高色溫（Kelvin）"
+          },
+          "min_color_temp_kelvin": {
+            "name": "最低色溫（Kelvin）"
+          },
+          "supported_color_modes": {
+            "name": "可用顏色模式",
+            "state": {
+              "brightness": "只有亮度",
+              "color_temp": "色溫",
+              "hs": "HS",
+              "onoff": "開／關",
+              "rgb": "RGB",
+              "rgbw": "RGBW",
+              "rgbww": "RGBWW",
+              "unknown": "未知",
+              "white": "白色",
+              "xy": "XY"
+            }
+          }
+        }
+      }
+    },
+    "switch": {
+      "_": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        }
+      },
+      "outlet": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        }
+      },
+      "switch": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        }
+      }
+    },
+    "cover": {
+      "_": {
+        "state": {
+          "closed": "閂咗",
+          "closing": "閂緊",
+          "open": "打開",
+          "opening": "打開緊",
+          "stopped": "已停止"
+        },
+        "state_attributes": {
+          "current_position": {
+            "name": "位置"
+          },
+          "current_tilt_position": {
+            "name": "傾斜位置"
+          },
+          "speed": {
+            "name": "速度",
+            "state": {
+              "fast": "快",
+              "medium": "中",
+              "slow": "慢"
+            }
+          }
+        }
+      }
+    },
+    "lock": {
+      "_": {
+        "state": {
+          "jammed": "卡住",
+          "locked": "鎖咗",
+          "locking": "上鎖緊",
+          "open": "已打開",
+          "opening": "打開緊",
+          "unlocked": "冇鎖",
+          "unlocking": "解鎖緊"
+        },
+        "state_attributes": {
+          "changed_by": {
+            "name": "更改者"
+          },
+          "code_format": {
+            "name": "密碼格式"
+          }
+        }
+      }
+    },
+    "fan": {
+      "_": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        },
+        "state_attributes": {
+          "direction": {
+            "name": "方向",
+            "state": {
+              "forward": "正向",
+              "reverse": "反向"
+            }
+          },
+          "oscillating": {
+            "name": "擺動",
+            "state": {
+              "false": "唔係",
+              "true": "係"
+            }
+          },
+          "percentage": {
+            "name": "風速"
+          },
+          "percentage_step": {
+            "name": "速度級距"
+          },
+          "preset_mode": {
+            "name": "預設模式"
+          },
+          "preset_modes": {
+            "name": "可用預設模式"
+          }
+        }
+      }
+    },
+    "climate": {
+      "_": {
+        "state": {
+          "auto": "自動",
+          "cool": "製冷",
+          "dry": "除濕",
+          "fan_only": "淨送風",
+          "heat": "製熱",
+          "heat_cool": "冷暖自動",
+          "off": "關"
+        },
+        "state_attributes": {
+          "current_humidity": {
+            "name": "目前濕度"
+          },
+          "current_temperature": {
+            "name": "目前溫度"
+          },
+          "fan_mode": {
+            "name": "風扇模式",
+            "state": {
+              "auto": "自動",
+              "diffuse": "擴散",
+              "focus": "集中",
+              "high": "高",
+              "low": "低",
+              "medium": "中",
+              "middle": "中間",
+              "off": "關",
+              "on": "開",
+              "top": "上"
+            }
+          },
+          "fan_modes": {
+            "name": "全部風扇模式"
+          },
+          "humidity": {
+            "name": "目標濕度"
+          },
+          "hvac_action": {
+            "name": "目前動作",
+            "state": {
+              "cooling": "製冷中",
+              "defrosting": "除霜中",
+              "drying": "除濕中",
+              "fan": "送風中",
+              "heating": "製熱中",
+              "idle": "閒置",
+              "off": "關",
+              "preheating": "預熱中"
+            }
+          },
+          "hvac_modes": {
+            "name": "空調模式"
+          },
+          "max_humidity": {
+            "name": "最高目標濕度"
+          },
+          "max_temp": {
+            "name": "最高目標溫度"
+          },
+          "min_humidity": {
+            "name": "最低目標濕度"
+          },
+          "min_temp": {
+            "name": "最低目標溫度"
+          },
+          "preset_mode": {
+            "name": "預設",
+            "state": {
+              "activity": "活動",
+              "away": "外出",
+              "boost": "加強",
+              "comfort": "舒適",
+              "eco": "節能",
+              "home": "喺屋企",
+              "none": "冇",
+              "sleep": "睡眠"
+            }
+          },
+          "preset_modes": {
+            "name": "全部預設"
+          },
+          "swing_horizontal_mode": {
+            "name": "水平擺動模式",
+            "state": {
+              "off": "關",
+              "on": "開"
+            }
+          },
+          "swing_horizontal_modes": {
+            "name": "全部水平擺動模式"
+          },
+          "swing_mode": {
+            "name": "擺動模式",
+            "state": {
+              "both": "兩邊",
+              "horizontal": "水平",
+              "off": "關",
+              "on": "開",
+              "vertical": "垂直"
+            }
+          },
+          "swing_modes": {
+            "name": "全部擺動模式"
+          },
+          "target_temp_high": {
+            "name": "目標溫度上限"
+          },
+          "target_temp_low": {
+            "name": "目標溫度下限"
+          },
+          "target_temp_step": {
+            "name": "目標溫度級距"
+          },
+          "temperature": {
+            "name": "目標溫度"
+          }
+        }
+      }
+    },
+    "humidifier": {
+      "_": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        },
+        "state_attributes": {
+          "action": {
+            "name": "運作狀態",
+            "state": {
+              "drying": "除濕中",
+              "humidifying": "加濕中",
+              "idle": "閒置",
+              "off": "關"
+            }
+          },
+          "available_modes": {
+            "name": "可用模式"
+          },
+          "current_humidity": {
+            "name": "目前濕度"
+          },
+          "humidity": {
+            "name": "目標濕度"
+          },
+          "max_humidity": {
+            "name": "最高目標濕度"
+          },
+          "min_humidity": {
+            "name": "最低目標濕度"
+          },
+          "mode": {
+            "name": "模式",
+            "state": {
+              "auto": "自動",
+              "away": "外出",
+              "baby": "嬰兒",
+              "boost": "加強",
+              "comfort": "舒適",
+              "eco": "節能",
+              "home": "喺屋企",
+              "normal": "正常",
+              "sleep": "睡眠"
+            }
+          }
+        }
+      }
+    },
+    "water_heater": {
+      "_": {
+        "state": {
+          "eco": "節能",
+          "electric": "電力",
+          "gas": "燃氣",
+          "heat_pump": "熱泵",
+          "high_demand": "高需求",
+          "off": "關",
+          "performance": "高效能"
+        },
+        "state_attributes": {
+          "away_mode": {
+            "name": "外出模式",
+            "state": {
+              "off": "關",
+              "on": "開"
+            }
+          },
+          "current_operation": {
+            "name": "目前運作"
+          },
+          "current_temperature": {
+            "name": "目前溫度"
+          },
+          "max_temp": {
+            "name": "最高目標溫度"
+          },
+          "min_temp": {
+            "name": "最低目標溫度"
+          },
+          "operation_mode": {
+            "name": "運作模式",
+            "state": {
+              "eco": "節能",
+              "electric": "電力",
+              "gas": "燃氣",
+              "heat_pump": "熱泵",
+              "high_demand": "高需求",
+              "off": "關",
+              "performance": "高效能"
+            }
+          },
+          "target_temp_high": {
+            "name": "目標溫度上限"
+          },
+          "target_temp_low": {
+            "name": "目標溫度下限"
+          }
+        }
+      }
+    },
+    "media_player": {
+      "_": {
+        "state": {
+          "buffering": "緩衝緊",
+          "idle": "閒置",
+          "off": "關",
+          "on": "開",
+          "paused": "已暫停",
+          "playing": "播放中",
+          "standby": "待機"
+        },
+        "state_attributes": {
+          "app_id": {
+            "name": "應用程式 ID"
+          },
+          "app_name": {
+            "name": "應用程式"
+          },
+          "entity_picture_local": {
+            "name": "本機可存取嘅實體圖片"
+          },
+          "groups_members": {
+            "name": "群組成員"
+          },
+          "is_volume_muted": {
+            "name": "靜音",
+            "state": {
+              "false": "唔係",
+              "true": "係"
+            }
+          },
+          "media_album_artist": {
+            "name": "專輯歌手"
+          },
+          "media_album_name": {
+            "name": "專輯"
+          },
+          "media_artist": {
+            "name": "歌手"
+          },
+          "media_channel": {
+            "name": "頻道"
+          },
+          "media_content_id": {
+            "name": "內容 ID"
+          },
+          "media_content_type": {
+            "name": "內容類型",
+            "state": {
+              "album": "專輯",
+              "app": "應用程式",
+              "artist": "歌手",
+              "channel": "頻道",
+              "channels": "頻道",
+              "composer": "作曲",
+              "contributing_artist": "參與歌手",
+              "episode": "集數",
+              "game": "遊戲",
+              "genre": "類型",
+              "image": "圖片",
+              "movie": "電影",
+              "music": "音樂",
+              "playlist": "播放清單",
+              "podcast": "播客",
+              "season": "季",
+              "track": "曲目",
+              "tvshow": "電視節目",
+              "url": "網址",
+              "video": "影片"
+            }
+          },
+          "media_duration": {
+            "name": "時長"
+          },
+          "media_episode": {
+            "name": "集數"
+          },
+          "media_playlist": {
+            "name": "播放清單"
+          },
+          "media_position": {
+            "name": "播放位置"
+          },
+          "media_position_updated_at": {
+            "name": "位置更新時間"
+          },
+          "media_season": {
+            "name": "季"
+          },
+          "media_series_title": {
+            "name": "劇集"
+          },
+          "media_title": {
+            "name": "標題"
+          },
+          "media_track": {
+            "name": "曲目"
+          },
+          "repeat": {
+            "name": "重複",
+            "state": {
+              "all": "全部",
+              "off": "關",
+              "one": "單曲"
+            }
+          },
+          "shuffle": {
+            "name": "隨機播放",
+            "state": {
+              "false": "關",
+              "true": "開"
+            }
+          },
+          "sound_mode": {
+            "name": "音效模式"
+          },
+          "sound_mode_list": {
+            "name": "可用音效模式"
+          },
+          "source": {
+            "name": "輸入源"
+          },
+          "source_list": {
+            "name": "可用輸入源"
+          },
+          "volume_level": {
+            "name": "音量"
+          }
+        }
+      }
+    },
+    "alarm_control_panel": {
+      "_": {
+        "state": {
+          "armed": "已佈防",
+          "armed_away": "外出佈防",
+          "armed_custom_bypass": "自訂略過佈防",
+          "armed_home": "留家佈防",
+          "armed_night": "夜間佈防",
+          "armed_vacation": "度假佈防",
+          "arming": "佈防緊",
+          "disarmed": "已撤防",
+          "disarming": "撤防緊",
+          "pending": "等待中",
+          "triggered": "已觸發"
+        },
+        "state_attributes": {
+          "changed_by": {
+            "name": "更改者"
+          },
+          "code_arm_required": {
+            "name": "佈防密碼",
+            "state": {
+              "false": "唔需要",
+              "true": "需要"
+            }
+          },
+          "code_format": {
+            "name": "密碼格式",
+            "state": {
+              "number": "數字",
+              "text": "文字"
+            }
+          }
+        }
+      }
+    },
+    "vacuum": {
+      "_": {
+        "state": {
+          "cleaning": "清潔中",
+          "docked": "已回座",
+          "error": "錯誤",
+          "idle": "閒置",
+          "off": "關",
+          "on": "開",
+          "paused": "已暫停",
+          "returning": "返緊座"
+        }
+      }
+    },
+    "lawn_mower": {
+      "_": {
+        "state": {
+          "docked": "已回座",
+          "error": "錯誤",
+          "idle": "閒置",
+          "mowing": "割草中",
+          "paused": "已暫停",
+          "returning": "返緊去"
+        }
+      }
+    },
+    "valve": {
+      "_": {
+        "state": {
+          "closed": "閂咗",
+          "closing": "閂緊",
+          "open": "打開",
+          "opening": "打開緊",
+          "stopped": "已停止"
+        },
+        "state_attributes": {
+          "current_position": {
+            "name": "位置"
+          }
+        }
+      }
+    },
+    "person": {
+      "_": {
+        "state": {
+          "home": "喺屋企",
+          "not_home": "唔喺屋企"
+        },
+        "state_attributes": {
+          "device_trackers": {
+            "name": "裝置追蹤器"
+          },
+          "gps_accuracy": {
+            "name": "GPS 準確度"
+          },
+          "latitude": {
+            "name": "緯度"
+          },
+          "longitude": {
+            "name": "經度"
+          },
+          "source": {
+            "name": "來源"
+          }
+        }
+      }
+    },
+    "device_tracker": {
+      "_": {
+        "state": {
+          "home": "喺屋企",
+          "not_home": "唔喺屋企"
+        },
+        "state_attributes": {
+          "battery": {
+            "name": "電池"
+          },
+          "gps_accuracy": {
+            "name": "GPS 準確度"
+          },
+          "latitude": {
+            "name": "緯度"
+          },
+          "longitude": {
+            "name": "經度"
+          },
+          "source_type": {
+            "name": "來源",
+            "state": {
+              "bluetooth": "藍牙",
+              "bluetooth_le": "低功耗藍牙",
+              "gps": "GPS",
+              "router": "路由器"
+            }
+          },
+          "tracking_type": {
+            "name": "追蹤類型",
+            "state": {
+              "connection": "連線",
+              "position": "位置"
+            }
+          }
+        }
+      }
+    },
+    "sun": {
+      "_": {
+        "state": {
+          "above_horizon": "喺地平線上",
+          "below_horizon": "喺地平線下"
+        }
+      }
+    },
+    "timer": {
+      "_": {
+        "state": {
+          "active": "運行中",
+          "idle": "閒置",
+          "paused": "已暫停"
+        },
+        "state_attributes": {
+          "duration": {
+            "name": "時長"
+          },
+          "editable": {
+            "name": "由介面管理",
+            "state": {
+              "false": "唔係",
+              "true": "係"
+            }
+          },
+          "finishes_at": {
+            "name": "完成時間"
+          },
+          "last_transition": {
+            "name": "上次轉變",
+            "state": {
+              "cancelled": "已取消",
+              "finished": "已完成",
+              "paused": "已暫停",
+              "restarted": "已重新開始",
+              "started": "已開始"
+            }
+          },
+          "remaining": {
+            "name": "剩餘時間"
+          },
+          "restore": {
+            "name": "還原"
+          }
+        }
+      }
+    },
+    "automation": {
+      "_": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        },
+        "state_attributes": {
+          "current": {
+            "name": "運行中嘅自動化"
+          },
+          "id": {
+            "name": "ID"
+          },
+          "last_triggered": {
+            "name": "上次觸發"
+          },
+          "max": {
+            "name": "最多同時運行嘅自動化"
+          },
+          "mode": {
+            "name": "運行模式",
+            "state": {
+              "parallel": "並行",
+              "queued": "排隊",
+              "restart": "重新開始",
+              "single": "單一"
+            }
+          }
+        }
+      }
+    },
+    "script": {
+      "_": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        },
+        "state_attributes": {
+          "current": {
+            "name": "運行中嘅自動化"
+          },
+          "last_action": {
+            "name": "上次動作"
+          },
+          "last_triggered": {
+            "name": "上次觸發"
+          },
+          "max": {
+            "name": "最多同時運行嘅腳本"
+          },
+          "mode": {
+            "name": "運行模式",
+            "state": {
+              "parallel": "並行",
+              "queued": "排隊",
+              "restart": "重新開始",
+              "single": "單一"
+            }
+          }
+        }
+      }
+    },
+    "input_boolean": {
+      "_": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        },
+        "state_attributes": {
+          "editable": {
+            "name": "由介面管理",
+            "state": {
+              "false": "唔係",
+              "true": "係"
+            }
+          }
+        }
+      }
+    },
+    "update": {
+      "_": {
+        "state": {
+          "off": "已經係最新",
+          "on": "有更新"
+        },
+        "state_attributes": {
+          "auto_update": {
+            "name": "自動更新",
+            "state": {
+              "false": "唔係",
+              "true": "係"
+            }
+          },
+          "in_progress": {
+            "name": "進行中",
+            "state": {
+              "false": "唔係",
+              "true": "係"
+            }
+          },
+          "installed_version": {
+            "name": "已安裝版本"
+          },
+          "latest_version": {
+            "name": "最新版本"
+          },
+          "release_summary": {
+            "name": "發佈摘要"
+          },
+          "release_url": {
+            "name": "發佈網址"
+          },
+          "skipped_version": {
+            "name": "已略過版本"
+          },
+          "title": {
+            "name": "標題"
+          }
+        }
+      }
+    },
+    "weather": {
+      "_": {
+        "state": {
+          "clear-night": "晴朗（夜晚）",
+          "cloudy": "多雲",
+          "exceptional": "極端天氣",
+          "fog": "霧",
+          "hail": "冰雹",
+          "lightning": "閃電",
+          "lightning-rainy": "閃電、落雨",
+          "partlycloudy": "部分多雲",
+          "pouring": "傾盆大雨",
+          "rainy": "落雨",
+          "snowy": "落雪",
+          "snowy-rainy": "落雪、落雨",
+          "sunny": "晴天",
+          "windy": "大風",
+          "windy-variant": "大風多雲"
+        },
+        "state_attributes": {
+          "apparent_temperature": {
+            "name": "體感溫度"
+          },
+          "cloud_coverage": {
+            "name": "雲量"
+          },
+          "dew_point": {
+            "name": "露點溫度"
+          },
+          "forecast": {
+            "name": "預報"
+          },
+          "humidity": {
+            "name": "濕度"
+          },
+          "ozone": {
+            "name": "臭氧"
+          },
+          "precipitation_unit": {
+            "name": "降水量單位"
+          },
+          "pressure": {
+            "name": "氣壓"
+          },
+          "pressure_unit": {
+            "name": "氣壓單位"
+          },
+          "temperature": {
+            "name": "溫度"
+          },
+          "temperature_unit": {
+            "name": "溫度單位"
+          },
+          "uv_index": {
+            "name": "紫外線指數"
+          },
+          "visibility": {
+            "name": "能見度"
+          },
+          "visibility_unit": {
+            "name": "能見度單位"
+          },
+          "wind_bearing": {
+            "name": "風向"
+          },
+          "wind_gust_speed": {
+            "name": "陣風風速"
+          },
+          "wind_speed": {
+            "name": "風速"
+          },
+          "wind_speed_unit": {
+            "name": "風速單位"
+          }
+        }
+      }
+    },
+    "siren": {
+      "_": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        },
+        "state_attributes": {
+          "available_tones": {
+            "name": "可用鈴聲"
+          }
+        }
+      }
+    },
+    "remote": {
+      "_": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        }
+      }
+    },
+    "default": {
+      "unavailable": "用唔到",
+      "unknown": "未知"
+    },
+    "attribute_names": {
+      "assumed_state": "推測狀態",
+      "attribution": "資料來源",
+      "device_class": "裝置類別",
+      "entity_picture": "實體圖片",
+      "friendly_name": "顯示名稱",
+      "icon": "圖示",
+      "supported_features": "支援嘅功能",
+      "unit_of_measurement": "計量單位"
+    }
   }
 }

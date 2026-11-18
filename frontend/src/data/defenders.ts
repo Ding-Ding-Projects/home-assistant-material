@@ -190,8 +190,30 @@ export const guardTitle = (
   if (direction === "heat" && HEAT_GUARD_TITLES[id]) {
     return HEAT_GUARD_TITLES[id];
   }
-  const text = id.replace(/_/g, " ");
+  return readableName(id);
+};
+
+/**
+ * A raw engine name as a tidy sentence-case phrase: separators and camel case
+ * become spaces, and the first letter is a capital. `comfort_sync`,
+ * `comfort-sync` and `comfortSync` all become `Comfort sync`.
+ */
+export const readableName = (raw: string): string => {
+  const text = String(raw ?? "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_\-.\s]+/g, " ")
+    .trim()
+    .toLowerCase();
   return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+/** What a logged command set, as text: a number as written, a word tidied. */
+export const commandValueText = (value: unknown): string => {
+  if (typeof value === "number") {
+    return String(value);
+  }
+  const text = String(value ?? "");
+  return /^-?\d+(\.\d+)?$/.test(text) ? text : readableName(text).toLowerCase();
 };
 
 /** Hours with one decimal as a short text, such as `1.5 h`. */
@@ -219,11 +241,11 @@ export const commandReason = (message: string): string => {
 
 /** The label of the logged action, such as `set hvac mode off`. */
 export const commandAction = (entry: DefenderLogEntry): string => {
-  const action = String(entry.values.action ?? "").replace(/_/g, " ");
+  const action = readableName(String(entry.values.action ?? ""));
   const value = entry.values.value;
   return value === undefined || value === null
     ? action
-    : `${action} ${String(value)}`;
+    : `${action} ${commandValueText(value)}`;
 };
 
 export interface DefenderLogLine {

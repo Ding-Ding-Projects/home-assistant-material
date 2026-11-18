@@ -5,6 +5,11 @@ import { classMap } from "lit/directives/class-map";
 import { ifDefined } from "lit/directives/if-defined";
 import { repeat } from "lit/directives/repeat";
 import { fireEvent } from "../common/dom/fire_event";
+import {
+  isBilingualLabel,
+  renderStackedLabel,
+  stackedLabelStyles,
+} from "../common/language-mode/stacked-label";
 import "./ha-icon";
 import "./ha-svg-icon";
 
@@ -127,6 +132,15 @@ export class HaControlSelect extends LitElement {
     );
   }
 
+  protected willUpdate(): void {
+    // Both-language labels stack their two lines, so the control is a little
+    // taller to keep every option one row with a 44 px target.
+    this.toggleAttribute(
+      "stacked",
+      !!this.options?.some((option) => isBilingualLabel(option.label))
+    );
+  }
+
   protected render() {
     return html`
       <div
@@ -197,7 +211,7 @@ export class HaControlSelect extends LitElement {
           }
           ${
             option.label && !this.hideOptionLabel
-              ? html`<span>${option.label}</span>`
+              ? html`<span>${renderStackedLabel(option.label)}</span>`
               : nothing
           }
         </div>
@@ -205,187 +219,193 @@ export class HaControlSelect extends LitElement {
     `;
   }
 
-  static styles = css`
-    :host {
-      display: block;
-      --control-select-color: var(--primary-color);
-      --control-select-focused-opacity: 0.2;
-      --control-select-selected-opacity: 1;
-      --control-select-background: var(--disabled-color);
-      --control-select-background-opacity: 0.2;
-      --control-select-thickness: 40px;
-      --control-select-border-radius: 10px;
-      --control-select-padding: 4px;
-      --control-select-button-border-radius: calc(
-        var(--control-select-border-radius) - var(--control-select-padding)
-      );
-      --mdc-icon-size: 20px;
-      height: var(--control-select-thickness);
-      width: 100%;
-      font-style: normal;
-      font-weight: var(--ha-font-weight-medium);
-      color: var(--primary-text-color);
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      border-radius: var(--control-select-border-radius);
-    }
-    :host([vertical]) {
-      width: var(--control-select-thickness);
-      height: 100%;
-    }
-    .container {
-      position: relative;
-      height: 100%;
-      width: 100%;
-      transform: translateZ(0);
-      display: flex;
-      flex-direction: row;
-      padding: var(--control-select-padding);
-      box-sizing: border-box;
-      outline: none;
-      transition: box-shadow 180ms ease-in-out;
-    }
-    .container::before {
-      position: absolute;
-      content: "";
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: 100%;
-      background: var(--control-select-background);
-      opacity: var(--control-select-background-opacity);
-      border-radius: var(--control-select-border-radius);
-    }
+  static styles = [
+    stackedLabelStyles,
+    css`
+      :host {
+        display: block;
+        --control-select-color: var(--primary-color);
+        --control-select-focused-opacity: 0.2;
+        --control-select-selected-opacity: 1;
+        --control-select-background: var(--disabled-color);
+        --control-select-background-opacity: 0.2;
+        --control-select-thickness: 40px;
+        --control-select-border-radius: 10px;
+        --control-select-padding: 4px;
+        --control-select-button-border-radius: calc(
+          var(--control-select-border-radius) - var(--control-select-padding)
+        );
+        --mdc-icon-size: 20px;
+        height: var(--control-select-thickness);
+        width: 100%;
+        font-style: normal;
+        font-weight: var(--ha-font-weight-medium);
+        color: var(--primary-text-color);
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        border-radius: var(--control-select-border-radius);
+      }
+      :host([vertical]) {
+        width: var(--control-select-thickness);
+        height: 100%;
+      }
+      .container {
+        position: relative;
+        height: 100%;
+        width: 100%;
+        transform: translateZ(0);
+        display: flex;
+        flex-direction: row;
+        padding: var(--control-select-padding);
+        box-sizing: border-box;
+        outline: none;
+        transition: box-shadow 180ms ease-in-out;
+      }
+      .container::before {
+        position: absolute;
+        content: "";
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background: var(--control-select-background);
+        opacity: var(--control-select-background-opacity);
+        border-radius: var(--control-select-border-radius);
+      }
 
-    .container > *:not(:last-child) {
-      margin-right: var(--control-select-padding);
-      margin-inline-end: var(--control-select-padding);
-      margin-inline-start: initial;
-      direction: var(--direction);
-    }
-    .container[disabled] {
-      --control-select-color: var(--disabled-color);
-      --control-select-focused-opacity: 0;
-      color: var(--disabled-color);
-    }
+      .container > *:not(:last-child) {
+        margin-right: var(--control-select-padding);
+        margin-inline-end: var(--control-select-padding);
+        margin-inline-start: initial;
+        direction: var(--direction);
+      }
+      .container[disabled] {
+        --control-select-color: var(--disabled-color);
+        --control-select-focused-opacity: 0;
+        color: var(--disabled-color);
+      }
 
-    .container[disabled] .option {
-      cursor: not-allowed;
-    }
+      .container[disabled] .option {
+        cursor: not-allowed;
+      }
 
-    .option {
-      cursor: pointer;
-      position: relative;
-      flex: 1;
-      height: 100%;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: var(--control-select-button-border-radius);
-      /* For safari border-radius overflow */
-      z-index: 0;
-      outline: none;
-      transition: box-shadow 180ms ease-in-out;
-    }
-    .option:focus-visible {
-      box-shadow: 0 0 0 2px var(--control-select-color);
-    }
-    .content > *:not(:last-child) {
-      margin-bottom: 4px;
-    }
-    .option::before {
-      position: absolute;
-      content: "";
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: 100%;
-      background-color: var(--control-select-color);
-      opacity: 0;
-      border-radius: var(--control-select-button-border-radius);
-      transition:
-        background-color ease-in-out 180ms,
-        opacity ease-in-out 80ms;
-    }
-    .option:hover::before {
-      opacity: var(--control-select-focused-opacity);
-    }
-    .option.selected {
-      color: white;
-    }
-    .option.selected::before {
-      opacity: var(--control-select-selected-opacity);
-    }
-    .option .content {
-      position: relative;
-      pointer-events: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      text-align: center;
-      padding: 2px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .option .content span {
-      display: block;
-      width: 100%;
-      hyphens: auto;
-    }
-    :host(:not([vertical])) .option {
-      min-width: 0;
-    }
-    :host(:not([vertical])) .option .content {
-      padding-inline: var(--ha-space-1);
-    }
-    :host(:not([vertical])) .option .content span {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: clip;
-      unicode-bidi: plaintext;
-      hyphens: manual;
-      line-height: var(--ha-line-height-condensed);
-    }
-    :host([vertical]) {
-      width: var(--control-select-thickness);
-      height: auto;
-    }
-    :host([vertical]) .container {
-      flex-direction: column;
-    }
-    :host([vertical]) .container > *:not(:last-child) {
-      margin-right: initial;
-      margin-inline-end: initial;
-      margin-bottom: var(--control-select-padding);
-    }
-    /* The segmented control of the modern kit: a tonal track with a pill,
+      .option {
+        cursor: pointer;
+        position: relative;
+        flex: 1;
+        height: 100%;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--control-select-button-border-radius);
+        /* For safari border-radius overflow */
+        z-index: 0;
+        outline: none;
+        transition: box-shadow 180ms ease-in-out;
+      }
+      .option:focus-visible {
+        box-shadow: 0 0 0 2px var(--control-select-color);
+      }
+      .content > *:not(:last-child) {
+        margin-bottom: 4px;
+      }
+      .option::before {
+        position: absolute;
+        content: "";
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background-color: var(--control-select-color);
+        opacity: 0;
+        border-radius: var(--control-select-button-border-radius);
+        transition:
+          background-color ease-in-out 180ms,
+          opacity ease-in-out 80ms;
+      }
+      .option:hover::before {
+        opacity: var(--control-select-focused-opacity);
+      }
+      .option.selected {
+        color: white;
+      }
+      .option.selected::before {
+        opacity: var(--control-select-selected-opacity);
+      }
+      .option .content {
+        position: relative;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+        padding: 2px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .option .content span {
+        display: block;
+        width: 100%;
+        hyphens: auto;
+      }
+      :host(:not([vertical])) .option {
+        min-width: 0;
+      }
+      :host(:not([vertical])) .option .content {
+        padding-inline: var(--ha-space-1);
+      }
+      :host(:not([vertical])) .option .content span {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: clip;
+        unicode-bidi: plaintext;
+        hyphens: manual;
+        line-height: var(--ha-line-height-condensed);
+      }
+      :host([vertical]) {
+        width: var(--control-select-thickness);
+        height: auto;
+      }
+      :host([vertical]) .container {
+        flex-direction: column;
+      }
+      :host([vertical]) .container > *:not(:last-child) {
+        margin-right: initial;
+        margin-inline-end: initial;
+        margin-bottom: var(--control-select-padding);
+      }
+      /* The segmented control of the modern kit: a tonal track with a pill,
        a surface-coloured pill under the chosen option. The vertical form
        keeps its fill. */
-    :host(:not([vertical])) {
-      --control-select-border-radius: var(--ha-border-radius-pill, 22px);
-      --control-select-background: var(--ha-color-surface-tone-2);
-      --control-select-background-opacity: 1;
-    }
-    :host(:not([vertical])) .option.selected {
-      color: var(--primary-text-color);
-    }
-    :host(:not([vertical])) .option.selected::before {
-      background-color: var(--card-background-color, #fff);
-      box-shadow: var(--ha-shadow-card);
-    }
-    :host(:not([vertical])) .option:hover::before {
-      background-color: var(--ha-color-surface-tone-3);
-      opacity: 1;
-    }
-    :host(:not([vertical])) .option.selected:hover::before {
-      background-color: var(--card-background-color, #fff);
-    }
-  `;
+      :host(:not([vertical])) {
+        --control-select-border-radius: var(--ha-border-radius-pill, 22px);
+        --control-select-background: var(--ha-color-surface-tone-2);
+        --control-select-background-opacity: 1;
+      }
+      :host(:not([vertical])) .option.selected {
+        color: var(--primary-text-color);
+      }
+      :host(:not([vertical])) .option.selected::before {
+        background-color: var(--card-background-color, #fff);
+        box-shadow: var(--ha-shadow-card);
+      }
+      :host(:not([vertical])) .option:hover::before {
+        background-color: var(--ha-color-surface-tone-3);
+        opacity: 1;
+      }
+      :host(:not([vertical])) .option.selected:hover::before {
+        background-color: var(--card-background-color, #fff);
+      }
+      :host([stacked]:not([vertical])) {
+        height: max(var(--control-select-thickness), 48px);
+      }
+    `,
+  ];
 }
 
 declare global {

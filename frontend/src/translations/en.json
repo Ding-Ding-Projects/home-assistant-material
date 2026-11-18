@@ -21181,6 +21181,19 @@
             "set_fan_mode": "Set fan speed",
             "turn_off": "Turn off"
           },
+          "command_value": {
+            "off": "off",
+            "cool": "cool",
+            "heat": "heat",
+            "dry": "dry",
+            "fan_only": "fan only",
+            "auto": "auto",
+            "heat_cool": "heat and cool",
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "quiet": "quiet"
+          },
           "guard_desc": {
             "hot_room_override": "At the too-hot temperature every wait is skipped and cooling starts at once.",
             "upstairs_comfort_guard": "Cools first when the upstairs rooms are hot and someone is home.",

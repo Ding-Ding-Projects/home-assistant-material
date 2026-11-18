@@ -3,6 +3,11 @@ import type { TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import { fireEvent } from "../common/dom/fire_event";
+import {
+  isBilingualLabel,
+  renderStackedLabel,
+  stackedLabelStyles,
+} from "../common/language-mode/stacked-label";
 import type { ToggleButton } from "../types";
 import "./ha-button";
 import "./ha-svg-icon";
@@ -49,7 +54,7 @@ export class HaButtonToggleGroup extends LitElement {
           (button) =>
             html`<ha-button
               iconTag="ha-svg-icon"
-              class="icon"
+              class=${isBilingualLabel(button.label) ? "icon stacked" : "icon"}
               .variant=${
                 this.active !== button.value || !this.activeVariant
                   ? this.variant
@@ -69,7 +74,7 @@ export class HaButtonToggleGroup extends LitElement {
                       aria-label=${button.label}
                       .path=${button.iconPath}
                     ></ha-svg-icon>`
-                  : button.label
+                  : renderStackedLabel(button.label)
               }
             </ha-button>`
         )}
@@ -82,34 +87,54 @@ export class HaButtonToggleGroup extends LitElement {
     fireEvent(this, "value-changed", { value: this.active });
   }
 
-  static styles = css`
-    :host {
-      --mdc-icon-size: var(--button-toggle-icon-size, 20px);
-    }
+  static styles = [
+    stackedLabelStyles,
+    css`
+      :host {
+        --mdc-icon-size: var(--button-toggle-icon-size, 20px);
+      }
 
-    :host([no-wrap]) wa-button-group::part(base) {
-      flex-wrap: nowrap;
-    }
+      :host([no-wrap]) wa-button-group::part(base) {
+        flex-wrap: nowrap;
+      }
 
-    wa-button-group {
-      padding: var(--ha-button-toggle-group-padding);
-    }
+      wa-button-group {
+        padding: var(--ha-button-toggle-group-padding);
+      }
 
-    :host([full-width]) wa-button-group,
-    :host([full-width]) wa-button-group::part(base) {
-      width: 100%;
-    }
+      :host([full-width]) wa-button-group,
+      :host([full-width]) wa-button-group::part(base) {
+        width: 100%;
+      }
 
-    :host([full-width]) ha-button {
-      flex: 1;
-    }
+      :host([full-width]) ha-button {
+        flex: 1;
+      }
 
-    ha-button {
-      word-break: keep-all;
-      overflow-wrap: anywhere;
-      text-wrap: balance;
-    }
-  `;
+      ha-button {
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+        text-wrap: balance;
+      }
+
+      /* A small button keeps its look but gets a 44 px touch target: an
+       invisible strip above and below it. */
+      :host([size="s"]) ha-button {
+        position: relative;
+      }
+      :host([size="s"]) ha-button::after {
+        content: "";
+        position: absolute;
+        inset-block: -6px;
+        inset-inline: 0;
+      }
+
+      /* Both-language labels stack in one row with a 44 px target. */
+      ha-button.stacked {
+        --ha-button-height: 44px;
+      }
+    `,
+  ];
 }
 
 declare global {

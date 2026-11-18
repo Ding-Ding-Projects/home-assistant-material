@@ -1,3 +1,6 @@
+import type { HassConfig } from "home-assistant-js-websocket";
+import type { FrontendLocaleData } from "../../data/translation";
+import { resolveTimeZone } from "../datetime/resolve-time-zone";
 import type { LanguageMode } from "../preferences/personal-preferences";
 import { currentLanguageMode, joinForMode } from "./language-mode";
 
@@ -22,3 +25,34 @@ export const formatForMode = (
     },
     mode
   );
+
+const weekdayFormats = new Map<string, Intl.DateTimeFormat>();
+
+const weekdayShortFormat = (language: string, timeZone: string) => {
+  const id = `${language}|${timeZone}`;
+  let format = weekdayFormats.get(id);
+  if (!format) {
+    format = new Intl.DateTimeFormat(language, { weekday: "short", timeZone });
+    weekdayFormats.set(id, format);
+  }
+  return format;
+};
+
+/**
+ * The short weekday name ("Mon") for the language mode. English mode gives
+ * exactly what `formatDateWeekdayShort` gives; Cantonese mode and both mode
+ * add the Hong Kong Cantonese name.
+ */
+export const formatWeekdayShortForMode = (
+  date: Date,
+  locale: FrontendLocaleData,
+  config: HassConfig,
+  mode: LanguageMode = currentLanguageMode()
+): string => {
+  const timeZone = resolveTimeZone(locale.time_zone, config.time_zone);
+  return formatForMode(
+    (language) => weekdayShortFormat(language, timeZone).format(date),
+    locale.language,
+    mode
+  );
+};

@@ -11,6 +11,10 @@ import {
   withLanguageMode,
   type Localize,
 } from "../../../common/language-mode/language-mode";
+import {
+  renderStackedLabel,
+  stackedLabelStyles,
+} from "../../../common/language-mode/stacked-label";
 
 type SensorRange = "24h" | "7d" | "30d";
 
@@ -156,8 +160,10 @@ class MoreInfoSensor extends LitElement {
                       .range=${range}
                       @click=${this._handleRange}
                     >
-                      ${localize(
-                        `ui.dialogs.more_info_control.sensor.range_${range}`
+                      ${renderStackedLabel(
+                        localize(
+                          `ui.dialogs.more_info_control.sensor.range_${range}`
+                        )
                       )}
                     </button>
                   `
@@ -298,143 +304,150 @@ class MoreInfoSensor extends LitElement {
     ).range;
   }
 
-  static styles = css`
-    :host {
-      display: block;
-    }
+  static styles = [
+    stackedLabelStyles,
+    css`
+      :host {
+        display: block;
+      }
 
-    .hero {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--ha-space-1);
-      text-align: center;
-      margin-bottom: var(--ha-space-4);
-    }
+      .hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--ha-space-1);
+        text-align: center;
+        margin-bottom: var(--ha-space-4);
+      }
 
-    .value {
-      font-size: clamp(28px, 7vw, 56px);
-      line-height: 64px;
-      font-weight: var(--ha-font-weight-medium);
-      direction: ltr;
-      max-width: 100%;
-      overflow-wrap: anywhere;
-    }
+      .value {
+        font-size: clamp(28px, 7vw, 56px);
+        line-height: 64px;
+        font-weight: var(--ha-font-weight-medium);
+        direction: ltr;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
 
-    .changed {
-      color: var(--secondary-text-color);
-    }
+      .changed {
+        color: var(--secondary-text-color);
+      }
 
-    .chart-card {
-      padding: var(--ha-space-4);
-      border-radius: var(--ha-border-radius-2xl, 24px);
-      background: var(--secondary-background-color);
-      margin-bottom: var(--ha-space-3);
-    }
+      .chart-card {
+        padding: var(--ha-space-4);
+        border-radius: var(--ha-border-radius-2xl, 24px);
+        background: var(--secondary-background-color);
+        margin-bottom: var(--ha-space-3);
+      }
 
-    .chart-title {
-      font-weight: var(--ha-font-weight-semi-bold);
-      margin-bottom: var(--ha-space-2);
-    }
+      .chart-title {
+        font-weight: var(--ha-font-weight-semi-bold);
+        margin-bottom: var(--ha-space-2);
+      }
 
-    .chart {
-      display: block;
-      width: 100%;
-      height: 80px;
-    }
+      .chart {
+        display: block;
+        width: 100%;
+        height: 80px;
+      }
 
-    .chart polyline {
-      fill: none;
-      stroke: var(--primary-color);
-      stroke-width: 2.5;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      vector-effect: non-scaling-stroke;
-    }
+      .chart polyline {
+        fill: none;
+        stroke: var(--primary-color);
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+      }
 
-    .chart-empty {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 80px;
-      color: var(--secondary-text-color);
-    }
+      .chart-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 80px;
+        color: var(--secondary-text-color);
+      }
 
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: var(--ha-space-2);
-      margin-bottom: var(--ha-space-3);
-    }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--ha-space-2);
+        margin-bottom: var(--ha-space-3);
+      }
 
-    .stat {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-1);
-      padding: var(--ha-space-3);
-      border-radius: var(--ha-border-radius-xl);
-      background: var(--secondary-background-color);
-      min-width: 0;
-    }
+      .stat {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        padding: var(--ha-space-3);
+        border-radius: var(--ha-border-radius-xl);
+        background: var(--secondary-background-color);
+        min-width: 0;
+      }
 
-    .stat-label {
-      font-size: var(--ha-font-size-s);
-      color: var(--secondary-text-color);
-    }
+      .stat-label {
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+      }
 
-    .stat-value {
-      direction: ltr;
-      text-align: start;
-      font-weight: var(--ha-font-weight-semi-bold);
-    }
+      .stat-value {
+        direction: ltr;
+        text-align: start;
+        font-weight: var(--ha-font-weight-semi-bold);
+      }
 
-    .ranges {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: var(--ha-space-2);
-      margin-bottom: var(--ha-space-4);
-    }
+      .ranges {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--ha-space-2);
+        margin-bottom: var(--ha-space-4);
+      }
 
-    .chip {
-      min-height: 44px;
-      padding: 0 var(--ha-space-4);
-      border-radius: var(--ha-border-radius-lg);
-      border: 1px solid var(--divider-color);
-      background: none;
-      color: var(--primary-text-color);
-      font: inherit;
-      font-weight: var(--ha-font-weight-medium);
-      cursor: pointer;
-    }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        min-height: 44px;
+        padding: 0 var(--ha-space-4);
+        border-radius: var(--ha-border-radius-lg);
+        border: 1px solid var(--divider-color);
+        background: none;
+        color: var(--primary-text-color);
+        font: inherit;
+        font-weight: var(--ha-font-weight-medium);
+        cursor: pointer;
+      }
 
-    .chip.selected {
-      background: var(--primary-color);
-      border-color: var(--primary-color);
-      color: var(--text-primary-color);
-    }
+      .chip.selected {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-primary-color);
+      }
 
-    .details {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-2);
-    }
+      .details {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-2);
+      }
 
-    .detail {
-      display: flex;
-      justify-content: space-between;
-      gap: var(--ha-space-4);
-    }
+      .detail {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--ha-space-4);
+      }
 
-    .detail-label {
-      color: var(--secondary-text-color);
-    }
+      .detail-label {
+        color: var(--secondary-text-color);
+      }
 
-    .detail-value {
-      font-weight: var(--ha-font-weight-semi-bold);
-      text-align: end;
-    }
-  `;
+      .detail-value {
+        font-weight: var(--ha-font-weight-semi-bold);
+        text-align: end;
+      }
+    `,
+  ];
 }
 
 declare global {

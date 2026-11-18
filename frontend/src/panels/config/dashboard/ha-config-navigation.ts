@@ -4,6 +4,7 @@ import { styleMap } from "lit/directives/style-map";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { consume } from "../../../common/decorators/consume";
+import { fireEvent } from "../../../common/dom/fire_event";
 import { filterNavigationPages } from "../../../common/config/filter_navigation_pages";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { searchMatcher } from "../../../common/regex/filter";
@@ -25,6 +26,13 @@ import {
   SettingsDramaController,
   settingsMotionStyles,
 } from "./settings-motion";
+
+declare global {
+  interface HASSDomEvents {
+    /** What the search shows: `shown` of every page that can be found. */
+    "config-navigation-matches": { shown: number; total: number };
+  }
+}
 
 @customElement("ha-config-navigation")
 class HaConfigNavigation extends LitElement {
@@ -49,6 +57,10 @@ class HaConfigNavigation extends LitElement {
   @property() public filter = "";
 
   @state() private _visiblePages?: PageNavigation[];
+
+  // What the search shows now is told to the page after each draw, so its top
+  // bar can say "n of total".
+  private _reportedMatches = "";
 
   // Draws the cards again when the language mode changes.
   private _lang = new LanguageModeController(this);
@@ -91,6 +103,7 @@ class HaConfigNavigation extends LitElement {
         this._registerChildPanelReady(ready);
         this._childReadyRegistered = true;
       }
+      this._reportMatches();
       return;
     }
 
@@ -103,9 +116,27 @@ class HaConfigNavigation extends LitElement {
       this._registerChildPanelReady(this._resolveVisiblePages());
       this._childReadyRegistered = true;
     }
+    this._reportMatches();
   }
 
-  protected render(): TemplateResult {
+  private _reportMatches(): void {
+    if (!this._visiblePages) {
+      return;
+    }
+    const { shown, total } = this._search();
+    const matches = {
+      shown: this.filter ? shown.length : total,
+      total,
+    };
+    const key = `${matches.shown}/${matches.total}`;
+    if (key !== this._reportedMatches) {
+      this._reportedMatches = key;
+      fireEvent(this, "config-navigation-matches", matches);
+    }
+  }
+
+  // The pages the search shows, and how many pages it can find in all.
+  private _search() {
     const pages = (this._visiblePages ?? []).map((page) => ({
       ...page,
       name: this._pageName(page),
@@ -119,34 +150,42 @@ class HaConfigNavigation extends LitElement {
                 }
               `,
     }));
-    const label = this.label ?? this._t("panel.config");
     const matches = searchMatcher(this.filter);
     const shown = pages.filter((page) => matches(page.name, page.description));
-    if (this.filter) {
-      // A search also looks inside the cards: pages that are one step further
-      // in, such as those under System, are offered directly.
-      const known = new Set(pages.map((page) => page.path));
-      const inner = this._filterNavigationPages(
-        this.hass,
-        this._innerPages(),
-        this._hasBluetoothConfigEntries
-      );
-      for (const page of inner) {
-        if (known.has(page.path) || !page.translationKey) {
-          continue;
-        }
-        const name =
-          page.name ||
-          this._t(`ui.panel.config.dashboard.${page.translationKey}.main`);
-        const description =
-          page.description ||
-          this._t(`ui.panel.config.dashboard.${page.translationKey}.secondary`);
-        if (name && matches(name, description)) {
-          known.add(page.path);
-          shown.push({ ...page, name, description });
-        }
+    let total = pages.length;
+    // A search also looks inside the cards: pages that are one step further
+    // in, such as those under System, are offered directly.
+    const known = new Set(pages.map((page) => page.path));
+    const inner = this._filterNavigationPages(
+      this.hass,
+      this._innerPages(),
+      this._hasBluetoothConfigEntries
+    );
+    for (const page of inner) {
+      if (known.has(page.path) || !page.translationKey) {
+        continue;
+      }
+      const name =
+        page.name ||
+        this._t(`ui.panel.config.dashboard.${page.translationKey}.main`);
+      const description =
+        page.description ||
+        this._t(`ui.panel.config.dashboard.${page.translationKey}.secondary`);
+      if (!name) {
+        continue;
+      }
+      known.add(page.path);
+      total++;
+      if (this.filter && matches(name, description)) {
+        shown.push({ ...page, name, description });
       }
     }
+    return { shown, total };
+  }
+
+  protected render(): TemplateResult {
+    const label = this.label ?? this._t("panel.config");
+    const { shown } = this._search();
     if (this.grid && !(this.filter && !shown.length)) {
       return this._renderFront(shown, label);
     }

@@ -223,6 +223,10 @@ class HaBackupSelfCheck extends LitElement {
     return [
       haStyle,
       css`
+        /* Buttons keep a 44 px touch target. */
+        ha-button {
+          --ha-button-height: 44px;
+        }
         .card {
           box-sizing: border-box;
           padding: var(--ha-space-5) var(--ha-space-6);
