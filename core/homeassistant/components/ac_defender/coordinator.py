@@ -82,7 +82,7 @@ from .cost import CostTracker, PriceTable
 from .guards import guards_for
 from .model import Command, Ctx, Decision, Standdown, Touch
 from .pipeline import build_runtime, clamp_floor, decide
-from .reasons import Reason, reason_parts
+from .reasons import Reason, reason_parts, restore_reason
 from .siblings import check_band, sibling_of
 
 SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
@@ -240,7 +240,10 @@ class DefenderCoordinator:
             until = dt_util.parse_datetime(saved["until"]) if saved["until"] else None
             if saved["stop_everything"] or (until and until > dt_util.utcnow()):
                 self.pause = Standdown(
-                    saved["kind"], until, saved["reason"], saved["stop_everything"]
+                    saved["kind"],
+                    until,
+                    restore_reason(saved["reason"]),
+                    saved["stop_everything"],
                 )
         for guard, item in data.get("last_acted", {}).items():
             if (when := dt_util.parse_datetime(item["time"])) is not None:

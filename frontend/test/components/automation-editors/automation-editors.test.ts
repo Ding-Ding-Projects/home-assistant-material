@@ -698,7 +698,7 @@ describe("controls of sample triggers and conditions", () => {
   it("draws the timer remaining time as a duration", () => {
     expect(
       byKey(controls("trigger", "timer.remaining_time_reached"), "remaining")
-    ).toMatchObject({ kind: "duration" });
+    ).toMatchObject({ kind: "selector", selector: { duration: {} } });
   });
 
   it("draws Z-Wave command classes as a searchable list and endpoints as numbers", () => {

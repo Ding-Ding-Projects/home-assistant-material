@@ -4,6 +4,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { relativeTime } from "../../../common/datetime/relative_time";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 import { navigate } from "../../../common/navigate";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
@@ -123,7 +124,7 @@ export class HaConfigCameraRecording extends LitElement {
   }
 
   private _l(key: string, values?: Record<string, string | number>) {
-    return this.hass.localize(
+    return withLanguageMode(this.hass.localize)(
       `ui.panel.config.camera_recording.${key}` as "ui.panel.config.camera_recording.caption",
       values
     );

@@ -127,6 +127,20 @@ class Reason(str):  # noqa: SLOT000
         return str(self)
 
 
+_PLAIN_CODES = {text: code for code, text in TEMPLATES.items() if "{" not in text}
+
+
+def restore_reason(text: str) -> str:
+    """Return a saved wording as a Reason again when it has no values to fill.
+
+    A reason saved before a restart comes back as plain text; giving it its
+    code back lets the page word it in the chosen language straight away.
+    """
+    if not isinstance(text, Reason) and (code := _PLAIN_CODES.get(text)) is not None:
+        return Reason(code)
+    return text
+
+
 def reason_parts(value: str | None) -> dict[str, Any] | None:
     """Return the code and values of a reason, or None for a plain text."""
     return value.to_dict() if isinstance(value, Reason) else None

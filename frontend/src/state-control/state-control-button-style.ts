@@ -18,5 +18,13 @@ export const stateControlButtonStyle = css`
     --disabled-color: var(--secondary-text-color);
     --disabled-text-color: var(--secondary-text-color);
     opacity: 0.7;
+    /* A pale fill alone is under 3:1 against the sheet in the light theme;
+       the outline gives the button a clear edge. */
+    outline: 1px solid var(--secondary-text-color);
+    outline-offset: -1px;
+    border-radius: var(
+      --control-button-border-radius,
+      var(--ha-border-radius-md)
+    );
   }
 `;

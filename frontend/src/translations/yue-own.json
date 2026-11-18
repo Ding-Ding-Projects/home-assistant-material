@@ -15,6 +15,10 @@
       }
     },
     "card": {
+      "automation": {
+        "last_triggered": "上次觸發",
+        "trigger": "執行動作"
+      },
       "climate": {
         "maximum_reached": "已達最高溫度",
         "minimum_reached": "已達最低溫度"
@@ -3717,6 +3721,7 @@
         "calendar": {
           "all_day": "全日",
           "coming_up": "即將發生",
+          "no_events": "未來 7 日冇活動",
           "new_event": "新增事件",
           "open": "打開日曆"
         },

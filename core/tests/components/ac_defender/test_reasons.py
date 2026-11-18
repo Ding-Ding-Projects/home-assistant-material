@@ -8,7 +8,11 @@ import pytest
 
 from homeassistant.components.ac_defender import descriptions, guards
 from homeassistant.components.ac_defender.pipeline import decide
-from homeassistant.components.ac_defender.reasons import TEMPLATES, Reason
+from homeassistant.components.ac_defender.reasons import (
+    TEMPLATES,
+    Reason,
+    restore_reason,
+)
 
 from .common import make, only, run, touch
 
@@ -184,3 +188,12 @@ def test_the_context_default_courtesy_wait_is_ten_minutes() -> None:
     """The courtesy wait before turning manual heating off defaults to ten minutes."""
     ctx, _ = make("heat")
     assert ctx.courtesy_wait_seconds == 600.0
+
+
+def test_a_saved_pause_reason_gets_its_code_back() -> None:
+    """A reason loaded as plain text after a restart can be worded again."""
+    restored = restore_reason("paused by the owner")
+    assert isinstance(restored, Reason)
+    assert restored.to_dict() == {"code": "paused_by_owner", "params": {}}
+    assert restore_reason("something else") == "something else"
+    assert not isinstance(restore_reason("the room reached 1.0 degrees"), Reason)

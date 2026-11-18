@@ -1458,7 +1458,9 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     this._infoResizeObserver?.disconnect();
     this._observedInfo = info;
     this._infoResizeObserver = new ResizeObserver(() => {
-      if (this._observedInfo) {
+      // Leaving the Details tab removes the element and reports a height of
+      // 0; keep the last measured height so other tabs do not shrink.
+      if (this._observedInfo?.isConnected && this._observedInfo.offsetHeight) {
         this.style.setProperty(
           "--more-info-stable-content-height",
           `${this._observedInfo.offsetHeight}px`

@@ -117,6 +117,8 @@ export const YUE_PREFIXES = [
   "ui.dialogs.more_info_control.calendar.all_day",
   "ui.dialogs.more_info_control.calendar.coming_up",
   "ui.dialogs.more_info_control.calendar.new_event",
+  "ui.dialogs.more_info_control.calendar.no_events",
+  "ui.card.automation.",
   "ui.dialogs.more_info_control.calendar.open",
   "ui.dialogs.more_info_control.camera.live",
   "ui.dialogs.more_info_control.configurator.needs_you",

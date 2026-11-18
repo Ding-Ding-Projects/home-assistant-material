@@ -42,6 +42,19 @@ export interface NumericThresholdValue {
   value_max?: ThresholdValueEntry;
 }
 
+// The server can list a null (no unit) first; use the first real unit so the
+// saved value always carries one when the list is not empty.
+export const getDefaultThresholdUnit = (
+  options?: readonly (string | null | undefined)[]
+): string | undefined => {
+  if (!options || options.length === 0) {
+    return undefined;
+  }
+  return (
+    options.find((unit) => typeof unit === "string" && unit !== "") ?? undefined
+  );
+};
+
 const DEFAULT_TYPE: Record<ThresholdMode, ThresholdType> = {
   crossed: "above",
   changed: "any",
@@ -91,6 +104,10 @@ export class HaNumericThresholdSelector extends LitElement {
 
   private _getUnitOptions() {
     return this.selector.numeric_threshold?.unit_of_measurement;
+  }
+
+  private _getDefaultUnit(): string | undefined {
+    return getDefaultThresholdUnit(this._getUnitOptions());
   }
 
   private _getEntityFilter() {
@@ -291,7 +308,8 @@ export class HaNumericThresholdSelector extends LitElement {
     const isEntity = activeChoice === "entity";
     const showUnit = !isEntity && !!unitOptions && unitOptions.length > 1;
     const innerValue = isEntity ? entry?.entity : entry?.number;
-    const effectiveUnit = entry?.unit_of_measurement || unitOptions?.[0];
+    const effectiveUnit =
+      entry?.unit_of_measurement || getDefaultThresholdUnit(unitOptions);
     const numberSelector = {
       number: {
         ...this.selector.numeric_threshold?.number,
@@ -373,12 +391,16 @@ export class HaNumericThresholdSelector extends LitElement {
   ) {
     ev.stopPropagation();
     const choice = ev.detail?.value as string;
-    const defaultUnit = this._getUnitOptions()?.[0];
+    const defaultUnit = this._getDefaultUnit();
     const entry: ThresholdValueEntry = {
       ...this.value?.[field],
       active_choice: choice,
     };
-    if (choice !== "entity" && !entry.unit_of_measurement && defaultUnit) {
+    if (
+      choice !== "entity" &&
+      entry.unit_of_measurement === undefined &&
+      defaultUnit !== undefined
+    ) {
       entry.unit_of_measurement = defaultUnit;
     }
     const defaultType = field === "value" ? "above" : "between";
@@ -410,7 +432,7 @@ export class HaNumericThresholdSelector extends LitElement {
   ) {
     ev.stopPropagation();
     const activeChoice = this.value?.[field]?.active_choice ?? "number";
-    const defaultUnit = this._getUnitOptions()?.[0];
+    const defaultUnit = this._getDefaultUnit();
     const entry: ThresholdValueEntry = {
       ...this.value?.[field],
       active_choice: activeChoice,
@@ -418,8 +440,8 @@ export class HaNumericThresholdSelector extends LitElement {
     };
     if (
       activeChoice !== "entity" &&
-      !entry.unit_of_measurement &&
-      defaultUnit
+      entry.unit_of_measurement === undefined &&
+      defaultUnit !== undefined
     ) {
       entry.unit_of_measurement = defaultUnit;
     }

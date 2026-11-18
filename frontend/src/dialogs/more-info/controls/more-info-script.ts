@@ -142,11 +142,13 @@ class MoreInfoScript extends LitElement {
           class="cancel-button"
         >
           <ha-svg-icon .path=${mdiStop}></ha-svg-icon>
-          ${
-            (isQueued || isParallel) && current > 1
-              ? this.hass.localize("ui.card.script.cancel_all")
-              : this.hass.localize("ui.card.script.cancel")
-          }
+          <span class="label"
+            >${
+              (isQueued || isParallel) && current > 1
+                ? this.hass.localize("ui.card.script.cancel_all")
+                : this.hass.localize("ui.card.script.cancel")
+            }</span
+          >
         </ha-control-button>
         <ha-control-button
           class="run-button"
@@ -154,7 +156,9 @@ class MoreInfoScript extends LitElement {
           .disabled=${stateObj.state === UNAVAILABLE || !this._canRun()}
         >
           <ha-svg-icon .path=${mdiPlay}></ha-svg-icon>
-          ${this.hass!.localize("ui.card.script.run")}
+          <span class="label"
+            >${this.hass!.localize("ui.card.script.run")}</span
+          >
         </ha-control-button>
       </ha-control-button-group>
     `;
@@ -255,8 +259,13 @@ class MoreInfoScript extends LitElement {
       .fields .title {
         font-weight: var(--ha-font-weight-bold);
       }
+      /* The button paints its fill with a positioned layer, so the icon and
+         label are positioned too, or an opaque fill would cover them. */
+      ha-control-button ha-svg-icon,
+      ha-control-button .label {
+        position: relative;
+      }
       ha-control-button ha-svg-icon {
-        z-index: -1;
         margin-right: var(--ha-space-1);
       }
       ha-service-control {
