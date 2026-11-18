@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TTC transit: setup, departures, delays, lifts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 1100px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">A transit integration for Toronto, drawn as the app at phone width. Left: setting it up. Middle: its own page. Right: the tile and the entities automations can use.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Setup" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="padding: 14px 16px 6px"><div style="font-size: 12px; color: #C4C6D0">Add integration · step 1 of 3</div><div style="font-size: 20px; font-weight: 700">TTC transit</div></div>
+<div style="padding: 0 16px 6px; font-size: 13px; color: #C4C6D0">Choose what to watch. You can change this later.</div>
+<div style="padding: 0 12px; display: flex; flex-direction: column">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 4px"><div style="flex: 1"><div style="font-weight: 600">Service alerts</div><div style="font-size: 12px; color: #C4C6D0">Delays, detours, closures</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; position: relative; flex: none"><span style="position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 4px"><div style="flex: 1"><div style="font-weight: 600">Elevators and escalators</div><div style="font-size: 12px; color: #C4C6D0">Out of service at stations you choose</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; position: relative; flex: none"><span style="position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 4px"><div style="flex: 1"><div style="font-weight: 600">Next departures</div><div style="font-size: 12px; color: #C4C6D0">At stops you choose</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; position: relative; flex: none"><span style="position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+</div>
+<div style="padding: 10px 16px 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0">STEP 2 · ROUTES AND STATIONS</div>
+<div style="margin: 0 12px; height: 44px; border-radius: 22px; background: #14161B; display: flex; align-items: center; gap: 8px; padding: 0 14px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span style="color: #C4C6D0">Search routes and stations</span></div>
+<div style="padding: 8px 12px 4px; display: flex; flex-wrap: wrap; gap: 6px">
+<span style="height: 36px; padding: 0 12px; border-radius: 18px; background: #152E66; color: #B4C5FF; display: flex; align-items: center; gap: 8px; font-weight: 600"><span style="min-width: 22px; height: 22px; border-radius: 6px; background: #FFCC29; color: #14161B; display: grid; place-items: center; font-size: 12px; font-weight: 700">1</span>Yonge-University</span>
+<span style="height: 36px; padding: 0 12px; border-radius: 18px; background: #152E66; color: #B4C5FF; display: flex; align-items: center; gap: 8px; font-weight: 600"><span style="min-width: 22px; height: 22px; border-radius: 6px; background: #D5281E; color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700; padding: 0 3px">504</span>King</span>
+<span style="height: 36px; padding: 0 12px; border-radius: 18px; background: #152E66; color: #B4C5FF; display: flex; align-items: center; gap: 8px; font-weight: 600"><span style="min-width: 22px; height: 22px; border-radius: 6px; background: #D5281E; color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700; padding: 0 3px">29</span>Dufferin</span>
+<span style="height: 36px; padding: 0 12px; border-radius: 18px; box-shadow: inset 0 0 0 1px #44474F; display: flex; align-items: center">St George station</span>
+</div>
+<div style="padding: 10px 16px 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0">STEP 3 · STOPS FOR NEXT DEPARTURES</div>
+<div style="padding: 0 12px 4px">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 4px"><div style="flex: 1"><div style="font-weight: 600">King St West at Dufferin St</div><div style="font-size: 12px; color: #C4C6D0">504 eastbound · stop 8126</div></div><span style="color: #B4C5FF; font-weight: 700; font-size: 13px">Remove</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 4px; color: #B4C5FF; font-weight: 700"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B4C5FF" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add a stop</div>
+</div>
+<div style="padding: 4px 16px 6px; font-size: 12px; color: #C4C6D0">Reads the TTC's public information. Only the stop and route numbers you choose are asked for. Checked every 60 seconds.</div>
+<div style="padding: 8px 12px 14px; display: flex; gap: 8px"><span style="flex: 1; height: 44px; border-radius: 22px; box-shadow: inset 0 0 0 1px #44474F; display: grid; place-items: center; font-weight: 700; color: #B4C5FF">Back</span><span style="flex: 1; height: 44px; border-radius: 22px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Finish</span></div>
+</section>
+
+<section aria-label="The transit page" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px"><span style="width: 44px; height: 44px; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></span><span style="flex: 1; font-size: 20px; font-weight: 700">TTC</span><span style="font-size: 12px; color: #C4C6D0; padding-right: 8px">Updated <span style="font-family: 'Roboto Mono', monospace">08:42:10</span></span><span style="width: 44px; height: 44px; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></span></div>
+<div style="height: 44px; display: flex; gap: 8px; padding: 0 12px; align-items: center"><span style="height: 36px; padding: 0 14px; border-radius: 12px; background: #262933; display: flex; align-items: center; font-weight: 700">Now</span><span style="height: 36px; padding: 0 14px; border-radius: 12px; box-shadow: inset 0 0 0 1px #2A2D36; display: flex; align-items: center">Alerts <span style="margin-left: 6px; min-width: 20px; height: 20px; border-radius: 10px; background: #7A1F1A; color: #FFDAD6; display: grid; place-items: center; font-size: 11px; font-weight: 700">4</span></span><span style="height: 36px; padding: 0 14px; border-radius: 12px; box-shadow: inset 0 0 0 1px #2A2D36; display: flex; align-items: center">Lifts <span style="margin-left: 6px; min-width: 20px; height: 20px; border-radius: 10px; background: #3A2E12; color: #FFDF9E; display: grid; place-items: center; font-size: 11px; font-weight: 700">2</span></span><span style="height: 36px; padding: 0 14px; border-radius: 12px; box-shadow: inset 0 0 0 1px #2A2D36; display: flex; align-items: center">Stops</span></div>
+<div style="padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">YOUR ROUTES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="min-width: 36px; height: 28px; border-radius: 8px; background: #FFCC29; color: #14161B; display: grid; place-items: center; font-weight: 700">1</span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Yonge-University</div><div style="font-size: 12px; color: #FFB4AB; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Delay · no service St Clair to Bloor-Yonge</div></div><span style="font-size: 12px; color: #C4C6D0; font-family: 'Roboto Mono', monospace">08:31</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="min-width: 36px; height: 28px; border-radius: 8px; background: #D5281E; color: #fff; display: grid; place-items: center; font-weight: 700">504</span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">King</div><div style="font-size: 12px; color: #FFDF9E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Detour · via Queen St, collision at Bathurst</div></div><span style="font-size: 12px; color: #C4C6D0; font-family: 'Roboto Mono', monospace">08:12</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span style="min-width: 36px; height: 28px; border-radius: 8px; background: #D5281E; color: #fff; display: grid; place-items: center; font-weight: 700">29</span><div style="flex: 1"><div style="font-weight: 600">Dufferin</div><div style="font-size: 12px; color: #7FD6C8">Regular service</div></div></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">NEXT DEPARTURES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">King St West at Dufferin St</span><span style="font-size: 12px; color: #C4C6D0">504 east</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div style="border-radius: 12px; background: #152E66; padding: 6px 10px"><div style="font-size: 28px; line-height: 32px; font-weight: 700; color: #B4C5FF">3<span style="font-size: 13px; font-weight: 600"> min</span></div><div style="font-size: 11px; color: #C4C6D0; font-family: 'Roboto Mono', monospace">08:45</div></div>
+<div style="border-radius: 12px; background: #14161B; padding: 6px 10px"><div style="font-size: 20px; line-height: 32px; font-weight: 700">11<span style="font-size: 13px; font-weight: 600"> min</span></div><div style="font-size: 11px; color: #C4C6D0; font-family: 'Roboto Mono', monospace">08:53</div></div>
+<div style="border-radius: 12px; background: #14161B; padding: 6px 10px"><div style="font-size: 20px; line-height: 32px; font-weight: 700">19<span style="font-size: 13px; font-weight: 600"> min</span></div><div style="font-size: 11px; color: #C4C6D0; font-family: 'Roboto Mono', monospace">09:01</div></div>
+</div>
+<div style="font-size: 12px; color: #C4C6D0">Predicted from vehicle positions. A detour is in effect on this route.</div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">ELEVATORS AND ESCALATORS</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #3A2E12; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFDF9E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 10l3-3 3 3M9 14l3 3 3-3"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">St George · elevator</div><div style="font-size: 12px; color: #C4C6D0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Concourse to Line 2 westbound · out since 06:10</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #3A2E12; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFDF9E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h4l8-10h4"/><path d="M4 15v4"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">St George · escalator</div><div style="font-size: 12px; color: #C4C6D0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Bedford entrance · back by 16:00 (estimate)</div></div></div>
+</div>
+</div>
+</section>
+
+<section aria-label="Tile, entities, states, rules" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">ON THE DASHBOARD</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="height: 56px; border-radius: 16px; background: #1D1F26; display: flex; align-items: center; gap: 10px; padding: 0 12px; min-width: 0"><span style="min-width: 32px; height: 26px; border-radius: 8px; background: #D5281E; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 12px">504</span><div style="min-width: 0"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">King at Dufferin</div><div style="font-size: 12px; color: #B4C5FF">3 min · 11 min</div></div></div>
+<div style="height: 56px; border-radius: 16px; background: #1D1F26; display: flex; align-items: center; gap: 10px; padding: 0 12px; min-width: 0"><span style="min-width: 32px; height: 26px; border-radius: 8px; background: #FFCC29; color: #14161B; display: grid; place-items: center; font-weight: 700; font-size: 12px">1</span><div style="min-width: 0"><div style="font-weight: 600">Line 1</div><div style="font-size: 12px; color: #FFB4AB">Delay</div></div></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">WHAT AUTOMATIONS GET</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px; font-size: 13px">
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Per route: status</span><span style="color: #C4C6D0">regular · delay · detour · no service</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Per route: problem</span><span style="color: #C4C6D0">on / off</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Per stop: next departure</span><span style="color: #C4C6D0">a time, and minutes</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Per station: lifts out</span><span style="color: #C4C6D0">a count, with the list</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Whole network: alerts</span><span style="color: #C4C6D0">a count, and an event per new alert</span></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">WHEN THE INFORMATION IS OLD OR MISSING</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFDF9E; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">The TTC has not answered since 08:39</div><div style="font-size: 13px; color: #C4C6D0">Times below are from then and may be wrong. Trying again in 0:45.</div></div></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; opacity: .5"><div style="border-radius: 12px; background: #14161B; padding: 6px 10px; font-weight: 700">3 min</div><div style="border-radius: 12px; background: #14161B; padding: 6px 10px; font-weight: 700">11 min</div><div style="border-radius: 12px; background: #14161B; padding: 6px 10px; font-weight: 700">19 min</div></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">RULES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>Public information only, read not written. Nothing about the home is sent: only the stop and route numbers chosen.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>Every figure shows when it was read. Old figures are dimmed and say so; they are never shown as live.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>A prediction is called a prediction, and an estimate an estimate. Times are 24-hour.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>The agency's own words for an alert are shown as written; the short status beside them is ours.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">5</span><span>It asks politely: once a minute at most, less when nothing is being watched, and it backs off when refused.</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

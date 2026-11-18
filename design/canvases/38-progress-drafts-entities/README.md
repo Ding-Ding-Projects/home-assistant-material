@@ -13,6 +13,7 @@ Six boards, each drawn as real screens of the app in its dark theme at phone wid
 | `Events.dc.html` | Camera events and clips | The event list under a camera: a row offers Play only when a clip is really saved, shows progress while one is being saved, and says in one line why a clip is missing. A camera that streams only through its service is recorded around each event by the home itself, and the page says that All day is not offered for it |
 | `Both.dc.html` | Both languages | The "both languages" mode at phone width: inside a button, tab or chip the two languages stack (English, then Cantonese smaller beneath) on one row; in running text a state or label is "English · Cantonese" on one line with an ellipsis; tiles, badges and list rows keep the same height in all three modes |
 | `Check.dc.html` | Recording check, update order | A camera's "Recording check" on the camera recording page (each fact in one row with its time, a problem in one plain line, a 10 second test clip), and the Updates page when the Supervisor must go first, after a build is installed, and on a page opened in the middle of an update |
+| `Cloud.dc.html` | Cloud drives, linked media | Where camera recordings go, with a cloud drive (through its own integration, which keeps the sign-in) as a place beside this system: what is sent, the folder, how long it is kept there, what is waiting. And media that lives at a web address: added by the owner, fetched only when something needs it, used like any media file, and thrown away after |
 
 ## Rules the boards carry
 

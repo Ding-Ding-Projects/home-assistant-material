@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TTC dashboard cards and automation triggers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 1180px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">A ready-made transit dashboard, drawn as the app at phone width, and what automations can start from. Each block is its own card, so they can be placed on any dashboard.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Transit dashboard, top" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 8px; padding: 0 16px"><span style="flex: 1; font-size: 20px; font-weight: 700">Transit</span><span style="font-size: 12px; color: #C4C6D0">Live · <span style="font-family: 'Roboto Mono', monospace">08:42:10</span></span></div>
+<div style="padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px">
+
+<div style="border-radius: 16px; background: #3B1512; padding: 10px 12px; display: flex; gap: 10px; align-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFB4AB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h0"/></svg><div style="flex: 1; min-width: 0"><div style="font-weight: 700; color: #FFDAD6">Line 1: no service St Clair to Bloor-Yonge</div><div style="font-size: 12px; color: #FFB4AB">Shuttle buses running · since 08:31</div></div></div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">SUBWAY</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 10px 12px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+<div style="border-radius: 12px; background: #14161B; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="min-width: 28px; height: 28px; border-radius: 50%; background: #FFCC29; color: #14161B; display: grid; place-items: center; font-weight: 700">1</span><span style="font-size: 12px; font-weight: 700; color: #FFB4AB">Delay</span></div>
+<div style="border-radius: 12px; background: #14161B; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="min-width: 28px; height: 28px; border-radius: 50%; background: #00A54F; color: #fff; display: grid; place-items: center; font-weight: 700">2</span><span style="font-size: 12px; font-weight: 700; color: #7FD6C8">Good</span></div>
+<div style="border-radius: 12px; background: #14161B; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="min-width: 28px; height: 28px; border-radius: 50%; background: #A21A68; color: #fff; display: grid; place-items: center; font-weight: 700">4</span><span style="font-size: 12px; font-weight: 700; color: #7FD6C8">Good</span></div>
+<div style="border-radius: 12px; background: #14161B; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="min-width: 28px; height: 28px; border-radius: 50%; background: #F37021; color: #fff; display: grid; place-items: center; font-weight: 700">5</span><span style="font-size: 12px; font-weight: 700; color: #FFDF9E">Slow</span></div>
+</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">DEPARTURES · KING AT DUFFERIN</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span style="min-width: 40px; height: 28px; border-radius: 8px; background: #D5281E; color: #fff; display: grid; place-items: center; font-weight: 700">504</span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">to Distillery</div><div style="font-size: 12px; color: #FFDF9E">Detour via Queen St</div></div><div style="text-align: right"><div style="font-size: 20px; font-weight: 700; color: #B4C5FF">3<span style="font-size: 12px"> min</span></div><div style="font-size: 11px; color: #C4C6D0">then 11, 19</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span style="min-width: 40px; height: 28px; border-radius: 8px; background: #D5281E; color: #fff; display: grid; place-items: center; font-weight: 700">29</span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">to Wilson station</div><div style="font-size: 12px; color: #7FD6C8">Regular service</div></div><div style="text-align: right"><div style="font-size: 20px; font-weight: 700; color: #B4C5FF">6<span style="font-size: 12px"> min</span></div><div style="font-size: 11px; color: #C4C6D0">then 14, 22</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span style="min-width: 40px; height: 28px; border-radius: 8px; background: #262933; color: #C4C6D0; display: grid; place-items: center; font-weight: 700">929</span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Dufferin Express</div><div style="font-size: 12px; color: #C4C6D0">No more departures today</div></div></div>
+</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">LEAVE BY</div>
+<div style="border-radius: 16px; background: #152E66; padding: 12px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-size: 12px; color: #B4C5FF">To catch the 504 at 08:53, a 6 minute walk</div><div style="font-size: 28px; line-height: 32px; font-weight: 700; color: #E3E2E9">Leave by 08:47</div></div><div style="text-align: right"><div style="font-size: 20px; font-weight: 700; color: #B4C5FF">5 min</div><div style="font-size: 11px; color: #B4C5FF">from now</div></div></div>
+</div>
+</section>
+
+<section aria-label="Transit dashboard, more cards" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">ALERTS ON YOUR ROUTES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="min-width: 36px; height: 28px; border-radius: 8px; background: #FFCC29; color: #14161B; display: grid; place-items: center; font-weight: 700">1</span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">No service St Clair to Bloor-Yonge</div><div style="font-size: 12px; color: #C4C6D0">Security incident · <span style="font-family: 'Roboto Mono', monospace">08:31</span></div></div><span style="height: 24px; padding: 0 8px; border-radius: 12px; background: #7A1F1A; color: #FFDAD6; display: flex; align-items: center; font-size: 11px; font-weight: 700">Major</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="min-width: 36px; height: 28px; border-radius: 8px; background: #D5281E; color: #fff; display: grid; place-items: center; font-weight: 700">504</span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Detour via Queen St</div><div style="font-size: 12px; color: #C4C6D0">Collision at Bathurst · <span style="font-family: 'Roboto Mono', monospace">08:12</span></div></div><span style="height: 24px; padding: 0 8px; border-radius: 12px; background: #3A2E12; color: #FFDF9E; display: flex; align-items: center; font-size: 11px; font-weight: 700">Detour</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between; color: #B4C5FF; font-weight: 700"><span>All 23 alerts across the network</span><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B4C5FF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">STEP-FREE · YOUR STATIONS</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="flex: 1; font-weight: 600">St George</span><span style="font-size: 12px; color: #FFDF9E">1 elevator, 1 escalator out</span></div>
+<div style="display: flex; gap: 4px"><span style="flex: 1; height: 8px; border-radius: 4px; background: #7FD6C8"></span><span style="flex: 1; height: 8px; border-radius: 4px; background: #7FD6C8"></span><span style="flex: 1; height: 8px; border-radius: 4px; background: #FFDF9E"></span><span style="flex: 1; height: 8px; border-radius: 4px; background: #7FD6C8"></span></div>
+<div style="font-size: 12px; color: #C4C6D0">Elevators: 3 of 4 working. Not step-free to Line 2 westbound.</div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="display: flex; align-items: center; gap: 10px"><span style="flex: 1; font-weight: 600">Dufferin</span><span style="font-size: 12px; color: #7FD6C8">All working</span></div>
+</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">VEHICLES NEAR YOUR STOP</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="height: 110px; border-radius: 12px; background: #14161B; position: relative; overflow: hidden"><span style="position: absolute; left: 0; right: 0; top: 54px; height: 3px; background: #2A2D36"></span><span style="position: absolute; left: 46%; top: 0; bottom: 0; width: 3px; background: #2A2D36"></span><span style="position: absolute; left: 44%; top: 46px; width: 18px; height: 18px; border-radius: 50%; background: #B4C5FF; box-shadow: 0 0 0 4px rgba(180,197,255,.25)"></span><span style="position: absolute; left: 18%; top: 44px; height: 22px; padding: 0 6px; border-radius: 6px; background: #D5281E; color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700">504</span><span style="position: absolute; left: 72%; top: 44px; height: 22px; padding: 0 6px; border-radius: 6px; background: #D5281E; color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700">504</span><span style="position: absolute; left: 41%; top: 12px; height: 22px; padding: 0 6px; border-radius: 6px; background: #D5281E; color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700">29</span></div>
+<div style="font-size: 12px; color: #C4C6D0">Positions as reported 20 seconds ago. Tap for the full map.</div>
+</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">LINE 1 · LAST 24 HOURS</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; gap: 2px; height: 20px"><span style="flex: 6; background: #2E6B63; border-radius: 4px 0 0 4px"></span><span style="flex: 1; background: #7A1F1A"></span><span style="flex: 9; background: #2E6B63"></span><span style="flex: 2; background: #7A5A14"></span><span style="flex: 5; background: #2E6B63"></span><span style="flex: 1; background: #7A1F1A; border-radius: 0 4px 4px 0"></span></div>
+<div style="display: flex; justify-content: space-between; font-family: 'Roboto Mono', monospace; font-size: 11px; color: #C4C6D0"><span>09:00</span><span>15:00</span><span>21:00</span><span>03:00</span><span>09:00</span></div>
+<div style="font-size: 12px; color: #C4C6D0">Regular 20 h 10 min · slow 2 h · no service 1 h 50 min</div>
+</div>
+</section>
+
+<section aria-label="Automation triggers and entities" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">ADD TRIGGER · TTC</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-weight: 600">A route gets a delay</div><div style="font-size: 12px; color: #C4C6D0">Any chosen route, or one</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-weight: 600">A route is back to regular service</div><div style="font-size: 12px; color: #C4C6D0">After a delay, detour or closure</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-weight: 600">The next departure is within</div><div style="font-size: 12px; color: #C4C6D0">A stop, a route, and a number of minutes</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-weight: 600">An elevator or escalator goes out</div><div style="font-size: 12px; color: #C4C6D0">At a station, or comes back</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-weight: 600">A new alert is posted</div><div style="font-size: 12px; color: #C4C6D0">Whole network, with a filter by kind</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-weight: 600">Time to leave</div><div style="font-size: 12px; color: #C4C6D0">For a departure, with a walking time</div></div></div>
+</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">ONE TRIGGER, FILLED IN</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-weight: 600">The next departure is within</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="font-size: 12px; color: #C4C6D0; width: 56px">Stop</span><span style="flex: 1; height: 44px; border-radius: 12px; background: #14161B; display: flex; align-items: center; padding: 0 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">King St West at Dufferin St</span></div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="font-size: 12px; color: #C4C6D0; width: 56px">Route</span><span style="height: 36px; padding: 0 12px; border-radius: 18px; background: #152E66; color: #B4C5FF; display: flex; align-items: center; gap: 8px; font-weight: 600"><span style="min-width: 22px; height: 22px; border-radius: 6px; background: #D5281E; color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700; padding: 0 3px">504</span>east</span></div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="font-size: 12px; color: #C4C6D0; width: 56px">Within</span><div style="flex: 1; height: 44px; border-radius: 12px; background: #14161B; position: relative; overflow: hidden"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 28%; background: #152E66"></div><span style="position: absolute; left: 12px; top: 12px; font-weight: 700">7 min</span></div></div>
+<div style="font-size: 12px; color: #C4C6D0">Fires once for each departure, when its predicted time first drops to 7 minutes or less.</div>
+</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">ENTITIES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px; font-size: 13px">
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Route status</span><span style="color: #C4C6D0">sensor, one per route</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Route has a problem</span><span style="color: #C4C6D0">on / off sensor</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Next, 2nd and 3rd departure</span><span style="color: #C4C6D0">time sensors per stop</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Minutes to next departure</span><span style="color: #C4C6D0">sensor per stop</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Elevators out, escalators out</span><span style="color: #C4C6D0">count per station</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Station is step-free</span><span style="color: #C4C6D0">on / off sensor</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Alerts</span><span style="color: #C4C6D0">count, and an event entity</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Information is fresh</span><span style="color: #C4C6D0">on / off, for the whole feed</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

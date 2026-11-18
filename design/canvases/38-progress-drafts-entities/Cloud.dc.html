@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recordings to a cloud drive, and linked media</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 1040px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Left: where camera recordings go, with a cloud drive as a place. Middle and right: media that lives at a web address, fetched only when something needs it and thrown away after.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Where recordings go" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px"><span style="width: 44px; height: 44px; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></span><span style="flex: 1; font-size: 20px; font-weight: 700">Where recordings go</span></div>
+<div style="padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #262933; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">This system</div><div style="font-size: 12px; color: #C4C6D0">41 GB used · keeps 14 days</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; position: relative; flex: none"><span style="position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #1F3A5C; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">OneDrive</div><div style="font-size: 12px; color: #7FD6C8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Up to date · last clip sent 09:36</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; position: relative; flex: none"><span style="position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #1F4A44; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Google Drive</div><div style="font-size: 12px; color: #C4C6D0">Not set up as an integration yet</div></div><span style="color: #B4C5FF; font-weight: 700; font-size: 13px; min-height: 44px; display: flex; align-items: center">Set up</span></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">ONEDRIVE</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Send</span><div style="height: 36px; border-radius: 10px; background: #14161B; padding: 3px; box-sizing: border-box; display: grid; grid-template-columns: repeat(2, auto); gap: 3px"><div style="padding: 0 10px; border-radius: 7px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-size: 13px; font-weight: 700">Event clips</div><div style="padding: 0 10px; border-radius: 7px; display: grid; place-items: center; font-size: 13px">Everything</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>Folder</span><span style="font-size: 13px; color: #C4C6D0">Camera recordings / camera / day</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>Keep there for</span><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF">30 days</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>Waiting to send</span><span style="font-size: 13px; color: #C4C6D0">2 clips · 31 MB</span></div>
+</div>
+<div style="border-radius: 12px; background: #1D1F26; padding: 10px 12px; display: flex; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFDF9E; flex: none; margin-top: 6px"></span><div style="font-size: 13px; color: #C4C6D0">Video leaves the home when a cloud drive is on. It goes only to the account already signed in through that integration, and the sign-in stays there.</div></div>
+</div>
+</section>
+
+<section aria-label="Linked media" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px"><span style="width: 44px; height: 44px; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></span><span style="flex: 1; font-size: 20px; font-weight: 700">Media</span><span style="width: 44px; height: 44px; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></span></div>
+<div style="height: 44px; display: flex; gap: 8px; padding: 0 12px; align-items: center"><span style="height: 36px; padding: 0 14px; border-radius: 12px; box-shadow: inset 0 0 0 1px #2A2D36; display: flex; align-items: center">My media</span><span style="height: 36px; padding: 0 14px; border-radius: 12px; background: #262933; display: flex; align-items: center; font-weight: 700">Linked</span><span style="height: 36px; padding: 0 14px; border-radius: 12px; box-shadow: inset 0 0 0 1px #2A2D36; display: flex; align-items: center">Recordings</span></div>
+<div style="padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 13px; color: #C4C6D0; padding: 0 4px">A linked file lives at a web address. It is fetched when something plays or shows it, then thrown away. Nothing is stored here.</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 10px; background: #3B2A5C; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D5BBFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Doorbell chime</div><div style="font-size: 12px; color: #C4C6D0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Sound · example.org · used 08:12</div></div><span style="font-size: 12px; color: #7FD6C8">Reachable</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 10px; background: #1F3A5C; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B4C5FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Weather radar picture</div><div style="font-size: 12px; color: #C4C6D0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Picture · example.net · fetched each time</div></div><span style="font-size: 12px; color: #7FD6C8">Reachable</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 10px; background: #262933; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Morning news clip</div><div style="font-size: 12px; color: #FFDF9E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Could not be fetched at 07:00 · not found</div></div><span style="color: #B4C5FF; font-weight: 700; font-size: 13px; min-height: 44px; display: flex; align-items: center">Check</span></div>
+</div>
+<span style="height: 44px; border-radius: 22px; background: #B4C5FF; color: #152E66; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#152E66" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add a linked file</span>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">ADD A LINKED FILE</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; color: #C4C6D0">Name</div>
+<div style="height: 44px; border-radius: 12px; background: #14161B; display: flex; align-items: center; padding: 0 12px">Doorbell chime</div>
+<div style="font-size: 12px; color: #C4C6D0">Web address</div>
+<div style="height: 44px; border-radius: 12px; background: #14161B; box-shadow: inset 0 0 0 2px #B4C5FF; display: flex; align-items: center; padding: 0 12px; font-family: 'Roboto Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">https://example.org/sounds/chime.mp3</div>
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7FD6C8; flex: none"></span><span style="flex: 1; font-size: 13px">Sound · 184 KB · answers in 0.3 s</span></div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 44px; border-radius: 22px; box-shadow: inset 0 0 0 1px #44474F; display: grid; place-items: center; font-weight: 700; color: #B4C5FF">Check</span><span style="flex: 1; height: 44px; border-radius: 22px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Add</span></div>
+</div>
+</div>
+</section>
+
+<section aria-label="Linked media, details and rules" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">WHILE IT IS BEING USED</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between"><span style="font-weight: 600">Doorbell chime</span><span style="font-family: 'Roboto Mono', monospace; color: #C4C6D0">184 KB</span></div>
+<div style="height: 6px; border-radius: 3px; background: #262933; overflow: hidden"><div style="height: 100%; width: 100%; background: #7FD6C8"></div></div>
+<div style="font-size: 12px; color: #C4C6D0">Fetched 08:12:04 · playing on Kitchen speaker · thrown away when it ends</div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">ONE LINKED FILE</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 8px"><span>Fetch</span><div style="height: 36px; border-radius: 10px; background: #14161B; padding: 3px; box-sizing: border-box; display: grid; grid-template-columns: repeat(2, auto); gap: 3px"><div style="padding: 0 10px; border-radius: 7px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-size: 13px; font-weight: 700">Each time</div><div style="padding: 0 10px; border-radius: 7px; display: grid; place-items: center; font-size: 13px">Keep 10 min</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>Largest size allowed</span><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF">200 MB</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>Last used</span><span style="font-size: 13px; color: #C4C6D0">08:12 · by an automation</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>Stored here</span><span style="font-size: 13px; color: #7FD6C8">Nothing</span></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">RULES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>A linked file is used like any other media file: in the media picker, in automations, on speakers and screens.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>It is fetched only when needed and removed after use. "Stored here: nothing" is always true unless Keep 10 min is chosen.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>Only the owner adds addresses. The home fetches only those addresses, with a size limit and a time limit.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>If the address does not answer, whatever asked for it gets a plain reason, and the row says when and why.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">5</span><span>An address with a password or key in it is kept hidden after it is added and never shown again.</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
