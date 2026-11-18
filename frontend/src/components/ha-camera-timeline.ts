@@ -681,6 +681,15 @@ export class HaCameraTimeline extends LitElement {
                         class=${classMap({ clip: true, [clip.state]: true })}
                         >${this._clipLine(clip)}</span
                       >
+                      ${
+                        clip.state === "saved" && clip.origin
+                          ? html`<span class="origin"
+                              >${this._modeLocalize(
+                                `ui.components.camera_timeline.clip.origin_${clip.origin}`
+                              )}</span
+                            >`
+                          : nothing
+                      }
                     </span>
                     ${
                       clip.state === "saved"
@@ -749,7 +758,16 @@ export class HaCameraTimeline extends LitElement {
                   >${t("ui.components.camera_timeline.record.keep_clips")}</ha-button
                 >
                 <span class="hint"
-                  >${t("ui.components.camera_timeline.record.keep_clips_note")}</span
+                  >${
+                    summary.live_enabled
+                      ? t(
+                          "ui.components.camera_timeline.record.keep_clips_live",
+                          { seconds: summary.clip_seconds }
+                        )
+                      : t(
+                          "ui.components.camera_timeline.record.keep_clips_note"
+                        )
+                  }</span
                 >`
             : nothing
         }
@@ -778,6 +796,15 @@ export class HaCameraTimeline extends LitElement {
       <span class="hint"
         >${t("ui.components.camera_timeline.record.all_day_not_offered")}</span
       >
+      ${
+        summary.live_enabled
+          ? html`<span class="hint"
+              >${t("ui.components.camera_timeline.record.live_on", {
+                seconds: summary.clip_seconds,
+              })}</span
+            >`
+          : nothing
+      }
     </div>`;
   }
 
@@ -1111,6 +1138,10 @@ export class HaCameraTimeline extends LitElement {
       padding-inline-start: calc(40px + var(--ha-space-3));
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);
+    }
+    .text .origin {
+      font-size: var(--ha-font-size-xs);
+      opacity: 0.85;
     }
     .text .clip.none {
       color: var(--warning-color, var(--secondary-text-color));

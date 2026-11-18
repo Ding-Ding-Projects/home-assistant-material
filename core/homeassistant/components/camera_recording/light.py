@@ -201,9 +201,7 @@ class LightPlanner:
 
     def claims(self, start: float, end: float, now: float) -> bool:
         """Whether a recorded file overlaps a stretch to keep."""
-        return any(
-            item.end > start and item.start < end for item in self.ranges(now)
-        )
+        return any(item.end > start and item.start < end for item in self.ranges(now))
 
     def forget_before(self, cutoff: float) -> None:
         """Drop things seen long ago and fully handled."""

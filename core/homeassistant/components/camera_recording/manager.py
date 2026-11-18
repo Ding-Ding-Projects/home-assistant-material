@@ -11,6 +11,8 @@ import re
 import shutil
 from typing import Any
 
+from homeassistant.components.camera import DATA_COMPONENT as CAMERA_DATA
+from homeassistant.components.ffmpeg import get_ffmpeg_manager
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
@@ -34,6 +36,8 @@ from .const import (
     CONF_MAX_GB,
     CONF_SEGMENT_MINUTES,
     DEFAULT_BUFFER_HOURS,
+    DEFAULT_CLIP_SECONDS,
+    DEFAULT_CLIPS_PER_HOUR,
     DEFAULT_KEEP_DAYS,
     DEFAULT_MAX_GB,
     DEFAULT_MODE,
@@ -48,11 +52,17 @@ from .const import (
     LIGHT_TICK_SECONDS,
     LOGGER,
     MAX_CLIP_SECONDS,
+    MAX_CLIP_SECONDS_LIVE,
+    MAX_CLIPS_PER_HOUR,
     MAX_REMEMBERED_EVENTS,
+    MIN_CLIP_SECONDS,
+    MIN_CLIPS_PER_HOUR,
     MODE_ALL_DAY,
     MODE_LIGHT,
     MODE_OFF,
     MODES,
+    ORIGIN_HOME,
+    ORIGIN_SERVICE,
     RATE_LIMIT_WAIT_SECONDS,
     RETENTION_INTERVAL_SECONDS,
     SEGMENT_GRACE_SECONDS,
@@ -87,6 +97,13 @@ from .light import (
     state_is_active,
     state_is_known,
 )
+from .live import (
+    async_go2rtc_access,
+    async_record_clip,
+    broker_for,
+    probe_duration,
+    whep_source,
+)
 from .recorder import CameraRecorder, RecorderState
 
 SEGMENT_NAME = re.compile(r"^\d{8}T\d{6}Z(?:-event)?\.(?:mp4|jpg)$")
@@ -119,6 +136,9 @@ class CameraMode:
     pre: int = DEFAULT_PRE_SECONDS
     post: int = DEFAULT_POST_SECONDS
     sources: list[str] | None = None
+    live: bool | None = None  # None: on when the bundled go2rtc is set up
+    clip_seconds: int = DEFAULT_CLIP_SECONDS
+    clips_per_hour: int = DEFAULT_CLIPS_PER_HOUR
 
     def as_dict(self) -> dict[str, Any]:
         """Form kept in storage."""
@@ -127,6 +147,9 @@ class CameraMode:
             "pre": self.pre,
             "post": self.post,
             "sources": self.sources,
+            "live": self.live,
+            "clip_seconds": self.clip_seconds,
+            "clips_per_hour": self.clips_per_hour,
         }
 
     @classmethod
@@ -139,7 +162,20 @@ class CameraMode:
             clamp_pre(data.get("pre", DEFAULT_PRE_SECONDS)),
             clamp_post(data.get("post", DEFAULT_POST_SECONDS)),
             list(sources) if isinstance(sources, list) else None,
+            data.get("live") if isinstance(data.get("live"), bool) else None,
+            clamp_clip_seconds(data.get("clip_seconds", DEFAULT_CLIP_SECONDS)),
+            clamp_clips_per_hour(data.get("clips_per_hour", DEFAULT_CLIPS_PER_HOUR)),
         )
+
+
+def clamp_clip_seconds(value: Any) -> int:
+    """A live clip length inside the allowed range."""
+    return max(MIN_CLIP_SECONDS, min(MAX_CLIP_SECONDS_LIVE, int(value)))
+
+
+def clamp_clips_per_hour(value: Any) -> int:
+    """A live clip budget inside the allowed range."""
+    return max(MIN_CLIPS_PER_HOUR, min(MAX_CLIPS_PER_HOUR, int(value)))
 
 
 def event_file_name(timestamp: float, kind: EventMediaKind) -> str:
@@ -251,6 +287,9 @@ class RecordingManager:
         self._list_problem: dict[str, ClipReason] = {}
         self._limited_until: dict[str, float] = {}
         self._limited_attempt: dict[str, int] = {}
+        self.live_starts: dict[str, list[float]] = {}
+        self.live_active: dict[str, EventRecord] = {}
+        self._live_tasks: set[asyncio.Task[None]] = set()
         self._known: set[str] = set()
         self._source_unsubs: dict[str, list[CALLBACK_TYPE]] = {}
         self.recorders: dict[str, CameraRecorder] = {}
@@ -304,6 +343,11 @@ class RecordingManager:
             if cam in self.segments:
                 self.segments[cam] = {row[0]: Segment.from_list(row) for row in rows}
         self._load_modes(stored)
+        self.live_starts = {
+            cam: [float(ts) for ts in rows]
+            for cam, rows in stored.get("live_starts", {}).items()
+            if cam in self.cameras
+        }
         for cam, rows in stored.get("ledger", {}).items():
             if cam in self.ledger:
                 self.ledger[cam] = [EventRecord.from_list(row) for row in rows]
@@ -367,6 +411,9 @@ class RecordingManager:
         self._unsubs.clear()
         for cam in list(self._source_unsubs):
             self._unwatch_sources(cam)
+        for task in list(self._live_tasks):
+            task.cancel()
+        await asyncio.gather(*self._live_tasks, return_exceptions=True)
         await asyncio.gather(*(rec.stop() for rec in self.recorders.values()))
         await self._async_scan()
         await self._store.async_save(self._data())
@@ -717,9 +764,10 @@ class RecordingManager:
         record = self._open_record(cam, at)
         if cam in self.paused:
             self._give_up(cam, record, ClipReason.RECORDING_OFF)
-        else:
-            self._save()
-            self._changed()
+            return
+        self._save()
+        self._changed()
+        self._start_live(cam, record)
 
     def _limited(self, cam: str, now: float) -> bool:
         """Whether the service asked for a wait that is not over yet."""
@@ -789,7 +837,7 @@ class RecordingManager:
             if event.timestamp < cutoff:
                 continue
             record = self._open_record(cam, event.timestamp)
-            if record.state is ClipState.SAVED:
+            if record.state is ClipState.SAVED or self.live_active.get(cam) is record:
                 continue
             if record.state is ClipState.NONE and (
                 record.reason not in RETRY_REASONS or record.attempts >= MAX_ATTEMPTS
@@ -841,6 +889,7 @@ class RecordingManager:
             )
             record.state = ClipState.SAVED
             record.reason = None
+            record.origin = ORIGIN_SERVICE
             record.name = name
             record.kind = kind.value
             record.duration = duration
@@ -862,6 +911,160 @@ class RecordingManager:
             self._save()
             self._changed()
 
+    def live_state(self, cam: str) -> tuple[bool, str | None]:
+        """Whether live clips are on for a camera, and why not when they are off."""
+        mode = self.modes.get(cam) or CameraMode()
+        if not self.provider_only(cam):
+            return False, "not_needed"
+        if async_go2rtc_access(self.hass) is None:
+            return False, "no_go2rtc"
+        if mode.live is False:
+            return False, "switched_off"
+        return True, None
+
+    def live_budget_left(self, cam: str, now: float) -> int:
+        """How many more live clips the camera may start in this hour."""
+        mode = self.modes.get(cam) or CameraMode()
+        recent = [ts for ts in self.live_starts.get(cam, []) if ts > now - 3600]
+        self.live_starts[cam] = recent
+        return max(0, mode.clips_per_hour - len(recent))
+
+    @callback
+    def _start_live(self, cam: str, record: EventRecord) -> None:
+        """Record the camera's live video for an event, if allowed right now."""
+        now = dt_util.utcnow().timestamp()
+        if (
+            not self.live_state(cam)[0]
+            or cam in self.live_active
+            or self._limited(cam, now)
+            or self.live_budget_left(cam, now) <= 0
+            or record.state is not ClipState.SAVING
+        ):
+            return
+        self.live_active[cam] = record
+        self.live_starts.setdefault(cam, []).append(now)
+        task = self.entry.async_create_background_task(
+            self.hass, self._async_live_clip(cam, record), f"{DOMAIN} live {cam}"
+        )
+        self._live_tasks.add(task)
+        task.add_done_callback(self._live_tasks.discard)
+
+    async def _async_live_clip(self, cam: str, record: EventRecord) -> None:
+        """One live clip: one provider session, one temporary go2rtc stream, one file."""
+        mode = self.modes.get(cam) or CameraMode()
+        broker = broker_for(self.hass)
+        session = broker.mint(cam)
+        access = async_go2rtc_access(self.hass)
+        source = whep_source(self.hass, session.token)
+        stream = f"camera_recording_{session.token[:12]}"
+        name = event_file_name(record.start, EventMediaKind.CLIP)
+        folder = self.folder(cam)
+        part = folder / f".{name}.part"
+        reason: ClipReason | None = None
+        try:
+            if access is None or source is None:
+                reason = ClipReason.UNSUPPORTED
+            else:
+                await self.hass.async_add_executor_job(
+                    lambda: folder.mkdir(parents=True, exist_ok=True)
+                )
+                await access.add(stream, source)
+                ok = await async_record_clip(
+                    get_ffmpeg_manager(self.hass).binary,
+                    f"{access.rtsp_base}/{stream}",
+                    part,
+                    mode.clip_seconds,
+                )
+                size = (
+                    await self.hass.async_add_executor_job(_file_size, part)
+                    if ok
+                    else 0
+                )
+                if size:
+                    duration = await self.hass.async_add_executor_job(
+                        probe_duration, part
+                    )
+                    await self.hass.async_add_executor_job(part.replace, folder / name)
+                    self._live_saved(cam, record, name, size, duration, mode)
+                else:
+                    reason = session.failure or (
+                        ClipReason.TIMED_OUT if session.answered else ClipReason.FAILED
+                    )
+        except asyncio.CancelledError:
+            raise
+        except Exception as err:  # noqa: BLE001
+            reason = classify_error(err)
+        finally:
+            if access is not None:
+                try:
+                    await access.remove(stream)
+                except Exception:  # noqa: BLE001
+                    LOGGER.debug("Could not remove the temporary stream of %s", cam)
+            component = self.hass.data.get(CAMERA_DATA)
+            camera = component.get_entity(cam) if component else None
+            if camera is not None and session.camera_session:
+                camera.close_webrtc_session(session.camera_session)
+            broker.discard(session.token)
+            await self.hass.async_add_executor_job(_remove_file, part)
+            self.live_active.pop(cam, None)
+        if reason is not None:
+            if reason is ClipReason.RATE_LIMITED:
+                self._note_limited(cam, dt_util.utcnow().timestamp())
+            self._give_up(cam, record, reason)
+
+    @callback
+    def _live_saved(
+        self,
+        cam: str,
+        record: EventRecord,
+        name: str,
+        size: int,
+        duration: float | None,
+        mode: CameraMode,
+    ) -> None:
+        seconds = duration or float(mode.clip_seconds)
+        self.segments[cam][name] = Segment(
+            name,
+            record.start,
+            seconds,
+            size,
+            local=True,
+            remote=self.destination.is_local,
+        )
+        self.event_seen.setdefault(cam, {})[name] = record.start
+        record.state = ClipState.SAVED
+        record.reason = None
+        record.origin = ORIGIN_HOME
+        record.name = name
+        record.kind = EventMediaKind.CLIP.value
+        record.duration = seconds
+        record.size = size
+        self._limited_attempt.pop(cam, None)
+        self.event_log.setdefault(cam, []).append(record.start)
+        del self.event_log[cam][:-MAX_REMEMBERED_EVENTS]
+        self._save()
+        self._changed()
+
+    async def async_set_live_options(
+        self,
+        entity_id: str,
+        *,
+        change_live: bool = False,
+        live: bool | None = None,
+        clip_seconds: int | None = None,
+        clips_per_hour: int | None = None,
+    ) -> None:
+        """Change the live clip switch, length and hourly budget of one camera."""
+        mode = self.modes[entity_id]
+        if change_live:
+            mode.live = live
+        if clip_seconds is not None:
+            mode.clip_seconds = clamp_clip_seconds(clip_seconds)
+        if clips_per_hour is not None:
+            mode.clips_per_hour = clamp_clips_per_hour(clips_per_hour)
+        self._save()
+        self._changed()
+
     def events_between(
         self, entity_id: str, start: float, end: float
     ) -> list[dict[str, Any]]:
@@ -882,6 +1085,7 @@ class RecordingManager:
             "history": self.mode_history,
             "events": self.event_log,
             "event_seen": self.event_seen,
+            "live_starts": self.live_starts,
             "ledger": {
                 cam: [record.as_list() for record in records]
                 for cam, records in self.ledger.items()
@@ -1140,6 +1344,10 @@ class RecordingManager:
             "last_clip",
             "last_problem",
             "event_clips",
+            "live_enabled",
+            "live_reason",
+            "clip_seconds",
+            "clips_per_hour",
         )
         return {key: found[key] for key in keys} | {"entry_id": self.entry.entry_id}
 
@@ -1224,6 +1432,14 @@ class RecordingManager:
                         else None
                     ),
                     "failures": dict(self.failures.get(cam, {})),
+                    "live_enabled": self.live_state(cam)[0],
+                    "live_reason": self.live_state(cam)[1],
+                    "live_choice": mode.live,
+                    "clip_seconds": mode.clip_seconds,
+                    "clips_per_hour": mode.clips_per_hour,
+                    "live_left": self.live_budget_left(
+                        cam, dt_util.utcnow().timestamp()
+                    ),
                     "entity_id": cam,
                     "state": recorder.state if recorder else RecorderState.STOPPED,
                     "error": recorder.last_error if recorder else None,
@@ -1251,6 +1467,17 @@ class RecordingManager:
             "error": self.last_error,
             "cameras": cameras,
         }
+
+
+def _file_size(path: Path) -> int:
+    try:
+        return path.stat().st_size
+    except OSError:
+        return 0
+
+
+def _remove_file(path: Path) -> None:
+    path.unlink(missing_ok=True)
 
 
 def _unlink_all(paths: list[Path]) -> None:

@@ -182,6 +182,7 @@ describe("clipForEvent", () => {
     kind: "clip",
     duration: 10,
     size: 5,
+    origin: "service",
     progress: null,
     entry_id: "e",
     ...patch,

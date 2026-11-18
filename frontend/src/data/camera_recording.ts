@@ -46,6 +46,8 @@ export interface CameraEventRecord {
   kind: "clip" | "image" | null;
   duration: number;
   size: number;
+  /** Who made the clip: the camera service, or the home recording live video */
+  origin: "service" | "home" | null;
   /** Seconds since the event, while the clip is being saved */
   progress: number | null;
   entry_id: string;
@@ -68,6 +70,11 @@ export interface CameraRecordingSummary {
   last_clip: number | null;
   last_problem: { at: number; reason: EventClipReason } | null;
   event_clips: number;
+  /** Whether the home records live video around events for this camera */
+  live_enabled: boolean;
+  live_reason: "not_needed" | "no_go2rtc" | "switched_off" | null;
+  clip_seconds: number;
+  clips_per_hour: number;
 }
 
 export interface CameraRecordingSegments {
@@ -332,6 +339,14 @@ export interface RecordingCameraStatus {
   bytes_today: number;
   /** Event clips and pictures kept */
   event_clips: number;
+  live_enabled: boolean;
+  live_reason: "not_needed" | "no_go2rtc" | "switched_off" | null;
+  /** The owner's choice: true, false, or null for automatic */
+  live_choice: boolean | null;
+  clip_seconds: number;
+  clips_per_hour: number;
+  /** Live clips this camera may still start this hour */
+  live_left: number;
   waiting: number;
   segments: number;
   bytes: number;
@@ -412,6 +427,7 @@ export interface EventClip {
   picture?: boolean;
   /** Seconds saved so far, while saving */
   progress?: number;
+  origin?: "service" | "home" | null;
   duration?: number;
   size?: number;
 }
@@ -445,6 +461,7 @@ export const clipForEvent = (
         picture: record.kind === "image",
         duration: record.duration,
         size: record.size,
+        origin: record.origin,
       };
     }
     return { state: "none", reason: "removed" };
@@ -478,3 +495,24 @@ export const keepClipsForEvents = (
   entryId: string,
   entityId: string
 ) => pauseRecording(hass, entryId, false, entityId);
+
+export const CLIP_SECONDS_RANGE = { min: 10, max: 120 } as const;
+export const CLIPS_PER_HOUR_RANGE = { min: 1, max: 30 } as const;
+
+/** Change whether live video is recorded around events, for how long and how often. */
+export const setLiveOptions = (
+  hass: Pick<HomeAssistant, "callWS">,
+  entryId: string,
+  entityId: string,
+  options: {
+    live?: boolean | null;
+    clip_seconds?: number;
+    clips_per_hour?: number;
+  }
+) =>
+  hass.callWS<RecordingDestinationStatus>({
+    type: "camera_recording/set_live",
+    entry_id: entryId,
+    entity_id: entityId,
+    ...options,
+  });

@@ -12,10 +12,14 @@ from homeassistant.exceptions import Unauthorized
 from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
 from .const import (
+    DOMAIN,
+    MAX_CLIP_SECONDS_LIVE,
+    MAX_CLIPS_PER_HOUR,
     MAX_POST_SECONDS,
     MAX_PRE_SECONDS,
+    MIN_CLIP_SECONDS,
+    MIN_CLIPS_PER_HOUR,
     MIN_POST_SECONDS,
     MIN_PRE_SECONDS,
     MODES,
@@ -40,6 +44,7 @@ def async_register_websocket(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_status)
     websocket_api.async_register_command(hass, ws_pause)
     websocket_api.async_register_command(hass, ws_set_mode)
+    websocket_api.async_register_command(hass, ws_set_live)
 
 
 @websocket_api.websocket_command(
@@ -209,4 +214,42 @@ async def ws_set_mode(
     except ModeError as err:
         connection.send_error(msg["id"], err.code, str(err))
         return
+    connection.send_result(msg["id"], manager.status())
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "camera_recording/set_live",
+        probatio.Required("entry_id"): str,
+        probatio.Required("entity_id"): cv.entity_id,
+        probatio.Optional("live"): probatio.Any(None, bool),
+        probatio.Optional("clip_seconds"): probatio.All(
+            int, probatio.Range(min=MIN_CLIP_SECONDS, max=MAX_CLIP_SECONDS_LIVE)
+        ),
+        probatio.Optional("clips_per_hour"): probatio.All(
+            int, probatio.Range(min=MIN_CLIPS_PER_HOUR, max=MAX_CLIPS_PER_HOUR)
+        ),
+    }
+)
+@websocket_api.async_response
+async def ws_set_live(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Choose whether live video is recorded around events, for how long and how often."""
+    manager = next(
+        (m for m in _managers(hass) if m.entry.entry_id == msg["entry_id"]), None
+    )
+    if manager is None or msg["entity_id"] not in manager.recorders:
+        connection.send_error(
+            msg["id"], "not_found", "That camera is not recorded here"
+        )
+        return
+    await manager.async_set_live_options(
+        msg["entity_id"],
+        change_live="live" in msg,
+        live=msg.get("live"),
+        clip_seconds=msg.get("clip_seconds"),
+        clips_per_hour=msg.get("clips_per_hour"),
+    )
     connection.send_result(msg["id"], manager.status())

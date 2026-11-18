@@ -746,6 +746,8 @@
           "saving": "Saving the clip, {time} so far",
           "none": "No clip kept",
           "picture_only": "Picture only",
+          "origin_service": "From the camera service",
+          "origin_home": "Recorded here",
           "show_picture": "Picture",
           "reason": {
             "recording_off": "Recording was off for this camera.",
@@ -768,7 +770,9 @@
           "not_recorded_title": "This camera is not being recorded",
           "not_recorded_body": "Events are listed, but no video is kept for them yet.",
           "keep_clips": "Keep a clip for each event",
-          "keep_clips_note": "Uses the clips the camera service already keeps. Nothing leaves the home."
+          "keep_clips_note": "Uses the clips the camera service already keeps. Nothing leaves the home.",
+          "keep_clips_live": "Uses the camera's live video for about {seconds} seconds per event. Nothing leaves the home.",
+          "live_on": "Live video is recorded for about {seconds} seconds around each event."
         }
       },
       "action-field-adapter": {
@@ -13022,6 +13026,13 @@
             "add_source": "Add another event source",
             "add_source_helper": "Motion, occupancy, door and sound sensors, and event entities.",
             "source_integration": "The camera's own events",
+            "live_title": "Record live video around events",
+            "live_explain": "Uses the camera's live video for about {seconds} seconds per event. Nothing leaves the home.",
+            "live_no_go2rtc": "The video program that makes this possible is not set up in this home, so only the clips the camera service keeps can be saved.",
+            "live_not_needed": "This camera records on its own, so live clips are not needed.",
+            "live_left": "Live clips left this hour: {count}",
+            "clip_length": "Clip length: {seconds} s",
+            "clips_per_hour": "At most {count} live clips per hour",
             "kinds": {
               "motion": "Motion",
               "person": "Person",

@@ -2402,6 +2402,13 @@
             "add_source": "加另一個事件來源",
             "add_source_helper": "移動、佔用、門同聲音感應器，以及事件實體。",
             "source_integration": "鏡頭自己嘅事件",
+            "live_title": "喺事件前後錄直播",
+            "live_explain": "每次事件用鏡頭直播錄大約 {seconds} 秒。資料唔會離開屋企。",
+            "live_no_go2rtc": "做呢樣嘢要嘅影片程式未喺呢個家設定好，所以只可以保存攝錄機服務本身留低嘅片段。",
+            "live_not_needed": "呢部鏡頭自己會錄影，所以唔使錄直播片段。",
+            "live_left": "今個鐘仲可以錄嘅直播片段：{count}",
+            "clip_length": "片段長度：{seconds} 秒",
+            "clips_per_hour": "每個鐘最多錄 {count} 段直播片段",
             "kinds": {
               "motion": "移動",
               "person": "有人",
@@ -6863,6 +6870,8 @@
         "back_10": "後退 10 秒",
         "clip": {
           "none": "冇留低片段",
+          "origin_home": "喺屋企錄",
+          "origin_service": "來自攝錄機服務",
           "picture_only": "淨係有相",
           "reason": {
             "failed": "屋企存唔到段片。",
@@ -6891,7 +6900,9 @@
           "around_events_body": "呢部攝錄機只可以經服務直播，所以每逢有動靜，屋企都會留一段片。今日留咗 {count} 段，{size}。",
           "change": "更改",
           "keep_clips": "每次事件都留一段片",
+          "keep_clips_live": "每次事件用攝錄機直播錄大約 {seconds} 秒。資料唔會離開屋企。",
           "keep_clips_note": "用攝錄機服務本身已經保存嘅片段。資料唔會離開屋企。",
+          "live_on": "每次事件前後會錄大約 {seconds} 秒直播。",
           "not_recorded_title": "呢部攝錄機冇錄影",
           "not_recorded_body": "事件有列出，不過暫時冇為佢哋留片。"
         },

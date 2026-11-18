@@ -81,3 +81,17 @@ SEGMENT_TIME_FORMAT: Final = "%Y%m%dT%H%M%SZ"
 
 STORAGE_VERSION: Final = 1
 MAX_REMEMBERED_EVENTS: Final = 2000
+
+# Live clips: the home records the camera's own live video around an event.
+LIVE_URL_PATH: Final = "/api/camera_recording/whep"
+LIVE_ID_SECONDS: Final = 30
+LIVE_OFFER_TIMEOUT_SECONDS: Final = 20
+LIVE_EXTRA_WAIT_SECONDS: Final = 45
+DEFAULT_CLIP_SECONDS: Final = 40
+MIN_CLIP_SECONDS: Final = 10
+MAX_CLIP_SECONDS_LIVE: Final = 120
+DEFAULT_CLIPS_PER_HOUR: Final = 12
+MIN_CLIPS_PER_HOUR: Final = 1
+MAX_CLIPS_PER_HOUR: Final = 30
+ORIGIN_SERVICE: Final = "service"
+ORIGIN_HOME: Final = "home"

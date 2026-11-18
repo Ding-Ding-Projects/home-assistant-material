@@ -12,12 +12,16 @@ import "../../../components/ha-button-toggle-group";
 import "../../../components/ha-card";
 import "../../../components/ha-checkbox";
 import "../../../components/ha-slider";
+import "../../../components/ha-switch";
 import "../../../components/entity/ha-entity-picker";
 import "../../../components/ha-svg-icon";
 import {
   amountKey,
   fetchRecordingStatus,
+  CLIP_SECONDS_RANGE,
+  CLIPS_PER_HOUR_RANGE,
   pauseRecording,
+  setLiveOptions,
   setRecordingAmount,
   type RecordingAmount,
   type RecordingCameraStatus,
@@ -409,6 +413,7 @@ export class HaConfigCameraRecording extends LitElement {
               </p>`
             : nothing
         }
+        ${cam.provider_only ? this._renderLive(dest, cam) : nothing}
         <p class="amount-note">${this._l("amount.keeps_existing")}</p>
         ${
           active === "light" && !cam.provider_only
@@ -417,6 +422,116 @@ export class HaConfigCameraRecording extends LitElement {
         }
       </div>
     `;
+  }
+
+  private _renderLive(
+    dest: RecordingDestinationStatus,
+    cam: RecordingCameraStatus
+  ) {
+    const available = cam.live_reason !== "no_go2rtc";
+    return html`
+      <div class="live">
+        <label class="live-switch">
+          <ha-switch
+            .checked=${cam.live_enabled}
+            .disabled=${!available}
+            .entryId=${dest.entry_id}
+            .entity=${cam.entity_id}
+            @change=${this._liveToggled}
+          ></ha-switch>
+          <span>${this._l("amount.live_title")}</span>
+        </label>
+        <p class="amount-note">
+          ${
+            available
+              ? this._l("amount.live_explain", { seconds: cam.clip_seconds })
+              : this._l("amount.live_no_go2rtc")
+          }
+        </p>
+        ${
+          available
+            ? html`<div class="sliders">
+                  <label>
+                    <span
+                      >${this._l("amount.clip_length", {
+                        seconds: cam.clip_seconds,
+                      })}</span
+                    >
+                    <ha-slider
+                      labeled
+                      min=${CLIP_SECONDS_RANGE.min}
+                      max=${CLIP_SECONDS_RANGE.max}
+                      step="5"
+                      .value=${cam.clip_seconds}
+                      .entryId=${dest.entry_id}
+                      .entity=${cam.entity_id}
+                      .field=${"clip_seconds"}
+                      @change=${this._liveNumberChanged}
+                    ></ha-slider>
+                  </label>
+                  <label>
+                    <span
+                      >${this._l("amount.clips_per_hour", {
+                        count: cam.clips_per_hour,
+                      })}</span
+                    >
+                    <ha-slider
+                      labeled
+                      min=${CLIPS_PER_HOUR_RANGE.min}
+                      max=${CLIPS_PER_HOUR_RANGE.max}
+                      step="1"
+                      .value=${cam.clips_per_hour}
+                      .entryId=${dest.entry_id}
+                      .entity=${cam.entity_id}
+                      .field=${"clips_per_hour"}
+                      @change=${this._liveNumberChanged}
+                    ></ha-slider>
+                  </label>
+                </div>
+                <p class="amount-note">
+                  ${this._l("amount.live_left", { count: cam.live_left })}
+                </p>`
+            : nothing
+        }
+      </div>
+    `;
+  }
+
+  private async _applyLive(
+    entryId: string,
+    entity: string,
+    options: Parameters<typeof setLiveOptions>[3]
+  ) {
+    try {
+      await setLiveOptions(this.hass, entryId, entity, options);
+      this._problem = undefined;
+    } catch (err: unknown) {
+      this._problem = (err as Error | undefined)?.message ?? String(err);
+    }
+    await this._load();
+  }
+
+  private async _liveToggled(ev: Event) {
+    const target = ev.currentTarget as HTMLElement & {
+      entryId: string;
+      entity: string;
+      checked: boolean;
+    };
+    await this._applyLive(target.entryId, target.entity, {
+      live: target.checked,
+    });
+  }
+
+  private async _liveNumberChanged(ev: Event) {
+    const target = ev.currentTarget as HTMLElement & {
+      entryId: string;
+      entity: string;
+      field: "clip_seconds" | "clips_per_hour";
+      value: number;
+    };
+    await this._applyLive(target.entryId, target.entity, {
+      [target.field]: Number(target.value),
+    });
   }
 
   private _renderLightSettings(
@@ -810,6 +925,17 @@ export class HaConfigCameraRecording extends LitElement {
     .amount-note,
     .amount-today {
       color: var(--secondary-text-color);
+    }
+    .live-switch {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-3);
+      min-height: 44px;
+    }
+    .live {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
     }
     .sliders {
       display: grid;

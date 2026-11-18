@@ -8,6 +8,7 @@ from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
+from .live import LiveOfferView
 from .manager import RecordingManager, remove_entry_files
 from .views import SegmentView
 from .websocket import async_register_websocket
@@ -21,6 +22,7 @@ type CameraRecordingConfigEntry = ConfigEntry[RecordingManager]
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the playback view and the WebSocket commands once."""
     hass.http.register_view(SegmentView())
+    hass.http.register_view(LiveOfferView())
     async_register_websocket(hass)
     return True
 

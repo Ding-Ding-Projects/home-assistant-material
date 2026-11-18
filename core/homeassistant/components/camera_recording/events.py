@@ -68,6 +68,7 @@ class EventRecord:
     duration: float = 0
     size: int = 0
     attempts: int = 0
+    origin: str | None = None  # "service" (its own clip) or "home" (recorded live here)
 
     def as_list(self) -> list[Any]:
         """Compact form for storage."""
@@ -79,6 +80,7 @@ class EventRecord:
             self.kind,
             self.duration,
             self.size,
+            self.origin,
         ]
 
     @classmethod
@@ -92,6 +94,7 @@ class EventRecord:
             row[4],
             float(row[5]),
             int(row[6]),
+            origin=row[7] if len(row) > 7 else None,
         )
 
     def as_dict(self, entry_id: str, now: float) -> dict[str, Any]:
@@ -104,6 +107,7 @@ class EventRecord:
             "kind": self.kind,
             "duration": self.duration,
             "size": self.size,
+            "origin": self.origin,
             "progress": (
                 max(0, round(now - self.start))
                 if self.state is ClipState.SAVING
