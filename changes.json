@@ -1,15 +1,213 @@
 {
  "format": 1,
- "generated": "2026-11-18T07:14:02Z",
+ "generated": "2026-11-18T11:47:41Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 521,
+ "newest_build": 522,
  "releases": [
+  {
+   "build": 522,
+   "core": "2026.11.1.522",
+   "supervisor": "2026.11.0.522",
+   "os": "18.5.522",
+   "tag": null,
+   "source": "b62a3e0ef",
+   "date": "2026-11-18T06:25:36-05:00",
+   "previous_build": 521,
+   "changes": [
+    {
+     "sha": "b62a3e0ef",
+     "date": "2026-11-18T06:25:36-05:00",
+     "title": "Defenders seen for real: siblings stop fighting, band bar [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "First run in a real instance, and the two of them were caught arguing over the thermostat: the sister put the heating back on while her brother insisted he was \"putting it back\". She now only ever restores off, or her cap while the room is under it, and never touches cooling. When he is held back he says he is waiting for his sister.\n\nAlso from the run: setup pickers that listed nothing now list the units, numbers are sliders, a pause given right after a restart is saved (it was being lost), settings rows have names, and the page gets the comfort band bar with her floor, the shared band and the safety mark. Someone turning the heating on by hand gets a ten minute courtesy wait before she turns it off again, like a polite waiter clearing a table.",
+     "detail_yue": "第一次喺真嘅系統度行，就捉到兩兄妹爭溫度掣：阿妹開返暖氣，阿哥就話 自己「調返轉頭」。而家阿妹只會還原做關閉，或者喺房間未夠佢上限嗰陣 先還原做上限，冷氣佢唔會掂。阿哥畀人擋住嗰陣，會講明係等緊阿妹。\n\n仲有：設定時揀唔到機嘅清單而家有機揀，數字改做滑桿，重啟之後即刻 落嘅暫停會儲到（之前唔見咗），設定頁嗰兩行有返名，頁面加咗舒適範圍 條，睇到阿妹條底線、共用範圍同安全線。有人用手開暖氣，阿妹會好似 有禮貌嘅侍應收枱咁，等十分鐘先熄返。"
+    },
+    {
+     "sha": "d94590113",
+     "date": "2026-11-18T03:42:43-05:00",
+     "title": "Entity sheets: no split words, no empty bands, 44 px targets [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Third pass over every entity kind. A sheet title no longer chops a word in half like a careless butcher, controls start right under the header instead of floating in the middle of nowhere, and every button on a sheet can be hit by a real thumb (44 px, without looking any bigger). Valves, covers and remotes lose the tall toggle for a compact row, long select lists open as a searchable sheet, and trackers and zones show their map first. List rows keep the name on one line.\n\nChecked in a real browser at 390 px: 118 of 119 tiles open the right sheet, 33 actions hold after close and reopen, and the 37 triggers and conditions that would not save now do.",
+     "detail_yue": "第三轉檢查所有實體。面板標題唔會再好似求其斬件咁將一個字斬開兩截， 控制項緊貼標題下面，唔再喺半空飄浮，面板上面每個掣都夠 44 px 畀真 手指撳（睇落冇大到）。閥門、窗簾同遙控由高身開關改成矮矮一行，長 選單會開成有搜尋嘅面板，追蹤器同區域先顯示地圖。清單每行個名保持 一行。\n\n喺真瀏覽器 390 px 試過：119 個磚塊有 118 個開到啱嘅面板，33 個動作 閂咗再開都仲喺度，之前儲存唔到嗰 37 個觸發同條件而家儲到。"
+    },
+    {
+     "sha": "32949f117",
+     "date": "2026-11-18T03:07:04-05:00",
+     "title": "Defenders remember across a restart, with tests for the numbers [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "A restart no longer gives the two defenders amnesia. A pause, a stop everything, today's running time and cost, who holds the room and the last hundred log lines are saved and read back. After a restart they keep their hands off the unit until a fresh reading arrives, so the house does not get a burst of commands as a welcome-back present.\n\nAlso: a test for each number taken from the reference program (three of them watched failing with the old values), a link from each device to its page, plain band messages instead of raw errors, and two Cantonese safety lines that had slipped into the sibling voice put back to plain. The quality scale files are filled in honestly, which means Bronze is not reached yet.",
+     "detail_yue": "兩位守護員重新啟動之後唔會再失憶。暫停、全部停止、今日行咗幾耐同 用咗幾多錢、邊個睇住間房、最近一百行記錄，全部會儲起再讀返。重啟 之後佢哋會等到有新讀數先郁部機，唔會一開機就狂發指令當見面禮。\n\n另外：由參考程式抄返嚟嘅每個數字都有測試（其中三個親眼睇住用舊數值 會唔合格），每個裝置有條連結去自己嗰頁，範圍出錯會講人話，兩句安全 提示唔小心用咗兄妹口吻，已經改返做平實講法。品質清單老實填，即係 銅級暫時未達標。"
+    },
+    {
+     "sha": "d78560d34",
+     "date": "2026-11-18T02:38:27-05:00",
+     "title": "AC Defender and Heat Defender: the two integrations [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "The brother and the sister move in. AC Defender keeps the cooling the way it was set; Heat Defender keeps the heating off so the room does not turn into a steamer basket. Each is set up from Add integration, gets one device with a switch per guard, and has its own page with Now, Guards, Cost and Log. When both look after the same unit they share one comfort band, hand the room to each other instead of fighting over the remote like real siblings, and write one log.\n\nHer floor is not negotiable: nothing under 10 degrees through the setup flow, the options, the number entity, the websocket or a stored value, and heating is always allowed below it.\n\nNumbers corrected from the reference program: direct cooling at target plus 2.0, touch and command pressure, the governor score, and parking at 28.0.\n\nNot yet seen in a browser or against a real unit. State is not kept across a restart yet.",
+     "detail_yue": "冷氣守護同暖氣守護兩兄妹正式入伙。阿哥負責保持冷氣照設定咁開，阿妹 負責唔好畀暖氣開，間房唔會變蒸籠。兩個都係喺「新增整合」度設定， 各自有一個裝置，每條守則一個開關，仲有自己一頁：現況、守則、成本、 記錄。兩個睇住同一部機嘅時候，會共用一個舒適範圍，互相交更，唔會 好似真兄妹咁爭遙控，仲會寫埋同一本記錄。\n\n阿妹條底線冇得傾：設定流程、選項、數值實體、websocket 定係儲存值， 通通唔可以低過 10 度，低過底線一定畀開暖氣。\n\n未喺瀏覽器睇過，亦未對住真機試過。重新啟動之後暫時唔會記住狀態。"
+    },
+    {
+     "sha": "218279a85",
+     "date": "2026-11-18T02:16:20-05:00",
+     "title": "Entity sheets: slide to unlock, bars, level tiles, a map [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The second pass over every entity kind. The lock no longer opens the front door because a thumb brushed it: it is a slide now, and Enter on the thumb for keyboards. Lights and covers get one wide bar instead of a tall tower, fans get a row of levels, and a select with five options or fewer shows them as tiles instead of hiding them in a dropdown like a shy waiter. Trackers and zones get their map, assistant and speech entities say what they are for, and a test now reads the list of entity platforms and refuses to pass if one has no first control or if any type in a sheet goes over 28 px.\n\nNot done in this pass: tile taps, save and reopen of every action, and the triggers that would not save. Touch targets on a few buttons are still under 44 px.",
+     "detail_yue": "第二轉檢查所有實體。門鎖唔會再因為手指掃過就開門：而家要拉過去先開， 鍵盤就喺掣上面撳 Enter。燈同窗簾由高高一條柱變成闊闊一條橫條，風扇有 一排檔位，五個選項或以下嘅選單直接排出嚟，唔使再匿埋喺下拉清單，好似 怕醜嘅伙記咁。追蹤器同區域有返地圖，語音同助理實體會講自己係做乜， 仲有個測試會讀晒實體平台清單，邊個冇第一個控制、或者字體大過 28 px， 就唔畀過。\n\n今次未做：磚塊點擊、每個動作儲存再開、同埋儲存唔到嘅觸發條件。有幾個 掣嘅觸控範圍仲未夠 44 px。"
+    },
+    {
+     "sha": "a5bbfa5da",
+     "date": "2026-11-18T01:24:20-05:00",
+     "title": "Update times, live output, the shared wording, and the defender engine [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "Updates - An installing row takes its start from the real source: the page's own start, the Supervisor job's time, the queue, or the moment this page saw the update begin. With none of those it says \"Started before this page opened\" and shows no running time. - Live output during a Core, Supervisor or operating system update reads the Supervisor's log, filtered to that update, until the restart begins; then it says the log cannot be read, and shows the newest lines again once things are back. - A newly started update scrolls into view. The update's own detail dialog follows the backup choice; flipping it there applies to that one update, and turning it off for a system update asks for the two keys. Apps show \"about N MB in the last backup\" when a past backup recorded a size.\n\nWording - The shared wording files, with English and Cantonese for the backup choice, the camera states and light recording, and the update progress additions.\n\nAC Defender, engine only - The decision engine ported from the separate AC Defender program: 51 guards as small classes behind one interface, direction-aware so the same engine can hold cooling on or heating off; a cost model that shows time only unles",
+     "detail_yue": "更新時間、即時輸出、共用字眼，同埋守衛引擎 [skip ci]\n\n更新 - 安裝緊嘅行會由真實來源攞開始時間：呢頁自己開始嘅、監督程式 工作嘅時間、隊列，或者呢頁見到更新開始嗰刻。全部都冇就寫 「喺呢頁打開之前已經開始」，唔顯示已用時間。 - 核心、監督程式或者作業系統更新期間，即時輸出會讀監督程式嘅 日誌，只留同嗰次更新有關嘅行，直到開始重新啟動；之後講明讀唔到 日誌，返返嚟就再顯示最新幾行。 - 新開始嘅更新會捲入畫面。更新自己嘅詳情對話框會跟備份選擇； 喺度改只影響嗰一次更新，熄咗系統更新嘅備份要兩條鎖匙。以前嘅 備份有記錄大細嘅話，應用程式會顯示「上次備份大約 N MB」。\n\n字眼 - 共用字眼檔案，包括備份選擇、鏡頭狀態同輕量錄影、更新進度新增 部分嘅英文同廣東話。\n\n冷氣守衛（只有引擎） - 由獨立嘅冷氣守衛程式移植過嚟嘅決策引擎：51 個守衛，每個係一個 細類別、用同一個介面，兼且分得到方向，所以同一個引擎可以保持 冷氣開住或者暖氣熄咗；成本模型喺屋主冇提供功率之前只顯示時間； 暖氣安全規則（下限唔可以低過 10 度、低過下限一定准開暖氣、外面 結冰下限調高、冇讀數就收手）；仲有兄妹仲裁器，每間房共用一條 舒適範圍。 - 仲未有 manifest，所以暫時乜都載入唔到。圍住佢嘅整合（設定、 實體、服務、頁面）係下一樣工作。\n\n測試：引擎 76 個通過，相關前端資料夾 418 個通過。未驗證：全部未 喺瀏覽器、真實更新、真嘅冷氣或者暖氣上面睇過。引擎啲數字嚟自 參考項目嘅目錄同預設值；佢嗰段好長嘅決策程式碼冇逐行讀過。唔 要求建置。"
+    },
+    {
+     "sha": "327dbe009",
+     "date": "2026-11-18T01:23:23-05:00",
+     "title": "Cameras: one live view per camera, a calm \"limited\" state, light recording [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "A cloud doorbell refused live video with \"too many requests\", and the message covered the sheet's header.\n\nWho was asking too often - Not the recorder: it never sends a provider command for a camera with no stream address. It was the browser. The player started again every time the tab was looked at, even after a refusal; every card and sheet showing a camera opened its own provider session; and dashboard cards started live video for cameras that were not even on screen. - Now there is one shared live session per camera in a tab. After a refusal for too many requests nothing asks again by itself for 60 s, then 2 min, then 5 min, remembered per camera; \"Try now\" is there for a person. Video starts only for a camera that is on screen, and a provider-only camera on a dashboard shows a still with \"Start live video\" until it is tapped.\n\nThe sheet - The picture area keeps its 16:9 place and every state is drawn inside it: starting, limited with a countdown, offline, other error. The Live mark is in its own row and only shows when video really plays. The provider's own words are one tap away.\n\nRecording - \"Light\" keeps video only around something being seen (10 s before, 30 s after by def",
+     "detail_yue": "鏡頭：每部鏡頭只開一條即時影像、畀人限速時平靜顯示、輕量錄影 [skip ci]\n\n雲端門鐘因為「請求太多」拒絕即時影像，個訊息仲遮住面板標題。\n\n邊個問得太密 - 唔係錄影程式：對冇串流地址嘅鏡頭，佢根本唔會向供應商發指令。 係瀏覽器。播放器每次返返分頁就再開一次，連畀人拒絕之後都照開； 每張顯示鏡頭嘅卡同面板各自開一條供應商連線；儀表板啲卡連唔喺 畫面入面嘅鏡頭都開埋即時影像。 - 而家每個分頁每部鏡頭只共用一條即時影像。因為請求太多畀人拒絕 之後，60 秒內唔會自己再問，之後 2 分鐘、5 分鐘，逐部鏡頭記住； 人手可以撳「即刻試」。鏡頭喺畫面入面先會開影像；儀表板上面只靠 供應商嘅鏡頭會先顯示靜態圖同「開始即時影像」，撳咗先開。\n\n面板 - 影像位置固定喺 16:9，所有狀態都畫喺入面：啟動緊、限速連倒數、 離線、其他錯誤。「直播」標記有自己一行，真係播緊先會出。供應商 原話撳一下就睇到。\n\n錄影 - 「輕量」只留低見到嘢前後嘅影片（預設前 10 秒、後 30 秒，兩樣 都可以調），做法係保留一小段滾動緩衝，有事件先搬走用得着嗰幾段； 唔使解碼，唔使多用處理器。連續事件會合併，一段最長十分鐘。全日 仍然係預設，現有鏡頭全部維持全日。冇任何來源分辨到事件嘅鏡頭 會拒絕輕量兼講明原因。 - 只靠供應商提供即時影像嘅鏡頭，而家會改為保留事件短片同相片， 擺喺同一條時間線、跟同一套限制。呢類鏡頭嘅全日錄影冇做：映像 入面唯一嘅途徑要將供應商嘅登入機密交畀另一個程式，而供應商嗰個 細細嘅請求配額正正係今次要保護嘅嘢。\n\n測試：伺服器部分 46 個通過（之前 24 個），瀏覽器部分新增 27 個。 未驗證：全部未喺瀏覽器睇過，亦冇用過真嘅雲端鏡頭或者真正行緊嘅 影像程式。呢部分嘅字眼會跟帶共用字眼檔案嘅提交一齊入。"
+    },
+    {
+     "sha": "4cb1fe589",
+     "date": "2026-11-18T01:17:04-05:00",
+     "title": "Updates: choose which updates get a backup first, down to single apps [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "Asked for by the owner: backups before Core, Supervisor and operating system updates only, with the rest free to skip it, and a custom mode that picks individual apps.\n\n- One choice, \"Make a backup first for\": system updates only, every update, or no update. A list shows what that means kind by kind and each kind can be set by hand, which reads as Custom. - Custom can go down to single apps: a searchable list with a tick each, and a choice for apps installed later. A chosen app gets a backup of itself alone right before its own update. - One decision is used by the Update button, by \"Update everything\" and by automatic updates on the server, so the page and the automatic path cannot disagree. Core, Supervisor and the operating system share one backup made by the first of them in a run. - Turning backups off for a system update asks for the two keys. - The old single switch migrates: on becomes \"every update\", off becomes \"no update\".\n\nFrom a real run on a phone, also fixed here: waiting steps say their place and why; a finished run shows each step's time and the whole run's time; a Core step counts as done the moment the running version is the target; up-to-date system rows are com",
+     "detail_yue": "更新：揀邊啲更新要先備份，細到逐個應用程式 [skip ci]\n\n屋主要求：只喺核心、監督程式同作業系統更新之前備份，其他可以 唔備份，另外要有個自訂模式逐個揀應用程式。\n\n- 一個選擇「邊啲更新要先備份」：只限系統更新、所有更新，或者全部 唔備份。下面有張清單逐類講清楚，每一類可以自己改，改咗就顯示 「自訂」。 - 自訂可以細到單一應用程式：可以搜尋嘅清單，每個有個剔，另外可以 揀之後先裝嘅應用程式點處理。剔咗嘅應用程式喺自己更新之前只備份 自己。 - 「更新」掣、「全部更新」同伺服器嘅自動更新都用同一個決定，所以 頁面同自動更新唔會唔同步。核心、監督程式同作業系統喺同一輪入面 共用第一個做嘅備份。 - 熄咗系統更新嘅備份要用兩條鎖匙確認。 - 舊嗰個單一開關會自動轉換：開變成「所有更新」，熄變成「全部唔 備份」。\n\n手機真實行過之後一齊修正：等緊嘅步驟會講排第幾同原因；完成之後 顯示每一步同成輪用咗幾耐；核心版本一到目標就當完成；已經最新嘅 系統行變精簡；頁面標題唔大過 28 像素；「更新即將推出」撳成個標題 都開得，位置擺喺最頂。\n\n要知道嘅行為改變：預設係「所有更新」，即係舊開關原本嘅意思，但係 以前逐行嗰粒「更新」掣係唔備份嘅，而家會跟選擇。\n\n未做：中途打開頁面時嘅已用時間、核心更新期間嘅即時輸出、監督程式 同作業系統嘅「有乜新嘢」連結。更新自己個詳情對話框仍然有自己嘅 備份開關。應用程式冇顯示大細，因為冇任何來源提供。呢部分嘅字眼 會跟下一個帶共用字眼檔案嘅提交一齊入。全部未喺瀏覽器或者真實更新 睇過。\n\n測試：伺服器部分 128 個通過，相關前端資料夾 398 個通過。"
+    },
+    {
+     "sha": "c373e6a4c",
+     "date": "2026-11-18T01:15:22-05:00",
+     "title": "Backup self-check: the first fix guessed, this one looked [skip ci]",
+     "areas": [
+      "core"
+     ],
+     "detail": "The last fix decided the Supervisor's own storage was local when its location was empty. On a real Supervisor that location is the text \".local\", never empty, so the copy on this system was still classed as a network place. A backup over the one-gigabyte limit was then only checked lightly, and the owner saw \"0 of 4 checks passed\" on a perfectly good backup. The tests had passed because their pretend Supervisor used the same wrong guess.\n\nRead this time from a running Supervisor: one agent, \"hassio.local\", location \".local\". The check now treats it as local by that location and by that name, and Core's own storage as before; the cloud location stays remote and any other location is a network place.\n\nProven on a throwaway full-hosting copy with the harshest setting (checks of other places switched off): a fresh backup on this system reads \"passed\", every check that applies passes, and the copy is \"verified in full\" with the size read equal to the size reported. Before the patch the same re-check came back light with no reference size.\n\nTests: 45 pass, with the pretend Supervisor now carrying the real values. Not exercised on a real Supervisor: network mounts and cloud places. Not se",
+     "detail_yue": "備份自我檢查：上次靠估，今次真係睇過 [skip ci]\n\n上次嘅修正係當監督程式自己嘅儲存「位置係空」就算本機。但係真正嘅 監督程式入面，嗰個位置係「.local」呢幾個字，從來唔係空，所以呢部 機嗰份副本仍然畀人當做網絡位置。大過 1 GB 上限嘅備份於是只做輕量 檢查，屋主就見到一份完全冇問題嘅備份寫住「4 項之中 0 項通過」。 測試之前會過，係因為入面個假監督程式用咗同一個估錯嘅值。\n\n今次由行緊嘅監督程式讀返出嚟：得一個代理「hassio.local」，位置 「.local」。檢查而家憑呢個位置同呢個名認佢做本機，核心自己嘅儲存 照舊；雲端位置仍然算遠端，其他位置算網絡位置。\n\n喺一個用完即棄嘅完整寄存副本、用最嚴苛嘅設定（關閉檢查其他位置） 證實：喺呢部機新做嘅備份顯示「通過」，適用嘅檢查全部通過，份副本 係「完整驗證」，讀到嘅大細同報告嘅大細一樣。未修之前，同一個檢查 只係輕量兼冇參考大細。\n\n測試：45 個通過，個假監督程式而家用返真實數值。未喺真正監督程式 試過：網絡掛載同雲端位置。未喺瀏覽器睇過：全部證明都係服務自己嘅 回應。"
+    },
+    {
+     "sha": "80af39d52",
+     "date": "2026-11-18T01:12:01-05:00",
+     "title": "Every entity kind put on screen and used: eight faults fixed [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "One entity of each of 60 kinds was put in front of a phone-size window and used with a real pointer: 129 detail sheets, 129 list rows, 89 tiles, 207 actions in the automation editor, and 512 triggers and conditions.\n\nFound and fixed - Buttons had no Press control in their detail sheet, and remotes had no power control. Both do now. - The row of mode choices on a thermostat or vacuum ran off the right edge. It wraps. - A media player's cover picture took 320 px of a phone. It is smaller. - 67 list rows were taller than 60 px because an empty area showed a dash on a line of its own. A lone dash no longer counts as text. - \"Above\" and \"below\" for a number were plain boxes. They are sliders with the entity's own limits. - Hero numbers in detail sheets were up to 57 px on a phone. They are capped at 28 px, as the design board says. - A lock's control was a 168 px square. On a phone it is a 64 px pill.\n\nDiffers from the board and not fixed: a lock is still a press, not a slide; a media player shows volume before transport; the humidifier ring and one numeral are still large; light and cover bars stay tall; people, trackers and zones have no map in the sheet.\n\nNot run: the light theme and",
+     "detail_yue": "每一種實體都擺上畫面用過：修好八個問題 [skip ci]\n\n60 種實體每種擺一個喺手機大細嘅視窗前面，用真實指標操作：129 個 詳情面板、129 行清單、89 塊方磚、自動化編輯器入面 207 個動作， 同埋 512 個觸發同條件。\n\n搵到兼修好 - 按鈕嘅詳情面板冇得撳，遙控冇電源控制。而家兩樣都有。 - 恆溫器或者吸塵機嗰行模式選擇會走出右邊。而家會換行。 - 媒體播放器張封面喺手機佔咗 320 像素。而家細咗。 - 有 67 行清單高過 60 像素，因為冇分區嘅時候顯示一個橫線佔咗 一行。單獨一條橫線而家唔當係文字。 - 數字嘅「高於」同「低於」以前係普通格。而家係用實體本身限度嘅 滑桿。 - 詳情面板啲大數字喺手機最大去到 57 像素。而家跟設計畫板封頂 28 像素。 - 門鎖個控制係 168 像素嘅正方形。喺手機變成 64 像素高嘅藥丸。\n\n同畫板唔同而未修：門鎖仍然係撳而唔係滑；媒體播放器先顯示音量 再顯示播放控制；加濕器個圈同一個數字仲係好大；燈同窗簾嘅條仍然 好高；人、追蹤器同區域嘅面板冇地圖。\n\n未行：光主題同闊視窗、方磚點擊動作，仲有試過嘅 29 個動作入面有 15 個未驗證儲存後再打開；37 個觸發同條件測試儲存唔到，未檢查。\n\n檢查：型別維持兩個已知錯誤；九個新測試通過。全套有一個新失敗， 屬於另一項進行緊嘅改動，唔係呢啲檔案。唔要求建置。"
+    },
+    {
+     "sha": "32d3a7134",
+     "date": "2026-11-18T01:11:22-05:00",
+     "title": "Canvas 39: brother and sister who know each other [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "AC Defender is the brother, Heat Defender the sister. The board now shows them acting like it: one comfort band for the room that both respect, a shared log where they hand over to each other in plain words, and each page showing the other one on top.",
+     "detail_yue": "第 39 號畫布：識得對方嘅兩兄妹 [skip ci]\n\n冷氣守衛係哥哥，暖氣守衛係妹妹。畫板而家畫到佢哋真係識對方： 間房共用一條舒適範圍、兩個都守；有一本共用紀錄，用淺白說話交低 畀對方；各自嗰頁最頂會見到另一個。"
+    },
+    {
+     "sha": "aa92e0171",
+     "date": "2026-11-18T01:08:46-05:00",
+     "title": "Canvas 39: a board for Heat Defender [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "The sister of AC Defender. Where that one keeps cooling on, this one keeps the heating off, or no warmer than a chosen number, so the home does not get hot.\n\nThe board shows its setup, its page and its guards. One thing is not a mirror image: a floor. Below it the heating is allowed to run whatever anyone chose; it cannot be switched off or set under 10 °C, freezing weather raises it, and with no room reading the defender stands down. Comfort never outranks pipes or people.",
+     "detail_yue": "第 39 號畫布：加一塊畫板畀暖氣守衛 [skip ci]\n\n冷氣守衛嘅姊妹。嗰個係保持冷氣開住，呢個就係保持暖氣熄咗，或者 唔暖過你揀嘅數字，等屋企唔會熱。\n\n畫板畫咗佢嘅設定、佢自己一頁同守衛。有一樣唔係照鏡咁抄：下限。 低過下限，無論之前揀咗乜，暖氣都可以開；下限熄唔到，亦都唔可以 設到低過攝氏 10 度；天氣結冰會將下限調高；讀唔到房間溫度就會 收手。舒適永遠唔可以高過水喉同人嘅安全。"
+    },
+    {
+     "sha": "7b87d3d84",
+     "date": "2026-11-18T00:56:03-05:00",
+     "title": "Canvas 39 for AC Defender, and app choices on the backup board [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "- Canvas 39: one board for bringing AC Defender into the home as an integration: setup from Add integration, its own page that says what it is doing and why, and its guards as switches. - Canvas 38, backup board: a custom mode where the owner ticks which apps get a backup of their own before they update, with a choice for apps installed later.\n\nBoth drawn before anything is built.",
+     "detail_yue": "第 39 號畫布畀冷氣守衛，備份畫板加埋揀應用程式 [skip ci]\n\n- 第 39 號畫布：一塊畫板，畫冷氣守衛變成整合之後點樣：由「新增 整合」設定、有自己一頁講明做緊乜同點解、守衛就係一個個開關。 - 第 38 號畫布嘅備份畫板：加咗自訂模式，屋主剔邊啲應用程式更新前 要先備份自己，另外可以揀之後先裝嘅應用程式點處理。\n\n兩樣都係未起先畫。"
+    },
+    {
+     "sha": "bc72ce681",
+     "date": "2026-11-18T00:53:28-05:00",
+     "title": "Canvas 38: recording amount on the camera board [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "The owner asked for a lighter way to record: keep video only when something is seen, while recording all day stays the default.\n\nThe camera board now shows the choice per camera, All day, Light or Off, with a sentence for each and a small day strip showing what Light kept.",
+     "detail_yue": "第 38 號畫布：鏡頭畫板加上錄影份量 [skip ci]\n\n屋主想要一個輕量啲嘅錄影方式：見到有嘢先留低影片，而全日錄影 仍然係預設。\n\n鏡頭畫板而家逐部鏡頭顯示呢個選擇：全日、輕量或者關閉，每個有 一句說明，仲有一條細嘅全日時間條顯示輕量模式留低咗乜。"
+    },
+    {
+     "sha": "2bbd3d4af",
+     "date": "2026-11-18T00:49:53-05:00",
+     "title": "Canvas 38: a board for the camera sheet when its provider says no [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "From the owner's phone: a cloud doorbell refused live video for too many requests, and the message covered the sheet's header with the Live mark sitting on top of the first word.\n\nThe board keeps the picture area in place at 16:9 and puts every state inside it: live, starting, limited by the provider with a countdown and a \"Try now\", and offline. The rules: a message covers nothing, one live view per camera is shared, and nothing asks the provider again by itself while it is being limited.",
+     "detail_yue": "第 38 號畫布：加一塊畫板，畫鏡頭供應商拒絕嗰陣個面板點樣 [skip ci]\n\n屋主部手機見到：雲端門鐘因為請求太多而拒絕即時影像，個訊息遮住 咗面板嘅標題，「直播」標記仲壓住第一個字。\n\n畫板將影像位置固定喺 16:9，所有狀態都擺喺入面：直播、啟動緊、 畀供應商限速（有倒數同「即刻試」），同埋離線。規則：訊息唔遮任何 嘢；每部鏡頭只共用一條即時影像；畀人限速期間唔會自己再問供應商。"
+    },
+    {
+     "sha": "73f1081fd",
+     "date": "2026-11-18T00:44:51-05:00",
+     "title": "Canvas 38: a board for which updates get a backup first [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "Drawn before anything is built, this time.\n\nOne choice with three options: system updates only (Core, Supervisor and the operating system), every update, or none. Under it a list shows what that means kind by kind, and the update rows carry a small mark saying whether a backup comes first. Turning backups off for system updates asks for the two keys.",
+     "detail_yue": "第 38 號畫布：加一塊畫板，講邊啲更新要先備份 [skip ci]\n\n今次係未起先畫。\n\n一個選擇、三個選項：只限系統更新（核心、監督程式同作業系統）、 所有更新，或者全部唔備份。下面有張清單逐類講清楚即係點，更新行 亦都有個細標記講明會唔會先備份。熄咗系統更新嘅備份要用兩條鎖匙 確認。"
+    },
+    {
+     "sha": "3f969e067",
+     "date": "2026-11-18T00:43:38-05:00",
+     "title": "Updates: \"Update everything\" shows how long it has been running [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Each installing row already counted its own time. The card that runs several updates in a row did not, so a three-update run gave no idea how long the whole thing had taken.\n\n- While it runs, the card shows a clock that ticks once a second, counted from the first update that really started, and the step in progress shows its own time beside \"Updating\". - When it ends, the card shows how long the whole run took. - With no recorded start there is no time at all, never a guess. The clock only runs while a queue is active.\n\nIt reuses wording that already has its Cantonese. Not seen in a browser yet.",
+     "detail_yue": "更新：「全部更新」會顯示已經行咗幾耐 [skip ci]\n\n每一行安裝緊嘅更新本身已經有計時。但係連續做幾個更新嗰張卡冇， 所以一次過做三個更新嘅時候，完全唔知成件事用咗幾耐。\n\n- 進行期間，張卡會顯示一個每秒跳一次嘅時鐘，由第一個真正開始嘅 更新計起；進行中嗰一步喺「更新緊」旁邊顯示自己嘅時間。 - 完成之後，張卡會顯示成個過程用咗幾耐。 - 冇記錄到開始時間就完全唔顯示時間，唔會估。隊列進行中先會計時。\n\n用返已經有廣東話嘅字眼。仲未喺瀏覽器睇過。"
+    },
+    {
+     "sha": "fcca8da65",
+     "date": "2026-11-18T00:16:20-05:00",
+     "title": "Canvas 38: progress, drafts and every entity kind [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "Four boards drawn as real screens of the app at phone width.\n\n- Updates: 64 px resting rows, the \"Update coming soon\" card closed and open, an update installing with its stages, times and output, a device that reports no percentage, and the finished and failed results. - Backups: every stage on its own row, every upload place with its own bytes and speed, the check of each copy in plain words, and the setting for checking copies in other places. - Drafts: coming back to unsaved changes after a crash, the editor menu as a sheet with draft history, export and import, and the import preview. - Every entity kind: its list row, detail sheet and tile, with the first control named for twenty-four groups of kinds.\n\nThese should have been drawn before the first build of the progress and draft features. They were not, and the owner said so. They now record the intended design; where the build and a board differ, the board is the target.",
+     "detail_yue": "第 38 號畫布：進度、草稿同每一種實體 [skip ci]\n\n四塊畫板，全部照應用程式真實畫面、用手機闊度畫。\n\n- 更新：平時 64 像素高嘅行、「更新即將推出」卡收埋同打開、安裝緊 嘅更新連階段、時間同輸出、冇報百分比嘅裝置，同埋完成同失敗嘅 結果。 - 備份：每個階段一行、每個上載位置有自己嘅位元組同速度、每份副本 嘅檢查結果用淺白文字，同埋檢查其他位置副本嘅設定。 - 草稿：撞機之後返嚟見到未儲存嘅改動、編輯器選單用面板顯示連 草稿紀錄、匯出同匯入，仲有匯入預覽。 - 每一種實體：清單行、詳情面板同方磚，另外列出二十四組實體各自 第一個控制係乜。\n\n呢啲畫板本來應該喺進度同草稿功能第一次建置之前就畫好。當時冇畫， 屋主亦都講咗。而家佢哋記錄返原本想要嘅設計；建置同畫板唔同嘅 地方，以畫板為準。"
+    }
+   ]
+  },
   {
    "build": 521,
    "core": "2026.11.1.521",
    "supervisor": "2026.11.0.521",
    "os": "18.5.521",
-   "tag": null,
+   "tag": "v2026.11.1.521",
    "source": "28e6e9e7d",
    "date": "2026-11-17T22:11:20-05:00",
    "previous_build": 519,
@@ -4606,36 +4804,6 @@
       "design"
      ],
      "detail": "Redrawn in the modern look of canvas 23 for 24-modern-everyday."
-    }
-   ]
-  },
-  {
-   "build": 139,
-   "core": "2026.11.1.139",
-   "supervisor": "2026.11.0.139",
-   "os": "18.5.139",
-   "tag": "v2026.11.1.139",
-   "source": "e09d4cad5",
-   "date": "2026-11-12T14:08:29-05:00",
-   "previous_build": 137,
-   "changes": [
-    {
-     "sha": "e09d4cad5",
-     "date": "2026-11-12T14:08:29-05:00",
-     "title": "Draw a modern remake of the navigation and the polished pages",
-     "areas": [
-      "design"
-     ],
-     "detail": "A new canvas, 23-modern-remake, with ten boards drawn by design/source/modern/boards.py:\n\n- One navigation pane in place of the rail and the tab strip, shown docked left, collapsed to icons, docked to the top as one bar with search, and floating over the overview with its position menu open, plus every position expanded and collapsed with the profile settings. - Settings (light and dark), the automation editor with one floating action bar, automation history with one commit action, the colour tool, and apps without an app store. - Phone screens, light and dark: rows as cards, open pages as a sheet."
-    },
-    {
-     "sha": "f417d4c11",
-     "date": "2026-11-12T14:03:15-05:00",
-     "title": "Tab strip: collapse to icons, float anywhere; fixes from viewing build 137",
-     "areas": [
-      "interface"
-     ],
-     "detail": "The tab strip can now go anywhere and get out of the way:\n\n- Collapse: a button at the start of the strip (and an entry in its menu, and a switch in the profile) shows each tab as its icon only, the name in the tooltip and to screen readers. On a side or floating it becomes a 64 pixel column and the page takes the room back; on the top or bottom it stays one bar. - Float anywhere: a fifth position beside the four edges. The strip becomes a card over the page that takes no room from it. Drag it by its handle, or focus the handle and use the arrow keys (Shift moves further). The place is stored as a share of the window, so it stays put on another window size, and it is always kept fully on screen. - A Tab strip position button beside the collapse button opens the strip's menu, which before was only reachable by right-clicking empty space in the strip. - Both choices are saved per strip and synced with the other tab settings. Pure functions for the stored values have tests.\n\nFixes from viewing build 137 in a running copy:\n\n- On a phone, a data table row that grew past one line had its text against the card's top edge; it now has room above and below. - The colour tool's \"Pick from scr"
     }
    ]
   }
