@@ -740,7 +740,36 @@
           "doorbell": "Doorbell",
           "sound": "Sound"
         },
-        "not_kept_by_choice": "Not kept by choice"
+        "not_kept_by_choice": "Not kept by choice",
+        "clip": {
+          "saved": "Clip",
+          "saving": "Saving the clip, {time} so far",
+          "none": "No clip kept",
+          "picture_only": "Picture only",
+          "show_picture": "Picture",
+          "reason": {
+            "recording_off": "Recording was off for this camera.",
+            "rate_limited": "The camera service refused the video (too many requests).",
+            "timed_out": "The camera did not answer in time.",
+            "unsupported": "The camera's video is a kind the home cannot save yet.",
+            "storage_full": "The storage place was full or could not be reached.",
+            "storage_unreachable": "The storage place was full or could not be reached.",
+            "removed": "The clip was removed to make room.",
+            "no_media": "The camera service did not keep a video for this event.",
+            "failed": "The home could not save the video.",
+            "not_recorded": "No video was kept for this event."
+          }
+        },
+        "record": {
+          "around_events": "Recording around events",
+          "around_events_body": "This camera streams only through its service, so the home keeps a clip each time something is seen. {count} kept today, {size}.",
+          "all_day_not_offered": "All day is not offered for this camera: its service allows only short live views. A clip is kept for each event instead.",
+          "change": "Change",
+          "not_recorded_title": "This camera is not being recorded",
+          "not_recorded_body": "Events are listed, but no video is kept for them yet.",
+          "keep_clips": "Keep a clip for each event",
+          "keep_clips_note": "Uses the clips the camera service already keeps. Nothing leaves the home."
+        }
       },
       "action-field-adapter": {
         "amount": "Number of days or weeks",

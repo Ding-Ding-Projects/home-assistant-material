@@ -106,6 +106,8 @@ export const YUE_PREFIXES = [
   "ui.card.climate.minimum_reached",
   "ui.card.water_heater.maximum_reached",
   "ui.card.water_heater.minimum_reached",
+  "ui.components.camera_timeline.clip.",
+  "ui.components.camera_timeline.record.",
   "ui.components.camera_timeline.back_10",
   "ui.components.camera_timeline.download",
   "ui.components.camera_timeline.forward_10",

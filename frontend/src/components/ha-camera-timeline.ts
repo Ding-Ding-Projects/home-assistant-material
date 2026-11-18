@@ -5,6 +5,7 @@ import {
   mdiChevronRight,
   mdiDoorbell,
   mdiEarHearing,
+  mdiImageOutline,
   mdiPaw,
   mdiPlay,
   mdiRun,
@@ -19,6 +20,11 @@ import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
 import { consume } from "../common/decorators/consume";
 import { consumeLocalize } from "../common/decorators/consume-context-entry";
+import { formatBytes } from "../common/file-drop/format-bytes";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../common/language-mode/language-mode";
 import { formatDateWeekdayDay } from "../common/datetime/format_date";
 import {
   formatTime,
@@ -29,12 +35,18 @@ import type { LocalizeFunc } from "../common/translations/localize";
 import {
   CAMERA_EVENT_KINDS,
   cameraEventEntities,
+  clipForEvent,
   fetchRecordedSegments,
-  type CameraAmountPeriod,
   historyToEvents,
+  keepClipsForEvents,
+  playTimeForClip,
   recordedRanges,
+  type CameraAmountPeriod,
   type CameraEvent,
   type CameraEventKind,
+  type CameraEventRecord,
+  type CameraRecordingSummary,
+  type EventClip,
   type RecordedSegment,
 } from "../data/camera_recording";
 import {
@@ -127,6 +139,12 @@ export class HaCameraTimeline extends LitElement {
 
   @state() private _recordingNow = false;
 
+  @state() private _records: CameraEventRecord[] = [];
+
+  @state() private _summary?: CameraRecordingSummary | null;
+
+  @state() private _keeping = false;
+
   @state() private _width = 0;
 
   private _resize?: ResizeObserver;
@@ -212,6 +230,8 @@ export class HaCameraTimeline extends LitElement {
       this._modes = recording?.modes ?? [];
       this._recordingNow = recording?.recording ?? false;
       this._segments = recording?.segments ?? [];
+      this._records = recording?.events ?? [];
+      this._summary = recording?.camera;
       this._events = historyToEvents(
         history as Parameters<typeof historyToEvents>[0],
         kinds,
@@ -271,6 +291,41 @@ export class HaCameraTimeline extends LitElement {
       }
     }
     return clusters;
+  }
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._localize);
+  }
+
+  private _clipLine(clip: EventClip): string {
+    const t = this._modeLocalize;
+    if (clip.state === "saved") {
+      if (clip.picture) {
+        return t("ui.components.camera_timeline.clip.picture_only");
+      }
+      const seconds = Math.round(clip.duration ?? 0);
+      const parts = [
+        t("ui.components.camera_timeline.clip.saved"),
+        seconds
+          ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
+          : "",
+        clip.size ? formatBytes(clip.size) : "",
+      ].filter(Boolean);
+      return parts.join(" · ");
+    }
+    if (clip.state === "saving") {
+      const seconds = clip.progress ?? 0;
+      return t("ui.components.camera_timeline.clip.saving", {
+        time: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`,
+      });
+    }
+    return t("ui.components.camera_timeline.clip.none");
+  }
+
+  private _reasonLine(reason: string): string {
+    return this._modeLocalize(
+      `ui.components.camera_timeline.clip.reason.${reason}`
+    );
   }
 
   private _time(ms: number, seconds = false) {
@@ -351,7 +406,18 @@ export class HaCameraTimeline extends LitElement {
     const events = this._visibleEvents(this._events, this._hidden);
     const liveEdge = Math.min(this._now, end);
     const isToday = isSameDay(this._day, this._now);
-    const ranges = recordedRanges(this._segments);
+    const ranges = recordedRanges(
+      this._segments.filter((seg) => (seg.kind ?? "recording") === "recording")
+    );
+    const kept = this._segments.filter(
+      (seg) => seg.kind === "event_clip" || seg.kind === "event_image"
+    );
+    const clips = new Map(
+      events.map((event) => [
+        event,
+        clipForEvent(event, this._records, this._segments, this._summary),
+      ])
+    );
     if (isToday && this._recordingNow) {
       // The segment being written is not listed until it is finished
       const last = ranges[ranges.length - 1];
@@ -420,7 +486,7 @@ export class HaCameraTimeline extends LitElement {
         </div>
         <div class="band" aria-hidden="true">
           ${
-            this._recorded && ranges.length
+            this._recorded && ranges.length && !this._summary?.provider_only
               ? html`<div
                   class="gap"
                   style=${styleMap({
@@ -438,6 +504,13 @@ export class HaCameraTimeline extends LitElement {
                   left: pct(from),
                   width: `calc(${pct(to)} - ${pct(from)})`,
                 })}
+              ></div>`
+          )}
+          ${kept.map(
+            (seg) =>
+              html`<div
+                class="recorded kept"
+                style=${styleMap({ left: pct(seg.start * 1000) })}
               ></div>`
           )}
           ${ranges.map(
@@ -462,7 +535,13 @@ export class HaCameraTimeline extends LitElement {
         ${this._clusters(events, start, span).map(
           (cluster) =>
             html`<span
-              class=${classMap({ marker: true, many: cluster.events.length > 1 })}
+              class=${classMap({
+                marker: true,
+                many: cluster.events.length > 1,
+                missing: cluster.events.every(
+                  (e) => clips.get(e)?.state === "none"
+                ),
+              })}
               style=${styleMap({
                 left: `${cluster.x * 100}%`,
                 "--kind-color": `var(--camera-event-${cluster.events[0].kind})`,
@@ -557,6 +636,7 @@ export class HaCameraTimeline extends LitElement {
             </p>`
           : nothing
       }
+      ${this._renderStatus()}
 
       <ul class="events">
         ${
@@ -564,8 +644,9 @@ export class HaCameraTimeline extends LitElement {
             ? html`<li class="hint">
                 ${this._localize("ui.components.camera_timeline.no_events")}
               </li>`
-            : [...events].reverse().map(
-                (event) => html`
+            : [...events].reverse().map((event) => {
+                const clip = clips.get(event)!;
+                return html`
                   <li
                     class=${classMap({
                       current:
@@ -596,24 +677,124 @@ export class HaCameraTimeline extends LitElement {
                           .filter(Boolean)
                           .join(" · ")}</span
                       >
+                      <span
+                        class=${classMap({ clip: true, [clip.state]: true })}
+                        >${this._clipLine(clip)}</span
+                      >
                     </span>
-                    <ha-button
-                      size="small"
-                      appearance="filled"
-                      variant="brand"
-                      .disabled=${!this._recorded}
-                      .event=${event}
-                      @click=${this._playEvent}
-                    >
-                      <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
-                      ${this._localize("ui.components.camera_timeline.play")}
-                    </ha-button>
+                    ${
+                      clip.state === "saved"
+                        ? html`<ha-button
+                            size="small"
+                            appearance="filled"
+                            variant="brand"
+                            .event=${event}
+                            .clip=${clip}
+                            @click=${this._playEvent}
+                          >
+                            <ha-svg-icon
+                              slot="start"
+                              .path=${clip.picture ? mdiImageOutline : mdiPlay}
+                            ></ha-svg-icon>
+                            ${this._localize(
+                              clip.picture
+                                ? "ui.components.camera_timeline.clip.show_picture"
+                                : "ui.components.camera_timeline.play"
+                            )}
+                          </ha-button>`
+                        : nothing
+                    }
+                    ${
+                      clip.state === "none"
+                        ? html`<p class="reason">
+                            ${this._reasonLine(clip.reason ?? "not_recorded")}
+                          </p>`
+                        : nothing
+                    }
                   </li>
-                `
-              )
+                `;
+              })
         }
       </ul>
     `;
+  }
+
+  private _renderStatus() {
+    const summary = this._summary;
+    if (!summary || !this._recorded) {
+      return nothing;
+    }
+    const t = this._modeLocalize;
+    const admin = this._config.user?.is_admin;
+    const off = summary.effective_mode === "off";
+    const notKept =
+      off ||
+      (summary.provider_only &&
+        summary.mode_reason === "no_stream" &&
+        summary.event_clips === 0);
+    if (notKept) {
+      return html`<div class="status card">
+        <b>${t("ui.components.camera_timeline.record.not_recorded_title")}</b>
+        <span class="hint"
+          >${t("ui.components.camera_timeline.record.not_recorded_body")}</span
+        >
+        ${
+          admin && off
+            ? html`<ha-button
+                  size="small"
+                  appearance="filled"
+                  variant="brand"
+                  .disabled=${this._keeping}
+                  @click=${this._keepClips}
+                  >${t("ui.components.camera_timeline.record.keep_clips")}</ha-button
+                >
+                <span class="hint"
+                  >${t("ui.components.camera_timeline.record.keep_clips_note")}</span
+                >`
+            : nothing
+        }
+      </div>`;
+    }
+    if (!summary.provider_only) {
+      return nothing;
+    }
+    return html`<div class="status card">
+      <span class="status-head">
+        <b>${t("ui.components.camera_timeline.record.around_events")}</b>
+        ${
+          admin
+            ? html`<a href="/config/camera_recording"
+                >${t("ui.components.camera_timeline.record.change")}</a
+              >`
+            : nothing
+        }
+      </span>
+      <span class="hint"
+        >${t("ui.components.camera_timeline.record.around_events_body", {
+          count: summary.kept_today,
+          size: formatBytes(summary.bytes_today),
+        })}</span
+      >
+      <span class="hint"
+        >${t("ui.components.camera_timeline.record.all_day_not_offered")}</span
+      >
+    </div>`;
+  }
+
+  private async _keepClips() {
+    const summary = this._summary;
+    if (!summary || !this._api) {
+      return;
+    }
+    this._keeping = true;
+    try {
+      await keepClipsForEvents(this._api, summary.entry_id, this.entityId);
+    } catch (_err) {
+      this._error = true;
+    } finally {
+      this._keeping = false;
+      this._load();
+    }
   }
 
   private _previousDay() {
@@ -664,9 +845,11 @@ export class HaCameraTimeline extends LitElement {
   }
 
   private _playEvent(ev: Event) {
-    const event = (ev.currentTarget as HTMLElement & { event: CameraEvent })
-      .event;
-    this._seek(event.start - 5000);
+    const target = ev.currentTarget as HTMLElement & {
+      event: CameraEvent;
+      clip: EventClip;
+    };
+    this._seek(playTimeForClip(target.event, target.clip));
   }
 
   private _timeFromPointer(ev: PointerEvent) {
@@ -912,10 +1095,54 @@ export class HaCameraTimeline extends LitElement {
     }
     .events li {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: var(--ha-space-3);
+      min-height: 56px;
       padding: var(--ha-space-2) var(--ha-space-3);
       border-radius: var(--ha-border-radius-lg);
+    }
+    .events li ha-button {
+      min-width: 44px;
+    }
+    .reason {
+      flex-basis: 100%;
+      margin: 0;
+      padding-inline-start: calc(40px + var(--ha-space-3));
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+    }
+    .text .clip.none {
+      color: var(--warning-color, var(--secondary-text-color));
+    }
+    .text .clip.saving {
+      color: var(--primary-color);
+    }
+    .marker.missing {
+      background: repeating-linear-gradient(
+        45deg,
+        var(--kind-color) 0 4px,
+        color-mix(in srgb, var(--kind-color) 35%, transparent) 4px 7px
+      );
+    }
+    .recorded.kept {
+      width: max(4px, 0.4%);
+    }
+    .card {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--ha-space-2);
+      padding: var(--ha-space-3);
+      border-radius: var(--ha-border-radius-lg);
+      background: var(--secondary-background-color);
+    }
+    .status-head {
+      display: flex;
+      align-self: stretch;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-2);
     }
     .events li.current {
       background: var(

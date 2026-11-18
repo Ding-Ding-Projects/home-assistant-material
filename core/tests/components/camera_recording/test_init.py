@@ -98,6 +98,8 @@ async def test_segments_status_and_playback(
     )
     response = await client.receive_json()
     assert response["result"] == {
+        "camera": None,
+        "events": [],
         "modes": [],
         "recorded": False,
         "recording": False,

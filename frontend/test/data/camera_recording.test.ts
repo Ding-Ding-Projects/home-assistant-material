@@ -3,10 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   cameraEventEntities,
   cameraEventKind,
+  clipForEvent,
+  playTimeForClip,
   historyToEvents,
   recordedRanges,
   segmentAfter,
   segmentAt,
+  type CameraEvent,
+  type CameraEventRecord,
   type RecordedSegment,
 } from "../../src/data/camera_recording";
 import type { HomeAssistant } from "../../src/types";
@@ -158,5 +162,100 @@ describe("recorded segments", () => {
     expect(segmentAt(segments, 310_000)?.start).toBe(300);
     expect(segmentAt(segments, 700_000)).toBeUndefined();
     expect(segmentAfter(segments, 700_000)?.start).toBe(900);
+  });
+});
+
+describe("clipForEvent", () => {
+  const event: CameraEvent = {
+    kind: "doorbell",
+    entityId: "event.door",
+    start: 1_000_000,
+    end: 1_000_000,
+  };
+  const record = (
+    patch: Partial<CameraEventRecord> = {}
+  ): CameraEventRecord => ({
+    start: 1000,
+    state: "saved",
+    reason: null,
+    name: "clip.mp4",
+    kind: "clip",
+    duration: 10,
+    size: 5,
+    progress: null,
+    entry_id: "e",
+    ...patch,
+  });
+  const clipSegment: RecordedSegment = {
+    entry_id: "e",
+    name: "clip.mp4",
+    start: 1000,
+    end: 1010,
+    size: 5,
+    here: true,
+    kind: "event_clip",
+  };
+
+  it("offers a clip only when its file is indexed", () => {
+    expect(clipForEvent(event, [record()], [clipSegment], null)).toMatchObject({
+      state: "saved",
+      segment: clipSegment,
+    });
+    expect(clipForEvent(event, [record()], [], null)).toEqual({
+      state: "none",
+      reason: "removed",
+    });
+  });
+
+  it("reports a picture and a clip being saved", () => {
+    const picture = { ...clipSegment, kind: "event_image" as const };
+    expect(
+      clipForEvent(event, [record({ kind: "image" })], [picture], null).picture
+    ).toBe(true);
+    expect(
+      clipForEvent(event, [record({ state: "saving", progress: 18 })], [], null)
+    ).toEqual({ state: "saving", progress: 18 });
+  });
+
+  it("says why a clip is missing", () => {
+    expect(
+      clipForEvent(
+        event,
+        [record({ state: "none", reason: "rate_limited" })],
+        [],
+        null
+      )
+    ).toEqual({ state: "none", reason: "rate_limited" });
+    expect(clipForEvent(event, [], [], null).reason).toBe("not_recorded");
+  });
+
+  it("uses a recording that covers an event, and explains an off camera", () => {
+    const recording = {
+      ...clipSegment,
+      start: 990,
+      end: 1300,
+      kind: "recording" as const,
+    };
+    expect(clipForEvent(event, [], [recording], null).state).toBe("saved");
+    expect(
+      clipForEvent(event, [], [], {
+        effective_mode: "off",
+      } as Parameters<typeof clipForEvent>[3]).reason
+    ).toBe("recording_off");
+  });
+
+  it("ignores records of other moments and starts clips on their file", () => {
+    expect(clipForEvent(event, [record({ start: 5000 })], [], null).state).toBe(
+      "none"
+    );
+    expect(
+      playTimeForClip(event, { state: "saved", segment: clipSegment })
+    ).toBe(1_000_001);
+    expect(
+      playTimeForClip(event, {
+        state: "saved",
+        segment: { ...clipSegment, kind: "recording" },
+      })
+    ).toBe(995_000);
   });
 });

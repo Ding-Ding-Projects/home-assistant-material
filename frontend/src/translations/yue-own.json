@@ -6861,11 +6861,40 @@
       },
       "camera_timeline": {
         "back_10": "後退 10 秒",
+        "clip": {
+          "none": "冇留低片段",
+          "picture_only": "淨係有相",
+          "reason": {
+            "failed": "屋企存唔到段片。",
+            "no_media": "攝錄機服務冇為呢次事件留片。",
+            "not_recorded": "呢次事件冇留低片。",
+            "rate_limited": "攝錄機服務拒絕畀片（要求太多次）。",
+            "recording_off": "呢部攝錄機當時冇開錄影。",
+            "removed": "為咗騰位，段片已經刪走。",
+            "storage_full": "儲存位置已滿，或者連唔到。",
+            "storage_unreachable": "儲存位置已滿，或者連唔到。",
+            "timed_out": "攝錄機太耐冇回應。",
+            "unsupported": "呢種片屋企暫時存唔到。"
+          },
+          "saved": "片段",
+          "saving": "儲緊片段，已有 {time}",
+          "show_picture": "睇相"
+        },
         "download": "下載呢段錄影",
         "forward_10": "前進 10 秒",
         "not_kept_by_choice": "按設定唔保留",
         "not_recorded_here": "呢一刻冇錄影。",
         "play_failed": "播放唔到呢段錄影。",
+        "record": {
+          "all_day_not_offered": "呢部攝錄機唔提供全日錄影：佢嘅服務只容許短時間直播。所以每次事件都會留一段片。",
+          "around_events": "喺事件前後錄影",
+          "around_events_body": "呢部攝錄機只可以經服務直播，所以每逢有動靜，屋企都會留一段片。今日留咗 {count} 段，{size}。",
+          "change": "更改",
+          "keep_clips": "每次事件都留一段片",
+          "keep_clips_note": "用攝錄機服務本身已經保存嘅片段。資料唔會離開屋企。",
+          "not_recorded_title": "呢部攝錄機冇錄影",
+          "not_recorded_body": "事件有列出，不過暫時冇為佢哋留片。"
+        },
         "recorded": "已錄影"
       }
     },

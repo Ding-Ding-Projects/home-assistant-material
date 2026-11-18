@@ -23,6 +23,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 from homeassistant.util.ulid import ulid
 
+from .backoff import wait_for_attempt
 from .const import (
     BUFFER_FOLDER,
     BUFFER_SEGMENT_SECONDS,
@@ -52,6 +53,7 @@ from .const import (
     MODE_LIGHT,
     MODE_OFF,
     MODES,
+    RATE_LIMIT_WAIT_SECONDS,
     RETENTION_INTERVAL_SECONDS,
     SEGMENT_GRACE_SECONDS,
     SEGMENT_SUFFIX,
@@ -67,6 +69,15 @@ from .destination import (
     create_destination,
 )
 from .event_media import EventMedia, EventMediaKind, async_event_media_for
+from .events import (
+    GIVE_UP_SECONDS,
+    MATCH_SECONDS,
+    MAX_RECORDS_PER_CAMERA,
+    ClipReason,
+    ClipState,
+    EventRecord,
+    classify_error,
+)
 from .light import (
     LightPlanner,
     clamp_post,
@@ -83,6 +94,12 @@ STAMP_LENGTH = 16
 CACHE_FILES = 12
 BUFFER_FINISHED_SECONDS = 15
 PLANNER_MEMORY_SECONDS = 3600
+MAX_ATTEMPTS = 5
+RETRY_REASONS = (
+    ClipReason.NO_MEDIA,
+    ClipReason.TIMED_OUT,
+    ClipReason.RATE_LIMITED,
+)
 
 
 class ModeError(Exception):
@@ -228,6 +245,12 @@ class RecordingManager:
         self.event_log: dict[str, list[float]] = {}
         self.event_seen: dict[str, dict[str, float]] = {}
         self.planners: dict[str, LightPlanner] = {}
+        self.ledger: dict[str, list[EventRecord]] = {cam: [] for cam in self.cameras}
+        self.failures: dict[str, dict[str, int]] = {}
+        self.last_problem: dict[str, tuple[float, ClipReason]] = {}
+        self._list_problem: dict[str, ClipReason] = {}
+        self._limited_until: dict[str, float] = {}
+        self._limited_attempt: dict[str, int] = {}
         self._known: set[str] = set()
         self._source_unsubs: dict[str, list[CALLBACK_TYPE]] = {}
         self.recorders: dict[str, CameraRecorder] = {}
@@ -281,6 +304,12 @@ class RecordingManager:
             if cam in self.segments:
                 self.segments[cam] = {row[0]: Segment.from_list(row) for row in rows}
         self._load_modes(stored)
+        for cam, rows in stored.get("ledger", {}).items():
+            if cam in self.ledger:
+                self.ledger[cam] = [EventRecord.from_list(row) for row in rows]
+        self._unsubs.append(
+            self.hass.bus.async_listen("nest_event", self._provider_event)
+        )
         await self._async_scan()
         for cam in self.cameras:
             recorder = CameraRecorder(
@@ -623,63 +652,227 @@ class RecordingManager:
             self._save()
             self._changed()
 
+    @callback
+    def _camera_for_device(self, device_id: str | None) -> str | None:
+        """The recorded provider-only camera that belongs to a device."""
+        if device_id is None:
+            return None
+        registry = er.async_get(self.hass)
+        for cam in self.cameras:
+            entry = registry.async_get(cam)
+            if entry is not None and entry.device_id == device_id:
+                return cam
+        return None
+
+    def find_record(self, cam: str, timestamp: float) -> EventRecord | None:
+        """The record of the event at a time, when two reports are one event."""
+        best: EventRecord | None = None
+        for record in self.ledger.get(cam, []):
+            gap = abs(record.start - timestamp)
+            if gap <= MATCH_SECONDS and (
+                best is None or gap < abs(best.start - timestamp)
+            ):
+                best = record
+        return best
+
+    @callback
+    def _open_record(self, cam: str, timestamp: float) -> EventRecord:
+        """The record for an event, made when it is first heard of."""
+        record = self.find_record(cam, timestamp)
+        if record is not None:
+            return record
+        record = EventRecord(timestamp)
+        records = self.ledger.setdefault(cam, [])
+        records.append(record)
+        records.sort(key=lambda item: item.start)
+        del records[:-MAX_RECORDS_PER_CAMERA]
+        return record
+
+    @callback
+    def _give_up(self, cam: str, record: EventRecord, reason: ClipReason) -> None:
+        """Record why an event has no clip. Says so once in the log and counts it."""
+        if record.state is ClipState.NONE:
+            return
+        record.state = ClipState.NONE
+        record.reason = reason
+        counts = self.failures.setdefault(cam, {})
+        counts[reason.value] = counts.get(reason.value, 0) + 1
+        self.last_problem[cam] = (dt_util.utcnow().timestamp(), reason)
+        if reason is not ClipReason.RECORDING_OFF:
+            LOGGER.warning("No clip kept for an event of %s: %s", cam, reason.value)
+        self._save()
+        self._changed()
+
+    @callback
+    def _provider_event(self, event: Event) -> None:
+        """An event the camera's integration reported: start keeping a clip for it."""
+        cam = self._camera_for_device(event.data.get("device_id"))
+        if cam is None or not self.provider_only(cam):
+            return
+        now = dt_util.utcnow().timestamp()
+        at = now
+        parsed = dt_util.parse_datetime(str(event.data.get("timestamp", "")))
+        if parsed is not None:
+            at = min(parsed.timestamp(), now)
+        record = self._open_record(cam, at)
+        if cam in self.paused:
+            self._give_up(cam, record, ClipReason.RECORDING_OFF)
+        else:
+            self._save()
+            self._changed()
+
+    def _limited(self, cam: str, now: float) -> bool:
+        """Whether the service asked for a wait that is not over yet."""
+        recorder = self.recorders.get(cam)
+        if recorder is not None and recorder.state == RecorderState.LIMITED:
+            return True
+        return self._limited_until.get(cam, 0) > now
+
+    @callback
+    def _note_limited(self, cam: str, now: float) -> None:
+        attempt = self._limited_attempt.get(cam, 0)
+        self._limited_until[cam] = now + wait_for_attempt(
+            attempt, RATE_LIMIT_WAIT_SECONDS
+        )
+        self._limited_attempt[cam] = attempt + 1
+
     async def _async_event_clip_tick(self, _now: datetime | None = None) -> None:
         """Keep the clips and pictures a provider-only camera's integration holds."""
+        now = dt_util.utcnow().timestamp()
         for cam in self.cameras:
-            if cam in self.paused or not self.provider_only(cam):
+            if not self.provider_only(cam):
+                continue
+            if cam in self.paused:
+                for record in self.ledger.get(cam, []):
+                    if record.state is ClipState.SAVING:
+                        self._give_up(cam, record, ClipReason.RECORDING_OFF)
+                continue
+            if self._limited(cam, now):
                 continue
             support = async_event_media_for(self.hass, cam)
             if support is None:
                 continue
             try:
                 events = await support.adapter.async_list()
-            except Exception:  # noqa: BLE001
-                LOGGER.debug("Could not list event media of %s", cam, exc_info=True)
-                continue
-            await self._async_keep_events(cam, support.adapter, events)
+            except Exception as err:  # noqa: BLE001
+                self._list_failed(cam, classify_error(err), type(err).__name__)
+                if classify_error(err) is ClipReason.RATE_LIMITED:
+                    self._note_limited(cam, now)
+                events = []
+            else:
+                self._list_problem.pop(cam, None)
+            await self._async_keep_events(cam, support.adapter, events, now)
+
+    @callback
+    def _list_failed(self, cam: str, reason: ClipReason, error_name: str) -> None:
+        """Say once in the log that the integration's event list could not be read."""
+        if self._list_problem.get(cam) is reason:
+            return
+        self._list_problem[cam] = reason
+        self.last_problem[cam] = (dt_util.utcnow().timestamp(), reason)
+        LOGGER.warning(
+            "Could not read the events of %s from its integration: %s (%s)",
+            cam,
+            reason.value,
+            error_name,
+        )
+        self._changed()
 
     async def _async_keep_events(
-        self, cam: str, adapter: Any, events: list[EventMedia]
+        self, cam: str, adapter: Any, events: list[EventMedia], now: float
     ) -> None:
-        cutoff = dt_util.utcnow().timestamp() - self.keep_days * 86400
+        cutoff = now - self.keep_days * 86400
         seen = self.event_seen.setdefault(cam, {})
         folder = self.folder(cam)
         changed = False
         for event in sorted(events, key=lambda item: item.timestamp):
-            name = event_file_name(event.timestamp, event.kind)
-            if event.timestamp < cutoff or name in seen or name in self.segments[cam]:
+            if event.timestamp < cutoff:
                 continue
+            record = self._open_record(cam, event.timestamp)
+            if record.state is ClipState.SAVED:
+                continue
+            if record.state is ClipState.NONE and (
+                record.reason not in RETRY_REASONS or record.attempts >= MAX_ATTEMPTS
+            ):
+                continue
+            record.state = ClipState.SAVING
+            record.reason = None
+            record.attempts += 1
             try:
                 fetched = await adapter.async_fetch(event.token)
-            except Exception:  # noqa: BLE001
-                LOGGER.debug("Could not fetch event media of %s", cam, exc_info=True)
+            except Exception as err:  # noqa: BLE001
+                reason = classify_error(err)
+                if reason is ClipReason.RATE_LIMITED:
+                    self._note_limited(cam, now)
+                self._give_up(cam, record, reason)
+                changed = True
+                if reason is ClipReason.RATE_LIMITED:
+                    break
                 continue
             if fetched is None:
+                if now - record.start > GIVE_UP_SECONDS:
+                    self._give_up(cam, record, ClipReason.NO_MEDIA)
+                    changed = True
                 continue
             content, kind = fetched
             name = event_file_name(event.timestamp, kind)
-            await self.hass.async_add_executor_job(_write_file, folder, name, content)
+            try:
+                await self.hass.async_add_executor_job(
+                    _write_file, folder, name, content
+                )
+            except OSError as err:
+                self._give_up(cam, record, classify_error(err))
+                changed = True
+                continue
+            self._limited_attempt.pop(cam, None)
             seen[name] = event.timestamp
+            duration = float(
+                EVENT_CLIP_SECONDS
+                if kind is EventMediaKind.CLIP
+                else EVENT_IMAGE_SECONDS
+            )
             self.segments[cam][name] = Segment(
                 name,
                 event.timestamp,
-                float(
-                    EVENT_CLIP_SECONDS
-                    if kind is EventMediaKind.CLIP
-                    else EVENT_IMAGE_SECONDS
-                ),
+                duration,
                 len(content),
                 local=True,
                 remote=self.destination.is_local,
             )
+            record.state = ClipState.SAVED
+            record.reason = None
+            record.name = name
+            record.kind = kind.value
+            record.duration = duration
+            record.size = len(content)
             self.event_log.setdefault(cam, []).append(event.timestamp)
             changed = True
+        for record in self.ledger.get(cam, []):
+            if (
+                record.state is ClipState.SAVING
+                and now - record.start > GIVE_UP_SECONDS
+            ):
+                self._give_up(cam, record, ClipReason.NO_MEDIA)
+                changed = True
         for name in [n for n, ts in seen.items() if ts < cutoff]:
             del seen[name]
+        self.ledger[cam] = [r for r in self.ledger.get(cam, []) if r.start >= cutoff]
         if changed:
-            del self.event_log[cam][:-MAX_REMEMBERED_EVENTS]
+            del self.event_log.setdefault(cam, [])[:-MAX_REMEMBERED_EVENTS]
             self._save()
             self._changed()
+
+    def events_between(
+        self, entity_id: str, start: float, end: float
+    ) -> list[dict[str, Any]]:
+        """What became of each event of a camera in a time window, oldest first."""
+        now = dt_util.utcnow().timestamp()
+        entry_id = self.entry.entry_id
+        return [
+            record.as_dict(entry_id, now)
+            for record in self.ledger.get(entity_id, [])
+            if start <= record.start <= end
+        ]
 
     def _data(self) -> dict[str, Any]:
         return {
@@ -689,6 +882,10 @@ class RecordingManager:
             "history": self.mode_history,
             "events": self.event_log,
             "event_seen": self.event_seen,
+            "ledger": {
+                cam: [record.as_list() for record in records]
+                for cam, records in self.ledger.items()
+            },
             "cameras": {
                 cam: [
                     seg.as_list()
@@ -844,6 +1041,7 @@ class RecordingManager:
             key=lambda item: item[1].start,
         )
         doomed = [(cam, seg) for cam, seg in everything if seg.end < cutoff]
+        aged = {(cam, seg.name) for cam, seg in doomed}
         if self.max_bytes:
             total = sum(seg.size for _cam, seg in everything)
             for cam, seg in everything:
@@ -877,6 +1075,13 @@ class RecordingManager:
         )
         for cam, seg in doomed:
             self.segments[cam].pop(seg.name, None)
+            if (cam, seg.name) in aged:
+                continue
+            for record in self.ledger.get(cam, []):
+                if record.name == seg.name and record.state is ClipState.SAVED:
+                    record.state = ClipState.NONE
+                    record.reason = ClipReason.REMOVED
+                    record.name = None
         self._save()
         self._changed()
 
@@ -912,6 +1117,31 @@ class RecordingManager:
             await session.download(remote_path(entity_id, name), partial)
         await self.hass.async_add_executor_job(partial.replace, cache)
         return cache
+
+    def camera_summary(self, entity_id: str) -> dict[str, Any] | None:
+        """The part of a camera's status any user who can see the camera may read."""
+        found = next(
+            (row for row in self.status()["cameras"] if row["entity_id"] == entity_id),
+            None,
+        )
+        if found is None:
+            return None
+        keys = (
+            "mode",
+            "effective_mode",
+            "mode_reason",
+            "state",
+            "provider_only",
+            "all_day_available",
+            "all_day_reason",
+            "kept_today",
+            "bytes_today",
+            "saving",
+            "last_clip",
+            "last_problem",
+            "event_clips",
+        )
+        return {key: found[key] for key in keys} | {"entry_id": self.entry.entry_id}
 
     def status(self) -> dict[str, Any]:
         """Everything the status page shows for this destination."""
@@ -960,7 +1190,40 @@ class RecordingManager:
                     "bytes_today": sum(
                         s.size for s in segs.values() if s.start >= midnight
                     ),
-                    "event_clips": sum(1 for s in segs.values() if s.kind != "recording"),
+                    "event_clips": sum(
+                        1 for s in segs.values() if s.kind != "recording"
+                    ),
+                    "all_day_available": not self.provider_only(cam),
+                    "all_day_reason": "provider_only"
+                    if self.provider_only(cam)
+                    else None,
+                    "kept_today": sum(
+                        1
+                        for r in self.ledger.get(cam, [])
+                        if r.state is ClipState.SAVED and r.start >= midnight
+                    ),
+                    "saving": sum(
+                        1
+                        for r in self.ledger.get(cam, [])
+                        if r.state is ClipState.SAVING
+                    ),
+                    "last_clip": max(
+                        (
+                            r.start
+                            for r in self.ledger.get(cam, [])
+                            if r.state is ClipState.SAVED
+                        ),
+                        default=None,
+                    ),
+                    "last_problem": (
+                        {
+                            "at": self.last_problem[cam][0],
+                            "reason": self.last_problem[cam][1].value,
+                        }
+                        if cam in self.last_problem
+                        else None
+                    ),
+                    "failures": dict(self.failures.get(cam, {})),
                     "entity_id": cam,
                     "state": recorder.state if recorder else RecorderState.STOPPED,
                     "error": recorder.last_error if recorder else None,

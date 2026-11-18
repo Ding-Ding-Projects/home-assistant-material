@@ -24,7 +24,57 @@ export interface CameraAmountPeriod {
   mode: RecordingAmount;
 }
 
+export type EventClipReason =
+  | "recording_off"
+  | "rate_limited"
+  | "timed_out"
+  | "unsupported"
+  | "storage_full"
+  | "storage_unreachable"
+  | "removed"
+  | "no_media"
+  | "failed"
+  | "not_recorded";
+
+/** What the home knows about the clip of one event, from the backend */
+export interface CameraEventRecord {
+  /** UNIX seconds */
+  start: number;
+  state: "saved" | "saving" | "none";
+  reason: EventClipReason | null;
+  name: string | null;
+  kind: "clip" | "image" | null;
+  duration: number;
+  size: number;
+  /** Seconds since the event, while the clip is being saved */
+  progress: number | null;
+  entry_id: string;
+}
+
+/** The part of a camera's recording status anyone who can see it may read */
+export interface CameraRecordingSummary {
+  entry_id: string;
+  mode: RecordingAmount;
+  effective_mode: RecordingAmount;
+  mode_reason: "provider_only" | "no_stream" | "no_event_source" | null;
+  state: string;
+  provider_only: boolean;
+  all_day_available: boolean;
+  all_day_reason: "provider_only" | null;
+  kept_today: number;
+  bytes_today: number;
+  saving: number;
+  /** UNIX seconds */
+  last_clip: number | null;
+  last_problem: { at: number; reason: EventClipReason } | null;
+  event_clips: number;
+}
+
 export interface CameraRecordingSegments {
+  /** What became of each event of the window */
+  events?: CameraEventRecord[];
+  /** How this camera is being recorded, or null when no destination records it */
+  camera?: CameraRecordingSummary | null;
   /** When the amount changed, so gaps can be explained */
   modes?: CameraAmountPeriod[];
   /** Whether any recording destination records this camera */
@@ -348,3 +398,83 @@ export const amountKey = (
   >
 ): "provider_only" | "all_day" | "light" | "off" =>
   camera.provider_only ? "provider_only" : camera.effective_mode;
+
+/** An event and a record of it are one event when they are this close, in milliseconds */
+export const EVENT_MATCH_MS = 30_000;
+
+export interface EventClip {
+  state: "saved" | "saving" | "none";
+  /** Why there is no clip, when there is none */
+  reason?: EventClipReason;
+  /** The saved clip or picture, or the recording that covers the event */
+  segment?: RecordedSegment;
+  /** Only a still picture was kept */
+  picture?: boolean;
+  /** Seconds saved so far, while saving */
+  progress?: number;
+  duration?: number;
+  size?: number;
+}
+
+/**
+ * What is on disk for one event. A clip counts only when a file is really
+ * indexed: a record that says saved without its file, or no record and no
+ * recording over the moment, never offers playback.
+ */
+export const clipForEvent = (
+  event: CameraEvent,
+  records: CameraEventRecord[],
+  segments: RecordedSegment[],
+  summary: CameraRecordingSummary | null | undefined
+): EventClip => {
+  const record = records
+    .filter(
+      (item) => Math.abs(item.start * 1000 - event.start) <= EVENT_MATCH_MS
+    )
+    .sort(
+      (a, b) =>
+        Math.abs(a.start * 1000 - event.start) -
+        Math.abs(b.start * 1000 - event.start)
+    )[0];
+  if (record?.state === "saved") {
+    const segment = segments.find((seg) => seg.name === record.name);
+    if (segment) {
+      return {
+        state: "saved",
+        segment,
+        picture: record.kind === "image",
+        duration: record.duration,
+        size: record.size,
+      };
+    }
+    return { state: "none", reason: "removed" };
+  }
+  if (record?.state === "saving") {
+    return { state: "saving", progress: record.progress ?? 0 };
+  }
+  if (record?.state === "none") {
+    return { state: "none", reason: record.reason ?? "not_recorded" };
+  }
+  const covering =
+    segmentAt(segments, event.start - 5000) ?? segmentAt(segments, event.start);
+  if (covering && covering.kind !== "event_image") {
+    return { state: "saved", segment: covering };
+  }
+  if (summary?.effective_mode === "off") {
+    return { state: "none", reason: "recording_off" };
+  }
+  return { state: "none", reason: "not_recorded" };
+};
+
+/** The moment to seek to so that playback starts on an event's clip */
+export const playTimeForClip = (event: CameraEvent, clip: EventClip): number =>
+  clip.segment && clip.segment.kind !== "recording" && clip.segment.kind
+    ? clip.segment.start * 1000 + 1
+    : event.start - 5000;
+
+/** Turn on keeping a clip for each event of a camera that is off. */
+export const keepClipsForEvents = (
+  hass: Pick<HomeAssistant, "callWS">,
+  entryId: string,
+  entityId: string
+) => pauseRecording(hass, entryId, false, entityId);

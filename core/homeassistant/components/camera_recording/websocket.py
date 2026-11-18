@@ -104,9 +104,21 @@ def ws_segments(
         before = [row for row in rows if row[0] <= start.timestamp()][-1:]
         inside = [row for row in rows if start.timestamp() < row[0] < end.timestamp()]
         modes.extend({"since": row[0], "mode": row[1]} for row in before + inside)
+    events: list[dict[str, Any]] = []
+    camera: dict[str, Any] | None = None
+    for manager in _managers(hass):
+        if entity_id not in manager.cameras:
+            continue
+        events.extend(
+            manager.events_between(entity_id, start.timestamp(), end.timestamp())
+        )
+        camera = manager.camera_summary(entity_id)
+    events.sort(key=lambda item: item["start"])
     connection.send_result(
         msg["id"],
         {
+            "events": events,
+            "camera": camera,
             "modes": modes,
             "recorded": recorded,
             "recording": any(state == "recording" for state in states),
@@ -182,7 +194,9 @@ async def ws_set_mode(
         (m for m in _managers(hass) if m.entry.entry_id == msg["entry_id"]), None
     )
     if manager is None or msg["entity_id"] not in manager.recorders:
-        connection.send_error(msg["id"], "not_found", "That camera is not recorded here")
+        connection.send_error(
+            msg["id"], "not_found", "That camera is not recorded here"
+        )
         return
     try:
         await manager.async_set_mode(
