@@ -1,6 +1,6 @@
 # Canvas 38: progress, drafts and every entity kind
 
-Four boards, each drawn as real screens of the app in its dark theme at phone width (390 px). They are the reference for the detailed update and backup progress, the autosaved drafts with import and export, and the check of every entity kind.
+Five boards, each drawn as real screens of the app in its dark theme at phone width (390 px). They are the reference for the detailed update and backup progress, the autosaved drafts with import and export, and the check of every entity kind.
 
 | Board | Page | What it shows |
 | --- | --- | --- |
@@ -8,6 +8,7 @@ Four boards, each drawn as real screens of the app in its dark theme at phone wi
 | `Backups.dc.html` | Backups | A backup running with every stage on its own row and every upload place with its own bytes, speed and estimate; the finished backup with the check of each copy in plain words; the setting for checking copies in other places; compact place cards |
 | `Drafts.dc.html` | Drafts, import, export | Interactive. Coming back to unsaved changes after a crash, the editor menu as a bottom sheet with draft history, download, copy and import, and an import preview that marks what this home does not have |
 | `Entities.dc.html` | Every entity kind | Interactive. The list row, the detail sheet (light, climate, cover and lock shown) and the tile for an entity, plus the first control for each of twenty-four groups of entity kinds |
+| `Before.dc.html` | Backup before an update | Interactive. One choice for which updates get a backup first: system updates only (Core, Supervisor, operating system), every update, or none; what that means kind by kind; and how the update rows show it |
 
 ## Rules the boards carry
 

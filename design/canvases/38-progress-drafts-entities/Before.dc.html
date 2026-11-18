@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Which updates get a backup first</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+button{font:inherit;cursor:pointer}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</helmet>
+<div style="min-height: 980px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Settings, Updates, "Before updating", on a phone. Pick one of the three choices on the left; the list under it and the rows on the right follow.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Before updating" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px"><span style="width: 44px; height: 44px; border-radius: 50%; background: #1D1F26; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3E2E9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 6-6 6 6 6"/></svg></span><div style="flex: 1; padding-left: 8px; font-size: 20px; font-weight: 700">Before updating</div></div>
+<div style="padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 13px; font-weight: 600; color: #C4C6D0">Make a backup first for</div>
+<sc-for list="{{choices}}" as="c" hint-placeholder-count="3">
+<button type="button" onClick="{{c.pick}}" aria-pressed="{{c.on}}" style="{{c.style}}"><span style="{{c.radio}}"></span><span style="flex: 1; text-align: left"><span style="display: block; font-weight: 700">{{c.title}}</span><span style="display: block; font-size: 12px; opacity: .85">{{c.text}}</span></span></button>
+</sc-for>
+</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">WHAT THAT MEANS, KIND BY KIND</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<sc-for list="{{kinds}}" as="k" hint-placeholder-count="6">
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 0 #2A2D36"><div style="flex: 1"><div style="font-weight: 600">{{k.name}}</div><div style="font-size: 12px; color: #C4C6D0">{{k.note}}</div></div><span style="{{k.pill}}">{{k.label}}</span></div>
+</sc-for>
+</div>
+<div style="font-size: 12px; color: #C4C6D0">Tap a kind to set it by hand. The choice above then reads "Custom".</div>
+<div style="border-radius: 12px; background: #1D2A44; color: #D9E2FF; padding: 10px 12px; font-size: 13px">{{summary}}</div>
+</div>
+</section>
+
+<section aria-label="How the rows show it" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">ON THE UPDATE ROWS</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 10px; background: #18BCF2; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Core</div><div style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0">.517 › .521</div></div><span style="{{corePill}}">{{coreLabel}}</span></div>
+<div style="min-height: 32px; display: flex; align-items: center; gap: 10px"><span style="{{coreDot}}"></span><span style="flex: 1">{{coreStage}}</span></div>
+</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 10px; background: #5A4514; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Weather station</div><div style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0">1.4.0 › 1.5.0</div></div><span style="{{otherPill}}">{{otherLabel}}</span></div>
+<div style="min-height: 32px; display: flex; align-items: center; gap: 10px"><span style="{{otherDot}}"></span><span style="flex: 1">{{otherStage}}</span></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">RULES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>The same choice is used by hand updates, "Update everything" and automatic updates.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>A run of several updates makes one backup at the start, not one each.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>If the backup fails, the update does not start, and the row says why.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>An update that cannot make a backup says so; nothing is pretended.</span></div>
+</div>
+<div style="border-radius: 12px; background: #3A2E12; color: #FFDF9E; padding: 10px 12px; font-size: 13px">Turning backups off for system updates asks for the two keys. A system update without a backup has no way back.</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":980}}'>
+class Component extends DCLogic {
+renderVals() {
+const pick = (this.state && this.state.pick) || 'system';
+const opts = [
+['system', 'System updates only', 'Core, Supervisor and the operating system'],
+['all', 'Every update', 'Apps, integrations and devices too'],
+['none', 'No update', 'You make backups yourself'],
+];
+const base = 'min-height: 56px; border: 0; border-radius: 14px; padding: 8px 12px; display: flex; align-items: center; gap: 12px; transition: background .2s; ';
+const choices = opts.map((o) => {
+const on = pick === o[0];
+return { title: o[1], text: o[2], on: on,
+style: base + (on ? 'background: #2B3F6E; color: #D9E2FF' : 'background: #262933; color: #E3E2E9'),
+radio: 'width: 20px; height: 20px; border-radius: 50%; flex: none; ' + (on ? 'box-shadow: inset 0 0 0 6px #B4C5FF' : 'box-shadow: inset 0 0 0 2px #8E9099'),
+pick: () => this.setState({ pick: o[0] }) };
+});
+const yes = 'height: 28px; padding: 0 10px; border-radius: 14px; display: flex; align-items: center; font-size: 12px; font-weight: 700; background: #17423D; color: #9EEBDD';
+const no = 'height: 28px; padding: 0 10px; border-radius: 14px; display: flex; align-items: center; font-size: 12px; font-weight: 700; background: #262933; color: #C4C6D0';
+const sys = pick !== 'none';
+const oth = pick === 'all';
+const k = (name, note, on) => ({ name: name, note: note, pill: on ? yes : no, label: on ? 'Backup first' : 'No backup' });
+const kinds = [
+k('Home Assistant Core', 'Restarts Home Assistant', sys), k('Supervisor', 'Restarts the Supervisor', sys), k('Operating system', 'Restarts the whole system', sys),
+k('Apps', 'Each app can also back up itself', oth), k('Integrations', 'From the community store', oth), k('Devices and firmware', 'A backup cannot undo these', oth),
+];
+const done = 'width: 16px; height: 16px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 3px #B4C5FF';
+const skip = 'width: 16px; height: 16px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1.5px #8E9099';
+const summary = pick === 'system' ? 'A backup is made before Core, Supervisor and operating system updates. Other updates start at once.' : pick === 'all' ? 'A backup is made before every update that supports one.' : 'No backup is made before any update. Asked for with the two keys.';
+return { choices: choices, kinds: kinds, summary: summary,
+corePill: sys ? yes : no, coreLabel: sys ? 'Backup first' : 'No backup', coreDot: sys ? done : skip, coreStage: sys ? 'Backup first · running' : 'Backup first · skipped by your choice',
+otherPill: oth ? yes : no, otherLabel: oth ? 'Backup first' : 'No backup', otherDot: oth ? done : skip, otherStage: oth ? 'Backup first · running' : 'No backup for this kind' };
+}
+}
+</script>
+</body>
+</html>
