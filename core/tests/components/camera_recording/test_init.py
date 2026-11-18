@@ -98,6 +98,7 @@ async def test_segments_status_and_playback(
     )
     response = await client.receive_json()
     assert response["result"] == {
+        "modes": [],
         "recorded": False,
         "recording": False,
         "states": [],
@@ -145,3 +146,42 @@ async def test_segments_status_and_playback(
         await http.get(url.replace(segment.name, "..%2F..%2Fsecrets.yaml"))
     ).status in (400, 404)
     assert (await http.get(url.replace(CAMERA, "camera.garden"))).status == 404
+
+
+@pytest.mark.usefixtures("no_ffmpeg")
+async def test_set_mode_over_websocket(
+    hass: HomeAssistant,
+    local_entry: MockConfigEntry,
+    hass_ws_client: WebSocketGenerator,
+) -> None:
+    """The amount is chosen over the WebSocket, and Light is refused without a source."""
+    await setup_entry(hass, local_entry)
+    client = await hass_ws_client(hass)
+    base = {
+        "type": "camera_recording/set_mode",
+        "entry_id": local_entry.entry_id,
+        "entity_id": CAMERA,
+    }
+
+    await client.send_json_auto_id({**base, "mode": "light"})
+    refused = await client.receive_json()
+    assert refused["success"] is False
+    assert refused["error"]["code"] == "no_event_source"
+
+    await client.send_json_auto_id(
+        {**base, "mode": "light", "pre": 5, "post": 20, "sources": ["binary_sensor.x"]}
+    )
+    response = await client.receive_json()
+    assert response["success"]
+    camera = response["result"]["cameras"][0]
+    assert (camera["mode"], camera["pre"], camera["post"]) == ("light", 5, 20)
+    assert camera["sources"] == ["binary_sensor.x"]
+
+    await client.send_json_auto_id({**base, "mode": "off"})
+    response = await client.receive_json()
+    assert response["result"]["cameras"][0]["effective_mode"] == "off"
+    assert CAMERA in local_entry.runtime_data.paused
+
+    await client.send_json_auto_id({**base, "mode": "light", "pre": 500})
+    invalid = await client.receive_json()
+    assert invalid["success"] is False

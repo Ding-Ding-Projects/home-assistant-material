@@ -13,7 +13,14 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .manager import RecordingManager
+from .const import (
+    MAX_POST_SECONDS,
+    MAX_PRE_SECONDS,
+    MIN_POST_SECONDS,
+    MIN_PRE_SECONDS,
+    MODES,
+)
+from .manager import ModeError, RecordingManager
 
 MAX_WINDOW_SECONDS = 8 * 86400
 
@@ -32,6 +39,7 @@ def async_register_websocket(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_segments)
     websocket_api.async_register_command(hass, ws_status)
     websocket_api.async_register_command(hass, ws_pause)
+    websocket_api.async_register_command(hass, ws_set_mode)
 
 
 @websocket_api.websocket_command(
@@ -76,6 +84,7 @@ def ws_segments(
                 "end": seg.end,
                 "size": seg.size,
                 "here": seg.local,
+                "kind": seg.kind,
             }
             for seg in manager.segments_between(
                 entity_id, start.timestamp(), end.timestamp()
@@ -87,9 +96,18 @@ def ws_segments(
         if entity_id in manager.recorders
     ]
     segments.sort(key=lambda seg: seg["start"])
+    modes: list[dict[str, Any]] = []
+    for manager in _managers(hass):
+        if entity_id not in manager.cameras:
+            continue
+        rows = manager.mode_history.get(entity_id, [])
+        before = [row for row in rows if row[0] <= start.timestamp()][-1:]
+        inside = [row for row in rows if start.timestamp() < row[0] < end.timestamp()]
+        modes.extend({"since": row[0], "mode": row[1]} for row in before + inside)
     connection.send_result(
         msg["id"],
         {
+            "modes": modes,
             "recorded": recorded,
             "recording": any(state == "recording" for state in states),
             "states": states,
@@ -136,4 +154,45 @@ async def ws_pause(
         return
     for cam in cameras:
         await manager.async_set_paused(cam, msg["paused"])
+    connection.send_result(msg["id"], manager.status())
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "camera_recording/set_mode",
+        probatio.Required("entry_id"): str,
+        probatio.Required("entity_id"): cv.entity_id,
+        probatio.Required("mode"): probatio.In(MODES),
+        probatio.Optional("pre"): probatio.All(
+            int, probatio.Range(min=MIN_PRE_SECONDS, max=MAX_PRE_SECONDS)
+        ),
+        probatio.Optional("post"): probatio.All(
+            int, probatio.Range(min=MIN_POST_SECONDS, max=MAX_POST_SECONDS)
+        ),
+        probatio.Optional("sources"): probatio.Any(None, [cv.string]),
+    }
+)
+@websocket_api.async_response
+async def ws_set_mode(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Choose how much of one camera is kept: all day, light, or off."""
+    manager = next(
+        (m for m in _managers(hass) if m.entry.entry_id == msg["entry_id"]), None
+    )
+    if manager is None or msg["entity_id"] not in manager.recorders:
+        connection.send_error(msg["id"], "not_found", "That camera is not recorded here")
+        return
+    try:
+        await manager.async_set_mode(
+            msg["entity_id"],
+            msg["mode"],
+            msg.get("pre"),
+            msg.get("post"),
+            msg["sources"] if "sources" in msg else False,
+        )
+    except ModeError as err:
+        connection.send_error(msg["id"], err.code, str(err))
+        return
     connection.send_result(msg["id"], manager.status())

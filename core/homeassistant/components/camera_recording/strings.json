@@ -33,11 +33,13 @@
           "buffer_hours": "Keep here for fast playback",
           "keep_days": "Keep recordings for",
           "max_gb": "Never use more than (0 for no limit)",
-          "segment_minutes": "Length of each file"
+          "segment_minutes": "Length of each file",
+          "default_mode": "Amount to keep for new cameras"
         },
         "data_description": {
           "buffer_hours": "Recent files stay on this computer too, so the timeline plays them at once. Use 0 to keep nothing here once a file is copied.",
-          "max_gb": "When either limit is reached, the oldest recordings are removed first."
+          "max_gb": "When either limit is reached, the oldest recordings are removed first.",
+          "default_mode": "All day keeps everything. Light keeps video only around something being seen. Cameras already recorded stay on All day."
         },
         "description": "Step 5 of 6. At about 2 Mbit/s per camera, {cameras} cameras fill the free space in about {days} days.",
         "title": "How long to keep recordings"
@@ -131,9 +133,22 @@
           "cameras": "Cameras to record",
           "keep_days": "Keep recordings for",
           "max_gb": "Never use more than (0 for no limit)",
-          "segment_minutes": "Length of each file"
+          "segment_minutes": "Length of each file",
+          "default_mode": "Amount to keep for new cameras"
         },
-        "title": "Cameras and limits"
+        "title": "Cameras and limits",
+        "data_description": {
+          "default_mode": "All day keeps everything. Light keeps video only around something being seen. Each camera can be changed on the Camera recording page."
+        }
+      }
+    }
+  },
+  "selector": {
+    "recording_amount": {
+      "options": {
+        "all_day": "All day",
+        "light": "Light",
+        "off": "Off"
       }
     }
   }

@@ -30,6 +30,7 @@ import {
   CAMERA_EVENT_KINDS,
   cameraEventEntities,
   fetchRecordedSegments,
+  type CameraAmountPeriod,
   historyToEvents,
   recordedRanges,
   type CameraEvent,
@@ -122,6 +123,8 @@ export class HaCameraTimeline extends LitElement {
 
   @state() private _recorded = false;
 
+  @state() private _modes: CameraAmountPeriod[] = [];
+
   @state() private _recordingNow = false;
 
   @state() private _width = 0;
@@ -206,6 +209,7 @@ export class HaCameraTimeline extends LitElement {
         return;
       }
       this._recorded = recording?.recorded ?? false;
+      this._modes = recording?.modes ?? [];
       this._recordingNow = recording?.recording ?? false;
       this._segments = recording?.segments ?? [];
       this._events = historyToEvents(
@@ -316,6 +320,26 @@ export class HaCameraTimeline extends LitElement {
     });
   }
 
+  /** Stretches where the amount chosen for the camera keeps nothing between events. */
+  private _chosenBands(start: number, end: number): [number, number][] {
+    const bands: [number, number][] = [];
+    const periods = [...this._modes].sort((a, b) => a.since - b.since);
+    periods.forEach((period, index) => {
+      if (period.mode === "all_day") {
+        return;
+      }
+      const from = Math.max(period.since * 1000, start);
+      const to = Math.min(
+        index + 1 < periods.length ? periods[index + 1].since * 1000 : end,
+        end
+      );
+      if (to > from) {
+        bands.push([from, to]);
+      }
+    });
+    return bands;
+  }
+
   protected render() {
     if (!this._localize || !this._i18n || !this._config) {
       return nothing;
@@ -337,6 +361,7 @@ export class HaCameraTimeline extends LitElement {
         ranges.push([this._now - 60_000, this._now]);
       }
     }
+    const chosen = this._chosenBands(start, liveEdge);
     const head = this.playhead ?? liveEdge;
     const ticks = Array.from({ length: 5 }, (_, i) => start + (span * i) / 4);
     const kinds = this._kindsPresent(this._events);
@@ -405,6 +430,16 @@ export class HaCameraTimeline extends LitElement {
                 ></div>`
               : nothing
           }
+          ${chosen.map(
+            ([from, to]) =>
+              html`<div
+                class="chosen"
+                style=${styleMap({
+                  left: pct(from),
+                  width: `calc(${pct(to)} - ${pct(from)})`,
+                })}
+              ></div>`
+          )}
           ${ranges.map(
             ([from, to]) =>
               html`<div
@@ -463,6 +498,14 @@ export class HaCameraTimeline extends LitElement {
                     "ui.components.camera_timeline.not_recorded"
                   )}</span
                 >${
+                  chosen.length
+                    ? html`<span
+                        ><i class="swatch chosen"></i>${this._localize(
+                          "ui.components.camera_timeline.not_kept_by_choice"
+                        )}</span
+                      >`
+                    : nothing
+                }${
                   this._config.user?.is_admin
                     ? html`<a href="/config/camera_recording"
                         >${this._localize(
@@ -765,6 +808,13 @@ export class HaCameraTimeline extends LitElement {
         var(--card-background-color, #fff)
       );
     }
+    .chosen {
+      background: color-mix(
+        in srgb,
+        var(--secondary-text-color) 22%,
+        var(--card-background-color, #fff)
+      );
+    }
     .gap {
       background: repeating-linear-gradient(
         45deg,
@@ -825,6 +875,13 @@ export class HaCameraTimeline extends LitElement {
       background: color-mix(
         in srgb,
         var(--success-color) 60%,
+        var(--card-background-color, #fff)
+      );
+    }
+    .swatch.chosen {
+      background: color-mix(
+        in srgb,
+        var(--secondary-text-color) 22%,
         var(--card-background-color, #fff)
       );
     }

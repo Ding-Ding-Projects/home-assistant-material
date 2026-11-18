@@ -48,7 +48,9 @@ class SegmentView(HomeAssistantView):
         return web.FileResponse(
             path,
             headers={
-                "Content-Type": "video/mp4",
+                "Content-Type": (
+                    "image/jpeg" if name.endswith(".jpg") else "video/mp4"
+                ),
                 "Cache-Control": "private, max-age=3600",
             },
         )

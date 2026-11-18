@@ -3,6 +3,7 @@ import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
 import { ifDefined } from "lit/directives/if-defined";
 import { styleMap } from "lit/directives/style-map";
 import { consume } from "../common/decorators/consume";
@@ -17,12 +18,26 @@ import {
   webRtcOffer,
   type WebRtcOfferEvent,
 } from "../data/camera";
+import {
+  cameraLive,
+  computeLiveView,
+  formatCountdown,
+  isRateLimitMessage,
+  mayStartLive,
+  type LiveListener,
+  type LiveViewKind,
+} from "../data/camera-live-session";
 import { apiContext, connectionContext } from "../data/context";
-import "./ha-alert";
+import "./ha-button";
 import "./ha-spinner";
 import { showToast } from "../util/toast";
 
 const HIDDEN_CLEANUP_DELAY = 60000;
+
+// A camera scrolled out of view keeps its video this long before it stops
+const OFFSCREEN_CLEANUP_DELAY = 15000;
+
+let nextPlayerId = 0;
 
 interface WebRtcPlayerError {
   type: "not_supported" | "start_failed" | "connect_failed";
@@ -70,7 +85,24 @@ export class HaWebRtcPlayer extends LitElement {
 
   @property({ attribute: "poster-url" }) public posterUrl?: string;
 
+  /** The camera entity's state, to tell an offline camera from one still starting */
+  @property({ attribute: false }) public entityState?: string;
+
+  /** Wait for a tap before asking the provider for live video */
+  @property({ type: Boolean, attribute: "tap-to-start" })
+  public tapToStart = false;
+
   @state() private _error?: WebRtcPlayerError;
+
+  @state() private _playing = false;
+
+  @state() private _tapped = false;
+
+  @state() private _visible = false;
+
+  @state() private _showDetails = false;
+
+  @state() private _tick = 0;
 
   @state() private _reconnectPoster?: string;
 
@@ -87,6 +119,37 @@ export class HaWebRtcPlayer extends LitElement {
   private _microphoneSender?: RTCRtpSender;
 
   private _timerRunning = false;
+
+  private readonly _playerId = `player-${nextPlayerId++}`;
+
+  private _joinedEntity?: string;
+
+  private _intersection?: IntersectionObserver;
+
+  private _offscreenTimeout?: number;
+
+  private _tickTimer?: number;
+
+  private _restartedIce = false;
+
+  private _lastKind?: LiveViewKind;
+
+  private _liveListener: LiveListener = {
+    onStream: (stream) => {
+      this._attachSharedStream(stream);
+    },
+    onPromote: () => {
+      this._startWebRtc();
+    },
+    onError: (message) => {
+      this._error = { type: "start_failed", message };
+      this._scheduleTick();
+    },
+    onLimit: () => {
+      this._scheduleTick();
+      this.requestUpdate();
+    },
+  };
 
   private _microphoneConnecting = false;
 
@@ -211,22 +274,40 @@ export class HaWebRtcPlayer extends LitElement {
       // stream was not cleaned up yet, just cancel the cleanup
       clearTimeout(this._hiddenCleanupTimeout);
       this._hiddenCleanupTimeout = undefined;
-    } else {
-      this._startWebRtc();
+    } else if (!this._error) {
+      this._maybeStart();
     }
   };
 
+  private get _limitedSeconds(): number {
+    return this.entityid ? cameraLive.limitedSeconds(this.entityid) : 0;
+  }
+
+  private get _waitingForTap(): boolean {
+    return (
+      this.tapToStart &&
+      !this._tapped &&
+      !(this.entityid && cameraLive.hasStream(this.entityid))
+    );
+  }
+
+  private _viewKind(): LiveViewKind {
+    return computeLiveView({
+      entityState: this.entityState,
+      playing: this._playing,
+      error: this._error?.message ?? this._error?.type,
+      limitedSeconds: this._limitedSeconds,
+      waitingForTap: this._waitingForTap && !this._error,
+    });
+  }
+
   protected override render(): TemplateResult {
-    if (this._error) {
-      return html`<ha-alert alert-type="error">
-        ${this._localize(`ui.components.web-rtc-player.${this._error.type}`, {
-          message: this._error.message ?? "",
-        })}
-      </ha-alert>`;
-    }
+    const kind = this._viewKind();
+    const showVideo = kind === "live" || Boolean(this._reconnectPoster);
     return html`
       <video
         id="remote-stream"
+        class=${classMap({ hidden: !showVideo })}
         ?autoplay=${this.autoPlay}
         .muted=${this.muted}
         ?playsinline=${this.playsInline}
@@ -247,15 +328,247 @@ export class HaWebRtcPlayer extends LitElement {
             </div>`
           : nothing
       }
+      ${showVideo ? nothing : this._renderState(kind)}
     `;
+  }
+
+  private _renderState(kind: LiveViewKind): TemplateResult {
+    const l = (key: string, values?: Record<string, string | number>) =>
+      this._localize(
+        `ui.components.web-rtc-player.state.${key}` as "ui.components.web-rtc-player.state.starting_title",
+        values
+      );
+    const poster = this.posterUrl
+      ? { backgroundImage: `url("${this.posterUrl}")` }
+      : {};
+    let title: string;
+    let text = "";
+    let action: TemplateResult | typeof nothing = nothing;
+    let details: string | undefined;
+    switch (kind) {
+      case "limited":
+        title = l("limited_title");
+        text = l("limited_text", {
+          time: formatCountdown(this._limitedSeconds),
+        });
+        details = this._error?.message;
+        action = html`<ha-button size="small" @click=${this._tryNow}
+          >${l("try_now")}</ha-button
+        >`;
+        break;
+      case "offline":
+        title = l("offline_title");
+        text = l("offline_text");
+        break;
+      case "error":
+        title = l("error_title");
+        text =
+          this._error?.type === "not_supported"
+            ? this._localize("ui.components.web-rtc-player.not_supported")
+            : l("error_text");
+        details = this._error?.message;
+        action = html`<ha-button size="small" @click=${this._tryNow}
+          >${l("try_again")}</ha-button
+        >`;
+        break;
+      case "placeholder":
+        title = l("placeholder_title");
+        text = l("placeholder_text");
+        action = html`<ha-button size="small" @click=${this._tap}
+          >${l("start")}</ha-button
+        >`;
+        break;
+      default:
+        title = l("starting_title");
+    }
+    return html`
+      <div
+        class="state ${kind}"
+        role=${kind === "starting" ? "status" : "group"}
+        aria-live="polite"
+        style=${styleMap({
+          aspectRatio: this.aspectRatio ?? 16 / 9,
+          ...poster,
+        })}
+      >
+        <div class="message">
+          ${
+            kind === "starting"
+              ? html`<ha-spinner size="small"></ha-spinner>`
+              : nothing
+          }
+          <b>${title}</b>
+          ${text ? html`<span>${text}</span>` : nothing} ${action}
+          ${
+            details
+              ? html`<div class="service">
+                  <button
+                    class="link"
+                    aria-expanded=${this._showDetails}
+                    @click=${this._toggleDetails}
+                  >
+                    ${l("service_said")} ·
+                    ${this._showDetails ? l("hide_details") : l("show_details")}
+                  </button>
+                  ${this._showDetails ? html`<code>${details}</code>` : nothing}
+                </div>`
+              : nothing
+          }
+        </div>
+      </div>
+    `;
+  }
+
+  private _toggleDetails() {
+    this._showDetails = !this._showDetails;
+  }
+
+  private _tryNow() {
+    if (!this.entityid) {
+      return;
+    }
+    cameraLive.skipWait(this.entityid);
+    this._error = undefined;
+    this._tapped = true;
+    this._maybeStart();
+  }
+
+  private _tap() {
+    this._tapped = true;
+    this._maybeStart();
+  }
+
+  protected override updated(changed: PropertyValues<this>) {
+    super.updated(changed);
+    const kind = this._viewKind();
+    if (kind !== this._lastKind) {
+      this._lastKind = kind;
+      fireEvent(this, "camera-live-state", { kind });
+    }
   }
 
   public override connectedCallback() {
     super.connectedCallback();
-    if (this.hasUpdated && this.entityid) {
-      this._startWebRtc();
-    }
+    this._observeVisibility();
     document.addEventListener("visibilitychange", this._handleVisibilityChange);
+  }
+
+  private _observeVisibility() {
+    if (typeof IntersectionObserver === "undefined") {
+      this._visible = true;
+      this._maybeStart();
+      return;
+    }
+    this._intersection = new IntersectionObserver((entries) => {
+      const visible = entries.some((entry) => entry.isIntersecting);
+      if (visible === this._visible) {
+        return;
+      }
+      this._visible = visible;
+      clearTimeout(this._offscreenTimeout);
+      this._offscreenTimeout = undefined;
+      if (visible) {
+        this._maybeStart();
+      } else {
+        this._offscreenTimeout = window.setTimeout(() => {
+          this._offscreenTimeout = undefined;
+          this._stopForNow();
+        }, OFFSCREEN_CLEANUP_DELAY);
+      }
+    });
+    this._intersection.observe(this);
+  }
+
+  /** Starts live video only when the camera is on screen, not waiting and not limited. */
+  private _maybeStart() {
+    if (!this.isConnected || !this.entityid) {
+      return;
+    }
+    if (
+      !mayStartLive({
+        visible: this._visible,
+        limitedSeconds: this._limitedSeconds,
+        waitingForTap: this._waitingForTap,
+      })
+    ) {
+      this._scheduleTick();
+      return;
+    }
+    if (this._peerConnection || this._unsub) {
+      return;
+    }
+    this._joinSession();
+    if (cameraLive.role(this.entityid, this._playerId) === "viewer") {
+      // The holder of the session shows its stream through the listener
+      this._error = undefined;
+      return;
+    }
+    this._startWebRtc();
+  }
+
+  private _joinSession() {
+    if (!this.entityid || this._joinedEntity === this.entityid) {
+      return;
+    }
+    this._leaveSession();
+    this._joinedEntity = this.entityid;
+    cameraLive.join(this.entityid, this._playerId, this._liveListener);
+  }
+
+  private _leaveSession() {
+    if (this._joinedEntity) {
+      cameraLive.leave(this._joinedEntity, this._playerId);
+      this._joinedEntity = undefined;
+    }
+  }
+
+  /** Stops the video but keeps the place in the shared session. */
+  private _stopForNow() {
+    this._cleanUp();
+    this._playing = false;
+  }
+
+  private _attachSharedStream(stream?: MediaStream) {
+    const video = this._videoEl;
+    if (!video) {
+      return;
+    }
+    if (!stream) {
+      video.srcObject = null;
+      this._playing = false;
+      return;
+    }
+    video.srcObject = stream;
+    this._error = undefined;
+  }
+
+  private _scheduleTick() {
+    if (this._limitedSeconds <= 0) {
+      window.clearInterval(this._tickTimer);
+      this._tickTimer = undefined;
+      return;
+    }
+    if (this._tickTimer === undefined) {
+      this._tickTimer = window.setInterval(() => {
+        this._tick++;
+        if (this._limitedSeconds <= 0) {
+          window.clearInterval(this._tickTimer);
+          this._tickTimer = undefined;
+          this._whenWaitEnds();
+        }
+      }, 1000);
+    }
+  }
+
+  // After the wait, only the holder of the session asks again, once.
+  private _whenWaitEnds() {
+    if (
+      this.entityid &&
+      cameraLive.role(this.entityid, this._playerId) === "owner"
+    ) {
+      this._error = undefined;
+      this._maybeStart();
+    }
   }
 
   public override disconnectedCallback() {
@@ -266,7 +579,15 @@ export class HaWebRtcPlayer extends LitElement {
     );
     clearTimeout(this._hiddenCleanupTimeout);
     this._hiddenCleanupTimeout = undefined;
+    clearTimeout(this._offscreenTimeout);
+    window.clearInterval(this._tickTimer);
+    this._tickTimer = undefined;
+    this._intersection?.disconnect();
+    this._intersection = undefined;
+    this._visible = false;
     this._cleanUp();
+    this._leaveSession();
+    this._playing = false;
   }
 
   protected override willUpdate(changedProperties: PropertyValues<this>) {
@@ -274,7 +595,11 @@ export class HaWebRtcPlayer extends LitElement {
     if (!changedProperties.has("entityid")) {
       return;
     }
-    this._startWebRtc();
+    this._cleanUp();
+    this._leaveSession();
+    this._playing = false;
+    this._error = undefined;
+    this._maybeStart();
   }
 
   private async _startWebRtc(
@@ -305,6 +630,7 @@ export class HaWebRtcPlayer extends LitElement {
     }
 
     this._error = undefined;
+    this._restartedIce = false;
 
     this._startTimer();
 
@@ -444,6 +770,13 @@ export class HaWebRtcPlayer extends LitElement {
       this._peerConnection?.iceConnectionState
     );
     if (this._peerConnection?.iceConnectionState === "failed") {
+      // Restarting ICE sends a new offer to the camera service, which counts
+      // against its limits, so it is tried once per start.
+      if (this._restartedIce) {
+        this._failStart({ type: "connect_failed", message: "ICE failed" });
+        return;
+      }
+      this._restartedIce = true;
       this._peerConnection.restartIce();
     }
   };
@@ -536,6 +869,13 @@ export class HaWebRtcPlayer extends LitElement {
       await this.updateComplete;
     }
     this._videoEl.srcObject = this._remoteStream;
+    if (this._joinedEntity && !this._localReturnAudioTrack) {
+      cameraLive.publish(
+        this._joinedEntity,
+        this._playerId,
+        this._remoteStream
+      );
+    }
   };
 
   private async _handleAnswer(
@@ -587,6 +927,17 @@ export class HaWebRtcPlayer extends LitElement {
   }
 
   private _failStart(error: WebRtcPlayerError) {
+    if (this.entityid && isRateLimitMessage(error.message)) {
+      cameraLive.recordRateLimit(this.entityid);
+      this._scheduleTick();
+    }
+    if (this._joinedEntity) {
+      cameraLive.fail(
+        this._joinedEntity,
+        this._playerId,
+        error.message ?? error.type
+      );
+    }
     // The camera can reject the microphone, keep the video running without it
     if (this._localReturnAudioTrack && this._microphoneConnecting) {
       showToast(this, {
@@ -599,10 +950,14 @@ export class HaWebRtcPlayer extends LitElement {
       return;
     }
     this._error = error;
+    this._playing = false;
     this._cleanUp();
   }
 
   private _cleanUp() {
+    if (this._joinedEntity) {
+      cameraLive.publish(this._joinedEntity, this._playerId, undefined);
+    }
     this._cleanUpCount++;
     this._microphoneRequest++;
     if (this._remoteStream) {
@@ -663,6 +1018,10 @@ export class HaWebRtcPlayer extends LitElement {
 
     fireEvent(this, "load");
     fireEvent(this, "streams", data);
+    this._playing = data.hasVideo;
+    if (data.hasVideo && this.entityid) {
+      cameraLive.recordSuccess(this.entityid);
+    }
 
     this._logEvent("loadedData", data);
     this._stopTimer();
@@ -726,6 +1085,83 @@ export class HaWebRtcPlayer extends LitElement {
       max-height: var(--video-max-height, calc(100vh - 97px));
     }
 
+    video.hidden {
+      display: none;
+    }
+
+    .state {
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      text-align: center;
+      background-color: var(--ha-color-fill-neutral-quiet-resting, #1b1c20);
+      background-size: cover;
+      background-position: center;
+      color: var(--primary-text-color);
+    }
+
+    .state .message {
+      box-sizing: border-box;
+      min-width: 0;
+      max-width: 100%;
+      max-height: 100%;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--ha-space-1);
+      padding: var(--ha-space-3);
+      border-radius: var(--ha-border-radius-lg);
+      background: color-mix(
+        in srgb,
+        var(--card-background-color) 82%,
+        transparent
+      );
+    }
+
+    .state b {
+      font-size: var(--ha-font-size-m);
+      font-weight: var(--ha-font-weight-medium);
+      overflow-wrap: anywhere;
+    }
+
+    .state span {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+      overflow-wrap: anywhere;
+    }
+
+    .service {
+      min-width: 0;
+      max-width: 100%;
+      font-size: var(--ha-font-size-s);
+    }
+
+    .service code {
+      display: block;
+      max-height: 6em;
+      overflow: auto;
+      margin-top: var(--ha-space-1);
+      text-align: start;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: var(--secondary-text-color);
+    }
+
+    button.link {
+      min-height: 32px;
+      padding: 0 var(--ha-space-2);
+      border: none;
+      background: none;
+      color: var(--primary-color);
+      font: inherit;
+      cursor: pointer;
+    }
+
     .reconnecting {
       position: absolute;
       inset: 0;
@@ -744,5 +1180,6 @@ declare global {
   }
   interface HASSDomEvents {
     "microphone-changed": { state: WebRtcMicrophoneState };
+    "camera-live-state": { kind: LiveViewKind };
   }
 }

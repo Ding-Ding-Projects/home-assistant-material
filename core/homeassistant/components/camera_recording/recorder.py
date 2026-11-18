@@ -14,9 +14,16 @@ from homeassistant.components.ffmpeg import get_ffmpeg_manager
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import LOGGER, RESTART_BACKOFF_SECONDS, SEGMENT_SUFFIX, SEGMENT_TIME_FORMAT
+from .backoff import is_rate_limited, wait_for_attempt
+from .const import (
+    LOGGER,
+    NO_STREAM_WAIT_SECONDS,
+    RATE_LIMIT_WAIT_SECONDS,
+    RESTART_BACKOFF_SECONDS,
+    SEGMENT_SUFFIX,
+    SEGMENT_TIME_FORMAT,
+)
 
-NO_STREAM_RETRY_SECONDS = 60
 STABLE_RUN_SECONDS = 120
 STOP_TIMEOUT = 10
 
@@ -28,6 +35,7 @@ class RecorderState(StrEnum):
     RECORDING = "recording"
     RECONNECTING = "reconnecting"
     NO_STREAM = "no_stream"
+    LIMITED = "limited"
     PAUSED = "paused"
     STOPPED = "stopped"
 
@@ -86,6 +94,8 @@ class CameraRecorder:
         self._on_change = on_change
         self.state = RecorderState.STOPPED
         self.last_error: str | None = None
+        self.no_source = False
+        self.retry_at: float | None = None
         self.started_at: float | None = None
         self._task: asyncio.Task[None] | None = None
         self._process: asyncio.subprocess.Process | None = None
@@ -132,21 +142,48 @@ class CameraRecorder:
             self._task = None
         self._set(RecorderState.PAUSED if paused else RecorderState.STOPPED)
 
+    def configure(self, folder: Path, segment_seconds: int) -> None:
+        """Change where and how long the files are before the next start."""
+        self.folder = folder
+        self.segment_seconds = segment_seconds
+
+    async def _wait(self, seconds: float) -> None:
+        self.retry_at = time.time() + seconds
+        try:
+            await asyncio.sleep(seconds)
+        finally:
+            self.retry_at = None
+
     async def _run(self) -> None:
         attempt = 0
+        no_stream_attempt = 0
+        limited_attempt = 0
         while not self._stopping:
+            error: str | None = None
             try:
                 source = await async_get_stream_source(self.hass, self.entity_id)
             except HomeAssistantError as err:
                 source = None
-                self.last_error = str(err)
+                error = str(err)
+                self.last_error = error
             if not source:
-                self._set(
-                    RecorderState.NO_STREAM,
-                    self.last_error or "The camera does not offer a video stream",
-                )
-                await asyncio.sleep(NO_STREAM_RETRY_SECONDS)
+                self.no_source = error is None
+                if is_rate_limited(error):
+                    delay = wait_for_attempt(limited_attempt, RATE_LIMIT_WAIT_SECONDS)
+                    limited_attempt += 1
+                    self._set(RecorderState.LIMITED, error)
+                else:
+                    delay = wait_for_attempt(no_stream_attempt, NO_STREAM_WAIT_SECONDS)
+                    no_stream_attempt += 1
+                    self._set(
+                        RecorderState.NO_STREAM,
+                        error or "The camera does not offer a video stream",
+                    )
+                await self._wait(delay)
                 continue
+            self.no_source = False
+            limited_attempt = 0
+            no_stream_attempt = 0
 
             await self.hass.async_add_executor_job(
                 lambda: self.folder.mkdir(parents=True, exist_ok=True)
@@ -192,4 +229,4 @@ class CameraRecorder:
                 min(attempt, len(RESTART_BACKOFF_SECONDS) - 1)
             ]
             attempt += 1
-            await asyncio.sleep(delay)
+            await self._wait(delay)

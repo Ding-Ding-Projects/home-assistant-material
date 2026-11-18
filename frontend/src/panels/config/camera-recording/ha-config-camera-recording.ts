@@ -6,11 +6,18 @@ import { relativeTime } from "../../../common/datetime/relative_time";
 import { navigate } from "../../../common/navigate";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
+import "../../../components/ha-button-toggle-group";
 import "../../../components/ha-card";
+import "../../../components/ha-checkbox";
+import "../../../components/ha-slider";
 import "../../../components/ha-svg-icon";
 import {
+  amountKey,
   fetchRecordingStatus,
   pauseRecording,
+  setRecordingAmount,
+  type RecordingAmount,
+  type RecordingCameraStatus,
   type RecordingDestinationStatus,
 } from "../../../data/camera_recording";
 import { getConfigEntry } from "../../../data/config_entries";
@@ -26,6 +33,7 @@ const STATE_TONES: Record<string, string> = {
   starting: "busy",
   reconnecting: "warn",
   no_stream: "warn",
+  limited: "warn",
   paused: "off",
   stopped: "off",
 };
@@ -40,6 +48,10 @@ export class HaConfigCameraRecording extends LitElement {
   @state() private _status?: RecordingDestinationStatus[];
 
   @state() private _error?: string;
+
+  @state() private _problem?: string;
+
+  @state() private _open = new Set<string>();
 
   private _timer?: number;
 
@@ -214,16 +226,7 @@ export class HaConfigCameraRecording extends LitElement {
                           .friendly_name ?? cam.entity_id
                       }
                     </td>
-                    <td>
-                      <span class="pill ${STATE_TONES[cam.state] ?? "off"}"
-                        >${this._l(`states.${cam.state}`)}</span
-                      >
-                      ${
-                        cam.error && cam.state !== "recording"
-                          ? html`<div class="problem">${cam.error}</div>`
-                          : nothing
-                      }
-                    </td>
+                    <td>${this._renderState(cam)}</td>
                     <td>${this._time(cam.newest)}</td>
                     <td>${cam.waiting}</td>
                     <td>${this._time(cam.oldest)}</td>
@@ -243,6 +246,9 @@ export class HaConfigCameraRecording extends LitElement {
                         ${this._l(cam.state === "paused" ? "resume" : "pause")}
                       </ha-button>
                     </td>
+                  </tr>
+                  <tr class="amount-row">
+                    <td colspan="6">${this._renderAmount(dest, cam)}</td>
                   </tr>
                 `
               )}
@@ -273,6 +279,292 @@ export class HaConfigCameraRecording extends LitElement {
         </div>
       </ha-card>
     `;
+  }
+
+  private _renderState(cam: RecordingCameraStatus) {
+    const key = amountKey(cam);
+    if (cam.provider_only) {
+      const kept = cam.event_clips > 0;
+      return html`<span class="pill ${kept ? "ok" : "warn"}"
+          >${this._l("states.event_clips")}</span
+        >
+        <div class="problem">${this._l("provider_only_note")}</div>`;
+    }
+    return html`<span class="pill ${STATE_TONES[cam.state] ?? "off"}"
+        >${this._l(`states.${cam.state}`)}</span
+      >
+      ${
+        key === "light" && cam.state === "recording"
+          ? html`<div class="problem">${this._l("light_short")}</div>`
+          : nothing
+      }
+      ${
+        cam.error && cam.state !== "recording"
+          ? html`<div class="problem">${cam.error}</div>`
+          : nothing
+      }`;
+  }
+
+  private _renderAmount(
+    dest: RecordingDestinationStatus,
+    cam: RecordingCameraStatus
+  ) {
+    const buttons: { value: RecordingAmount; label: string }[] = [];
+    if (cam.continuous_possible) {
+      buttons.push({ value: "all_day", label: this._l("amount.all_day") });
+    }
+    if (cam.light_possible) {
+      buttons.push({ value: "light", label: this._l("amount.light") });
+    }
+    buttons.push({ value: "off", label: this._l("amount.off") });
+    const active: RecordingAmount = cam.provider_only
+      ? cam.effective_mode === "off"
+        ? "off"
+        : "light"
+      : cam.effective_mode;
+    const open = this._open.has(cam.entity_id);
+    const mb = bytesToString(cam.bytes_today);
+    return html`
+      <div class="amount">
+        <div class="amount-head">
+          <span class="amount-title"
+            >${this._l("amount.title")} ·
+            ${
+              this.hass.states[cam.entity_id]?.attributes.friendly_name ??
+              cam.entity_id
+            }</span
+          >
+          <ha-button-toggle-group
+            size="s"
+            .buttons=${buttons}
+            .active=${active}
+            .entryId=${dest.entry_id}
+            .entity=${cam.entity_id}
+            @value-changed=${this._amountChanged}
+          ></ha-button-toggle-group>
+        </div>
+        <p class="amount-text">
+          ${
+            cam.provider_only
+              ? this._l("amount.provider_only", { days: dest.keep_days })
+              : this._l(`amount.explain_${active}`, {
+                  pre: cam.pre,
+                  post: cam.post,
+                })
+          }
+        </p>
+        ${
+          active === "light"
+            ? html`<p class="amount-today">
+                ${this._l("amount.today", { count: cam.events_today, size: mb })}
+              </p>`
+            : nothing
+        }
+        ${
+          cam.mode_reason === "no_event_source" ||
+          (!cam.light_possible && !cam.provider_only)
+            ? html`<p class="amount-note">
+                ${this._l("amount.no_event_source")}
+              </p>`
+            : nothing
+        }
+        ${
+          cam.cap_hit
+            ? html`<p class="amount-note">
+                ${this._l("amount.cap_hit", {
+                  minutes: Math.round(cam.max_clip / 60),
+                })}
+              </p>`
+            : nothing
+        }
+        <p class="amount-note">${this._l("amount.keeps_existing")}</p>
+        ${
+          active === "light" && !cam.provider_only
+            ? this._renderLightSettings(dest, cam, open)
+            : nothing
+        }
+      </div>
+    `;
+  }
+
+  private _renderLightSettings(
+    dest: RecordingDestinationStatus,
+    cam: RecordingCameraStatus,
+    open: boolean
+  ) {
+    return html`
+      <div class="sliders">
+        <label>
+          <span>${this._l("amount.before", { seconds: cam.pre })}</span>
+          <ha-slider
+            labeled
+            min="0"
+            max="60"
+            step="5"
+            .value=${cam.pre}
+            .entryId=${dest.entry_id}
+            .entity=${cam.entity_id}
+            .field=${"pre"}
+            @change=${this._secondsChanged}
+          ></ha-slider>
+        </label>
+        <label>
+          <span>${this._l("amount.after", { seconds: cam.post })}</span>
+          <ha-slider
+            labeled
+            min="5"
+            max="300"
+            step="5"
+            .value=${cam.post}
+            .entryId=${dest.entry_id}
+            .entity=${cam.entity_id}
+            .field=${"post"}
+            @change=${this._secondsChanged}
+          ></ha-slider>
+        </label>
+      </div>
+      <button
+        class="link"
+        aria-expanded=${open}
+        .entity=${cam.entity_id}
+        @click=${this._toggleSources}
+      >
+        ${this._l("amount.sources")} ·
+        ${
+          cam.sources_chosen === null
+            ? this._l("amount.sources_auto")
+            : this._l("amount.sources_count", { count: cam.sources.length })
+        }
+      </button>
+      ${
+        open
+          ? html`<div class="sources">
+              <label class="source">
+                <ha-checkbox
+                  .checked=${cam.sources_chosen === null}
+                  .entryId=${dest.entry_id}
+                  .entity=${cam.entity_id}
+                  @change=${this._autoSources}
+                ></ha-checkbox>
+                ${this._l("amount.sources_auto")}
+              </label>
+              ${cam.source_options.map(
+                (option) =>
+                  html`<label class="source">
+                    <ha-checkbox
+                      .checked=${cam.sources.includes(option.source)}
+                      .disabled=${cam.sources_chosen === null}
+                      .entryId=${dest.entry_id}
+                      .entity=${cam.entity_id}
+                      .source=${option.source}
+                      @change=${this._sourceChanged}
+                    ></ha-checkbox>
+                    ${
+                      option.source === "integration"
+                        ? this._l("amount.source_integration")
+                        : (this.hass.states[option.source]?.attributes
+                            .friendly_name ?? option.source)
+                    }
+                    <span class="kind"
+                      >${this._l(
+                        `amount.kinds.${option.kind}` as "amount.kinds.motion"
+                      )}</span
+                    >
+                  </label>`
+              )}
+            </div>`
+          : nothing
+      }
+      ${this._problem ? html`<ha-alert alert-type="error">${this._problem}</ha-alert>` : nothing}
+    `;
+  }
+
+  private _toggleSources(ev: Event) {
+    const entity = (ev.currentTarget as HTMLElement & { entity: string })
+      .entity;
+    const open = new Set(this._open);
+    if (open.has(entity)) {
+      open.delete(entity);
+    } else {
+      open.add(entity);
+    }
+    this._open = open;
+  }
+
+  private async _apply(
+    entryId: string,
+    entity: string,
+    mode: RecordingAmount,
+    extra: { pre?: number; post?: number; sources?: string[] | null } = {}
+  ) {
+    try {
+      await setRecordingAmount(this.hass, entryId, entity, mode, extra);
+      this._problem = undefined;
+    } catch (err: unknown) {
+      const code = (err as { code?: string } | undefined)?.code;
+      this._problem =
+        code === "no_event_source"
+          ? this._l("amount.no_event_source")
+          : ((err as Error | undefined)?.message ?? String(err));
+    }
+    await this._load();
+  }
+
+  private async _amountChanged(ev: CustomEvent<{ value: RecordingAmount }>) {
+    const target = ev.currentTarget as HTMLElement & {
+      entryId: string;
+      entity: string;
+    };
+    await this._apply(target.entryId, target.entity, ev.detail.value);
+  }
+
+  private async _secondsChanged(ev: Event) {
+    const target = ev.currentTarget as HTMLElement & {
+      entryId: string;
+      entity: string;
+      field: "pre" | "post";
+      value: number;
+    };
+    await this._apply(target.entryId, target.entity, "light", {
+      [target.field]: Number(target.value),
+    });
+  }
+
+  private async _autoSources(ev: Event) {
+    const target = ev.currentTarget as HTMLElement & {
+      entryId: string;
+      entity: string;
+      checked: boolean;
+    };
+    const cam = this._camera(target.entryId, target.entity);
+    await this._apply(target.entryId, target.entity, "light", {
+      sources: target.checked ? null : (cam?.sources ?? []),
+    });
+  }
+
+  private async _sourceChanged(ev: Event) {
+    const target = ev.currentTarget as HTMLElement & {
+      entryId: string;
+      entity: string;
+      source: string;
+      checked: boolean;
+    };
+    const cam = this._camera(target.entryId, target.entity);
+    const chosen = new Set(cam?.sources_chosen ?? cam?.sources ?? []);
+    if (target.checked) {
+      chosen.add(target.source);
+    } else {
+      chosen.delete(target.source);
+    }
+    await this._apply(target.entryId, target.entity, "light", {
+      sources: [...chosen],
+    });
+  }
+
+  private _camera(entryId: string, entity: string) {
+    return this._status
+      ?.find((dest) => dest.entry_id === entryId)
+      ?.cameras.find((cam) => cam.entity_id === entity);
   }
 
   private _time(seconds: number | null) {
@@ -398,6 +690,72 @@ export class HaConfigCameraRecording extends LitElement {
     .pill.busy {
       background: color-mix(in srgb, var(--info-color) 22%, transparent);
     }
+    .amount-row td {
+      padding-top: 0;
+    }
+    .amount {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+      min-width: 0;
+    }
+    .amount-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-2);
+    }
+    .amount-title {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .amount p {
+      margin: 0;
+      font-size: var(--ha-font-size-s);
+      overflow-wrap: anywhere;
+    }
+    .amount-note,
+    .amount-today {
+      color: var(--secondary-text-color);
+    }
+    .sliders {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--ha-space-2);
+    }
+    .sliders label {
+      display: flex;
+      flex-direction: column;
+      font-size: var(--ha-font-size-s);
+    }
+    .sources {
+      display: flex;
+      flex-direction: column;
+    }
+    .source {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      min-height: 44px;
+      font-size: var(--ha-font-size-s);
+    }
+    .kind {
+      color: var(--secondary-text-color);
+    }
+    button.link {
+      align-self: flex-start;
+      min-height: 44px;
+      padding: 0;
+      border: none;
+      background: none;
+      color: var(--primary-color);
+      font: inherit;
+      font-size: var(--ha-font-size-s);
+      cursor: pointer;
+    }
     .problem {
       font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);
@@ -424,10 +782,16 @@ export class HaConfigCameraRecording extends LitElement {
         border: none;
         padding: var(--ha-space-1) var(--ha-space-2);
       }
+      tr.amount-row {
+        display: block;
+      }
       td:nth-child(3),
       td:nth-child(4),
       td:nth-child(5) {
         display: none;
+      }
+      tr.amount-row td:nth-child(n) {
+        display: block;
       }
     }
   `;

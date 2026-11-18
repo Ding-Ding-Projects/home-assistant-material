@@ -29,6 +29,7 @@ KEEP = {
     CONF_MAX_GB: 500,
     CONF_BUFFER_HOURS: 2,
     CONF_SEGMENT_MINUTES: 10,
+    "default_mode": "all_day",
 }
 SSH_INPUT = {
     CONF_HOST: "192.168.1.40",

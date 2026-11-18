@@ -37,6 +37,7 @@ from homeassistant.util.ulid import ulid
 from .const import (
     CONF_BUFFER_HOURS,
     CONF_CAMERAS,
+    CONF_DEFAULT_MODE,
     CONF_DESTINATION,
     CONF_DOMAIN,
     CONF_KEEP_DAYS,
@@ -47,8 +48,12 @@ from .const import (
     CONF_SHARE,
     DEFAULT_BUFFER_HOURS,
     DEFAULT_KEEP_DAYS,
+    DEFAULT_MODE,
     DEFAULT_MAX_GB,
     DEFAULT_SEGMENT_MINUTES,
+    MODE_ALL_DAY,
+    MODE_LIGHT,
+    MODE_OFF,
     DEST_LOCAL,
     DEST_SCP,
     DEST_SFTP,
@@ -167,6 +172,14 @@ def keep_schema(hass: HomeAssistant, defaults: dict[str, Any]) -> probatio.Schem
                     mode=NumberSelectorMode.BOX,
                 )
             ),
+            probatio.Required(
+                CONF_DEFAULT_MODE, default=defaults.get(CONF_DEFAULT_MODE, DEFAULT_MODE)
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=[MODE_ALL_DAY, MODE_LIGHT, MODE_OFF],
+                    translation_key="recording_amount",
+                )
+            ),
         }
     )
 
@@ -193,6 +206,7 @@ def _clean_keep(user_input: dict[str, Any]) -> dict[str, Any]:
         CONF_MAX_GB: float(user_input[CONF_MAX_GB]),
         CONF_BUFFER_HOURS: float(user_input[CONF_BUFFER_HOURS]),
         CONF_SEGMENT_MINUTES: int(user_input[CONF_SEGMENT_MINUTES]),
+        CONF_DEFAULT_MODE: str(user_input.get(CONF_DEFAULT_MODE, DEFAULT_MODE)),
     }
 
 

@@ -30,6 +30,7 @@ import "../../../components/ha-svg-icon";
 import "../../../components/ha-tooltip";
 import type { WebRtcMicrophoneState } from "../../../components/ha-web-rtc-player";
 import { getSignedPath } from "../../../data/auth";
+import type { LiveViewKind } from "../../../data/camera-live-session";
 import { STREAM_TYPE_WEB_RTC, type CameraEntity } from "../../../data/camera";
 import {
   segmentAfter,
@@ -73,6 +74,8 @@ class MoreInfoCamera extends LitElement {
   @state() private _playing?: { segment: RecordedSegment; url: string };
 
   @state() private _paused = false;
+
+  @state() private _liveKind?: LiveViewKind;
 
   @state() private _rate = "1";
 
@@ -160,11 +163,34 @@ class MoreInfoCamera extends LitElement {
       return nothing;
     }
 
+    const isImage = this._playing?.segment.kind === "event_image";
+    const showLive = !this._playing && this._liveKind === "live";
     return html`
+      ${
+        showLive || this._playing
+          ? html`<div class="media-head">
+              ${
+                this._playing
+                  ? html`<span class="chip recorded-chip">
+                      ${this._localize("ui.components.camera_timeline.recorded")}
+                    </span>`
+                  : html`<span class="chip live-chip">
+                      ${this._localize("ui.dialogs.more_info_control.camera.live")}
+                    </span>`
+              }
+            </div>`
+          : nothing
+      }
       <div class="video">
         ${
           this._playing
-            ? html`<video
+            ? isImage
+              ? html`<img
+                  class="recording"
+                  .src=${this._playing.url}
+                  alt=${this._localize("ui.components.camera_timeline.recorded")}
+                />`
+              : html`<video
                   class="recording"
                   .src=${this._playing.url}
                   autoplay
@@ -176,28 +202,20 @@ class MoreInfoCamera extends LitElement {
                   @ended=${this._recordingEnded}
                   @pause=${this._recordingPaused}
                   @play=${this._recordingPaused}
-                ></video>
-                <span class="recorded-chip">
-                  ${this._localize("ui.components.camera_timeline.recorded")}
-                </span>`
+                ></video>`
             : html`<ha-camera-stream
-                  .stateObj=${this.stateObj}
-                  allow-exoplayer
-                  controls
-                  @microphone-changed=${this._microphoneChanged}
-                  @stream-type-changed=${this._streamTypeChanged}
-                  @camera-capabilities-changed=${this._capabilitiesChanged}
-                ></ha-camera-stream>
-                ${
-                  this.stateObj.state === "streaming"
-                    ? html`<span class="live-chip">
-                        ${this._localize("ui.dialogs.more_info_control.camera.live")}
-                      </span>`
-                    : nothing
-                }`
+                .stateObj=${this.stateObj}
+                .fitMode=${"contain"}
+                allow-exoplayer
+                controls
+                @microphone-changed=${this._microphoneChanged}
+                @stream-type-changed=${this._streamTypeChanged}
+                @camera-capabilities-changed=${this._capabilitiesChanged}
+                @camera-live-state=${this._liveStateChanged}
+              ></ha-camera-stream>`
         }
       </div>
-      ${this._playing ? this._renderPlaybackControls() : nothing}
+      ${this._playing && !isImage ? this._renderPlaybackControls() : nothing}
       ${
         this._supportsTwoWayAudio && !this._playing
           ? this._renderMicrophoneButton()
@@ -211,6 +229,12 @@ class MoreInfoCamera extends LitElement {
         @camera-timeline-segments=${this._timelineSegments}
       ></ha-camera-timeline>
     `;
+  }
+
+  private _liveStateChanged(
+    ev: HASSDomEvent<HASSDomEvents["camera-live-state"]>
+  ) {
+    this._liveKind = ev.detail.kind;
   }
 
   private _renderPlaybackControls() {
@@ -569,30 +593,51 @@ class MoreInfoCamera extends LitElement {
       display: block;
     }
 
-    .video {
-      position: relative;
-      border-radius: var(--ha-border-radius-3xl);
-      overflow: hidden;
+    .media-head {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      min-height: 28px;
+      margin-bottom: var(--ha-space-2);
     }
 
-    video.recording {
-      display: block;
+    .video {
+      position: relative;
+      box-sizing: border-box;
       width: 100%;
+      max-width: 100%;
+      aspect-ratio: 16 / 9;
       max-height: var(--video-max-height, calc(100vh - 97px));
+      border-radius: var(--ha-border-radius-3xl);
+      overflow: hidden;
       background: #000;
     }
 
-    .recorded-chip {
-      position: absolute;
-      top: var(--ha-space-3);
-      inset-inline-start: var(--ha-space-3);
+    .video ha-camera-stream {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    video.recording,
+    img.recording {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    .chip {
       padding: var(--ha-space-1) var(--ha-space-3);
       border-radius: var(--ha-border-radius-pill);
-      background: rgba(0, 0, 0, 0.6);
-      color: #fff;
       font-size: var(--ha-font-size-s);
       font-weight: var(--ha-font-weight-medium);
-      pointer-events: none;
+    }
+
+    .recorded-chip {
+      background: var(--secondary-background-color);
+      color: var(--primary-text-color);
     }
 
     .playback {
@@ -611,16 +656,8 @@ class MoreInfoCamera extends LitElement {
     }
 
     .live-chip {
-      position: absolute;
-      top: var(--ha-space-3);
-      inset-inline-start: var(--ha-space-3);
-      padding: var(--ha-space-1) var(--ha-space-3);
-      border-radius: var(--ha-border-radius-pill);
       background: var(--error-color);
       color: var(--text-primary-color, #fff);
-      font-size: var(--ha-font-size-s);
-      font-weight: var(--ha-font-weight-medium);
-      pointer-events: none;
     }
 
     .buttons {

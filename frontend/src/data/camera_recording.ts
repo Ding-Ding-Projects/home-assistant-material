@@ -12,9 +12,21 @@ export interface RecordedSegment {
   size: number;
   /** Whether the file is still on this computer, so it plays without a download */
   here: boolean;
+  /** A recording, or the clip or picture of an event kept for a camera with no stream */
+  kind?: "recording" | "event_clip" | "event_image";
+}
+
+export type RecordingAmount = "all_day" | "light" | "off";
+
+export interface CameraAmountPeriod {
+  /** UNIX seconds */
+  since: number;
+  mode: RecordingAmount;
 }
 
 export interface CameraRecordingSegments {
+  /** When the amount changed, so gaps can be explained */
+  modes?: CameraAmountPeriod[];
   /** Whether any recording destination records this camera */
   recorded: boolean;
   /** Whether the camera is being recorded right now */
@@ -240,9 +252,36 @@ export interface RecordingCameraStatus {
     | "recording"
     | "reconnecting"
     | "no_stream"
+    | "limited"
     | "paused"
     | "stopped";
   error: string | null;
+  /** The amount chosen for this camera */
+  mode: RecordingAmount;
+  /** What the camera really does now */
+  effective_mode: RecordingAmount;
+  /** Why the real amount differs from the choice, if it does */
+  mode_reason: "provider_only" | "no_stream" | "no_event_source" | null;
+  /** Seconds kept before and after something is seen, in Light */
+  pre: number;
+  post: number;
+  /** The longest single clip in Light, in seconds */
+  max_clip: number;
+  /** The sources in use, and the ones the owner chose (null for automatic) */
+  sources: string[];
+  sources_chosen: string[] | null;
+  source_options: { source: string; kind: string }[];
+  light_possible: boolean;
+  light_reason: "no_event_source" | null;
+  /** The camera has no stream of its own, so only event clips can be kept */
+  provider_only: boolean;
+  continuous_possible: boolean;
+  /** UNIX seconds when a clip was last cut at its longest length, within a day */
+  cap_hit: number | null;
+  events_today: number;
+  bytes_today: number;
+  /** Event clips and pictures kept */
+  event_clips: number;
   waiting: number;
   segments: number;
   bytes: number;
@@ -258,6 +297,7 @@ export interface RecordingDestinationStatus {
   destination: string;
   label: string;
   keep_days: number;
+  default_mode: RecordingAmount;
   max_bytes: number;
   segment_seconds: number;
   used_bytes: number;
@@ -284,3 +324,27 @@ export const pauseRecording = (
     paused,
     ...(entityId ? { entity_id: entityId } : {}),
   });
+
+export const setRecordingAmount = (
+  hass: Pick<HomeAssistant, "callWS">,
+  entryId: string,
+  entityId: string,
+  mode: RecordingAmount,
+  extra: { pre?: number; post?: number; sources?: string[] | null } = {}
+) =>
+  hass.callWS<RecordingDestinationStatus>({
+    type: "camera_recording/set_mode",
+    entry_id: entryId,
+    entity_id: entityId,
+    mode,
+    ...extra,
+  });
+
+/** The sentence about what a camera keeps, by amount. */
+export const amountKey = (
+  camera: Pick<
+    RecordingCameraStatus,
+    "provider_only" | "effective_mode" | "mode"
+  >
+): "provider_only" | "all_day" | "light" | "off" =>
+  camera.provider_only ? "provider_only" : camera.effective_mode;

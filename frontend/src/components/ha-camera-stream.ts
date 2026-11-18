@@ -71,6 +71,14 @@ export class HaCameraStream extends LitElement {
   @property({ type: Boolean, attribute: "allow-exoplayer" })
   public allowExoPlayer = false;
 
+  /**
+   * Show a still until it is tapped, for a camera that only offers live video
+   * through its provider. Every view of such a camera uses part of the
+   * provider's small allowance, so dashboards must not start them by themselves.
+   */
+  @property({ type: Boolean, attribute: "tap-to-start" })
+  public tapToStart = false;
+
   // Video background image before its loaded
   @state() private _posterUrl?: string;
 
@@ -214,6 +222,8 @@ export class HaCameraStream extends LitElement {
         .muted=${this.muted}
         .controls=${this.controls}
         .entityid=${this.stateObj.entity_id}
+        .entityState=${this.stateObj.state}
+        .tapToStart=${this.tapToStart && this._providerOnly}
         .posterUrl=${this._posterUrl}
         @streams=${this._handleWebRtcStreams}
         class=${stream.visible ? "" : "hidden"}
@@ -223,6 +233,11 @@ export class HaCameraStream extends LitElement {
     }
 
     return nothing;
+  }
+
+  private get _providerOnly(): boolean {
+    const types = this._capabilities?.frontend_stream_types;
+    return types?.length === 1 && types[0] === STREAM_TYPE_WEB_RTC;
   }
 
   private _currentStreams() {
