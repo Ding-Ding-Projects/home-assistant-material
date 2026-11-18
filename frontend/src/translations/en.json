@@ -1374,6 +1374,15 @@
       "entity-type-picker": {
         "no_types": "No types available"
       },
+      "top_bar_search": {
+        "open": "Search this page",
+        "close": "Close search",
+        "previous": "Previous match",
+        "next": "Next match",
+        "no_matches": "No matches",
+        "count": "{current} of {total}",
+        "found_in": "Found in: {places}"
+      },
       "subpage-data-table": {
         "filters": "Filters",
         "summary": "{count, plural,\n  =0 {Nothing here yet}\n  one {# item}\n  other {# items}\n}",
@@ -8534,6 +8543,8 @@
             "unsupported": "This update cannot make a backup",
             "apps_chosen": "{count} chosen",
             "choose_apps": "Choose apps",
+            "apps_row_title": "Apps: choose which apps get a backup first",
+            "apps_row_loading": "Loading your apps",
             "hide_apps": "Hide apps",
             "apps_title": "Choose the apps",
             "apps_search": "Search your apps",

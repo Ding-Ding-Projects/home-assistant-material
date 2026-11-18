@@ -134,12 +134,10 @@ import type { HaSlider } from "../../../components/ha-slider";
 import type { HaSwitch } from "../../../components/ha-switch";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
-import "../../../components/input/ha-input-search";
 import "../../../components/instance-sync/ha-settings-sync-status";
 import "../../../components/setting-info/ha-setting-info";
 import "./ha-personal-schedules";
 import "./ha-personal-shared-defaults";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import {
   showAlertDialog,
   showConfirmationDialog,
@@ -231,6 +229,18 @@ export class HaConfigSectionPersonal extends LitElement {
   @property({ type: Boolean }) public narrow = false;
 
   @state() private _filter = "";
+
+  /** The search in the top bar is open. The page marks matches only then. */
+  @state() private _searchOpen = false;
+
+  /** Which of the matches is the current one. */
+  @state() private _matchIndex = 0;
+
+  /** Ids of the rows and cards that match the search, in page order. */
+  private _matchIds: string[] = [];
+
+  /** Where the matches are, as a line of words. */
+  private _matchPlaces = "";
 
   @state() private _open = new Set<string>();
 
@@ -1277,7 +1287,10 @@ export class HaConfigSectionPersonal extends LitElement {
   private _renderLinkRows(matches: (...values: string[]) => boolean) {
     return this._linkRows(matches).map(
       (row) =>
-        html`<div id=${`group-${row.page}`}>
+        html`<div
+          id=${`group-${row.page}`}
+          class=${this._hit(`group-${row.page}`)}
+        >
           <button
             type="button"
             class="motion-link"
@@ -1298,35 +1311,158 @@ export class HaConfigSectionPersonal extends LitElement {
     this._scheduleNow = currentScheduleEvaluation(
       schoolHeldFields(this._prefs)
     );
+    this._findMatches();
+  }
+
+  /**
+   * Lists what the search matches. The page is not filtered: the person stays
+   * where they are, and the matches are marked and stepped through.
+   */
+  private _findMatches(): void {
+    if (!this._searchOpen || this._filter.trim() === "") {
+      this._matchIds = [];
+      this._matchPlaces = "";
+      return;
+    }
+    const matches = searchMatcher(this._filter);
+    const all = this._rows();
+    const ids: string[] = [];
+    const counts = new Map<string, number>();
+    const add = (id: string, place: string) => {
+      ids.push(id);
+      counts.set(place, (counts.get(place) ?? 0) + 1);
+    };
+    GROUPS.forEach((group) =>
+      all
+        .filter(
+          (row) =>
+            row.group === group &&
+            matches(row.label, row.description, row.reach, row.defaultText)
+        )
+        .forEach((row) => add(row.id, this._t(`group.${group}.title`)))
+    );
+    if (matches(this._t("schedules.title"), this._t("schedules.note"))) {
+      add("group-schedules", this._t("schedules.title"));
+    }
+    if (
+      this.hass.user?.is_admin &&
+      matches(this._t("shared.title"), this._t("shared.note"))
+    ) {
+      add("group-shared", this._t("shared.title"));
+    }
+    if (
+      matches(this._motionText("link_title"), this._motionText("link_note"))
+    ) {
+      add("group-motion", this._motionText("link_title"));
+    }
+    this._linkRows(matches).forEach((row) =>
+      add(`group-${row.page}`, row.title)
+    );
+    this._matchIds = ids;
+    this._matchPlaces = [...counts]
+      .map(([place, count]) => `${place} ${count}`)
+      .join(" · ");
+  }
+
+  /** The class of a row or card that the search marks. */
+  private _hit(id: string): string {
+    if (!this._matchIds.includes(id)) {
+      return "";
+    }
+    return this._matchIds[this._matchIndex] === id
+      ? "search-hit search-current"
+      : "search-hit";
+  }
+
+  private async _searchInput(ev: CustomEvent<{ value: string }>) {
+    this._filter = ev.detail.value;
+    this._matchIndex = 0;
+    this._findMatches();
+    // Go to the match nearest to where the person is reading.
+    const middle = window.innerHeight / 2;
+    let best = 0;
+    let bestDistance = Infinity;
+    this._matchIds.forEach((id, index) => {
+      const rect = this.shadowRoot?.getElementById(id)?.getBoundingClientRect();
+      if (rect) {
+        const distance = Math.abs(rect.top + rect.height / 2 - middle);
+        if (distance < bestDistance) {
+          best = index;
+          bestDistance = distance;
+        }
+      }
+    });
+    this._matchIndex = best;
+    await this._showCurrentMatch();
+  }
+
+  private _searchStep(ev: CustomEvent<{ direction: 1 | -1 }>): void {
+    const total = this._matchIds.length;
+    if (!total) {
+      return;
+    }
+    this._matchIndex = (this._matchIndex + ev.detail.direction + total) % total;
+    this._showCurrentMatch();
+  }
+
+  private async _showCurrentMatch(): Promise<void> {
+    await this.updateComplete;
+    const id = this._matchIds[this._matchIndex];
+    if (!id) {
+      return;
+    }
+    this.shadowRoot?.getElementById(id)?.scrollIntoView({
+      behavior: this._scrollBehavior(),
+      block: "center",
+    });
+  }
+
+  private _searchOpened(): void {
+    this._searchOpen = true;
+  }
+
+  private _searchClosed(): void {
+    // The words stay; the marks go.
+    this._searchOpen = false;
   }
 
   protected render(): TemplateResult {
-    const matches = searchMatcher(this._filter);
-    const rows = this._rows().filter((row) =>
-      matches(row.label, row.description, row.reach, row.defaultText)
-    );
-    const searching = this._filter.trim() !== "";
-    const searchLabel = this._t("search");
+    const matches = () => true;
+    const rows = this._rows();
+    const total = this._matchIds.length;
     const groups = GROUPS.filter((group) =>
       rows.some((row) => row.group === group)
     );
-    const showSchedules = matches(
-      this._t("schedules.title"),
-      this._t("schedules.note")
-    );
-    const showShared =
-      !!this.hass.user?.is_admin &&
-      matches(this._t("shared.title"), this._t("shared.note"));
-    const showMotion = matches(
-      this._motionText("link_title"),
-      this._motionText("link_note")
-    );
+    const showSchedules = true;
+    const showShared = !!this.hass.user?.is_admin;
+    const showMotion = true;
     return html`
       <hass-subpage
         back-path="/config"
         .hass=${this.hass}
         .narrow=${this.narrow}
         .header=${this._t("caption")}
+        searchable
+        search-steps
+        .searchLabel=${this._t("search")}
+        .searchValue=${this._filter}
+        .searchTotal=${total}
+        .searchCountText=${
+          total
+            ? this.hass.localize("ui.components.top_bar_search.count", {
+                current: this._matchIndex + 1,
+                total,
+              })
+            : undefined
+        }
+        .searchWhere=${this.hass.localize(
+          "ui.components.top_bar_search.found_in",
+          { places: this._matchPlaces }
+        )}
+        @top-bar-search-open=${this._searchOpened}
+        @top-bar-search-close=${this._searchClosed}
+        @top-bar-search-input=${this._searchInput}
+        @top-bar-search-step=${this._searchStep}
       >
         <ha-dropdown slot="toolbar-icon" @wa-select=${this._handleMenu}>
           <ha-icon-button
@@ -1343,22 +1479,7 @@ export class HaConfigSectionPersonal extends LitElement {
           <ha-settings-sync-status
             .localize=${this.hass.localize}
           ></ha-settings-sync-status>
-          <ha-input-search
-            class="search"
-            appearance="outlined"
-            .placeholder=${searchLabel}
-            .accessibleLabel=${searchLabel}
-            .value=${this._filter}
-            @input=${this._filterChanged}
-          ></ha-input-search>
-          ${
-            searching
-              ? html`<p class="count" role="status">
-                  ${this._t("search_count", { count: rows.length })}
-                </p>`
-              : nothing
-          }
-          ${searching ? nothing : this._renderOverview(rows)}
+          ${this._renderOverview(rows)}
           <div class="layout">
             <div class="pin">
               ${
@@ -1429,12 +1550,13 @@ export class HaConfigSectionPersonal extends LitElement {
                 showShared ||
                 showMotion ||
                 this._linkRows(matches).length
-                  ? html`${GROUPS.map((group) =>
-                      this._renderGroup(group, rows, searching)
-                    )}
+                  ? html`${GROUPS.map((group) => this._renderGroup(group, rows))}
                     ${
                       showSchedules
-                        ? html`<div id="group-schedules">
+                        ? html`<div
+                            id="group-schedules"
+                            class=${this._hit("group-schedules")}
+                          >
                             <ha-personal-schedules
                               .hass=${this.hass}
                               .narrow=${this.narrow}
@@ -1445,7 +1567,10 @@ export class HaConfigSectionPersonal extends LitElement {
                     }
                     ${
                       showShared
-                        ? html`<div id="group-shared">
+                        ? html`<div
+                            id="group-shared"
+                            class=${this._hit("group-shared")}
+                          >
                             <ha-personal-shared-defaults
                               .hass=${this.hass}
                             ></ha-personal-shared-defaults>
@@ -1454,7 +1579,10 @@ export class HaConfigSectionPersonal extends LitElement {
                     }
                     ${
                       showMotion
-                        ? html`<div id="group-motion">
+                        ? html`<div
+                            id="group-motion"
+                            class=${this._hit("group-motion")}
+                          >
                             <button
                               type="button"
                               class="motion-link"
@@ -1476,14 +1604,7 @@ export class HaConfigSectionPersonal extends LitElement {
                         : nothing
                     }
                     ${this._renderLinkRows(matches)}`
-                  : html`<p class="empty" role="status">
-                      ${this._play(
-                        "ui.personal_prefs.playful.personal_search_empty",
-                        {
-                          query: this._filter.trim(),
-                        }
-                      )}
-                    </p>`
+                  : nothing
               }
             </div>
           </div>
@@ -1534,11 +1655,7 @@ export class HaConfigSectionPersonal extends LitElement {
     target?.querySelector<HTMLElement>(".row-label, button, input")?.focus();
   };
 
-  private _renderGroup(
-    group: GroupId,
-    rows: Row[],
-    searching: boolean
-  ): TemplateResult | symbol {
+  private _renderGroup(group: GroupId, rows: Row[]): TemplateResult | symbol {
     const inGroup = rows.filter((row) => row.group === group);
     if (!inGroup.length) {
       return nothing;
@@ -1556,7 +1673,7 @@ export class HaConfigSectionPersonal extends LitElement {
               : nothing
           }
           <div class=${`rows rows-${group}`}>
-            ${inGroup.map((row) => this._renderRow(row, searching))}
+            ${inGroup.map((row) => this._renderRow(row))}
           </div>
           ${
             group === "modes"
@@ -1659,12 +1776,12 @@ export class HaConfigSectionPersonal extends LitElement {
     };
   }
 
-  private _renderRow(row: Row, searching: boolean): TemplateResult {
+  private _renderRow(row: Row): TemplateResult {
     const open = this._open.has(row.id);
     const scheduled = this._scheduledValue(row);
     const field = ROW_FIELD[row.id];
     return html`
-      <div class="row" id=${row.id}>
+      <div class=${`row ${this._hit(row.id)}`} id=${row.id}>
         <div class="row-main">
           <div class="row-title">
             <button
@@ -1692,13 +1809,6 @@ export class HaConfigSectionPersonal extends LitElement {
         </div>
         <span class="row-description">
           ${this._bl(`${row.id}.description`)}
-          ${
-            searching
-              ? html` <span class="group-tag"
-                  >${this._t(`group.${row.group}.title`)}</span
-                >`
-              : nothing
-          }
         </span>
         ${
           row.held
@@ -2220,10 +2330,6 @@ export class HaConfigSectionPersonal extends LitElement {
     }
   }
 
-  private _filterChanged(ev: Event): void {
-    this._filter = (ev.target as HaInputSearch).value ?? "";
-  }
-
   private _change(
     change: Partial<PersonalPreferences>,
     cue?: "toggle-on" | "reset" | "sample"
@@ -2322,6 +2428,14 @@ export class HaConfigSectionPersonal extends LitElement {
       flex-direction: column;
       gap: var(--ha-space-3);
       min-width: 0;
+    }
+    .search-hit {
+      border-radius: var(--ha-border-radius-lg);
+      box-shadow: inset 0 0 0 2px var(--ha-color-fill-primary-quiet-resting);
+    }
+    .search-current {
+      box-shadow: inset 0 0 0 2px var(--primary-color);
+      background: var(--ha-color-fill-primary-quiet-resting);
     }
     .density-preview {
       display: flex;

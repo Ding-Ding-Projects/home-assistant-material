@@ -630,6 +630,10 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
     // A phone shows the title and a search icon; the field opens from the
     // icon, and stays open while it holds text or the person is using it.
+    // A wide window searches from the top bar, which never scrolls; a phone
+    // already turns its title into the field.
+    const barSearch = !this.narrow && !(this.empty && !this.loading);
+
     const titleRow = !!this._pageTitle && !this._searchOpen && !this.filter;
 
     const sortByMenu = Object.values(this.columns).find((col) => col.sortable)
@@ -1068,6 +1072,22 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         .mainPage=${this.mainPage}
         .pane=${showPane && this.showFilters}
         .contentHeading=${!this.narrow && !(this.empty && !this.loading)}
+        .searchable=${barSearch}
+        .searchLabel=${this.searchLabel}
+        .searchValue=${this.filter}
+        .searchCountText=${
+          this.filter && this._matchingRows !== undefined
+            ? localize("ui.components.top_bar_search.count", {
+                current: this._matchingRows,
+                total: this.data.length,
+              })
+            : undefined
+        }
+        .searchSamples=${
+          barSearch ? this._patternSamples(this.data, this.columns) : undefined
+        }
+        @top-bar-search-input=${this._barSearchInput}
+        @top-bar-search-close=${this._flushUrl}
         @sorting-changed=${this._sortingChanged}
         @page-title-changed=${this._pageTitleChanged}
       >
@@ -1229,7 +1249,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                                   this.hasFilters && !this.showFilters
                                     ? html`${filterButton}`
                                     : nothing
-                                }${selectModeBtn}${searchBar}${chipsSlot}${
+                                }${selectModeBtn}${barSearch ? nothing : searchBar}${chipsSlot}${
                                   this._hasFilterChips
                                     ? html`<div class="chips-spacer"></div>`
                                     : nothing
@@ -1847,6 +1867,16 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     this.filter = target.value ?? "";
     this._typedSearch = this.filter;
     fireEvent(this, "search-changed", { value: this.filter });
+  }
+
+  private _barSearchInput(ev: CustomEvent<{ value: string }>) {
+    const value = ev.detail.value;
+    if (this.filter === value) {
+      return;
+    }
+    this.filter = value;
+    this._typedSearch = value;
+    fireEvent(this, "search-changed", { value });
   }
 
   private _openSearch = async () => {

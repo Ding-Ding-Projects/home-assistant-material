@@ -21,6 +21,7 @@ import yueSource from "../../translations/yue-own.json";
 /** The translation blocks the Cantonese source covers. */
 export const YUE_PREFIXES = [
   "ui.components.empty-state.",
+  "ui.components.top_bar_search.",
   "ui.components.action-editors.",
   "ui.components.automation-editors.",
   "ui.panel.config.updates.progress.",

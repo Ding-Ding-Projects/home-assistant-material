@@ -13,12 +13,15 @@ import { consume } from "../common/decorators/consume";
 import { restoreScroll } from "../common/decorators/restore-scroll";
 import { pageHeaderStyles, playPageEntry } from "../common/motion/page-entry";
 import type { HASSDomTargetEvent } from "../common/dom/fire_event";
+import { fireEvent } from "../common/dom/fire_event";
+import { ShortcutManager } from "../common/keyboard/shortcuts";
 import { PageLockController } from "../common/locks/page-lock-controller";
 import { getHistoryState } from "../common/navigate";
 import { sanitizeNavigationPath } from "../common/url/sanitize-navigation-path";
 import { handleBackClick } from "./back-navigation";
 import "../components/ha-icon-button-arrow-prev";
 import "../components/ha-menu-button";
+import "../components/ha-top-bar-search";
 import "../components/page/ha-page-footer";
 import "../components/page/ha-page-lock-banner";
 import "../components/page/ha-page-tools";
@@ -57,9 +60,41 @@ class HassSubpage extends LitElement {
   /** One line of plain words under the title, on a wide screen. */
   @property() public summary?: string;
 
+  /**
+   * Draws a search button in the top bar, which never scrolls. The page keeps
+   * the text and does the matching: it listens for `top-bar-search-input` and
+   * `top-bar-search-step`, and hands back `searchValue`, `searchCountText` and
+   * `searchWhere`. The button is the same search the page had in its content,
+   * with the pattern builder; only its place changes.
+   */
+  @property({ type: Boolean }) public searchable = false;
+
+  /** What the search is called, for example "Search settings". */
+  @property({ attribute: false }) public searchLabel?: string;
+
+  @property({ attribute: false }) public searchValue = "";
+
+  /** Short count in the open field, for example "2 of 3" or "4 of 212". */
+  @property({ attribute: false }) public searchCountText?: string;
+
+  /** Pages that scroll to a match show previous and next under the bar. */
+  @property({ type: Boolean, attribute: "search-steps" })
+  public searchSteps = false;
+
+  /** A line saying where the matches are, for example "Found on: Sound 1". */
+  @property({ attribute: false }) public searchWhere?: string;
+
+  @property({ type: Number, attribute: false }) public searchTotal = 0;
+
+  @property({ attribute: false }) public searchSamples?: string[];
+
+  @state() private _searchOpen = false;
+
   @state()
   @consume({ context: internationalizationContext, subscribe: true })
   private _i18n?: ContextType<typeof internationalizationContext>;
+
+  private _shortcuts = new ShortcutManager();
 
   // @ts-ignore
   @restoreScroll(".content") private _savedScrollPos?: number;
@@ -88,6 +123,55 @@ class HassSubpage extends LitElement {
     playPageEntry(this._contentSlot?.assignedElements({ flatten: true }) ?? []);
   }
 
+  public connectedCallback(): void {
+    super.connectedCallback();
+    // The slash key opens the search, except while typing in a field.
+    this._shortcuts.add({
+      "/": {
+        handler: (ev) => {
+          if (this.searchable && !this._searchOpen) {
+            ev.preventDefault();
+            this.openSearch();
+          }
+        },
+      },
+    });
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._shortcuts.remove();
+  }
+
+  /** Opens the search in the bar. The page stays where it is. */
+  public openSearch(): void {
+    if (!this.searchable || this._searchOpen) {
+      return;
+    }
+    this._searchOpen = true;
+    fireEvent(this, "top-bar-search-open");
+  }
+
+  /** Gives the title back. The page stays where it is and the words stay. */
+  public closeSearch(): void {
+    if (!this._searchOpen) {
+      return;
+    }
+    this._searchOpen = false;
+    fireEvent(this, "top-bar-search-close");
+  }
+
+  private _searchOpened(ev: Event): void {
+    // Opened from the button: the event is already on its way to the page.
+    ev.stopPropagation();
+    this.openSearch();
+  }
+
+  private _searchClosed(ev: Event): void {
+    ev.stopPropagation();
+    this.closeSearch();
+  }
+
   protected updated(): void {
     setToolbarFolded(this._toolbarSlot ?? null, this.narrow && this._foldTools);
   }
@@ -96,6 +180,9 @@ class HassSubpage extends LitElement {
     const backPath = sanitizeNavigationPath(this.backPath);
     const locked = this._pageLock.locked;
     const breadcrumb = this._breadcrumb(backPath);
+    const searching = this.searchable && this._searchOpen;
+    const hideForSearch = searching && this.narrow;
+    const localize = this._i18n?.localize;
 
     return html`
       <div class="toolbar ${classMap({ narrow: this.narrow })}">
@@ -111,7 +198,7 @@ class HassSubpage extends LitElement {
                 `
           }
 
-          <div class="main-title">
+          <div class="main-title" ?hidden=${hideForSearch}>
             ${
               breadcrumb && !this.narrow
                 ? html`<span class="breadcrumb">${breadcrumb}</span>`
@@ -133,7 +220,22 @@ class HassSubpage extends LitElement {
                   <slot name="fab" @slotchange=${this._fabChanged}></slot>
                 </div>`
           }
-          <div class="tool-pill">
+          ${
+            this.searchable && localize
+              ? html`<ha-top-bar-search
+                  .localize=${localize}
+                  .label=${this.searchLabel}
+                  .value=${this.searchValue}
+                  .open=${this._searchOpen}
+                  .wide=${!this.narrow}
+                  .countText=${this.searchCountText}
+                  .patternSamples=${this.searchSamples}
+                  @top-bar-search-open=${this._searchOpened}
+                  @top-bar-search-close=${this._searchClosed}
+                ></ha-top-bar-search>`
+              : nothing
+          }
+          <div class="tool-pill" ?hidden=${hideForSearch}>
             <ha-page-tools
               .compact=${this.narrow}
               .fold=${this.narrow && this._foldTools}
@@ -149,6 +251,15 @@ class HassSubpage extends LitElement {
             </div>
           </div>
         </div>
+        ${
+          searching && this.searchSteps && localize
+            ? html`<ha-top-bar-search-steps
+                .localize=${localize}
+                .where=${this.searchWhere}
+                .total=${this.searchTotal}
+              ></ha-top-bar-search-steps>`
+            : nothing
+        }
       </div>
       ${locked ? html`<ha-page-lock-banner></ha-page-lock-banner>` : nothing}
       <div
@@ -234,6 +345,18 @@ class HassSubpage extends LitElement {
         ha-page-footer,
         ha-page-lock-banner {
           flex: none;
+        }
+
+        [hidden] {
+          display: none !important;
+        }
+
+        ha-top-bar-search {
+          margin-inline-start: var(--ha-space-1);
+        }
+        :host(:not([narrow])) ha-top-bar-search {
+          margin-inline-start: auto;
+          margin-inline-end: var(--ha-space-2);
         }
 
         .toolbar-icons {

@@ -1,7 +1,7 @@
 import { mdiChevronDown, mdiChevronUp } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { LanguageModeController } from "../../../../common/language-mode/language-mode-controller";
 import { searchMatcher } from "../../../../common/regex/filter";
@@ -63,6 +63,8 @@ export class HaUpdateBackupChoice extends LitElement {
   @state() private _sizes: Record<string, number> = {};
 
   @state() private _query = "";
+
+  @query(".apps") private _appsPanel?: HTMLElement;
 
   private _lang = new LanguageModeController(this);
 
@@ -149,6 +151,12 @@ export class HaUpdateBackupChoice extends LitElement {
         <p class="summary" aria-live="polite">
           ${this._t(summaryKey(choice, this.hasSupervisor))}
         </p>
+        ${this.hasSupervisor ? this._renderAppsRow(settings) : nothing}
+        ${
+          this.hasSupervisor && this._appsOpen
+            ? this._renderApps(settings)
+            : nothing
+        }
         <h4>${this._t("kinds_title")}</h4>
         <p class="note">${this._t("kinds_hint")}</p>
         <div class="kinds">
@@ -156,12 +164,41 @@ export class HaUpdateBackupChoice extends LitElement {
             (kind) => kind !== "app" || this.hasSupervisor
           ).map((kind) => this._renderKind(kind, settings))}
         </div>
-        ${
-          this.hasSupervisor && (this._appsOpen || choice === "custom")
-            ? this._renderApps(settings)
-            : nothing
-        }
       </div>
+    `;
+  }
+
+  /**
+   * A plain row that is always there: which apps get a backup first, and how
+   * many. It opens the app list directly.
+   */
+  private _renderAppsRow(settings: BackupSettings): TemplateResult {
+    const apps = this._apps;
+    const chosen = apps
+      ? settings.kinds.app
+        ? apps.length
+        : pruneApps(settings.apps, this._installed).length
+      : undefined;
+    return html`
+      <button
+        class="apps-row"
+        aria-expanded=${this._appsOpen ? "true" : "false"}
+        @click=${this._toggleAppsOpen}
+      >
+        <span class="text">
+          <span class="name">${this._t("apps_row_title")}</span>
+          <span class="sub"
+            >${
+              chosen === undefined
+                ? this._t("apps_row_loading")
+                : this._t("apps_count", { chosen, total: apps!.length })
+            }</span
+          >
+        </span>
+        <ha-svg-icon
+          .path=${this._appsOpen ? mdiChevronUp : mdiChevronDown}
+        ></ha-svg-icon>
+      </button>
     `;
   }
 
@@ -176,7 +213,6 @@ export class HaUpdateBackupChoice extends LitElement {
         role="radio"
         aria-checked=${selected ? "true" : "false"}
         .choice=${name}
-        ?disabled=${name === "custom"}
         @click=${this._pickChoice}
       >
         <span class="dot"></span>
@@ -357,7 +393,15 @@ export class HaUpdateBackupChoice extends LitElement {
   private async _pickChoice(ev: Event): Promise<void> {
     const choice = (ev.currentTarget as HTMLElement & { choice: string })
       .choice as PresetChoice | "custom";
-    if (choice === "custom" || choice === choiceFor(this._settings)) {
+    if (choice === "custom") {
+      // Custom is the state of the kinds and apps below. Tapping it takes the
+      // person there: the app list opens, ready to be set by hand.
+      this._appsOpen = this.hasSupervisor;
+      await this.updateComplete;
+      this._appsPanel?.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    if (choice === choiceFor(this._settings)) {
       return;
     }
     await this._save(presetSettings(choice), () =>
@@ -458,7 +502,8 @@ export class HaUpdateBackupChoice extends LitElement {
           text-align: start;
         }
         .radio,
-        .kind-main {
+        .kind-main,
+        .apps-row {
           display: flex;
           align-items: center;
           gap: var(--ha-space-3);
@@ -476,9 +521,6 @@ export class HaUpdateBackupChoice extends LitElement {
         .radio.selected .sub {
           color: inherit;
           opacity: 0.85;
-        }
-        .radio:disabled:not(.selected) {
-          display: none;
         }
         .dot {
           flex: none;

@@ -18,6 +18,7 @@ import { restoreScroll } from "../common/decorators/restore-scroll";
 import { pageHeaderStyles, playPageEntry } from "../common/motion/page-entry";
 import type { HASSDomTargetEvent } from "../common/dom/fire_event";
 import { fireEvent } from "../common/dom/fire_event";
+import { ShortcutManager } from "../common/keyboard/shortcuts";
 import { PageLockController } from "../common/locks/page-lock-controller";
 import { getHistoryState } from "../common/navigate";
 import type {
@@ -27,6 +28,7 @@ import type {
 import { sanitizeNavigationPath } from "../common/url/sanitize-navigation-path";
 import "../components/ha-icon-button-arrow-prev";
 import "../components/ha-menu-button";
+import "../components/ha-top-bar-search";
 import "../components/page/ha-page-footer";
 import "../components/page/ha-page-lock-banner";
 import "../components/page/ha-page-tools";
@@ -196,6 +198,33 @@ export class HassTabsSubpage extends LitElement {
   @property({ type: Boolean, attribute: "content-heading" })
   public contentHeading = false;
 
+  /**
+   * Draws a search button in the top bar, which never scrolls. The page keeps
+   * the text and does the matching; see `hass-subpage`, which takes the same
+   * properties. Pages that scroll to a match also set `search-steps`.
+   */
+  @property({ type: Boolean }) public searchable = false;
+
+  @property({ attribute: false }) public searchLabel?: string;
+
+  @property({ attribute: false }) public searchValue = "";
+
+  /** Short count in the open field, for example "4 of 212". */
+  @property({ attribute: false }) public searchCountText?: string;
+
+  @property({ type: Boolean, attribute: "search-steps" })
+  public searchSteps = false;
+
+  @property({ attribute: false }) public searchWhere?: string;
+
+  @property({ type: Number, attribute: false }) public searchTotal = 0;
+
+  @property({ attribute: false }) public searchSamples?: string[];
+
+  @state() private _searchOpen = false;
+
+  private _shortcuts = new ShortcutManager();
+
   private _announcedTitle?: string;
 
   @state() private _activeTab?: PageNavigation;
@@ -302,6 +331,8 @@ export class HassTabsSubpage extends LitElement {
     const locked = this._pageLock.locked;
     const breadcrumb = this.breadcrumb ?? this._breadcrumb(title);
     const summary = title ? this._summary() : undefined;
+    const searching = this.searchable && this._searchOpen;
+    const hideForSearch = searching && this._narrow;
 
     return html`
       <div class="toolbar ${classMap({ narrow: this._narrow })}">
@@ -317,7 +348,7 @@ export class HassTabsSubpage extends LitElement {
                     ></ha-icon-button-arrow-prev>
                   `
             }
-            <div class="main-title">
+            <div class="main-title" ?hidden=${hideForSearch}>
               <slot name="header" @slotchange=${this._headerSlotChanged}
                 >${
                   breadcrumb && !this._narrow
@@ -336,7 +367,22 @@ export class HassTabsSubpage extends LitElement {
                   : nothing
               }${this._narrow ? nothing : html`<slot name="subtitle"></slot>`}
             </div>
-            <div class="tool-pill">
+            ${
+              this.searchable
+                ? html`<ha-top-bar-search
+                    .localize=${localize}
+                    .label=${this.searchLabel}
+                    .value=${this.searchValue}
+                    .open=${this._searchOpen}
+                    .wide=${!this._narrow}
+                    .countText=${this.searchCountText}
+                    .patternSamples=${this.searchSamples}
+                    @top-bar-search-open=${this._searchOpened}
+                    @top-bar-search-close=${this._searchClosed}
+                  ></ha-top-bar-search>`
+                : nothing
+            }
+            <div class="tool-pill" ?hidden=${hideForSearch}>
               <ha-page-tools
                 .compact=${this._narrow}
                 .fold=${this._narrow && this._foldTools}
@@ -352,6 +398,15 @@ export class HassTabsSubpage extends LitElement {
               </div>
             </div>
           </div>
+          ${
+            searching && this.searchSteps
+              ? html`<ha-top-bar-search-steps
+                  .localize=${localize}
+                  .where=${this.searchWhere}
+                  .total=${this.searchTotal}
+                ></ha-top-bar-search-steps>`
+              : nothing
+          }
         </slot>
         ${
           this.showTabs
@@ -564,8 +619,52 @@ export class HassTabsSubpage extends LitElement {
     });
   }
 
+  public connectedCallback(): void {
+    super.connectedCallback();
+    // The slash key opens the search, except while typing in a field.
+    this._shortcuts.add({
+      "/": {
+        handler: (ev) => {
+          if (this.searchable && !this._searchOpen) {
+            ev.preventDefault();
+            this.openSearch();
+          }
+        },
+      },
+    });
+  }
+
+  /** Opens the search in the bar. The page stays where it is. */
+  public openSearch(): void {
+    if (!this.searchable || this._searchOpen) {
+      return;
+    }
+    this._searchOpen = true;
+    fireEvent(this, "top-bar-search-open");
+  }
+
+  /** Gives the title back. The page stays where it is and the words stay. */
+  public closeSearch(): void {
+    if (!this._searchOpen) {
+      return;
+    }
+    this._searchOpen = false;
+    fireEvent(this, "top-bar-search-close");
+  }
+
+  private _searchOpened(ev: Event): void {
+    ev.stopPropagation();
+    this.openSearch();
+  }
+
+  private _searchClosed(ev: Event): void {
+    ev.stopPropagation();
+    this.closeSearch();
+  }
+
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._shortcuts.remove();
     this._stripObserver?.disconnect();
     this._observedStrip?.removeEventListener("scroll", this._onStripScroll);
     this._observedStrip = undefined;
@@ -882,6 +981,17 @@ export class HassTabsSubpage extends LitElement {
 
         :host(:not([narrow])) #toolbar-icon {
           display: contents;
+        }
+
+        [hidden] {
+          display: none !important;
+        }
+        ha-top-bar-search {
+          margin-inline-start: var(--ha-space-1);
+        }
+        :host(:not([narrow])) ha-top-bar-search {
+          margin-inline-start: auto;
+          margin-inline-end: var(--ha-space-2);
         }
 
         /* Wide windows: the page's tools sit in one floating pill at the end

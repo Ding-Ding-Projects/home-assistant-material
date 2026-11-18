@@ -1666,6 +1666,8 @@
             "unsupported": "呢個更新做唔到備份",
             "apps_chosen": "已揀 {count} 個",
             "choose_apps": "揀應用程式",
+            "apps_row_title": "應用程式：揀邊啲先備份再更新",
+            "apps_row_loading": "載入緊你嘅應用程式",
             "hide_apps": "收埋應用程式",
             "apps_title": "揀應用程式",
             "apps_search": "搜尋你嘅應用程式",
@@ -4224,6 +4226,15 @@
       }
     },
     "components": {
+      "top_bar_search": {
+        "open": "搜尋呢一頁",
+        "close": "關閉搜尋",
+        "previous": "上一個結果",
+        "next": "下一個結果",
+        "no_matches": "搵唔到",
+        "count": "第 {current} 個，共 {total} 個",
+        "found_in": "喺呢度搵到：{places}"
+      },
       "string_builder": {
         "composition_heading": "你嘅文字",
         "insert_help": "將項目拖入文字。你亦可以先將游標放喺文字入面，再揀要插入嘅項目。"

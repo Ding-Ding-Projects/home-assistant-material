@@ -193,8 +193,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Notifications, by title, text and id",
   },
   {
-    file: "panels/config/personal/ha-config-section-personal.ts",
-    searches: "The personal settings on the personal settings page",
+    file: "components/ha-top-bar-search.ts",
+    searches:
+      "The page search drawn in the top bar of any page built on the subpage layout that opts in with the searchable property. Today: the personal settings page, whose settings it marks and steps through (the field at the top of that page is gone). The matching stays on the page, in its own file",
+    matcher: "panels/config/personal/ha-config-section-personal.ts",
   },
   {
     file: "panels/config/personal/ha-config-section-sidebar.ts",
