@@ -5,7 +5,7 @@ Two boards, drawn as real screens of the app in its dark theme at phone width (3
 | Board | What it shows |
 | --- | --- |
 | `Main.dc.html` | Interactive. Setting it up from Add integration (which air conditioner, "my temperature" within the device's own limits, a safety temperature), its own page (what it is doing and why, room, set and my temperature, pause and stop, what happened, cooling time and an estimated cost), and the guards as a searchable list of switches |
-| `Heat.dc.html` | Interactive. Its sister, Heat Defender: keeps the heating off (or no warmer than a chosen number) so the home does not get hot, with the same guards turned around and a floor temperature below which the heating is always allowed to run |
+| `Heat.dc.html` | Interactive. Heat Defender, the sister (AC Defender is the brother): keeps the heating off (or no warmer than a chosen number) so the home does not get hot, with the same guards turned around and a floor temperature below which the heating is always allowed to run |
 
 ## Rules the board carries
 
@@ -15,7 +15,7 @@ Two boards, drawn as real screens of the app in its dark theme at phone width (3
 - The page always says what it is doing and why, and when it will look again.
 - Pausing is one press and says how long; stopping everything is separate and plain.
 - Heat Defender has a floor that cannot be switched off or set under 10 °C: below it the heating may run whatever was chosen. Freezing weather raises the floor, and with no room reading it stands down. Comfort never outranks pipes or people.
-- An air conditioner and a heater in the same room never work against each other.
+- Brother and sister: AC Defender is the brother, Heat Defender the sister, and they act like they know each other. They share one comfort band for a room (heat stays off below its lower edge, cooling starts above its upper edge, neither moves inside it), hand over to one another in plain words in a shared log, each page shows the other on top, and a pause or stop on one asks whether the other should follow. They never work against each other, and either one's safety rule outranks the other's comfort.
 - Cost is an estimate from cooling time and the price table, and is labelled as an estimate.
 
 ## Reference
