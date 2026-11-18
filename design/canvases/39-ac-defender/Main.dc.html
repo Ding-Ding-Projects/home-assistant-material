@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AC Defender as an integration: setup, the defender page, guards</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+button{font:inherit;cursor:pointer}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</helmet>
+<div style="min-height: 1240px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">AC Defender inside the home, on a phone. Left: setting it up from Add integration. Middle: its page. Right: the guards, each one a switch that automations can also read and turn.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Set up" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="display: grid; place-items: center; padding-top: 8px"><span style="width: 32px; height: 4px; border-radius: 2px; background: #44474F"></span></div>
+<div style="padding: 10px 16px 4px; display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #1F4A52; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8FE3F0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6z"/></svg></span><div style="flex: 1"><div style="font-size: 18px; font-weight: 700">AC Defender</div><div style="font-size: 12px; color: #C4C6D0">Step 1 of 3 · which air conditioner</div></div></div>
+<div style="height: 4px; margin: 8px 16px; border-radius: 2px; background: #2A2D36"><div style="width: 33%; height: 4px; border-radius: 2px; background: #B4C5FF"></div></div>
+<div style="padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="min-height: 56px; border-radius: 12px; background: #14161B; padding: 0 12px; display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #7A3A12; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Dining room AC</div><div style="font-size: 12px; color: #C4C6D0">Cooling · now 24.5 °C · set 26</div></div><span style="color: #B4C5FF; font-weight: 700">Change</span></div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 12px">Any climate entity that can cool. It acts on the real device; there is no pretend thermostat.</div>
+<div style="border-radius: 12px; background: #14161B; padding: 12px; display: flex; flex-direction: column; gap: 8px"><div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 13px; color: #C4C6D0">My temperature</span><span style="font-size: 24px; font-weight: 700">23.0 °C</span></div><div style="height: 44px; border-radius: 12px; background: #262933; overflow: hidden"><div style="width: 46%; height: 44px; border-radius: 12px; background: #1F4A52; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; box-sizing: border-box"><span style="width: 4px; height: 20px; border-radius: 2px; background: #8FE3F0"></span></div></div><div style="display: flex; justify-content: space-between; font-size: 12px; color: #C4C6D0"><span>16</span><span>this AC's own limits</span><span>30 °C</span></div></div>
+<div style="border-radius: 12px; background: #14161B; padding: 0 12px; min-height: 52px; display: flex; align-items: center; justify-content: space-between"><div><div>Never let the room pass</div><div style="font-size: 12px; color: #C4C6D0">Safety temperature, every wait is skipped above it</div></div><span style="font-weight: 700">28 °C</span></div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">NEXT STEPS</div>
+<div style="border-radius: 12px; background: #14161B; padding: 4px 12px">
+<div style="min-height: 44px; display: flex; align-items: center; gap: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace; width: 20px">2</span><span>Sensors it may use: room temperature, a door, people at home (all optional)</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; gap: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace; width: 20px">3</span><span>Which guards start on</span></div>
+</div>
+</div>
+<div style="padding: 8px 12px 12px; display: flex; gap: 8px; box-shadow: 0 -1px 0 #2A2D36"><span style="height: 48px; padding: 0 20px; border-radius: 24px; display: grid; place-items: center; color: #B4C5FF; font-weight: 700">Cancel</span><span style="flex: 1; height: 48px; border-radius: 24px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Next</span></div>
+</section>
+
+<section aria-label="The defender page" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px"><span style="width: 44px; height: 44px; border-radius: 50%; background: #1D1F26; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3E2E9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 6-6 6 6 6"/></svg></span><div style="flex: 1; padding-left: 8px; font-size: 20px; font-weight: 700">AC Defender</div></div>
+<div style="padding: 0 12px 6px; display: flex; gap: 6px"><span style="height: 36px; padding: 0 14px; border-radius: 18px; background: #2B3F6E; color: #D9E2FF; display: flex; align-items: center; font-weight: 700">Now</span><span style="height: 36px; padding: 0 14px; border-radius: 18px; display: flex; align-items: center; color: #C4C6D0">Guards</span><span style="height: 36px; padding: 0 14px; border-radius: 18px; display: flex; align-items: center; color: #C4C6D0">Cost</span><span style="height: 36px; padding: 0 14px; border-radius: 18px; display: flex; align-items: center; color: #C4C6D0">Log</span></div>
+<div style="padding: 6px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-size: 12px; color: #C4C6D0">Dining room AC</div><div style="font-size: 18px; font-weight: 700">{{headline}}</div></div><span style="{{statePill}}">{{stateLabel}}</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+<div style="border-radius: 12px; background: #14161B; padding: 8px 10px"><div style="font-size: 12px; color: #C4C6D0">Room</div><div style="font-size: 20px; font-weight: 700">24.5°</div></div>
+<div style="border-radius: 12px; background: #14161B; padding: 8px 10px"><div style="font-size: 12px; color: #C4C6D0">Set now</div><div style="font-size: 20px; font-weight: 700">{{setNow}}</div></div>
+<div style="border-radius: 12px; background: #1F4A52; color: #D6F7F1; padding: 8px 10px"><div style="font-size: 12px">My temp</div><div style="font-size: 20px; font-weight: 700">23.0°</div></div>
+</div>
+<div style="font-size: 13px; color: #C4C6D0">{{why}}</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px"><button type="button" onClick="{{toggle}}" style="height: 48px; border: 0; border-radius: 24px; background: #B4C5FF; color: #152E66; font-weight: 700">{{toggleLabel}}</button><span style="height: 48px; border-radius: 24px; box-shadow: inset 0 0 0 1px #FFB4AB; color: #FFB4AB; display: grid; place-items: center; font-weight: 700">Stop everything</span></div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">WHAT HAPPENED</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0; width: 44px">02:10</span><div style="flex: 1"><div>The AC's own schedule raised it to 26°</div><div style="font-size: 12px; color: #C4C6D0">Rival schedule watch · set back to 23° at 02:11</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0; width: 44px">21:40</span><div style="flex: 1"><div>Someone raised it at the wall to 25°</div><div style="font-size: 12px; color: #C4C6D0">Courtesy wait · stepping back 0.5° at a time</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0; width: 44px">18:02</span><div style="flex: 1"><div>Peak price hours began</div><div style="font-size: 12px; color: #C4C6D0">Peak saver · eased to 24° until 19:00</div></div></div>
+</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between"><div><div style="font-size: 12px; color: #C4C6D0">Cooling today</div><div style="font-weight: 700">3 h 12 min · about $1.84</div></div><span style="font-size: 12px; color: #C4C6D0">estimate, no power meter</span></div>
+</div>
+</section>
+
+<section aria-label="Guards" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; padding: 0 16px; font-size: 20px; font-weight: 700">Guards</div>
+<div style="padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="height: 48px; border-radius: 24px; background: #1D1F26; display: flex; align-items: center; gap: 10px; padding: 0 16px; color: #C4C6D0"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/></svg>Search the guards</div>
+<div style="display: flex; gap: 6px; overflow: hidden"><span style="height: 32px; padding: 0 12px; border-radius: 8px; background: #2B3F6E; color: #D9E2FF; display: flex; align-items: center; font-size: 13px; font-weight: 600">All</span><span style="height: 32px; padding: 0 12px; border-radius: 8px; box-shadow: inset 0 0 0 1px #44474F; display: flex; align-items: center; font-size: 13px">Safety</span><span style="height: 32px; padding: 0 12px; border-radius: 8px; box-shadow: inset 0 0 0 1px #44474F; display: flex; align-items: center; font-size: 13px">People</span><span style="height: 32px; padding: 0 12px; border-radius: 8px; box-shadow: inset 0 0 0 1px #44474F; display: flex; align-items: center; font-size: 13px">Money</span></div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<sc-for list="{{guards}}" as="g" hint-placeholder-count="7">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 0 #2A2D36"><span style="{{g.dot}}"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">{{g.name}}</div><div style="font-size: 12px; color: #C4C6D0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{g.note}}</div></div><span style="{{g.sw}}"><span style="{{g.knob}}"></span></span></div>
+</sc-for>
+</div>
+<div style="font-size: 12px; color: #C4C6D0">Each guard is a switch entity with its own page: what it does in plain words, when it last acted, and its settings. Safety guards cannot be turned off without the two keys.</div>
+<div style="border-radius: 12px; background: #1D2A44; color: #D9E2FF; padding: 10px 12px; font-size: 13px">In automations: "when Rival schedule watch acts", "if Peak saver is on", "turn on Night shutdown".</div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1240}}'>
+class Component extends DCLogic {
+renderVals() {
+const on = this.state && this.state.on !== undefined ? this.state.on : true;
+const sw = (v) => 'width: 52px; height: 32px; border-radius: 16px; flex: none; display: flex; align-items: center; box-sizing: border-box; ' + (v ? 'background: #B4C5FF; justify-content: flex-end; padding: 0 4px' : 'box-shadow: inset 0 0 0 2px #8E9099; padding: 0 8px');
+const knob = (v) => v ? 'width: 24px; height: 24px; border-radius: 50%; background: #152E66' : 'width: 16px; height: 16px; border-radius: 50%; background: #8E9099';
+const dot = (c) => 'width: 10px; height: 10px; border-radius: 50%; flex: none; background: ' + c;
+const list = [
+['Hot room override', 'Safety · skips every wait above 28°', true, '#FFB4AB'],
+['Cooling failure watch', 'Safety · needs proof before touching power', true, '#FFB4AB'],
+['Rival schedule watch', 'Acted 02:11 · answers the AC app\'s own schedule', true, '#8FE3F0'],
+['Courtesy wait', 'People · waits before undoing a wall touch', true, '#CDBDFF'],
+['Repeated raise surrender', 'People · three insists and it gives way for 4 h', true, '#CDBDFF'],
+['Peak saver', 'Money · eases during peak price hours', true, '#FFDF9E'],
+['Night shutdown', 'Off · turns the AC off overnight', false, '#8E9099'],
+];
+const guards = list.map((g) => ({ name: g[0], note: g[1], dot: dot(g[3]), sw: sw(g[2]), knob: knob(g[2]) }));
+return {
+guards: guards,
+headline: on ? 'Holding 23.0 °C' : 'Standing down',
+stateLabel: on ? 'Defending' : 'Paused',
+statePill: 'height: 28px; padding: 0 10px; border-radius: 14px; display: flex; align-items: center; font-size: 12px; font-weight: 700; ' + (on ? 'background: #17423D; color: #9EEBDD' : 'background: #262933; color: #C4C6D0'),
+setNow: on ? '23.0°' : '26.0°',
+why: on ? 'The AC is at my temp. Nothing to do. Next check in 0:40.' : 'Paused by you at 00:52. The AC keeps whatever it is set to. Safety guards still watch.',
+toggleLabel: on ? 'Pause for 2 hours' : 'Defend again',
+toggle: () => this.setState({ on: !on }),
+};
+}
+}
+</script>
+</body>
+</html>
