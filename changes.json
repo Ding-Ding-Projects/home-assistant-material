@@ -1,14 +1,14 @@
 {
  "format": 1,
- "generated": "2026-11-18T03:40:36Z",
+ "generated": "2026-11-18T05:35:16Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 520,
+ "newest_build": 521,
  "releases": [
   {
-   "build": 520,
-   "core": "2026.11.1.520",
-   "supervisor": "2026.11.0.520",
-   "os": "18.5.520",
+   "build": 521,
+   "core": "2026.11.1.521",
+   "supervisor": "2026.11.0.521",
+   "os": "18.5.521",
    "tag": null,
    "source": "28e6e9e7d",
    "date": "2026-11-17T22:11:20-05:00",
