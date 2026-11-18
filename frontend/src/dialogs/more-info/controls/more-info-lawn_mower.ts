@@ -39,9 +39,15 @@ import type {
 import "../components/ha-more-info-state-header";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
+import type { Localize } from "../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-lawn_mower")
 class MoreInfoLawnMower extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._i18n.localize);
+  }
+
   @state()
   @consume({ context: internationalizationContext, subscribe: true })
   private _i18n!: HomeAssistantInternationalization;
@@ -93,8 +99,8 @@ class MoreInfoLawnMower extends LitElement {
   private get _startPauseLabel(): string {
     if (!this.stateObj) return "";
     return this._showPause
-      ? this._i18n.localize("ui.dialogs.more_info_control.lawn_mower.pause")
-      : this._i18n.localize(
+      ? this._modeLocalize("ui.dialogs.more_info_control.lawn_mower.pause")
+      : this._modeLocalize(
           "ui.dialogs.more_info_control.lawn_mower.start_mowing"
         );
   }
@@ -240,10 +246,10 @@ class MoreInfoLawnMower extends LitElement {
                           <button
                             type="button"
                             class="round"
-                            aria-label=${this._i18n.localize(
+                            aria-label=${this._modeLocalize(
                               "ui.dialogs.more_info_control.lawn_mower.stop"
                             )}
-                            title=${this._i18n.localize(
+                            title=${this._modeLocalize(
                               "ui.dialogs.more_info_control.lawn_mower.stop"
                             )}
                             @click=${this._handleStop}
@@ -260,10 +266,10 @@ class MoreInfoLawnMower extends LitElement {
                           <button
                             type="button"
                             class="round"
-                            aria-label=${this._i18n.localize(
+                            aria-label=${this._modeLocalize(
                               "ui.dialogs.more_info_control.lawn_mower.dock"
                             )}
-                            title=${this._i18n.localize(
+                            title=${this._modeLocalize(
                               "ui.dialogs.more_info_control.lawn_mower.dock"
                             )}
                             @click=${this._handleDock}

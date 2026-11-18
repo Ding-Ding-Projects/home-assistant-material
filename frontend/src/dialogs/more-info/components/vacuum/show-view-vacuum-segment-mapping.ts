@@ -1,4 +1,6 @@
 import { fireEvent } from "../../../../common/dom/fire_event";
+import type { Localize } from "../../../../common/language-mode/language-mode";
+import { modeText } from "../../../../common/language-mode/language-mode";
 import type { LocalizeFunc } from "../../../../common/translations/localize";
 
 export const loadVacuumSegmentMappingView = () =>
@@ -12,7 +14,10 @@ export const showVacuumSegmentMappingView = (
   fireEvent(element, "show-child-view", {
     viewTag: "ha-more-info-view-vacuum-segment-mapping",
     viewImport: loadVacuumSegmentMappingView,
-    viewTitle: localize("ui.dialogs.vacuum_segment_mapping.title"),
+    viewTitle: modeText(
+      localize as unknown as Localize,
+      "ui.dialogs.vacuum_segment_mapping.title"
+    ),
     viewParams: { entityId },
   });
 };

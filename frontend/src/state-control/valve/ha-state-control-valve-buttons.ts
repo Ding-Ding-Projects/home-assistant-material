@@ -22,6 +22,7 @@ import {
 } from "../../data/valve";
 import type { HomeAssistantApi } from "../../types";
 import { stateControlButtonStyle } from "../state-control-button-style";
+import { withLanguageMode } from "../../common/language-mode/language-mode";
 
 type ValveButton = "open" | "close" | "stop" | "none";
 
@@ -47,7 +48,12 @@ export class HaStateControlValveButtons extends LitElement {
 
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @property({ attribute: false }) public stateObj!: ValveEntity;
 

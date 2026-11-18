@@ -21,6 +21,8 @@ import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
 import { brandsUrl } from "../../../../../util/brands-url";
 import { bytesToString } from "../../../../../util/bytes-to-string";
+import type { Localize } from "../../../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../../../common/language-mode/language-mode";
 
 interface LocationFigures {
   agentId: string;
@@ -35,6 +37,10 @@ interface LocationFigures {
  */
 @customElement("ha-backup-overview-locations")
 class HaBackupOverviewLocations extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public backups: BackupContent[] = [];
@@ -125,7 +131,7 @@ class HaBackupOverviewLocations extends LitElement {
               </div>
               <div class="figures">
                 <div class="count">
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.backup.overview.locations.count",
                     { count: location.count }
                   )}
@@ -134,7 +140,7 @@ class HaBackupOverviewLocations extends LitElement {
                   ${
                     location.count
                       ? bytesToString(location.size)
-                      : this.hass.localize(
+                      : this._modeLocalize(
                           "ui.panel.config.backup.overview.locations.empty"
                         )
                   }

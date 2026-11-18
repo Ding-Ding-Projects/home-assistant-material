@@ -32,6 +32,7 @@ import "../components/ha-more-info-control-select-container";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 
 type MainControl = "temperature" | "humidity";
 
@@ -41,7 +42,12 @@ class MoreInfoClimate extends LitElement {
 
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @state()
   @consume({ context: apiContext, subscribe: true })

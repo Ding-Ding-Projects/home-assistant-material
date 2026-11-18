@@ -16,6 +16,7 @@ import { UNAVAILABLE, UNKNOWN } from "../data/entity/entity";
 import type { TextEntity } from "../data/text";
 import { setValue } from "../data/text";
 import type { HomeAssistantFormatters } from "../types";
+import { withLanguageMode } from "../common/language-mode/language-mode";
 
 @customElement("state-card-text")
 class StateCardText extends LitElement {
@@ -31,7 +32,12 @@ class StateCardText extends LitElement {
   })
   private _formatEntityName?: HomeAssistantFormatters["formatEntityName"];
 
-  @state() @consumeLocalize() private _localize!: LocalizeFunc;
+  @state() @consumeLocalize() private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @consume({ context: apiContext, subscribe: true })
   private _api!: ContextType<typeof apiContext>;

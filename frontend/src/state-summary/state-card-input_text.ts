@@ -13,10 +13,16 @@ import { consumeLocalize } from "../common/decorators/consume-context-entry";
 import type { LocalizeFunc } from "../common/translations/localize";
 import { apiContext } from "../data/context";
 import type { HomeAssistantApi } from "../types";
+import { withLanguageMode } from "../common/language-mode/language-mode";
 
 @customElement("state-card-input_text")
 class StateCardInputText extends LitElement {
-  @state() @consumeLocalize() private _localize!: LocalizeFunc;
+  @state() @consumeLocalize() private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @consume({ context: apiContext, subscribe: true })
   private _api!: HomeAssistantApi;

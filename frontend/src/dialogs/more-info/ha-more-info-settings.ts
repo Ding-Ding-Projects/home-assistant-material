@@ -11,9 +11,15 @@ import { PLATFORMS_WITH_SETTINGS_TAB } from "../../panels/config/entities/const"
 import "../../panels/config/entities/entity-registry-settings";
 import type { HomeAssistant } from "../../types";
 import { documentationUrl } from "../../util/documentation-url";
+import type { Localize } from "../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../common/language-mode/language-mode";
 
 @customElement("ha-more-info-settings")
 export class HaMoreInfoSettings extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass!.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public entityId!: string;
@@ -39,7 +45,7 @@ export class HaMoreInfoSettings extends LitElement {
                 href=${documentationUrl(this.hass, "/faq/unique_id")}
                 target="_blank"
                 rel="noreferrer"
-                >${this.hass.localize("ui.dialogs.entity_registry.faq")}</a
+                >${this._modeLocalize("ui.dialogs.entity_registry.faq")}</a
               >`,
             })}
           </ha-alert>

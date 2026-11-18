@@ -3,7 +3,15 @@ import type { PropertyValues } from "lit";
 import { ReactiveElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { consume } from "../common/decorators/consume";
-import { relativeTime } from "../common/datetime/relative_time";
+import {
+  cantoneseRelativeLocale,
+  relativeTime,
+} from "../common/datetime/relative_time";
+import {
+  currentLanguageMode,
+  joinForMode,
+  modeText,
+} from "../common/language-mode/language-mode";
 import { capitalizeFirstLetter } from "../common/string/capitalize-first-letter";
 import { internationalizationContext } from "../data/context";
 import type { HomeAssistantInternationalization } from "../types";
@@ -56,7 +64,8 @@ class HaRelativeTime extends ReactiveElement {
     }
 
     if (!this.datetime) {
-      this.textContent = this._i18n.localize(
+      this.textContent = modeText(
+        this._i18n.localize,
         "ui.components.relative_time.never"
       );
       return;
@@ -67,13 +76,27 @@ class HaRelativeTime extends ReactiveElement {
         ? parseISO(this.datetime)
         : this.datetime;
 
-    const relTime = relativeTime(
+    const mode = currentLanguageMode();
+    const english = relativeTime(
       date,
       this._i18n.locale,
       undefined,
       true,
       this.format
     );
+    // The Cantonese wording comes from the browser's own Hong Kong
+    // formatting, so it follows the language mode like the project's own text.
+    const cantonese =
+      mode === "english"
+        ? undefined
+        : relativeTime(
+            date,
+            cantoneseRelativeLocale(this._i18n.locale),
+            undefined,
+            true,
+            this.format
+          );
+    const relTime = joinForMode({ english, cantonese }, mode);
     this.textContent = this.capitalize
       ? capitalizeFirstLetter(relTime)
       : relTime;

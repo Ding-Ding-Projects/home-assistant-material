@@ -41,6 +41,7 @@ import { normalizeFavoritePositions } from "../../data/favorite_positions";
 import type { HomeAssistant } from "../../types";
 import { showAlertDialog } from "../generic/show-dialog-box";
 import { showFormDialog } from "../form/show-form-dialog";
+import { withLanguageMode } from "../../common/language-mode/language-mode";
 
 export interface FavoritesDialogContext {
   host: LitElement;
@@ -76,18 +77,25 @@ interface NumericFavoritesSpec<TEntity extends HassEntity> {
   getFavorites: (entry: ExtEntityRegistryEntry, stateObj: TEntity) => number[];
 }
 
+/** The interface text of an instance, following the language mode. */
+const modeLocalize = (hass: HomeAssistant) => withLanguageMode(hass.localize);
+
 const getFavoritesDialogLabels = (
   hass: HomeAssistant,
   domain: FavoritesDomain
 ): FavoritesDialogLabels => ({
-  editMode: hass.localize(`ui.dialogs.more_info_control.${domain}.edit_mode`),
-  reset: hass.localize(
+  editMode: modeLocalize(hass)(
+    `ui.dialogs.more_info_control.${domain}.edit_mode`
+  ),
+  reset: modeLocalize(hass)(
     `ui.dialogs.more_info_control.${domain}.reset_favorites`
   ),
-  resetText: hass.localize(
+  resetText: modeLocalize(hass)(
     `ui.dialogs.more_info_control.${domain}.reset_favorites_text`
   ),
-  copy: hass.localize(`ui.dialogs.more_info_control.${domain}.copy_favorites`),
+  copy: modeLocalize(hass)(
+    `ui.dialogs.more_info_control.${domain}.copy_favorites`
+  ),
 });
 
 const copyFavoriteOptionsToEntities = async (
@@ -102,10 +110,10 @@ const copyFavoriteOptionsToEntities = async (
   );
 
   const selected = await showFormDialog(host, {
-    title: hass.localize(
+    title: modeLocalize(hass)(
       `ui.dialogs.more_info_control.${domain}.copy_favorites`
     ),
-    submitText: hass.localize("ui.common.copy"),
+    submitText: modeLocalize(hass)("ui.common.copy"),
     schema: [
       {
         name: "entity",
@@ -119,11 +127,11 @@ const copyFavoriteOptionsToEntities = async (
       },
     ],
     computeLabel: () =>
-      hass.localize(
+      modeLocalize(hass)(
         `ui.dialogs.more_info_control.${domain}.copy_favorites_entities`
       ),
     computeHelper: () =>
-      hass.localize(
+      modeLocalize(hass)(
         `ui.dialogs.more_info_control.${domain}.copy_favorites_helper`
       ),
     data: {},
@@ -143,7 +151,7 @@ const copyFavoriteOptionsToEntities = async (
       const rejected = rejectedItems(result);
 
       showAlertDialog(host, {
-        title: hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: modeLocalize(hass)("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>

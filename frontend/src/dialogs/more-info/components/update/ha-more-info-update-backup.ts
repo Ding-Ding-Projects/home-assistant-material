@@ -45,6 +45,7 @@ import type {
   HomeAssistantConfig,
   HomeAssistantInternationalization,
 } from "../../../../types";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 @customElement("ha-more-info-update-backup")
 export class HaMoreInfoUpdateBackup extends LitElement {
@@ -54,7 +55,12 @@ export class HaMoreInfoUpdateBackup extends LitElement {
 
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @state()
   @consume({ context: internationalizationContext, subscribe: true })

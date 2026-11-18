@@ -29,6 +29,7 @@ import { entityRegistryByEntityId } from "../../../data/entity/entity_registry";
 import type { UpdateEntity } from "../../../data/update";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import type { HomeAssistantFormatters } from "../../../types";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 
 @customElement("ha-config-updates")
 class HaConfigUpdates extends LitElement {
@@ -37,7 +38,12 @@ class HaConfigUpdates extends LitElement {
   @property({ attribute: false }) public updateEntities?: UpdateEntity[];
 
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @state()
   @consume({ context: devicesContext, subscribe: true })

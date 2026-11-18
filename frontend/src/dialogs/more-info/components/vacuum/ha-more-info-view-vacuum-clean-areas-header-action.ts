@@ -5,9 +5,15 @@ import "../../../../components/ha-icon-button";
 import { getExtendedEntityRegistryEntry } from "../../../../data/entity/entity_registry";
 import type { HomeAssistant } from "../../../../types";
 import { showVacuumSegmentMappingView } from "./show-view-vacuum-segment-mapping";
+import type { Localize } from "../../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 @customElement("ha-more-info-view-vacuum-clean-areas-header-action")
 export class HaMoreInfoViewVacuumCleanAreasHeaderAction extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass!.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public params!: { entityId: string };
@@ -42,7 +48,7 @@ export class HaMoreInfoViewVacuumCleanAreasHeaderAction extends LitElement {
     }
     return html`
       <ha-icon-button
-        .label=${this.hass.localize(
+        .label=${this._modeLocalize(
           "ui.dialogs.more_info_control.vacuum.configure_area_mapping"
         )}
         .path=${mdiCogOutline}

@@ -336,10 +336,10 @@ export class HaCameraTimeline extends LitElement {
   private _dayLabel() {
     const today = startOfDay(new Date());
     if (isSameDay(this._day, today)) {
-      return this._localize("ui.components.camera_timeline.today");
+      return this._modeLocalize("ui.components.camera_timeline.today");
     }
     if (isSameDay(this._day, addDays(today, -1))) {
-      return this._localize("ui.components.camera_timeline.yesterday");
+      return this._modeLocalize("ui.components.camera_timeline.yesterday");
     }
     return formatDateWeekdayDay(
       this._day,
@@ -349,7 +349,9 @@ export class HaCameraTimeline extends LitElement {
   }
 
   private _kindName(event: CameraEvent) {
-    return this._localize(`ui.components.camera_timeline.kinds.${event.kind}`);
+    return this._modeLocalize(
+      `ui.components.camera_timeline.kinds.${event.kind}`
+    );
   }
 
   private _eventName(event: CameraEvent) {
@@ -365,11 +367,11 @@ export class HaCameraTimeline extends LitElement {
       return "";
     }
     if (seconds < 60) {
-      return this._localize("ui.components.camera_timeline.seconds", {
+      return this._modeLocalize("ui.components.camera_timeline.seconds", {
         count: seconds,
       });
     }
-    return this._localize("ui.components.camera_timeline.minutes", {
+    return this._modeLocalize("ui.components.camera_timeline.minutes", {
       minutes: Math.floor(seconds / 60),
       seconds: seconds % 60,
     });
@@ -436,13 +438,13 @@ export class HaCameraTimeline extends LitElement {
       <div class="bar">
         <ha-icon-button
           .path=${mdiChevronLeft}
-          .label=${this._localize("ui.components.camera_timeline.previous_day")}
+          .label=${this._modeLocalize("ui.components.camera_timeline.previous_day")}
           @click=${this._previousDay}
         ></ha-icon-button>
         <span class="day">${this._dayLabel()}</span>
         <ha-icon-button
           .path=${mdiChevronRight}
-          .label=${this._localize("ui.components.camera_timeline.next_day")}
+          .label=${this._modeLocalize("ui.components.camera_timeline.next_day")}
           .disabled=${isToday}
           @click=${this._nextDay}
         ></ha-icon-button>
@@ -451,7 +453,7 @@ export class HaCameraTimeline extends LitElement {
           size="s"
           .buttons=${(["1", "6", "24"] as Zoom[]).map((value) => ({
             value,
-            label: this._localize("ui.components.camera_timeline.hours", {
+            label: this._modeLocalize("ui.components.camera_timeline.hours", {
               count: Number(value),
             }),
           }))}
@@ -464,13 +466,13 @@ export class HaCameraTimeline extends LitElement {
         class="track"
         role="slider"
         tabindex="0"
-        aria-label=${this._localize("ui.components.camera_timeline.label")}
+        aria-label=${this._modeLocalize("ui.components.camera_timeline.label")}
         aria-valuemin=${start}
         aria-valuemax=${end}
         aria-valuenow=${head}
         aria-valuetext=${
           this.playhead === undefined
-            ? this._localize("ui.components.camera_timeline.live")
+            ? this._modeLocalize("ui.components.camera_timeline.live")
             : this._time(head, true)
         }
         @pointerdown=${this._pointerDown}
@@ -569,17 +571,17 @@ export class HaCameraTimeline extends LitElement {
         ${
           this._recorded
             ? html`<span
-                  ><i class="swatch recorded"></i>${this._localize(
+                  ><i class="swatch recorded"></i>${this._modeLocalize(
                     "ui.components.camera_timeline.recorded"
                   )}</span
                 ><span
-                  ><i class="swatch gap"></i>${this._localize(
+                  ><i class="swatch gap"></i>${this._modeLocalize(
                     "ui.components.camera_timeline.not_recorded"
                   )}</span
                 >${
                   chosen.length
                     ? html`<span
-                        ><i class="swatch chosen"></i>${this._localize(
+                        ><i class="swatch chosen"></i>${this._modeLocalize(
                           "ui.components.camera_timeline.not_kept_by_choice"
                         )}</span
                       >`
@@ -587,16 +589,16 @@ export class HaCameraTimeline extends LitElement {
                 }${
                   this._config.user?.is_admin
                     ? html`<a href="/config/camera_recording"
-                        >${this._localize(
+                        >${this._modeLocalize(
                           "ui.components.camera_timeline.settings"
                         )}</a
                       >`
                     : nothing
                 }`
             : html`<span class="hint"
-                >${this._localize("ui.components.camera_timeline.not_set_up")}
+                >${this._modeLocalize("ui.components.camera_timeline.not_set_up")}
                 <a href="/config/integrations/integration/camera_recording"
-                  >${this._localize("ui.components.camera_timeline.set_up")}</a
+                  >${this._modeLocalize("ui.components.camera_timeline.set_up")}</a
                 ></span
               >`
         }
@@ -604,7 +606,7 @@ export class HaCameraTimeline extends LitElement {
         ${
           this.playhead !== undefined
             ? html`<ha-button size="small" @click=${this._goLive}
-                >${this._localize("ui.components.camera_timeline.back_to_live")}</ha-button
+                >${this._modeLocalize("ui.components.camera_timeline.back_to_live")}</ha-button
               >`
             : nothing
         }
@@ -615,12 +617,12 @@ export class HaCameraTimeline extends LitElement {
           ? html`<div
               class="filters"
               role="group"
-              aria-label=${this._localize("ui.components.camera_timeline.filter")}
+              aria-label=${this._modeLocalize("ui.components.camera_timeline.filter")}
             >
               ${kinds.map(
                 (kind) =>
                   html`<ha-filter-chip
-                    .label=${this._localize(`ui.components.camera_timeline.kinds.${kind}`)}
+                    .label=${this._modeLocalize(`ui.components.camera_timeline.kinds.${kind}`)}
                     .selected=${!this._hidden.has(kind)}
                     .kind=${kind}
                     @click=${this._toggleKind}
@@ -632,7 +634,7 @@ export class HaCameraTimeline extends LitElement {
       ${
         this._error
           ? html`<p class="hint">
-              ${this._localize("ui.components.camera_timeline.load_failed")}
+              ${this._modeLocalize("ui.components.camera_timeline.load_failed")}
             </p>`
           : nothing
       }
@@ -642,7 +644,7 @@ export class HaCameraTimeline extends LitElement {
         ${
           events.length === 0
             ? html`<li class="hint">
-                ${this._localize("ui.components.camera_timeline.no_events")}
+                ${this._modeLocalize("ui.components.camera_timeline.no_events")}
               </li>`
             : [...events].reverse().map((event) => {
                 const clip = clips.get(event)!;
@@ -705,7 +707,7 @@ export class HaCameraTimeline extends LitElement {
                               slot="start"
                               .path=${clip.picture ? mdiImageOutline : mdiPlay}
                             ></ha-svg-icon>
-                            ${this._localize(
+                            ${this._modeLocalize(
                               clip.picture
                                 ? "ui.components.camera_timeline.clip.show_picture"
                                 : "ui.components.camera_timeline.play"

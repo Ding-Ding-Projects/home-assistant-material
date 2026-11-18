@@ -64,6 +64,7 @@ import type {
   HomeAssistantFormatters,
   ValueChangedEvent,
 } from "../../../types";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 
 const DROPDOWN_MAX_ITEMS = 4;
 
@@ -83,7 +84,12 @@ class MoreInfoMediaPlayer extends LitElement {
 
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @state()
   @consume({ context: formattersContext, subscribe: true })
@@ -132,7 +138,7 @@ class MoreInfoMediaPlayer extends LitElement {
   private _computeSoundModeItems = memoizeOne(computeAttributeItems);
 
   protected render() {
-    if (!this.stateObj || !this._localize) {
+    if (!this.stateObj || !this._ctxLocalize) {
       return nothing;
     }
 

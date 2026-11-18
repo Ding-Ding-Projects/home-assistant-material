@@ -48,9 +48,15 @@ import type {
   HomeAssistantFormatters,
   HomeAssistantInternationalization,
 } from "../../../types";
+import type { Localize } from "../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-weather")
 class MoreInfoWeather extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._i18n.localize);
+  }
+
   @property({ attribute: false }) public stateObj?: WeatherEntity;
 
   @state()
@@ -192,7 +198,7 @@ class MoreInfoWeather extends LitElement {
     if (this._showValue(attrs.wind_speed)) {
       items.push({
         icon: mdiWeatherWindy,
-        label: this._i18n.localize("ui.card.weather.attributes.wind_speed"),
+        label: this._modeLocalize("ui.card.weather.attributes.wind_speed"),
         value: getWind(
           this._formatters.formatEntityAttributeValue,
           this._i18n.localize,
@@ -205,7 +211,7 @@ class MoreInfoWeather extends LitElement {
     if (this._showValue(attrs.humidity)) {
       items.push({
         icon: mdiWaterPercent,
-        label: this._i18n.localize("ui.card.weather.attributes.humidity"),
+        label: this._modeLocalize("ui.card.weather.attributes.humidity"),
         value: this._formatters.formatEntityAttributeValue(
           stateObj,
           "humidity"
@@ -215,7 +221,7 @@ class MoreInfoWeather extends LitElement {
     if (this._showValue(attrs.pressure)) {
       items.push({
         icon: mdiGauge,
-        label: this._i18n.localize("ui.card.weather.attributes.air_pressure"),
+        label: this._modeLocalize("ui.card.weather.attributes.air_pressure"),
         value: this._formatters.formatEntityAttributeValue(
           stateObj,
           "pressure"
@@ -225,7 +231,7 @@ class MoreInfoWeather extends LitElement {
     if (this._showValue(attrs.visibility)) {
       items.push({
         icon: mdiEye,
-        label: this._i18n.localize("ui.card.weather.attributes.visibility"),
+        label: this._modeLocalize("ui.card.weather.attributes.visibility"),
         value: this._formatters.formatEntityAttributeValue(
           stateObj,
           "visibility"
@@ -303,7 +309,7 @@ class MoreInfoWeather extends LitElement {
           <ha-tooltip for="relative-time">
             <div class="row">
               <span class="column-name">
-                ${this._i18n.localize(
+                ${this._modeLocalize(
                   "ui.dialogs.more_info_control.last_changed"
                 )}:
               </span>
@@ -314,7 +320,7 @@ class MoreInfoWeather extends LitElement {
             </div>
             <div class="row">
               <span>
-                ${this._i18n.localize(
+                ${this._modeLocalize(
                   "ui.dialogs.more_info_control.last_updated"
                 )}:
               </span>
@@ -330,7 +336,7 @@ class MoreInfoWeather extends LitElement {
         supportedForecasts?.length
           ? html`
               <div class="section">
-                ${this._i18n.localize("ui.card.weather.forecast")}:
+                ${this._modeLocalize("ui.card.weather.forecast")}:
               </div>
               ${
                 supportedForecasts?.length > 1
@@ -344,7 +350,7 @@ class MoreInfoWeather extends LitElement {
                             .panel=${forecastType}
                             .active=${this._forecastType === forecastType}
                           >
-                            ${this._i18n.localize(
+                            ${this._modeLocalize(
                               `ui.card.weather.${forecastType}`
                             )}
                           </ha-tab-group-tab>`
@@ -397,10 +403,10 @@ class MoreInfoWeather extends LitElement {
                                                 ? html`<div class="daynight">
                                                     ${
                                                       item.is_daytime !== false
-                                                        ? this._i18n.localize(
+                                                        ? this._modeLocalize(
                                                             "ui.card.weather.day"
                                                           )
-                                                        : this._i18n.localize(
+                                                        : this._modeLocalize(
                                                             "ui.card.weather.night"
                                                           )
                                                     }

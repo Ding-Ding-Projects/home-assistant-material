@@ -56,9 +56,15 @@ import "../components/ha-more-info-state-header";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 import { showVacuumCleanAreasView } from "../components/vacuum/show-view-vacuum-clean-areas";
+import type { Localize } from "../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-vacuum")
 class MoreInfoVacuum extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._i18n.localize);
+  }
+
   @state()
   @consume({ context: internationalizationContext, subscribe: true })
   private _i18n!: HomeAssistantInternationalization;
@@ -257,15 +263,15 @@ class MoreInfoVacuum extends LitElement {
       !supportsFeature(this.stateObj, VacuumEntityFeature.STATE) &&
       !supportsFeature(this.stateObj, VacuumEntityFeature.START)
     ) {
-      return this._i18n.localize(
+      return this._modeLocalize(
         "ui.dialogs.more_info_control.vacuum.start_pause"
       );
     }
 
     return isCleaning(this.stateObj) &&
       supportsFeature(this.stateObj, VacuumEntityFeature.PAUSE)
-      ? this._i18n.localize("ui.dialogs.more_info_control.vacuum.pause")
-      : this._i18n.localize("ui.dialogs.more_info_control.vacuum.start");
+      ? this._modeLocalize("ui.dialogs.more_info_control.vacuum.pause")
+      : this._modeLocalize("ui.dialogs.more_info_control.vacuum.start");
   }
 
   private get _startPauseDisabled(): boolean {
@@ -362,7 +368,7 @@ class MoreInfoVacuum extends LitElement {
                       supportsStop
                         ? html`
                             <ha-control-button
-                              .label=${this._i18n.localize(
+                              .label=${this._modeLocalize(
                                 "ui.dialogs.more_info_control.vacuum.stop"
                               )}
                               @click=${this._handleStop}
@@ -377,7 +383,7 @@ class MoreInfoVacuum extends LitElement {
                       supportsReturnHome
                         ? html`
                             <ha-control-button
-                              .label=${this._i18n.localize(
+                              .label=${this._modeLocalize(
                                 "ui.dialogs.more_info_control.vacuum.return_home"
                               )}
                               @click=${this._handleReturnHome}
@@ -394,7 +400,7 @@ class MoreInfoVacuum extends LitElement {
                       supportsLocate
                         ? html`
                             <ha-control-button
-                              .label=${this._i18n.localize(
+                              .label=${this._modeLocalize(
                                 "ui.dialogs.more_info_control.vacuum.locate"
                               )}
                               @click=${this._handleLocate}
@@ -409,7 +415,7 @@ class MoreInfoVacuum extends LitElement {
                       supportsCleanSpot
                         ? html`
                             <ha-control-button
-                              .label=${this._i18n.localize(
+                              .label=${this._modeLocalize(
                                 "ui.dialogs.more_info_control.vacuum.clean_spot"
                               )}
                               @click=${this._handleCleanSpot}
@@ -483,12 +489,12 @@ class MoreInfoVacuum extends LitElement {
                           </div>
                           <div class="content">
                             <p class="label">
-                              ${this._i18n.localize(
+                              ${this._modeLocalize(
                                 "ui.dialogs.more_info_control.vacuum.cleaning"
                               )}
                             </p>
                             <p class="value">
-                              ${this._i18n.localize(
+                              ${this._modeLocalize(
                                 "ui.dialogs.more_info_control.vacuum.by_area"
                               )}
                             </p>

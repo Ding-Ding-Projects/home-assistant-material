@@ -16,6 +16,7 @@ import { UNAVAILABLE, UNKNOWN } from "../../data/entity/entity";
 import { forwardHaptic } from "../../data/haptics";
 import { stateControlToggleStyle } from "../../resources/state-control-styles";
 import type { HomeAssistantApi } from "../../types";
+import { withLanguageMode } from "../../common/language-mode/language-mode";
 
 @customElement("ha-state-control-cover-toggle")
 export class HaStateControlCoverToggle extends LitElement {
@@ -25,7 +26,12 @@ export class HaStateControlCoverToggle extends LitElement {
 
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @property({ attribute: false }) public stateObj!: HassEntity;
 

@@ -20,6 +20,8 @@ import { domainMoreInfoType } from "./state_more_info_control";
 import "./ha-more-info-history";
 import "./ha-more-info-logbook";
 import "./more-info-content";
+import type { Localize } from "../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../common/language-mode/language-mode";
 
 /**
  * Kinds whose body draws its own state headline. The frame leaves its own
@@ -70,6 +72,10 @@ const bodyDrawsNothing = (domain: string, stateObj: HassEntity): boolean => {
 
 @customElement("ha-more-info-info")
 export class MoreInfoInfo extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass!.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public entityId!: string;
@@ -108,10 +114,10 @@ export class MoreInfoInfo extends LitElement {
             ? html`<ha-alert alert-type="warning">
                 ${
                   this.entry?.disabled_by
-                    ? this.hass.localize(
+                    ? this._modeLocalize(
                         "ui.dialogs.entity_registry.editor.entity_disabled"
                       )
-                    : this.hass.localize(
+                    : this._modeLocalize(
                         "ui.dialogs.entity_registry.editor.unavailable"
                       )
                 }
@@ -121,10 +127,10 @@ export class MoreInfoInfo extends LitElement {
         ${
           stateObj?.attributes.restored && entityRegObj
             ? html`<ha-alert alert-type="warning">
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.dialogs.more_info_control.restored.no_longer_provided",
                   {
-                    integration: entityRegObj.platform,
+                    integration: entityRegObj.platform ?? "",
                   }
                 )}
               </ha-alert>`

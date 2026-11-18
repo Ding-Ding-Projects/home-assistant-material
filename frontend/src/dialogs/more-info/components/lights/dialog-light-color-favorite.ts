@@ -3,6 +3,8 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { fireEvent } from "../../../../common/dom/fire_event";
+import type { Localize } from "../../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 import "../../../../components/ha-button";
 import "../../../../components/ha-dialog-footer";
 import "../../../../components/ha-icon-button-toggle";
@@ -32,6 +34,10 @@ class DialogLightColorFavorite extends DirtyStateProviderMixin<LightColorFavorit
   LitElement
 ) {
   @property({ attribute: false }) public hass!: HomeAssistant;
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
 
   @state() _dialogParams?: LightColorFavoriteDialogParams;
 
@@ -173,7 +179,7 @@ class DialogLightColorFavorite extends DirtyStateProviderMixin<LightColorFavorit
                         <ha-icon-button-toggle
                           border-only
                           .selected=${value === this._mode}
-                          .label=${this.hass.localize(
+                          .label=${this._modeLocalize(
                             `ui.dialogs.more_info_control.light.color_picker.mode.${value}`
                           )}
                           .mode=${value}
@@ -220,14 +226,14 @@ class DialogLightColorFavorite extends DirtyStateProviderMixin<LightColorFavorit
             appearance="plain"
             @click=${this.closeDialog}
           >
-            ${this.hass.localize("ui.common.cancel")}
+            ${this._modeLocalize("ui.common.cancel")}
           </ha-button>
           <ha-button
             slot="primaryAction"
             @click=${this._save}
             .disabled=${!this._color}
           >
-            ${this.hass.localize("ui.common.save")}
+            ${this._modeLocalize("ui.common.save")}
           </ha-button>
         </ha-dialog-footer>
       </ha-dialog>

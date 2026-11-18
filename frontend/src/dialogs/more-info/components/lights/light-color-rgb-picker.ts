@@ -26,6 +26,7 @@ import {
   LightColorMode,
   lightSupportsColorMode,
 } from "../../../../data/light";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 declare global {
   interface HASSDomEvents {
@@ -41,7 +42,12 @@ class LightRgbColorPicker extends LitElement {
 
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @property({ attribute: false }) public stateObj!: LightEntity;
 

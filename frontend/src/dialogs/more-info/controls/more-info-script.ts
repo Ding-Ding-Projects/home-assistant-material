@@ -21,9 +21,15 @@ import type { HomeAssistant, ValueChangedEvent } from "../../../types";
 import { stateControlButtonStyle } from "../../../state-control/state-control-button-style";
 import "../components/ha-more-info-state-header";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
+import type { Localize } from "../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-script")
 class MoreInfoScript extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass!.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public stateObj?: ScriptEntity;
@@ -81,11 +87,11 @@ class MoreInfoScript extends LitElement {
         .stateOverride=${
           current > 0
             ? isParallel && current > 1
-              ? this.hass.localize("ui.card.script.running_parallel", {
+              ? this._modeLocalize("ui.card.script.running_parallel", {
                   active: current,
                 })
-              : this.hass.localize("ui.card.script.running_single")
-            : this.hass.localize("ui.card.script.idle")
+              : this._modeLocalize("ui.card.script.running_single")
+            : this._modeLocalize("ui.card.script.idle")
         }
         .changedOverride=${this.stateObj.attributes.last_triggered || 0}
       ></ha-more-info-state-header>
@@ -103,7 +109,7 @@ class MoreInfoScript extends LitElement {
         ${
           hasQueue
             ? html`
-                ${this.hass.localize("ui.card.script.running_queued", {
+                ${this._modeLocalize("ui.card.script.running_queued", {
                   queued: current - 1,
                 })}
               `
@@ -116,7 +122,7 @@ class MoreInfoScript extends LitElement {
           ? html`
               <div class="fields">
                 <div class="title">
-                  ${this.hass.localize("ui.card.script.run_script")}
+                  ${this._modeLocalize("ui.card.script.run_script")}
                 </div>
                 <ha-service-control
                   hide-picker
@@ -145,8 +151,8 @@ class MoreInfoScript extends LitElement {
           <span class="label"
             >${
               (isQueued || isParallel) && current > 1
-                ? this.hass.localize("ui.card.script.cancel_all")
-                : this.hass.localize("ui.card.script.cancel")
+                ? this._modeLocalize("ui.card.script.cancel_all")
+                : this._modeLocalize("ui.card.script.cancel")
             }</span
           >
         </ha-control-button>
@@ -156,9 +162,7 @@ class MoreInfoScript extends LitElement {
           .disabled=${stateObj.state === UNAVAILABLE || !this._canRun()}
         >
           <ha-svg-icon .path=${mdiPlay}></ha-svg-icon>
-          <span class="label"
-            >${this.hass!.localize("ui.card.script.run")}</span
-          >
+          <span class="label">${this._modeLocalize("ui.card.script.run")}</span>
         </ha-control-button>
       </ha-control-button-group>
     `;

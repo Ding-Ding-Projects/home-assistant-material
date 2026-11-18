@@ -14,6 +14,7 @@ import "../components/ha-more-info-state-header";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 import type { HomeAssistantApi, HomeAssistantFormatters } from "../../../types";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-remote")
 class MoreInfoRemote extends LitElement {
@@ -21,7 +22,12 @@ class MoreInfoRemote extends LitElement {
 
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @state()
   @consume({ context: formattersContext, subscribe: true })
@@ -32,7 +38,7 @@ class MoreInfoRemote extends LitElement {
   private _api!: HomeAssistantApi;
 
   protected render() {
-    if (!this._localize || !this._formatters || !this.stateObj) {
+    if (!this._ctxLocalize || !this._formatters || !this.stateObj) {
       return nothing;
     }
 

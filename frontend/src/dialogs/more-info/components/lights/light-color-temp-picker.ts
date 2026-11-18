@@ -23,6 +23,8 @@ import { UNAVAILABLE } from "../../../../data/entity/entity";
 import { DOMAIN_ATTRIBUTES_UNITS } from "../../../../data/entity/entity_attributes";
 import type { LightColor, LightEntity } from "../../../../data/light";
 import { LightColorMode } from "../../../../data/light";
+import type { Localize } from "../../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 declare global {
   interface HASSDomEvents {
@@ -52,6 +54,10 @@ export const generateColorTemperatureGradient = (min: number, max: number) => {
 
 @customElement("light-color-temp-picker")
 class LightColorTempPicker extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._i18n.localize);
+  }
+
   @state()
   @consume({ context: apiContext, subscribe: true })
   private _api!: ContextType<typeof apiContext>;
@@ -90,7 +96,7 @@ class LightColorTempPicker extends LitElement {
         mode="cursor"
         @value-changed=${this._ctColorChanged}
         @slider-moved=${this._ctColorCursorMoved}
-        .label=${this._i18n.localize(
+        .label=${this._modeLocalize(
           "ui.dialogs.more_info_control.light.color_temp"
         )}
         style=${styleMap({

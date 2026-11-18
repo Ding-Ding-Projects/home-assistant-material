@@ -39,6 +39,8 @@ import {
   dropAgentsRequiringEncryption,
 } from "../helper/backup-encryption";
 import type { GenerateBackupDialogParams } from "./show-dialog-generate-backup";
+import type { Localize } from "../../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 interface FormData {
   name: string;
@@ -68,6 +70,10 @@ class DialogGenerateBackup
   extends DirtyStateProviderMixin<FormData>()(LitElement)
   implements HassDialog
 {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _step?: "data" | "sync";
@@ -181,7 +187,7 @@ class DialogGenerateBackup
       return nothing;
     }
 
-    const dialogTitle = this.hass.localize(
+    const dialogTitle = this._modeLocalize(
       `ui.panel.config.backup.dialogs.generate.${this._step}.title`
     );
 
@@ -203,7 +209,7 @@ class DialogGenerateBackup
                   <ha-icon-button
                     slot="navigationIcon"
                     data-dialog="close"
-                    .label=${this.hass.localize("ui.common.close")}
+                    .label=${this._modeLocalize("ui.common.close")}
                     .path=${mdiClose}
                   ></ha-icon-button>
                 `
@@ -228,7 +234,7 @@ class DialogGenerateBackup
                     @click=${this.closeDialog}
                     appearance="plain"
                   >
-                    ${this.hass.localize("ui.common.cancel")}
+                    ${this._modeLocalize("ui.common.cancel")}
                   </ha-button>
                 `
               : nothing
@@ -244,7 +250,7 @@ class DialogGenerateBackup
                       !selectedAgents.length
                     }
                   >
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.backup.dialogs.generate.actions.create"
                     )}
                   </ha-button>
@@ -255,7 +261,7 @@ class DialogGenerateBackup
                     @click=${this._nextStep}
                     .disabled=${this._step === "data" && this._noDataSelected}
                   >
-                    ${this.hass.localize("ui.common.next")}
+                    ${this._modeLocalize("ui.common.next")}
                   </ha-button>
                 `
           }
@@ -312,7 +318,7 @@ class DialogGenerateBackup
     return html`
       <ha-input
         name="name"
-        .label=${this.hass.localize(
+        .label=${this._modeLocalize(
           "ui.panel.config.backup.dialogs.generate.sync.name"
         )}
         .value=${this._formData.name}
@@ -321,12 +327,12 @@ class DialogGenerateBackup
       </ha-input>
       <ha-row-item>
         <span slot="headline">
-          ${this.hass.localize(
+          ${this._modeLocalize(
             "ui.panel.config.backup.dialogs.generate.sync.locations"
           )}
         </span>
         <span slot="supporting-text">
-          ${this.hass.localize(
+          ${this._modeLocalize(
             "ui.panel.config.backup.dialogs.generate.sync.locations_description"
           )}
         </span>
@@ -337,7 +343,7 @@ class DialogGenerateBackup
           .options=${[
             {
               value: "all",
-              label: this.hass.localize(
+              label: this._modeLocalize(
                 "ui.panel.config.backup.dialogs.generate.sync.locations_options.all",
                 { count: this._allAgentIds.length }
               ),
@@ -345,7 +351,7 @@ class DialogGenerateBackup
             },
             {
               value: "custom",
-              label: this.hass.localize(
+              label: this._modeLocalize(
                 "ui.panel.config.backup.dialogs.generate.sync.locations_options.custom"
               ),
             },
@@ -357,11 +363,11 @@ class DialogGenerateBackup
           ? html`
               <ha-alert
                 alert-type="info"
-                .title=${this.hass.localize(
+                .title=${this._modeLocalize(
                   "ui.panel.config.backup.dialogs.generate.sync.needs_encryption_alert.title"
                 )}
               >
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.backup.dialogs.generate.sync.needs_encryption_alert.description"
                 )}
               </ha-alert>
@@ -372,7 +378,7 @@ class DialogGenerateBackup
         this._formData.agents_mode === "custom"
           ? html`
               <ha-expansion-panel
-                .header=${this.hass.localize(
+                .header=${this._modeLocalize(
                   "ui.panel.config.backup.dialogs.generate.sync.locations"
                 )}
                 outlined

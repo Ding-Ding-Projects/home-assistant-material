@@ -60,9 +60,15 @@ import {
   agentsBlockedWithoutKey,
   dropAgentsRequiringEncryption,
 } from "./helper/backup-encryption";
+import type { Localize } from "../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 
 @customElement("ha-config-backup-overview")
 class HaConfigBackupOverview extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public cloudStatus?: CloudStatus;
@@ -211,7 +217,7 @@ class HaConfigBackupOverview extends LitElement {
       await generateBackupWithAutomaticSettings(this.hass);
     } catch (err: any) {
       showAlertDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.backup.overview.create_backup_failed"
         ),
         text: err.message,
@@ -255,7 +261,7 @@ class HaConfigBackupOverview extends LitElement {
       }
     } catch (err: any) {
       showAlertDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.backup.overview.create_backup_failed"
         ),
         text: err.message,
@@ -293,7 +299,7 @@ class HaConfigBackupOverview extends LitElement {
         back-path="/config/system"
         .hass=${this.hass}
         .narrow=${this.narrow}
-        .header=${this.hass.localize("ui.panel.config.backup.overview.header")}
+        .header=${this._modeLocalize("ui.panel.config.backup.overview.header")}
       >
         <ha-dropdown
           slot="toolbar-icon"
@@ -302,12 +308,12 @@ class HaConfigBackupOverview extends LitElement {
         >
           <ha-icon-button
             slot="trigger"
-            .label=${this.hass.localize("ui.common.menu")}
+            .label=${this._modeLocalize("ui.common.menu")}
             .path=${mdiDotsVertical}
           ></ha-icon-button>
           <ha-dropdown-item value="upload_backup">
             <ha-svg-icon slot="icon" .path=${mdiUpload}></ha-svg-icon>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.backup.overview.menu.upload_backup"
             )}
           </ha-dropdown-item>
@@ -320,7 +326,7 @@ class HaConfigBackupOverview extends LitElement {
                     (agentId) => html`
                       <ha-alert
                         alert-type="error"
-                        .title=${this.hass.localize(
+                        .title=${this._modeLocalize(
                           "ui.panel.config.backup.overview.agent_error",
                           {
                             name: computeBackupAgentName(
@@ -393,7 +399,7 @@ class HaConfigBackupOverview extends LitElement {
                         this.hass,
                         `button.running.${this._runningKind}`
                       )
-                    : this.hass.localize(
+                    : this._modeLocalize(
                         "ui.panel.config.backup.overview.new_backup"
                       )
                 }
@@ -413,7 +419,7 @@ class HaConfigBackupOverview extends LitElement {
                       href="/config/backup/settings"
                     >
                       <ha-svg-icon slot="start" .path=${mdiCog}></ha-svg-icon>
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         "ui.panel.config.backup.overview.settings_button"
                       )}
                     </ha-button>`
@@ -458,13 +464,13 @@ class HaConfigBackupOverview extends LitElement {
                 ? html`
                     <ha-card>
                       <div class="card-header">
-                        ${this.hass.localize(
+                        ${this._modeLocalize(
                           "ui.panel.config.backup.settings.encryption_key.title"
                         )}
                       </div>
                       <div class="card-content">
                         <p>
-                          ${this.hass.localize(
+                          ${this._modeLocalize(
                             "ui.panel.config.backup.settings.encryption_key.description"
                           )}
                         </p>

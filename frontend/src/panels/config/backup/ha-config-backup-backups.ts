@@ -929,13 +929,17 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
       return undefined;
     }
     const localize = this.hass.localize;
+    const modeLocalize = (
+      key: string,
+      values?: Record<string, string | number>
+    ) => modeText(this.hass.localize, key, values);
     const plan = this._deletePlan();
     const items: BulkPreviewItem[] = [];
 
     plan.deletable.forEach((entry) => {
       items.push(
         ...backupPreviewItems(entry, {
-          entry: localize("ui.panel.config.backup.backups.bulk.entry", {
+          entry: modeLocalize("ui.panel.config.backup.backups.bulk.entry", {
             name: entry.name,
             date: formatDateTime(
               new Date(entry.date),
@@ -944,12 +948,19 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
             ),
             size: bytesToString(entry.size),
           }),
-          newest: localize("ui.panel.config.backup.backups.bulk.newest"),
-          onlyCopy: localize("ui.panel.config.backup.backups.bulk.only_copy", {
-            location: entry.onlyCopy
-              ? computeBackupAgentName(localize, entry.agentIds[0], this.agents)
-              : "",
-          }),
+          newest: modeLocalize("ui.panel.config.backup.backups.bulk.newest"),
+          onlyCopy: modeLocalize(
+            "ui.panel.config.backup.backups.bulk.only_copy",
+            {
+              location: entry.onlyCopy
+                ? computeBackupAgentName(
+                    localize,
+                    entry.agentIds[0],
+                    this.agents
+                  )
+                : "",
+            }
+          ),
         })
       );
     });
@@ -957,7 +968,7 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
     plan.skipped.forEach((entry) => {
       items.push({
         kind: "skip",
-        text: localize(
+        text: modeLocalize(
           `ui.panel.config.backup.backups.bulk.skipped_${entry.reason}`,
           { name: entry.name }
         ),
@@ -966,12 +977,14 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
 
     const count = plan.deletable.length;
     const hidden = hiddenTableSelection(this._dataTable);
-    const notes = [localize("ui.panel.config.backup.backups.bulk.note")];
+    const notes = [modeLocalize("ui.panel.config.backup.backups.bulk.note")];
     if (hidden > 0) {
-      notes.push(localize("ui.bulk.preview_hidden", { count: hidden }));
+      notes.push(modeLocalize("ui.bulk.preview_hidden", { count: hidden }));
     }
     return {
-      title: localize("ui.panel.config.backup.backups.bulk.title", { count }),
+      title: modeLocalize("ui.panel.config.backup.backups.bulk.title", {
+        count,
+      }),
       items,
       changeCount: count,
       confirmLabel: localize("ui.common.delete"),
@@ -1017,7 +1030,8 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
     );
     if (gone.length) {
       showToast(this, {
-        message: this.hass.localize(
+        message: modeText(
+          this.hass.localize,
           "ui.panel.config.backup.backups.bulk.already_gone",
           { names: gone.map((id) => names.get(id) ?? id).join(", ") }
         ),
@@ -1036,7 +1050,8 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
         title: this.hass.localize(
           "ui.panel.config.backup.dialogs.delete_selected.failed"
         ),
-        text: `${this.hass.localize(
+        text: `${modeText(
+          this.hass.localize,
           "ui.panel.config.backup.backups.bulk.partly_deleted",
           { deleted: outcome.deleted.length, total: ids.length }
         )}\n${outcome.failed

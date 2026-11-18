@@ -24,6 +24,8 @@ import { searchCountText } from "../../../components/ha-top-bar-search";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { supportsFeature } from "../../../common/entity/supports-feature";
+import type { Localize } from "../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { navigate } from "../../../common/navigate";
 import "../../../components/animation/ha-fade-in";
@@ -139,6 +141,10 @@ const CURRENT_PREVIEW = 6;
 
 @customElement("ha-config-section-updates")
 class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -369,7 +375,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       case "restore_backup":
         return html`<ha-alert
           alert-type="info"
-          .title=${this.hass.localize(
+          .title=${this._modeLocalize(
             `ui.panel.config.updates.backup_in_progress.title.${this._backupState}`
           )}
         >
@@ -377,7 +383,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
             `ui.panel.config.updates.backup_in_progress.${this._backupState}`,
             {
               backups_link: html`<a href="/config/backup"
-                >${this.hass.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.updates.backup_in_progress.backups_link"
                 )}</a
               >`,
@@ -868,7 +874,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                 .text=${this._pt()}
                 .name=${name}
                 .notesUrl=${this._notesUrlOf(entity, view)}
-                .dismissLabel=${this.hass.localize("ui.update_progress.dismiss")}
+                .dismissLabel=${this._modeLocalize("ui.update_progress.dismiss")}
                 @update-progress-dismiss=${this._dismissProgress}
               ></ha-update-progress-block>`
             : nothing
@@ -1009,7 +1015,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
               .text=${this._pt()}
               .name=${name}
               .notesUrl=${this._notesUrlOf(entity, view)}
-              .dismissLabel=${this.hass.localize("ui.update_progress.dismiss")}
+              .dismissLabel=${this._modeLocalize("ui.update_progress.dismiss")}
               @update-progress-dismiss=${this._dismissProgress}
             ></ha-update-progress-block>
           </div>`;

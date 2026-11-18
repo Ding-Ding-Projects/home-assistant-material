@@ -20,9 +20,15 @@ import {
   updateEntityRegistryEntry,
 } from "../../../../data/entity/entity_registry";
 import type { HomeAssistant, ValueChangedEvent } from "../../../../types";
+import type { Localize } from "../../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 @customElement("ha-more-info-view-vacuum-segment-mapping")
 export class HaMoreInfoViewVacuumSegmentMapping extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass!.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public params!: { entityId: string };
@@ -116,7 +122,7 @@ export class HaMoreInfoViewVacuumSegmentMapping extends LitElement {
 
         <div class="footer">
           <ha-button @click=${this._save} .disabled=${this._submitting}>
-            ${this.hass.localize("ui.common.save")}
+            ${this._modeLocalize("ui.common.save")}
           </ha-button>
         </div>
       </div>

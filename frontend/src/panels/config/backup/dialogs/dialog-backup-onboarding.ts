@@ -45,6 +45,8 @@ import {
 } from "../helper/backup-encryption";
 import { confirmTurnOffEncryption } from "../helper/confirm-turn-off-encryption";
 import type { BackupOnboardingDialogParams } from "./show-dialog-backup_onboarding";
+import type { Localize } from "../../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 const STEPS = [
   "welcome",
@@ -101,6 +103,10 @@ class DialogBackupOnboarding
   extends DirtyStateProviderMixin<BackupConfig>()(LitElement)
   implements HassDialog
 {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _open = false;
@@ -281,7 +287,7 @@ class DialogBackupOnboarding
                 <ha-icon-button
                   slot="headerNavigationIcon"
                   data-dialog="close"
-                  .label=${this.hass.localize("ui.common.close")}
+                  .label=${this._modeLocalize("ui.common.close")}
                   .path=${mdiClose}
                 ></ha-icon-button>
               `
@@ -305,7 +311,7 @@ class DialogBackupOnboarding
                             @click=${this._done}
                             .disabled=${this._saving || !this._isStepValid()}
                           >
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               "ui.panel.config.backup.dialogs.onboarding.save_and_create"
                             )}
                           </ha-button>
@@ -316,7 +322,7 @@ class DialogBackupOnboarding
                             @click=${this._nextStep}
                             .disabled=${this._saving || !this._isStepValid()}
                           >
-                            ${this.hass.localize("ui.common.next")}
+                            ${this._modeLocalize("ui.common.next")}
                           </ha-button>
                         `
                   }
@@ -358,7 +364,7 @@ class DialogBackupOnboarding
       case "schedule":
       case "data":
       case "locations":
-        return this.hass.localize(
+        return this._modeLocalize(
           `ui.panel.config.backup.dialogs.onboarding.${this._step}.title`
         );
       default:
@@ -397,12 +403,12 @@ class DialogBackupOnboarding
               alt="Casita Home Assistant logo"
             />
             <h1>
-              ${this.hass.localize(
+              ${this._modeLocalize(
                 "ui.panel.config.backup.dialogs.onboarding.welcome.title"
               )}
             </h1>
             <p class="secondary">
-              ${this.hass.localize(
+              ${this._modeLocalize(
                 "ui.panel.config.backup.dialogs.onboarding.welcome.description"
               )}
             </p>
@@ -412,18 +418,18 @@ class DialogBackupOnboarding
         const key = this._config.create_backup.password;
         return html`
           <p>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.backup.dialogs.onboarding.encryption.description"
             )}
           </p>
           <ha-row-item>
             <span slot="headline">
-              ${this.hass.localize(
+              ${this._modeLocalize(
                 "ui.panel.config.backup.encryption_key.encrypt_backups"
               )}
             </span>
             <span slot="supporting-text">
-              ${this.hass.localize(
+              ${this._modeLocalize(
                 key
                   ? "ui.panel.config.backup.encryption_key.encrypt_backups_on_description"
                   : "ui.panel.config.backup.encryption_key.encrypt_backups_off_description"
@@ -439,26 +445,26 @@ class DialogBackupOnboarding
             key
               ? html`
                   <p>
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.backup.dialogs.onboarding.encryption.key_description"
                     )}
                   </p>
                   <div class="encryption-key">
                     <p>${key}</p>
                     <ha-icon-button
-                      .label=${this.hass.localize("ui.common.copy")}
+                      .label=${this._modeLocalize("ui.common.copy")}
                       .path=${mdiContentCopy}
                       @click=${this._copyKeyToClipboard}
                     ></ha-icon-button>
                   </div>
                   <ha-row-item>
                     <span slot="headline">
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         "ui.panel.config.backup.encryption_key.download_emergency_kit"
                       )}
                     </span>
                     <span slot="supporting-text">
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         "ui.panel.config.backup.encryption_key.download_emergency_kit_description"
                       )}
                     </span>
@@ -472,7 +478,7 @@ class DialogBackupOnboarding
                         .path=${mdiDownload}
                         slot="start"
                       ></ha-svg-icon>
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         "ui.panel.config.backup.encryption_key.download_emergency_kit_action"
                       )}
                     </ha-button>
@@ -487,12 +493,12 @@ class DialogBackupOnboarding
           <ha-list-base class="full">
             <ha-list-item-button @click=${this._useRecommended}>
               <span slot="headline">
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.backup.dialogs.onboarding.setup.recommended_heading"
                 )}
               </span>
               <span slot="supporting-text">
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.backup.dialogs.onboarding.setup.recommended_description"
                 )}
               </span>
@@ -500,12 +506,12 @@ class DialogBackupOnboarding
             </ha-list-item-button>
             <ha-list-item-button @click=${this._nextStep}>
               <span slot="headline">
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.backup.dialogs.onboarding.setup.custom_heading"
                 )}
               </span>
               <span slot="supporting-text">
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.backup.dialogs.onboarding.setup.custom_description"
                 )}
               </span>
@@ -516,7 +522,7 @@ class DialogBackupOnboarding
       case "schedule":
         return html`
           <p>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.backup.dialogs.onboarding.schedule.description"
             )}
           </p>
@@ -529,7 +535,7 @@ class DialogBackupOnboarding
       case "data":
         return html`
           <p>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.backup.dialogs.onboarding.data.description"
             )}
           </p>
@@ -544,7 +550,7 @@ class DialogBackupOnboarding
       case "locations":
         return html`
           <p>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.backup.dialogs.onboarding.locations.description"
             )}
           </p>
@@ -634,7 +640,7 @@ class DialogBackupOnboarding
       this._copyContainer!
     );
     showToast(this, {
-      message: this.hass.localize("ui.common.copied_clipboard"),
+      message: this._modeLocalize("ui.common.copied_clipboard"),
     });
   }
 

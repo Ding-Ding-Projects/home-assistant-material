@@ -44,6 +44,7 @@ import "../components/lights/light-color-rgb-picker";
 import "../components/lights/light-color-temp-picker";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 
 type MainControl = "brightness" | "color_temp" | "color";
 
@@ -51,7 +52,12 @@ type MainControl = "brightness" | "color_temp" | "color";
 class MoreInfoLight extends LitElement {
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @state()
   @consume({ context: formattersContext, subscribe: true })

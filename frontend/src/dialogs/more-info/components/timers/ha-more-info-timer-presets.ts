@@ -39,6 +39,7 @@ import { showFormDialog } from "../../../form/show-form-dialog";
 import { showConfirmationDialog } from "../../../generic/show-dialog-box";
 import "../ha-more-info-favorites";
 import type { HaMoreInfoFavorites } from "../ha-more-info-favorites";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 type PresetLocalizeKey =
   | "set"
@@ -61,7 +62,12 @@ export class HaMoreInfoTimerPresets extends LitElement {
 
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @state()
   @consume({ context: configContext, subscribe: true })

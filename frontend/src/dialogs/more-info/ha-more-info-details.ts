@@ -25,6 +25,8 @@ import { supportsFeature } from "../../common/entity/supports-feature";
 import { titleCase } from "../../common/string/title-case";
 import { stringCompare } from "../../common/string/compare";
 import { showToast } from "../../util/toast";
+import type { Localize } from "../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../common/language-mode/language-mode";
 
 interface DetailsViewParams {
   entityId: string;
@@ -38,6 +40,10 @@ interface DetailEntry {
 
 @customElement("ha-more-info-details")
 class HaMoreInfoDetails extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass!.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public entry?: ExtEntityRegistryEntry | null;
@@ -107,7 +113,7 @@ class HaMoreInfoDetails extends LitElement {
               ></ha-yaml-editor>`
             : html`
                 <ha-grouped-list
-                  .header=${this.hass.localize(
+                  .header=${this._modeLocalize(
                     "ui.dialogs.more_info_control.entity"
                   )}
                 >
@@ -116,7 +122,7 @@ class HaMoreInfoDetails extends LitElement {
                 </ha-grouped-list>
 
                 <ha-grouped-list
-                  .header=${this.hass.localize(
+                  .header=${this._modeLocalize(
                     "ui.dialogs.more_info_control.attributes"
                   )}
                 >
@@ -189,7 +195,7 @@ class HaMoreInfoDetails extends LitElement {
 
   private _renderEntries(entries: DetailEntry[]) {
     return entries.map((entry) => {
-      const label = this.hass.localize(entry.translationKey);
+      const label = this._modeLocalize(entry.translationKey);
 
       if (!entry.copyable) {
         return html`
@@ -201,7 +207,7 @@ class HaMoreInfoDetails extends LitElement {
 
       return html`
         <ha-list-item-button
-          aria-label=${this.hass.localize(
+          aria-label=${this._modeLocalize(
             "ui.dialogs.more_info_control.copy_value",
             { label, value: entry.value }
           )}
@@ -238,7 +244,7 @@ class HaMoreInfoDetails extends LitElement {
       this._copyFeedbackTimeout = undefined;
     }, duration);
     showToast(this, {
-      message: this.hass.localize("ui.common.copied_clipboard"),
+      message: this._modeLocalize("ui.common.copied_clipboard"),
       duration,
     });
   }
@@ -246,7 +252,7 @@ class HaMoreInfoDetails extends LitElement {
   private _renderAttributes(attributes: { name: string; label: string }[]) {
     if (attributes.length === 0) {
       return html`<div class="empty">
-        ${this.hass.localize("ui.common.none")}
+        ${this._modeLocalize("ui.common.none")}
       </div>`;
     }
 
@@ -287,7 +293,7 @@ class HaMoreInfoDetails extends LitElement {
             : undefined
         )
         .filter(Boolean)
-        .join(", ") || this.hass.localize("ui.common.none")
+        .join(", ") || this._modeLocalize("ui.common.none")
     );
   }
 

@@ -14,6 +14,7 @@ import type { ScriptEntity } from "../data/script";
 import { canRun, hasScriptFields } from "../data/script";
 import { showMoreInfoDialog } from "../dialogs/more-info/show-ha-more-info-dialog";
 import { haStyle } from "../resources/styles";
+import { withLanguageMode } from "../common/language-mode/language-mode";
 
 @customElement("state-card-script")
 class StateCardScript extends LitElement {
@@ -21,7 +22,12 @@ class StateCardScript extends LitElement {
 
   @property({ attribute: "in-dialog", type: Boolean }) public inDialog = false;
 
-  @state() @consumeLocalize() private _localize!: LocalizeFunc;
+  @state() @consumeLocalize() private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @consume({ context: apiContext, subscribe: true })
   private _api!: ContextType<typeof apiContext>;

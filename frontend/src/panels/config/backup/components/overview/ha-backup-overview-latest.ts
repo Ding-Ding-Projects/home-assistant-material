@@ -19,6 +19,8 @@ import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
 import { bytesToString } from "../../../../../util/bytes-to-string";
 import { showUploadBackupDialog } from "../../dialogs/show-dialog-upload-backup";
+import type { Localize } from "../../../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../../../common/language-mode/language-mode";
 
 const SHOWN = 5;
 
@@ -29,6 +31,10 @@ const SHOWN = 5;
  */
 @customElement("ha-backup-overview-latest")
 class HaBackupOverviewLatest extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public backups: BackupContent[] = [];
@@ -49,27 +55,27 @@ class HaBackupOverviewLatest extends LitElement {
     return html`
       <section class="card">
         <h3>
-          ${this.hass.localize("ui.panel.config.backup.overview.latest.title")}
+          ${this._modeLocalize("ui.panel.config.backup.overview.latest.title")}
         </h3>
         ${
           shown.length
             ? html`
                 <div class="head" aria-hidden="true">
                   <span class="c-name"
-                    >${this.hass.localize(
+                    >${this._modeLocalize(
                       "ui.panel.config.backup.overview.latest.backup"
                     )}</span
                   >
                   <span class="c-made"
-                    >${this.hass.localize(
+                    >${this._modeLocalize(
                       "ui.panel.config.backup.overview.latest.made"
                     )}</span
                   >
                   <span class="c-size"
-                    >${this.hass.localize("ui.panel.config.backup.size")}</span
+                    >${this._modeLocalize("ui.panel.config.backup.size")}</span
                   >
                   <span class="c-kept"
-                    >${this.hass.localize(
+                    >${this._modeLocalize(
                       "ui.panel.config.backup.overview.latest.kept_in"
                     )}</span
                   >
@@ -95,7 +101,7 @@ class HaBackupOverviewLatest extends LitElement {
                         <div class="text">
                           <span class="title">${backup.name}</span>
                           <span class="sub"
-                            >${this.hass.localize(
+                            >${this._modeLocalize(
                               `ui.panel.config.backup.type.${type}`
                             )}</span
                           >
@@ -128,7 +134,7 @@ class HaBackupOverviewLatest extends LitElement {
                 })}
               `
             : html`<p class="empty">
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.backup.overview.latest.empty"
                 )}
               </p>`
@@ -137,7 +143,7 @@ class HaBackupOverviewLatest extends LitElement {
           <span class="showing">
             ${
               shown.length
-                ? this.hass.localize(
+                ? this._modeLocalize(
                     "ui.panel.config.backup.overview.latest.showing",
                     { shown: shown.length, total: newest.length }
                   )
@@ -150,7 +156,7 @@ class HaBackupOverviewLatest extends LitElement {
                   appearance="plain"
                   href="/config/backup/backups?type=all"
                 >
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.backup.overview.latest.show_all"
                   )}
                 </ha-button>`
@@ -158,7 +164,7 @@ class HaBackupOverviewLatest extends LitElement {
           }
           <ha-button appearance="outlined" @click=${this._upload}>
             <ha-svg-icon slot="start" .path=${mdiUpload}></ha-svg-icon>
-            ${this.hass.localize("ui.panel.config.backup.overview.latest.upload")}
+            ${this._modeLocalize("ui.panel.config.backup.overview.latest.upload")}
           </ha-button>
         </div>
       </section>

@@ -23,6 +23,8 @@ import {
 } from "../../../../data/entity/entity_registry";
 import type { HomeAssistant } from "../../../../types";
 import { showVacuumSegmentMappingView } from "./show-view-vacuum-segment-mapping";
+import type { Localize } from "../../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 interface MappedSection {
   floorId: string | null;
@@ -31,6 +33,10 @@ interface MappedSection {
 
 @customElement("ha-more-info-view-vacuum-clean-areas")
 export class HaMoreInfoViewVacuumCleanAreas extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass!.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public params!: { entityId: string };
@@ -128,7 +134,7 @@ export class HaMoreInfoViewVacuumCleanAreas extends LitElement {
     const label = showLabel
       ? floor
         ? computeFloorName(floor)
-        : this.hass.localize("ui.dialogs.more_info_control.vacuum.other_areas")
+        : this._modeLocalize("ui.dialogs.more_info_control.vacuum.other_areas")
       : null;
 
     return html`
@@ -207,12 +213,12 @@ export class HaMoreInfoViewVacuumCleanAreas extends LitElement {
           <div class="empty">
             <ha-svg-icon .path=${mdiTextureBox}></ha-svg-icon>
             <p class="empty-title">
-              ${this.hass.localize(
+              ${this._modeLocalize(
                 "ui.dialogs.more_info_control.vacuum.no_areas_header"
               )}
             </p>
             <p>
-              ${this.hass.localize(
+              ${this._modeLocalize(
                 this.hass.user?.is_admin
                   ? "ui.dialogs.more_info_control.vacuum.no_areas_text"
                   : "ui.dialogs.more_info_control.vacuum.no_areas_text_non_admin"
@@ -230,7 +236,7 @@ export class HaMoreInfoViewVacuumCleanAreas extends LitElement {
                         slot="start"
                         .path=${mdiCogOutline}
                       ></ha-svg-icon>
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         "ui.dialogs.more_info_control.vacuum.configure"
                       )}
                     </ha-button>
@@ -250,7 +256,7 @@ export class HaMoreInfoViewVacuumCleanAreas extends LitElement {
           this._renderSection(section, showFloorLabels)
         )}
         <p class="hint">
-          ${this.hass.localize(
+          ${this._modeLocalize(
             "ui.dialogs.more_info_control.vacuum.clean_areas_order_hint"
           )}
         </p>
@@ -261,7 +267,7 @@ export class HaMoreInfoViewVacuumCleanAreas extends LitElement {
           @click=${this._startCleaning}
           .disabled=${this._selectedAreaIds.length === 0 || this._submitting}
         >
-          ${this.hass.localize(
+          ${this._modeLocalize(
             "ui.dialogs.more_info_control.vacuum.start_cleaning_areas"
           )}
           ${

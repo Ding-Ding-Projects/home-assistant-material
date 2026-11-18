@@ -27,6 +27,7 @@ import {
   createStateControlCircularSliderController,
   stateControlCircularSliderStyle,
 } from "../state-control-circular-slider-style";
+import { withLanguageMode } from "../../common/language-mode/language-mode";
 
 @customElement("ha-state-control-climate-humidity")
 export class HaStateControlClimateHumidity extends LitElement {
@@ -42,7 +43,12 @@ export class HaStateControlClimateHumidity extends LitElement {
 
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @property({ attribute: "show-current", type: Boolean })
   public showCurrent = false;

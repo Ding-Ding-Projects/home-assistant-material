@@ -26,6 +26,8 @@ import type { ItemType, RelatedResult } from "../../data/search";
 import { SearchableDomains } from "../../data/search";
 import type { HomeAssistant } from "../../types";
 import { brandsUrl } from "../../util/brands-url";
+import type { Localize } from "../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../common/language-mode/language-mode";
 
 interface RelatedViewParams {
   entityId: string;
@@ -48,6 +50,10 @@ const CONTEXT_SECTIONS: (keyof RelatedResult)[] = [
 
 @customElement("ha-more-info-related")
 class HaMoreInfoRelated extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass!.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public entry?: ExtEntityRegistryEntry | null;
@@ -98,7 +104,7 @@ class HaMoreInfoRelated extends LitElement {
       ? computeDeviceNameDisplay(device, this.hass.localize)
       : undefined;
     const integrationName = this.entry?.platform
-      ? this.hass.localize(`component.${this.entry.platform}.title`) ||
+      ? this._modeLocalize(`component.${this.entry.platform}.title`) ||
         this.entry.platform
       : undefined;
     const labels =
@@ -197,7 +203,7 @@ class HaMoreInfoRelated extends LitElement {
           contextEntries.length
             ? html`
                 <ha-grouped-list
-                  .header=${this.hass.localize(
+                  .header=${this._modeLocalize(
                     "ui.dialogs.more_info_control.context"
                   )}
                 >
@@ -217,7 +223,7 @@ class HaMoreInfoRelated extends LitElement {
 
   private _renderEntries(entries: ContextEntry[]) {
     return entries.map((entry) => {
-      const label = this.hass.localize(entry.translationKey);
+      const label = this._modeLocalize(entry.translationKey);
 
       if (!entry.href) {
         return html`

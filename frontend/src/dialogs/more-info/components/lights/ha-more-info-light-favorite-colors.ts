@@ -18,6 +18,7 @@ import "../ha-more-info-favorites";
 import type { HaMoreInfoFavorites } from "../ha-more-info-favorites";
 import "./ha-favorite-color-button";
 import { showLightColorFavoriteDialog } from "./show-dialog-light-color-favorite";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 declare global {
   interface HASSDomEvents {
@@ -33,7 +34,12 @@ export class HaMoreInfoLightFavoriteColors extends LitElement {
 
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @state()
   @consume({ context: configContext, subscribe: true })

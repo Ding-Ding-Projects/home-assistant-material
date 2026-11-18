@@ -18,12 +18,18 @@ import type { HomeAssistant } from "../../../../types";
 import { showErrorToast } from "../../../../util/show-error-toast";
 import { downloadBackupFile } from "../helper/download_backup";
 import type { DownloadDecryptedBackupDialogParams } from "./show-dialog-download-decrypted-backup";
+import type { Localize } from "../../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 @customElement("ha-dialog-download-decrypted-backup")
 class DialogDownloadDecryptedBackup
   extends DirtyStateProviderMixin<string>()(LitElement)
   implements HassDialog
 {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _open = false;
@@ -63,14 +69,14 @@ class DialogDownloadDecryptedBackup
     return html`
       <ha-dialog
         .open=${this._open}
-        header-title=${this.hass.localize(
+        header-title=${this._modeLocalize(
           "ui.panel.config.backup.dialogs.download.title"
         )}
         .preventScrimClose=${this.isDirtyState}
         @closed=${this._dialogClosed}
       >
         <p>
-          ${this.hass.localize(
+          ${this._modeLocalize(
             "ui.panel.config.backup.dialogs.download.description"
           )}
         </p>
@@ -82,7 +88,7 @@ class DialogDownloadDecryptedBackup
                 class="link"
                 @click=${this._downloadEncrypted}
               >
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.backup.dialogs.download.download_it_encrypted"
                 )}
               </button>`,
@@ -93,7 +99,7 @@ class DialogDownloadDecryptedBackup
         <ha-input
           type="password"
           password-toggle
-          .label=${this.hass.localize(
+          .label=${this._modeLocalize(
             "ui.panel.config.backup.dialogs.download.encryption_key"
           )}
           @input=${this._keyChanged}
@@ -110,7 +116,7 @@ class DialogDownloadDecryptedBackup
             appearance="plain"
             @click=${this._cancel}
           >
-            ${this.hass.localize("ui.common.cancel")}
+            ${this._modeLocalize("ui.common.cancel")}
           </ha-button>
 
           <ha-button
@@ -118,7 +124,7 @@ class DialogDownloadDecryptedBackup
             @click=${this._submit}
             .disabled=${!this.isDirtyState}
           >
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.backup.dialogs.download.download"
             )}
           </ha-button>
@@ -152,17 +158,17 @@ class DialogDownloadDecryptedBackup
       this.closeDialog();
     } catch (err: any) {
       if (err?.code === "password_incorrect") {
-        this._error = this.hass.localize(
+        this._error = this._modeLocalize(
           "ui.panel.config.backup.dialogs.download.incorrect_encryption_key"
         );
       } else if (err?.code === "decrypt_not_supported") {
-        this._error = this.hass.localize(
+        this._error = this._modeLocalize(
           "ui.panel.config.backup.dialogs.download.decryption_not_supported"
         );
       } else {
         showErrorToast(
           this,
-          this.hass.localize("ui.replaced_dialogs.backup_download_failed"),
+          this._modeLocalize("ui.replaced_dialogs.backup_download_failed"),
           err.message
         );
       }

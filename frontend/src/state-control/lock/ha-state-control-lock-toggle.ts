@@ -171,7 +171,7 @@ export class HaStateControlLockToggle extends LitElement {
       return html`
         <div class="buttons">
           <ha-control-button
-            .label=${this._localize("ui.card.lock.lock")}
+            .label=${modeText(this._localize as any, "ui.card.lock.lock")}
             @click=${this._turnOn}
           >
             <ha-state-icon
@@ -180,7 +180,7 @@ export class HaStateControlLockToggle extends LitElement {
             ></ha-state-icon>
           </ha-control-button>
           <ha-control-button
-            .label=${this._localize("ui.card.lock.unlock")}
+            .label=${modeText(this._localize as any, "ui.card.lock.unlock")}
             @click=${this._turnOff}
           >
             <ha-state-icon
@@ -233,7 +233,7 @@ export class HaStateControlLockToggle extends LitElement {
           class="tile"
           role="switch"
           aria-checked=${this._isOn ? "true" : "false"}
-          aria-label=${this._localize("ui.card.lock.lock")}
+          aria-label=${modeText(this._localize as any, "ui.card.lock.lock")}
           style=${styleMap({ "--tile-color": color })}
           .disabled=${this.stateObj.state === UNAVAILABLE}
           @click=${this._tileClicked}
@@ -267,8 +267,8 @@ export class HaStateControlLockToggle extends LitElement {
         @change=${this._valueChanged}
         .label=${
           this._isOn
-            ? this._localize("ui.card.lock.unlock")
-            : this._localize("ui.card.lock.lock")
+            ? modeText(this._localize as any, "ui.card.lock.unlock")
+            : modeText(this._localize as any, "ui.card.lock.lock")
         }
         style=${styleMap({
           "--control-switch-on-color": color,

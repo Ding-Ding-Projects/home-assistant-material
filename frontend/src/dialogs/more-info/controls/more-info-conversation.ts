@@ -13,6 +13,7 @@ import "../../../components/ha-alert";
 import "../components/ha-more-info-state-header";
 import type { AssistPipeline } from "../../../data/assist_pipeline";
 import { getAssistPipeline } from "../../../data/assist_pipeline";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-conversation")
 class MoreInfoConversation extends LitElement {
@@ -24,7 +25,12 @@ class MoreInfoConversation extends LitElement {
 
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @state()
   @consume({ context: apiContext, subscribe: true })
@@ -71,7 +77,7 @@ class MoreInfoConversation extends LitElement {
   }
 
   protected render() {
-    if (!this._localize || !this.stateObj) {
+    if (!this._ctxLocalize || !this.stateObj) {
       return nothing;
     }
 

@@ -16,9 +16,15 @@ import "../../../../components/input/ha-input";
 import { SirenEntityFeature } from "../../../../data/siren";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
+import type { Localize } from "../../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 @customElement("ha-more-info-siren-advanced-controls")
 class MoreInfoSirenAdvancedControls extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() _stateObj?: HassEntity;
@@ -64,7 +70,7 @@ class MoreInfoSirenAdvancedControls extends LitElement {
     return html`
       <ha-dialog
         .open=${this._open}
-        header-title=${this.hass.localize("ui.components.siren.more_controls")}
+        header-title=${this._modeLocalize("ui.components.siren.more_controls")}
         @closed=${this._dialogClosed}
       >
         <div>
@@ -73,7 +79,7 @@ class MoreInfoSirenAdvancedControls extends LitElement {
               supportsTones
                 ? html`
                     <ha-select
-                      .label=${this.hass.localize("ui.components.siren.tone")}
+                      .label=${this._modeLocalize("ui.components.siren.tone")}
                       @selected=${this._handleToneChange}
                       .value=${this._tone}
                       .options=${Object.entries(
@@ -96,7 +102,7 @@ class MoreInfoSirenAdvancedControls extends LitElement {
                 ? html`
                     <ha-input
                       type="number"
-                      .label=${this.hass.localize("ui.components.siren.volume")}
+                      .label=${this._modeLocalize("ui.components.siren.volume")}
                       .value=${this._volume ? `${this._volume * 100}` : undefined}
                       @change=${this._handleVolumeChange}
                       .min=${0}
@@ -113,7 +119,7 @@ class MoreInfoSirenAdvancedControls extends LitElement {
                 ? html`
                     <ha-input
                       type="number"
-                      .label=${this.hass.localize("ui.components.siren.duration")}
+                      .label=${this._modeLocalize("ui.components.siren.duration")}
                       .value=${
                         this._duration !== undefined
                           ? this._duration.toString()
@@ -129,13 +135,13 @@ class MoreInfoSirenAdvancedControls extends LitElement {
           </div>
           <div class="controls">
             <ha-control-button
-              .label=${this.hass.localize("ui.card.common.turn_on")}
+              .label=${this._modeLocalize("ui.card.common.turn_on")}
               @click=${this._turnOn}
             >
               <ha-svg-icon .path=${mdiPlay}></ha-svg-icon>
             </ha-control-button>
             <ha-control-button
-              .label=${this.hass.localize("ui.card.common.turn_off")}
+              .label=${this._modeLocalize("ui.card.common.turn_off")}
               @click=${this._turnOff}
             >
               <ha-svg-icon .path=${mdiStop}></ha-svg-icon>
@@ -148,7 +154,7 @@ class MoreInfoSirenAdvancedControls extends LitElement {
             appearance="plain"
             @click=${this.closeDialog}
           >
-            ${this.hass.localize("ui.common.close")}
+            ${this._modeLocalize("ui.common.close")}
           </ha-button>
         </ha-dialog-footer>
       </ha-dialog>

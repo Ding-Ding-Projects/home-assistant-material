@@ -1,4 +1,6 @@
 import { fireEvent } from "../../../../common/dom/fire_event";
+import type { Localize } from "../../../../common/language-mode/language-mode";
+import { modeText } from "../../../../common/language-mode/language-mode";
 import type { LocalizeFunc } from "../../../../common/translations/localize";
 
 export const loadVacuumCleanAreasView = () =>
@@ -15,7 +17,10 @@ export const showVacuumCleanAreasView = (
   fireEvent(element, "show-child-view", {
     viewTag: "ha-more-info-view-vacuum-clean-areas",
     viewImport: loadVacuumCleanAreasView,
-    viewTitle: localize("ui.dialogs.more_info_control.vacuum.clean_areas"),
+    viewTitle: modeText(
+      localize as unknown as Localize,
+      "ui.dialogs.more_info_control.vacuum.clean_areas"
+    ),
     viewParams: { entityId },
     viewHeaderTag: "ha-more-info-view-vacuum-clean-areas-header-action",
     viewHeaderImport: loadVacuumCleanAreasHeaderAction,

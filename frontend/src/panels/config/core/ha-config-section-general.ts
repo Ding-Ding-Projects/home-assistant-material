@@ -21,6 +21,7 @@ import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
 import "../../../components/map/ha-map";
 import "../../../components/setting-info/ha-setting-info";
+import { composeForMode } from "../../../common/language-mode/language-mode";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import type { ConfigUpdateValues } from "../../../data/core";
 import { saveCoreConfig } from "../../../data/core";
@@ -215,9 +216,7 @@ class HaConfigSectionGeneral extends LitElement {
                   >${this._tools("elevation", disabled)}
                 </div>
                 <p class="hint">
-                  ${this.hass.localize(
-                    "ui.panel.config.core.section.core.core_config.location_hint"
-                  )}
+                  ${this._g("ui.panel.config.core.section.core.core_config.location_hint")}
                 </p>
               </section>
             </div>
@@ -228,9 +227,7 @@ class HaConfigSectionGeneral extends LitElement {
               .disabled=${disabled || !this._dirty()}
               @click=${this._discard}
             >
-              ${this.hass.localize(
-                "ui.panel.config.core.section.core.core_config.discard_button"
-              )}
+              ${this._g("ui.panel.config.core.section.core.core_config.discard_button")}
             </ha-button>
             <ha-progress-button
               appearance="filled"
@@ -323,9 +320,7 @@ class HaConfigSectionGeneral extends LitElement {
             : html`<div class="no-map">
                 <ha-svg-icon .path=${mdiMapMarker}></ha-svg-icon>
                 <p>
-                  ${this.hass.localize(
-                    "ui.panel.config.core.section.core.core_config.no_home_zone"
-                  )}
+                  ${this._g("ui.panel.config.core.section.core.core_config.no_home_zone")}
                 </p>
               </div>`
         }
@@ -513,17 +508,16 @@ class HaConfigSectionGeneral extends LitElement {
   };
 
   private _summary(): string {
-    return this.hass.localize(
-      "ui.panel.config.core.section.core.core_config.summary",
-      {
+    return composeForMode(this.hass.localize, (part) =>
+      part("ui.panel.config.core.section.core.core_config.summary", {
         name: this.hass.config.location_name,
         time_zone: this.hass.config.time_zone,
-        units: this.hass.localize(
+        units: part(
           this._configuredUnitSystem() === "metric"
             ? "ui.panel.config.core.section.core.core_config.summary_metric"
             : "ui.panel.config.core.section.core.core_config.summary_us_customary"
         ),
-      }
+      })
     );
   }
 

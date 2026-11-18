@@ -18,10 +18,16 @@ import { apiContext } from "../data/context";
 import { UNAVAILABLE, UNKNOWN } from "../data/entity/entity";
 import { forwardHaptic } from "../data/haptics";
 import { stateControlToggleStyle } from "../resources/state-control-styles";
+import { withLanguageMode } from "../common/language-mode/language-mode";
 
 @customElement("ha-state-control-toggle")
 export class HaStateControlToggle extends LitElement {
-  @state() @consumeLocalize() private _localize!: LocalizeFunc;
+  @state() @consumeLocalize() private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @consume({ context: apiContext, subscribe: true })
   private _api!: ContextType<typeof apiContext>;

@@ -7,7 +7,10 @@ import memoizeOne from "memoize-one";
 import { searchCountText } from "../../../components/ha-top-bar-search";
 import { formatDateShort } from "../../../common/datetime/format_date";
 import { formatTime } from "../../../common/datetime/format_time";
-import { relativeTime } from "../../../common/datetime/relative_time";
+import {
+  cantoneseRelativeLocale,
+  relativeTime,
+} from "../../../common/datetime/relative_time";
 import {
   composeForMode,
   currentLanguageMode,
@@ -267,6 +270,21 @@ export class HaDefenderPage extends LitElement {
     `;
   }
 
+  /** A relative time in one language: Cantonese uses the Hong Kong wording. */
+  private _relativeIn(time: string, cantonese: boolean): string {
+    return relativeTime(
+      new Date(time),
+      cantonese ? cantoneseRelativeLocale(this.hass.locale) : this.hass.locale
+    );
+  }
+
+  /** A relative time once per language, joined for the language mode. */
+  private _relative(time: string): string {
+    return composeForMode(this.hass.localize, (part) =>
+      this._relativeIn(time, part.cantonese)
+    );
+  }
+
   private _reason(
     parts: DefenderReasonParts | null | undefined,
     text: string
@@ -431,7 +449,7 @@ export class HaDefenderPage extends LitElement {
           ${this._reason(info.reason_parts, info.reason)}${
             info.next_check
               ? html` · ${this._t("now.next_check")}
-                ${relativeTime(new Date(info.next_check), this.hass.locale)}`
+                ${this._relative(info.next_check)}`
               : nothing
           }${
             info.paused_until
@@ -716,12 +734,11 @@ export class HaDefenderPage extends LitElement {
         <span class="detail"
           >${
             guard.last_acted
-              ? this._t("guards.last_acted", {
-                  time: relativeTime(
-                    new Date(guard.last_acted),
-                    this.hass.locale
-                  ),
-                })
+              ? composeForMode(this.hass.localize, (part) =>
+                  part("ui.panel.config.defenders.guards.last_acted", {
+                    time: this._relativeIn(guard.last_acted!, part.cantonese),
+                  })
+                )
               : this._t("guards.never_acted")
           }${
             guard.reason

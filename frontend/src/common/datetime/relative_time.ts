@@ -24,3 +24,8 @@ export const relativeTime = (
     unitDisplay: style,
   }).format(Math.abs(diff.value));
 };
+
+/** The locale to use for the Cantonese wording of a relative time. */
+export const cantoneseRelativeLocale = (
+  locale: FrontendLocaleData
+): FrontendLocaleData => ({ ...locale, language: "zh-HK" });

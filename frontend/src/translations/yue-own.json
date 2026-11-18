@@ -15,18 +15,266 @@
       }
     },
     "card": {
+      "alarm_control_panel": {
+        "arm": "佈防",
+        "arm_away": "離家佈防",
+        "arm_custom_bypass": "自訂略過",
+        "arm_home": "留家佈防",
+        "arm_night": "夜間佈防",
+        "arm_vacation": "假期佈防",
+        "clear_code": "清除",
+        "code": "密碼",
+        "disarm": "撤防",
+        "modes": {
+          "armed_away": "離家",
+          "armed_custom_bypass": "自訂",
+          "armed_home": "留家",
+          "armed_night": "夜間",
+          "armed_vacation": "假期",
+          "disarmed": "已撤防"
+        },
+        "modes_label": "模式"
+      },
       "automation": {
         "last_triggered": "上次觸發",
         "trigger": "執行動作"
       },
+      "button": {
+        "press": "按一下"
+      },
       "climate": {
+        "cooling": "{name} 製冷緊",
+        "currently": "而家",
+        "current_temperature": "{name} 目前溫度",
+        "drying": "{name} 抽濕緊",
+        "fan": "{name} 淨風扇模式",
+        "heating": "{name} 加熱緊",
+        "high": "高",
+        "humidity_target": "目標濕度",
+        "low": "低",
         "maximum_reached": "已達最高溫度",
-        "minimum_reached": "已達最低溫度"
+        "minimum_reached": "已達最低溫度",
+        "mode": "模式",
+        "on_off": "開 / 關",
+        "preset": "預設",
+        "target": "目標",
+        "target_label": "{action}至目標",
+        "target_temperature_entity": "{name} 目標溫度",
+        "target_temperature_mode": "{name} 目標溫度 {mode}"
+      },
+      "common": {
+        "entity_not_found": "搵唔到實體",
+        "toggle": "切換",
+        "turn_off": "關閉",
+        "turn_on": "開啟",
+        "value": "數值"
+      },
+      "counter": {
+        "actions": {
+          "decrement": "減一",
+          "increment": "加一",
+          "reset": "重設"
+        }
+      },
+      "cover": {
+        "close_cover": "關閉",
+        "close_tilt_cover": "關閉角度",
+        "open_cover": "打開",
+        "open_tilt_cover": "打開角度",
+        "position": "位置",
+        "stop_cover": "停止",
+        "tilt_position": "傾斜位置"
+      },
+      "fan": {
+        "direction": "方向",
+        "forward": "正向",
+        "oscillate": "擺動",
+        "preset_mode": "預設模式",
+        "reverse": "反向",
+        "speed": {
+          "high": "高速",
+          "low": "低速",
+          "medium": "中速",
+          "numbered": "速度 {speed}"
+        }
+      },
+      "humidifier": {
+        "current_humidity_entity": "{name} 目前濕度",
+        "currently": "而家",
+        "drying": "{name} 抽濕緊",
+        "humidifying": "{name} 加濕緊",
+        "humidity": "目標濕度",
+        "mode": "模式",
+        "on_entity": "{name} 已開",
+        "state": "狀態",
+        "target": "目標",
+        "target_humidity_entity": "{name} 目標濕度",
+        "target_label": "{action}至目標"
+      },
+      "lawn_mower": {
+        "actions": {
+          "dock": "返回充電座",
+          "pause": "暫停",
+          "resume_mowing": "繼續割草",
+          "start_mowing": "開始割草"
+        }
+      },
+      "light": {
+        "brightness": "亮度",
+        "cold_white_value": "冷白亮度",
+        "color_brightness": "彩色亮度",
+        "color_temperature": "色溫",
+        "effect": "效果",
+        "hue": "色相",
+        "saturation": "飽和度",
+        "warm_white_value": "暖白亮度",
+        "white_value": "白光亮度"
+      },
+      "lock": {
+        "code": "密碼",
+        "lock": "上鎖",
+        "open": "打開",
+        "open_door": "開門",
+        "open_door_confirm": "真係要開？",
+        "open_door_done": "完成",
+        "unlock": "解鎖"
+      },
+      "media_player": {
+        "browse_media": "瀏覽媒體",
+        "idle": "閒置",
+        "join": "加入",
+        "media_next_track": "下一首",
+        "media_pause": "暫停",
+        "media_play": "播放",
+        "media_play_pause": "播放 / 暫停",
+        "media_players": "媒體播放器",
+        "media_previous_track": "上一首",
+        "media_stop": "停止",
+        "media_volume_down": "調細音量",
+        "media_volume_mute": "靜音",
+        "media_volume_unmute": "取消靜音",
+        "media_volume_up": "調大音量",
+        "nothing_playing": "冇播放緊嘢",
+        "power": "電源",
+        "repeat": "重複",
+        "repeat_set": "重複模式",
+        "select_all": "全選",
+        "shuffle": "隨機播放",
+        "shuffle_set": "隨機播放",
+        "sound_mode": "音效模式",
+        "source": "來源",
+        "text_to_speak": "要朗讀嘅文字",
+        "track_position": "曲目位置",
+        "turn_off": "關閉",
+        "turn_on": "開啟",
+        "volume_down": "調細音量",
+        "volume_mute": "靜音",
+        "volume_up": "調大音量"
+      },
+      "scene": {
+        "activate": "啟動"
+      },
+      "script": {
+        "cancel": "取消",
+        "cancel_all": "全部取消",
+        "cancel_multiple": "取消 {number} 個",
+        "idle": "閒置",
+        "run": "執行",
+        "run_script": "執行腳本",
+        "running_parallel": "{active} 個執行緊…",
+        "running_queued": "{queued} 個排緊隊",
+        "running_single": "執行緊…"
+      },
+      "text": {
+        "empty_value": "（空白）"
+      },
+      "timer": {
+        "actions": {
+          "cancel": "取消",
+          "finish": "完成",
+          "pause": "暫停",
+          "restart": "重新開始",
+          "set": "設定",
+          "start": "開始"
+        },
+        "presets": "預設時間"
+      },
+      "vacuum": {
+        "actions": {
+          "resume_cleaning": "繼續清潔",
+          "return_to_base": "返回充電座",
+          "start_cleaning": "開始清潔",
+          "turn_off": "關閉",
+          "turn_on": "開啟"
+        }
+      },
+      "valve": {
+        "close_valve": "關閥",
+        "open_valve": "開閥",
+        "position": "位置",
+        "stop_valve": "停止"
       },
       "water_heater": {
+        "away_mode": "離家模式",
+        "currently": "而家",
         "maximum_reached": "已達最高溫度",
-        "minimum_reached": "已達最低溫度"
+        "minimum_reached": "已達最低溫度",
+        "mode": "模式",
+        "on_off": "開 / 關",
+        "target": "目標",
+        "target_label": "{action}至目標",
+        "target_temperature": "目標溫度"
+      },
+      "weather": {
+        "attributes": {
+          "air_pressure": "氣壓",
+          "dew_point": "露點",
+          "humidity": "濕度",
+          "precipitation": "降水量",
+          "temperature": "溫度",
+          "visibility": "能見度",
+          "wind_gust_speed": "陣風風速",
+          "wind_speed": "風速"
+        },
+        "cardinal_direction": {
+          "e": "東",
+          "ene": "東北偏東",
+          "ese": "東南偏東",
+          "n": "北",
+          "ne": "東北",
+          "nne": "東北偏北",
+          "nnw": "西北偏北",
+          "nw": "西北",
+          "s": "南",
+          "se": "東南",
+          "sse": "東南偏南",
+          "ssw": "西南偏南",
+          "sw": "西南",
+          "w": "西",
+          "wnw": "西北偏西",
+          "wsw": "西南偏西"
+        },
+        "daily": "每日",
+        "day": "日間",
+        "forecast": "預報",
+        "forecast_daily": "每日預報",
+        "forecast_hourly": "每小時預報",
+        "forecast_twice_daily": "每日兩次預報",
+        "high": "最高",
+        "hourly": "每小時",
+        "low": "最低",
+        "night": "夜間",
+        "twice_daily": "每日兩次"
       }
+    },
+    "bulk": {
+      "preview_hidden": "{count} 個已揀項目而家係隱藏嘅，不過都會包括喺內。"
+    },
+    "replaced_dialogs": {
+      "backup_download_failed": "下載唔到備份"
+    },
+    "update_progress": {
+      "dismiss": "忽略"
     },
     "common": {
       "color_palette": {
@@ -201,6 +449,11 @@
         }
       },
       "config": {
+        "common": {
+          "multiselect": {
+            "failed": "更新唔到 {number} 個項目。"
+          }
+        },
         "tools": {
           "nav": {
             "label": "工具",
@@ -641,6 +894,14 @@
         "core": {
           "section": {
             "core": {
+              "core_config": {
+                "discard_button": "放棄更改",
+                "location_hint": "用嚟計日出日落，同天氣同定位類整合都會用到。",
+                "no_home_zone": "仲未設定屋企位置。",
+                "summary": "{name}。時區 {time_zone}，{units}。",
+                "summary_metric": "公制單位",
+                "summary_us_customary": "美制單位"
+              },
               "general_help": {
                 "reset": "還原",
                 "reset_label": "將{name}還原做預設值",
@@ -1353,6 +1614,49 @@
           "error_too_big_after": "圖片縮細之後仍然大過 {size} KB。請揀簡單啲嘅圖片。"
         },
         "backup": {
+          "backups": {
+            "bulk": {
+              "already_gone": "已經喺其他地方刪除咗，所以呢度冇刪除：{names}",
+              "entry": "{name}，{date}，{size}。",
+              "newest": "呢份係最新嘅備份。",
+              "note": "刪除咗嘅備份冇辦法還原。",
+              "only_copy": "呢份係唯一嘅副本，只存放喺一個位置：{location}。",
+              "partly_deleted": "已刪除 {total} 份入面嘅 {deleted} 份。以下呢啲刪除唔到：",
+              "skipped_creating": "已略過 {name}，因為仍然建立緊。",
+              "skipped_locked": "已略過 {name}，因為佢已上鎖。",
+              "skipped_missing": "已略過 {name}，因為佢已經唔存在。",
+              "title": "刪除 {count} 份備份？"
+            }
+          },
+          "dialogs": {
+            "generate": {
+              "sync": {
+                "needs_encryption_alert": {
+                  "description": "請喺備份設定入面開啟備份加密，先可以將備份傳送到 Home Assistant Cloud。",
+                  "title": "Home Assistant Cloud 需要加密"
+                }
+              }
+            },
+            "onboarding": {
+              "encryption": {
+                "description": "加密預設係關閉。關閉嗰陣，任何人拎到備份檔案都可以閱讀，而且就算唔記得金鑰都唔會失去資料。開啟嗰陣，備份檔案只可以用你嘅加密金鑰打開，金鑰一旦遺失，呢啲備份就冇晒。",
+                "key_description": "請將呢條金鑰存放喺安全嘅地方。要還原加密備份，就一定要用佢。"
+              }
+            },
+            "restore": {
+              "refused": "呢份備份還原唔到。請檢查個檔案係咪完整嘅 Home Assistant 備份。"
+            }
+          },
+          "encryption_key": {
+            "encrypt_backups": "加密備份",
+            "encrypt_backups_off_description": "關閉：任何人拎到備份檔案都可以閱讀，而且就算唔記得金鑰都唔會失去資料。Home Assistant Cloud 只接受加密備份，所以呢個選項關閉嗰陣用唔到。",
+            "encrypt_backups_on_description": "開啟：備份檔案只可以用你嘅加密金鑰打開，金鑰一旦遺失，呢啲備份就冇晒。",
+            "turn_off_action": "關閉",
+            "turn_off_cloud_text": "Home Assistant Cloud 只接受加密備份，所以會從你嘅備份位置移除。",
+            "turn_off_save_key_text": "關閉之後，呢個系統會移除金鑰。如果可能需要還原舊備份，請先下載緊急套件。",
+            "turn_off_text": "新備份唔會加密。你之前已經加密咗嘅備份，仍然需要舊金鑰先可以還原。",
+            "turn_off_title": "關閉加密？"
+          },
           "self_check": {
             "column": "已檢查",
             "heading_passed": "你上一個備份開得返",
@@ -1531,6 +1835,25 @@
             "sign_in_pending": "區域網絡地址已有回應。請登入以繼續驗證，呢個工作尚未完成。"
           },
           "overview": {
+            "hero_eyebrow": "備份",
+            "latest": {
+              "backup": "備份",
+              "empty": "仲未有備份。",
+              "kept_in": "存放位置",
+              "made": "製作時間",
+              "show_all": "顯示全部",
+              "showing": "顯示 {total} 份入面嘅 {shown} 份。",
+              "title": "最新備份",
+              "upload": "上載備份"
+            },
+            "locations": {
+              "empty": "呢度仲未有備份"
+            },
+            "settings_button": "設定",
+            "summary": {
+              "last_any_backup_description": "最新一份備份（任何種類）：{relative_time}。",
+              "more_information": "更多資訊"
+            },
             "progress_detail": {
               "stage": {
                 "create": {
@@ -3786,10 +4109,44 @@
       "float_handle": "郁分頁列：拖佢，或者用方向鍵（撳住 Shift 行遠啲）。"
     },
     "dialogs": {
+      "entity_registry": {
+        "editor": {
+          "entity_disabled": "呢個實體已停用。",
+          "unavailable": "呢個實體暫時用唔到。"
+        },
+        "faq": "說明文件",
+        "no_unique_id": "呢個實體（「{entity_id}」）冇獨一無二嘅 ID，所以唔可以喺介面入面管理佢嘅設定。詳情請參閱{faq_link}。"
+      },
+      "vacuum_segment_mapping": {
+        "area_label": "區域",
+        "description": "設定每個吸塵機分段對應邊個區域",
+        "no_segments": "冇可用分段",
+        "orphaned_description": "呢啲區域對應嘅分段，吸塵機已經唔再回報。移除佢哋，對應表就會保持最新。",
+        "orphaned_header": "吸塵機上面已經冇咗嘅分段",
+        "orphaned_remove": "移除 {name} 嘅對應",
+        "title": "將吸塵機分段對應到區域"
+      },
       "more_info_control": {
         "add_to": {
-          "item": "加入到…"
+          "action_failed": "執行唔到動作 {error}",
+          "action_options": {
+            "automation_action": "建立為新動作",
+            "automation_condition": "建立為新條件",
+            "automation_trigger": "建立為新觸發條件",
+            "dashboard": "加入到儀表板",
+            "scene": "建立為新場景",
+            "script_action": "建立為新動作"
+          },
+          "app_actions": "應用程式動作",
+          "automations_heading": "自動化",
+          "dashboards_heading": "儀表板",
+          "item": "加入到…",
+          "no_actions": "冇可用動作",
+          "scripts_heading": "腳本",
+          "title": "將 {target} 加入到…"
         },
+        "aggregate": "每 5 分鐘匯總",
+        "attributes": "屬性",
         "automation": {
           "is_off": "自動化已關閉",
           "is_on": "自動化已開啟",
@@ -3802,15 +4159,76 @@
         "calendar": {
           "all_day": "全日",
           "coming_up": "即將發生",
+          "event_retrieval_error": "載入唔到呢個日曆嘅活動",
           "no_events": "未來 7 日冇活動",
           "new_event": "新增事件",
-          "open": "打開日曆"
+          "open": "打開日曆",
+          "today": "今日",
+          "tomorrow": "聽日",
+          "upcoming_events": "即將到嚟嘅活動"
         },
         "camera": {
-          "live": "直播"
+          "app_microphone_error": {
+            "connection_failed": "連接唔到麥克風同鏡頭。",
+            "interrupted": "麥克風串流已停止。",
+            "microphone_denied": "同鏡頭講嘢需要麥克風權限。你可以喺裝置設定入面允許。",
+            "server_unavailable": "連接唔到 Home Assistant。",
+            "signaling_failed": "鏡頭未能啟動麥克風串流。",
+            "timeout": "鏡頭回應太慢。",
+            "unknown": "Home Assistant 應用程式錯誤：{message}",
+            "unsupported_stream_type": "呢個版本嘅 Home Assistant 應用程式唔支援同鏡頭講嘢。請更新應用程式再試。"
+          },
+          "download_snapshot": "下載快照",
+          "failed_to_download": "下載唔到快照。請查看記錄了解詳情。",
+          "live": "直播",
+          "microphone_denied": "麥克風權限被拒絕。請喺瀏覽器設定入面允許，先可以同呢部鏡頭講嘢。",
+          "microphone_not_secure": "你嘅瀏覽器封鎖咗麥克風，因為你同 Home Assistant 之間嘅連線冇用 HTTPS 保護。",
+          "microphone_webrtc_only": "只有串流使用 WebRTC 時先可以同呢部鏡頭講嘢。",
+          "start_talking": "開始講嘢",
+          "stop_talking": "停止講嘢"
+        },
+        "climate": {
+          "humidity": "濕度",
+          "temperature": "溫度"
         },
         "configurator": {
           "needs_you": "需要你處理"
+        },
+        "context": "情境",
+        "copy_value": "複製{label}：{value}",
+        "cover": {
+          "copy_favorites": "將常用位置複製到…",
+          "copy_favorites_entities": "實體",
+          "copy_favorites_helper": "揀一個或者多個窗簾，接收呢個窗簾複製過去嘅常用位置。窗簾必須支援相同嘅位置控制。",
+          "edit_mode": "編輯常用位置",
+          "favorite_position": {
+            "add": "新增常用位置",
+            "add_title": "新增常用位置",
+            "delete": "刪除常用位置 {number}",
+            "delete_confirm_action": "刪除",
+            "delete_confirm_text": "呢個常用位置會被永久刪除。",
+            "delete_confirm_title": "刪除常用位置？",
+            "edit": "將位置設為 {value}",
+            "edit_title": "編輯常用位置",
+            "set": "將位置設為 {value}"
+          },
+          "favorite_tilt_position": {
+            "add": "新增常用傾斜位置",
+            "add_title": "新增常用傾斜位置",
+            "delete": "刪除常用傾斜位置 {number}",
+            "delete_confirm_action": "刪除",
+            "delete_confirm_text": "呢個常用傾斜位置會被永久刪除。",
+            "delete_confirm_title": "刪除常用傾斜位置？",
+            "edit": "將傾斜位置設為 {value}",
+            "edit_title": "編輯常用傾斜位置",
+            "set": "將傾斜位置設為 {value}"
+          },
+          "reset_favorites": "重設常用位置",
+          "reset_favorites_text": "要將呢個窗簾嘅所有常用位置重設返預設嗎？",
+          "switch_mode": {
+            "button": "切換到按鈕模式",
+            "position": "切換到位置模式"
+          }
         },
         "counter": {
           "counts_between": "由 {minimum} 數到 {maximum}，每次 {step}。",
@@ -3840,6 +4258,24 @@
           "options": "選項"
         },
         "details": "詳情",
+        "device_info": "裝置資訊",
+        "edit": "編輯實體",
+        "edit_domain": {
+          "automation": "編輯自動化",
+          "person": "編輯人員",
+          "scene": "編輯場景",
+          "script": "編輯腳本"
+        },
+        "entity": "實體",
+        "entity_id": "ID",
+        "exit_edit_mode": "退出編輯模式",
+        "fan": {
+          "set_forward_direction": "設為正向",
+          "set_reverse_direction": "設為反向",
+          "turn_off_oscillating": "關閉擺動",
+          "turn_on_oscillating": "開啟擺動"
+        },
+        "floor": "樓層",
         "frame": {
           "export": "匯出",
           "export_description": "將呢個視窗嘅內容匯出成 JSON、Markdown 或者純文字",
@@ -3874,17 +4310,82 @@
           "taken": "拍攝於 {time}",
           "unavailable": "呢張圖片暫時用唔到。"
         },
+        "info": "資訊",
+        "labels": "標籤",
+        "last_changed": "上次更改",
+        "last_updated": "上次更新",
+        "light": {
+          "color": "顏色",
+          "color_picker": {
+            "mode": {
+              "color": "顏色",
+              "color_temp": "色溫"
+            },
+            "title": "更改顏色"
+          },
+          "color_temp": "色溫",
+          "copy_favorites": "將常用顏色複製到…",
+          "copy_favorites_entities": "實體",
+          "copy_favorites_helper": "揀一盞或者多盞燈，接收呢盞燈複製過去嘅常用顏色（必須支援相同嘅顏色模式）。",
+          "edit_mode": "編輯常用顏色",
+          "favorite_color": {
+            "add": "新增常用顏色",
+            "add_title": "新增常用顏色",
+            "delete": "刪除常用顏色 {number}",
+            "delete_confirm_action": "刪除",
+            "delete_confirm_text": "呢個常用顏色會被永久刪除。",
+            "delete_confirm_title": "刪除常用顏色？",
+            "edit": "編輯常用顏色 {number}",
+            "edit_title": "編輯常用顏色",
+            "set": "設定常用顏色 {number}"
+          },
+          "reset_favorites": "重設常用顏色",
+          "reset_favorites_text": "要將呢盞燈嘅所有常用顏色重設返預設嗎？",
+          "select_effect": "選擇效果",
+          "set_white": "設為白光",
+          "toggle": "切換"
+        },
+        "lawn_mower": {
+          "activity": "活動",
+          "commands": "割草機指令：",
+          "dock": "返回充電座",
+          "pause": "暫停",
+          "start_mowing": "開始割草",
+          "stop": "停止"
+        },
         "logbook": "活動",
+        "parent_device": "上層裝置",
         "person": {
           "accuracy": "準確度",
           "battery": "手機電量",
+          "create_zone": "以目前位置建立區域",
+          "directions": "路線",
           "followed_by": "跟蹤裝置",
           "since": "自從"
         },
         "related": "相關",
+        "remote": {
+          "activity": "目前活動"
+        },
+        "restored": {
+          "no_longer_provided": "呢個實體唔再由 {integration} 整合提供。如果唔再使用，可以喺設定入面刪除。"
+        },
+        "script": {
+          "last_action": "上次動作",
+          "last_triggered": "上次觸發"
+        },
         "sensor": {
+          "average": "平均",
           "changed": "已更改",
+          "highest": "最高",
+          "last_24h": "過去 24 小時",
+          "last_30d": "過去 30 日",
+          "last_7d": "過去 7 日",
           "loading": "載入緊歷史記錄",
+          "lowest": "最低",
+          "range_24h": "24 小時",
+          "range_30d": "30 日",
+          "range_7d": "7 日",
           "no_history": "呢段時間冇數值歷史記錄",
           "state_class": "測量種類",
           "state_class_measurement": "測量",
@@ -3900,9 +4401,20 @@
           "sound_now": "立即響",
           "volume_default": "預設"
         },
+        "service_info": "服務資訊",
+        "state": "狀態",
         "sun": {
+          "azimuth": "方位角",
+          "dawn": "黎明",
+          "daylight": "日照",
+          "dusk": "黃昏",
+          "elevation": "仰角",
           "rise_at": "{time} 日出",
+          "rises": "日出",
+          "rising": "上升中",
           "set_at": "{time} 日落",
+          "sets": "日落",
+          "setting": "下降中",
           "unavailable": "太陽位置暫時用唔到。"
         },
         "time": {
@@ -3914,18 +4426,112 @@
         },
         "timer": {
           "add_five_minutes": "+5 分鐘",
-          "of_duration": "共 {duration}"
+          "copy_favorites": "將預設時間複製到…",
+          "copy_favorites_entities": "實體",
+          "copy_favorites_helper": "揀一個或者多個計時器，接收呢個計時器複製過去嘅預設時間。",
+          "edit_mode": "編輯預設時間",
+          "of_duration": "共 {duration}",
+          "preset": {
+            "add": "新增預設時間",
+            "add_title": "新增預設時間",
+            "delete": "刪除預設時間 {number}",
+            "delete_confirm_action": "刪除",
+            "delete_confirm_text": "呢個預設時間會被永久刪除。",
+            "delete_confirm_title": "刪除預設時間？",
+            "duration": "時長",
+            "duration_error": "時長至少要一秒。",
+            "edit": "編輯預設時間 {value}",
+            "edit_title": "編輯預設時間",
+            "set": "開始 {value} 計時"
+          },
+          "reset_favorites": "移除所有預設時間",
+          "reset_favorites_text": "要移除呢個計時器嘅所有預設時間嗎？"
         },
         "toggle_yaml_mode": "切換 YAML 模式",
         "update": {
+          "auto_update_enabled_text": "呢個項目已開啟自動更新，所以唔可以略過。你可以而家安裝呢個更新，或者等 Home Assistant 自動安裝。",
+          "auto_update_enabled_title": "唔可以略過版本",
+          "backup_in_progress": {
+            "backups_link": "查看備份",
+            "create_backup": "Home Assistant 建立緊備份，所以更新會暫停到完成為止。完成後就可以更新。{backups_link}",
+            "receive_backup": "Home Assistant 上載緊備份，所以更新會暫停到完成為止。完成後就可以更新。{backups_link}",
+            "restore_backup": "Home Assistant 還原緊備份，所以更新會暫停到完成為止。完成後就可以更新。{backups_link}"
+          },
+          "clear_skipped": "清除略過",
+          "create_backup": {
+            "app": "保留上一個版本嘅備份",
+            "app_description": "方便返回版本 {version}",
+            "automatic": "更新前自動備份",
+            "automatic_description_last": "上次自動備份：{relative_time}。",
+            "automatic_description_none": "未有自動備份。",
+            "generic": "建立備份",
+            "manual": "更新前手動建立備份",
+            "manual_description": "包括 Home Assistant 設定同歷史記錄。"
+          },
+          "install": "安裝",
+          "install_failed": "未能開始更新：{error}",
           "installed": "已安裝：{version}",
+          "release_announcement": "閱讀發佈公告",
+          "skip": "略過",
+          "supervisor_logs": "Supervisor 記錄",
+          "update": "更新",
           "whats_new": "更新內容"
         },
+        "updater": {
+          "title": "更新說明"
+        },
+        "vacuum": {
+          "by_area": "按區域",
+          "clean_areas": "清潔區域",
+          "clean_areas_order_hint": "清潔區域嘅次序可能唔受你部吸塵機支援。",
+          "clean_spot": "清潔指定位置",
+          "cleaning": "清潔緊",
+          "commands": "吸塵機指令：",
+          "configure": "設定",
+          "configure_area_mapping": "設定區域對應",
+          "fan_speed": "風速",
+          "locate": "尋找機器",
+          "no_areas_header": "未有對應區域",
+          "no_areas_text": "將吸塵機嘅分段對應到屋企入面嘅區域，就可以按區域清潔。",
+          "no_areas_text_non_admin": "請管理員將吸塵機嘅分段對應到區域。",
+          "other_areas": "其他區域",
+          "pause": "暫停",
+          "return_home": "返回充電座",
+          "start": "開始",
+          "start_cleaning_areas": "開始清潔",
+          "start_pause": "開始 / 暫停",
+          "status": "狀態",
+          "stop": "停止"
+        },
         "valve": {
-          "changed": "已更改"
+          "changed": "已更改",
+          "copy_favorites": "將常用位置複製到…",
+          "copy_favorites_entities": "實體",
+          "copy_favorites_helper": "揀一個或者多個閥門，接收呢個閥門複製過去嘅常用位置。",
+          "edit_mode": "編輯常用位置",
+          "favorite_position": {
+            "add": "新增常用位置",
+            "add_title": "新增常用位置",
+            "delete": "刪除常用位置 {number}",
+            "delete_confirm_action": "刪除",
+            "delete_confirm_text": "呢個常用位置會被永久刪除。",
+            "delete_confirm_title": "刪除常用位置？",
+            "edit": "將位置設為 {value}",
+            "edit_title": "編輯常用位置",
+            "set": "將位置設為 {value}"
+          },
+          "reset_favorites": "重設常用位置",
+          "reset_favorites_text": "要將呢個閥門嘅所有常用位置重設返預設嗎？",
+          "switch_mode": {
+            "button": "切換到按鈕模式",
+            "position": "切換到位置模式"
+          }
         },
         "water_heater": {
           "now": "而家係 {value}。"
+        },
+        "zone": {
+          "graph_unit": "區內人數"
         }
       },
       "two_key": {
@@ -4305,6 +4911,58 @@
       }
     },
     "components": {
+      "climate-control": {
+        "humidity_down": "調低濕度",
+        "humidity_up": "調高濕度",
+        "lower_temperature_down": "調低下限目標溫度",
+        "lower_temperature_up": "調高下限目標溫度",
+        "temperature_down": "調低溫度",
+        "temperature_up": "調高溫度",
+        "upper_temperature_down": "調低上限目標溫度",
+        "upper_temperature_up": "調高上限目標溫度"
+      },
+      "history_charts": {
+        "duration": "時長",
+        "earlier": "{name}（較早）",
+        "error": "載入唔到歷史記錄",
+        "history_disabled": "歷史整合已停用",
+        "loading_history": "載入緊狀態歷史…",
+        "no_history_found": "搵唔到狀態歷史。",
+        "source_history": "來源：歷史",
+        "source_stats": "來源：長期統計",
+        "category": "類別",
+        "chart": "圖表",
+        "collapse_legend": "收起",
+        "expand_legend": "更多",
+        "time": "時間",
+        "toggle_visibility": "切換顯示",
+        "value": "數值",
+        "zoom_end": "可見範圍嘅終點",
+        "zoom_range": "圖表目前顯示嘅範圍",
+        "zoom_reset": "重設縮放",
+        "zoom_start": "可見範圍嘅起點"
+      },
+      "related-items": {
+        "area": "區域",
+        "automation": "自動化",
+        "blueprint": "藍圖",
+        "device": "裝置",
+        "entity": "實體",
+        "group": "群組",
+        "integration": "整合",
+        "no_related_found": "搵唔到相關項目。",
+        "scene": "場景",
+        "script": "腳本"
+      },
+      "relative_time": {
+        "never": "從未"
+      },
+      "siren": {
+        "duration": "持續時間",
+        "more_controls": "更多控制",
+        "tone": "音調",
+        "volume": "音量"
+      },
       "top_bar_search": {
         "open": "搜尋呢一頁",
         "close": "關閉搜尋",
@@ -6940,6 +7598,33 @@
       },
       "camera_timeline": {
         "back_10": "後退 10 秒",
+        "back_to_live": "返回直播",
+        "filter": "顯示事件",
+        "hours": "{count} 小時",
+        "kinds": {
+          "animal": "動物",
+          "doorbell": "門鈴",
+          "motion": "移動",
+          "person": "人",
+          "sound": "聲音",
+          "vehicle": "車輛"
+        },
+        "label": "鏡頭時間軸",
+        "live": "直播",
+        "load_failed": "載入唔到呢日嘅事件。",
+        "minutes": "{minutes} 分 {seconds} 秒",
+        "next_day": "下一日",
+        "no_events": "呢日冇事件。",
+        "not_recorded": "冇錄影",
+        "not_set_up": "呢部鏡頭仲未錄影，所以只會顯示事件。",
+        "pause": "暫停",
+        "play": "播放",
+        "previous_day": "上一日",
+        "seconds": "{count} 秒",
+        "set_up": "設定錄影",
+        "settings": "錄影設定",
+        "today": "今日",
+        "yesterday": "琴日",
         "clip": {
           "none": "冇留低片段",
           "origin_home": "喺屋企錄",

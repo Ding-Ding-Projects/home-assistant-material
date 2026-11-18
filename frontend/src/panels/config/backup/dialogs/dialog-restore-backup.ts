@@ -29,6 +29,8 @@ import { DirtyStateProviderMixin } from "../../../../mixins/dirty-state-provider
 import { haStyle, haStyleDialog } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
 import type { RestoreBackupDialogParams } from "./show-dialog-restore-backup";
+import type { Localize } from "../../../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 
 interface FormData {
   encryption_key_type: "config" | "custom";
@@ -51,6 +53,10 @@ class DialogRestoreBackup
   extends DirtyStateProviderMixin<RestoreBackupDirtyState>()(LitElement)
   implements HassDialog
 {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _step?: "confirm" | "encryption" | "progress";
@@ -140,7 +146,7 @@ class DialogRestoreBackup
       return nothing;
     }
 
-    const dialogTitle = this.hass.localize(
+    const dialogTitle = this._modeLocalize(
       "ui.panel.config.backup.dialogs.restore.title"
     );
 
@@ -167,7 +173,7 @@ class DialogRestoreBackup
             ? html`
                 <ha-dialog-footer slot="footer">
                   <ha-button slot="primaryAction" @click=${this.closeDialog}>
-                    ${this.hass.localize("ui.common.close")}
+                    ${this._modeLocalize("ui.common.close")}
                   </ha-button>
                 </ha-dialog-footer>
               `
@@ -182,7 +188,7 @@ class DialogRestoreBackup
   private _renderConfirm() {
     return html`
       <p>
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.backup.dialogs.restore.confirm.description"
         )}
       </p>
@@ -192,21 +198,21 @@ class DialogRestoreBackup
   private _renderEncryptionIntro() {
     if (this._usedUserInput) {
       return html`
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.backup.dialogs.restore.encryption.incorrect_key"
         )}
       `;
     }
     if (this._backupEncryptionKey) {
       return html`
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.backup.dialogs.restore.encryption.different_key"
         )}
         ${
           this._params!.selectedData.homeassistant_included
             ? html`
                 <ha-alert alert-type="warning">
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.backup.dialogs.restore.encryption.warning"
                   )}
                 </ha-alert>
@@ -216,7 +222,7 @@ class DialogRestoreBackup
       `;
     }
     return html`
-      ${this.hass.localize(
+      ${this._modeLocalize(
         "ui.panel.config.backup.dialogs.restore.encryption.description"
       )}
     `;
@@ -231,7 +237,7 @@ class DialogRestoreBackup
         password-toggle
         autofocus
         @input=${this._passwordChanged}
-        .label=${this.hass.localize(
+        .label=${this._modeLocalize(
           "ui.panel.config.backup.dialogs.restore.encryption.input_label"
         )}
         .value=${this._userPassword || ""}
@@ -247,14 +253,14 @@ class DialogRestoreBackup
           appearance="plain"
           @click=${this.closeDialog}
         >
-          ${this.hass.localize("ui.common.cancel")}
+          ${this._modeLocalize("ui.common.cancel")}
         </ha-button>
         <ha-button
           slot="primaryAction"
           @click=${this._restoreBackup}
           variant="danger"
         >
-          ${this.hass.localize(
+          ${this._modeLocalize(
             "ui.panel.config.backup.dialogs.restore.actions.restore"
           )}
         </ha-button>
@@ -269,7 +275,7 @@ class DialogRestoreBackup
         ${
           this.hass.connected
             ? this._restoreState()
-            : this.hass.localize(
+            : this._modeLocalize(
                 "ui.panel.config.backup.dialogs.restore.progress.restarting"
               )
         }
@@ -297,7 +303,7 @@ class DialogRestoreBackup
       await this._unsubscribe();
       if (e.code === "password_incorrect" && !this._isProtected()) {
         // No key can ever work for an unprotected backup.
-        this._error = this.hass.localize(
+        this._error = this._modeLocalize(
           "ui.panel.config.backup.dialogs.restore.refused"
         );
       } else if (e.code === "password_incorrect") {
@@ -340,7 +346,7 @@ class DialogRestoreBackup
           this.closeDialog();
         }
         if (event.state === "failed") {
-          this._error = this.hass.localize(
+          this._error = this._modeLocalize(
             "ui.panel.config.backup.dialogs.restore.restore_failed"
           );
         }
@@ -369,11 +375,11 @@ class DialogRestoreBackup
 
   private _restoreState() {
     if (!this._stage) {
-      return this.hass.localize(
+      return this._modeLocalize(
         "ui.panel.config.backup.dialogs.restore.progress.restoring"
       );
     }
-    return this.hass.localize(
+    return this._modeLocalize(
       `ui.panel.config.backup.overview.progress.description.restore_backup.${this._stage}`
     );
   }

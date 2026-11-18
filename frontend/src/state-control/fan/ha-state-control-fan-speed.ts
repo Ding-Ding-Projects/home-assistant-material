@@ -28,9 +28,15 @@ import {
   fanSpeedToPercentage,
   isNumberedFanSpeed,
 } from "../../data/fan";
+import type { Localize } from "../../common/language-mode/language-mode";
+import { withLanguageMode } from "../../common/language-mode/language-mode";
 
 @customElement("ha-state-control-fan-speed")
 export class HaStateControlFanSpeed extends LitElement {
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._i18n.localize);
+  }
+
   @state()
   @consume({ context: apiContext, subscribe: true })
   private _api!: ContextType<typeof apiContext>;
@@ -96,11 +102,11 @@ export class HaStateControlFanSpeed extends LitElement {
       return this._formatters.formatEntityState(this.stateObj, speed);
     }
     if (isNumberedFanSpeed(speed)) {
-      return this._i18n.localize("ui.card.fan.speed.numbered", {
+      return this._modeLocalize("ui.card.fan.speed.numbered", {
         speed: formatNumber(speed, this._i18n.locale),
       });
     }
-    return this._i18n.localize(`ui.card.fan.speed.${speed}`) || speed;
+    return this._modeLocalize(`ui.card.fan.speed.${speed}`) || speed;
   }
 
   protected render() {

@@ -24,6 +24,7 @@ import type { HomeAssistantApi } from "../../../types";
 import "../../../components/ha-relative-time";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 
 const CONFIRM_TIMEOUT_SECOND = 5;
 const DONE_TIMEOUT_SECOND = 2;
@@ -38,7 +39,12 @@ class MoreInfoLock extends LitElement {
 
   @state()
   @consumeLocalize()
-  private _localize!: LocalizeFunc;
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @property({ attribute: false }) public stateObj?: LockEntity;
 
@@ -106,7 +112,7 @@ class MoreInfoLock extends LitElement {
   }
 
   protected render() {
-    if (!this._localize || !this.stateObj) {
+    if (!this._ctxLocalize || !this.stateObj) {
       return nothing;
     }
 

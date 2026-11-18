@@ -11,6 +11,7 @@ import "../components/ha-button";
 import { apiContext } from "../data/context";
 import { activateScene } from "../data/scene";
 import { haStyle } from "../resources/styles";
+import { withLanguageMode } from "../common/language-mode/language-mode";
 
 @customElement("state-card-scene")
 class StateCardScene extends LitElement {
@@ -18,7 +19,12 @@ class StateCardScene extends LitElement {
 
   @property({ attribute: "in-dialog", type: Boolean }) public inDialog = false;
 
-  @state() @consumeLocalize() private _localize!: LocalizeFunc;
+  @state() @consumeLocalize() private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @consume({ context: apiContext, subscribe: true })
   private _api!: ContextType<typeof apiContext>;
