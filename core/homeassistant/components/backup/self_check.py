@@ -51,6 +51,12 @@ LIGHT_CHECK_TIMEOUT = 60
 SETTINGS_STORAGE_KEY = "backup.self_check"
 SETTINGS_STORAGE_VERSION = 1
 
+KIND_LOCAL = "local"
+KIND_NETWORK = "network"
+KIND_REMOTE = "remote"
+SUPERVISOR_DOMAIN = "hassio"
+SUPERVISOR_CLOUD_LOCATION = ".cloud_backup"
+
 METHOD_FULL = "full"
 METHOD_LIGHT = "light"
 METHOD_NONE = "none"
@@ -787,11 +793,32 @@ def _remote_reference_size(backup: ManagerBackup, remote_ids: list[str]) -> int 
     return size if count >= 2 else None
 
 
+def _agent_kind(manager: BackupManager, agent_id: str) -> str:
+    """Return where the copy of an agent lives.
+
+    Core's own local agent and the Supervisor's local storage are on this
+    machine. A Supervisor network mount is on the home network. Everything
+    else is a remote location.
+    """
+    if agent_id in manager.local_backup_agents:
+        return KIND_LOCAL
+    agent = manager.backup_agents.get(agent_id)
+    if getattr(agent, "domain", None) != SUPERVISOR_DOMAIN:
+        return KIND_REMOTE
+    location = getattr(agent, "location", KIND_REMOTE)
+    if location is None:
+        return KIND_LOCAL
+    if location == SUPERVISOR_CLOUD_LOCATION:
+        return KIND_REMOTE
+    return KIND_NETWORK
+
+
 def _agent_order(manager: BackupManager, agent_ids: Iterable[str]) -> list[str]:
-    """Order agents so a local copy, the cheapest to read, comes first."""
+    """Order agents so the cheapest copy to read comes first."""
+    rank = {KIND_LOCAL: 0, KIND_NETWORK: 1, KIND_REMOTE: 2}
     return sorted(
         agent_ids,
-        key=lambda agent_id: (agent_id not in manager.local_backup_agents, agent_id),
+        key=lambda agent_id: (rank[_agent_kind(manager, agent_id)], agent_id),
     )
 
 
@@ -845,13 +872,20 @@ async def _async_scan_copy(
 
 
 def _copy_method(
-    settings: SelfCheckSettings, *, is_local: bool, size: int
+    settings: SelfCheckSettings, *, kind: str, size: int
 ) -> tuple[str, str | None]:
     """Return how a copy is checked, and why a full check was downgraded."""
-    if is_local or settings.remote_mode == REMOTE_MODE_FULL:
+    if kind == KIND_LOCAL:
+        return METHOD_FULL, None
+    if kind == KIND_NETWORK and settings.remote_mode == REMOTE_MODE_LIGHT:
+        # A mount on the home network is cheap to read, so Light reads it too
+        settings = SelfCheckSettings(
+            remote_mode=REMOTE_MODE_FULL,
+            max_full_download_bytes=settings.max_full_download_bytes,
+        )
+    if settings.remote_mode == REMOTE_MODE_FULL:
         if (
-            not is_local
-            and settings.max_full_download_bytes is not None
+            settings.max_full_download_bytes is not None
             and size > settings.max_full_download_bytes
         ):
             return METHOD_LIGHT, "over_size_limit"
@@ -879,9 +913,8 @@ async def async_self_check(
     password = manager.config.data.create_backup.password
 
     order = _agent_order(manager, backup.agents)
-    remote_ids = [
-        agent_id for agent_id in order if agent_id not in manager.local_backup_agents
-    ]
+    kinds = {agent_id: _agent_kind(manager, agent_id) for agent_id in order}
+    remote_ids = [agent_id for agent_id in order if kinds[agent_id] != KIND_LOCAL]
     protection = {agent_id: backup.agents[agent_id].protected for agent_id in order}
     remote_reference = _remote_reference_size(backup, remote_ids)
     scans: dict[str, _Scan] = {}
@@ -890,8 +923,10 @@ async def async_self_check(
     reference_size: int | None = None
     for agent_id in order:
         status = backup.agents[agent_id]
-        is_local = agent_id in manager.local_backup_agents
-        method, downgraded = _copy_method(settings, is_local=is_local, size=status.size)
+        is_local = kinds[agent_id] == KIND_LOCAL
+        method, downgraded = _copy_method(
+            settings, kind=kinds[agent_id], size=status.size
+        )
         if method == METHOD_NONE:
             results[agent_id] = CopyResult(
                 agent_id=agent_id,
@@ -1003,12 +1038,12 @@ async def async_check_location(
         )
     status = backup.agents[agent_id]
     password = manager.config.data.create_backup.password
-    is_local = agent_id in manager.local_backup_agents
+    is_local = _agent_kind(manager, agent_id) == KIND_LOCAL
     local_other = next(
         (
             other
             for other in _agent_order(manager, backup.agents)
-            if other in manager.local_backup_agents and other != agent_id
+            if _agent_kind(manager, other) == KIND_LOCAL and other != agent_id
         ),
         None,
     )
@@ -1019,7 +1054,7 @@ async def async_check_location(
             remote_ids = [
                 other
                 for other in backup.agents
-                if other not in manager.local_backup_agents and other != agent_id
+                if _agent_kind(manager, other) != KIND_LOCAL and other != agent_id
             ]
             expected = _remote_reference_size(backup, [agent_id, *remote_ids])
         return await _async_light_check(

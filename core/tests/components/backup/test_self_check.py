@@ -148,6 +148,16 @@ class _RemoteAgent:
         return stream()
 
 
+class _SupervisorAgent(_RemoteAgent):
+    """Stand-in for a Supervisor agent, which serves every copy as a stream."""
+
+    domain = "hassio"
+
+    def __init__(self, data: bytes | Exception, location: str | None) -> None:
+        super().__init__(data)
+        self.location = location
+
+
 def _manager(
     hass: HomeAssistant,
     copies: dict[str, tuple[Any, bool, int]],
@@ -600,6 +610,153 @@ async def test_remote_only_light_cannot_judge_content(hass: HomeAssistant) -> No
         "could_not_check",
         "remote_copy_not_downloaded",
     )
+    assert result.status == "could_not_check"
+
+
+async def test_supervisor_local_storage_is_read_in_full(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """The Supervisor's local storage is read in full even in Light mode."""
+    agent, size = _local(tmp_path)
+    supervisor = _SupervisorAgent(agent.path.read_bytes(), None)
+    manager = _manager(hass, {"hassio.local": (supervisor, False, size)}, None)
+
+    result = await async_self_check(manager, BACKUP_ID, settings=LIGHT)
+
+    assert _copies(result) == {"hassio.local": ("full", "verified_in_full", None)}
+    assert supervisor.served == size
+    assert _statuses(result) == {
+        "archive_complete": ("passed", None),
+        "metadata_matches": ("passed", None),
+        "key_unlocks": ("not_applicable", None),
+        "parts_present": ("passed", None),
+        "database_present": ("passed", None),
+        "copies_match": ("not_applicable", None),
+    }
+    assert result.status == "passed"
+
+
+async def test_supervisor_local_storage_protected_backup(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """A protected backup in the Supervisor's local storage unlocks with the key."""
+    agent, size = _local(tmp_path, password=KEY)
+    supervisor = _SupervisorAgent(agent.path.read_bytes(), None)
+    manager = _manager(hass, {"hassio.local": (supervisor, True, size)}, KEY)
+
+    result = await async_self_check(manager, BACKUP_ID, settings=LIGHT)
+
+    assert _check(result, "key_unlocks").status == "passed"
+    assert result.status == "passed"
+
+
+async def test_supervisor_local_and_cloud_copies(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """The Supervisor's local copy is read in full, a cloud copy only lightly."""
+    agent, size = _local(tmp_path)
+    data = agent.path.read_bytes()
+    local = _SupervisorAgent(data, None)
+    cloud = _RemoteAgent(data)
+    manager = _manager(
+        hass,
+        {"hassio.local": (local, False, size), "cloud.remote": (cloud, False, size)},
+        None,
+    )
+
+    result = await async_self_check(manager, BACKUP_ID, settings=LIGHT)
+
+    assert _copies(result) == {
+        "hassio.local": ("full", "verified_in_full", None),
+        "cloud.remote": ("light", "present_size_matches", None),
+    }
+    assert local.served == size
+    assert cloud.served <= 4096 < size
+    assert result.status == "passed"
+
+
+async def test_supervisor_cloud_location_stays_light(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """The Supervisor's cloud location is remote, not local."""
+    agent, size = _local(tmp_path)
+    data = agent.path.read_bytes()
+    local = _SupervisorAgent(data, None)
+    cloud = _SupervisorAgent(data, ".cloud_backup")
+    manager = _manager(
+        hass,
+        {"hassio.local": (local, False, size), "hassio.cloud": (cloud, False, size)},
+        None,
+    )
+
+    result = await async_self_check(manager, BACKUP_ID, settings=LIGHT)
+
+    assert _copies(result)["hassio.cloud"] == ("light", "present_size_matches", None)
+    assert cloud.served <= 4096 < size
+
+
+@pytest.mark.parametrize(
+    ("settings", "limit_hit", "expected"),
+    [
+        (LIGHT, False, ("full", "verified_in_full", None)),
+        (LIGHT, True, ("light", "present_size_matches", None)),
+        (OFF, False, ("none", "not_checked", "remote_checks_off")),
+    ],
+)
+async def test_supervisor_network_mount(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    settings: SelfCheckSettings,
+    limit_hit: bool,
+    expected: tuple[str, str, str | None],
+) -> None:
+    """A network mount is read in full unless it is over the limit or checks are off."""
+    agent, size = _local(tmp_path)
+    data = agent.path.read_bytes()
+    local = _SupervisorAgent(data, None)
+    mount = _SupervisorAgent(data, "nas")
+    manager = _manager(
+        hass,
+        {"hassio.local": (local, False, size), "hassio.nas": (mount, False, size)},
+        None,
+    )
+    if limit_hit:
+        settings = SelfCheckSettings(
+            remote_mode=REMOTE_MODE_LIGHT, max_full_download_bytes=size - 1
+        )
+
+    result = await async_self_check(manager, BACKUP_ID, settings=settings)
+
+    assert _copies(result)["hassio.nas"] == expected
+    assert _copies(result)["hassio.local"] == ("full", "verified_in_full", None)
+
+
+async def test_no_local_copy_light_is_never_a_pass_or_failure(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Only remote copies in Light mode cannot be judged, which is not a failure."""
+    agent, size = _local(tmp_path)
+    data = agent.path.read_bytes()
+    manager = _manager(
+        hass,
+        {
+            "cloud.one": (_RemoteAgent(data), False, size),
+            "hassio.cloud": (_SupervisorAgent(data, ".cloud_backup"), False, size),
+        },
+        None,
+    )
+
+    result = await async_self_check(manager, BACKUP_ID, settings=LIGHT)
+
+    statuses = _statuses(result)
+    for check_id in (
+        "archive_complete",
+        "metadata_matches",
+        "parts_present",
+    ):
+        assert statuses[check_id] == ("could_not_check", "remote_copy_not_downloaded")
+    assert statuses["database_present"][0] == "could_not_check"
+    assert "failed" not in {status for status, _ in statuses.values()}
     assert result.status == "could_not_check"
 
 
