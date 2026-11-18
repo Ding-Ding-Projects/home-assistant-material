@@ -401,6 +401,14 @@
           "lorawan": {
             "main": "LoRaWAN",
             "secondary": "遠距離無線裝置同連線"
+          },
+          "ac_defender": {
+            "main": "冷氣守護",
+            "secondary": "守住你想要嘅溫度，唔畀排程同牆上開關改走"
+          },
+          "heat_defender": {
+            "main": "暖氣守護",
+            "secondary": "暖氣唔開過頭，太凍就一定准開"
           }
         },
         "lovelace": {
@@ -2380,6 +2388,108 @@
               "doorbell": "門鐘",
               "sound": "聲音",
               "integration": "鏡頭服務"
+            }
+          }
+        },
+        "defenders": {
+          "title_cool": "冷氣守護",
+          "title_heat": "暖氣守護",
+          "intro_cool": "幫你守住想要嘅溫度，唔畀排程、手機同牆上開關改走。",
+          "intro_heat": "唔畀暖氣開到你覺得熱，但房間凍過頭就一定准暖氣開返。",
+          "loading": "載入緊",
+          "none": "未設定。請喺「設定」入面嘅「裝置與服務」加入。",
+          "error": "載入唔到守護：{error}",
+          "tabs": {
+            "now": "而家",
+            "guards": "守衛",
+            "cost": "費用",
+            "log": "紀錄"
+          },
+          "state": {
+            "defending": "守緊",
+            "waiting": "等緊",
+            "paused": "暫停咗",
+            "standing_down": "收手",
+            "emergency": "緊急",
+            "stopped": "全部停咗",
+            "heating_allowed": "准開暖氣"
+          },
+          "sibling": {
+            "ac": "阿哥，冷氣守護",
+            "heat": "阿妹，暖氣守護",
+            "paused": "暫停咗",
+            "open": "打開"
+          },
+          "now": {
+            "hold_cool": "我嘅溫度",
+            "hold_heat": "唔好暖過",
+            "floor": "最低溫度",
+            "floor_in_force": "而家嘅最低溫度：{floor}",
+            "heat_off": "暖氣一直熄住",
+            "band": "共用範圍：{low} 至 {high}",
+            "next_check": "下次檢查",
+            "gated": "等緊另一個做完佢嗰份",
+            "save_failed": "呢個數值唔接受：{error}",
+            "pause": "暫停",
+            "stop": "全部停晒",
+            "resume": "繼續守",
+            "pause_for": "暫停多久",
+            "pause_hint": "暫停期間，安全守衛照樣睇住。",
+            "stop_hint": "全部停晒就一個指令都唔會send，直到你叫佢繼續守。",
+            "also_title": "另一個守護",
+            "also_body": "另一個要唔要一齊咁做？",
+            "also_yes": "兩個一齊",
+            "also_no": "淨係呢個",
+            "heat_it": "等佢暖"
+          },
+          "guards": {
+            "search": "搜尋守衛",
+            "safety": "安全",
+            "people": "人",
+            "timing": "時間",
+            "money": "錢",
+            "none": "冇守衛符合。",
+            "last_acted": "上次出手 {time}",
+            "never_acted": "仲未出過手",
+            "confirm_title": "要熄咗安全守衛？",
+            "confirm_text": "{guard} 係保護房間嘅，確定先好熄。",
+            "confirm_second": "熄咗佢"
+          },
+          "cost": {
+            "today": "今日",
+            "month": "今個月",
+            "running": "運作時間",
+            "estimate": "估計費用",
+            "no_power": "喺設定入面填返耗電功率，就睇到估計費用。冇填就淨係顯示運作時間。",
+            "note": "費用係用運作時間同你填嘅功率估出嚟。"
+          },
+          "log": {
+            "empty": "仲未有嘢發生。",
+            "plain_hint": "喺設定打開「純文字紀錄」，就會用直白講法。",
+            "command": "指令",
+            "handover": "交棒",
+            "paused": "暫停",
+            "stopped": "停晒",
+            "resumed": "繼續",
+            "plain": {
+              "heat_off_first": "冷氣對暖氣：房間 {room}° 好熱，暖氣仲開住，先熄暖氣。",
+              "ac_stops_falling": "冷氣對暖氣：房間 {room}° 跌緊去 {low}°，冷氣停手，輪到暖氣。",
+              "heat_off_still_hot": "暖氣對冷氣：暖氣已經熄咗，房間仲有 {room}°，冷氣接手。",
+              "inside_band": "房間 {room}°，喺 {low}° 至 {high}° 入面，唔使郁手。",
+              "floor_reached": "暖氣：房間 {room}°，到咗最低溫度，准開暖氣。",
+              "too_hot": "冷氣：房間 {room}°，太熱，即刻制冷。",
+              "paused": "其中一個暫停咗，另一個守住 {low}° 至 {high}°。",
+              "resumed": "暫停咗嗰個返嚟當值。"
+            },
+            "voice": {
+              "heat_off_first": "阿哥對阿妹：而家 {room}° 好熱，你個暖氣仲開住，你先熄佢啦。",
+              "ac_stops_falling": "阿哥對阿妹：房間跌緊去 {low}°，而家 {room}°，我收手，輪到你守最低溫度。",
+              "heat_off_still_hot": "阿妹對阿哥：阿哥，暖氣熄咗喇，房間仲有 {room}°，交俾你。",
+              "inside_band": "兩個一齊：房間 {room}°，喺 {low}° 至 {high}° 入面，唔使出手。",
+              "floor_reached": "阿妹：房間 {room}°，到咗最低溫度，我開暖氣。",
+              "too_hot": "阿哥：房間 {room}°，太熱，我即刻開冷氣。",
+              "paused": "另一個暫停咗，我就守住 {low}° 至 {high}°。",
+              "resumed": "另一個返嚟當值喇。"
             }
           }
         }
@@ -5656,7 +5766,11 @@
           "bambu_lab__temp": "烘乾溫度",
           "bambu_lab__note_drying_limits": "AMS 2 Pro 最高烘到 65 °C，AMS HT 最高烘到 85 °C。",
           "bambu_lab__duration": "烘乾時間",
-          "bambu_lab__rotate_tray": "烘乾時轉動料卷"
+          "bambu_lab__rotate_tray": "烘乾時轉動料卷",
+          "ac_defender__hours": "小時",
+          "ac_defender__also_sibling": "另一個守護都一齊",
+          "heat_defender__hours": "小時",
+          "heat_defender__also_sibling": "另一個守護都一齊"
         },
         "characters": "{count} 個字元",
         "hex": "十六進位顏色",

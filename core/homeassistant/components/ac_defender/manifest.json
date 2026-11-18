@@ -1,0 +1,13 @@
+{
+  "domain": "ac_defender",
+  "name": "AC Defender",
+  "after_dependencies": ["logbook"],
+  "categories": ["climate.heat_pumps_air_conditioning"],
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": ["climate", "websocket_api"],
+  "documentation": "https://www.home-assistant.io/integrations/ac_defender",
+  "integration_type": "device",
+  "iot_class": "calculated",
+  "requirements": []
+}

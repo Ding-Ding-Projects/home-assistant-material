@@ -360,6 +360,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Integrations that have no setup screen",
   },
   {
+    file: "panels/config/ac-defender/ha-defender-page.ts",
+    searches: "Guards of the AC Defender and Heat Defender by name and family",
+  },
+  {
     file: "panels/config/ollama/ha-config-ollama.ts",
     searches:
       "Models stored on an Ollama server by name, family, size and quantisation",

@@ -14,7 +14,7 @@ WEATHER_MODES = (
     "outdoor_below_target",
 )
 ROOM_BAND = 1.5
-PARK_OFFSET = 3.0
+PARK_SETPOINT = 28.0  # the original stand-down park number
 DEBOUNCE_SECONDS = 120
 
 
@@ -269,7 +269,7 @@ class SiestaWatch(Guard):
                 guard=self.spec.key,
                 acted=[(self.spec.key, reason)],
             )
-        park = min(ctx.max_temp, max(ctx.target + PARK_OFFSET, ctx.setpoint or 0))
+        park = min(ctx.max_temp, max(PARK_SETPOINT, ctx.setpoint or 0))
         return Decision(
             action="set_temperature",
             value=park,

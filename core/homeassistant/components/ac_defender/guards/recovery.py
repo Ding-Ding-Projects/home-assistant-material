@@ -110,8 +110,8 @@ class CoolModeRestore(Guard):
             return self._restore(ctx, "someone changed the mode, putting it back")
         return Decision(
             state="waiting",
-            reason="waiting a moment before restoring cool mode",
-            holds=[self.hold_for(ctx, until, "waiting before restoring cool mode")],
+            reason="waiting a moment before restoring the mode",
+            holds=[self.hold_for(ctx, until, "waiting before restoring the mode")],
             guard=self.spec.key,
         )
 

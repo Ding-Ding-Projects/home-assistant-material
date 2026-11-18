@@ -3881,7 +3881,11 @@
           "bambu_lab__temp": "Drying temperature",
           "bambu_lab__note_drying_limits": "The AMS 2 Pro dries up to 65 °C. The AMS HT dries up to 85 °C.",
           "bambu_lab__duration": "Drying time",
-          "bambu_lab__rotate_tray": "Rotate the spool while drying"
+          "bambu_lab__rotate_tray": "Rotate the spool while drying",
+          "ac_defender__hours": "Hours",
+          "ac_defender__also_sibling": "Also the other defender",
+          "heat_defender__hours": "Hours",
+          "heat_defender__also_sibling": "Also the other defender"
         },
         "characters": "{count} characters",
         "hex": "Hex colour",
@@ -8464,6 +8468,14 @@
           "lorawan": {
             "main": "LoRaWAN",
             "secondary": "Long-range wireless devices and connections"
+          },
+          "ac_defender": {
+            "main": "AC Defender",
+            "secondary": "Hold your temperature against schedules and wall changes"
+          },
+          "heat_defender": {
+            "main": "Heat Defender",
+            "secondary": "Keep the heat off, always allow heating when it is too cold"
           }
         },
         "common": {
@@ -21021,6 +21033,108 @@
           "import_scene_entities_not_mapping": "The entities must be a mapping of entity id to state.",
           "import_scene_bad_entity": "{entity} is not an entity id.",
           "import_scene_bad_state": "The state of {entity} is not readable."
+        },
+        "defenders": {
+          "title_cool": "AC Defender",
+          "title_heat": "Heat Defender",
+          "intro_cool": "Holds your temperature against schedules, phones and wall changes.",
+          "intro_heat": "Keeps the heat off so you do not feel hot, and always allows heating when the room gets too cold.",
+          "loading": "Loading",
+          "none": "Nothing is set up yet. Add it from Settings, Devices and services.",
+          "error": "Could not load the defender: {error}",
+          "tabs": {
+            "now": "Now",
+            "guards": "Guards",
+            "cost": "Cost",
+            "log": "Log"
+          },
+          "state": {
+            "defending": "Defending",
+            "waiting": "Waiting",
+            "paused": "Paused",
+            "standing_down": "Standing down",
+            "emergency": "Emergency",
+            "stopped": "Stopped",
+            "heating_allowed": "Heating allowed"
+          },
+          "sibling": {
+            "ac": "Brother, AC Defender",
+            "heat": "Sister, Heat Defender",
+            "paused": "paused",
+            "open": "Open"
+          },
+          "now": {
+            "hold_cool": "My temperature",
+            "hold_heat": "No warmer than",
+            "floor": "Floor",
+            "floor_in_force": "Floor in force: {floor}",
+            "heat_off": "Keeping the heating off",
+            "band": "Shared band: {low} to {high}",
+            "next_check": "Next check",
+            "gated": "Waiting for the other defender to finish its part",
+            "save_failed": "That value was not accepted: {error}",
+            "pause": "Pause",
+            "stop": "Stop everything",
+            "resume": "Defend again",
+            "pause_for": "Pause for",
+            "pause_hint": "Safety guards keep watching while paused.",
+            "stop_hint": "Stop everything sends no command at all until you defend again.",
+            "also_title": "The other defender",
+            "also_body": "Should the other defender do the same?",
+            "also_yes": "Both",
+            "also_no": "Only this one",
+            "heat_it": "Let it heat"
+          },
+          "guards": {
+            "search": "Search guards",
+            "safety": "Safety",
+            "people": "People",
+            "timing": "Timing",
+            "money": "Money",
+            "none": "No guard matches.",
+            "last_acted": "Last acted {time}",
+            "never_acted": "Has not acted yet",
+            "confirm_title": "Turn off a safety guard?",
+            "confirm_text": "{guard} protects the room. Turn it off only if you are sure.",
+            "confirm_second": "Turn off"
+          },
+          "cost": {
+            "today": "Today",
+            "month": "This month",
+            "running": "Running time",
+            "estimate": "Estimated cost",
+            "no_power": "Add the power draw in the settings to see an estimated cost. Running time is shown without it.",
+            "note": "The cost is an estimate from running time and the power you entered."
+          },
+          "log": {
+            "empty": "Nothing has happened yet.",
+            "plain_hint": "Turn on Plain log in the settings to hear this in plain words.",
+            "command": "Command",
+            "handover": "Handover",
+            "paused": "Paused",
+            "stopped": "Stopped",
+            "resumed": "Resumed",
+            "plain": {
+              "heat_off_first": "AC to Heat: the room is {room}° and hot while heating is on. Turning it off first.",
+              "ac_stops_falling": "AC to Heat: the room is {room}° and falling toward {low}°. AC is stopping, heating is next.",
+              "heat_off_still_hot": "Heat to AC: heating is off and the room is still {room}°. AC takes over.",
+              "inside_band": "The room is {room}°, inside {low}° to {high}°. Nobody needs to act.",
+              "floor_reached": "Heat: the room is {room}°, at the floor. Heating is allowed.",
+              "too_hot": "AC: the room is {room}°, too hot. Cooling now.",
+              "paused": "One defender was paused. The other stays within {low}° to {high}°.",
+              "resumed": "A paused defender is back on duty."
+            },
+            "voice": {
+              "heat_off_first": "AC to Heat: sis, it is {room}° and hot, and your heating is on. Turn it off first.",
+              "ac_stops_falling": "AC to Heat: sis, the room is falling toward {low}° at {room}°. I am stopping. Your floor.",
+              "heat_off_still_hot": "Heat to AC: brother, heating is off and it is still {room}°. Yours.",
+              "inside_band": "Both: the room is {room}°, inside {low}° to {high}°. Nobody is needed.",
+              "floor_reached": "Heat: the room is {room}°, at the floor. Heating is allowed.",
+              "too_hot": "AC: the room is {room}°, too hot. Cooling now.",
+              "paused": "The other one was paused, so I stay within {low}° to {high}°.",
+              "resumed": "The other one is back on duty."
+            }
+          }
         }
       },
       "lovelace": {

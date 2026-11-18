@@ -27,6 +27,7 @@ FLOWS = {
     "integration": [
         "abode",
         "abrp",
+        "ac_defender",
         "acaia",
         "accuweather",
         "acmeda",
@@ -337,6 +338,7 @@ FLOWS = {
         "hase_iq",
         "haven_iaq",
         "hdfury",
+        "heat_defender",
         "hegel",
         "helty",
         "helty_cloud",

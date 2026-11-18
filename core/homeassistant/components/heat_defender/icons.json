@@ -1,0 +1,37 @@
+{
+  "entity": {
+    "button": {
+      "defend_again": { "default": "mdi:shield-check" },
+      "stop_everything": { "default": "mdi:hand-back-right" }
+    },
+    "event": {
+      "guard_acted": { "default": "mdi:shield-sword" },
+      "handover": { "default": "mdi:swap-horizontal" }
+    },
+    "number": {
+      "heat_cap": { "default": "mdi:thermometer-chevron-up" },
+      "floor": { "default": "mdi:thermometer-low" }
+    },
+    "select": {
+      "heat_mode": { "default": "mdi:radiator-off" }
+    },
+    "sensor": {
+      "state": { "default": "mdi:shield-half-full" },
+      "next_check": { "default": "mdi:clock-outline" },
+      "holder": { "default": "mdi:account-switch" },
+      "run_time_today": { "default": "mdi:timer-outline" },
+      "run_time_month": { "default": "mdi:timer-sand" },
+      "cost_today": { "default": "mdi:cash" },
+      "cost_month": { "default": "mdi:cash-multiple" }
+    },
+    "switch": {
+      "guard": { "default": "mdi:shield" }
+    }
+  },
+  "services": {
+    "pause": { "service": "mdi:pause" },
+    "stop_everything": { "service": "mdi:stop" },
+    "defend_again": { "service": "mdi:play" },
+    "let_it_heat": { "service": "mdi:radiator" }
+  }
+}

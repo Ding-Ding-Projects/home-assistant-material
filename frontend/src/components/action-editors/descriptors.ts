@@ -4,6 +4,7 @@ import { HOUSE_EDITORS } from "./domains/house";
 import { LIGHTING_EDITORS } from "./domains/lighting";
 import { MEDIA_EDITORS } from "./domains/media";
 import { INTEGRATION_EDITORS_A } from "./domains/integrations/a";
+import { INTEGRATION_EDITORS_AC_DEFENDER } from "./domains/integrations/ac_defender";
 import { INTEGRATION_EDITORS_B } from "./domains/integrations/b";
 import { INTEGRATION_EDITORS_BAMBU } from "./domains/integrations/bambu";
 import { INTEGRATION_EDITORS_C } from "./domains/integrations/c";
@@ -13,6 +14,7 @@ import {
 } from "./domains/integrations/d";
 import { INTEGRATION_EDITORS_E } from "./domains/integrations/e";
 import { INTEGRATION_EDITORS_F } from "./domains/integrations/f";
+import { INTEGRATION_EDITORS_HEAT_DEFENDER } from "./domains/integrations/heat_defender";
 import { SYSTEM_EDITORS } from "./domains/system";
 import {
   compact,
@@ -77,6 +79,8 @@ export const DOMAIN_EDITORS: Record<string, DomainEditor> = {
   INTEGRATION_EDITORS_E,
   INTEGRATION_EDITORS_F,
   INTEGRATION_EDITORS_BAMBU,
+  INTEGRATION_EDITORS_AC_DEFENDER,
+  INTEGRATION_EDITORS_HEAT_DEFENDER,
 ].forEach((share) => {
   Object.entries(share).forEach(([domain, editor]) => {
     const existing = DOMAIN_EDITORS[domain];

@@ -1,5 +1,7 @@
 import {
   mdiBrain,
+  mdiShieldHome,
+  mdiThermometerLow,
   mdiBug,
   mdiAccessPointNetwork,
   mdiAccount,
@@ -697,6 +699,22 @@ export const configSections: Record<string, PageNavigation[]> = {
       translationKey: "google_setup",
       iconPath: mdiGoogle,
       iconColor: "#4285F4",
+      adminOnly: true,
+    },
+    {
+      component: "ac_defender",
+      path: "/config/ac-defender",
+      translationKey: "ac_defender",
+      iconPath: mdiShieldHome,
+      iconColor: "#2E7D9A",
+      adminOnly: true,
+    },
+    {
+      component: "heat_defender",
+      path: "/config/heat-defender",
+      translationKey: "heat_defender",
+      iconPath: mdiThermometerLow,
+      iconColor: "#C0562B",
       adminOnly: true,
     },
     {

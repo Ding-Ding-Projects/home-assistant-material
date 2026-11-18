@@ -171,6 +171,14 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-guided-setup",
         load: () => import("./guided-setup/ha-config-guided-setup"),
       },
+      "ac-defender": {
+        tag: "ha-config-ac-defender",
+        load: () => import("./ac-defender/ha-config-ac-defender"),
+      },
+      "heat-defender": {
+        tag: "ha-config-heat-defender",
+        load: () => import("./heat-defender/ha-config-heat-defender"),
+      },
       ollama: {
         tag: "ha-config-ollama",
         load: () => import("./ollama/ha-config-ollama"),

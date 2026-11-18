@@ -175,14 +175,21 @@ class LowProfileGovernor(EpochHold):
 
     def score(self, ctx: Ctx) -> float:
         """Return the 0 to 100 pressure score."""
-        notices = min(100.0, 50.0 * len(ctx.notices(45, 180)))
-        remote = min(100.0, 50.0 * len(ctx.touches_in(30, remote=True)))
-        return (
-            0.35 * ctx.touch_pressure()
-            + 0.25 * notices
-            + 0.2 * remote
-            + 0.2 * ctx.command_pressure()
-        )
+        found = ctx.notices(45, 180)
+        notices = 0.0
+        if found:
+            minutes = max(
+                0.0, (ctx.now - max(t.time for t in found)).total_seconds() / 60
+            )
+            notices = min(
+                100.0,
+                min(75.0, 25.0 * len(found)) + max(0.0, 25.0 - round(minutes * 3.0)),
+            )
+        touch = ctx.touch_pressure()
+        commands = min(90.0, 22.0 * len(ctx.commands_in(30)))
+        remote = min(85.0, 24.0 * len(ctx.touches_in(30, remote=True)))
+        blend = round(0.45 * touch + 0.25 * notices + 0.2 * commands + 0.1 * remote)
+        return max(touch, notices, commands, blend)
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""

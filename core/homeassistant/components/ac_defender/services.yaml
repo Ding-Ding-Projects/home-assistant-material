@@ -1,0 +1,44 @@
+pause:
+  target:
+    entity:
+      integration: ac_defender
+      domain: sensor
+  fields:
+    hours:
+      required: true
+      default: 1
+      selector:
+        number:
+          min: 0.25
+          max: 24
+          step: 0.25
+          unit_of_measurement: h
+    also_sibling:
+      required: false
+      default: false
+      selector:
+        boolean:
+
+stop_everything:
+  target:
+    entity:
+      integration: ac_defender
+      domain: sensor
+  fields:
+    also_sibling:
+      required: false
+      default: false
+      selector:
+        boolean:
+
+defend_again:
+  target:
+    entity:
+      integration: ac_defender
+      domain: sensor
+  fields:
+    also_sibling:
+      required: false
+      default: false
+      selector:
+        boolean:

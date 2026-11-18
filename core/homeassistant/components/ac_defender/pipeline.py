@@ -8,10 +8,11 @@ from .spec import Guard
 
 FLOOR_MIN = 10.0
 STALE_SECONDS = 30 * 60
-DIRECT_BAND = 1.0
+DIRECT_BAND = 2.0  # the original natural safety override
 APPROACH = 0.5
 TOLERANCE = 0.1
 FLOOR_STATE = "_floor"
+KEEP_OFF_GAP_SECONDS = 600
 
 
 def clamp_floor(value: float | None) -> float:
@@ -98,11 +99,10 @@ def _finish(ctx: Ctx, decision: Decision) -> Decision:
         return decision
     if decision.action == "set_temperature" and isinstance(decision.value, float):
         decision.value = max(decision.value, clamp_floor(ctx.floor))
-    if (
-        decision.action == "turn_off"
-        and ctx.room is not None
-        and ctx.room < clamp_floor(ctx.floor)
-    ):
+    turns_off = decision.action == "turn_off" or (
+        decision.action == "set_hvac_mode" and decision.value == "off"
+    )
+    if turns_off and ctx.room is not None and ctx.room < clamp_floor(ctx.floor):
         return Decision(
             state="heating_allowed", reason="below the floor, heating stays allowed"
         )
@@ -183,6 +183,30 @@ def decide(  # noqa: C901
                     )
                 return _finish(ctx, action)
 
+    if (
+        ctx.run_mode == "heat"
+        and ctx.desired_mode == "off"
+        and ctx.hvac_mode not in (None, "off")
+    ):
+        gap = ctx.last_command_time
+        if gap and (ctx.now - gap).total_seconds() < KEEP_OFF_GAP_SECONDS:
+            return Decision(
+                state="waiting",
+                reason="the heating was just commanded, waiting before checking again",
+                target=target,
+            )
+        reason = "heating is kept off, the room is above its floor"
+        return _finish(
+            ctx,
+            Decision(
+                action="set_hvac_mode",
+                value="off",
+                reason=reason,
+                guard="keep_heating_off",
+                acted=[("keep_heating_off", reason)],
+                target=target,
+            ),
+        )
     if ctx.desired_mode == "off" or ctx.room is None or ctx.setpoint is None:
         return Decision(state="defending", reason="holding", target=target, guard=None)
     if ctx.off_owner or ctx.hvac_mode != ctx.desired_mode:

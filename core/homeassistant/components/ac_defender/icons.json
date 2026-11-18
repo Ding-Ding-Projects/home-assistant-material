@@ -1,0 +1,32 @@
+{
+  "entity": {
+    "button": {
+      "defend_again": { "default": "mdi:shield-check" },
+      "stop_everything": { "default": "mdi:hand-back-right" }
+    },
+    "event": {
+      "guard_acted": { "default": "mdi:shield-sword" },
+      "handover": { "default": "mdi:swap-horizontal" }
+    },
+    "number": {
+      "my_temperature": { "default": "mdi:thermometer-check" }
+    },
+    "sensor": {
+      "state": { "default": "mdi:shield-half-full" },
+      "next_check": { "default": "mdi:clock-outline" },
+      "holder": { "default": "mdi:account-switch" },
+      "run_time_today": { "default": "mdi:timer-outline" },
+      "run_time_month": { "default": "mdi:timer-sand" },
+      "cost_today": { "default": "mdi:cash" },
+      "cost_month": { "default": "mdi:cash-multiple" }
+    },
+    "switch": {
+      "guard": { "default": "mdi:shield" }
+    }
+  },
+  "services": {
+    "pause": { "service": "mdi:pause" },
+    "stop_everything": { "service": "mdi:stop" },
+    "defend_again": { "service": "mdi:play" }
+  }
+}

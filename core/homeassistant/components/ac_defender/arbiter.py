@@ -35,6 +35,22 @@ class Event:
     values: dict[str, float | str | None]
     time: datetime
     plain: bool = False
+    code: str = ""
+    seq: int = 0
+
+    def to_dict(self) -> dict:
+        """Return the structured event so a client can word it in its own language."""
+        return {
+            "seq": self.seq,
+            "kind": self.kind,
+            "code": self.code,
+            "who": self.who,
+            "to": self.to,
+            "reason": self.reason,
+            "values": self.values,
+            "time": self.time.isoformat(),
+            "plain": self.plain,
+        }
 
     def text(self, sibling: bool = True) -> str:
         """Return an English line with the real numbers and action."""
@@ -74,6 +90,7 @@ class Arbiter:
     last_command: dict[str, datetime] = field(default_factory=dict)
     events: list[Event] = field(default_factory=list)
     plain: bool = False
+    seq: int = 0
 
     def set_band(self, low: float, high: float, floor: float | None = None) -> None:
         """Move the shared band (validated)."""
@@ -94,8 +111,17 @@ class Arbiter:
         return len(self.members) < 2
 
     def _emit(
-        self, now: datetime, kind: str, who: str, to: str, reason: str, room: float
+        self,
+        now: datetime,
+        kind: str,
+        who: str,
+        to: str,
+        reason: str,
+        room: float,
+        code: str = "",
     ) -> None:
+        self.seq += 1
+        del self.events[:-200]
         self.events.append(
             Event(
                 kind,
@@ -105,6 +131,8 @@ class Arbiter:
                 {"room": room, "low": self.low, "high": self.high},
                 now,
                 plain=self.plain or kind == "safety",
+                code=code,
+                seq=self.seq,
             )
         )
 
@@ -154,7 +182,15 @@ class Arbiter:
                 if base == HEAT
                 else "room too hot, cooling now"
             )
-            self._emit(now, "safety", base, AC if base == HEAT else HEAT, reason, room)
+            self._emit(
+                now,
+                "safety",
+                base,
+                AC if base == HEAT else HEAT,
+                reason,
+                room,
+                "floor_reached" if base == HEAT else "too_hot",
+            )
         elif wanted == AC:
             self._emit(
                 now,
@@ -163,6 +199,7 @@ class Arbiter:
                 AC,
                 f"heating is off and it is still above {self.high:.1f}°. Yours",
                 room,
+                "heat_off_still_hot",
             )
         elif wanted == HEAT and room < self.low:
             self._emit(
@@ -172,6 +209,7 @@ class Arbiter:
                 HEAT,
                 f"room is falling toward {self.low:.1f}°. I am stopping. Your floor",
                 room,
+                "ac_stops_falling",
             )
         elif wanted == HEAT:
             self._emit(
@@ -181,6 +219,7 @@ class Arbiter:
                 HEAT,
                 "room is hot and heating is on, turning it off first",
                 room,
+                "heat_off_first",
             )
         elif previous != NEITHER:
             self._emit(
@@ -190,6 +229,7 @@ class Arbiter:
                 NEITHER,
                 "the room is inside the band",
                 room,
+                "inside_band",
             )
         return self.holder
 
@@ -231,4 +271,5 @@ class Arbiter:
                 if paused
                 else "back on duty",
                 room,
+                "paused" if paused else "resumed",
             )

@@ -8,6 +8,7 @@ from typing import Any
 
 HUMAN_SOURCES = frozenset({"wall", "user", "automation"})
 REMOTE_SOURCES = frozenset({"user", "automation"})
+COMMAND_BUDGET = 3.0
 
 
 @dataclass(slots=True)
@@ -156,12 +157,23 @@ class Ctx:
         return [c for c in self.commands if c.time >= limit]
 
     def touch_pressure(self) -> float:
-        """Return 0 to 100: how strongly people changed the setpoint in 30 minutes."""
-        return min(100.0, 25.0 * len(self.touches_in(30)))
+        """Return 0 to 100: how strongly people changed the setpoint in 30 minutes.
+
+        Counts 18 points per touch up to 80, plus up to 20 for how recent the last
+        touch is, as the original program scores suspicion.
+        """
+        touches = self.touches_in(30)
+        if not touches:
+            return 0.0
+        base = min(80.0, 18.0 * len(touches))
+        minutes = max(
+            0.0, (self.now - max(t.time for t in touches)).total_seconds() / 60
+        )
+        return min(100.0, base + max(0.0, 20.0 - round(minutes * 2.0)))
 
     def command_pressure(self) -> float:
-        """Return 0 to 100: how many commands the defender sent in 30 minutes."""
-        return min(100.0, 25.0 * len(self.commands_in(30)))
+        """Return 0 to 100: the defender's own commands against three per window."""
+        return min(100.0, 100.0 * len(self.commands_in(30)) / COMMAND_BUDGET)
 
     def notices(self, window: float, after_seconds: float) -> list[Touch]:
         """Return touches that landed shortly after a defender command."""

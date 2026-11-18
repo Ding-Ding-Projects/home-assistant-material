@@ -36,6 +36,15 @@
       "config_flow": true,
       "iot_class": "cloud_push"
     },
+    "ac_defender": {
+      "name": "AC Defender",
+      "integration_type": "device",
+      "categories": [
+        "climate.heat_pumps_air_conditioning"
+      ],
+      "config_flow": true,
+      "iot_class": "calculated"
+    },
     "acaia": {
       "name": "Acaia",
       "integration_type": "device",
@@ -6023,6 +6032,15 @@
       ],
       "config_flow": false,
       "iot_class": "local_polling"
+    },
+    "heat_defender": {
+      "name": "Heat Defender",
+      "integration_type": "device",
+      "categories": [
+        "climate.thermostats_heating"
+      ],
+      "config_flow": true,
+      "iot_class": "calculated"
     },
     "hegel": {
       "name": "Hegel Amplifier",

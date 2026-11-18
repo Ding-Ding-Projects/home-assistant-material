@@ -1,0 +1,392 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "Choose the air conditioner",
+        "description": "AC Defender holds your temperature against schedules, phones and wall changes.",
+        "data": {
+          "climate_entity_id": "Air conditioner",
+          "my_temperature": "My temperature",
+          "safety_temperature": "Safety temperature"
+        },
+        "data_description": {
+          "climate_entity_id": "A climate entity that can cool.",
+          "my_temperature": "The temperature to hold, within the limits of the device.",
+          "safety_temperature": "At or above this the room is too hot and the defender acts at once."
+        }
+      },
+      "sensors": {
+        "title": "Optional sensors",
+        "description": "Everything here can be left empty.",
+        "data": {
+          "room_sensor": "Room temperature sensor",
+          "door_sensor": "Door or window sensor",
+          "presence_entity": "Presence",
+          "outdoor_entity": "Outdoor temperature or weather",
+          "power_kw": "Power draw when running"
+        },
+        "data_description": {
+          "room_sensor": "Use a sensor that is closer to you than the device's own thermometer. Leave empty to use the device's reading.",
+          "door_sensor": "Lets the defender react when a door or window opens.",
+          "presence_entity": "Lets the defender relax when nobody is home.",
+          "outdoor_entity": "Used by the outdoor rules. A weather entity or a temperature sensor.",
+          "power_kw": "Only used to estimate cost. Leave empty to see running time only."
+        }
+      },
+      "guards": {
+        "title": "Which guards start on",
+        "description": "Safety guards always start on. You can change any guard later.",
+        "data": {
+          "enabled_guards": "Guards"
+        },
+        "data_description": {
+          "enabled_guards": "Guards that start switched on."
+        }
+      },
+      "reconfigure": {
+        "title": "Change the air conditioner",
+        "data": {
+          "climate_entity_id": "Air conditioner",
+          "my_temperature": "My temperature",
+          "safety_temperature": "Safety temperature"
+        },
+        "data_description": {
+          "climate_entity_id": "A climate entity that can cool.",
+          "my_temperature": "The temperature to hold, within the limits of the device.",
+          "safety_temperature": "At or above this the room is too hot and the defender acts at once."
+        }
+      },
+      "reconfigure_sensors": {
+        "title": "Optional sensors",
+        "data": {
+          "room_sensor": "Room temperature sensor",
+          "door_sensor": "Door or window sensor",
+          "presence_entity": "Presence",
+          "outdoor_entity": "Outdoor temperature or weather",
+          "power_kw": "Power draw when running"
+        },
+        "data_description": {
+          "room_sensor": "Use a sensor that is closer to you than the device's own thermometer. Leave empty to use the device's reading.",
+          "door_sensor": "Lets the defender react when a door or window opens.",
+          "presence_entity": "Lets the defender relax when nobody is home.",
+          "outdoor_entity": "Used by the outdoor rules. A weather entity or a temperature sensor.",
+          "power_kw": "Only used to estimate cost. Leave empty to see running time only."
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "That entity does not exist.",
+      "cannot_cool": "That device cannot cool. Pick an air conditioner.",
+      "cannot_heat": "That device cannot heat. Pick a heater or a heat pump.",
+      "temperature_too_low": "That is below the lowest temperature the device accepts.",
+      "temperature_too_high": "That is above the highest temperature the device accepts.",
+      "safety_below_target": "The safety temperature must be higher than the temperature to hold.",
+      "band_crossed": "This would cross the other defender. The temperature to hold must stay above the warmest the heater may make the room.",
+      "band_too_narrow": "The two defenders need at least one degree between them so they do not take turns all day.",
+      "band_under_floor": "The heater's lowest comfortable temperature must stay above its floor."
+    },
+    "abort": {
+      "already_configured": "This air conditioner is already defended.",
+      "reconfigure_successful": "The settings were updated.",
+      "unique_id_mismatch": "That is a different device. Add it as a new defender instead."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "AC Defender settings",
+        "data": {
+          "my_temperature": "My temperature",
+          "safety_temperature": "Safety temperature",
+          "room_sensor": "Room temperature sensor",
+          "door_sensor": "Door or window sensor",
+          "presence_entity": "Presence",
+          "outdoor_entity": "Outdoor temperature or weather",
+          "power_kw": "Power draw when running",
+          "plain_log": "Plain log"
+        },
+        "data_description": {
+          "my_temperature": "The temperature to hold, within the limits of the device.",
+          "safety_temperature": "At or above this the room is too hot and the defender acts at once.",
+          "room_sensor": "Use a sensor that is closer to you than the device's own thermometer. Leave empty to use the device's reading.",
+          "door_sensor": "Lets the defender react when a door or window opens.",
+          "presence_entity": "Lets the defender relax when nobody is home.",
+          "outdoor_entity": "Used by the outdoor rules. A weather entity or a temperature sensor.",
+          "power_kw": "Only used to estimate cost. Leave empty to see running time only.",
+          "plain_log": "Writes the shared log of handovers in plain words instead of the brother and sister voices."
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "That entity does not exist.",
+      "cannot_cool": "That device cannot cool. Pick an air conditioner.",
+      "cannot_heat": "That device cannot heat. Pick a heater or a heat pump.",
+      "temperature_too_low": "That is below the lowest temperature the device accepts.",
+      "temperature_too_high": "That is above the highest temperature the device accepts.",
+      "safety_below_target": "The safety temperature must be higher than the temperature to hold.",
+      "band_crossed": "This would cross the other defender. The temperature to hold must stay above the warmest the heater may make the room.",
+      "band_too_narrow": "The two defenders need at least one degree between them so they do not take turns all day.",
+      "band_under_floor": "The heater's lowest comfortable temperature must stay above its floor."
+    }
+  },
+  "selector": {
+    "guard": {
+      "options": {
+        "hot_room_override": "Hot room override",
+        "comfort_sync": "Comfort sync",
+        "cool_mode_restore": "Cool mode restore",
+        "natural_walkback": "Natural walkback",
+        "touch_signature": "Touch signature",
+        "human_nudge": "Human nudge",
+        "visibility_guard": "Visibility guard",
+        "routine_timing": "Routine timing",
+        "comfort_budget": "Comfort budget",
+        "command_spacing": "Command spacing",
+        "low_profile_governor": "Low profile governor",
+        "natural_cadence": "Natural cadence",
+        "comfort_pace": "Comfort pace",
+        "comfort_envelope": "Comfort envelope",
+        "comfort_compromise": "Comfort compromise",
+        "comfort_memory": "Comfort memory",
+        "conflict_quiet": "Conflict quiet",
+        "tug_of_war_truce": "Tug of war truce",
+        "wall_settling": "Wall settling",
+        "manual_comfort_grace": "Manual comfort grace",
+        "touch_intent": "Touch intent",
+        "cooler_intent_fast_lane": "Cooler intent fast lane",
+        "setpoint_echo": "Setpoint echo",
+        "repeat_quiet": "Repeat quiet",
+        "setpoint_stillness": "Setpoint stillness",
+        "sensor_rhythm": "Sensor rhythm",
+        "hvac_alibi": "Hvac alibi",
+        "telemetry_alibi": "Telemetry alibi",
+        "cooling_runway": "Cooling runway",
+        "room_trend_guard": "Room trend guard",
+        "thermal_momentum": "Thermal momentum",
+        "weather_drift_timing": "Weather drift timing",
+        "website_debounce": "Website debounce",
+        "super_defender": "Super defender",
+        "rival_schedule_watch": "Rival schedule watch",
+        "cool_outdoor_shutdown": "Cool outdoor shutdown",
+        "siesta_watch": "Siesta watch",
+        "savings_pantry": "Savings pantry",
+        "desired_state_enforcer": "Desired state enforcer",
+        "remote_settling_guard": "Remote settling guard",
+        "peak_power_saver": "Peak power saver",
+        "front_door_guard_post": "Front door guard post",
+        "emergency_protocols": "Emergency protocols",
+        "cooling_failure_watch": "Cooling failure watch",
+        "dynamic_cooldown": "Dynamic cooldown",
+        "fan_energy_saver": "Fan energy saver",
+        "upstairs_comfort_guard": "Upstairs comfort guard",
+        "schedule_weather_rules": "Schedule weather rules",
+        "repeated_raise_surrender": "Repeated raise surrender",
+        "tamper_truce": "Tamper truce",
+        "wake_up_truce": "Wake up truce"
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "defend_again": {
+        "name": "Defend again"
+      },
+      "stop_everything": {
+        "name": "Stop everything"
+      }
+    },
+    "event": {
+      "guard_acted": {
+        "name": "Guard acted",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "hot_room_override": "Hot room override",
+              "comfort_sync": "Comfort sync",
+              "cool_mode_restore": "Cool mode restore",
+              "natural_walkback": "Natural walkback",
+              "touch_signature": "Touch signature",
+              "human_nudge": "Human nudge",
+              "visibility_guard": "Visibility guard",
+              "routine_timing": "Routine timing",
+              "comfort_budget": "Comfort budget",
+              "command_spacing": "Command spacing",
+              "low_profile_governor": "Low profile governor",
+              "natural_cadence": "Natural cadence",
+              "comfort_pace": "Comfort pace",
+              "comfort_envelope": "Comfort envelope",
+              "comfort_compromise": "Comfort compromise",
+              "comfort_memory": "Comfort memory",
+              "conflict_quiet": "Conflict quiet",
+              "tug_of_war_truce": "Tug of war truce",
+              "wall_settling": "Wall settling",
+              "manual_comfort_grace": "Manual comfort grace",
+              "touch_intent": "Touch intent",
+              "cooler_intent_fast_lane": "Cooler intent fast lane",
+              "setpoint_echo": "Setpoint echo",
+              "repeat_quiet": "Repeat quiet",
+              "setpoint_stillness": "Setpoint stillness",
+              "sensor_rhythm": "Sensor rhythm",
+              "hvac_alibi": "Hvac alibi",
+              "telemetry_alibi": "Telemetry alibi",
+              "cooling_runway": "Cooling runway",
+              "room_trend_guard": "Room trend guard",
+              "thermal_momentum": "Thermal momentum",
+              "weather_drift_timing": "Weather drift timing",
+              "website_debounce": "Website debounce",
+              "super_defender": "Super defender",
+              "rival_schedule_watch": "Rival schedule watch",
+              "cool_outdoor_shutdown": "Cool outdoor shutdown",
+              "siesta_watch": "Siesta watch",
+              "savings_pantry": "Savings pantry",
+              "desired_state_enforcer": "Desired state enforcer",
+              "remote_settling_guard": "Remote settling guard",
+              "peak_power_saver": "Peak power saver",
+              "front_door_guard_post": "Front door guard post",
+              "emergency_protocols": "Emergency protocols",
+              "cooling_failure_watch": "Cooling failure watch",
+              "dynamic_cooldown": "Dynamic cooldown",
+              "fan_energy_saver": "Fan energy saver",
+              "upstairs_comfort_guard": "Upstairs comfort guard",
+              "schedule_weather_rules": "Schedule weather rules",
+              "repeated_raise_surrender": "Repeated raise surrender",
+              "tamper_truce": "Tamper truce",
+              "wake_up_truce": "Wake up truce"
+            }
+          },
+          "reason": {
+            "name": "Reason"
+          }
+        }
+      },
+      "handover": {
+        "name": "Handover",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "handover": "Handover",
+              "stop": "Stopped to hand over",
+              "paused": "Paused",
+              "resumed": "Back on duty",
+              "safety": "Safety"
+            }
+          }
+        }
+      }
+    },
+    "number": {
+      "my_temperature": {
+        "name": "My temperature"
+      },
+      "heat_cap": {
+        "name": "No warmer than"
+      }
+    },
+    "sensor": {
+      "state": {
+        "name": "State",
+        "state": {
+          "defending": "Defending",
+          "waiting": "Waiting",
+          "paused": "Paused",
+          "standing_down": "Standing down",
+          "emergency": "Emergency",
+          "stopped": "Stopped",
+          "heating_allowed": "Heating allowed"
+        },
+        "state_attributes": {
+          "reason": {
+            "name": "Reason"
+          },
+          "guard": {
+            "name": "Guard"
+          }
+        }
+      },
+      "next_check": {
+        "name": "Next check"
+      },
+      "holder": {
+        "name": "Who holds the room",
+        "state": {
+          "ac": "AC Defender",
+          "heat": "Heat Defender",
+          "neither": "Neither",
+          "safety": "Safety"
+        }
+      },
+      "run_time_today": {
+        "name": "Running time today"
+      },
+      "run_time_month": {
+        "name": "Running time this month"
+      },
+      "cost_today": {
+        "name": "Estimated cost today"
+      },
+      "cost_month": {
+        "name": "Estimated cost this month"
+      }
+    },
+    "switch": {
+      "guard": {
+        "name": "{guard}",
+        "state_attributes": {
+          "guard": {
+            "name": "Guard"
+          },
+          "safety": {
+            "name": "Safety guard"
+          },
+          "group": {
+            "name": "Group"
+          },
+          "last_acted": {
+            "name": "Last acted"
+          },
+          "reason": {
+            "name": "Reason"
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "pause": {
+      "name": "Pause",
+      "description": "Stands down for a number of hours. Safety guards keep watching.",
+      "fields": {
+        "hours": {
+          "name": "Hours",
+          "description": "How long to pause, from a quarter of an hour to a day."
+        },
+        "also_sibling": {
+          "name": "Also the other defender",
+          "description": "Applies the same to the other defender of this device when it is set up."
+        }
+      }
+    },
+    "stop_everything": {
+      "name": "Stop everything",
+      "description": "Sends no command at all, safety guards included, until told to defend again.",
+      "fields": {
+        "also_sibling": {
+          "name": "Also the other defender",
+          "description": "Applies the same to the other defender of this device when it is set up."
+        }
+      }
+    },
+    "defend_again": {
+      "name": "Defend again",
+      "description": "Ends a pause or a stop.",
+      "fields": {
+        "also_sibling": {
+          "name": "Also the other defender",
+          "description": "Applies the same to the other defender of this device when it is set up."
+        }
+      }
+    }
+  },
+  "issues": {}
+}

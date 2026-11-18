@@ -42,6 +42,7 @@ export const YUE_PREFIXES = [
   "ui.components.web-rtc-player.state.",
   "ui.components.camera_timeline.not_kept_by_choice",
   "ui.panel.config.camera_recording.",
+  "ui.panel.config.defenders.",
   // Single strings, not whole blocks: the settings home banners and the apps page.
   "ui.panel.config.dashboard.",
   "ui.panel.config.updates.check_updates",
