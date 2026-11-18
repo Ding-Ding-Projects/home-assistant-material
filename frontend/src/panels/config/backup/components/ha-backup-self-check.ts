@@ -20,7 +20,10 @@ import type {
 import { runBackupSelfCheck } from "../../../../data/backup";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
-import { summarizeSelfCheck } from "../helper/backup-self-check";
+import {
+  selfCheckReasonText,
+  summarizeSelfCheck,
+} from "../helper/backup-self-check";
 
 const PREFIX = "ui.panel.config.backup.self_check";
 
@@ -60,11 +63,11 @@ class HaBackupSelfCheck extends LitElement {
     if (!check.reason) {
       return undefined;
     }
-    const key = `reasons.${check.reason}`;
-    const parts = check.detail?.join(", ");
-    return this.hass.localize(`${PREFIX}.${key}` as any, { parts })
-      ? this._t(key, { parts: parts ?? "" })
-      : check.reason;
+    return selfCheckReasonText(
+      this.hass,
+      check.reason,
+      check.detail?.join(", ") ?? ""
+    );
   }
 
   protected render() {

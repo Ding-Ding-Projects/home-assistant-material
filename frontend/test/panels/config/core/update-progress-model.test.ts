@@ -355,6 +355,15 @@ describe("restoring after a reload", () => {
     expect(parsed[0].backup).toBe(true);
   });
 
+  it("remembers that the start of an install was not known", () => {
+    const parsed = parseRecords(
+      JSON.stringify([record({ startUnknown: true }), record()]),
+      now
+    );
+    expect(parsed[0].startUnknown).toBe(true);
+    expect(parsed[1].startUnknown).toBeUndefined();
+  });
+
   it("keeps an unknown backup choice unknown", () => {
     const parsed = parseRecords(JSON.stringify([record({ backup: "x" })]), now);
     expect(parsed[0].backup).toBeNull();

@@ -257,6 +257,68 @@ describe("DraftController", () => {
     controller.hostDisconnected();
   });
 
+  test("one save per real change, and none while the editor sits idle", async () => {
+    const { state, controller } = setup();
+    controller.configChanged();
+    await settle();
+    edit(state, controller, "B");
+    await vi.advanceTimersByTimeAsync(DRAFT_DELAY_MS + 1);
+    expect(saves()).toHaveLength(1);
+    const before = calls.length;
+    // Five idle minutes: no timer, no message.
+    await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+    expect(calls.length).toBe(before);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  test("the same content reported as changed again is not saved again", async () => {
+    const { state, controller } = setup();
+    controller.configChanged();
+    await settle();
+    edit(state, controller, "B");
+    await vi.advanceTimersByTimeAsync(DRAFT_DELAY_MS + 1);
+    expect(saves()).toHaveLength(1);
+    // A new object with the same content and another key order.
+    state.config = { actions: [], alias: "B" };
+    controller.configChanged();
+    await vi.advanceTimersByTimeAsync(DRAFT_DELAY_MS + 1);
+    state.config = { actions: [], alias: "B", description: undefined };
+    controller.configChanged();
+    await vi.advanceTimersByTimeAsync(DRAFT_DELAY_MS + 1);
+    expect(saves()).toHaveLength(1);
+    edit(state, controller, "C");
+    await vi.advanceTimersByTimeAsync(DRAFT_DELAY_MS + 1);
+    expect(saves()).toHaveLength(2);
+  });
+
+  test("a config that only differs from the live item in key order or empty values is not saved", async () => {
+    const { state, controller } = setup();
+    controller.configChanged();
+    await settle();
+    state.dirty = true;
+    state.config = { actions: [], alias: "A", description: undefined };
+    controller.configChanged();
+    await vi.advanceTimersByTimeAsync(DRAFT_DELAY_MS * 3);
+    expect(saves()).toHaveLength(0);
+  });
+
+  test("a server that keeps saying too soon is asked a few times, then left alone", async () => {
+    const { state, controller } = setup();
+    controller.configChanged();
+    await settle();
+    const original = hass.callWS.getMockImplementation();
+    hass.callWS.mockImplementation(async (msg: any) => {
+      calls.push(msg);
+      return { saved: false };
+    });
+    edit(state, controller, "B");
+    await vi.advanceTimersByTimeAsync(60 * 1000);
+    expect(saves().length).toBeLessThanOrEqual(6);
+    expect(controller.status).toBe("error");
+    expect(vi.getTimerCount()).toBe(0);
+    hass.callWS.mockImplementation(original);
+  });
+
   test("leaving the editor with a pending draft sends it", async () => {
     const { state, controller } = setup();
     controller.hostConnected();

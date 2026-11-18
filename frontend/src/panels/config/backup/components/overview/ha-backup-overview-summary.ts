@@ -24,6 +24,8 @@ import type { HomeAssistant } from "../../../../../types";
 import { showAlertDialog } from "../../../../lovelace/custom-card-helpers";
 import "../ha-backup-summary-card";
 
+const MINUTE_MS = 60 * 1000;
+
 @customElement("ha-backup-overview-summary")
 class HaBackupOverviewBackups extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -45,6 +47,24 @@ class HaBackupOverviewBackups extends LitElement {
     return sortedBackups[0] as BackupContent | undefined;
   });
 
+  // The newest backup of any kind, when it is newer than the newest automatic
+  // one, so a manual backup made a moment ago is not hidden behind an
+  // automatic backup that is hours old.
+  private _newerAnyBackup = memoizeOne((backups: BackupContent[]) => {
+    const newest = [...backups].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    )[0] as BackupContent | undefined;
+    const automatic = this._lastBackup(backups);
+    if (!newest) {
+      return undefined;
+    }
+    return !automatic ||
+      new Date(newest.date).getTime() - new Date(automatic.date).getTime() >
+        MINUTE_MS
+      ? newest
+      : undefined;
+  });
+
   private _lastUploadedBackup = memoizeOne((backups: BackupContent[]) => {
     const sortedBackups = this._sortedBackups(backups);
     return sortedBackups.find(
@@ -59,6 +79,9 @@ class HaBackupOverviewBackups extends LitElement {
     description?: string | null,
     lastCompletedDate?: Date
   ) {
+    const anyBackup = this.fetching
+      ? undefined
+      : this._newerAnyBackup(this.backups);
     return html`
       <ha-backup-summary-card
         .heading=${heading}
@@ -91,6 +114,23 @@ class HaBackupOverviewBackups extends LitElement {
                   }
                 </p>
               `
+            : nothing
+        }
+        ${
+          anyBackup
+            ? html`<p class="line">
+                ${this.hass.localize(
+                  "ui.panel.config.backup.overview.summary.last_any_backup_description",
+                  {
+                    relative_time: relativeTime(
+                      new Date(anyBackup.date),
+                      this.hass.locale,
+                      new Date(),
+                      true
+                    ),
+                  }
+                )}
+              </p>`
             : nothing
         }
       </ha-backup-summary-card>

@@ -1,8 +1,10 @@
+import { modeText } from "../../../../common/language-mode/language-mode";
 import type {
   BackupContent,
   BackupSelfCheck,
   BackupSelfCheckResult,
 } from "../../../../data/backup";
+import type { HomeAssistant } from "../../../../types";
 
 export interface SelfCheckSummary {
   state: "passed" | "failed" | "partial";
@@ -66,4 +68,29 @@ export const latestSelfChecked = (
     }
   }
   return undefined;
+};
+
+/**
+ * A readable sentence made from a reason code the interface has no wording
+ * for: "some_new_reason" becomes "Some new reason." The raw code is never
+ * shown to a person.
+ */
+export const readableReason = (code: string): string => {
+  const text = code
+    .replace(/[_\-\s]+/g, " ")
+    .trim()
+    .toLowerCase();
+  return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}.` : "";
+};
+
+/** The wording of a self-check reason code, in the chosen language mode. */
+export const selfCheckReasonText = (
+  hass: Pick<HomeAssistant, "localize">,
+  reason: string,
+  parts = ""
+): string => {
+  const key = `ui.panel.config.backup.self_check.reasons.${reason}`;
+  return hass.localize(key as any, { parts })
+    ? modeText(hass.localize, key as any, { parts })
+    : readableReason(reason);
 };

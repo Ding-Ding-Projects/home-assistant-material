@@ -555,11 +555,11 @@ export class HassTabsSubpage extends LitElement {
       const atEnd = Math.abs(strip.scrollLeft) >= max - 1;
       bar.style.setProperty(
         "--tab-fade-start",
-        max > 1 && !atStart ? "20px" : "0px"
+        max > 1 && !atStart ? "32px" : "0px"
       );
       bar.style.setProperty(
         "--tab-fade-end",
-        max > 1 && !atEnd ? "20px" : "0px"
+        max > 1 && !atEnd ? "32px" : "0px"
       );
     });
   }

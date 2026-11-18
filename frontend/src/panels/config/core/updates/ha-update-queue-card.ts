@@ -1,7 +1,9 @@
 import {
   mdiAlertCircle,
   mdiCheckCircle,
+  mdiChevronRight,
   mdiClockOutline,
+  mdiNewBox,
   mdiSkipNextCircle,
 } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
@@ -13,6 +15,7 @@ import "../../../../components/ha-button";
 import "../../../../components/ha-spinner";
 import "../../../../components/ha-svg-icon";
 import "../../../../components/progress/ha-progress-bar";
+import { notesPageUrlForVersion } from "../../../../data/build-notes";
 import type { UpdateEntity } from "../../../../data/update";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
@@ -133,6 +136,14 @@ class HaUpdateQueueCard extends LitElement {
       text = this._t("finished_text", { done, total: progress.total });
     }
 
+    // A finished queue shows a tick where the ring was, never an empty ring.
+    const finishedOk =
+      !checking &&
+      !queue.failure &&
+      !active &&
+      !queue.stopRequested &&
+      done > 0;
+
     const progressText = this._t("progress_text", {
       finished: progress.finished,
       total: progress.total,
@@ -141,7 +152,20 @@ class HaUpdateQueueCard extends LitElement {
     return html`
       <section class="card" aria-labelledby="queue-title">
         <div class="title-row">
-          <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
+          ${
+            finishedOk
+              ? html`<ha-svg-icon
+                  class="ring tick"
+                  .path=${mdiCheckCircle}
+                ></ha-svg-icon>`
+              : nothing
+          }
+          <svg
+            class="ring"
+            viewBox="0 0 36 36"
+            aria-hidden="true"
+            ?hidden=${finishedOk}
+          >
             <g transform="rotate(-90 18 18)">
               <circle class="ring-track" cx="18" cy="18" r="15" />
               <circle
@@ -241,8 +265,45 @@ class HaUpdateQueueCard extends LitElement {
           >${updateDisplayName(this.hass, step.entityId, step.title)}</span
         >
         <span class="step-state">${this._t(`state_${shownState}`)}</span>
+        ${step.state === "done" ? this._renderDone(step) : nothing}
       </li>
     `;
+  }
+
+  // What an installed step went from and to, and where to read what changed.
+  private _renderDone(step: QueueStep): TemplateResult | typeof nothing {
+    const entity = this.hass.states[step.entityId] as UpdateEntity | undefined;
+    const to = step.targetVersion ?? entity?.attributes.installed_version;
+    const from = step.fromVersion;
+    const url =
+      (step.role === "other" ? undefined : notesPageUrlForVersion(to)) ||
+      entity?.attributes.release_url ||
+      undefined;
+    if (!to && !url) {
+      return nothing;
+    }
+    return html`<span class="step-detail">
+      ${
+        to
+          ? html`<span class="versions">
+              ${from ? html`<span>${from}</span>` : nothing}
+              <ha-svg-icon .path=${mdiChevronRight}></ha-svg-icon>
+              <strong>${to}</strong>
+            </span>`
+          : nothing
+      }
+      ${
+        url
+          ? html`<a href=${url} target="_blank" rel="noopener noreferrer">
+              <ha-svg-icon .path=${mdiNewBox}></ha-svg-icon>
+              ${this._lang.text(
+                this.hass.localize,
+                "ui.panel.config.updates.progress.whats_new"
+              )}
+            </a>`
+          : nothing
+      }
+    </span>`;
   }
 
   private _stop(): void {
@@ -395,6 +456,45 @@ class HaUpdateQueueCard extends LitElement {
           flex: 1;
           min-width: 0;
           overflow-wrap: anywhere;
+        }
+        .step {
+          flex-wrap: wrap;
+          padding-block: var(--ha-space-2);
+        }
+        .step-detail {
+          flex: 1 0 100%;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-1) var(--ha-space-4);
+          padding-inline-start: calc(24px + var(--ha-space-3));
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+        .step-detail .versions {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-1);
+          overflow-wrap: anywhere;
+        }
+        .step-detail ha-svg-icon {
+          --mdc-icon-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+        .step-detail a {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-1);
+          min-height: 32px;
+          color: var(--primary-color);
+          text-decoration: none;
+        }
+        .ring.tick {
+          color: var(--success-color);
+        }
+        .ring[hidden] {
+          display: none;
         }
         .step-state {
           flex: none;

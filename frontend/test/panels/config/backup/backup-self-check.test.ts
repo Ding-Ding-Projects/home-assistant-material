@@ -5,6 +5,8 @@ import type {
 } from "../../../../src/data/backup";
 import {
   latestSelfChecked,
+  readableReason,
+  selfCheckReasonText,
   summarizeSelfCheck,
 } from "../../../../src/panels/config/backup/helper/backup-self-check";
 
@@ -73,5 +75,29 @@ describe("latestSelfChecked", () => {
 
   it("returns nothing when no backup has a result", () => {
     expect(latestSelfChecked([backup("a")])).toBeUndefined();
+  });
+});
+
+describe("self-check reason wording", () => {
+  it("makes a readable sentence of a code with no wording, never the raw code", () => {
+    expect(readableReason("remote_copy_not_downloaded")).toBe(
+      "Remote copy not downloaded."
+    );
+    expect(readableReason("")).toBe("");
+  });
+
+  it("uses the written wording when there is one and the sentence when not", () => {
+    const hass = {
+      localize: (key: string) =>
+        key.endsWith(".reasons.timeout")
+          ? "The place did not answer in time"
+          : "",
+    };
+    expect(selfCheckReasonText(hass, "timeout")).toBe(
+      "The place did not answer in time"
+    );
+    expect(selfCheckReasonText(hass, "some_new_reason")).toBe(
+      "Some new reason."
+    );
   });
 });

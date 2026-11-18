@@ -48,6 +48,9 @@ const adoptedIds = new Set<string>();
 
 const RETRY_TOO_SOON_MS = 1200;
 
+/** How many times in a row the server may answer "too soon" before the save is given up. */
+const MAX_TOO_SOON_RETRIES = 5;
+
 /**
  * Autosaves what is being edited as a draft on the instance, offers a draft
  * back after a crash, and removes it when the item is saved or discarded. It
@@ -70,6 +73,11 @@ export class DraftController implements ReactiveController {
   private _baseline?: Record<string, any>;
 
   private _hasStored = false;
+
+  /** The hash of the config that was stored last; an identical config is never sent again. */
+  private _lastSavedHash?: string;
+
+  private _tooSoonRetries = 0;
 
   /** Set while an item that was imported with several others is being edited. */
   public importedDisabled = false;
@@ -144,6 +152,8 @@ export class DraftController implements ReactiveController {
       this._checkedKey = key;
       this._newId = undefined;
       this._hasStored = false;
+      this._lastSavedHash = undefined;
+      this._tooSoonRetries = 0;
       this.importedDisabled = false;
       this._clearTimer();
       this.status = "idle";
@@ -175,6 +185,7 @@ export class DraftController implements ReactiveController {
       ).catch(() => undefined);
     }
     this._hasStored = false;
+    this._lastSavedHash = undefined;
     this.status = "idle";
     this.offer = undefined;
     this._notify();
@@ -190,6 +201,7 @@ export class DraftController implements ReactiveController {
     }
     this.offer = undefined;
     this._hasStored = true;
+    this._lastSavedHash = configHash(offer.draft.config);
     this.importedDisabled = Boolean(offer.draft.meta?.imported);
     if (isNewDraftId(offer.draft.item_id)) {
       adoptedIds.add(offer.draft.item_id);
@@ -215,6 +227,7 @@ export class DraftController implements ReactiveController {
   /** A draft was restored from the history: it is now the current draft. */
   public restored(config: Record<string, any>): void {
     this._hasStored = true;
+    this._lastSavedHash = configHash(config);
     this.offer = undefined;
     this._binding.apply(config);
     this._notify();
@@ -248,8 +261,9 @@ export class DraftController implements ReactiveController {
     this._timer = window.setTimeout(() => this._flush(), delay);
   }
 
+  // Only what shows the draft (the status bar) is told. Re-rendering the whole
+  // editor for every status change is a heavy render for no visible change.
   private _notify() {
-    this._host.requestUpdate();
     this._listeners.forEach((listener) => listener());
   }
 
@@ -304,9 +318,15 @@ export class DraftController implements ReactiveController {
     }
     const kind = this._binding.kind();
     const id = this.currentId();
-    if (!this._binding.dirty()) {
+    // The editor can report "changed" for a config that only differs in key
+    // order or in empty values. What matters is the normalised content.
+    const hash = configHash(config);
+    const sameAsLive =
+      this._baseline !== undefined && hash === configHash(this._baseline);
+    if (!this._binding.dirty() || sameAsLive) {
       if (this._hasStored) {
         this._hasStored = false;
+        this._lastSavedHash = undefined;
         this._token++;
         this.status = "idle";
         this._notify();
@@ -314,9 +334,15 @@ export class DraftController implements ReactiveController {
       }
       return;
     }
+    if (this._hasStored && hash === this._lastSavedHash) {
+      // Nothing changed since the last stored draft: no save, no message.
+      return;
+    }
     const token = ++this._token;
-    this.status = "saving";
-    this._notify();
+    if (this.status !== "saving") {
+      this.status = "saving";
+      this._notify();
+    }
     const baseHash = this._baseline ? configHash(this._baseline) : null;
     try {
       const result = await saveEditorDraft(
@@ -331,11 +357,21 @@ export class DraftController implements ReactiveController {
         return;
       }
       if (!result.saved) {
-        this.status = "saving";
-        this._schedule(RETRY_TOO_SOON_MS);
+        // The server asked for a pause. Try again a few times, then stop
+        // trying: the next edit starts a new attempt.
+        if (this._tooSoonRetries < MAX_TOO_SOON_RETRIES) {
+          this._tooSoonRetries++;
+          this._schedule(RETRY_TOO_SOON_MS);
+          return;
+        }
+        this._tooSoonRetries = 0;
+        this.status = "error";
+        this._notify();
         return;
       }
+      this._tooSoonRetries = 0;
       this._hasStored = true;
+      this._lastSavedHash = hash;
       this.status = "saved";
       this.savedAt = result.updated ?? new Date().toISOString();
     } catch {

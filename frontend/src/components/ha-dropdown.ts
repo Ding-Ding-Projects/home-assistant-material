@@ -95,6 +95,8 @@ export class HaDropdown extends Dropdown {
   private override async showMenu() {
     // The popup then flips upward, or shrinks, before it reaches the bars.
     const reserve = this._bottomReserve();
+    // On a phone the menu is a sheet that sits above those bars.
+    this.style.setProperty("--ha-dropdown-sheet-bottom", `${reserve}px`);
     const popup = (this as any).popup;
     if (popup && reserve > 0) {
       const padding = { top: 0, right: 0, bottom: reserve, left: 0 };
@@ -152,10 +154,15 @@ export class HaDropdown extends Dropdown {
         }
 
         /* The auto size ignores safe areas, so a long menu could end up
-           behind the Android navigation bar or the notch. */
+           behind the Android navigation bar or the notch. The viewport
+           fallback keeps a menu inside the screen, scrolling inside itself,
+           even when the auto size has not measured yet. */
+        #menu {
+          overflow-y: auto;
+        }
         wa-popup[data-current-placement^="bottom"] #menu {
           max-height: calc(
-            var(--auto-size-available-height) - var(
+            var(--auto-size-available-height, 100dvh - var(--ha-space-4)) - var(
                 --safe-area-inset-bottom,
                 0px
               )
@@ -163,8 +170,64 @@ export class HaDropdown extends Dropdown {
         }
         wa-popup[data-current-placement^="top"] #menu {
           max-height: calc(
-            var(--auto-size-available-height) - var(--safe-area-inset-top, 0px)
+            var(--auto-size-available-height, 100dvh - var(--ha-space-4)) - var(
+                --safe-area-inset-top,
+                0px
+              )
           ) !important;
+        }
+
+        /* On a phone a menu opens as a bottom sheet: full width, every item
+           reachable by scrolling inside it, comfortable rows, and above any
+           bar floating over the page. */
+        @media (max-width: 599px) {
+          wa-popup::part(popup) {
+            position: fixed !important;
+            top: auto !important;
+            inset-inline: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: var(--ha-dropdown-sheet-bottom, 0px) !important;
+            transform: none !important;
+            width: auto !important;
+            max-width: none !important;
+            max-height: none !important;
+            box-shadow: 0 0 0 100vmax
+              var(--ha-bottom-sheet-scrim-color, rgba(0, 0, 0, 0.32));
+          }
+          wa-popup[data-current-placement] #menu {
+            box-sizing: border-box;
+            width: 100% !important;
+            max-width: none !important;
+            max-height: calc(
+              100dvh - var(--ha-dropdown-sheet-bottom, 0px) - var(
+                  --ha-space-12
+                ) - var(--safe-area-inset-top, 0px)
+            ) !important;
+            padding-bottom: calc(
+              var(--ha-space-2) + var(--safe-area-inset-bottom, 0px)
+            );
+            border-radius: var(--ha-border-radius-3xl)
+              var(--ha-border-radius-3xl) 0 0;
+            --ha-dropdown-item-min-height: var(--ha-space-12);
+            animation: ha-dropdown-sheet-in
+              var(
+                --ha-motion-sheets-duration,
+                var(--ha-animation-duration-normal)
+              )
+              var(--ha-motion-sheets-curve, ease-out) backwards;
+          }
+        }
+        @keyframes ha-dropdown-sheet-in {
+          from {
+            transform: translateY(24px);
+            opacity: 0;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          #menu {
+            animation: none !important;
+          }
         }
       `,
     ];

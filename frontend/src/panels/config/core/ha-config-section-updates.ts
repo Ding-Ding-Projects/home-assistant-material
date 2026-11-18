@@ -1502,8 +1502,10 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         flex-direction: column;
         gap: var(--ha-space-4);
       }
+      /* The last line of the page stays above the floating phone bar. */
       :host([narrow]) .page {
-        padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
+        padding: var(--ha-space-2) var(--ha-space-3)
+          calc(var(--ha-space-6) + var(--safe-area-inset-bottom, 0px));
       }
       .loading {
         display: flex;

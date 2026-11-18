@@ -8,16 +8,55 @@ const control = (key: string): QuickControl => ({
   labelKey: `label.${key}`,
 });
 
+const slider = (key: string): QuickControl => ({
+  kind: "slider",
+  key,
+  labelKey: `label.${key}`,
+  min: 0,
+  max: 10,
+  step: 1,
+  value: undefined,
+});
+
 const keys = (list: QuickControl[]) => list.map((item) => item.key);
 
 describe("folding optional fields of a long action form", () => {
   const many = ["a", "b", "c", "d", "e", "f", "g", "h"].map(control);
 
   it("keeps a short form whole", () => {
-    const short = many.slice(0, 5);
+    const short = ["a", "b", "c", "d", "e"].map(slider);
     const split = splitAdvancedControls(short, {}, {});
     expect(keys(split.main)).toEqual(keys(short));
     expect(split.advanced).toEqual([]);
+  });
+
+  it("folds the optional switches of a short form while another field stays", () => {
+    const purge = [
+      slider("keep_days"),
+      control("repack"),
+      control("apply_filter"),
+    ];
+    const split = splitAdvancedControls(purge, {}, {});
+    expect(keys(split.main)).toEqual(["keep_days"]);
+    expect(keys(split.advanced)).toEqual(["repack", "apply_filter"]);
+  });
+
+  it("keeps a switch that is required or already set, and a form of only switches", () => {
+    const purge = [
+      slider("keep_days"),
+      control("repack"),
+      control("apply_filter"),
+    ];
+    const required = splitAdvancedControls(
+      purge,
+      { repack: { required: true } },
+      {}
+    );
+    expect(required.advanced).toEqual([]);
+    const set = splitAdvancedControls(purge, {}, { apply_filter: true });
+    expect(set.advanced).toEqual([]);
+    const onlySwitches = splitAdvancedControls(many.slice(0, 3), {}, {});
+    expect(onlySwitches.advanced).toEqual([]);
   });
 
   it("keeps required fields and fields holding a value in the main list", () => {

@@ -33,7 +33,11 @@ import {
   RECORD_KEEP_MS,
   storeRecords,
 } from "./update-progress-model";
-import { STEP_SETTLE_MS, SYSTEM_STEP_SETTLE_MS } from "./update-queue";
+import {
+  loadStoredQueue,
+  STEP_SETTLE_MS,
+  SYSTEM_STEP_SETTLE_MS,
+} from "./update-queue";
 
 /** How often the log of a running update is read. */
 export const LOG_POLL_MS = 3000;
@@ -310,13 +314,24 @@ export class UpdateProgressFeed implements ReactiveController {
       let record = this._records.get(id);
       const run = updateInstallTracker.get(id);
       if (installing && (!record || record.result)) {
+        // The real start: an install this page started itself (a run the
+        // page only adopted after a reload carries the time it was noticed,
+        // not the time it began), or else the queue step that was started
+        // before a reload. Without either, the start is not known.
+        const startedAt =
+          (run?.canRetry ? run.startedAt : undefined) ??
+          loadStoredQueue()?.steps.find(
+            (step) => step.entityId === id && step.state === "updating"
+          )?.startedAt ??
+          undefined;
         record = {
           entityId: id,
           kind: progressKindOf(entity, hass.entities?.[id]?.platform),
           title: entity.attributes.title || id,
           fromVersion: entity.attributes.installed_version,
           toVersion: entity.attributes.latest_version,
-          startedAt: run?.startedAt ?? now,
+          startedAt: startedAt ?? now,
+          startUnknown: startedAt === undefined ? true : undefined,
           backup: run ? run.backupRequested : null,
         };
         this._records.set(id, record);

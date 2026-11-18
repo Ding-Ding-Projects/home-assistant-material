@@ -467,6 +467,32 @@ export const ADVANCED_FOLD_THRESHOLD = 6;
 const MIN_VISIBLE_CONTROLS = 4;
 
 /**
+ * A short form keeps its fields whole, except for plain on or off switches
+ * nobody has to set: when two or more of them are optional and still unset,
+ * and at least one other field stays in view, they fold into the advanced
+ * group. A switch that is required or already holds a value stays visible.
+ */
+const foldOptionalSwitches = (
+  controls: QuickControl[],
+  dataControls: QuickControl[],
+  fields: Record<string, QuickFieldInfo>,
+  values: Record<string, unknown>
+): { main: QuickControl[]; advanced: QuickControl[] } => {
+  const optional = (control: QuickControl) =>
+    control.kind === "switch" &&
+    fields[control.key]?.required !== true &&
+    values[control.key] === undefined;
+  const folded = dataControls.filter(optional);
+  if (folded.length < 2 || folded.length === dataControls.length) {
+    return { main: controls, advanced: [] };
+  }
+  return {
+    main: controls.filter((control) => !folded.includes(control)),
+    advanced: folded,
+  };
+};
+
+/**
  * Splits the controls of one action into the ones always shown and an
  * advanced group. Only long forms fold. A control stays visible when its
  * field is required or already holds a value, so nothing set is ever hidden.
@@ -480,7 +506,7 @@ export const splitAdvancedControls = (
     (control) => !control.key.startsWith("$")
   );
   if (dataControls.length <= ADVANCED_FOLD_THRESHOLD) {
-    return { main: controls, advanced: [] };
+    return foldOptionalSwitches(controls, dataControls, fields, values);
   }
   const main: QuickControl[] = [];
   const advanced: QuickControl[] = [];

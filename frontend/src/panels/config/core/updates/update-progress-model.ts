@@ -385,6 +385,13 @@ export interface ProgressRecord {
   fromVersion: string | null;
   toVersion: string | null;
   startedAt: number;
+  /**
+   * True when the real start of the install is not known, for example an
+   * install first seen after a reload with nothing stored about its start.
+   * `startedAt` then only says when it was first noticed, so no duration is
+   * ever shown from it.
+   */
+  startUnknown?: boolean;
   /** null when nobody knows (an install found after a reload). */
   backup: boolean | null;
   samples?: PercentSamples;
@@ -481,6 +488,7 @@ export const parseRecords = (
           typeof item.fromVersion === "string" ? item.fromVersion : null,
         toVersion: typeof item.toVersion === "string" ? item.toVersion : null,
         startedAt,
+        startUnknown: item.startUnknown === true ? true : undefined,
         backup: typeof item.backup === "boolean" ? item.backup : null,
         samples,
         lastStage: STAGES.includes(item.lastStage) ? item.lastStage : undefined,

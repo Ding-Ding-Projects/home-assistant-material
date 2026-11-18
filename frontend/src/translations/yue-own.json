@@ -1368,7 +1368,16 @@
               "read_error": "讀唔到檔案",
               "unexpected_error": "檢查遇到意外錯誤而停止",
               "timeout": "嗰個地方未能及時回應",
-              "remote_checks_off": "其他地方嘅檢查已經關閉"
+              "remote_checks_off": "其他地方嘅檢查已經關閉",
+              "remote_copy_not_downloaded": "其他地方嘅複本預設只做輕量檢查，所以冇讀過內容。將其他地方嘅檢查轉做「完整」就可以讀晒佢哋",
+              "empty_copy": "嗰個地方傳返嚟嘅複本係空嘅",
+              "no_reference_size": "冇第二份複本可以比較大小，所以只確認到複本打得開",
+              "digest_differs_from_other_copy": "呢份複本嘅內容同其他複本唔同",
+              "over_size_limit": "複本大過完整下載嘅大小上限，所以只做咗輕量檢查",
+              "backup_agent_error": "嗰個地方回報咗錯誤",
+              "backup_manager_error": "檢查複本嘅時候，備份系統回報咗錯誤",
+              "unknown": "檢查複本嘅時候發生未知嘅錯誤",
+              "homeassistant_settings": "Home Assistant 嗰部分冇包含你嘅設定"
             },
             "copy": {
               "check_full": "完整檢查呢份複本",

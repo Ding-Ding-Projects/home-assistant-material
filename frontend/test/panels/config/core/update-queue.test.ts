@@ -328,6 +328,23 @@ describe("queue state", () => {
     ).toBeUndefined();
   });
 
+  it("keeps the version a step started from, and accepts a queue stored without it", () => {
+    const queue = createQueue([supervisor(), core()], false);
+    expect(queue.steps[0].fromVersion).toBe(
+      supervisor().attributes.installed_version
+    );
+    const restored = parseStoredQueue(JSON.stringify(queue));
+    expect(restored?.steps[0].fromVersion).toBe(queue.steps[0].fromVersion);
+    // A queue stored by an older build has no from-version.
+    const old = JSON.parse(JSON.stringify(queue));
+    old.steps.forEach(
+      (step: Record<string, unknown>) => delete step.fromVersion
+    );
+    expect(parseStoredQueue(JSON.stringify(old))?.steps[0].fromVersion).toBe(
+      undefined
+    );
+  });
+
   it("restores what it stored", () => {
     const queue = createQueue([supervisor(), core()], false);
     queue.steps[0].state = "updating";

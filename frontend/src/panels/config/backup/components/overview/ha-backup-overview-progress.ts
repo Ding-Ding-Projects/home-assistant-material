@@ -14,6 +14,7 @@ import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import { modeText } from "../../../../../common/language-mode/language-mode";
 import { isComponentLoaded } from "../../../../../common/config/is_component_loaded";
+import { formatTimeWithSeconds } from "../../../../../common/datetime/format_time";
 import { computeDomain } from "../../../../../common/entity/compute_domain";
 import "../../../../../components/ha-button";
 import "../../../../../components/ha-card";
@@ -27,6 +28,7 @@ import {
   isNetworkMountAgent,
 } from "../../../../../data/backup";
 import type { ManagerStateEvent } from "../../../../../data/backup_manager";
+import { TimeFormat } from "../../../../../data/translation";
 import type { HomeAssistant } from "../../../../../types";
 import { brandsUrl } from "../../../../../util/brands-url";
 import { bytesToString } from "../../../../../util/bytes-to-string";
@@ -40,7 +42,6 @@ import type {
 import {
   computeOverall,
   computeStageRows,
-  formatClock,
   formatDuration,
   UPLOAD_ROW_ID,
 } from "../../helper/backup-progress";
@@ -166,8 +167,19 @@ export class HaBackupOverviewProgress extends LitElement {
     return computeBackupAgentName(this.hass.localize, agentId, this.agents);
   }
 
+  // The person's own time zone and clock: 24-hour unless they chose 12-hour.
   private _clock(ms: number) {
-    return formatClock(ms, this.hass.config.time_zone);
+    return formatTimeWithSeconds(
+      new Date(ms),
+      {
+        ...this.hass.locale,
+        time_format:
+          this.hass.locale.time_format === TimeFormat.am_pm
+            ? TimeFormat.am_pm
+            : TimeFormat.twenty_four,
+      },
+      this.hass.config
+    );
   }
 
   private _renderAgentIcon(agentId: string) {

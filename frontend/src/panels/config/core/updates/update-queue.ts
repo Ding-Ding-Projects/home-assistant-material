@@ -16,6 +16,8 @@ export interface QueueStep {
   entityId: string;
   /** The version the step has to reach. */
   targetVersion: string | null;
+  /** The version that was installed when the queue was made. */
+  fromVersion?: string | null;
   state: QueueStepState;
   role: UpdateRole;
   /** The step was seen running, so a return to "available" is a failure. */
@@ -138,6 +140,7 @@ export const createQueue = (
   steps: orderUpdateQueue(entities).map((entity) => ({
     entityId: entity.entity_id,
     targetVersion: entity.attributes.latest_version,
+    fromVersion: entity.attributes.installed_version,
     state: "waiting",
     role: updateRole(entity),
     seenInProgress: false,
@@ -313,6 +316,8 @@ export const parseStoredQueue = (
         entityId: step.entityId,
         targetVersion:
           typeof step.targetVersion === "string" ? step.targetVersion : null,
+        fromVersion:
+          typeof step.fromVersion === "string" ? step.fromVersion : undefined,
         state: step.state,
         role: ["supervisor", "core", "os"].includes(step.role)
           ? step.role

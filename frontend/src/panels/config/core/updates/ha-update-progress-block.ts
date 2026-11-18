@@ -110,8 +110,16 @@ class HaUpdateProgressBlock extends LitElement {
           </span>
         </div>
         <p class="meta">
-          <span>${t("started", { time: formatClock(record.startedAt) })}</span>
-          <span>${t("elapsed", { elapsed: formatElapsed(elapsed) })}</span>
+          ${
+            record.startUnknown
+              ? nothing
+              : html`<span
+                    >${t("started", { time: formatClock(record.startedAt) })}</span
+                  >
+                  <span
+                    >${t("elapsed", { elapsed: formatElapsed(elapsed) })}</span
+                  >`
+          }
           ${
             view.estimateMs !== undefined
               ? html`<span
@@ -163,7 +171,13 @@ class HaUpdateProgressBlock extends LitElement {
             </span>
           </p>
           <p class="meta">
-            <span>${t("result_duration", { elapsed: duration })}</span>
+            ${
+              record.startUnknown || !record.finishedAt
+                ? nothing
+                : html`<span
+                    >${t("result_duration", { elapsed: duration })}</span
+                  >`
+            }
             ${
               record.finishedAt
                 ? html`<span

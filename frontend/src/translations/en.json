@@ -9696,7 +9696,16 @@
               "read_error": "The file could not be read",
               "unexpected_error": "The check stopped on an unexpected error",
               "timeout": "The location did not answer in time",
-              "remote_checks_off": "Checks of other places are turned off"
+              "remote_checks_off": "Checks of other places are turned off",
+              "remote_copy_not_downloaded": "The copies in other places are checked lightly by default, so their contents were not read. Switch checks of other places to Full to read them",
+              "empty_copy": "The place returned an empty copy",
+              "no_reference_size": "There was no second copy to compare the size with, so only the fact that the copy opens could be confirmed",
+              "digest_differs_from_other_copy": "This copy has different content than the other copies",
+              "over_size_limit": "The copy is larger than the size limit for full downloads, so it was only checked lightly",
+              "backup_agent_error": "The place reported an error",
+              "backup_manager_error": "The backup system reported an error while checking the copy",
+              "unknown": "An unknown error occurred while checking the copy",
+              "homeassistant_settings": "The Home Assistant part does not contain your configuration or settings"
             },
             "copy": {
               "check_full": "Check this copy in full",
@@ -10144,6 +10153,7 @@
               "no_backup_description": "You have no automatic backups yet.",
               "backup_too_old_heading": "No backup for {count} {count, plural,\n one {day}\n other {days}\n}",
               "backup_success_heading": "Backed up",
+              "last_any_backup_description": "Newest backup of any kind: {relative_time}.",
               "additional_backup_description": "No successful automatic backup has been done since {date}. To avoid losing data, an additional backup has been scheduled.",
               "more_information": "More information"
             },

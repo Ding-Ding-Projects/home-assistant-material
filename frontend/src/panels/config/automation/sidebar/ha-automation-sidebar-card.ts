@@ -130,7 +130,7 @@ export default class HaAutomationSidebarCard extends ScrollableFadeMixin(
         }
 
         /* The sheet header: close, the kind as a small label above a 20 px
-           title, and the menu. Nothing wraps into two cramped lines. */
+           title, and the menu. The title may take two lines. */
         .sheet-header {
           display: flex;
           align-items: center;
@@ -171,14 +171,18 @@ export default class HaAutomationSidebarCard extends ScrollableFadeMixin(
         .kind ::slotted(*) {
           font: inherit;
         }
+        /* A long title wraps onto a second line; only a title longer than
+           two lines is cut. */
         .title {
-          display: block;
+          display: -webkit-box;
           font-size: 20px;
           line-height: 26px;
           font-weight: 700;
           overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          overflow-wrap: anywhere;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
         }
         ::slotted([slot="menu-items"]) {
           display: block;

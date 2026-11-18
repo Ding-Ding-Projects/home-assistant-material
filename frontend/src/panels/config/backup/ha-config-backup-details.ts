@@ -49,6 +49,7 @@ import { showToast } from "../../../util/toast";
 import "./components/ha-backup-details-restore";
 import "./components/ha-backup-details-summary";
 import "./components/ha-backup-self-check";
+import { selfCheckReasonText } from "./helper/backup-self-check";
 import { showHostBackupDialog } from "./dialogs/show-dialog-host-backup";
 import { modeText } from "../../../common/language-mode/language-mode";
 import { showRestoreBackupDialog } from "./dialogs/show-dialog-restore-backup";
@@ -438,10 +439,7 @@ class HaConfigBackupDetails extends LitElement {
           : "error";
     let reason = "";
     if (copy?.reason && status === "could_not_check") {
-      const key = `ui.panel.config.backup.self_check.reasons.${copy.reason}`;
-      reason = this.hass.localize(key as any)
-        ? modeText(this.hass.localize, key as any)
-        : copy.reason;
+      reason = selfCheckReasonText(this.hass, copy.reason);
     }
     const note =
       copy?.downgraded === "over_size_limit"
