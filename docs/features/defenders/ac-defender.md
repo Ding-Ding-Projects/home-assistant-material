@@ -23,7 +23,7 @@ units, and numbers are sliders.
 
 ## The engine
 
-- 51 guards, each a small class behind one interface, in `ac_defender/guards/`.
+- 51 guards, each a small class behind one interface, in `ac_defender/guards/`. Each has a one-line description, and the reason line is worded by the page in English and Cantonese from a reason code (see [`guard-descriptions-and-reasons.md`](guard-descriptions-and-reasons.md)).
 - Direction-aware: the same engine holds cooling on or heating off.
 - A cost model that shows time only unless the owner supplies a power figure.
 - Numbers corrected from the reference program (`d78560d34`): direct cooling at target plus 2.0,

@@ -37,6 +37,22 @@ triggers and conditions. Eight faults were found and fixed:
   as a searchable sheet. Trackers and zones show their map first. List rows keep the name on one
   line.
 
+## Later changes
+
+- **A sheet is as tall as what is in it** (`17fce491f`). On a phone a sheet used to rent the whole
+  screen for a single switch. Switches, input booleans, sirens and plain fans get the compact 56 px
+  switch; valve, cover and script buttons are visible in the light theme.
+- **Cantonese.** The sheets speak Cantonese for this project's own wording, plus the tabs and the
+  headings (a large addition to `yue-own.json`).
+- **A test guards the helper kinds.** The coverage test now also checks the fifteen helper kinds;
+  removing the zone mapping was watched turning it red.
+- **First look in a browser (`ecc3e18ef`).** The script sheet's Run button was a blank rectangle
+  with no word on it; the label is back. A sheet shrank the moment you left the Details tab,
+  because the saved height was thrown away; it holds now. Disabled sheet buttons get a thin
+  outline in the light theme, because their fill was 1.24 to 1 against white.
+- **Height changes glide** instead of jumping (`c9e3a5e67`). Build 523 still jumps between tabs.
+  Tested; not yet seen in a real run.
+
 ## Verification
 
 - Pass 3 was checked in a real browser at 390 px: 118 of 119 tiles open the right sheet, 33
@@ -47,6 +63,7 @@ triggers and conditions. Eight faults were found and fixed:
   actions tried in pass 1. After pass 3, touch targets on a few controls may still be under 44 px
   in places the test did not reach (pass 2 recorded some as still under 44 px; pass 3 addressed
   sheet buttons; inferred, not re-measured everywhere).
+- Not seen: most sheets in both-language mode (stated at `ecc3e18ef`).
 - Differences from the board recorded after pass 1 and not stated as fixed since: a media player
   shows volume before transport, the humidifier ring and one numeral are still large, and the
   light and cover bars were tall (pass 2 changed these to wide bars; not re-measured against the

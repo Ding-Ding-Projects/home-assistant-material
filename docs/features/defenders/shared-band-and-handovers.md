@@ -22,6 +22,13 @@ brother insisted he was "putting it back". Fixed in `b62a3e0ef`:
   cooling.
 - When the brother is held back, he says he is waiting for his sister.
 
+## What the whole-day test found
+
+A test that plays a whole day with both on one unit (`7cd4d5189`) found that the shared log said
+AC Defender had stopped when it was not even running. That was fixed. The sibling row also
+gained an Open link to the other defender's page. See
+[`guard-descriptions-and-reasons.md`](guard-descriptions-and-reasons.md).
+
 ## Failure modes (inferred from the design, not read from a commit record)
 
 - If only one defender is set up for a unit, there is no band to share and it acts alone.

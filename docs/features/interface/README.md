@@ -28,7 +28,8 @@
 | [`string-builder.md`](string-builder.md) | Build text for template fields from pieces | Built, not yet seen in a running build |
 | [`performance-and-offline-cache.md`](performance-and-offline-cache.md) | Performance diagnostics and offline cache health | Built, not yet seen in a running build |
 | [`wall-tablets.md`](wall-tablets.md) | Wall tablet mode and the `wall_tablet` integration | Server run on a throwaway instance; interface not yet seen |
-| [`entity-sheets.md`](entity-sheets.md) | List row, detail sheet and tile for every entity kind, three passes | Pass 3 checked in a real browser at 390 px; see the file |
+| [`entity-sheets.md`](entity-sheets.md) | List row, detail sheet and tile for every entity kind, three passes and later fixes (sheet fits its content, compact switches, Cantonese, gliding height) | Pass 3 checked in a real browser at 390 px; later changes mostly unseen, see the file |
+| [`top-bar-search.md`](top-bar-search.md) | The search of a page lives in the top bar: Personal settings jumps to and marks matches, list pages filter in place, developer tools tabs and about thirty pages moved | Seen in a real run of build 523 on Personal settings and in browser looks at phone width; later pages not in a released build |
 | [`phone-compact-pass.md`](phone-compact-pass.md) | Compact phone layout, one bottom bar, menus as bottom sheets, scrolling work | Seen in a local build at 390 and 360 px in part; see the file |
 | [`device-and-entity-notes.md`](device-and-entity-notes.md) | Notes on devices and entities | Built, not yet seen in a running build |
 | [`sidebar-links-and-quick-bar.md`](sidebar-links-and-quick-bar.md) | Sidebar names and default pages, outside links, quick bar pins and recents | Built, not yet seen in a running build |

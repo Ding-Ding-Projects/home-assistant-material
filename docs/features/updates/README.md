@@ -11,6 +11,9 @@ in `core/homeassistant/components/auto_update/`.
 | [`backup-before-updating.md`](backup-before-updating.md) | Choosing which updates get a backup first: system updates only, every update, none, or chosen apps | Written and tested; not yet seen in a browser or on a real update |
 | [`whats-new-and-notes.md`](whats-new-and-notes.md) | The Notes button and "What's new in build N", both opening the build's page on the public updates log | Written and tested; not yet seen in a browser |
 
+On the Updates page the search of the "What changed" list also lives in the top bar; see
+[`../interface/top-bar-search.md`](../interface/top-bar-search.md).
+
 Related, documented elsewhere:
 
 - [`../apps/install-progress.md`](../apps/install-progress.md) for app installs and the log terminal.

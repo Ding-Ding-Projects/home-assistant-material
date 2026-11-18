@@ -58,8 +58,15 @@ fully checked, 0 of 4 checks passed". The backup was fine; the check misjudged w
    location ".local". The check now treats it as local by that location and name; the cloud
    location stays remote and any other location is a network place.
 
-The hosted build 2026.11.1.521 can still read "0 of 4" in full hosting mode. The real fix
-(`c373e6a4c`) is on main; a release for it was dispatched and is not yet verified or live.
+The hosted build 2026.11.1.521 could still read "0 of 4" in full hosting mode. The real fix
+(`c373e6a4c`) is in build 2026.11.1.523, which the hosted instance now runs. In a real run of
+523 a backup over 1 GiB passed the self-check, 4 of 4.
+
+## The card refreshes itself
+
+The self-check card on the Backups page used to stay stale until the page was reloaded. On main
+(`c9e3a5e67`) it refreshes by itself when a new backup is checked. Build 523 has the stale card;
+the fix is not yet seen in a real run.
 
 ## Honest limits
 
@@ -75,6 +82,8 @@ The hosted build 2026.11.1.521 can still read "0 of 4" in full hosting mode. The
   "verified in full" with the size read equal to the size reported. Before the patch the same
   re-check came back light with no reference size. All proof is the service's own answers; nothing
   was seen in a browser.
+- A real run of build 523: a backup over 1 GiB passed the self-check, 4 of 4. That confirms the
+  fix on a real build; what was read (the service's answers or the page) was not recorded.
 - 45 tests pass in the self-check file, with the pretend Supervisor now carrying the real values.
 - Not exercised: network mounts and cloud places on a real Supervisor.
 - The Backups page's per-place results and the setting were added in `11e60d596` using a mocked

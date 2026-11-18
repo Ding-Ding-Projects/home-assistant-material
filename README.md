@@ -5,16 +5,19 @@ core, the supervisor and the operating system, with releases for Raspberry Pi, V
 Docker.
 
 **Status: early.** The build and update pipeline works and publishes real images. The redesigned
-interface exists as a complete design (265 boards on 20 canvases in [`design/`](design/)). A large
+interface exists as a complete design (616 board files on 40 canvas folders in [`design/`](design/), counted from the folders). A large
 part of it is now written: the shell, many settings and tools pages, passkey sign-in, Google setup,
 dashboard history, offline help, language modes and a converter and drawing board. Newer work
 includes tailored editors for every integration's actions, triggers and conditions, update and
 backup progress with a choice of which updates get a backup first, autosaved drafts for editors,
-shared camera live views with light recording, and the AC Defender and Heat Defender integrations
+shared camera live views with light recording, camera event clips and live video recorded around
+events (proven only against a pretend camera service), a search button in the top bar of most pages,
+and the AC Defender and Heat Defender integrations
 (see [`docs/features/updates/`](docs/features/updates/README.md) and
 [`docs/features/defenders/`](docs/features/defenders/README.md)). Much of that is
 checked only by lint, the type check and unit tests and has **not yet been seen in a running
-build**; a few server parts were run on a running copy. Several features on the boards are not
+build**; a few server parts were run on a running copy. The hosted build is 2026.11.1.523, which a
+real update run exercised; later work on main is in no released build yet. Several features on the boards are not
 built at all. [`docs/feature-status.md`](docs/feature-status.md) says, row by row, which is which,
 and [`docs/features/`](docs/features/README.md) documents each feature. The Deploy Assistant
 desktop app has its own [folder](deploy-assistant/README.md).

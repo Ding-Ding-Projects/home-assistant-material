@@ -31,6 +31,14 @@ Supervisor job's time, the queue, or the moment this page saw the update begin. 
 those, it says "Started before this page opened" and shows no running time. A duration is never
 guessed.
 
+A page opened in the middle of an update used to read the job list in a shape it did not
+understand, so it never found the start time and showed the start as unknown for good. It also
+told the reader the backup was "skipped by your choice" when nobody on that page had chosen
+anything. Both are fixed on main in `c9e3a5e67` (a page opened mid-update now corrects itself
+once the job's real start arrives, `23225de03`, and reads the job list correctly). Build 523 still
+has the missing start time; the commit body says the false "skipped" line came from the same
+cause.
+
 An earlier version timed itself from the reload that follows an update, so a two-minute update
 read "Took 0:05". The start is now kept from when the update began. This was fixed in
 `28e6e9e7d`.
@@ -40,6 +48,17 @@ read "Took 0:05". The start is now kept from when the update began. This was fix
 During a Core, Supervisor or operating system update, the output reads the Supervisor's log,
 filtered to that update, until the restart begins. Then it says the log cannot be read, and shows
 the newest lines again once things are back (`a5bbfa5da`).
+
+## Core waits for the Supervisor
+
+A real run of build 523 showed that Core's update is refused until the Supervisor is updated. The
+Core row used to try and be refused. On main (`c9e3a5e67`) it says "Update the Supervisor first"
+instead. This was tested but not yet watched in a real update run.
+
+## The automatic updates card and long names
+
+The automatic updates card rests as one summary row instead of taking most of a phone screen
+(`23225de03`). A long update name ends before its button, not under it (`090bf8e62`).
 
 ## The "Update everything" queue
 
@@ -70,9 +89,10 @@ These are not shown, because showing them would mean inventing them:
 
 ## Failure modes and known faults
 
-- **Row start time on a page opened mid-update.** Handled by the "Started before this page
-  opened" text, but the running time itself is not shown in that case. Listed as not done in
-  `4cb1fe589`; the later start-time sources in `a5bbfa5da` reduce but are not proven to remove it.
+- **Row start time on a page opened mid-update.** Still missing in build 523, where a second page
+  opened mid-update shows no start time. The cause (a job list shape the page did not
+  understand) is fixed on main in `c9e3a5e67`, with tests, and has not been seen in a real update
+  run.
 - **No live output during a Core update** was a gap in `4cb1fe589`. `a5bbfa5da` reads the
   Supervisor log; this was not seen on a real Core update.
 - **A queue started by an older build** was not checked with the new rows.
@@ -86,6 +106,9 @@ Core, Supervisor or operating system updates without the owner's two-key confirm
 
 ## How it was verified
 
+- Real run of build 523 (a throwaway full hosting copy before it went live): Supervisor and Core
+  updates from their rows. The run found the faults listed above; what exactly was read from the output
+  lines was not recorded.
 - Seen in a local build at 390, 360 and 1440 px: a running update with its progress and output,
   and nine pages with no sideways overflow and no console errors (`900ceccca`).
 - Update rows used template entities and the "Update coming soon" card used a mocked response

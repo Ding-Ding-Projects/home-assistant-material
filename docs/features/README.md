@@ -16,7 +16,7 @@ in [`../feature-status.md`](../feature-status.md); a file here never claims more
 | [`automations/`](automations/README.md) | Testing and running a Choose step, the automation and script editors |
 | [`history/`](history/README.md) | Bounded comparison with earlier numeric history, missing data and export behavior |
 | [`dashboards/`](dashboards/README.md) | Editing built-in pages, export, import; history is in `dashboard-history/` |
-| [`interface/`](interface/README.md) | Notifications, export, selection bar, entity dialogs, accessibility spacing and fonts, status screens, activity tray and recovery, split panes, information buttons, starting points |
+| [`interface/`](interface/README.md) | Search from the top bar, notifications, export, selection bar, entity dialogs and sheets, accessibility spacing and fonts, status screens, activity tray and recovery, split panes, information buttons, starting points |
 | [`dashboard-history/`](dashboard-history/README.md) | Git history for every dashboard and every tab, with remote and push |
 | [`minecraft-server/`](minecraft-server/README.md) | Minecraft server manager (second slice: Docker over SSH) |
 | [`ollama/`](ollama/README.md) | Local Ollama suite (second slice: pull and delete) |
@@ -25,7 +25,7 @@ in [`../feature-status.md`](../feature-status.md); a file here never claims more
 | [`media/`](media/README.md) | Dropping a picture, video or audio file on any page to add it to Media or Images |
 | [`marketplace/`](marketplace/README.md) | Adding an item from a ZIP archive, detected without a history folder |
 | [`activity-record/`](activity-record/README.md) | Permanent record of the Activity page in a Git repository: what is kept, what can still be lost, size and the Permanent record page |
-| [`camera-recording/`](camera-recording/README.md) | Recording cameras around the clock to a disk, a folder, a Windows share or an SSH server with guided setup, and the event timeline under the camera player |
+| [`camera-recording/`](camera-recording/README.md) | Recording cameras around the clock to a disk, a folder, a Windows share or an SSH server with guided setup, the event timeline under the camera player, event clips (Play only with a real clip) and live video recorded around events |
 | [`updates/`](updates/README.md) | Update progress and the queue, the "Update coming soon" card, which updates get a backup first, Notes and "What's new", automatic system updates |
 | [`defenders/`](defenders/README.md) | AC Defender and Heat Defender integrations: guards, shared comfort band, the heating floor, restart memory |
 

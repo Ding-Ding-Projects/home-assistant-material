@@ -1,5 +1,122 @@
 # Handoff
 
+## Camera events, search from the top bar, defenders polish and the real run of build 523, 18 November 2026
+
+This section covers the commits from `17fce491f` to `c9e3a5e67` (14 commits, after the earlier
+documentation commit `0d3d85d8a`). Where this section and the next one disagree, this one is newer.
+Feature documentation is under `docs/features/`: the new files
+[`top-bar-search.md`](docs/features/interface/top-bar-search.md),
+[`event-clips-and-live-recording.md`](docs/features/camera-recording/event-clips-and-live-recording.md),
+[`guard-descriptions-and-reasons.md`](docs/features/defenders/guard-descriptions-and-reasons.md) and
+[`event-type-picker-and-zone-map.md`](docs/features/automations/event-type-picker-and-zone-map.md),
+and edits to the updates, backup self-check, entity sheet and defender files.
+
+### What is live and what is not
+
+- **Live (hosted instance):** build 2026.11.1.523, built from `02dd3f9b4`. Verified by a page-load
+  pass (0 page errors in four modes) and by a real update run on a throwaway full hosting copy
+  before it went live.
+- **On main, in no released build:** `92fb942bc`, `28cd39810` and `c9e3a5e67`. The last one fixes
+  eight faults that a real run of 523 turned up (see Known faults). A release for main was
+  dispatched and is **not yet verified or live**. Treat it as unbuilt until it is read back as a
+  normal release and a browser pass on its image is recorded.
+- Every commit in this range carries a skip marker; a push alone does not build or offer a build.
+
+### What changed
+
+| Area | What | Commits | Documentation |
+| --- | --- | --- | --- |
+| Entity sheets | Sheet as tall as its content, compact 56 px switches, valve, cover and script buttons visible in the light theme, Cantonese for sheets, a test for the fifteen helper kinds; first browser look: script Run label restored, height held off the Details tab, disabled button outline; glide between heights | `17fce491f`, `ecc3e18ef`, `c9e3a5e67` | [`entity-sheets.md`](docs/features/interface/entity-sheets.md) |
+| Updates page | Automatic updates card rests as one summary row; a page opened mid-update corrects its start time; offline camera last seen; long update name ends before its button; Core row says "Update the Supervisor first"; build card quiet once installed; release link points at the build on offer | `23225de03`, `090bf8e62`, `c9e3a5e67` | [`progress-and-queue.md`](docs/features/updates/progress-and-queue.md), [`update-coming-soon.md`](docs/features/updates/update-coming-soon.md), [`whats-new-and-notes.md`](docs/features/updates/whats-new-and-notes.md) |
+| Backup choice | A findable per-app row ("Apps: choose which apps get a backup first"); Custom opens the list, no longer does nothing without a Supervisor, and stays selected | `19767b529`, `02dd3f9b4`, `c9e3a5e67` | [`backup-before-updating.md`](docs/features/updates/backup-before-updating.md) |
+| Backup self-check | The card refreshes by itself when a new backup is checked | `c9e3a5e67` | [`backup-self-check.md`](docs/features/backups/backup-self-check.md) |
+| Camera events | Each event has its own record; Play only with a real clip; failures logged once with a reason code; clips copied from the camera service through its integration; live video recorded around events through a one-time loopback handshake address (about 40 seconds, one session per camera, 12 clips an hour); offline last seen; Light recording picker | `62c70ce1c`, `02856a9e3`, `7115ff26f`, `23225de03` | [`event-clips-and-live-recording.md`](docs/features/camera-recording/event-clips-and-live-recording.md) |
+| Top bar search | Search button in the top bar; opens in the bar on Personal settings, filters in place on lists; about thirty pages moved in four commits; developer tools on the standard shell | `a5e08cb1a`, `19767b529`, `02dd3f9b4`, `92fb942bc`, `28cd39810`, `c9e3a5e67` | [`top-bar-search.md`](docs/features/interface/top-bar-search.md) |
+| Defenders | One-line description for each of 51 guards; reasons worded in two languages from codes; courtesy wait setting (0 to 30 minutes, default 10); setup waits for the climate entity; two faults from a whole-day test; the courtesy wait obeyed at zero | `7cd4d5189`, `090bf8e62` | [`guard-descriptions-and-reasons.md`](docs/features/defenders/guard-descriptions-and-reasons.md) |
+| Automation editor | Searchable event type picker; small map on zone triggers and conditions; timer duration written properly; threshold unit and power default fixed; first sheet field tappable; list no longer says "Unknown trigger"; one test reads the server's own descriptions | `23225de03`, `ecc3e18ef`, `090bf8e62`, `02dd3f9b4` | [`event-type-picker-and-zone-map.md`](docs/features/automations/event-type-picker-and-zone-map.md) |
+| Design | Canvas 38 gains the Events board; canvas 40 is search from the top bar | `62c70ce1c`, `a5e08cb1a` | `design/canvases/38-...`, `design/canvases/40-search-top-bar` |
+
+### Evidence
+
+- **Real run of build 523** (the instance of the run is not recorded per item):
+  Supervisor and Core updates from their rows; a backup over 1 GiB passing the self-check 4 of 4;
+  Heat Defender switching a cooling unit to heat below her floor; the courtesy wait at zero; a
+  pause surviving a restart; the per-app backup row; the top bar search on Personal settings.
+- **Camera live recording:** proven end to end in a container against a pretend camera service:
+  10.3 seconds from event to a saved 10.00 second clip, the temporary stream removed afterwards, no
+  handshake text in the log. Never against a real camera.
+- **Browser looks** (the build used is not recorded for each): `ecc3e18ef` (first look at the
+  second batch), `090bf8e62` (second look: courtesy wait obeyed, editor taps land),
+  `02dd3f9b4` (most moved search pages at phone width), `c9e3a5e67` (every moved search page).
+- **Tests:** a whole-day test of both defenders on one unit; tests that fail when a reason code has
+  no wording; a test that reads the server's trigger and condition descriptions; the coverage test
+  for entity helper kinds (watched failing when the zone mapping was removed).
+
+### Known faults
+
+Faults of build 523, fixed on main in `c9e3a5e67`, tested, **not yet released or seen in a real
+update run**:
+
+- A second page opened mid-update shows no start time, and a false "skipped by your choice" backup
+  line (a job list shape the page did not understand).
+- Core's update is refused until the Supervisor is updated; the row now says so first.
+- The build card keeps showing progress after that build is installed.
+- The release link in the update sheet points at the installed build, not the one on offer.
+- Entity sheet height jumps between tabs.
+- Release notes search does not mark or step through matches.
+- "Custom" on the backup choice does not stay selected.
+- The backup self-check card is stale until a reload.
+
+Other known gaps:
+
+- **Not seen:** stepping with Enter in the top bar search read back; the apps pages with a
+  Supervisor; the zone map; the offline camera line; most sheets in both-language mode; Cantonese
+  guard reasons rendered.
+- **Pages that keep their own search field** were not listed in any record (inferred: dialogs,
+  pickers, filter panes, editors); no audit was done.
+- **Developer tools:** the page shell was replaced; the commit calls it the riskiest edit. A per-tab
+  drive was not recorded.
+- **Cantonese strings** added here are hand written and were not reviewed by a native reader.
+- **Quality scale:** the two defender integrations do not reach Bronze.
+
+### What only the owner can prove
+
+- The real doorbell camera: whether its service accepts the handshake, what its request allowance
+  permits, and event clips and light recording from a real event.
+- A real air conditioner and a real heater, USB sticks, provider sign-in round trips and cloud
+  host sign-in.
+
+### Remaining work
+
+- Move the remaining pages that draw their own search field, if any belong in the top bar.
+- Read the self-check, update and top bar search items above on a build that contains
+  `c9e3a5e67`.
+- Other work from the earlier section (Bambu Lab tray tiles, "What's new" links for Supervisor and
+  operating system rows, other languages) is unchanged.
+
+### Next steps, in order
+
+1. Read back the release that was dispatched for main; confirm it is a normal release with the
+   expected files. Record the result here.
+2. Browser pass on that image at 390 and 1440 px: the Updates page (a second page opened mid-update,
+   the Core row, the build card, the release link, Custom), the Backups page self-check card,
+   an entity sheet across tabs, release notes search, the top bar search on several pages and the
+   developer tools tabs, the camera event list.
+3. Use the features that save or call the server on a throwaway full hosting copy before moving the
+   hosted instance: run a real update from a second page mid-update, change the backup choice to
+   Custom, and make a backup and watch the card refresh.
+4. Only then move the hosted instance to the new build, and tell the owner the build number.
+5. Ask the owner to try the real camera, air conditioner and heater items above.
+6. Review the Cantonese strings with a native reader.
+
+### Working rules from this range
+
+- Commits carry a skip marker; one build is dispatched per batch, by hand.
+- A browser look finds what tests do not: the blank Run button, the ignored courtesy wait and the
+  tap-blocking drag handle were all found that way. Prefer it before calling something done.
+- A fix is not recorded as proven until the exact failing case was run in a real build; a pass in
+  tests that share the same guess proves nothing.
+
 ## Editors for every integration, progress, drafts, cameras, entity sheets and the defenders, 17 and 18 November 2026
 
 This section covers the commits from `a7f6196c6` to `b62a3e0ef` (17 November afternoon to 18
@@ -10,7 +127,8 @@ categories and the files linked below.
 
 ### What is live and what is not
 
-- **Live (hosted instance):** build 2026.11.1.521.
+- **Live (hosted instance):** build 2026.11.1.521 when this section was written. It is now build
+  2026.11.1.523; see the section above.
 - **On main, not live:** everything after it, including the second backup self-check fix, the
   entity sheet passes, the camera changes and the defenders. A release for that work was
   dispatched and is **not yet verified or live**. Treat it as unbuilt until a release is read back

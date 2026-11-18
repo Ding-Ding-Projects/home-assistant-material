@@ -12,9 +12,113 @@ been seen working and where.
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
+## Camera events, search from the top bar, defenders and the real run of build 523, 18 November 2026
+
+Build 2026.11.1.523 (built from `02dd3f9b4`) is what the hosted instance runs. It was verified by a
+page-load pass (0 page errors in four modes) and by a real update run on a throwaway full hosting
+copy before it went live. Commits `92fb942bc`, `28cd39810` and `c9e3a5e67` are on main after it and are
+in no released build. A release for main was dispatched and is not yet verified or live. Feature
+documentation: [`top-bar-search.md`](docs/features/interface/top-bar-search.md),
+[`event-clips-and-live-recording.md`](docs/features/camera-recording/event-clips-and-live-recording.md),
+[`guard-descriptions-and-reasons.md`](docs/features/defenders/guard-descriptions-and-reasons.md),
+[`event-type-picker-and-zone-map.md`](docs/features/automations/event-type-picker-and-zone-map.md).
+Designs: canvas 38 (the Events board) and canvas 40 (search from the top bar).
+
+### Seen working in a real run of 523
+
+- [x] The hosted instance runs build 523, verified by a page-load pass and a real update run on a
+      throwaway full hosting copy first.
+- [x] Supervisor and Core updates run from their rows. The run also showed a Core update refused
+      until the Supervisor is updated (see Updates below).
+- [x] Heat Defender switches a cooling unit to heat when the room is below her floor (found by a
+      whole-day test, then seen in a real run; a test unit, not a real heater).
+- [x] The courtesy wait setting (0 to 30 minutes, default 10) is obeyed: at zero the heating goes
+      off within two seconds.
+- [x] The top bar search on Personal settings.
+- [x] The per-app backup row on the Updates page ("Apps: choose which apps get a backup first").
+
+### Cameras
+
+- [~] Each camera event has its own record and Play appears only when a clip is on disk; a missing
+      clip says why in one line; a failure is logged once with a reason code
+      ([`event-clips-and-live-recording.md`](docs/features/camera-recording/event-clips-and-live-recording.md)).
+      Tested with a pretend camera; not seen in a browser; never run on a real camera.
+- [~] Live video recorded around each event for a camera that streams only through its service:
+      about 40 seconds, a one-time loopback handshake address, one live session per camera, 12 clips
+      an hour. Proven end to end in a container against a pretend camera service (10.3 seconds from
+      event to a saved 10.00 second clip, the temporary stream removed, no handshake text in the
+      log). Not proven on a real camera.
+- [ ] Clips the camera service already keeps are copied in through the integration that holds the
+      sign-in; the first clip to arrive wins. Tested with a pretend camera only.
+- [ ] An offline camera says when it was last seen. Written; not seen.
+- [ ] Light recording has a picker for what counts as "something was seen". Written; not seen.
+- [ ] The camera recording page follows the language mode. Fix written after a browser look; not
+      seen again.
+
+### Search from the top bar
+
+- [~] The search of a page lives in the top bar on about thirty pages
+      ([`top-bar-search.md`](docs/features/interface/top-bar-search.md)). Most pages were looked at in
+      a browser at phone width; the pages moved in `92fb942bc` and `28cd39810` are in no released build.
+- [~] The developer tools tabs sit on the standard page shell with a small event route. The commit
+      calls it the riskiest edit; every moved page was looked at in a browser before `c9e3a5e67`,
+      but no per-tab drive was recorded.
+- [ ] Stepping with Enter read back, and the apps pages with a Supervisor. Not seen.
+- [ ] Release notes search marks the words it finds and steps through them. Fix on main; not seen.
+- [ ] The count, "no matches" and "found in" in Cantonese mode, and the wrapping "found in" line.
+      On main; not seen rendered after the change.
+- [ ] Pages that still keep their own search field in the content (dialogs, pickers, filter panes,
+      editors and similar, inferred). No list of them exists in the records; not audited.
+
+### Updates and backups (faults of 523, fixed on main in `c9e3a5e67`, not yet seen in a real update)
+
+- [ ] The automatic updates card rests as one summary row. Written; not seen.
+- [ ] A page opened in the middle of an update reads the job list, finds the real start time and no
+      longer says the backup was skipped by the reader's choice.
+- [ ] The Core row says "Update the Supervisor first" instead of trying and being refused.
+- [ ] The release link in an update sheet points at the build on offer, not the installed one.
+- [ ] "Custom" on the backup choice stays selected (and no longer does nothing without a Supervisor).
+- [ ] The backup self-check card refreshes by itself when a new backup is checked.
+
+### Entity sheets
+
+- [ ] A sheet is as tall as its content, switches use the compact 56 px switch, and the sheets
+      speak Cantonese for this project's wording, tabs and headings
+      ([`entity-sheets.md`](docs/features/interface/entity-sheets.md)). Unit-tested; the first browser
+      look found and fixed a blank Run button and a sheet that shrank off the Details tab.
+- [ ] The sheet height glides between tabs instead of jumping. Fix on main; not seen.
+
+### Defenders
+
+- [ ] Each of the 51 guards has a one-line description and the reason line is worded in English and
+      Cantonese from a code ([`guard-descriptions-and-reasons.md`](docs/features/defenders/guard-descriptions-and-reasons.md)).
+      Tested; the rendered result was not recorded as seen.
+- [ ] The shared log no longer says a defender stopped when it was not running (found by the
+      whole-day test). Tested; not seen.
+- [ ] Cantonese for guard names and logged actions. Written by hand; not reviewed by a native reader.
+
+### Automation editor
+
+- [~] Event type is a searchable picker; timer triggers write their duration properly; threshold
+      triggers pick a real unit and a power threshold no longer defaults to milliwatts; the first
+      field of the bottom sheet can be tapped; new-style triggers are no longer "Unknown trigger" in
+      the list ([`event-type-picker-and-zone-map.md`](docs/features/automations/event-type-picker-and-zone-map.md)).
+      Tests, including one that reads the server's own trigger and condition descriptions; the tap and
+      threshold problems were found in browser looks. Saving each kind through the editor was not
+      seen.
+- [ ] Zone triggers and conditions show a small map. Not seen.
+
+### What only the owner can prove
+
+- [ ] A real doorbell camera: whether its service accepts the handshake and what its request
+      allowance permits; light recording and event clips from a real event.
+- [ ] A real air conditioner and a real heater, USB sticks, provider sign-in round trips and cloud
+      host sign-in.
+
 ## Editors, updates, backups, cameras, entity sheets and defenders, 17 and 18 November 2026
 
-Everything below is on main after build 521 (the build the hosted instance runs). A release for it
+Everything below was on main after build 521. Build 523 (the hosted build since 18 November) contains
+most of it; the section above records what a real run of 523 showed. A release for the latest main
 was dispatched and is not yet verified or live. Feature documentation:
 [`docs/features/updates/`](docs/features/updates/README.md),
 [`docs/features/defenders/`](docs/features/defenders/README.md) and the files linked per item.
@@ -45,21 +149,28 @@ was dispatched and is not yet verified or live. Feature documentation:
 
 ### Updates
 
-- [ ] Real stages, numbers and live output on every update row
+- [~] Real stages, numbers and live output on every update row
       ([`progress-and-queue.md`](docs/features/updates/progress-and-queue.md)). A running update
-      with progress and output was seen in a local build; the later start time sources and system
-      update output were not seen on a real update.
+      with progress and output was seen in a local build, and Supervisor and Core updates ran from
+      their rows in a real run of 523. That run found a missing start time on a second page opened
+      mid-update (fixed on main in `c9e3a5e67`, not yet seen). System update output was not recorded
+      as seen.
 - [ ] "Update everything" shows the whole run's time. Written; not seen in a browser.
 - [x] Update rows 66 px tall instead of 145 px at 390 px (measured in a local build with template
       entities).
 - [ ] "Update coming soon" card ([`update-coming-soon.md`](docs/features/updates/update-coming-soon.md)).
-      Seen in a local build with a mocked response; not against a real build in progress.
-- [ ] Choose which updates get a backup first, down to single apps
+      Seen in a local build with a mocked response; not against a real build in progress. The build
+      card kept showing progress after its build was installed (a fault of 523); on main it goes
+      quiet (`c9e3a5e67`), not yet seen.
+- [~] Choose which updates get a backup first, down to single apps
       ([`backup-before-updating.md`](docs/features/updates/backup-before-updating.md)). Server part
-      128 tests, frontend 398 tests; not seen in a browser or on a real update.
+      128 tests, frontend 398 tests. The per-app row was seen in a real run of 523. Not seen: Custom
+      staying selected (a fault of 523, fixed on main) and a real update that makes a backup of a
+      chosen app.
 - [ ] Notes on a system update and "What's new in build N" open the updates log page
       ([`whats-new-and-notes.md`](docs/features/updates/whats-new-and-notes.md)). One rule is
-      tested; not seen in a browser.
+      tested; not seen in a browser. The release link in an update sheet pointed at the installed
+      build in 523; on main it points at the build on offer.
 - [ ] Automatic system update switches save (the `systemPart` fix). Not seen saving on a real
       build.
 - [ ] An automatic system update watched happening inside its window. Never seen.
@@ -70,14 +181,17 @@ was dispatched and is not yet verified or live. Feature documentation:
 - [~] Backup progress ([`backup-progress.md`](docs/features/backups/backup-progress.md)): a real
       local backup with its stage list was seen; per-place upload rows were not seen with a real
       cloud place.
-- [ ] Backup self-check with Light, Full and Off modes
+- [~] Backup self-check with Light, Full and Off modes
       ([`backup-self-check.md`](docs/features/backups/backup-self-check.md)). Written and tested;
-      the Backups page results and setting were built with a mocked backup and not run against a
-      real server.
+      a backup over 1 GiB passed the check 4 of 4 in a real run of 523. The Backups page results and
+      setting were built with a mocked backup; the Off and Full modes and the page were not
+      recorded as run against a real server. The page's check card stayed stale until a reload (a
+      fault of 523, fixed on main).
 - [x] Backup self-check treats this system's own copy as local in full hosting mode (`c373e6a4c`):
       proven on a throwaway full-hosting copy, a fresh backup reads "passed" and "verified in
-      full". Proof is the service's own answers, not a browser. The hosted 521 still has the
-      "0 of 4" fault until this is built.
+      full". Proof is the service's own answers, not a browser. The hosted 521 had the
+      "0 of 4" fault; build 523 has the fix, and a backup over 1 GiB passing 4 of 4 was seen in a
+      real run.
 - [ ] Self-check against a real network mount and a real cloud place. Never run.
 
 ### Cameras
@@ -86,8 +200,9 @@ was dispatched and is not yet verified or live. Feature documentation:
       ([`live-sharing-and-light-recording.md`](docs/features/camera-recording/live-sharing-and-light-recording.md)).
       46 server tests and 27 browser tests; not seen in a browser and not proven against a real
       provider camera.
-- [ ] Light recording and event clips for provider-only cameras. Tests only; not proven against a
-      real camera.
+- [~] Light recording and event clips for provider-only cameras. Tests, and live recording around
+      an event proven end to end in a container against a pretend camera service (see the
+      section above); not proven against a real camera.
 - [ ] Round-the-clock recording for provider-only cameras. Not built, on purpose: the only route
       would hand the provider's sign-in secrets to another program.
 
@@ -112,11 +227,13 @@ was dispatched and is not yet verified or live. Feature documentation:
 ### AC Defender and Heat Defender
 
 - [~] AC Defender integration ([`ac-defender.md`](docs/features/defenders/ac-defender.md)): first
-      run in a real instance showed setup pickers, sliders, pause across a restart and the page.
-      Never run on a real air conditioner.
+      run in a real instance showed setup pickers, sliders, pause across a restart and the page; a
+      pause surviving a restart was seen again in a real run of 523. Never run on a real air
+      conditioner.
 - [~] Heat Defender integration with its floor
       ([`heat-defender.md`](docs/features/defenders/heat-defender.md)): engine tests cover the
-      floor; first run in a real instance. Never run on a real heater.
+      floor; first run in a real instance; in a real run of 523 it switched a cooling unit to heat
+      below her floor and its courtesy wait worked at zero. Never run on a real heater.
 - [~] Shared band, handovers and one log
       ([`shared-band-and-handovers.md`](docs/features/defenders/shared-band-and-handovers.md)):
       the quarrel was found and fixed in a real instance. Not seen with real devices.
@@ -134,8 +251,9 @@ was dispatched and is not yet verified or live. Feature documentation:
 - [~] Every commit carries a skip marker and one build is dispatched per batch (the working rule).
       Most commits from `0e32f6ee9` onward carry the marker; `900ceccca`, `28e6e9e7d` and the
       earlier commits in the range (for example `a7f6196c6`) do not, because they asked for builds.
-- [ ] Release for main after build 521 read back as a normal release, with a browser pass on its
-      image. Dispatched, not yet verified.
+- [ ] Release for main after build 523 (the latest main is `c9e3a5e67`) read back as a normal
+      release, with a browser pass on its image. Dispatched, not yet verified. (The earlier
+      release for main after 521 is inferred to be build 523, which is live.)
 - [ ] Cantonese strings reviewed by a native reader. Not done.
 
 ### Deliberately not doing

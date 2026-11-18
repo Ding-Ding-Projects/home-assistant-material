@@ -19,6 +19,13 @@ If the version has no build number the button is not shown. Commit `3cdb9adac`.
 A finished update's card also carries a "What's new" link. Supervisor and operating system rows
 did not have one when `4cb1fe589` was written.
 
+## The release link in an update sheet
+
+The link to the release notes in an update sheet pointed at the build that was already installed.
+It now points at the build on offer (`c9e3a5e67`); build 523 still has the old behaviour. The
+updates log page itself marks the words a release notes search finds and steps through them (also
+`c9e3a5e67`; see [`../interface/top-bar-search.md`](../interface/top-bar-search.md)).
+
 ## Verification
 
 Only the version-to-page rule is tested. Neither button has been seen in a browser on a real

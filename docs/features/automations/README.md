@@ -10,6 +10,7 @@
 | [`automation-tools.md`](automation-tools.md) | The Tools entry of the editor: flow, trace, simulator, replay, conflicts, plain language, steps and locks, variables, blueprint maker, health, week ahead, entity swap, breakpoints, test cases | Built, not yet seen in a running build; step validation run on a throwaway instance |
 | (same file) | Fast mode, trigger groups, Relationships, editor levels, "Add a step here", keys T, C and A (batches 52, 54) | Built, not yet seen in a running build; trigger group validation run on a throwaway instance |
 | [`integration-editors.md`](integration-editors.md) | Tailored editors for every integration action, trigger, condition and device automation, and the Bambu Lab editors | Seen in a local build for a sample; coverage test passes; see the file |
+| [`event-type-picker-and-zone-map.md`](event-type-picker-and-zone-map.md) | Searchable event type picker, a small map on zone triggers and conditions, timer and threshold fixes, list descriptions, one test against the server's own descriptions | Written and tested; the tap and threshold fixes found in browser looks; map not seen |
 | [`drafts-import-export.md`](drafts-import-export.md) | Autosaved drafts in a scratch Git repository, export and import for automations, scripts and scenes | Written and tested; not yet seen in a browser |
 
 Related, documented elsewhere: [`../../automation-repositories.md`](../../automation-repositories.md)

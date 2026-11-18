@@ -30,6 +30,12 @@ The percentage, jobs and start time come from the build progress that the build 
 the update feed (inferred from the design and the commit history; the exact source file was not
 re-read for this document). Nothing is estimated except the time, and that is labelled.
 
+## When the build is installed
+
+The card kept showing progress after the build it described was installed. On main
+(`c9e3a5e67`) the build card goes quiet once that build is installed. Build 523 still shows
+the fault. The fix is tested (`build-progress.test.ts`, `build-notes.test.ts`) and not yet seen.
+
 ## Failure modes
 
 The commit records do not state what the card does when the build record is missing or the build

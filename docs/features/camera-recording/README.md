@@ -100,4 +100,6 @@ speed, and a download of the file being played. Playback moves to the next file 
 
 ## See also
 
+[`event-clips-and-live-recording.md`](event-clips-and-live-recording.md): each event has its own record and Play appears only with a real clip, clips are copied in from the camera service, and live video is recorded around each event (proven only against a pretend camera service, never a real camera).
+
 [`live-sharing-and-light-recording.md`](live-sharing-and-light-recording.md): one shared live view per camera, the calm "limited" state when a provider refuses, light recording and event clips for provider-only cameras.

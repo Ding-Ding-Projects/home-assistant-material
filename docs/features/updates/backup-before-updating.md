@@ -11,12 +11,20 @@ they run. Commit `4cb1fe589`, with the wording in `a5bbfa5da`. The design is boa
 | System updates only | Core, Supervisor and the operating system get a backup first; everything else does not. |
 | Every update | Every update gets a backup first. This is the default and is what the old single switch meant. |
 | No update | No update gets a backup first. |
-| Custom | Reached by setting any kind by hand. A searchable list with a tick per app, and a choice for apps installed later. |
+| Custom | A selectable choice. Opens a searchable list with a tick per app, and a choice for apps installed later. It was a disabled button, and later stayed unselected or did nothing without a Supervisor; see below. |
 
 A list under the choice states what the option means kind by kind, and each kind can be set by
 hand. Update rows carry a small mark saying whether a backup comes first. A chosen app gets a
 backup of itself alone right before its own update. Core, Supervisor and the operating system
 share one backup, made by the first of them in a run.
+
+## Finding the per-app choice
+
+"Custom" used to be a disabled button, so the per-app choice hid behind it. In `19767b529` Custom
+opens the list, and a plain row says "Apps: choose which apps get a backup first". That row was
+seen in a real run of build 523. Later faults: Custom did nothing when there was no Supervisor
+(fixed in `02dd3f9b4`). In build 523 it does not stay selected after it is chosen; that is fixed
+on main in `c9e3a5e67`, tested, and not yet seen in a real run.
 
 ## One decision, three users
 
@@ -43,5 +51,6 @@ Update button made no backup before; it now follows the choice.
 
 ## How it was verified
 
-Server part: 128 tests pass. Frontend: 398 tests in the affected folders. Not seen in a browser or
-on a real update.
+Server part: 128 tests pass. Frontend: 398 tests in the affected folders (plus `backup-choice.test.ts`
+for the Custom fix). The per-app row was seen in a real run of build 523. Not yet seen: Custom
+staying selected, and a real update that makes a backup of a chosen app.
