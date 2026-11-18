@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Camera sheet: live, limited by the provider, offline</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 980px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">A camera's detail sheet on a phone. The picture area always keeps its place and its 16:9 shape; a message lives inside it and never covers the header.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Live" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="display: grid; place-items: center; padding-top: 8px"><span style="width: 32px; height: 4px; border-radius: 2px; background: #44474F"></span></div>
+<div style="padding: 8px 12px 8px 16px; display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #5A4514; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-size: 12px; color: #C4C6D0">Front Door</div><div style="font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Front Door doorbell</div></div><span style="height: 28px; padding: 0 10px; border-radius: 14px; background: #7A1F1A; color: #FFDAD6; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFB4AB"></span>Live</span></div>
+<div style="margin: 0 12px; aspect-ratio: 16 / 9; border-radius: 16px; background: linear-gradient(160deg, #2C3440, #14161B); position: relative"><span style="position: absolute; left: 10px; bottom: 8px; font-family: 'Roboto Mono', monospace; font-size: 11px; color: #C4C6D0">00:48:12</span><span style="position: absolute; right: 8px; bottom: 6px; width: 36px; height: 36px; border-radius: 50%; background: rgba(12,13,16,.6); display: grid; place-items: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E3E2E9" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5"/><path d="M20 15v5h-5"/></svg></span></div>
+<div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; font-weight: 600">Today</span><div style="height: 36px; border-radius: 10px; background: #14161B; padding: 3px; box-sizing: border-box; display: grid; grid-template-columns: repeat(3, auto); gap: 3px"><div style="padding: 0 10px; border-radius: 7px; display: grid; place-items: center; font-size: 13px">1 h</div><div style="padding: 0 10px; border-radius: 7px; display: grid; place-items: center; font-size: 13px">6 h</div><div style="padding: 0 10px; border-radius: 7px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-size: 13px; font-weight: 700">24 h</div></div></div>
+<div style="height: 28px; border-radius: 8px; background: #14161B; position: relative"><span style="position: absolute; left: 3%; top: -4px; bottom: -4px; width: 2px; background: #FFB4AB"></span></div>
+<div style="display: flex; justify-content: space-between; font-family: 'Roboto Mono', monospace; font-size: 11px; color: #C4C6D0"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+<div style="font-size: 13px; color: #C4C6D0">No events today.</div>
+</div>
+</section>
+
+<section aria-label="Limited by the provider" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="display: grid; place-items: center; padding-top: 8px"><span style="width: 32px; height: 4px; border-radius: 2px; background: #44474F"></span></div>
+<div style="padding: 8px 12px 8px 16px; display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #5A4514; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-size: 12px; color: #C4C6D0">Front Door</div><div style="font-size: 18px; font-weight: 700">Front Door doorbell</div></div><span style="height: 28px; padding: 0 10px; border-radius: 14px; background: #3A2E12; color: #FFDF9E; display: flex; align-items: center; font-size: 12px; font-weight: 700">Waiting</span></div>
+<div style="margin: 0 12px; aspect-ratio: 16 / 9; border-radius: 16px; background: #14161B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px; box-sizing: border-box; text-align: center"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFDF9E" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div style="font-weight: 700">The camera service is limiting live video</div><div style="font-size: 13px; color: #C4C6D0">Too many live views were asked for in a short time. Trying again in 0:42.</div><span style="height: 40px; padding: 0 16px; border-radius: 20px; box-shadow: inset 0 0 0 1px #44474F; display: flex; align-items: center; color: #B4C5FF; font-weight: 700; margin-top: 4px">Try now</span></div>
+<div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 12px; background: #14161B; padding: 10px 12px; font-size: 13px; color: #C4C6D0">Recording and other pages are not asking this camera for live video while it is limited.</div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between"><span style="font-size: 13px; color: #C4C6D0">What the service said</span><span style="color: #B4C5FF; font-weight: 700; font-size: 13px">Show details</span></div>
+<div style="border-radius: 10px; background: #0C0D10; padding: 8px 10px; font-family: 'Roboto Mono', monospace; font-size: 11px; line-height: 16px; color: #C4C6D0">429 RESOURCE_EXHAUSTED · rate limited for this command</div>
+</div>
+</section>
+
+<section aria-label="Other states and rules" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">OTHER STATES, SAME PLACE</div>
+<div style="aspect-ratio: 16 / 9; border-radius: 16px; background: #14161B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px; box-sizing: border-box; text-align: center"><div style="font-weight: 700">Starting live video</div><div style="height: 6px; width: 60%; border-radius: 3px; background: repeating-linear-gradient(90deg, #262933 0 16px, #3A3D48 16px 32px)"></div></div>
+<div style="aspect-ratio: 16 / 9; border-radius: 16px; background: #14161B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px; box-sizing: border-box; text-align: center"><div style="font-weight: 700">The camera is offline</div><div style="font-size: 13px; color: #C4C6D0">Last seen 23:14. The last picture is shown when there is one.</div></div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">RULES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>A message sits inside the picture area. It never covers the header or the Live mark.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>One live view per camera is shared by everything that shows it.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>After a refusal for too many requests, nothing asks again by itself until the wait is over; each wait is longer than the last.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>Plain words first; what the service said is one tap away.</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
