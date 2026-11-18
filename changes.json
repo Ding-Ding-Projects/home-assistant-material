@@ -1,15 +1,139 @@
 {
  "format": 1,
- "generated": "2026-11-18T00:31:23Z",
+ "generated": "2026-11-18T01:00:24Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 517,
+ "newest_build": 519,
  "releases": [
+  {
+   "build": 519,
+   "core": "2026.11.1.519",
+   "supervisor": "2026.11.0.519",
+   "os": "18.5.519",
+   "tag": null,
+   "source": "900ceccca",
+   "date": "2026-11-17T19:09:08-05:00",
+   "previous_build": 517,
+   "changes": [
+    {
+     "sha": "900ceccca",
+     "date": "2026-11-17T19:09:08-05:00",
+     "title": "Every integration's actions, triggers and conditions get their editor",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The editors written over the last day were sitting in the cupboard with their labels in a drawer. This puts them on the table.\n\n- Actions of 286 integrations are registered, none claimed twice. Integration triggers, conditions and device automations draw through two small new elements and fall back to the old rows for anything they do not claim. - About 2,150 labels merged by script, each in English and Cantonese. - Long forms fold optional fields into \"More options (N)\". Free-form dictionaries use the name and value editor. A hex colour with opacity exists for integrations that store colour as text. A switch for a flag that can only be true removes the key when off. - One test walks all 1,576 integration folders: 1,133 actions with 2,529 fields, 202 triggers, 161 conditions, 77 device automation files. No action lacks an editor. 39 fields sit on an allow-list with a reason each. Removing one integration from the registry made it fail and name the three actions.\n\nFaults fixed on the way - \"Add action\" put the new step at the top. The button passed its click event as the position; it now adds at the end, for triggers and conditions too. - A step's menu opened under the floating bars",
+     "detail_yue": "每個整合嘅動作、觸發同條件都用得返自己嘅編輯器\n\n過去一日寫落嘅編輯器一直擺喺櫃入面，啲標籤又放喺另一個櫃桶。 今次終於擺上枱。\n\n- 286 個整合嘅動作已經登記，冇一個重複。整合觸發、條件同裝置 自動化經兩個新嘅細元件嚟畫，佢哋冇接手嘅欄位就用返舊嘅行。 - 用腳本合併咗大約 2,150 個標籤，每個都有英文同廣東話。 - 長表格會將選填欄位摺入「更多選項（N）」。自由格式嘅字典用名稱同 數值編輯器。用文字儲存顏色嘅整合有十六進位顏色加透明度可以用。 只可以係「真」嘅旗標，個開關熄咗就會拎走個鍵。 - 有一個測試行勻 1,576 個整合資料夾：1,133 個動作、2,529 個欄位、 202 個觸發、161 個條件、77 個裝置自動化檔案。冇一個動作冇編輯器。 有 39 個欄位喺豁免清單，每個都寫明原因。試過喺登記表拎走一個 整合，測試即刻失敗兼點名嗰三個動作。\n\n順手修好嘅問題 - 「新增動作」會將新步驟放喺最頂。原來粒掣將點擊事件當位置傳入； 而家會加喺最尾，觸發同條件一樣。 - 手機上面步驟嘅選單會喺浮動欄下面打開，遮住「刪除」。而家選單會 避開佢哋。 - 時間規律嘅方磚喺手機會截斷標籤，改成清單；更新頁有一個標籤改成 換行唔再截斷。 - 離線說明連結測試喺繁忙時會逾時，而家畀多啲時間。\n\n喺本機建置、390、360 同 1440 像素睇過：九版冇橫向溢出、冇主控台 錯誤；真實登入；十個整合動作嘅編輯器（英文同廣東話）；進行中嘅 更新連進度同輸出；真實本機備份連階段清單。伺服器冇草稿倉庫嘅話 會靜靜哋處理。\n\n未喺瀏覽器睇過：裝置自動化欄位、真實打印機動作上面嘅十六進位 顏色、名稱同數值編輯器寫入數值，同埋最後一次建置之後對新增掣同 選單嘅細改動。手機上面更新行仍然有 150 至 210 像素高。廣東話未經 母語人士審閱。\n\n檢查：型別維持兩個已知錯誤；9264 個測試通過，三個已知失敗。"
+    },
+    {
+     "sha": "7889b9ba1",
+     "date": "2026-11-17T17:29:43-05:00",
+     "title": "Builds now carry this project's own English wording [skip ci]",
+     "areas": [
+      "build"
+     ],
+     "detail": "The release build took every integration's English text from the upstream image and nothing from this repository. So the integrations added here (automatic updates, camera recording, wall tablet) shipped with no text at all, and the backup self-check repair added here was missing from the backup integration. Setup forms and repairs could show raw keys.\n\nA small script now runs right after the upstream files are unpacked. It builds the English file for every integration from the strings in this repository, the same way the project's own generator does, and lays it over the upstream file: text defined here wins, text only upstream has is kept, other languages are untouched. A reference it cannot resolve stops the build and names it.\n\nProof: run against the project's real generator on the same input, all 1,156 generated files came out byte-identical. Against the files in a published image it creates 3 and updates 31. Seven tests cover the merge rules.\n\nNot verified: the workflow itself has not run with this step, and no built image has been opened to see the text. Other languages for the integrations added here still fall back to English.",
+     "detail_yue": "建置而家會帶埋呢個項目自己嘅英文字眼 [skip ci]\n\n之前發佈建置入面，每個整合嘅英文文字全部由上游映像攞，呢個倉庫 嘅一隻字都冇用到。所以喺度加嘅整合（自動更新、鏡頭錄影、牆上 平板）出貨嗰陣完全冇文字，喺度加落備份整合嘅自我檢查修復提示亦都 唔見咗。設定表格同修復提示有機會顯示原始鍵名。\n\n而家解開上游檔案之後會即刻行一個細腳本。佢用返項目本身產生器嘅 做法，由呢個倉庫嘅字串為每個整合整出英文檔，再蓋喺上游檔案上面： 喺度定義嘅文字優先，只有上游先有嘅保留，其他語言完全唔掂。解唔到 嘅參照會停咗個建置兼講明係邊個。\n\n證明：同項目真正嘅產生器用同一份輸入對比，1,156 個產生出嚟嘅檔案 逐個位元組一樣。對住已發佈映像入面嘅檔案，會新增 3 個、更新 31 個。 有七個測試覆蓋合併規則。\n\n未驗證：工作流程加咗呢步之後未行過，亦未打開過建置好嘅映像睇 文字。喺度加嘅整合，其他語言仍然會用返英文。"
+    },
+    {
+     "sha": "89f61a1cb",
+     "date": "2026-11-17T17:20:03-05:00",
+     "title": "Backup self-check stops downloading every remote copy after every backup [skip ci]",
+     "areas": [
+      "core"
+     ],
+     "detail": "After each backup the self-check fetched the whole archive again from every remote place and hashed it. On a home with multi-gigabyte backups and a cloud drive that is a full extra download each time, with no cap and no off switch, and a throttled download raised a false \"self-check failed\" repair.\n\n- The local copy is still read in full. - Remote copies are checked lightly by default: the place is asked for the copy, its reported size is compared, and the copy is opened and its first chunk read. No archive download. - A setting chooses Light, Full or Off, with a size above which a full download never happens by itself (1 GiB by default). A full check of one backup at one place stays available on demand. - Each place gets its own result: verified in full, present and size matches, size differs, content differs, damaged, missing, could not be checked, or not checked. Throttling, timeouts and provider errors are \"could not be checked\", not a failure. A repair is raised only for a real mismatch or a missing copy and names the place. - One check at a time, and none while a backup, upload or restore is running.\n\nHonest limits: providers expose no checksum through the backup agent interf",
+     "detail_yue": "備份自我檢查唔再每次備份之後將所有遠端副本下載一次 [skip ci]\n\n之前每次備份完，自我檢查都會由每個遠端位置將成個封存檔再攞返落嚟 計雜湊。屋企啲備份有幾個 GB 又用雲端硬碟嘅話，即係每次多一次完整 下載，冇上限、冇得熄，而且下載一畀人限速就會彈出假嘅「自我檢查 失敗」修復提示。\n\n- 本機副本仍然完整讀一次。 - 遠端副本預設做輕量檢查：問個位置有冇呢份副本、比較佢報嘅大細、 開個副本讀第一段。唔會下載成個封存檔。 - 有個設定可以揀輕量、完整或者關閉，仲有個大細上限，超過就唔會 自動完整下載（預設 1 GiB）。想完整檢查某一份備份喺某一個位置， 隨時可以手動做。 - 每個位置有自己嘅結果：完整驗證、存在兼大細啱、大細唔同、內容 唔同、損壞、唔見咗、檢查唔到，或者冇檢查。限速、逾時同供應商 錯誤算「檢查唔到」，唔算失敗。只有真係唔啱或者唔見咗先會出修復 提示，仲會講明係邊個位置。 - 一次只做一個檢查，備份、上載或者還原進行中就唔會開始。\n\n老實講嘅限制：供應商冇經備份代理介面提供校驗碼，而佢哋報嘅大細 係上載嗰陣寫低嘅紀錄，所以輕量檢查主要證明副本存在同開得到。 只有完整下載先證明到內容。冇用過真嘅雲端位置。測試：自我檢查檔案 30 個全過；九個因為新儲存結果而調整嘅管理員測試通過；有一個無關 嘅測試喺原本程式碼一樣失敗；最後調整之後冇再行一次完整元件測試。 備份頁仲未顯示逐個位置嘅新結果同設定。"
+    },
+    {
+     "sha": "117f536c0",
+     "date": "2026-11-17T17:13:12-05:00",
+     "title": "Phone: one bottom bar, nothing wider than the screen, lists for scripts and scenes [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Seen in a local build at 390 and 360 px, light and dark - Settings front no longer slides sideways. A long list of update names made one row wider than its card and the whole page wider than the screen. Rows can now shrink, the second line wraps to two lines, and the summary names two updates and then \"and N more\" with the word \"Update\" dropped. A check on eight pages found nothing wider than the window. - Entities, Devices and every page using the same layout had three bars stacked at the bottom. The sub-tabs are now a scrolling row of pills under the title, and \"Select\" lives in the page's menu, so only the main bar is left. - Second lines in list rows wrap instead of being cut after a few letters. Comfortable density is roomier but no longer bigger or bolder than Compact. - Climate and cover sliders in the automation editor were dragged with a real pointer and kept their values through save and reload.\n\nIn tests only - The \"went back to build N\" line is now also worked out from the update history itself, so it no longer depends on a stored note an older interface can drop. - Script and scene list pages get the same export and import as automations; scene imports are checked for ",
+     "detail_yue": "手機：得返一條底欄、冇嘢闊過螢幕、腳本同場景清單 [skip ci]\n\n喺本機建置、390 同 360 像素、光暗主題都睇過 - 設定首頁唔會再橫向滑動。之前一長串更新名稱令到其中一行闊過 張卡，成版闊過螢幕。而家行可以縮，第二行會分兩行，摘要只寫兩個 更新名再加「同另外 N 個」，仲拎走咗「更新」兩個字。檢查咗八版， 冇一版闊過視窗。 - 實體、裝置同所有用同一個版面嘅頁，底部原本疊住三條欄。副分頁 而家變成標題下面一行可以橫向捲嘅藥丸，「選取」放入頁面選單， 所以底部得返主欄。 - 清單行第二行會換行，唔會寫幾個字就截斷。「舒適」密度鬆動啲， 但字唔會再大過或者粗過「精簡」。 - 自動化編輯器入面冷氣同窗簾嘅滑桿，用真實指標拖過，儲存同重新 載入之後數值都喺度。\n\n只喺測試驗證 - 「已經返回 N 版本」嗰行而家亦會由更新紀錄本身推算，唔再靠一個 舊介面可能丟失嘅備忘。 - 腳本同場景清單頁有返同自動化一樣嘅匯出同匯入；場景匯入會檢查 格式，亦講明伺服器唔會檢查；匯入嘅自動化熄唔到會講出嚟兼一撳 就可以處理；頁面隱藏嗰陣草稿會即刻送出。\n\n一齊行先發現、補返之前提交嘅問題 - 登入表格仲向設定表格攞兩個已經唔存在嘅成員，會令建置停低。 而家用返同一套欄位規則。 - 有個模型檔案擺咗喺只可以放編輯器嘅資料夾，另外有一個廣東話 鍵冇列入清單；兩樣都令測試失敗。\n\n檢查：型別維持兩個已知錯誤；9252 個測試通過，三個已知失敗，另有 一個離線說明連結測試喺全套入面失敗過一次、單獨行就通過。\n\n重現唔到：「播放媒體」冇媒體選擇器，同埋多咗一個放大鏡圖示。 未喺瀏覽器睇過：「只喺測試驗證」下面全部。唔要求建置。"
+    },
+    {
+     "sha": "9ad0a9d54",
+     "date": "2026-11-17T17:03:58-05:00",
+     "title": "Editors: autosaved drafts in a scratch Git repository, import, export [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "Autosave that cannot break anything - While an automation, script or scene is being edited, each change is saved two seconds later as a draft on the instance, in a small Git repository of its own under the cache folder, one commit per autosave. It is outside every file Home Assistant loads and outside backups. A test proves the three live files are byte-identical after saving drafts. - A draft never runs and never reloads anything. The live item only changes when Save is pressed, as before; the draft is then removed. - After a crash, a closed tab or a restart, opening the item offers the draft back with Continue editing, See what changed, or Discard, and warns if the live item changed in the meantime. A draft history lists the autosaves and restores one into the editor. - Limits: 1 MB per draft, 200 drafts, history squashed past 200 commits per draft or 20 MB, drafts untouched for 30 days removed. A damaged repository is recreated empty. If Git is missing the editor says \"Draft not saved\" and carries on.\n\nImport and export - Export one item as a YAML file or to the clipboard from the editor menus, and several automations at once from the list. A notice comes first when the file app",
+     "detail_yue": "編輯器：草稿自動儲存入臨時 Git 倉庫，另加匯入同匯出 [skip ci]\n\n唔會整壞嘢嘅自動儲存 - 編輯自動化、腳本或者場景嗰陣，每次改動兩秒後就當草稿儲存喺 主機上面，放喺快取資料夾入面一個獨立嘅細 Git 倉庫，每次自動儲存 一個提交。佢喺 Home Assistant 會載入嘅所有檔案之外，亦都唔入 備份。有測試證明儲存草稿之後，三個正式檔案一個位元組都冇變。 - 草稿永遠唔會執行，亦唔會觸發重新載入。正式項目同以前一樣，要撳 儲存先會改；儲存之後草稿就會刪除。 - 撞機、閂咗分頁或者重新啟動之後，再開返嗰個項目會問你要唔要 草稿：繼續編輯、睇下改咗乜，或者丟棄；如果正式項目期間改過， 會提你。草稿紀錄會列出每次自動儲存，可以還原入編輯器。 - 限制：每份草稿 1 MB、最多 200 份、每份超過 200 個提交或者倉庫 超過 20 MB 就壓縮歷史、30 日冇掂過嘅草稿會清走。倉庫壞咗會重新 開個空嘅。冇 Git 嘅話編輯器會寫「草稿未儲存」然後照常運作。\n\n匯入同匯出 - 喺編輯器選單可以將一個項目匯出做 YAML 檔案或者抄去剪貼簿； 自動化清單可以一次過匯出幾個。檔案睇落有私人內容就會先提你。 - 匯入檔案或者貼上文字：一個項目或者一張清單，用編輯器本身嘅驗證 檢查，預覽會標出呢間屋冇嘅實體、裝置同分區。匯入之後係一個新嘅 未儲存項目；未撳儲存之前唔會取代任何嘢，一齊匯入嘅項目第一次 儲存之後會熄咗。\n\n缺口：腳本同場景清單頁仲未有逐行或者批量匯出（佢哋嘅編輯器選單 有）；場景匯入冇經伺服器驗證；全部未喺瀏覽器睇過，亦冇模擬過 撞機，所以唔要求建置。"
+    },
+    {
+     "sha": "15f5ff0a6",
+     "date": "2026-11-17T16:42:55-05:00",
+     "title": "Backups: each stage and each upload place on its own row [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "A running backup used to be five small bar segments in one line with their labels cut off, and a blank button with a spinner. Now:\n\n- Stages are a list, each with its full name and a state: Home Assistant, apps, folders and media, waiting for apps to restart, uploading, removing old backups. - Every upload place has its own row with bytes done of total, a percentage, speed and an estimate once enough real samples exist, and start and finish times in 24-hour form. A place that reports nothing gets an indeterminate bar and says so. One slow or failed place no longer hides behind the others. - Live output from the backup and storage logs, three lines by default, with secrets masked before anything reaches the screen or the clipboard. - The button says \"Backup running\" and that it cannot be cancelled, because the server has no cancel command. - When it ends: size, duration and where the backup now lives, or the failed stage and place with the reason. - Location cards are smaller. The run survives leaving the page and a reload.\n\nThe server gives no numbers for building the archive itself, no events for delete, download or the self-check, and no way to retry one upload place, so none of ",
+     "detail_yue": "備份：每個階段同每個上載位置各佔一行 [skip ci]\n\n以前備份進行中係一行五格細進度條，啲標籤仲畀截斷，下面粒掣得個 轉圈。而家：\n\n- 階段變成清單，每個有完整名稱同狀態：Home Assistant、應用程式、 資料夾同媒體、等應用程式重新啟動、上載、移除舊備份。 - 每個上載位置有自己一行，顯示已傳同總共位元組、百分比；有足夠 真實樣本先顯示速度同估計時間；開始同完成時間用 24 小時制。冇 報進度嘅位置用不確定進度條兼講明。一個慢咗或者失敗嘅位置唔會 再匿喺其他位置後面。 - 備份同儲存日誌嘅即時輸出，預設三行，機密喺上畫面或者入剪貼簿 之前已經遮住。 - 粒掣會寫「備份進行中」同埋講明取消唔到，因為伺服器冇取消指令。 - 完成之後：大細、用時同備份而家喺邊；失敗就顯示邊個階段、邊個 位置同原因。 - 位置卡細咗。離開頁面或者重新載入之後，進度仍然喺度。\n\n伺服器冇提供製作封存檔本身嘅數字，刪除、下載同自我檢查冇事件， 亦都冇辦法只重試一個上載位置，所以呢啲都冇顯示。\n\n另外：更新輸出檢視嘅「跟住睇」用咗原生剔格，倉庫係唔准嘅；而家 改成切換掣。\n\n未驗證：以上全部未喺瀏覽器或者真實備份睇過，所以唔要求建置。"
+    },
+    {
+     "sha": "ff0eeea8e",
+     "date": "2026-11-17T16:38:50-05:00",
+     "title": "Updates: real stages, numbers and output on every update row [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "An installing update used to show a small spinner and three words. It now shows what is actually happening.\n\n- A progress bar with the percentage the update itself reports. When nothing is reported the bar is indeterminate and says so; it never moves on its own and never goes backwards. - The stages for that kind of update (backup, download, unpack, install, restart, check), each waiting, running, done, failed or skipped, with the start time, elapsed time and an estimate only after real movement has been seen. - Live output: the newest lines from the right log for that update, three shown by default, with secrets masked. - Waiting rows say their place and the reason (\"2 of 3, after Supervisor; restarts the system, so it goes alone\"). - A finished update shows from and to versions, how long it took and a \"What's new\" link; a failed one shows the stage, the reason, the last lines and what can be done. Nothing retries by itself. - Rows are one line: system names are shortened and the word \"Update\" dropped, with the full name kept for screen readers.\n\nWhat the server does not give today, so it is not shown: download bytes and speed, per-integration logs, and stage events for \"came back",
+     "detail_yue": "更新：每一行更新都有真實階段、數字同輸出 [skip ci]\n\n以前安裝緊嘅更新得一個細轉圈同三個字。而家會講清楚實際做緊乜。\n\n- 進度條顯示更新自己報嘅百分比。冇報就用不確定進度條兼講明； 佢唔會自己郁，亦唔會倒退。 - 列出嗰種更新嘅階段（備份、下載、解壓、安裝、重新啟動、檢查）， 每個標明等候、進行中、完成、失敗或者略過，仲有開始時間、已用 時間；估計時間要見到真實進展先會出。 - 即時輸出：嗰個更新對應日誌最新嘅幾行，預設顯示三行，機密會遮住。 - 等緊嘅行會講排第幾同原因（「3 個之中第 2 個，排喺監督程式之後； 會重新啟動系統，所以要單獨做」）。 - 完成嘅更新顯示由邊個版本去邊個版本、用咗幾耐，同埋「有乜新嘢」 連結；失敗就顯示喺邊個階段、原因、最後幾行同可以點做。唔會自己 重試。 - 每行得一行字：系統名稱縮短，拎走「更新」兩個字，完整名稱留畀 螢幕閱讀器。\n\n伺服器而家冇提供、所以冇顯示嘅嘢：下載位元組同速度、逐個整合嘅 日誌，同埋「返返嚟」同版本檢查嘅階段事件（呢兩樣係推斷出嚟）。\n\n未驗證：以上全部未喺瀏覽器或者真實更新睇過，所以唔要求建置。 標籤未合併之前會用英文。"
+    },
+    {
+     "sha": "991e35fbc",
+     "date": "2026-11-17T16:33:27-05:00",
+     "title": "Editors for the community 3D printer integration [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The community integration for Bambu Lab printers is not part of Core, but plenty of homes run it, so its 15 actions and 37 fields now have editors of their own: axis tiles with a travel slider, drying temperature and hours within the dryer's limits, a plate stepper for print jobs, filament profile and material lists, and raw G-code kept as a clearly warned last resort. New files only, not registered yet, so no build is asked for.\n\nStudied read-only at upstream commit e3c73139 (MIT licence); none of its code was run. It installs as a normal custom integration and needs no fork and no change to the image. Still missing a proper control: tray tiles with a colour swatch, a colour picker that stores the printer's text colour format, and a file picker for the job.",
+     "detail_yue": "社群 3D 打印機整合嘅編輯器 [skip ci]\n\nBambu Lab 打印機嗰個社群整合唔屬於核心，但好多屋企都用緊，所以佢 15 個動作、37 個欄位而家有自己嘅編輯器：軸向方磚配移動滑桿、烘乾 溫度同時數喺烘乾機限度之內、打印工作嘅板號步進器、線材設定同 物料清單，原始 G-code 就留作有清楚警告嘅最後手段。全部係新檔案， 未登記，所以唔要求建置。\n\n以唯讀方式睇上游提交 e3c73139（MIT 授權），冇執行過佢任何程式碼。 佢可以當普通自訂整合安裝，唔使分叉，映像亦唔使改。仲未有啱嘅 控制：帶色板嘅料盤方磚、識儲存打印機文字顏色格式嘅選色器，同埋 揀打印檔案嘅選擇器。"
+    },
+    {
+     "sha": "a48fc170f",
+     "date": "2026-11-17T16:32:15-05:00",
+     "title": "Editors for integration triggers, conditions and device automations [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "New files only; nothing is registered yet, so the app does not change and no build is asked for.\n\n- Triggers: 51 integrations, 202 triggers, 384 fields. - Conditions: 43 integrations, 161 conditions, 340 fields. - Device automations: 77 source files across 46 integrations.\n\nThey return the same control descriptions the action editors use, so one element can draw all three. Optional fields and \"for how long\" start folded. A test reads the real trigger, condition and device files and fails when one has no editor; removing a single entry made four tests fail.\n\nHonest gaps: device kinds whose types come from the device itself (sensors, buttons on radio remotes) only get their extra fields described; fields holding a template keep the text editor; none of it has been seen in a browser.",
+     "detail_yue": "整合觸發、條件同裝置自動化嘅編輯器 [skip ci]\n\n全部係新檔案，仲未登記，所以應用程式冇變，亦都唔要求建置。\n\n- 觸發：51 個整合、202 個觸發、384 個欄位。 - 條件：43 個整合、161 個條件、340 個欄位。 - 裝置自動化：46 個整合合共 77 個原始檔。\n\n佢哋交返同動作編輯器一樣嘅控制描述，所以一個元件就畫得晒三種。 選填欄位同「維持幾耐」預設摺埋。有個測試會讀真實嘅觸發、條件同 裝置檔案，邊個冇編輯器就失敗；試過拎走一項，有四個測試即刻唔過。\n\n老實講嘅缺口：類型由裝置自己報嘅裝置種類（感應器、無線遙控掣） 只描述到額外欄位；放範本嘅欄位仍然用文字編輯器；全部未喺瀏覽器 睇過。"
+    },
+    {
+     "sha": "c86deec24",
+     "date": "2026-11-17T16:31:23-05:00",
+     "title": "Setup forms and three trigger editors get proper controls [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Setup forms (one shared form draws the setup, options and sign-in again steps of about 1,000 integrations) - A field's name and kind now choose its control. Passwords, tokens, keys and PINs are hidden with a show and hide toggle; email, host and code fields get the right keyboard and saved-value hints; ports, scan intervals, timeouts, latitude and longitude get sensible limits and units when the integration declares none. - Whole numbers with a small range are a slider with a number box; others have minus and plus buttons. Yes or no is a switch with its explanation beside it. Up to five choices are tiles, more are a searchable list; several-of-many are chips. - Help text is always visible under its field, and an error sits under the field that caused it. - A typed table maps every selector kind to a control, so a new kind breaks the type check until someone gives it one. Tests pin the value each kind sends back, which is unchanged.\n\nAutomation editor entries - Time pattern hours, minutes and seconds: \"every\", \"every N\", \"at exactly\" or a custom pattern, with a slider. Stored values are read into the right mode and an untouched trigger is saved unchanged. - Time trigger offset is a ",
+     "detail_yue": "設定表格同三個觸發編輯器用返啱嘅控制 [skip ci]\n\n設定表格（大約一千個整合嘅設定、選項同重新登入步驟都係同一個表格 畫出嚟） - 而家由欄位個名同種類決定用邊種控制。密碼、權杖、金鑰同 PIN 會 遮住，有顯示同隱藏掣；電郵、主機同代碼欄位會出啱嘅鍵盤同已儲存 提示；連接埠、掃描間隔、逾時、緯度同經度喺整合冇講明嘅時候會有 合理範圍同單位。 - 範圍細嘅整數用滑桿加數字格，其他用加減掣。是或否用開關，說明 擺喺旁邊。五個或以下選擇用方磚，多過五個用可以搜尋嘅清單；多選 用標籤。 - 說明文字一直喺欄位下面睇到，錯誤亦都擺喺出事嗰個欄位下面。 - 有一張帶型別嘅表將每種選擇器對應一個控制，所以有新種類而冇人 安排，型別檢查就會失敗。測試釘實每種欄位交返去嘅數值，完全冇變。\n\n自動化編輯器項目 - 時間規律嘅時、分、秒：「每」、「每隔 N」、「正好」或者自訂規律， 配滑桿。已儲存嘅數值會讀入啱嘅模式，冇掂過嘅觸發儲存時唔會變。 - 時間觸發嘅偏移用有正負嘅時長控制。地理位置來源係一張實際見過 嘅來源清單。 - 有個測試手寫列出全部 46 種內置觸發、條件同動作，少咗編輯器就 會失敗。\n\n未驗證：以上全部未喺瀏覽器睇過，所以今次唔要求建置。本質上仍然係 文字：事件類型、通知編號、句子、停止原因。"
+    },
+    {
+     "sha": "0e32f6ee9",
+     "date": "2026-11-17T16:28:35-05:00",
+     "title": "Canvas 37 and the first 1,000 fields of integration editors [skip ci]",
+     "areas": [
+      "design",
+      "interface"
+     ],
+     "detail": "Design - Canvas 37, four boards drawn as real screens of the app at phone width: three editors unique to their integration (a message with reply buttons, a vacuum cleaning rooms in order, a radio device setting), the action picker with its ten families, setup forms as bottom sheets, and triggers, conditions and building blocks. The first two attempts were a wireframe and then a poster; the owner was right about both and neither is in this commit.\n\nEditors, not wired in yet - Six new files, one per share of the alphabet, give tailored controls to the integrations that define their own actions: 285 integrations, 896 actions, about 2,300 fields. Bounded numbers are sliders or steppers, colours use the colour picker, durations and times use their own controls, passwords and codes are hidden, and risky actions carry a caution. - Each file has its own test with a hand-written list of every action. - These are new files only. They are not registered and their labels are not merged yet, so nothing in the app changes with this commit. That is why it asks for no build.\n\nNot verified: none of this has been seen in a browser.",
+     "detail_yue": "第 37 號畫布，同埋整合編輯器頭一千幾個欄位 [skip ci]\n\n設計 - 第 37 號畫布四塊畫板，全部照應用程式真實畫面、用手機闊度畫： 三個只屬於自己整合嘅編輯器（帶回覆掣嘅訊息、吸塵機逐間房清潔、 無線裝置設定）、有十個類別嘅動作選擇器、用底部面板嘅設定表格， 同埋觸發、條件同積木。頭兩次分別畫成線框圖同海報，屋主兩次都 講得啱，兩個版本都冇放入今次提交。\n\n編輯器（未接線） - 六個新檔案，按字母分六份，為有自己動作嘅整合提供度身訂造嘅控制： 285 個整合、896 個動作、大約 2,300 個欄位。有範圍嘅數字用滑桿或者 步進器，顏色用選色器，時長同時間用返專屬控制，密碼同代碼會遮住， 危險動作有提示。 - 每個檔案有自己嘅測試，入面有手寫嘅動作清單。 - 全部係新檔案，未登記、標籤亦未合併，所以今次提交唔會改變應用 程式任何嘢，亦因此唔使建置。\n\n未驗證：以上全部未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 517,
    "core": "2026.11.1.517",
    "supervisor": "2026.11.0.517",
    "os": "18.5.517",
-   "tag": null,
+   "tag": "v2026.11.1.517",
    "source": "3cdb9adac",
    "date": "2026-11-17T15:50:22-05:00",
    "previous_build": 512,
@@ -4536,29 +4660,6 @@
      ],
      "detail": "Batch 36. On an iPhone the upload button opened a picker full of Ogg files, all greyed out. The file field was limited to audio, video and picture types, and a phone greys out whatever it cannot play itself, which is a strict door policy for a file that only wanted to be uploaded.\n\n- The field names no type now, so every file can be chosen. - A chosen file with no type gets one from its name. The phone hands an Ogg file over with an empty type and the server refuses an upload that has no media type. - Files that are not pictures, video or audio are refused in the interface before anything is sent, in one message that names them. The related files in the same choice still upload. - Chosen pictures get the conversion dropped pictures already had. Audio and video are not converted; they go up as they are.\n\nChecks: file-drop and component tests 1,092 passed in 101 files; type check clean apart from the two known gallery errors. Not seen in a browser and not tried on a phone.",
      "detail_yue": "第 36 批。iPhone 撳上載，成版 Ogg 檔灰晒揀唔到：個輸入格淨係收「影音圖」， 部電話自己播唔到嘅就當你唔存在。而家乜檔都揀得，冇類型嘅就睇檔名補返； 唔關事嘅檔喺介面度直接請走，仲會點名，同一批入面啱嘅照樣上載。圖片識 自動轉格式，聲同片就原封不動，冇扮識轉。只做咗單元測試，未喺瀏覽器同 真電話試過。"
-    }
-   ]
-  },
-  {
-   "build": 132,
-   "core": "2026.11.1.132",
-   "supervisor": "2026.11.0.132",
-   "os": "18.5.132",
-   "tag": "v2026.11.1.132",
-   "source": "311d3508a",
-   "date": "2026-11-12T10:43:02-05:00",
-   "previous_build": 131,
-   "changes": [
-    {
-     "sha": "311d3508a",
-     "date": "2026-11-12T10:43:02-05:00",
-     "title": "Tab leftovers: hide dialog hint, phone sheet order, shared menu store",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Batch 35. Three items left open by the tab passes, built and unit tested, not seen in a browser.\n\n- Both hide dialogs used one long sentence as label and placeholder, and both-languages mode made it twice as long, so the field cut it. The placeholder is now the short search word and the sentence sits below the field, where it is allowed to wrap like a civilised sentence. - The phone Pages sheet put every group first and loose pages after, while the wide strip keeps a group where its first member is. The sheet now asks the strip's own layout function instead of holding its own opinion. - The shared tab menu actions always wrote the main strip's keys. They now take the surface's store; section tabs reuse them for hide many, undo and remove from group. Pin, move and single hide stay separate because they behave differently there. Stored key names are unchanged.\n\nRecords for batch 34 and for the ten minutes the address did not answer after the Docker engine restarted (the local front proxy kept an old address; it now looks the name up again).\n\nChecks: component tests 973 passed in 93 files; type check clean apart from the two known gallery errors.",
-     "detail_yue": "第 35 批。收尾三樣分頁手尾：隱藏對話框條提示句太長，雙語模式仲長一倍， 畀個輸入格斬咗一截，而家搬咗落格仔下面，可以慢慢轉行；手機頁面表以前 堅持群組排頭位，同闊版唔同步，今次直接問返闊版嗰個排位函數；共用選單 動作以前淨係識寫主分頁條嘅鎖匙，而家邊個表面叫就寫邊個。全部有單元測試， 未喺瀏覽器睇過。"
     }
    ]
   }
