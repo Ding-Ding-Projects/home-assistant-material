@@ -223,6 +223,7 @@ export class HaCameraStream extends LitElement {
         .controls=${this.controls}
         .entityid=${this.stateObj.entity_id}
         .entityState=${this.stateObj.state}
+        .lastSeen=${this.stateObj.last_changed}
         .tapToStart=${this.tapToStart && this._providerOnly}
         .posterUrl=${this._posterUrl}
         @streams=${this._handleWebRtcStreams}

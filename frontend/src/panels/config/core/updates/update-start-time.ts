@@ -54,3 +54,24 @@ export const resolveStart = (
   }
   return { source: "unknown" };
 };
+
+/**
+ * A page opened in the middle of an update often creates its record before the
+ * Supervisor's jobs have been read, so the start was unknown. Once a real start
+ * (the install this page started, the job or the stored queue step) is known,
+ * this returns it so the record can be corrected; it returns nothing while the
+ * start is still unknown or only the moment a page noticed the update.
+ */
+export const startFoundLater = (
+  record: { startUnknown?: boolean },
+  sources: StartSources,
+  now: number
+): number | undefined => {
+  if (!record.startUnknown) {
+    return undefined;
+  }
+  const resolved = resolveStart(sources, now);
+  return resolved.source === "unknown" || resolved.source === "seen"
+    ? undefined
+    : resolved.startedAt;
+};

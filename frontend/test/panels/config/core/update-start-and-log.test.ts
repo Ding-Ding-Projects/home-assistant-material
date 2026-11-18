@@ -15,6 +15,7 @@ import {
 import {
   jobStartMs,
   resolveStart,
+  startFoundLater,
 } from "../../../../src/panels/config/core/updates/update-start-time";
 
 const NOW = Date.parse("2026-11-18T10:10:00Z");
@@ -208,5 +209,51 @@ describe("app sizes from the last backups", () => {
   it("rounds the size to whole megabytes", () => {
     expect(formatAppSizeMb(12.4)).toBe("12");
     expect(formatAppSizeMb(0.2)).toBe("<1");
+  });
+});
+
+describe("a start found after the record was made", () => {
+  const sources = { jobCreated: "2026-11-18T10:00:00+00:00" };
+
+  it("corrects a record whose start was unknown once the job is read", () => {
+    expect(startFoundLater({ startUnknown: true }, sources, NOW)).toBe(
+      Date.parse("2026-11-18T10:00:00Z")
+    );
+  });
+
+  it("leaves a record whose start is known alone", () => {
+    expect(startFoundLater({}, sources, NOW)).toBeUndefined();
+  });
+
+  it("stays unknown without a job, and never takes the moment a page noticed", () => {
+    expect(startFoundLater({ startUnknown: true }, {}, NOW)).toBeUndefined();
+    expect(
+      startFoundLater({ startUnknown: true }, { seenTurnedOnAt: 9 }, NOW)
+    ).toBeUndefined();
+  });
+});
+
+describe("the Supervisor log as it is really written", () => {
+  // The Supervisor colours its lines and writes the time with milliseconds
+  // and the UTC offset.
+  const line = (logger: string, message: string) =>
+    `\u001b[32m2026-11-18 10:01:02.345+00:00 INFO (MainThread) [${logger}] ${message}\u001b[0m`;
+
+  it("keeps the lines of the update when they carry colour codes", () => {
+    const text = [
+      line(
+        "supervisor.docker.interface",
+        "Pulling image ghcr.io/home-assistant/x:2026.12.0"
+      ),
+      line("supervisor.api.proxy", "Something unrelated"),
+      line(
+        "supervisor.homeassistant.core",
+        "Updating Home Assistant to 2026.12.0"
+      ),
+    ].join("\n");
+    const kept = filterUpdateLog(text, "2026.12.0").split("\n");
+    expect(kept).toHaveLength(2);
+    expect(kept[0]).toContain("Pulling image");
+    expect(kept[1]).toContain("Updating Home Assistant");
   });
 });

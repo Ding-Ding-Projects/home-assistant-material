@@ -678,12 +678,24 @@ export const INTEGRATION_EDITORS_A: Record<string, DomainEditor> = {
     controls: {
       turn_on: (ctx) =>
         compact([
-          extractor.url(ctx, "color_extract_url"),
+          selector(
+            ctx,
+            "color_extract_url",
+            lab("color_extractor", "color_extract_url"),
+            { text: { type: "url" } },
+            "other"
+          ),
           extractor.text(ctx, "color_extract_path"),
         ]),
       get_color: (ctx) =>
         compact([
-          extractor.url(ctx, "color_extract_url"),
+          selector(
+            ctx,
+            "color_extract_url",
+            lab("color_extractor", "color_extract_url"),
+            { text: { type: "url" } },
+            "other"
+          ),
           extractor.text(ctx, "color_extract_path"),
         ]),
     },

@@ -11,6 +11,7 @@ import type { HaRadioGroup } from "../../../../../components/radio/ha-radio-grou
 import "../../../../../components/radio/ha-radio-option";
 import type { ZoneTrigger } from "../../../../../data/automation";
 import type { HomeAssistant, ValueChangedEvent } from "../../../../../types";
+import "../../ha-automation-zone-map";
 
 function zoneAndLocationFilter(stateObj) {
   return hasLocation(stateObj) && computeStateDomain(stateObj) !== "zone";
@@ -56,6 +57,10 @@ export class HaZoneTrigger extends LitElement {
         @value-changed=${this._zonePicked}
         .includeDomains=${includeDomains}
       ></ha-entity-picker>
+      <ha-automation-zone-map
+        .hass=${this.hass}
+        .zone=${zone}
+      ></ha-automation-zone-map>
 
       <ha-radio-group
         orientation="horizontal"

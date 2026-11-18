@@ -47,6 +47,19 @@ export const formatCountdown = (seconds: number): string => {
   return `${minutes}:${rest.toString().padStart(2, "0")}`;
 };
 
+/** The 24-hour clock time (for example 23:14) of an ISO time, or undefined. */
+export const formatLastSeen = (iso?: string): string | undefined => {
+  if (!iso) {
+    return undefined;
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+  const pad = (value: number) => value.toString().padStart(2, "0");
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 export type LiveViewKind =
   "live" | "starting" | "limited" | "offline" | "error" | "placeholder";
 

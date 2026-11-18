@@ -21,6 +21,7 @@ import {
 import {
   cameraLive,
   computeLiveView,
+  formatLastSeen,
   formatCountdown,
   isRateLimitMessage,
   mayStartLive,
@@ -87,6 +88,9 @@ export class HaWebRtcPlayer extends LitElement {
 
   /** The camera entity's state, to tell an offline camera from one still starting */
   @property({ attribute: false }) public entityState?: string;
+
+  /** When the camera last reported, as an ISO time; shown while it is offline */
+  @property({ attribute: false }) public lastSeen?: string;
 
   /** Wait for a tap before asking the provider for live video */
   @property({ type: Boolean, attribute: "tap-to-start" })
@@ -345,12 +349,14 @@ export class HaWebRtcPlayer extends LitElement {
     let text = "";
     let action: TemplateResult | typeof nothing = nothing;
     let details: string | undefined;
+    let note = "";
     switch (kind) {
       case "limited":
         title = l("limited_title");
         text = l("limited_text", {
           time: formatCountdown(this._limitedSeconds),
         });
+        note = l("limited_note");
         details = this._error?.message;
         action = html`<ha-button size="small" @click=${this._tryNow}
           >${l("try_now")}</ha-button
@@ -358,7 +364,9 @@ export class HaWebRtcPlayer extends LitElement {
         break;
       case "offline":
         title = l("offline_title");
-        text = l("offline_text");
+        text = formatLastSeen(this.lastSeen)
+          ? `${l("offline_last_seen", { time: formatLastSeen(this.lastSeen)! })} ${l("offline_text")}`
+          : l("offline_text");
         break;
       case "error":
         title = l("error_title");
@@ -399,6 +407,7 @@ export class HaWebRtcPlayer extends LitElement {
           }
           <b>${title}</b>
           ${text ? html`<span>${text}</span>` : nothing} ${action}
+          ${note ? html`<span class="note">${note}</span>` : nothing}
           ${
             details
               ? html`<div class="service">
@@ -1121,6 +1130,12 @@ export class HaWebRtcPlayer extends LitElement {
         var(--card-background-color) 82%,
         transparent
       );
+    }
+
+    .state .note {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+      overflow-wrap: anywhere;
     }
 
     .state b {

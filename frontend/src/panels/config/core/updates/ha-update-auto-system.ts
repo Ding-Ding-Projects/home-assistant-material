@@ -90,7 +90,11 @@ export class HaUpdateAutoSystem extends LitElement {
       <div class="row">
         <span class="text">
           <span class="name">${this._partName(part)}</span>
-          <span class="sub">${this._t(`auto_system_${part}_help`)}</span>
+          <span
+            class="sub one-line"
+            title=${this._t(`auto_system_${part}_help`)}
+            >${this._t(`auto_system_${part}_help`)}</span
+          >
         </span>
         <ha-switch
           .systemPart=${part}
@@ -455,6 +459,14 @@ export class HaUpdateAutoSystem extends LitElement {
         }
         .name {
           font-size: var(--ha-font-size-m);
+        }
+        /* A system part rests as one name line and one help line; the full
+           help is the tooltip. */
+        .one-line {
+          display: block;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
         }
         .block {
           display: flex;

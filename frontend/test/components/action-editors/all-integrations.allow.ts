@@ -56,12 +56,8 @@ export const ALLOWED_PLAIN: Record<string, string> = {
     "A postal address or place name typed as text; it is not a coordinate pair, so the location selector does not apply.",
   "google.create_event.location":
     "A postal address or place name typed as text; it is not a coordinate pair, so the location selector does not apply.",
-  "color_extractor.turn_on.color_extract_url":
-    "A web address of an image to read the colour from. The name only contains the word colour.",
   "color_extractor.turn_on.color_extract_path":
     "A file path of an image to read the colour from. The name only contains the word colour.",
-  "color_extractor.get_color.color_extract_url":
-    "A web address of an image to read the colour from. The name only contains the word colour.",
   "color_extractor.get_color.color_extract_path":
     "A file path of an image to read the colour from. The name only contains the word colour.",
   "hdmi_cec.select_device.device":

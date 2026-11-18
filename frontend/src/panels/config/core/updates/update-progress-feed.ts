@@ -9,7 +9,7 @@ import { fetchHassioLogs } from "../../../../data/hassio/supervisor";
 import type { UpdateEntity } from "../../../../data/update";
 import { updateIsInstalling } from "../../../../data/update";
 import { filterUpdateLog, logSourceFor } from "./update-log-source";
-import { resolveStart } from "./update-start-time";
+import { resolveStart, startFoundLater } from "./update-start-time";
 import type { HomeAssistant } from "../../../../types";
 import type {
   PercentSamples,
@@ -378,6 +378,24 @@ export class UpdateProgressFeed implements ReactiveController {
         continue;
       }
       const before = JSON.stringify(record);
+      if (record.startUnknown && installing) {
+        // The jobs may only have been read after this record was made.
+        const found = startFoundLater(
+          record,
+          {
+            runStartedAt: run?.canRetry ? run.startedAt : undefined,
+            jobCreated: this._runningJobCreated(entity),
+            queueStartedAt: loadStoredQueue()?.steps.find(
+              (step) => step.entityId === id && step.state === "updating"
+            )?.startedAt,
+          },
+          now
+        );
+        if (found !== undefined) {
+          record.startedAt = found;
+          delete record.startUnknown;
+        }
+      }
       const { root, leaf, backupRunning } = this._jobFor(
         record.kind,
         appSlugOf(entity)

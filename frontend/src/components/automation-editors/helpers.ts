@@ -102,12 +102,22 @@ export const offset = (
     "duration"
   );
 
-/** A plain duration that must be set, such as the time left on a timer. */
+/**
+ * A plain duration that must be set, such as the time left on a timer. The
+ * backend validates it as a duration mapping (hours, minutes, seconds) and
+ * refuses a text such as 0:05:00, so it is always edited as a mapping.
+ */
 export const durationField = (
   ctx: AutomationEditorContext,
   key: string,
   labelKey: string
-): QuickControl | undefined => holdFor(ctx, key, labelKey);
+): QuickControl | undefined => {
+  const raw = ctx.data[key];
+  if (raw === undefined || (raw !== null && typeof raw === "object")) {
+    return selectorControl(ctx, key, labelKey, { duration: {} }, "duration");
+  }
+  return holdFor(ctx, key, labelKey);
+};
 
 export const threshold = (
   ctx: AutomationEditorContext,
@@ -122,7 +132,8 @@ export const threshold = (
         entity: preset.entity,
         mode: preset.mode,
         number: preset.number,
-        ...(preset.unit ? { unit_of_measurement: preset.unit } : {}),
+        // The selector and the backend both want the allowed units as a list.
+        ...(preset.unit ? { unit_of_measurement: [preset.unit].flat() } : {}),
       },
     },
     "other"

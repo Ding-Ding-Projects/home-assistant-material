@@ -2677,7 +2677,8 @@
             "minutes": "{minutes} 分鐘",
             "chart_title": "每日運作時間",
             "chart_empty": "仲未有完整嘅一日。",
-            "chart_series": "分鐘"
+            "chart_series": "分鐘",
+            "not_measured_heat": "暖氣被攔住冇開咗幾耐係冇量度到嘅，所以唔會顯示慳咗幾多。呢度顯示嘅係暖氣真正行咗幾耐。"
           },
           "log": {
             "empty": "仲未有嘢發生。",

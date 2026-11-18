@@ -40,6 +40,7 @@ import "../../../components/ha-switch";
 import type { HaSwitch } from "../../../components/ha-switch";
 import type { AutoUpdateInfo } from "../../../data/auto-update";
 import {
+  AUTO_SYSTEM_PARTS,
   autoUpdateRowState,
   formatAutoUpdateTime,
   setAutoUpdateAll,
@@ -148,6 +149,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   @state() private _supervisorInfo?: HassioSupervisorInfo;
 
   @state() private _autoInfo?: AutoUpdateInfo;
+
+  // The automatic updates card rests as one summary row and opens its settings.
+  @state() private _autoOpen = false;
 
   // True while an operating system update from USB storage is copying or
   // installing; every other Update button waits for it.
@@ -1030,37 +1034,80 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       return nothing;
     }
     const localize = this._lang.localizer(this.hass.localize);
+    const systemOn = info.system
+      ? AUTO_SYSTEM_PARTS.filter((part) => info.system!.enabled[part]).length
+      : 0;
+    const summary = info.system
+      ? localize("ui.panel.config.updates.auto_summary_system", {
+          apps: localize(
+            info.all
+              ? "ui.panel.config.updates.auto_on"
+              : "ui.panel.config.updates.auto_off"
+          ),
+          count: systemOn,
+          total: AUTO_SYSTEM_PARTS.length,
+        })
+      : localize("ui.panel.config.updates.auto_summary", {
+          apps: localize(
+            info.all
+              ? "ui.panel.config.updates.auto_on"
+              : "ui.panel.config.updates.auto_off"
+          ),
+        });
     return html`
-      <section class="card auto-card" aria-labelledby="auto-title">
-        <h2 id="auto-title">
-          ${localize("ui.panel.config.updates.auto_title")}
-        </h2>
-        <div class="auto-row">
+      <section
+        class="card auto-card ${this._autoOpen ? "open" : "folded"}"
+        aria-labelledby="auto-title"
+      >
+        <button
+          class="auto-summary"
+          aria-expanded=${this._autoOpen ? "true" : "false"}
+          aria-controls="auto-body"
+          @click=${this._toggleAutoOpen}
+        >
           <span class="text">
-            <span class="name"
-              >${localize("ui.panel.config.updates.auto_all")}</span
+            <span class="name" id="auto-title"
+              >${localize("ui.panel.config.updates.auto_title")}</span
             >
-            <span class="sub"
-              >${localize("ui.panel.config.updates.auto_all_help")}</span
-            >
+            <span class="sub">${summary}</span>
           </span>
-          <ha-switch
-            .checked=${info.all}
-            haptic
-            @change=${this._toggleAll}
-            aria-label=${localize("ui.panel.config.updates.auto_all")}
-          ></ha-switch>
+          <ha-svg-icon
+            class="chevron"
+            .path=${this._autoOpen ? mdiChevronUp : mdiChevronDown}
+          ></ha-svg-icon>
+        </button>
+        <div id="auto-body" ?hidden=${!this._autoOpen}>
+          <div class="auto-row">
+            <span class="text">
+              <span class="name"
+                >${localize("ui.panel.config.updates.auto_all")}</span
+              >
+              <span class="sub"
+                >${localize("ui.panel.config.updates.auto_all_help")}</span
+              >
+            </span>
+            <ha-switch
+              .checked=${info.all}
+              haptic
+              @change=${this._toggleAll}
+              aria-label=${localize("ui.panel.config.updates.auto_all")}
+            ></ha-switch>
+          </div>
+          ${
+            info.system
+              ? html`<ha-update-auto-system
+                  .hass=${this.hass}
+                  .system=${info.system}
+                ></ha-update-auto-system>`
+              : nothing
+          }
         </div>
-        ${
-          info.system
-            ? html`<ha-update-auto-system
-                .hass=${this.hass}
-                .system=${info.system}
-              ></ha-update-auto-system>`
-            : nothing
-        }
       </section>
     `;
+  }
+
+  private _toggleAutoOpen(): void {
+    this._autoOpen = !this._autoOpen;
   }
 
   private _renderAutoSwitch(
@@ -1935,8 +1982,29 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       :host([narrow]) .action-spacer {
         display: none;
       }
-      .auto-card h2 {
+      .auto-summary {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3);
+        width: 100%;
+        min-height: 52px;
+        padding: 0;
+      }
+      .auto-summary .text {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .auto-summary .name {
+        font-size: var(--ha-font-size-l);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .auto-card.open .auto-summary {
         margin-bottom: var(--ha-space-2);
+      }
+      .auto-card [hidden] {
+        display: none;
       }
       .auto-row {
         display: flex;

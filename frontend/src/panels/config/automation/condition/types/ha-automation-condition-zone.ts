@@ -6,6 +6,7 @@ import { hasLocation } from "../../../../../common/entity/has_location";
 import "../../../../../components/entity/ha-entity-picker";
 import type { ZoneCondition } from "../../../../../data/automation";
 import type { ValueChangedEvent, HomeAssistant } from "../../../../../types";
+import "../../ha-automation-zone-map";
 
 function zoneAndLocationFilter(stateObj) {
   return hasLocation(stateObj) && computeStateDomain(stateObj) !== "zone";
@@ -50,6 +51,10 @@ export class HaZoneCondition extends LitElement {
         .disabled=${this.disabled}
         .includeDomains=${includeDomains}
       ></ha-entity-picker>
+      <ha-automation-zone-map
+        .hass=${this.hass}
+        .zone=${zone}
+      ></ha-automation-zone-map>
     `;
   }
 

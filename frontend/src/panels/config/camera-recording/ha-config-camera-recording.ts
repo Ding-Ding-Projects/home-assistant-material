@@ -1,4 +1,5 @@
 import { mdiCog, mdiPause, mdiPlay, mdiPlus } from "@mdi/js";
+import type { HassEntity } from "home-assistant-js-websocket";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -10,6 +11,7 @@ import "../../../components/ha-button-toggle-group";
 import "../../../components/ha-card";
 import "../../../components/ha-checkbox";
 import "../../../components/ha-slider";
+import "../../../components/entity/ha-entity-picker";
 import "../../../components/ha-svg-icon";
 import {
   amountKey,
@@ -27,6 +29,35 @@ import type { HomeAssistant } from "../../../types";
 import { bytesToString } from "../../../util/bytes-to-string";
 
 const REFRESH_MS = 10_000;
+
+/** Binary sensor classes that can tell a camera saw something. */
+const EVENT_SENSOR_CLASSES = [
+  "motion",
+  "moving",
+  "occupancy",
+  "presence",
+  "door",
+  "garage_door",
+  "opening",
+  "window",
+  "sound",
+  "vibration",
+];
+
+/** The entities worth offering as an extra event source: sensors of those classes and every event entity. */
+export const isEventSourceCandidate = (stateObj: {
+  entity_id: string;
+  attributes: { device_class?: unknown };
+}): boolean => {
+  const domain = stateObj.entity_id.split(".")[0];
+  if (domain === "event") {
+    return true;
+  }
+  return (
+    domain === "binary_sensor" &&
+    EVENT_SENSOR_CLASSES.includes(String(stateObj.attributes.device_class))
+  );
+};
 
 const STATE_TONES: Record<string, string> = {
   recording: "ok",
@@ -448,6 +479,28 @@ export class HaConfigCameraRecording extends LitElement {
                 ></ha-checkbox>
                 ${this._l("amount.sources_auto")}
               </label>
+              ${(cam.sources_chosen ?? [])
+                .filter(
+                  (source) =>
+                    !cam.source_options.some((item) => item.source === source)
+                )
+                .map(
+                  (source) =>
+                    html`<label class="source">
+                      <ha-checkbox
+                        .checked=${true}
+                        .entryId=${dest.entry_id}
+                        .entity=${cam.entity_id}
+                        .source=${source}
+                        @change=${this._sourceChanged}
+                      ></ha-checkbox>
+                      ${
+                        this.hass.states[source]?.attributes.friendly_name ??
+                        source
+                      }
+                      <span class="kind">${this._l("amount.kinds.other")}</span>
+                    </label>`
+                )}
               ${cam.source_options.map(
                 (option) =>
                   html`<label class="source">
@@ -472,6 +525,17 @@ export class HaConfigCameraRecording extends LitElement {
                     >
                   </label>`
               )}
+              <ha-entity-picker
+                .hass=${this.hass}
+                .label=${this._l("amount.add_source")}
+                .helper=${this._l("amount.add_source_helper")}
+                .value=${""}
+                .includeDomains=${["binary_sensor", "event"]}
+                .entityFilter=${this._sourceFilter(cam)}
+                .entryId=${dest.entry_id}
+                .entity=${cam.entity_id}
+                @value-changed=${this._sourceAdded}
+              ></ha-entity-picker>
             </div>`
           : nothing
       }
@@ -556,6 +620,31 @@ export class HaConfigCameraRecording extends LitElement {
     } else {
       chosen.delete(target.source);
     }
+    await this._apply(target.entryId, target.entity, "light", {
+      sources: [...chosen],
+    });
+  }
+
+  private _sourceFilter(cam: RecordingCameraStatus) {
+    const taken = new Set(cam.sources);
+    return (stateObj: HassEntity) =>
+      !taken.has(stateObj.entity_id) && isEventSourceCandidate(stateObj);
+  }
+
+  private async _sourceAdded(ev: CustomEvent<{ value?: string }>) {
+    const target = ev.currentTarget as HTMLElement & {
+      entryId: string;
+      entity: string;
+      value?: string;
+    };
+    const added = ev.detail.value;
+    if (!added) {
+      return;
+    }
+    const cam = this._camera(target.entryId, target.entity);
+    const chosen = new Set(cam?.sources_chosen ?? cam?.sources ?? []);
+    chosen.add(added);
+    target.value = "";
     await this._apply(target.entryId, target.entity, "light", {
       sources: [...chosen],
     });
