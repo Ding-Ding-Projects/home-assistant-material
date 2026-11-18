@@ -170,9 +170,19 @@ export class HaTopBarSearch extends LitElement {
       --ha-input-search-height: 40px;
       --ha-input-search-border-radius: 20px;
     }
+    /* A wide window opens the field at a fixed 360 px beside the close button. */
+    :host([open][wide]) {
+      flex: none;
+      width: calc(360px + 44px + var(--ha-space-1));
+    }
+    :host([wide]) .open-search {
+      flex: none;
+      width: 100%;
+    }
     :host([wide]) ha-input-search {
       flex: none;
       width: 360px;
+      max-width: 360px;
     }
     .count {
       font-family: var(--ha-font-family-code, monospace);

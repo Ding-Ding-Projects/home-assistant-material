@@ -186,7 +186,7 @@ class HassSubpage extends LitElement {
 
     return html`
       <div class="toolbar ${classMap({ narrow: this.narrow })}">
-        <div class="toolbar-content">
+        <div class=${classMap({ "toolbar-content": true, searching })}>
           ${
             this.mainPage || (!backPath && getHistoryState()?.root)
               ? html`<ha-menu-button></ha-menu-button>`
@@ -357,6 +357,31 @@ class HassSubpage extends LitElement {
         :host(:not([narrow])) ha-top-bar-search {
           margin-inline-start: auto;
           margin-inline-end: var(--ha-space-2);
+        }
+
+        /* While the search is open on a wide window the bar stays one row:
+           the title keeps its room and ends with an ellipsis, the tools stay
+           beside the field. */
+        :host(:not([narrow])) .toolbar-content.searching {
+          flex-wrap: nowrap;
+        }
+        :host(:not([narrow])) .toolbar-content.searching .main-title {
+          flex: 1 1 0;
+          min-width: 0;
+          overflow: hidden;
+        }
+        :host(:not([narrow])) .toolbar-content.searching .page-title,
+        :host(:not([narrow])) .toolbar-content.searching .summary,
+        :host(:not([narrow]))
+          .toolbar-content.searching
+          ::slotted([slot="subtitle"]),
+        :host(:not([narrow]))
+          .toolbar-content.searching
+          ::slotted([slot="header"]),
+        :host(:not([narrow])) .toolbar-content.searching .breadcrumb {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .toolbar-icons {

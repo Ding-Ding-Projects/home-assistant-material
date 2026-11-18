@@ -32,8 +32,6 @@ import "../../../components/ha-checkbox";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-markdown";
 import "../../../components/ha-svg-icon";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type { PersistentNotification } from "../../../data/persistent_notification";
 import { subscribeNotifications } from "../../../data/persistent_notification";
 import "../../../layouts/hass-subpage";
@@ -187,6 +185,25 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
     const dismissedShown = this._shownDismissed();
     return html`
       <hass-subpage
+        searchable
+        .searchLabel=${search}
+        .searchValue=${this._filter}
+        .searchCountText=${
+          this._filter
+            ? this.hass.localize("ui.components.top_bar_search.count", {
+                current: this._showDismissed
+                  ? dismissedShown.length
+                  : shown.length,
+                total: this._showDismissed
+                  ? this._dismissed.length
+                  : all.length,
+              })
+            : undefined
+        }
+        .searchSamples=${(this._showDismissed ? this._dismissed : all).map(
+          (item) => `${item.title ?? ""} ${item.message}`
+        )}
+        @top-bar-search-input=${this._filterChanged}
         .hass=${this.hass}
         .narrow=${this.narrow}
         back-path="/config"
@@ -198,17 +215,6 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
             <p>${this._l("summary", { count: all.length })}</p>
           </div>
           <div class="filters">
-            <ha-input-search
-              appearance="outlined"
-              .placeholder=${search}
-              .accessibleLabel=${search}
-              .value=${this._filter}
-              .patternSamples=${(this._showDismissed
-                ? this._dismissed
-                : all
-              ).map((item) => `${item.title ?? ""} ${item.message}`)}
-              @input=${this._filterChanged}
-            ></ha-input-search>
             ${
               this._showDismissed
                 ? html`<ha-button
@@ -467,8 +473,8 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
     `;
   }
 
-  private _filterChanged(ev: Event): void {
-    this._filter = (ev.target as HaInputSearch).value ?? "";
+  private _filterChanged(ev: CustomEvent<{ value: string }>): void {
+    this._filter = ev.detail.value;
     // A notification the search hides cannot stay selected, so the count,
     // the preview and the action always speak about the same rows.
     this._selected = pruneSelection(
@@ -690,11 +696,6 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
           flex-wrap: wrap;
           align-items: center;
           gap: var(--ha-space-2);
-        }
-        ha-input-search {
-          flex: 1 1 240px;
-          --ha-input-search-height: var(--ha-space-12);
-          --ha-input-search-border-radius: var(--ha-border-radius-pill);
         }
         ul {
           list-style: none;

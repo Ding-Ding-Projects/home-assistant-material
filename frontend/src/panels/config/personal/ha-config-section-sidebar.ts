@@ -41,8 +41,6 @@ import "../../../components/ha-svg-icon";
 import "../../../components/ha-button";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import { getDefaultPanelUrlPath } from "../../../data/panel";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
@@ -165,6 +163,18 @@ export class HaConfigSectionSidebar extends LitElement {
     );
     return html`
       <hass-subpage
+        searchable
+        .searchLabel=${this._t("search")}
+        .searchValue=${this._filter}
+        .searchCountText=${
+          this._filter
+            ? this.hass.localize("ui.components.top_bar_search.count", {
+                current: rows.length,
+                total: this._rows().length,
+              })
+            : undefined
+        }
+        @top-bar-search-input=${this._filterChanged}
         back-path="/config/personal"
         .hass=${this.hass}
         .narrow=${this.narrow}
@@ -178,13 +188,6 @@ export class HaConfigSectionSidebar extends LitElement {
           <div class="columns">
             <ha-card class="entries">
               <h3 class="card-title">${this._t("entries_title")}</h3>
-              <ha-input-search
-                appearance="outlined"
-                .placeholder=${this._t("search")}
-                .accessibleLabel=${this._t("search")}
-                .value=${this._filter}
-                @input=${this._filterChanged}
-              ></ha-input-search>
               ${
                 searching
                   ? html`<p class="count" role="status">
@@ -340,8 +343,8 @@ export class HaConfigSectionSidebar extends LitElement {
     ></ha-select>`;
   }
 
-  private _filterChanged(ev: Event) {
-    this._filter = (ev.target as HaInputSearch).value ?? "";
+  private _filterChanged(ev: CustomEvent<{ value: string }>): void {
+    this._filter = ev.detail.value;
   }
 
   private _notSaved() {

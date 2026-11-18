@@ -31,8 +31,6 @@ import "../../../components/ha-svg-icon";
 import "../../../components/ha-textarea";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import { fetchProblemLog } from "../../../data/problem_log";
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
@@ -133,6 +131,22 @@ class HaConfigSupport extends LitElement {
   protected render(): TemplateResult {
     return html`
       <hass-subpage
+        searchable
+        .searchLabel=${this._l("tickets_search")}
+        .searchValue=${this._query}
+        .searchCountText=${
+          this._query
+            ? this.hass.localize("ui.components.top_bar_search.count", {
+                current: viewTickets(this._tickets, this._extras, {
+                  query: this._query,
+                  status: this._statusFilter,
+                }).length,
+                total: this._tickets.length,
+              })
+            : undefined
+        }
+        .searchSamples=${this._tickets.map((item) => item.subject)}
+        @top-bar-search-input=${this._queryChanged}
         .hass=${this.hass}
         .narrow=${this.narrow}
         back-path="/config"
@@ -167,7 +181,6 @@ class HaConfigSupport extends LitElement {
     });
     const counts = countByStatus(all);
     const searching = this._query.trim() !== "" || this._statusFilter !== "all";
-    const search = this._l("tickets_search");
     const buttons = [
       { value: "all", label: `${this._l("filter_all")} ${all.length}` },
       ...(["open", "waiting", "closed"] as const).map((status) => ({
@@ -180,15 +193,7 @@ class HaConfigSupport extends LitElement {
       <p class="note">${this._l("tickets_note")}</p>
       ${
         all.length
-          ? html`<ha-input-search
-                appearance="outlined"
-                .placeholder=${search}
-                .accessibleLabel=${search}
-                .value=${this._query}
-                .patternSamples=${this._tickets.map((item) => item.subject)}
-                @input=${this._queryChanged}
-              ></ha-input-search>
-              <ha-button-toggle-group
+          ? html` <ha-button-toggle-group
                 class="filter"
                 full-width
                 .ariaLabel=${this._l("filter_label")}
@@ -501,8 +506,8 @@ ${this._bundle}</pre>
     this._attach = (ev.target as HTMLInputElement).checked;
   }
 
-  private _queryChanged(ev: Event): void {
-    this._query = (ev.target as HaInputSearch).value ?? "";
+  private _queryChanged(ev: CustomEvent<{ value: string }>): void {
+    this._query = ev.detail.value;
   }
 
   private _statusFilterChanged(ev: CustomEvent<{ value: string }>): void {

@@ -411,10 +411,20 @@ export class HaRegexWorkbench extends LitElement {
     this._library = this._readLibrary();
     this._place();
     this.updateComplete.then(() => {
+      // The plain field can report an empty value while the panel first opens;
+      // the words the person typed in the page field stay.
+      if (parsed.mode !== "regex" && value && this._text !== value) {
+        this._text = value;
+      }
       if (this._panel && !this._panel.matches(":popover-open")) {
         this._panel.showPopover();
       }
       (this._mode === "regex" ? this._patternInput : this._plainInput)?.focus();
+      requestAnimationFrame(() => {
+        if (parsed.mode !== "regex" && value && !this._text) {
+          this._text = value;
+        }
+      });
     });
   }
 

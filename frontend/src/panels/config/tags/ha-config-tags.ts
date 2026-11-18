@@ -40,8 +40,6 @@ import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/ha-icon-button";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import "../../../components/ha-icon-overflow-menu";
 import "../../../components/ha-relative-time";
 import "../../../components/ha-svg-icon";
@@ -317,8 +315,8 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
     }
   };
 
-  private _handleCardSearch = (ev: Event) => {
-    this._cardSearch = (ev.target as HaInputSearch).value ?? "";
+  private _handleCardSearch = (ev: CustomEvent<{ value: string }>) => {
+    this._cardSearch = ev.detail.value;
   };
 
   private _renderCards() {
@@ -333,6 +331,19 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
         back-path="/config/connectivity"
         .route=${this.route}
         .tabs=${configSections.tags}
+        searchable
+        .searchLabel=${localize("ui.panel.config.tag.search")}
+        .searchValue=${this._cardSearch}
+        .searchCountText=${
+          this._cardSearch
+            ? localize("ui.components.top_bar_search.count", {
+                current: tags.length,
+                total: this._tags.length,
+              })
+            : undefined
+        }
+        .searchSamples=${this._tags.map((tag) => tag.name || tag.id)}
+        @top-bar-search-input=${this._handleCardSearch}
         .summary=${
           this._loading
             ? localize("ui.panel.config.tag.summary")
@@ -375,17 +386,6 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
                     </ha-button>
                   </ha-alert>`
                 : html`
-                    <div class="card-tools">
-                      <ha-input-search
-                        appearance="outlined"
-                        .value=${this._cardSearch}
-                        @input=${this._handleCardSearch}
-                        .placeholder=${localize("ui.panel.config.tag.search")}
-                        .accessibleLabel=${localize(
-                          "ui.panel.config.tag.search"
-                        )}
-                      ></ha-input-search>
-                    </div>
                     <div class="waiting">${this._waitingCard(localize)}</div>
                     ${
                       tags.length

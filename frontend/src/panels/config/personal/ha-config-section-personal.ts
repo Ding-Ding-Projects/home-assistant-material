@@ -1446,6 +1446,7 @@ export class HaConfigSectionPersonal extends LitElement {
         search-steps
         .searchLabel=${this._t("search")}
         .searchValue=${this._filter}
+        .searchSamples=${rows.map((row) => row.label)}
         .searchTotal=${total}
         .searchCountText=${
           total

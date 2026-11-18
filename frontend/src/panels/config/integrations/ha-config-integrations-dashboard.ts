@@ -10,7 +10,6 @@ import { consume } from "../../../common/decorators/consume";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { deepActiveElement } from "../../../common/dom/deep-active-element";
-import type { HASSDomTargetEvent } from "../../../common/dom/fire_event";
 import {
   PROTOCOL_INTEGRATIONS,
   protocolIntegrationPicked,
@@ -27,8 +26,6 @@ import { nextRender } from "../../../common/util/render-status";
 import "../../../components/ha-button";
 import "../../../components/chips/ha-filter-chip";
 import "../../../components/ha-svg-icon";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type { ConfigEntry } from "../../../data/config_entries";
 import { getConfigEntries } from "../../../data/config_entries";
 import type { EntityRegistryEntry } from "../../../data/entity/entity_registry";
@@ -172,8 +169,6 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
   @state() private _attentionOnly = false;
 
   @state() private _logInfos?: Record<string, IntegrationLogInfo>;
-
-  @query("ha-input-search") private _searchInput!: HaInputSearch;
 
   @query("hass-tabs-subpage") private _tabsSubpage?: HassTabsSubpage;
 
@@ -537,20 +532,6 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         )
       : integrations;
 
-    const searchField = html`
-      <ha-input-search
-        appearance="outlined"
-        .value=${this._filter}
-        @input=${this._handleSearchChange}
-        @blur=${this._flushUrl}
-        .placeholder=${this.hass.localize("ui.panel.config.integrations.search")}
-        .accessibleLabel=${this.hass.localize(
-          "ui.panel.config.integrations.search"
-        )}
-      >
-      </ha-input-search>
-    `;
-
     return html`
       <hass-tabs-subpage
         .hass=${this.hass}
@@ -559,11 +540,15 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         .tabs=${configSections.devices}
         .summary=${this.hass.localize("ui.panel.config.integrations.summary")}
         has-fab
+        searchable
+        .searchLabel=${this.hass.localize("ui.panel.config.integrations.search")}
+        .searchValue=${this._filter}
+        @top-bar-search-input=${this._handleSearchChange}
+        @top-bar-search-close=${this._flushUrl}
       >
         ${
           this.narrow
             ? html`
-                <div slot="header" class="header">${searchField}</div>
                 <ha-integration-overflow-menu
                   .hass=${this.hass}
                   slot="toolbar-icon"
@@ -633,9 +618,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
                   </div>`
               : nothing
           }
-          <div class="toolbar">
-            ${this.narrow ? nothing : searchField} ${chips}
-          </div>
+          <div class="toolbar">${chips}</div>
           <h2 class="section-header visually-hidden">
             ${this.hass.localize("ui.panel.config.integrations.configured")}
           </h2>
@@ -909,8 +892,8 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
     this._attentionOnly = !this._attentionOnly;
   }
 
-  private _handleSearchChange(ev: HASSDomTargetEvent<HaInputSearch>) {
-    this._filter = ev.target.value ?? "";
+  private _handleSearchChange(ev: CustomEvent<{ value: string }>) {
+    this._filter = ev.detail.value;
 
     this._writeUrl(true);
   }
@@ -1116,7 +1099,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
 
   protected supportedShortcuts(): SupportedShortcuts {
     return {
-      f: () => this._searchInput.focus(),
+      f: () => this._tabsSubpage?.openSearch(),
     };
   }
 

@@ -17,10 +17,7 @@ import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { atLeastVersion } from "../../../common/config/version";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
 import { consume } from "../../../common/decorators/consume";
-import type {
-  HASSDomEvent,
-  HASSDomTargetEvent,
-} from "../../../common/dom/fire_event";
+import type { HASSDomEvent } from "../../../common/dom/fire_event";
 import {
   getHistoryState,
   navigate,
@@ -48,8 +45,6 @@ import "../../../components/ha-filter-pane-chip";
 import "../../../components/ha-generic-picker";
 import type { HaGenericPicker } from "../../../components/ha-generic-picker";
 import type { PickerComboBoxItem } from "../../../components/ha-picker-combo-box";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import { manifestsContext } from "../../../data/context";
 import type { DataTableFiltersValue } from "../../../data/data_table_filters";
 import type { LogProvider } from "../../../data/error_log";
@@ -197,8 +192,8 @@ export class HaConfigLogs extends LitElement {
     this._init();
   }
 
-  private _filterChanged(ev: HASSDomTargetEvent<HaInputSearch>) {
-    this._filter = ev.target.value ?? "";
+  private _filterChanged(ev: CustomEvent<{ value: string }>) {
+    this._filter = ev.detail.value;
     this._writeUrl(true);
   }
 
@@ -222,6 +217,11 @@ export class HaConfigLogs extends LitElement {
         .narrow=${this.narrow}
         .header=${this.hass.localize("ui.panel.config.logs.caption")}
         back-path="/config/system"
+        searchable
+        .searchLabel=${this.hass.localize("ui.panel.config.logs.search")}
+        .searchValue=${this._filter}
+        @top-bar-search-input=${this._filterChanged}
+        @top-bar-search-close=${this._flushUrl}
       >
         <div class="main">
           ${
@@ -297,13 +297,6 @@ export class HaConfigLogs extends LitElement {
                     ></ha-filter-pane-chip>`
                   : nothing
               }
-              <ha-input-search
-                appearance="outlined"
-                @input=${this._filterChanged}
-                @blur=${this._flushUrl}
-                .value=${this._filter}
-                .placeholder=${this.hass.localize("ui.panel.config.logs.search")}
-              ></ha-input-search>
               ${
                 core && !this._detail
                   ? html`<div class="level-chips">
@@ -782,10 +775,6 @@ export class HaConfigLogs extends LitElement {
           );
           border-bottom: 1px solid var(--divider-color);
         }
-        .toolbar ha-input-search {
-          flex: 1;
-          min-width: 180px;
-        }
         .head {
           display: flex;
           flex-wrap: wrap;
@@ -860,12 +849,6 @@ export class HaConfigLogs extends LitElement {
         }
         .tile-sub {
           font-size: var(--ha-font-size-s);
-        }
-        @media (min-width: 871px) {
-          .toolbar ha-input-search {
-            --ha-input-search-height: 32px;
-            --ha-input-search-border-radius: 10px;
-          }
         }
         .content {
           direction: ltr;

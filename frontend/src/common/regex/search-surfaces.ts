@@ -176,41 +176,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     matcher: "common/log-terminal/log-terminal-logic.ts",
   },
   {
-    file: "panels/config/apps/ha-config-apps-available.ts",
-    searches: "Apps in the app store",
-    matcher: "panels/config/apps/components/supervisor-apps-filter.ts",
-  },
-  {
-    file: "panels/config/apps/ha-config-apps-installed.ts",
-    searches: "Installed apps",
-  },
-  {
-    file: "panels/config/release-notes/ha-config-release-notes.ts",
-    searches: "Release notes, by text, commit and day",
-  },
-  {
-    file: "panels/config/notifications/ha-config-notifications.ts",
-    searches: "Notifications, by title, text and id",
-  },
-  {
     file: "components/ha-top-bar-search.ts",
     searches:
-      "The page search drawn in the top bar of any page built on the subpage layout that opts in with the searchable property. Today: the personal settings page, whose settings it marks and steps through (the field at the top of that page is gone). The matching stays on the page, in its own file",
+      "The page search drawn in the top bar of any page built on the subpage layouts that opts in with the searchable property. Pages moved onto it: personal settings and sidebar labels, release notes, notifications, support, apps installed and available, extensions, the logs page, the integrations page, tags and scenes in card view. The matching stays on each page, in its own file",
     matcher: "panels/config/personal/ha-config-section-personal.ts",
-  },
-  {
-    file: "panels/config/personal/ha-config-section-sidebar.ts",
-    searches: "The entries of the navigation on the sidebar labels page",
-  },
-  {
-    file: "panels/config/support/ha-config-support.ts",
-    searches:
-      "Support tickets, by number, title, details, page, bundle file and notes",
-    matcher: "panels/config/support/ticket-view-logic.ts",
-  },
-  {
-    file: "panels/config/scene/ha-scene-dashboard.ts",
-    searches: "The scene cards, by name, area, category and label",
   },
   {
     file: "panels/config/dashboard/ha-config-dashboard.ts",
@@ -264,10 +233,6 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Integrations and brands to add",
   },
   {
-    file: "panels/config/tags/ha-config-tags.ts",
-    searches: "Tags in the card view",
-  },
-  {
     file: "panels/config/integrations/dialog-live-log.ts",
     searches: "Lines of an integration's live log",
     matcher: LOG_LINES,
@@ -275,10 +240,6 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   {
     file: "panels/config/integrations/ha-config-integration-page.ts",
     searches: "Entries and devices of one integration",
-  },
-  {
-    file: "panels/config/integrations/ha-config-integrations-dashboard.ts",
-    searches: "Configured and discovered integrations",
   },
   {
     file: "panels/config/integrations/integration-panels/bluetooth/bluetooth-network-visualization.ts",
@@ -318,11 +279,6 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Lines of a system log shown in a dialog",
   },
   {
-    file: "panels/config/logs/ha-config-logs.ts",
-    searches: "Logged errors and the lines of the full log",
-    matcher: "panels/config/logs/system-log-card.ts",
-  },
-  {
     file: "panels/config/tools/action_history/tools-action-history.ts",
     searches: "Past actions",
     matcher: TABLE_WORKER,
@@ -347,11 +303,6 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   {
     file: "panels/config/tools/yaml_configuration/tools-yaml-config.ts",
     searches: "Kinds of YAML configuration that can be reloaded",
-  },
-  {
-    file: "panels/config/extensions/ha-config-extensions.ts",
-    searches:
-      "Dashboard resources by address and type, and custom panels by name",
   },
   {
     file: "panels/config/help/ha-config-help.ts",

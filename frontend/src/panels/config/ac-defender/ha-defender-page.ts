@@ -121,6 +121,32 @@ export class HaDefenderPage extends LitElement {
     );
   }
 
+  /** The name of a guard in the viewer's language, with the readable id as fallback. */
+  private _guardTitle(id: string): string {
+    const found = (key: string) => {
+      const text = this._t(key);
+      return text && !text.startsWith("ui.panel.") ? text : "";
+    };
+    return (
+      (this.direction === "heat" ? found(`guard_title_heat.${id}`) : "") ||
+      found(`guard_title.${id}`) ||
+      guardTitle(id, this.direction)
+    );
+  }
+
+  /** The logged action in the viewer's language, such as the text for set temperature 24. */
+  private _commandAction(entry: DefenderLogEntry): string {
+    const name = String(entry.values.action ?? "");
+    const text = this._t(`command_action.${name}`);
+    if (!name || !text || text.startsWith("ui.panel.")) {
+      return commandAction(entry);
+    }
+    const value = entry.values.value;
+    return value === undefined || value === null
+      ? text
+      : `${text} ${String(value)}`;
+  }
+
   private get _path(): string {
     return this.direction === "cool"
       ? "/config/ac-defender"
@@ -588,7 +614,7 @@ export class HaDefenderPage extends LitElement {
     const search = this._t("guards.search");
     const matcher = searchMatcher(this._filter);
     const match = (guard: DefenderGuard) =>
-      matcher(guard.id, guardTitle(guard.id, this.direction), guard.family);
+      matcher(guard.id, this._guardTitle(guard.id), guard.family);
     const groupOf = (guard: DefenderGuard) =>
       guard.safety ? "safety" : guard.group;
     const groups = groupGuards(
@@ -680,7 +706,7 @@ export class HaDefenderPage extends LitElement {
     const description = this._t(guardDescriptionKey(guard.id, this.direction));
     return html`<div class=${classMap({ row: true, safety: guard.safety })}>
       <span class="grow">
-        ${guardTitle(guard.id, this.direction)}<br />
+        ${this._guardTitle(guard.id)}<br />
         <span
           class=${classMap({
             detail: true,
@@ -710,7 +736,7 @@ export class HaDefenderPage extends LitElement {
       <ha-switch
         .checked=${guard.enabled}
         .guardId=${guard.id}
-        aria-label=${guardTitle(guard.id, this.direction)}
+        aria-label=${this._guardTitle(guard.id)}
         @change=${this._guardChanged}
       ></ha-switch>
     </div>`;
@@ -842,7 +868,7 @@ export class HaDefenderPage extends LitElement {
 
   private _logSub(entry: DefenderLogEntry): string {
     if (entry.kind === "command") {
-      return `${guardTitle(entry.guard, this.direction)} · ${commandAction(entry)}`;
+      return `${this._guardTitle(entry.guard)} · ${this._commandAction(entry)}`;
     }
     return "";
   }
@@ -986,11 +1012,11 @@ export class HaDefenderPage extends LitElement {
       confirmed = await showConfirmationDialog(this, {
         title: this._t("guards.confirm_title"),
         text: this._t("guards.confirm_text", {
-          guard: guardTitle(guard.id, this.direction),
+          guard: this._guardTitle(guard.id),
         }),
         confirmText: this._t("guards.confirm_second"),
         destructive: true,
-        confirmName: guardTitle(guard.id, this.direction),
+        confirmName: this._guardTitle(guard.id),
       });
       if (!confirmed) {
         target.checked = true;

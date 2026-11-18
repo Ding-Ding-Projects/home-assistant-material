@@ -66,6 +66,8 @@ export class HaUpdateBackupChoice extends LitElement {
 
   @query(".apps") private _appsPanel?: HTMLElement;
 
+  @query(".kinds") private _kindsPanel?: HTMLElement;
+
   private _lang = new LanguageModeController(this);
 
   private _loadedApps = false;
@@ -396,9 +398,12 @@ export class HaUpdateBackupChoice extends LitElement {
     if (choice === "custom") {
       // Custom is the state of the kinds and apps below. Tapping it takes the
       // person there: the app list opens, ready to be set by hand.
+      // Without a Supervisor there are no apps, so it goes to the kinds.
       this._appsOpen = this.hasSupervisor;
       await this.updateComplete;
-      this._appsPanel?.scrollIntoView({ block: "nearest" });
+      (this._appsPanel ?? this._kindsPanel)?.scrollIntoView({
+        block: "nearest",
+      });
       return;
     }
     if (choice === choiceFor(this._settings)) {

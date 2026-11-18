@@ -24,6 +24,7 @@ import {
   snapToStep,
   splitAction,
 } from "./descriptors";
+import "../../panels/config/automation/ha-automation-zone-map";
 import "./ha-automation-options-editor";
 import {
   colorToHexText,
@@ -750,6 +751,14 @@ export class HaActionQuickControls extends LitElement {
         data-key=${control.key}
         @value-changed=${this._onSelector}
       ></ha-selector>
+      ${
+        control.domain === "zone" && !control.multiple
+          ? html`<ha-automation-zone-map
+              .hass=${this.hass}
+              .zone=${chosen[0]}
+            ></ha-automation-zone-map>`
+          : nothing
+      }
     </div>`;
   }
 

@@ -29,8 +29,6 @@ import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type { CustomPanelConfig } from "../../../data/panel_custom";
 import type {
   LovelaceInfo,
@@ -141,6 +139,22 @@ class HaConfigExtensions extends LitElement {
     const panels = this._panels();
     return html`
       <hass-subpage
+        searchable
+        .searchLabel=${this._l("search")}
+        .searchValue=${this._filter}
+        .searchCountText=${
+          this._filter
+            ? this.hass.localize("ui.components.top_bar_search.count", {
+                current: this._matchCount(resources, panels),
+                total: resources.length + panels.length,
+              })
+            : undefined
+        }
+        .searchSamples=${[
+          ...resources.map((r) => r.url),
+          ...panels.map((p) => p.title),
+        ]}
+        @top-bar-search-input=${this._filterChanged}
         .hass=${this.hass}
         .narrow=${this.narrow}
         back-path="/config"
@@ -161,6 +175,17 @@ class HaConfigExtensions extends LitElement {
     `;
   }
 
+  private _matchCount(
+    resources: LovelaceResource[],
+    panels: PanelExtension[]
+  ): number {
+    const matches = searchMatcher(this._filter);
+    return (
+      resources.filter((r) => matches(r.url, r.type)).length +
+      panels.filter((p) => matches(p.title, p.name, p.url, p.urlPath)).length
+    );
+  }
+
   private _renderPage(
     resources: LovelaceResource[],
     panels: PanelExtension[]
@@ -170,7 +195,6 @@ class HaConfigExtensions extends LitElement {
     const shownPanels = panels.filter((p) =>
       matches(p.title, p.name, p.url, p.urlPath)
     );
-    const search = this._l("search");
     return html`
       <div class="head">
         <p class="summary">
@@ -186,17 +210,6 @@ class HaConfigExtensions extends LitElement {
           ? nothing
           : html`<p class="note">${this._l("yaml_mode")}</p>`
       }
-      <ha-input-search
-        appearance="outlined"
-        .placeholder=${search}
-        .accessibleLabel=${search}
-        .value=${this._filter}
-        .patternSamples=${[
-          ...resources.map((r) => r.url),
-          ...panels.map((p) => p.title),
-        ]}
-        @input=${this._filterChanged}
-      ></ha-input-search>
       <div class="columns">
         <section class="card" aria-labelledby="resources-title">
           <h2 id="resources-title">${this._l("resources_title")}</h2>
@@ -235,8 +248,8 @@ class HaConfigExtensions extends LitElement {
     `;
   }
 
-  private _filterChanged(ev: Event): void {
-    this._filter = (ev.target as HaInputSearch).value ?? "";
+  private _filterChanged(ev: CustomEvent<{ value: string }>): void {
+    this._filter = ev.detail.value;
   }
 
   private _abilities(abilities: ExtensionAbility[]): TemplateResult {
@@ -466,11 +479,6 @@ class HaConfigExtensions extends LitElement {
         .note,
         .detail {
           color: var(--secondary-text-color);
-        }
-        ha-input-search {
-          display: block;
-          max-width: 520px;
-          margin: var(--ha-space-3) 0 var(--ha-space-4);
         }
         .columns {
           display: grid;

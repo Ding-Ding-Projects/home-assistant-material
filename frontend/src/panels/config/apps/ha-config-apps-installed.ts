@@ -21,7 +21,6 @@ import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-svg-icon";
-import "../../../components/input/ha-input-search";
 import type {
   HassioAddonInfo,
   HassioAddonsInfo,
@@ -97,6 +96,21 @@ export class HaConfigAppsInstalled extends LitElement {
         .route=${this.route}
         back-path="/config"
         .header=${this.hass.localize("ui.panel.config.apps.caption")}
+        searchable
+        .searchLabel=${this.hass.localize(
+          "ui.panel.config.apps.installed.search",
+          { number: all.length }
+        )}
+        .searchValue=${this._filter ?? ""}
+        .searchCountText=${
+          this._filter
+            ? this.hass.localize("ui.components.top_bar_search.count", {
+                current: addons.length,
+                total: all.length,
+              })
+            : undefined
+        }
+        @top-bar-search-input=${this._handleSearchChange}
       >
         <ha-icon-button
           slot="toolbar-icon"
@@ -126,16 +140,6 @@ export class HaConfigAppsInstalled extends LitElement {
             </ha-button>
           </header>
           <div class="filters">
-            <ha-input-search
-              appearance="outlined"
-              .value=${this._filter}
-              .placeholder=${this.hass.localize(
-                "ui.panel.config.apps.installed.search",
-                { number: all.length }
-              )}
-              @input=${this._handleSearchChange}
-            >
-            </ha-input-search>
             <div
               class="chips"
               role="group"
@@ -312,8 +316,8 @@ export class HaConfigAppsInstalled extends LitElement {
       : [...this._statusFilters, status];
   }
 
-  private _handleSearchChange(ev: InputEvent) {
-    this._filter = (ev.target as HTMLInputElement).value;
+  private _handleSearchChange(ev: CustomEvent<{ value: string }>) {
+    this._filter = ev.detail.value;
   }
 
   private async _loadData(): Promise<void> {
@@ -450,11 +454,6 @@ export class HaConfigAppsInstalled extends LitElement {
         align-items: center;
         gap: var(--ha-space-3);
         margin-bottom: var(--ha-space-4);
-      }
-      ha-input-search {
-        flex: 1 1 260px;
-        min-width: 0;
-        max-width: 420px;
       }
       .chips {
         display: flex;

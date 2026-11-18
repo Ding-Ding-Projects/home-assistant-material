@@ -72,8 +72,6 @@ import "../../../components/ha-icon-button";
 import "../../../components/ha-icon-overflow-menu";
 import "../../../components/ha-state-icon";
 import "../../../components/ha-svg-icon";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
-import "../../../components/input/ha-input-search";
 import { createAreaRegistryEntry } from "../../../data/area/area_registry";
 import type { CategoryRegistryEntry } from "../../../data/category_registry";
 import {
@@ -427,6 +425,19 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         .tabs=${configSections.automations}
         content-heading
         has-fab
+        searchable
+        .searchLabel=${searchLabel}
+        .searchValue=${this._tableSettings.search}
+        .searchCountText=${
+          this._tableSettings.search
+            ? this.hass.localize("ui.components.top_bar_search.count", {
+                current: scenes.length,
+                total: allScenes.length,
+              })
+            : undefined
+        }
+        .searchSamples=${allScenes.map((scene) => scene.name)}
+        @top-bar-search-input=${this._searchChanged}
       >
         <ha-icon-button
           slot="toolbar-icon"
@@ -453,7 +464,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           ${
             this.scenes.length
               ? html`
-                  ${this._renderToolbar(searchLabel, filterCount)}
+                  ${this._renderToolbar(filterCount)}
                   ${this._selectMode ? this._renderSelectionBar() : nothing}
                 `
               : nothing
@@ -654,19 +665,11 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     } as unknown as HASSDomEvent<HASSDomEvents["grouping-changed"]>);
   }
 
-  private _renderToolbar(searchLabel: string, filterCount: number) {
+  private _renderToolbar(filterCount: number) {
     const areaId = this._selectedAreas[0];
     const categoryIds = this._selectedCategories;
     const labelIds = this._selectedLabels;
     return html`<div class="toolbar">
-      <ha-input-search
-        class="search"
-        appearance="outlined"
-        .placeholder=${searchLabel}
-        .accessibleLabel=${searchLabel}
-        .value=${this._tableSettings.search}
-        @input=${this._searchChanged}
-      ></ha-input-search>
       <ha-dropdown @wa-select=${this._handleAreaFilter}>
         <ha-assist-chip
           slot="trigger"
@@ -1325,8 +1328,8 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     ];
   }
 
-  private _searchChanged(ev: Event) {
-    const value = (ev.target as HaInputSearch).value ?? "";
+  private _searchChanged(ev: CustomEvent<{ value: string }>) {
+    const value = ev.detail.value;
     this._tableSettings.searchChanged({
       detail: { value },
     } as unknown as HASSDomEvent<HASSDomEvents["search-changed"]>);

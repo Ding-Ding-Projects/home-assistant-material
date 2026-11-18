@@ -13,7 +13,6 @@ import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-svg-icon";
-import "../../../components/input/ha-input-search";
 import type {
   HassioAddonRepository,
   HassioAddonsInfo,
@@ -152,6 +151,10 @@ export class HaConfigAppsAvailable extends LitElement {
         .route=${this.route}
         back-path="/config/apps"
         .header=${this.hass.localize("ui.panel.config.apps.store.title")}
+        searchable
+        .searchLabel=${this.hass.localize("ui.panel.config.apps.store.search")}
+        .searchValue=${this._filter ?? ""}
+        @top-bar-search-input=${this._filterChanged}
       >
         <ha-dropdown slot="toolbar-icon" @wa-select=${this._handleAction}>
           <ha-icon-button
@@ -221,14 +224,6 @@ export class HaConfigAppsAvailable extends LitElement {
                     </div>
                   </header>
                   <div class="filters">
-                    <ha-input-search
-                      appearance="outlined"
-                      .value=${this._filter}
-                      .placeholder=${this.hass.localize(
-                        "ui.panel.config.apps.store.search"
-                      )}
-                      @input=${this._filterChanged}
-                    ></ha-input-search>
                     <div
                       class="chips"
                       role="group"
@@ -415,8 +410,8 @@ export class HaConfigAppsAvailable extends LitElement {
     }
   };
 
-  private _filterChanged(e: InputEvent) {
-    this._filter = (e.target as HTMLInputElement).value;
+  private _filterChanged(e: CustomEvent<{ value: string }>) {
+    this._filter = e.detail.value;
   }
 
   static styles = css`
@@ -469,11 +464,6 @@ export class HaConfigAppsAvailable extends LitElement {
       align-items: center;
       gap: var(--ha-space-3);
       margin-bottom: var(--ha-space-2);
-    }
-    ha-input-search {
-      flex: 1 1 260px;
-      min-width: 0;
-      max-width: 420px;
     }
     .chips {
       display: flex;

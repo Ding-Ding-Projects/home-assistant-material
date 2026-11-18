@@ -14,8 +14,6 @@ import "../../../components/ha-markdown";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-date-input";
 import { rewriteArticleLinks } from "../../../components/help/help-article-path";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type { UpdateEntity } from "../../../data/update";
 import { UpdateEntityFeature, updateReleaseNotes } from "../../../data/update";
 import "../../../layouts/hass-subpage";
@@ -121,6 +119,21 @@ class HaConfigReleaseNotes extends LitElement {
         .narrow=${this.narrow}
         back-path="/config/info"
         .header=${this._l("title")}
+        searchable
+        .searchLabel=${search}
+        .searchValue=${this._filter}
+        .searchCountText=${
+          this._filter
+            ? this.hass.localize("ui.components.top_bar_search.count", {
+                current: shown,
+                total,
+              })
+            : undefined
+        }
+        .searchSamples=${all.flatMap((day) =>
+          day.entries.map((entry) => entry.text)
+        )}
+        @top-bar-search-input=${this._filterChanged}
         .breadcrumb=${`${this.hass.localize("panel.config")}, ${this.hass.localize(
           "ui.panel.config.info.caption"
         )}`}
@@ -130,16 +143,6 @@ class HaConfigReleaseNotes extends LitElement {
           <div class="columns">
             <div class="main">
               <div class="filters">
-                <ha-input-search
-                  appearance="outlined"
-                  .placeholder=${search}
-                  .accessibleLabel=${search}
-                  .value=${this._filter}
-                  .patternSamples=${all.flatMap((day) =>
-                    day.entries.map((entry) => entry.text)
-                  )}
-                  @input=${this._filterChanged}
-                ></ha-input-search>
                 <div class="range">
                   <ha-date-input
                     .locale=${this.hass.locale}
@@ -368,8 +371,8 @@ class HaConfigReleaseNotes extends LitElement {
     }
   }
 
-  private _filterChanged(ev: Event): void {
-    this._filter = (ev.target as HaInputSearch).value ?? "";
+  private _filterChanged(ev: CustomEvent<{ value: string }>): void {
+    this._filter = ev.detail.value;
   }
 
   private _fromChanged(ev: CustomEvent<{ value?: string }>): void {
@@ -473,11 +476,6 @@ class HaConfigReleaseNotes extends LitElement {
           flex: 1 1 160px;
           min-width: 140px;
           max-width: 220px;
-        }
-        ha-input-search {
-          flex: 1 1 240px;
-          --ha-input-search-height: var(--ha-space-12);
-          --ha-input-search-border-radius: var(--ha-border-radius-pill);
         }
         .chip {
           min-height: 44px;
