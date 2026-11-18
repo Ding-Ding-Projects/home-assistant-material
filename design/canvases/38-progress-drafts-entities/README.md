@@ -9,7 +9,7 @@ Six boards, each drawn as real screens of the app in its dark theme at phone wid
 | `Drafts.dc.html` | Drafts, import, export | Interactive. Coming back to unsaved changes after a crash, the editor menu as a bottom sheet with draft history, download, copy and import, and an import preview that marks what this home does not have |
 | `Entities.dc.html` | Every entity kind | Interactive. The list row, the detail sheet (light, climate, cover and lock shown) and the tile for an entity, plus the first control for each of twenty-four groups of entity kinds |
 | `Before.dc.html` | Backup before an update | Interactive. One choice for which updates get a backup first: system updates only (Core, Supervisor, operating system), every update, or none; what that means kind by kind; and how the update rows show it |
-| `Camera.dc.html` | Camera sheet | A camera's detail sheet live, limited by its provider for too many requests, starting, and offline. The message sits inside the picture area and never covers the header |
+| `Camera.dc.html` | Camera sheet | A camera's detail sheet live, limited by its provider for too many requests, starting, and offline. The message sits inside the picture area and never covers the header. Also the recording amount for a camera: All day (the default), Light (video kept only around something being seen) or Off |
 
 ## Rules the boards carry
 
