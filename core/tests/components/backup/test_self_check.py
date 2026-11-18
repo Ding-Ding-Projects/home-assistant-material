@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
+from aiohasupervisor.models.backups import LOCATION_CLOUD_BACKUP, LOCATION_LOCAL_STORAGE
 import pytest
 from pytest_homeassistant.typing import WebSocketGenerator
 from securetar import SecureTarArchive
@@ -149,13 +150,20 @@ class _RemoteAgent:
 
 
 class _SupervisorAgent(_RemoteAgent):
-    """Stand-in for a Supervisor agent, which serves every copy as a stream."""
+    """Stand-in for a Supervisor agent, which serves every copy as a stream.
+
+    Mirrors SupervisorBackupAgent: the name, unique id and location are the
+    same string for a mount, and ".local" for the local storage, named "local".
+    """
 
     domain = "hassio"
 
-    def __init__(self, data: bytes | Exception, location: str | None) -> None:
+    def __init__(self, data: bytes | Exception, location: str) -> None:
         super().__init__(data)
         self.location = location
+        self.name = self.unique_id = (
+            "local" if location == LOCATION_LOCAL_STORAGE else location
+        )
 
 
 def _manager(
@@ -618,7 +626,7 @@ async def test_supervisor_local_storage_is_read_in_full(
 ) -> None:
     """The Supervisor's local storage is read in full even in Light mode."""
     agent, size = _local(tmp_path)
-    supervisor = _SupervisorAgent(agent.path.read_bytes(), None)
+    supervisor = _SupervisorAgent(agent.path.read_bytes(), LOCATION_LOCAL_STORAGE)
     manager = _manager(hass, {"hassio.local": (supervisor, False, size)}, None)
 
     result = await async_self_check(manager, BACKUP_ID, settings=LIGHT)
@@ -641,7 +649,7 @@ async def test_supervisor_local_storage_protected_backup(
 ) -> None:
     """A protected backup in the Supervisor's local storage unlocks with the key."""
     agent, size = _local(tmp_path, password=KEY)
-    supervisor = _SupervisorAgent(agent.path.read_bytes(), None)
+    supervisor = _SupervisorAgent(agent.path.read_bytes(), LOCATION_LOCAL_STORAGE)
     manager = _manager(hass, {"hassio.local": (supervisor, True, size)}, KEY)
 
     result = await async_self_check(manager, BACKUP_ID, settings=LIGHT)
@@ -650,13 +658,76 @@ async def test_supervisor_local_storage_protected_backup(
     assert result.status == "passed"
 
 
+@pytest.mark.parametrize(
+    "settings",
+    [
+        LIGHT,
+        OFF,
+        FULL,
+        SelfCheckSettings(remote_mode=REMOTE_MODE_LIGHT, max_full_download_bytes=1),
+    ],
+    ids=["light", "off", "full", "over_size_limit"],
+)
+async def test_supervisor_local_storage_only_copy_passes_in_full(
+    hass: HomeAssistant, tmp_path: Path, settings: SelfCheckSettings
+) -> None:
+    """A backup only in the Supervisor's local storage is read in full."""
+    agent, size = _local(tmp_path)
+    supervisor = _SupervisorAgent(agent.path.read_bytes(), LOCATION_LOCAL_STORAGE)
+    manager = _manager(hass, {"hassio.local": (supervisor, False, size)}, None)
+
+    result = await async_self_check(manager, BACKUP_ID, settings=settings)
+
+    assert _copies(result) == {"hassio.local": ("full", "verified_in_full", None)}
+    assert result.copies[0].downgraded is None
+    assert {check.reason for check in result.checks} == {None}
+    assert [check.status for check in result.checks] == [
+        "passed",
+        "passed",
+        "not_applicable",
+        "passed",
+        "passed",
+        "not_applicable",
+    ]
+    assert result.status == "passed"
+
+
+@pytest.mark.parametrize("full_download", [False, True])
+async def test_check_location_supervisor_local_storage(
+    hass: HomeAssistant, tmp_path: Path, full_download: bool
+) -> None:
+    """Checking the Supervisor's local storage again reads it in full."""
+    agent, size = _local(tmp_path)
+    supervisor = _SupervisorAgent(agent.path.read_bytes(), LOCATION_LOCAL_STORAGE)
+    manager = _manager(hass, {"hassio.local": (supervisor, False, size)}, None)
+
+    copy = await async_check_location(
+        manager, BACKUP_ID, "hassio.local", full_download=full_download
+    )
+
+    assert (copy.method, copy.status, copy.reason) == ("full", "verified_in_full", None)
+
+
+async def test_supervisor_local_storage_is_identified_by_agent_id(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """The agent id alone also marks the Supervisor's local storage."""
+    agent, size = _local(tmp_path)
+    supervisor = _SupervisorAgent(agent.path.read_bytes(), "unexpected")
+    manager = _manager(hass, {"hassio.local": (supervisor, False, size)}, None)
+
+    result = await async_self_check(manager, BACKUP_ID, settings=OFF)
+
+    assert _copies(result) == {"hassio.local": ("full", "verified_in_full", None)}
+
+
 async def test_supervisor_local_and_cloud_copies(
     hass: HomeAssistant, tmp_path: Path
 ) -> None:
     """The Supervisor's local copy is read in full, a cloud copy only lightly."""
     agent, size = _local(tmp_path)
     data = agent.path.read_bytes()
-    local = _SupervisorAgent(data, None)
+    local = _SupervisorAgent(data, LOCATION_LOCAL_STORAGE)
     cloud = _RemoteAgent(data)
     manager = _manager(
         hass,
@@ -681,8 +752,8 @@ async def test_supervisor_cloud_location_stays_light(
     """The Supervisor's cloud location is remote, not local."""
     agent, size = _local(tmp_path)
     data = agent.path.read_bytes()
-    local = _SupervisorAgent(data, None)
-    cloud = _SupervisorAgent(data, ".cloud_backup")
+    local = _SupervisorAgent(data, LOCATION_LOCAL_STORAGE)
+    cloud = _SupervisorAgent(data, LOCATION_CLOUD_BACKUP)
     manager = _manager(
         hass,
         {"hassio.local": (local, False, size), "hassio.cloud": (cloud, False, size)},
@@ -713,7 +784,7 @@ async def test_supervisor_network_mount(
     """A network mount is read in full unless it is over the limit or checks are off."""
     agent, size = _local(tmp_path)
     data = agent.path.read_bytes()
-    local = _SupervisorAgent(data, None)
+    local = _SupervisorAgent(data, LOCATION_LOCAL_STORAGE)
     mount = _SupervisorAgent(data, "nas")
     manager = _manager(
         hass,
@@ -741,7 +812,11 @@ async def test_no_local_copy_light_is_never_a_pass_or_failure(
         hass,
         {
             "cloud.one": (_RemoteAgent(data), False, size),
-            "hassio.cloud": (_SupervisorAgent(data, ".cloud_backup"), False, size),
+            "hassio.cloud": (
+                _SupervisorAgent(data, LOCATION_CLOUD_BACKUP),
+                False,
+                size,
+            ),
         },
         None,
     )

@@ -55,6 +55,8 @@ KIND_LOCAL = "local"
 KIND_NETWORK = "network"
 KIND_REMOTE = "remote"
 SUPERVISOR_DOMAIN = "hassio"
+SUPERVISOR_LOCAL_LOCATION = ".local"
+SUPERVISOR_LOCAL_AGENT_ID = f"{SUPERVISOR_DOMAIN}.local"
 SUPERVISOR_CLOUD_LOCATION = ".cloud_backup"
 
 METHOD_FULL = "full"
@@ -806,10 +808,19 @@ def _agent_kind(manager: BackupManager, agent_id: str) -> str:
     if getattr(agent, "domain", None) != SUPERVISOR_DOMAIN:
         return KIND_REMOTE
     location = getattr(agent, "location", KIND_REMOTE)
-    if location is None:
+    # hassio/backup.py: the Supervisor's local storage is created as
+    # SupervisorBackupAgent(hass, "local", LOCATION_LOCAL_STORAGE), where
+    # LOCATION_LOCAL_STORAGE is ".local", and so has the agent id "hassio.local".
+    if (
+        location is None
+        or location == SUPERVISOR_LOCAL_LOCATION
+        or agent_id == SUPERVISOR_LOCAL_AGENT_ID
+    ):
         return KIND_LOCAL
+    # LOCATION_CLOUD_BACKUP, ".cloud_backup"
     if location == SUPERVISOR_CLOUD_LOCATION:
         return KIND_REMOTE
+    # Network mounts are created with the mount name as name and location
     return KIND_NETWORK
 
 
