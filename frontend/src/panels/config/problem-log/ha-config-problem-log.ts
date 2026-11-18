@@ -5,8 +5,6 @@ import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-spinner";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type {
   ProblemLogOverview,
   RecordedProblem,
@@ -48,8 +46,8 @@ class HaConfigProblemLog extends LitElement {
     );
   }
 
-  private _filterChanged(ev: Event): void {
-    this._filter = (ev.target as HaInputSearch).value ?? "";
+  private _filterChanged(ev: CustomEvent<{ value: string }>): void {
+    this._filter = ev.detail.value;
   }
 
   private _shown(): RecordedProblem[] {
@@ -60,12 +58,27 @@ class HaConfigProblemLog extends LitElement {
   }
 
   protected render(): TemplateResult {
+    const overview = this._overview;
+    const total = overview?.problems.length ?? 0;
     return html`
       <hass-subpage
         .hass=${this.hass}
         .narrow=${this.narrow}
         back-path="/config/system"
         .header=${this._l("title")}
+        searchable
+        .searchLabel=${this._l("search", { count: total })}
+        .searchValue=${this._filter}
+        .searchCountText=${
+          this._filter.trim() !== ""
+            ? this.hass.localize("ui.components.top_bar_search.count", {
+                current: this._shown().length,
+                total,
+              })
+            : undefined
+        }
+        .searchSamples=${overview?.problems.map((item) => item.title)}
+        @top-bar-search-input=${this._filterChanged}
       >
         <div class="content">${this._renderBody()}</div>
       </hass-subpage>
@@ -85,7 +98,6 @@ class HaConfigProblemLog extends LitElement {
     const shown = this._shown();
     const total = overview.problems.length;
     const searching = this._filter.trim() !== "";
-    const search = this._l("search", { count: total });
     return html`
       <ha-alert alert-type="info">${this._l("nothing_sent")}</ha-alert>
       <p class="note">
@@ -99,14 +111,6 @@ class HaConfigProblemLog extends LitElement {
         }
       </p>
       <div class="toolbar">
-        <ha-input-search
-          appearance="outlined"
-          .placeholder=${search}
-          .accessibleLabel=${search}
-          .value=${this._filter}
-          .patternSamples=${overview.problems.map((item) => item.title)}
-          @input=${this._filterChanged}
-        ></ha-input-search>
         <ha-button appearance="plain" @click=${this._load}
           >${this._l("refresh")}</ha-button
         >
@@ -172,10 +176,6 @@ class HaConfigProblemLog extends LitElement {
           display: flex;
           gap: var(--ha-space-2);
           align-items: center;
-        }
-        .toolbar ha-input-search {
-          flex: 1;
-          min-width: 0;
         }
         .center {
           display: flex;

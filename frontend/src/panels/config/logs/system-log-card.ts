@@ -329,6 +329,32 @@ export class SystemLogCard extends LitElement {
     this.dispatchEvent(new CustomEvent("show-all-levels"));
   }
 
+  protected updated(changedProps: PropertyValues<this>): void {
+    super.updated(changedProps);
+    if (!this._items) {
+      return;
+    }
+    // Tell the page how many logged problems the search and levels leave, so
+    // the top bar can show "n of total".
+    const current = this._getFilteredItems(
+      this.hass.localize,
+      this._items,
+      this.filter,
+      this.integrations?.length ? this.integrationLoggers : undefined,
+      this._showAllLevels ? undefined : this.levels
+    ).length;
+    const total = this._items.length;
+    if (current !== this._reportedCount || total !== this._reportedTotal) {
+      this._reportedCount = current;
+      this._reportedTotal = total;
+      fireEvent(this, "system-log-count", { current, total });
+    }
+  }
+
+  private _reportedCount?: number;
+
+  private _reportedTotal?: number;
+
   protected firstUpdated(changedProps: PropertyValues<this>): void {
     super.firstUpdated(changedProps);
     this.fetchData();
@@ -449,6 +475,9 @@ export class SystemLogCard extends LitElement {
 }
 
 declare global {
+  interface HASSDomEvents {
+    "system-log-count": { current: number; total: number };
+  }
   interface HTMLElementTagNameMap {
     "system-log-card": SystemLogCard;
   }

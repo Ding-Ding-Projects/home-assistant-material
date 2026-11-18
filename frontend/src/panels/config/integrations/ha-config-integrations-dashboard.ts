@@ -236,6 +236,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
       [string, ConfigEntryExtended[]][],
       ConfigEntryExtended[],
       ConfigEntryExtended[],
+      number,
     ] => {
       const entryDomains = new Set(configEntries.map((entry) => entry.domain));
 
@@ -342,6 +343,14 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
           this.hass.localize,
           this.hass.locale.language
         ),
+        // How many integrations the page lists with no search
+        new Set(
+          allEntries
+            .filter(
+              (entry) => entry.source !== "ignore" && entry.disabled_by === null
+            )
+            .map((entry) => entry.domain)
+        ).size,
       ];
     }
   );
@@ -479,15 +488,19 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         .narrow=${this.narrow}
       ></hass-loading-screen>`;
     }
-    const [integrations, ignoredConfigEntries, disabledConfigEntries] =
-      this._filterConfigEntries(
-        this.hass.config.components,
-        this._manifests,
-        this.configEntries,
-        this._entityRegistryEntries,
-        this.hass.localize,
-        this._filter
-      );
+    const [
+      integrations,
+      ignoredConfigEntries,
+      disabledConfigEntries,
+      totalIntegrations,
+    ] = this._filterConfigEntries(
+      this.hass.config.components,
+      this._manifests,
+      this.configEntries,
+      this._entityRegistryEntries,
+      this.hass.localize,
+      this._filter
+    );
     const configEntriesInProgress = this._filterConfigEntriesInProgress(
       this.configEntriesInProgress,
       this._improvDiscovered,
@@ -543,6 +556,14 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         searchable
         .searchLabel=${this.hass.localize("ui.panel.config.integrations.search")}
         .searchValue=${this._filter}
+        .searchCountText=${
+          this._filter
+            ? this.hass.localize("ui.components.top_bar_search.count", {
+                current: shownIntegrations.length,
+                total: totalIntegrations,
+              })
+            : undefined
+        }
         @top-bar-search-input=${this._handleSearchChange}
         @top-bar-search-close=${this._flushUrl}
       >

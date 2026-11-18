@@ -178,7 +178,7 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   {
     file: "components/ha-top-bar-search.ts",
     searches:
-      "The page search drawn in the top bar of any page built on the subpage layouts that opts in with the searchable property. Pages moved onto it: personal settings and sidebar labels, release notes, notifications, support, apps installed and available, extensions, the logs page, the integrations page, tags and scenes in card view. The matching stays on each page, in its own file",
+      "The page search drawn in the top bar of any page built on the subpage layouts that opts in with the searchable property. Pages moved onto it: personal settings and sidebar labels, release notes, notifications, support, apps installed and available, extensions, the logs page, the integrations page, the help page, the problem log, tags and scenes in card view. The matching stays on each page, in its own file",
     matcher: "panels/config/personal/ha-config-section-personal.ts",
   },
   {
@@ -305,10 +305,6 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Kinds of YAML configuration that can be reloaded",
   },
   {
-    file: "panels/config/help/ha-config-help.ts",
-    searches: "Titles and paths of the offline help articles, on the Help page",
-  },
-  {
     file: "panels/config/guided-setup/ha-config-guided-setup.ts",
     searches: "Integrations that have no setup screen",
   },
@@ -320,10 +316,6 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     file: "panels/config/ollama/ha-config-ollama.ts",
     searches:
       "Models stored on an Ollama server by name, family, size and quantisation",
-  },
-  {
-    file: "panels/config/problem-log/ha-config-problem-log.ts",
-    searches: "Problems recorded in the local problem log",
   },
   {
     file: "panels/config/voice-assistants/dialog-expose-entity.ts",

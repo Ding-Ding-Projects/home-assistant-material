@@ -122,6 +122,9 @@ export class HaConfigLogs extends LitElement {
 
   @state() private _detail = false;
 
+  // How many logged problems the search and levels leave, from the card
+  @state() private _logCount?: { current: number; total: number };
+
   @query("system-log-card") private systemLog?: SystemLogCard;
 
   @query("#provider-picker") private providerPicker?: HaGenericPicker;
@@ -220,6 +223,14 @@ export class HaConfigLogs extends LitElement {
         searchable
         .searchLabel=${this.hass.localize("ui.panel.config.logs.search")}
         .searchValue=${this._filter}
+        .searchCountText=${
+          this._filter && this._logCount && core && !this._detail
+            ? this.hass.localize("ui.components.top_bar_search.count", {
+                current: this._logCount.current,
+                total: this._logCount.total,
+              })
+            : undefined
+        }
         @top-bar-search-input=${this._filterChanged}
         @top-bar-search-close=${this._flushUrl}
       >
@@ -351,6 +362,7 @@ export class HaConfigLogs extends LitElement {
                           this._manifests
                         )}
                         no-title
+                        @system-log-count=${this._logCountChanged}
                         @switch-log-view=${this._showDetail}
                         @show-all-levels=${this._showAllLevels}
                       ></system-log-card>
@@ -375,6 +387,13 @@ export class HaConfigLogs extends LitElement {
         </div>
       </hass-subpage>
     `;
+  }
+
+  private _logCountChanged(
+    ev: CustomEvent<{ current: number; total: number }>
+  ) {
+    ev.stopPropagation();
+    this._logCount = ev.detail;
   }
 
   private _showDetail() {

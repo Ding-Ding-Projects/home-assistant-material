@@ -29,8 +29,6 @@ import {
   rewriteArticleLinks,
 } from "../../../components/help/help-article-path";
 import type { HelpArticleNavigateDetail } from "../../../components/help/open-help-article";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
@@ -169,12 +167,31 @@ class HaConfigHelp extends LitElement {
   }
 
   protected render(): TemplateResult {
+    const index = this._index;
+    // The search filters the article list, which a phone hides while an
+    // article is open.
+    const listShown = !!index && (!this.narrow || this._path === undefined);
     return html`
       <hass-subpage
         .hass=${this.hass}
         .narrow=${this.narrow}
         back-path="/config"
         .header=${this._l("title")}
+        .searchable=${listShown}
+        .searchLabel=${this._l("search")}
+        .searchValue=${this._filter}
+        .searchCountText=${
+          this._filter && index
+            ? this.hass.localize("ui.components.top_bar_search.count", {
+                current: index.articles.filter((a) =>
+                  searchMatcher(this._filter)(a.title, a.path)
+                ).length,
+                total: index.articles.length,
+              })
+            : undefined
+        }
+        .searchSamples=${index?.articles.map((a) => a.title)}
+        @top-bar-search-input=${this._filterChanged}
       >
         <div class=${classMap({ content: true, narrow: this.narrow })}>
           ${this._renderBody()}
@@ -194,25 +211,12 @@ class HaConfigHelp extends LitElement {
     }
     const showReader = !this.narrow || this._path !== undefined;
     const showList = !this.narrow || this._path === undefined;
-    const search = this._l("search");
     return html`
       <p class="summary">
         ${this._l("summary", {
           count: this._index.articles.length,
         })}
       </p>
-      ${
-        showList
-          ? html`<ha-input-search
-              appearance="outlined"
-              .placeholder=${search}
-              .accessibleLabel=${search}
-              .value=${this._filter}
-              .patternSamples=${this._index.articles.map((a) => a.title)}
-              @input=${this._filterChanged}
-            ></ha-input-search>`
-          : nothing
-      }
       <div class="columns">
         ${showList ? this._renderList(this._index) : nothing}
         ${showReader ? this._renderReader(this._index) : nothing}
@@ -220,8 +224,8 @@ class HaConfigHelp extends LitElement {
     `;
   }
 
-  private _filterChanged(ev: Event): void {
-    this._filter = (ev.target as HaInputSearch).value ?? "";
+  private _filterChanged(ev: CustomEvent<{ value: string }>): void {
+    this._filter = ev.detail.value;
   }
 
   private _renderList(index: HelpIndex): TemplateResult {
@@ -459,11 +463,6 @@ class HaConfigHelp extends LitElement {
         }
         .summary {
           margin: 0 0 var(--ha-space-3);
-        }
-        ha-input-search {
-          display: block;
-          max-width: 520px;
-          margin-bottom: var(--ha-space-4);
         }
         .columns {
           display: grid;

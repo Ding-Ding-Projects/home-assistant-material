@@ -1983,6 +1983,17 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     .summary-row p {
       min-width: 0;
     }
+    /* The line sits in a narrow title column while the top bar search is
+       open: one line, ending with an ellipsis, never three. */
+    :host(:not([narrow])) .summary-row {
+      min-width: 0;
+      overflow: hidden;
+    }
+    :host(:not([narrow])) .summary-row p {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .summary-toggle {
       position: relative;
       display: grid;
