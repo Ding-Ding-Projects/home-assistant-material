@@ -31,6 +31,10 @@ import {
   createStateControlCircularSliderController,
   stateControlCircularSliderStyle,
 } from "../state-control-circular-slider-style";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../common/language-mode/language-mode";
 
 @customElement("ha-state-control-water_heater-temperature")
 export class HaStateControlWaterHeaterTemperature extends LitElement {
@@ -51,6 +55,10 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._localize);
+  }
 
   @property({ attribute: "show-current", type: Boolean })
   public showCurrent = false;
@@ -166,7 +174,7 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
     }
 
     return html`
-      <p class="label">${this._localize("ui.card.water_heater.target")}</p>
+      <p class="label">${this._modeLocalize("ui.card.water_heater.target")}</p>
     `;
   }
 
@@ -182,7 +190,7 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
       <div class="buttons">
         <ha-outlined-icon-button
           .step=${-this._step}
-          .label=${this._localize(
+          .label=${this._modeLocalize(
             "ui.components.climate-control.temperature_down"
           )}
           @click=${this._handleButton}
@@ -191,7 +199,7 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
         </ha-outlined-icon-button>
         <ha-outlined-icon-button
           .step=${this._step}
-          .label=${this._localize(
+          .label=${this._modeLocalize(
             "ui.components.climate-control.temperature_up"
           )}
           @click=${this._handleButton}
@@ -224,7 +232,7 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
 
     return html`
       <p class="label">
-        ${this._localize("ui.card.water_heater.currently")}
+        ${this._modeLocalize("ui.card.water_heater.currently")}
         <span>
           ${this._formatters.formatEntityAttributeValue(
             this.stateObj,
@@ -251,9 +259,9 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
     const atMin = temperature <= this._min;
     const atMax = temperature >= this._max;
     const limitText = atMax
-      ? this._localize("ui.card.water_heater.maximum_reached")
+      ? this._modeLocalize("ui.card.water_heater.maximum_reached")
       : atMin
-        ? this._localize("ui.card.water_heater.minimum_reached")
+        ? this._modeLocalize("ui.card.water_heater.minimum_reached")
         : "";
     const current = this.stateObj.attributes.current_temperature;
     return html`
@@ -261,13 +269,13 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
         class="stepper"
         style=${styleMap({ "--stepper-color": color })}
         role="group"
-        aria-label=${this._localize("ui.card.water_heater.target_temperature")}
+        aria-label=${this._modeLocalize("ui.card.water_heater.target_temperature")}
       >
         <button
           type="button"
           class="step minus"
           .step=${-this._step}
-          aria-label=${this._localize(
+          aria-label=${this._modeLocalize(
             "ui.components.climate-control.temperature_down"
           )}
           aria-disabled=${atMin ? "true" : "false"}
@@ -283,7 +291,7 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
           type="button"
           class="step plus"
           .step=${this._step}
-          aria-label=${this._localize(
+          aria-label=${this._modeLocalize(
             "ui.components.climate-control.temperature_up"
           )}
           aria-disabled=${atMax ? "true" : "false"}
@@ -296,7 +304,7 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
         current != null
           ? html`
               <p class="board-status">
-                ${this._localize("ui.card.water_heater.currently")}
+                ${this._modeLocalize("ui.card.water_heater.currently")}
                 ${this._formatters.formatEntityAttributeValue(
                   this.stateObj,
                   "current_temperature",
@@ -354,7 +362,7 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
             .max=${this._max}
             .step=${this._step}
             .current=${this.stateObj.attributes.current_temperature}
-            .label=${this._localize("ui.card.water_heater.target_temperature")}
+            .label=${this._modeLocalize("ui.card.water_heater.target_temperature")}
             .formatValue=${this._formatTarget}
             @value-changed=${this._valueChanged}
             @value-changing=${this._valueChanging}

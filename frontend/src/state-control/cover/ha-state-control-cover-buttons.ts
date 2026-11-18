@@ -28,6 +28,7 @@ import {
   canStopTilt,
 } from "../../data/cover";
 import type { HomeAssistantApi } from "../../types";
+import { stateControlButtonStyle } from "../state-control-button-style";
 
 type CoverButton =
   "open" | "close" | "stop" | "open-tilt" | "close-tilt" | "none";
@@ -251,48 +252,51 @@ export class HaStateControlCoverButtons extends LitElement {
     `;
   }
 
-  static styles = css`
-    :host {
-      display: block;
-      width: 100%;
-    }
-    ha-control-button-group {
-      width: 100%;
-      --control-button-group-spacing: 10px;
-      --control-button-group-thickness: 56px;
-    }
-    .cross-container {
-      display: grid;
-      gap: 10px;
-      justify-content: center;
-      grid-template-columns: repeat(3, 56px);
-      grid-template-rows: repeat(3, 56px);
-      grid-template-areas: ". open ." "close-tilt stop open-tilt" ". close .";
-    }
-    .cross-container > * {
-      width: 100%;
-      height: 100%;
-    }
-    .cross-container > [data-button="open"] {
-      grid-area: open;
-    }
-    .cross-container > [data-button="close"] {
-      grid-area: close;
-    }
-    .cross-container > [data-button="open-tilt"] {
-      grid-area: open-tilt;
-    }
-    .cross-container > [data-button="close-tilt"] {
-      grid-area: close-tilt;
-    }
-    .cross-container > [data-button="stop"] {
-      grid-area: stop;
-    }
-    ha-control-button {
-      --control-button-border-radius: var(--ha-border-radius-6xl);
-      --mdc-icon-size: 24px;
-    }
-  `;
+  static styles = [
+    stateControlButtonStyle,
+    css`
+      :host {
+        display: block;
+        width: 100%;
+      }
+      ha-control-button-group {
+        width: 100%;
+        --control-button-group-spacing: 10px;
+        --control-button-group-thickness: 56px;
+      }
+      .cross-container {
+        display: grid;
+        gap: 10px;
+        justify-content: center;
+        grid-template-columns: repeat(3, 56px);
+        grid-template-rows: repeat(3, 56px);
+        grid-template-areas: ". open ." "close-tilt stop open-tilt" ". close .";
+      }
+      .cross-container > * {
+        width: 100%;
+        height: 100%;
+      }
+      .cross-container > [data-button="open"] {
+        grid-area: open;
+      }
+      .cross-container > [data-button="close"] {
+        grid-area: close;
+      }
+      .cross-container > [data-button="open-tilt"] {
+        grid-area: open-tilt;
+      }
+      .cross-container > [data-button="close-tilt"] {
+        grid-area: close-tilt;
+      }
+      .cross-container > [data-button="stop"] {
+        grid-area: stop;
+      }
+      ha-control-button {
+        --control-button-border-radius: var(--ha-border-radius-6xl);
+        --mdc-icon-size: 24px;
+      }
+    `,
+  ];
 }
 
 declare global {

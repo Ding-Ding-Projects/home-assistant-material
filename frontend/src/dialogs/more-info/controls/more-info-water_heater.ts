@@ -19,6 +19,10 @@ import {
 import { apiContext, formattersContext } from "../../../data/context";
 import "../../../state-control/water_heater/ha-state-control-water_heater-temperature";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-water_heater")
 class MoreInfoWaterHeater extends LitElement {
@@ -27,6 +31,10 @@ class MoreInfoWaterHeater extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._localize);
+  }
 
   @state()
   @consume({ context: apiContext, subscribe: true })
@@ -59,7 +67,7 @@ class MoreInfoWaterHeater extends LitElement {
     const hasTarget = stateObj.attributes.temperature != null;
     const summary = [
       currentTemperature != null
-        ? this._localize("ui.dialogs.more_info_control.water_heater.now", {
+        ? this._modeLocalize("ui.dialogs.more_info_control.water_heater.now", {
             value: this._formatters.formatEntityAttributeValue(
               stateObj,
               "current_temperature"

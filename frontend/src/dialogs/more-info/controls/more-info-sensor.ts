@@ -7,6 +7,10 @@ import { formatNumber } from "../../../common/number/format_number";
 import "../../../components/ha-relative-time";
 import { fetchDateWS } from "../../../data/history";
 import type { HomeAssistant } from "../../../types";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 type SensorRange = "24h" | "7d" | "30d";
 
@@ -103,12 +107,16 @@ class MoreInfoSensor extends LitElement {
     }
   }
 
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass!.localize);
+  }
+
   protected render() {
     if (!this.hass || !this.stateObj) {
       return nothing;
     }
     const stateObj = this.stateObj;
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const unit = stateObj.attributes.unit_of_measurement as string | undefined;
     const numeric = Number.isFinite(Number(stateObj.state));
 
@@ -170,7 +178,7 @@ class MoreInfoSensor extends LitElement {
     return html`
       <div class="stat">
         <div class="stat-label">
-          ${this.hass!.localize(`ui.dialogs.more_info_control.sensor.${key}`)}
+          ${this._modeLocalize(`ui.dialogs.more_info_control.sensor.${key}`)}
         </div>
         <div class="stat-value">
           ${
@@ -188,13 +196,13 @@ class MoreInfoSensor extends LitElement {
   private _renderChart() {
     if (this._loading) {
       return html`<div class="chart-empty">
-        ${this.hass!.localize("ui.dialogs.more_info_control.sensor.loading")}
+        ${this._modeLocalize("ui.dialogs.more_info_control.sensor.loading")}
       </div>`;
     }
     const summary = this._summary;
     if (!summary || summary.values.length < 2) {
       return html`<div class="chart-empty">
-        ${this.hass!.localize("ui.dialogs.more_info_control.sensor.no_history")}
+        ${this._modeLocalize("ui.dialogs.more_info_control.sensor.no_history")}
       </div>`;
     }
     const first = summary.values[0].time;
@@ -223,7 +231,7 @@ class MoreInfoSensor extends LitElement {
 
   private _renderDetails() {
     const attrs = this.stateObj!.attributes;
-    const localize = this.hass!.localize;
+    const localize = this._modeLocalize;
     const rows: { label: string; value: string }[] = [];
     if (attrs.device_class) {
       const name = localize(

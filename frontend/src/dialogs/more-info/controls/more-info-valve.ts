@@ -22,6 +22,10 @@ import "../../../state-control/valve/ha-state-control-valve-position";
 import type { HomeAssistantFormatters } from "../../../types";
 import "../components/valves/ha-more-info-valve-favorite-positions";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-valve")
 class MoreInfoValve extends LitElement {
@@ -32,6 +36,10 @@ class MoreInfoValve extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._localize);
+  }
 
   @property({ attribute: false }) public stateObj?: ValveEntity;
 
@@ -83,7 +91,7 @@ class MoreInfoValve extends LitElement {
             : nothing
         }
         <div class="since">
-          ${this._localize("ui.dialogs.more_info_control.valve.changed")}
+          ${this._modeLocalize("ui.dialogs.more_info_control.valve.changed")}
           <ha-relative-time
             .datetime=${this.stateObj.last_changed}
           ></ha-relative-time>

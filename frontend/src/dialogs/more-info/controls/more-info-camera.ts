@@ -52,12 +52,20 @@ import type {
   WebRtcStreamStopped,
 } from "../../../external_app/external_messaging";
 import { showToast } from "../../../util/toast";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-camera")
 class MoreInfoCamera extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._localize);
+  }
 
   @state()
   @consume({ context: configContext, subscribe: true })
@@ -172,10 +180,10 @@ class MoreInfoCamera extends LitElement {
               ${
                 this._playing
                   ? html`<span class="chip recorded-chip">
-                      ${this._localize("ui.components.camera_timeline.recorded")}
+                      ${this._modeLocalize("ui.components.camera_timeline.recorded")}
                     </span>`
                   : html`<span class="chip live-chip">
-                      ${this._localize("ui.dialogs.more_info_control.camera.live")}
+                      ${this._modeLocalize("ui.dialogs.more_info_control.camera.live")}
                     </span>`
               }
             </div>`
@@ -188,7 +196,7 @@ class MoreInfoCamera extends LitElement {
               ? html`<img
                   class="recording"
                   .src=${this._playing.url}
-                  alt=${this._localize("ui.components.camera_timeline.recorded")}
+                  alt=${this._modeLocalize("ui.components.camera_timeline.recorded")}
                 />`
               : html`<video
                   class="recording"
@@ -242,19 +250,19 @@ class MoreInfoCamera extends LitElement {
       <div class="playback">
         <ha-icon-button
           .path=${mdiRewind10}
-          .label=${this._localize("ui.components.camera_timeline.back_10")}
+          .label=${this._modeLocalize("ui.components.camera_timeline.back_10")}
           @click=${this._back10}
         ></ha-icon-button>
         <ha-icon-button
           .path=${this._paused ? mdiPlay : mdiPause}
-          .label=${this._localize(
+          .label=${this._modeLocalize(
             `ui.components.camera_timeline.${this._paused ? "play" : "pause"}`
           )}
           @click=${this._togglePause}
         ></ha-icon-button>
         <ha-icon-button
           .path=${mdiFastForward10}
-          .label=${this._localize("ui.components.camera_timeline.forward_10")}
+          .label=${this._modeLocalize("ui.components.camera_timeline.forward_10")}
           @click=${this._forward10}
         ></ha-icon-button>
         <span class="grow"></span>
@@ -269,7 +277,7 @@ class MoreInfoCamera extends LitElement {
         ></ha-button-toggle-group>
         <ha-icon-button
           .path=${mdiDownload}
-          .label=${this._localize("ui.components.camera_timeline.download")}
+          .label=${this._modeLocalize("ui.components.camera_timeline.download")}
           .href=${this._playing!.url}
           .download=${this._playing!.segment.name}
         ></ha-icon-button>
@@ -295,7 +303,7 @@ class MoreInfoCamera extends LitElement {
       segmentAt(this._segments, time) ?? segmentAfter(this._segments, time);
     if (!segment || !this.stateObj) {
       showToast(this, {
-        message: this._localize(
+        message: this._modeLocalize(
           "ui.components.camera_timeline.not_recorded_here"
         ),
       });
@@ -321,7 +329,9 @@ class MoreInfoCamera extends LitElement {
       this._playing = { segment, url: signed.path };
     } catch (_err) {
       showToast(this, {
-        message: this._localize("ui.components.camera_timeline.play_failed"),
+        message: this._modeLocalize(
+          "ui.components.camera_timeline.play_failed"
+        ),
       });
     }
   }
@@ -411,17 +421,17 @@ class MoreInfoCamera extends LitElement {
 
   private _microphoneDisabledReason(): string | undefined {
     if (!window.isSecureContext && !this._useAppMicrophone) {
-      return this._localize(
+      return this._modeLocalize(
         "ui.dialogs.more_info_control.camera.microphone_not_secure"
       );
     }
     if (this._streamType !== STREAM_TYPE_WEB_RTC) {
-      return this._localize(
+      return this._modeLocalize(
         "ui.dialogs.more_info_control.camera.microphone_webrtc_only"
       );
     }
     if (this._microphoneState === "denied") {
-      return this._localize(
+      return this._modeLocalize(
         "ui.dialogs.more_info_control.camera.microphone_denied"
       );
     }
@@ -453,7 +463,7 @@ class MoreInfoCamera extends LitElement {
                 .path=${microphoneOn ? mdiMicrophone : mdiMicrophoneOff}
               ></ha-svg-icon>`
         }
-        ${this._localize(`ui.dialogs.more_info_control.camera.${microphoneOn ? "stop_talking" : "start_talking"}`)}
+        ${this._modeLocalize(`ui.dialogs.more_info_control.camera.${microphoneOn ? "stop_talking" : "start_talking"}`)}
       </ha-button>
     `;
 
@@ -525,12 +535,12 @@ class MoreInfoCamera extends LitElement {
 
   private _appErrorMessage({ code, message }: EMError): string {
     if (code === "unknown" || !isWebRtcStreamErrorCode(code)) {
-      return this._localize(
+      return this._modeLocalize(
         "ui.dialogs.more_info_control.camera.app_microphone_error.unknown",
         { message }
       );
     }
-    return this._localize(
+    return this._modeLocalize(
       `ui.dialogs.more_info_control.camera.app_microphone_error.${code}`
     );
   }

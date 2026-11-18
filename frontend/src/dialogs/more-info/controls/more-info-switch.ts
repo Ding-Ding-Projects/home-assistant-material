@@ -26,6 +26,7 @@ class MoreInfoSwitch extends LitElement {
       ></ha-more-info-state-header>
       <div class="controls">
         <ha-state-control-toggle
+          compact
           .stateObj=${this.stateObj}
           .iconPathOn=${mdiPower}
           .iconPathOff=${mdiPowerOff}

@@ -14,6 +14,10 @@ import type {
   HomeAssistantInternationalization,
 } from "../../../types";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-configurator")
 export class MoreInfoConfigurator extends LitElement {
@@ -45,6 +49,10 @@ export class MoreInfoConfigurator extends LitElement {
     }
   }
 
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._i18n!.localize);
+  }
+
   protected render() {
     if (this.stateObj?.state !== "configure") {
       return nothing;
@@ -55,7 +63,7 @@ export class MoreInfoConfigurator extends LitElement {
         ${
           this._i18n
             ? html`<h2 class="headline warn">
-                ${this._i18n.localize(
+                ${this._modeLocalize(
                   "ui.dialogs.more_info_control.configurator.needs_you"
                 )}
               </h2>`

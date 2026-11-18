@@ -21,6 +21,10 @@ import type {
 import { fetchStatistics, getStatisticMetadata } from "../../data/recorder";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../common/language-mode/language-mode";
 
 declare global {
   interface HASSDomEvents {
@@ -52,6 +56,10 @@ export class MoreInfoHistory extends LitElement {
 
   private _metadata?: Record<string, StatisticsMetaData>;
 
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   protected render() {
     if (!this.entityId) {
       return nothing;
@@ -62,12 +70,12 @@ export class MoreInfoHistory extends LitElement {
         ? html`<div class="header">
               <div>
                 <h2>
-                  ${this.hass.localize("ui.dialogs.more_info_control.history")}
+                  ${this._modeLocalize("ui.dialogs.more_info_control.history")}
                 </h2>
                 ${
                   this._statistics
                     ? html`<div class="header-secondary">
-                        ${this.hass.localize(
+                        ${this._modeLocalize(
                           "ui.dialogs.more_info_control.aggregate"
                         )}
                       </div>`
@@ -78,7 +86,7 @@ export class MoreInfoHistory extends LitElement {
                 __DEMO__
                   ? nothing
                   : html`<a href=${this._showMoreHref}
-                      >${this.hass.localize(
+                      >${this._modeLocalize(
                         "ui.dialogs.more_info_control.show_more"
                       )}</a
                     >`
@@ -87,7 +95,7 @@ export class MoreInfoHistory extends LitElement {
             ${
               this._error
                 ? html`<ha-alert alert-type="error">
-                    ${this.hass.localize("ui.components.history_charts.error")}:
+                    ${this._modeLocalize("ui.components.history_charts.error")}:
                     ${this._error.message || this._error.code}
                   </ha-alert>`
                 : this._statistics

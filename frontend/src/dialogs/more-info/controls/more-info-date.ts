@@ -15,6 +15,10 @@ import { UNAVAILABLE, UNKNOWN } from "../../../data/entity/entity";
 import type { HomeAssistant, HomeAssistantApi } from "../../../types";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { todayInZone } from "./more-info-time-zone";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
@@ -99,6 +103,10 @@ class MoreInfoDate extends LitElement {
     this._month = new Date(current.getFullYear(), current.getMonth(), 1);
   }
 
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass!.localize);
+  }
+
   protected render() {
     if (
       !this.hass ||
@@ -109,7 +117,7 @@ class MoreInfoDate extends LitElement {
     ) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const language = this.hass.locale.language;
     const draft = parseIso(this._draft)!;
     const today = startOfToday(this._timeZone);
@@ -231,12 +239,12 @@ class MoreInfoDate extends LitElement {
     return html`
       <div class="month">
         <ha-icon-button-prev
-          .label=${this.hass!.localize("ui.common.previous")}
+          .label=${this._modeLocalize("ui.common.previous")}
           @click=${this._previousMonth}
         ></ha-icon-button-prev>
         <span class="month-title" aria-live="polite"> ${monthTitle} </span>
         <ha-icon-button-next
-          .label=${this.hass!.localize("ui.common.next")}
+          .label=${this._modeLocalize("ui.common.next")}
           @click=${this._nextMonth}
         ></ha-icon-button-next>
       </div>

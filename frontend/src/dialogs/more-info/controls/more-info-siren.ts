@@ -16,6 +16,10 @@ import { SirenEntityFeature } from "../../../data/siren";
 import "../../../state-control/ha-state-control-toggle";
 import type { HomeAssistantApi } from "../../../types";
 import "../components/ha-more-info-state-header";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 import { showSirenAdvancedControlsView } from "../components/siren/show-dialog-siren-advanced-controls";
@@ -23,6 +27,10 @@ import { showSirenAdvancedControlsView } from "../components/siren/show-dialog-s
 @customElement("more-info-siren")
 class MoreInfoSiren extends LitElement {
   @state() @consumeLocalize() private _localize!: LocalizeFunc;
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._localize);
+  }
 
   @state()
   @consume({ context: apiContext, subscribe: true })
@@ -75,6 +83,7 @@ class MoreInfoSiren extends LitElement {
       ></ha-more-info-state-header>
       <div class="controls">
         <ha-state-control-toggle
+          compact
           .stateObj=${this.stateObj}
           .iconPathOn=${mdiVolumeHigh}
           .iconPathOff=${mdiVolumeOff}
@@ -85,7 +94,7 @@ class MoreInfoSiren extends LitElement {
                 <div
                   class="chips"
                   role="group"
-                  aria-label=${this._localize("ui.components.siren.tone")}
+                  aria-label=${this._modeLocalize("ui.components.siren.tone")}
                 >
                   ${tones.map(
                     (tone) => html`
@@ -114,7 +123,7 @@ class MoreInfoSiren extends LitElement {
                     min="0"
                     max="100"
                     step="1"
-                    .label=${this._localize("ui.components.siren.volume")}
+                    .label=${this._modeLocalize("ui.components.siren.volume")}
                     .value=${Math.round((this._volume ?? 1) * 100)}
                     .disabled=${unavailable}
                     @change=${this._handleVolumeChange}
@@ -122,7 +131,7 @@ class MoreInfoSiren extends LitElement {
                   <span class="volume-value"
                     >${
                       this._volume === undefined
-                        ? this._localize(
+                        ? this._modeLocalize(
                             "ui.dialogs.more_info_control.siren.volume_default"
                           )
                         : `${Math.round(this._volume * 100)}%`
@@ -137,7 +146,7 @@ class MoreInfoSiren extends LitElement {
             ? html`${
                   chosen
                     ? html`<p class="hint">
-                        ${this._localize(
+                        ${this._modeLocalize(
                           "ui.dialogs.more_info_control.siren.applies_to_sound_now"
                         )}
                       </p>`
@@ -156,7 +165,7 @@ class MoreInfoSiren extends LitElement {
                             slot="start"
                             .path=${mdiBullhorn}
                           ></ha-svg-icon>
-                          ${this._localize(
+                          ${this._modeLocalize(
                             "ui.dialogs.more_info_control.siren.sound_now"
                           )}
                         </ha-button>`
@@ -167,7 +176,7 @@ class MoreInfoSiren extends LitElement {
                     size="s"
                     @click=${this._showAdvancedControlsDialog}
                   >
-                    ${this._localize("ui.components.siren.more_controls")}
+                    ${this._modeLocalize("ui.components.siren.more_controls")}
                   </ha-button>
                 </div>`
             : nothing

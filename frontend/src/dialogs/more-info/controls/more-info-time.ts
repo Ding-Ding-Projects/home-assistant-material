@@ -13,6 +13,10 @@ import { setTimeValue } from "../../../data/time";
 import type { HomeAssistant, HomeAssistantApi } from "../../../types";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { getZonedParts } from "./more-info-time-zone";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 type Part = "hour" | "minute";
 
@@ -93,11 +97,15 @@ class MoreInfoTime extends LitElement {
     this._clearTyped();
   }
 
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass!.localize);
+  }
+
   protected render() {
     if (!this.hass || !this.stateObj || this.stateObj.state === UNAVAILABLE) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const ampm = useAmPm(this.hass.locale);
     const changed =
       this.stateObj.state === UNKNOWN ||

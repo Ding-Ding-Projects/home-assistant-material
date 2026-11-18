@@ -50,6 +50,10 @@ import { showToast } from "../../../util/toast";
 import { showLogsDialog } from "../../../panels/config/logs/show-dialog-logs";
 import "../components/update/ha-more-info-update-backup";
 import type { HaMoreInfoUpdateBackup } from "../components/update/ha-more-info-update-backup";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 // Dialogs that reflect their open state to the `open` attribute.
 const DIALOG_ELEMENTS = new Set(["ha-adaptive-dialog", "ha-dialog"]);
@@ -63,6 +67,10 @@ class MoreInfoUpdate extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._localize);
+  }
 
   @consume({ context: apiContext, subscribe: true })
   private _api!: HomeAssistantApi;
@@ -162,7 +170,7 @@ class MoreInfoUpdate extends LitElement {
           `ui.dialogs.more_info_control.update.backup_in_progress.${this._backupState}`,
           {
             backups_link: html`<a href="/config/backup"
-              >${this._localize(
+              >${this._modeLocalize(
                 "ui.dialogs.more_info_control.update.backup_in_progress.backups_link"
               )}</a
             >`,
@@ -193,15 +201,18 @@ class MoreInfoUpdate extends LitElement {
           <div class="latest">
             ${
               this.stateObj.attributes.latest_version ??
-              this._localize("state.default.unavailable")
+              this._modeLocalize("state.default.unavailable")
             }
           </div>
           <div class="installed">
-            ${this._localize("ui.dialogs.more_info_control.update.installed", {
-              version:
-                this.stateObj.attributes.installed_version ??
-                this._localize("state.default.unavailable"),
-            })}
+            ${this._modeLocalize(
+              "ui.dialogs.more_info_control.update.installed",
+              {
+                version:
+                  this.stateObj.attributes.installed_version ??
+                  this._modeLocalize("state.default.unavailable"),
+              }
+            )}
           </div>
           ${
             this.stateObj.attributes.title
@@ -228,7 +239,7 @@ class MoreInfoUpdate extends LitElement {
               </ha-alert>`
             : this._installError
               ? html`<ha-alert alert-type="error">
-                  ${this._localize(
+                  ${this._modeLocalize(
                     "ui.dialogs.more_info_control.update.install_failed",
                     { error: this._installError }
                   )}
@@ -240,7 +251,7 @@ class MoreInfoUpdate extends LitElement {
                           size="small"
                           @click=${this._handleShowSupervisorLogs}
                         >
-                          ${this._localize(
+                          ${this._modeLocalize(
                             "ui.dialogs.more_info_control.update.supervisor_logs"
                           )}
                         </ha-button>`
@@ -258,7 +269,7 @@ class MoreInfoUpdate extends LitElement {
                     appearance="plain"
                     @click=${this._handleClearSkipped}
                   >
-                    ${this._localize(
+                    ${this._modeLocalize(
                       "ui.dialogs.more_info_control.update.clear_skipped"
                     )}
                   </ha-button>
@@ -274,7 +285,7 @@ class MoreInfoUpdate extends LitElement {
                       updateIsInstalling(this.stateObj)
                     }
                   >
-                    ${this._localize("ui.dialogs.more_info_control.update.skip")}
+                    ${this._modeLocalize("ui.dialogs.more_info_control.update.skip")}
                   </ha-button>
                 `
           }
@@ -290,7 +301,7 @@ class MoreInfoUpdate extends LitElement {
                       !!backupInProgressMessage
                     }
                   >
-                    ${this._localize(
+                    ${this._modeLocalize(
                       "ui.dialogs.more_info_control.update.update"
                     )}
                   </ha-button>
@@ -337,7 +348,7 @@ class MoreInfoUpdate extends LitElement {
     return html`
       <div class="notes-card">
         <div class="notes-title">
-          ${this._localize("ui.dialogs.more_info_control.update.whats_new")}
+          ${this._modeLocalize("ui.dialogs.more_info_control.update.whats_new")}
         </div>
         ${notes}
         ${
@@ -348,7 +359,7 @@ class MoreInfoUpdate extends LitElement {
                 target="_blank"
                 rel="noreferrer"
               >
-                ${this._localize(
+                ${this._modeLocalize(
                   "ui.dialogs.more_info_control.update.release_announcement"
                 )}
               </a>`
@@ -459,14 +470,14 @@ class MoreInfoUpdate extends LitElement {
         const filter = this._appSlug();
 
         showToast(toastHost, {
-          message: this._localize(
+          message: this._modeLocalize(
             "ui.dialogs.more_info_control.update.install_failed",
             { error: message }
           ),
           duration: 10000,
           action: this._canShowSupervisorLogs()
             ? {
-                text: this._localize(
+                text: this._modeLocalize(
                   "ui.dialogs.more_info_control.update.supervisor_logs"
                 ),
                 action: () => this._showSupervisorLogs(toastHost, filter),
@@ -511,7 +522,7 @@ class MoreInfoUpdate extends LitElement {
   private _showSupervisorLogs(host: HTMLElement, filter?: string): void {
     showLogsDialog(host, {
       provider: "supervisor",
-      title: this._localize(
+      title: this._modeLocalize(
         "ui.dialogs.more_info_control.update.supervisor_logs"
       ),
       filter,
@@ -560,10 +571,10 @@ class MoreInfoUpdate extends LitElement {
   private _handleSkip(): void {
     if (this.stateObj!.attributes.auto_update) {
       showAlertDialog(this, {
-        title: this._localize(
+        title: this._modeLocalize(
           "ui.dialogs.more_info_control.update.auto_update_enabled_title"
         ),
-        text: this._localize(
+        text: this._modeLocalize(
           "ui.dialogs.more_info_control.update.auto_update_enabled_text"
         ),
       });

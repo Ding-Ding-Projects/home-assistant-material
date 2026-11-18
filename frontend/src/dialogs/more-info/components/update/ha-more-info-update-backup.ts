@@ -149,7 +149,7 @@ export class HaMoreInfoUpdateBackup extends LitElement {
         this._choiceDefault !== undefined &&
         this._createBackup !== this._choiceDefault
           ? html`<p class="only-this">
-              ${(this._localize as LocalizeFunc<string>)(
+              ${this._localize(
                 "ui.panel.config.updates.backup_choice.only_this_update"
               )}
             </p>`

@@ -13,6 +13,10 @@ import "../../../components/ha-svg-icon";
 import { apiContext } from "../../../data/context";
 import { UNAVAILABLE } from "../../../data/entity/entity";
 import type { HomeAssistantApi } from "../../../types";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-counter")
 class MoreInfoCounter extends LitElement {
@@ -21,6 +25,10 @@ class MoreInfoCounter extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._localize);
+  }
 
   @state()
   @consume({ context: apiContext, subscribe: true })
@@ -46,7 +54,7 @@ class MoreInfoCounter extends LitElement {
       <div class="value-row">
         <ha-control-button
           class="round"
-          .label=${this._localize("ui.card.counter.actions.decrement")}
+          .label=${this._modeLocalize("ui.card.counter.actions.decrement")}
           .action=${"decrement"}
           @click=${this._handleActionClick}
           .disabled=${disabled || (hasMinimum && value === minimum)}
@@ -63,16 +71,16 @@ class MoreInfoCounter extends LitElement {
           <ha-svg-icon slot="start" .path=${mdiRestart}></ha-svg-icon>
           ${
             initial !== undefined
-              ? this._localize(
+              ? this._modeLocalize(
                   "ui.dialogs.more_info_control.counter.reset_to",
                   { value: initial }
                 )
-              : this._localize("ui.card.counter.actions.reset")
+              : this._modeLocalize("ui.card.counter.actions.reset")
           }
         </ha-button>
         <ha-control-button
           class="round primary"
-          .label=${this._localize("ui.card.counter.actions.increment")}
+          .label=${this._modeLocalize("ui.card.counter.actions.increment")}
           .action=${"increment"}
           @click=${this._handleActionClick}
           .disabled=${disabled || (hasMaximum && value === maximum)}
@@ -85,11 +93,11 @@ class MoreInfoCounter extends LitElement {
           ? html`<div class="summary">
               ${
                 hasMinimum && hasMaximum
-                  ? this._localize(
+                  ? this._modeLocalize(
                       "ui.dialogs.more_info_control.counter.counts_between",
                       { minimum, maximum, step }
                     )
-                  : this._localize(
+                  : this._modeLocalize(
                       "ui.dialogs.more_info_control.counter.counts_step",
                       { step }
                     )
@@ -103,7 +111,7 @@ class MoreInfoCounter extends LitElement {
               ${
                 hasMinimum
                   ? this._renderStat(
-                      this._localize(
+                      this._modeLocalize(
                         "ui.dialogs.more_info_control.counter.lowest"
                       ),
                       minimum
@@ -113,7 +121,7 @@ class MoreInfoCounter extends LitElement {
               ${
                 hasMaximum
                   ? this._renderStat(
-                      this._localize(
+                      this._modeLocalize(
                         "ui.dialogs.more_info_control.counter.highest"
                       ),
                       maximum
@@ -123,7 +131,7 @@ class MoreInfoCounter extends LitElement {
               ${
                 step !== undefined
                   ? this._renderStat(
-                      this._localize(
+                      this._modeLocalize(
                         "ui.dialogs.more_info_control.counter.step"
                       ),
                       step

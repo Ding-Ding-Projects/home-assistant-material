@@ -121,6 +121,10 @@ import "./ha-more-info-history-and-logbook";
 import "./ha-more-info-info";
 import "./ha-more-info-settings";
 import "./more-info-content";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../common/language-mode/language-mode";
 
 export interface MoreInfoDialogParams {
   entityId: string | null;
@@ -216,6 +220,10 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
 
   private _unsubscribePreferences?: () => void;
 
+  private _infoResizeObserver?: ResizeObserver;
+
+  private _observedInfo?: HTMLElement;
+
   public connectedCallback(): void {
     super.connectedCallback();
     this._unsubscribePreferences = subscribePersonalPreferences(
@@ -232,6 +240,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     super.disconnectedCallback();
     this._unsubscribePreferences?.();
     this._unsubscribePreferences = undefined;
+    this._resetStableContentHeight();
     window.removeEventListener(
       PERSONAL_PREFERENCES_NOT_SAVED_EVENT,
       this._preferencesNotSaved
@@ -241,7 +250,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
   // Tells the person when the browser could not keep a choice.
   private _preferencesNotSaved = (): void => {
     showToast(this, {
-      message: this.hass.localize("ui.dialogs.quick-bar.setting_not_saved"),
+      message: this._modeLocalize("ui.dialogs.quick-bar.setting_not_saved"),
     });
   };
 
@@ -432,18 +441,22 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     this._setView("settings");
   }
 
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   private _computeViewTitle(): string | undefined {
     switch (this._currView) {
       case "details":
-        return this.hass.localize("ui.dialogs.more_info_control.details");
+        return this._modeLocalize("ui.dialogs.more_info_control.details");
       case "related":
-        return this.hass.localize("ui.dialogs.more_info_control.related");
+        return this._modeLocalize("ui.dialogs.more_info_control.related");
       case "add_to":
-        return this.hass.localize("ui.dialogs.more_info_control.add_to.item");
+        return this._modeLocalize("ui.dialogs.more_info_control.add_to.item");
       case "settings":
         return (
           this._childView?.viewTitle ||
-          this.hass.localize("ui.dialogs.more_info_control.settings")
+          this._modeLocalize("ui.dialogs.more_info_control.settings")
         );
       default:
         return this._childView?.viewTitle;
@@ -589,8 +602,8 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
       !(await showConfirmationDialog(this, {
         title: labels.reset,
         text: labels.resetText,
-        dismissText: this.hass.localize("ui.common.cancel"),
-        confirmText: this.hass.localize("ui.common.reset"),
+        dismissText: this._modeLocalize("ui.common.cancel"),
+        confirmText: this._modeLocalize("ui.common.reset"),
         destructive: true,
       }))
     ) {
@@ -642,7 +655,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
       await downloadCameraSnapshot(this._api, this._entityId!);
     } catch (_err) {
       showToast(this, {
-        message: this.hass.localize(
+        message: this._modeLocalize(
           "ui.dialogs.more_info_control.camera.failed_to_download"
         ),
       });
@@ -675,8 +688,8 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
 
   private _tabLabel(view: MoreInfoView): string {
     return view === "info"
-      ? this.hass.localize("ui.dialogs.more_info_control.frame.tab_details")
-      : this.hass.localize(
+      ? this._modeLocalize("ui.dialogs.more_info_control.frame.tab_details")
+      : this._modeLocalize(
           `ui.dialogs.more_info_control.${view}` as LocalizeKeys
         );
   }
@@ -749,7 +762,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
       <div
         class="tabs"
         role="tablist"
-        aria-label=${this.hass.localize(
+        aria-label=${this._modeLocalize(
           "ui.dialogs.more_info_control.frame.tabs"
         )}
       >
@@ -778,7 +791,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
   // School mode or a schedule can hold the read-aloud choice; the switch then
   // stays still and says why, instead of writing a choice nobody can see.
   private _narratorHeldText(holder: "school" | "schedule"): string {
-    return this.hass.localize(
+    return this._modeLocalize(
       holder === "schedule"
         ? "ui.dialogs.quick-bar.setting_held_schedule"
         : "ui.dialogs.quick-bar.setting_held"
@@ -825,7 +838,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
   }
 
   private _renderTools() {
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const narratorHeld = preferenceHolder("narratorEnabled");
     const key = (name: string) =>
       localize(`ui.dialogs.more_info_control.frame.${name}` as LocalizeKeys);
@@ -918,7 +931,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     const breadcrumb = (
       nameParts ? BREADCRUMB_NAME.map((type) => nameParts[type]) : [entityId]
     ).filter((v): v is string => Boolean(v));
-    const addToMenuItem = this.hass.localize(
+    const addToMenuItem = this._modeLocalize(
       "ui.dialogs.more_info_control.add_to.item"
     );
     const downloadSnapshotMenuItem =
@@ -929,7 +942,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
               .disabled=${stateObj?.state === UNAVAILABLE}
             >
               <ha-svg-icon slot="icon" .path=${mdiDownload}></ha-svg-icon>
-              ${this.hass.localize(
+              ${this._modeLocalize(
                 "ui.dialogs.more_info_control.camera.download_snapshot"
               )}
             </ha-dropdown-item>
@@ -1009,7 +1022,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                 <ha-icon-button
                   slot="headerNavigationIcon"
                   @click=${this.closeDialog}
-                  .label=${this.hass.localize("ui.common.close")}
+                  .label=${this._modeLocalize("ui.common.close")}
                   .path=${mdiClose}
                 ></ha-icon-button>
               `
@@ -1017,7 +1030,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                 <ha-icon-button-prev
                   slot="headerNavigationIcon"
                   @click=${this._goBack}
-                  .label=${this.hass.localize(
+                  .label=${this._modeLocalize(
                     "ui.dialogs.more_info_control.back_to_info"
                   )}
                 ></ha-icon-button-prev>
@@ -1075,7 +1088,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                     ? html`
                         <ha-icon-button
                           slot="headerActionItems"
-                          .label=${this.hass.localize(
+                          .label=${this._modeLocalize(
                             "ui.dialogs.more_info_control.history"
                           )}
                           .path=${mdiChartBoxOutline}
@@ -1089,7 +1102,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                     ? html`
                         <ha-icon-button
                           slot="headerActionItems"
-                          .label=${this.hass.localize(
+                          .label=${this._modeLocalize(
                             "ui.dialogs.more_info_control.settings"
                           )}
                           .path=${mdiCogOutline}
@@ -1103,7 +1116,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                         >
                           <ha-icon-button
                             slot="trigger"
-                            .label=${this.hass.localize("ui.common.menu")}
+                            .label=${this._modeLocalize("ui.common.menu")}
                             .path=${mdiDotsVertical}
                           ></ha-icon-button>
 
@@ -1144,7 +1157,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                                     ></ha-svg-icon>
                                     ${
                                       this._infoEditMode
-                                        ? this.hass.localize(
+                                        ? this._modeLocalize(
                                             "ui.dialogs.more_info_control.exit_edit_mode"
                                           )
                                         : favoritesLabels?.editMode
@@ -1186,7 +1199,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                                           : mdiDevices
                                       }
                                     ></ha-svg-icon>
-                                    ${this.hass.localize(
+                                    ${this._modeLocalize(
                                       `ui.dialogs.more_info_control.${deviceType}_info`
                                     )}
                                   </ha-dropdown-item>
@@ -1202,10 +1215,10 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                                       .path=${mdiPencilOutline}
                                     ></ha-svg-icon>
                                     ${
-                                      this.hass.localize(
+                                      this._modeLocalize(
                                         `ui.dialogs.more_info_control.edit_domain.${domain}` as LocalizeKeys
                                       ) ||
-                                      this.hass.localize(
+                                      this._modeLocalize(
                                         "ui.dialogs.more_info_control.edit"
                                       )
                                     }
@@ -1218,7 +1231,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                               slot="icon"
                               .path=${mdiLinkVariant}
                             ></ha-svg-icon>
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               "ui.dialogs.more_info_control.related"
                             )}
                           </ha-dropdown-item>
@@ -1227,7 +1240,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                               slot="icon"
                               .path=${mdiInformationOutline}
                             ></ha-svg-icon>
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               "ui.dialogs.more_info_control.details"
                             )}
                           </ha-dropdown-item>
@@ -1257,7 +1270,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                                 >
                                   <ha-icon-button
                                     slot="trigger"
-                                    .label=${this.hass.localize(
+                                    .label=${this._modeLocalize(
                                       "ui.common.menu"
                                     )}
                                     .path=${mdiDotsVertical}
@@ -1274,7 +1287,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
               ? html`
                   <ha-icon-button
                     slot="headerActionItems"
-                    .label=${this.hass.localize(
+                    .label=${this._modeLocalize(
                       "ui.dialogs.more_info_control.toggle_yaml_mode"
                     )}
                     .path=${mdiCodeBraces}
@@ -1423,7 +1436,43 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
       this._reportShownEntityToExternalApp(
         changedProps.get("_entityId") as string | null | undefined
       );
+      this._resetStableContentHeight();
     }
+
+    this._observeInfoHeight();
+  }
+
+  // Keeps the sheet from jumping between tabs: while the Details tab is
+  // shown, its height is measured and every other tab keeps at least that
+  // height (see the `.content` rule in the styles).
+  private _observeInfoHeight() {
+    const info =
+      this._currView === "info" && !this._childView
+        ? (this._contentElement?.querySelector(
+            "ha-more-info-info"
+          ) as HTMLElement | null)
+        : null;
+    if (!info || info === this._observedInfo) {
+      return;
+    }
+    this._infoResizeObserver?.disconnect();
+    this._observedInfo = info;
+    this._infoResizeObserver = new ResizeObserver(() => {
+      if (this._observedInfo) {
+        this.style.setProperty(
+          "--more-info-stable-content-height",
+          `${this._observedInfo.offsetHeight}px`
+        );
+      }
+    });
+    this._infoResizeObserver.observe(info);
+  }
+
+  private _resetStableContentHeight() {
+    this._infoResizeObserver?.disconnect();
+    this._infoResizeObserver = undefined;
+    this._observedInfo = undefined;
+    this.style.removeProperty("--more-info-stable-content-height");
   }
 
   private _reportShownEntityToExternalApp(
@@ -1501,13 +1550,15 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
       haStyleScrollbar,
       css`
         :host {
-          --ha-bottom-sheet-height: calc(
+          /* The sheet is as tall as its content and stops at the maximum
+             below, where the content area starts to scroll. */
+          --ha-bottom-sheet-height: auto;
+          --ha-bottom-sheet-max-height: calc(
             100vh - max(var(--safe-area-inset-top), 48px)
           );
-          --ha-bottom-sheet-height: calc(
+          --ha-bottom-sheet-max-height: calc(
             100dvh - max(var(--safe-area-inset-top), 48px)
           );
-          --ha-bottom-sheet-max-height: var(--ha-bottom-sheet-height);
         }
 
         ha-adaptive-dialog {
@@ -1524,7 +1575,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
 
         .content {
           outline: none;
-          flex: 1;
+          flex: 1 1 auto;
           overflow: auto;
           /* Keep the content width constant when the scrollbar toggles;
              otherwise width-dependent content can flicker at the overflow
@@ -1533,6 +1584,18 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           /* Buttons inside a sheet keep a 44 px touch target. */
           --ha-button-height: 44px;
           --ha-favorite-color-button-size: 44px;
+        }
+
+        /* Stable sheet height: the tabs sit at the foot, so every tab keeps at
+           least the height of the Details content measured for this entity.
+           The cap keeps the minimum below the sheet's own maximum. */
+        @media (max-width: 870px), (max-height: 500px) {
+          .content {
+            min-height: min(
+              var(--more-info-stable-content-height, 0px),
+              calc(100dvh - 260px)
+            );
+          }
         }
 
         .content-wrapper.settings-view .fade-bottom {
@@ -1743,12 +1806,13 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           font-size: var(--ha-font-size-xl);
           line-height: var(--ha-line-height-condensed);
           /* Wrap at spaces, at most two lines, then an ellipsis. A word is
-             only split when it alone is wider than the line. */
+             only split as a last resort, when it alone is wider than the
+             line; "anywhere" also lets the title shrink to fit that line. */
           display: -webkit-box;
           -webkit-box-orient: vertical;
           -webkit-line-clamp: 2;
           line-clamp: 2;
-          overflow-wrap: break-word;
+          overflow-wrap: anywhere;
           word-break: normal;
           hyphens: manual;
         }

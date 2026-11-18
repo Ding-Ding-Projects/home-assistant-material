@@ -15,6 +15,10 @@ import type {
   HomeAssistantInternationalization,
 } from "../../../types";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 const ARC_LEFT = 20;
 const ARC_RIGHT = 280;
@@ -56,11 +60,15 @@ class MoreInfoSun extends LitElement {
     return value !== undefined && value !== null && value !== "";
   }
 
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._i18n.localize);
+  }
+
   protected render() {
     if (!this._i18n || !this.stateObj) {
       return nothing;
     }
-    const localize = this._i18n.localize;
+    const localize = this._modeLocalize;
     const attrs = this.stateObj.attributes;
     const above = this.stateObj.state === "above_horizon";
     const known = above || this.stateObj.state === "below_horizon";
@@ -158,7 +166,7 @@ class MoreInfoSun extends LitElement {
     return html`
       <div class="tile">
         <span class="label"
-          >${this._i18n.localize(
+          >${this._modeLocalize(
             `ui.dialogs.more_info_control.sun.${key}`
           )}</span
         >
@@ -171,7 +179,7 @@ class MoreInfoSun extends LitElement {
     return html`
       <div class="row">
         <span class="key"
-          >${this._i18n.localize(
+          >${this._modeLocalize(
             `ui.dialogs.more_info_control.sun.${key}`
           )}</span
         >

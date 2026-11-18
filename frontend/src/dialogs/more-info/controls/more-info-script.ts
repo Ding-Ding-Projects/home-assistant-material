@@ -18,6 +18,7 @@ import {
   requiredScriptFieldsFilled,
 } from "../../../data/script";
 import type { HomeAssistant, ValueChangedEvent } from "../../../types";
+import { stateControlButtonStyle } from "../../../state-control/state-control-button-style";
 import "../components/ha-more-info-state-header";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 
@@ -233,6 +234,7 @@ class MoreInfoScript extends LitElement {
 
   static styles = [
     moreInfoBoardStyle,
+    stateControlButtonStyle,
     css`
       .queue {
         visibility: hidden;

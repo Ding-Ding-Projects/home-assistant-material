@@ -21,6 +21,7 @@ import {
   canStop,
 } from "../../data/valve";
 import type { HomeAssistantApi } from "../../types";
+import { stateControlButtonStyle } from "../state-control-button-style";
 
 type ValveButton = "open" | "close" | "stop" | "none";
 
@@ -125,21 +126,24 @@ export class HaStateControlValveButtons extends LitElement {
     `;
   }
 
-  static styles = css`
-    :host {
-      display: block;
-      width: 100%;
-    }
-    ha-control-button-group {
-      width: 100%;
-      --control-button-group-spacing: 10px;
-      --control-button-group-thickness: 56px;
-    }
-    ha-control-button {
-      --control-button-border-radius: var(--ha-border-radius-3xl);
-      --mdc-icon-size: 24px;
-    }
-  `;
+  static styles = [
+    stateControlButtonStyle,
+    css`
+      :host {
+        display: block;
+        width: 100%;
+      }
+      ha-control-button-group {
+        width: 100%;
+        --control-button-group-spacing: 10px;
+        --control-button-group-thickness: 56px;
+      }
+      ha-control-button {
+        --control-button-border-radius: var(--ha-border-radius-3xl);
+        --mdc-icon-size: 24px;
+      }
+    `,
+  ];
 }
 
 declare global {

@@ -31,6 +31,10 @@ import type {
 } from "../../../types";
 import "../components/timers/ha-more-info-timer-presets";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 const RING_RADIUS = 88;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -46,6 +50,10 @@ class MoreInfoTimer extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._localize);
+  }
 
   @state()
   @consume({ context: apiContext, subscribe: true })
@@ -134,7 +142,7 @@ class MoreInfoTimer extends LitElement {
             ${
               totalSeconds
                 ? html`<div class="of">
-                    ${this._localize(
+                    ${this._modeLocalize(
                       "ui.dialogs.more_info_control.timer.of_duration",
                       { duration: secondsToDuration(totalSeconds) ?? "0" }
                     )}
@@ -153,7 +161,7 @@ class MoreInfoTimer extends LitElement {
                     @click=${this._handleActionClick}
                   >
                     <ha-svg-icon slot="start" .path=${mdiPause}></ha-svg-icon>
-                    ${this._localize("ui.card.timer.actions.pause")}
+                    ${this._modeLocalize("ui.card.timer.actions.pause")}
                   </ha-button>
                 `
               : nothing
@@ -167,7 +175,7 @@ class MoreInfoTimer extends LitElement {
                     @click=${this._handleActionClick}
                   >
                     <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
-                    ${this._localize("ui.card.timer.actions.start")}
+                    ${this._modeLocalize("ui.card.timer.actions.start")}
                   </ha-button>
                 `
               : nothing
@@ -182,7 +190,7 @@ class MoreInfoTimer extends LitElement {
                     @click=${this._handleActionClick}
                   >
                     <ha-svg-icon slot="start" .path=${mdiStop}></ha-svg-icon>
-                    ${this._localize("ui.card.timer.actions.cancel")}
+                    ${this._modeLocalize("ui.card.timer.actions.cancel")}
                   </ha-button>
                   <ha-button
                     appearance="outlined"
@@ -191,10 +199,10 @@ class MoreInfoTimer extends LitElement {
                     @click=${this._handleActionClick}
                   >
                     <ha-svg-icon slot="start" .path=${mdiCheck}></ha-svg-icon>
-                    ${this._localize("ui.card.timer.actions.finish")}
+                    ${this._modeLocalize("ui.card.timer.actions.finish")}
                   </ha-button>
                   <ha-button appearance="plain" @click=${this._addFiveMinutes}>
-                    ${this._localize(
+                    ${this._modeLocalize(
                       "ui.dialogs.more_info_control.timer.add_five_minutes"
                     )}
                   </ha-button>
@@ -211,8 +219,8 @@ class MoreInfoTimer extends LitElement {
           <ha-button appearance="filled" size="s" @click=${this._start}>
             ${
               timerState === "idle"
-                ? this._localize("ui.card.timer.actions.start")
-                : this._localize("ui.card.timer.actions.set")
+                ? this._modeLocalize("ui.card.timer.actions.start")
+                : this._modeLocalize("ui.card.timer.actions.set")
             }
           </ha-button>
         </div>

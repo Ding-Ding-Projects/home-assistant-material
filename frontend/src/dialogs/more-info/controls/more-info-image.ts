@@ -17,6 +17,7 @@ import type {
   HomeAssistantFormatters,
   HomeAssistantInternationalization,
 } from "../../../types";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 
 @customElement("more-info-image")
@@ -51,7 +52,9 @@ class MoreInfoImage extends LitElement {
     const name =
       this._formatters?.formatEntityName(this.stateObj) ||
       this.stateObj.entity_id;
-    const localize = this._i18n?.localize;
+    const localize = this._i18n?.localize
+      ? withLanguageMode(this._i18n.localize)
+      : undefined;
     const unavailable = this.stateObj.state === UNAVAILABLE;
     const taken =
       this.stateObj.state !== UNKNOWN && !unavailable && this._formatters

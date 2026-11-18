@@ -8,6 +8,10 @@ import { createSearchParam } from "../../common/url/search-params";
 import "../../panels/logbook/ha-logbook";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../common/language-mode/language-mode";
 
 @customElement("ha-more-info-logbook")
 export class MoreInfoLogbook extends LitElement {
@@ -21,6 +25,10 @@ export class MoreInfoLogbook extends LitElement {
 
   private _entityIdAsList = memoizeOne((entityId: string) => [entityId]);
 
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   protected render() {
     if (!isComponentLoaded(this.hass.config, "logbook") || !this.entityId) {
       return nothing;
@@ -33,9 +41,9 @@ export class MoreInfoLogbook extends LitElement {
 
     return html`
       <div class="header">
-        <h2>${this.hass.localize("ui.dialogs.more_info_control.logbook")}</h2>
+        <h2>${this._modeLocalize("ui.dialogs.more_info_control.logbook")}</h2>
         <a href=${this._showMoreHref}
-          >${this.hass.localize("ui.dialogs.more_info_control.show_more")}</a
+          >${this._modeLocalize("ui.dialogs.more_info_control.show_more")}</a
         >
       </div>
       <ha-logbook

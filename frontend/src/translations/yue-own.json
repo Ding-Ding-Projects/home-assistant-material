@@ -14,6 +14,16 @@
         "notify": "通知目標：用通知動作傳訊息俾佢。"
       }
     },
+    "card": {
+      "climate": {
+        "maximum_reached": "已達最高溫度",
+        "minimum_reached": "已達最低溫度"
+      },
+      "water_heater": {
+        "maximum_reached": "已達最高溫度",
+        "minimum_reached": "已達最低溫度"
+      }
+    },
     "common": {
       "color_palette": {
         "title": "命名顏色",
@@ -1688,6 +1698,10 @@
           "auto_title": "自動更新",
           "auto_all": "自動更新所有嘢",
           "auto_all_help": "App 同整合一有更新就會自動更新。Home Assistant 本身、Supervisor 同作業系統有自己下面嘅開關，要你開先會自動更新。",
+          "auto_on": "開",
+          "auto_off": "閂",
+          "auto_summary": "App 同整合：{apps}。",
+          "auto_summary_system": "App 同整合：{apps}。系統：{total} 個入面開咗 {count} 個。",
           "auto_backup": "如果更新支援，就先做備份",
           "auto_row": "自動",
           "auto_row_label": "自動更新 {name}",
@@ -2379,6 +2393,8 @@
             "sources": "點樣先算見到嘢",
             "sources_auto": "自動",
             "sources_count": "已揀 {count} 個",
+            "add_source": "加另一個事件來源",
+            "add_source_helper": "移動、佔用、門同聲音感應器，以及事件實體。",
             "source_integration": "鏡頭自己嘅事件",
             "kinds": {
               "motion": "移動",
@@ -2387,7 +2403,8 @@
               "animal": "動物",
               "doorbell": "門鐘",
               "sound": "聲音",
-              "integration": "鏡頭服務"
+              "integration": "鏡頭服務",
+              "other": "你加嘅"
             }
           }
         },
@@ -2399,6 +2416,156 @@
           "loading": "載入緊",
           "none": "未設定。請喺「設定」入面嘅「裝置與服務」加入。",
           "error": "載入唔到守護：{error}",
+          "guard_desc": {
+            "hot_room_override": "去到太熱嘅溫度就唔再等，即刻開凍。",
+            "upstairs_comfort_guard": "樓上好熱而且有人喺屋企，就先開凍。",
+            "emergency_protocols": "一撳就停手嘅緊急模式，等房間靜一靜。",
+            "cooling_failure_watch": "想開凍但係冇凍就發出警告，房間不斷升溫先會熄機。",
+            "tamper_truce": "恆溫器喺一輪較量後即刻消失，好似被拆走咁，就休戰一陣。",
+            "front_door_guard_post": "大門偵測到有人嗰陣暫停，仲可以順手熄機。",
+            "peak_power_saver": "電價高峰或者用電高嗰陣，唔再加碼調校。",
+            "fan_energy_saver": "房間接近目標溫度，就將風扇轉做慳電模式。",
+            "cool_outdoor_shutdown": "室外真係涼嗰陣熄機，之後再開返。",
+            "siesta_watch": "定時午睡：機器停泊或者熄咗，直到時間到。",
+            "savings_pantry": "儲起少少慳返嘅製冷時間，留返好熱嗰日用。",
+            "schedule_weather_rules": "按時段轉目標溫度，而且要天氣配合先生效。",
+            "website_debounce": "同一個制兩分鐘內撳多次，只算一次。",
+            "visibility_guard": "指令之後即刻有人調，就放慢啲再做。",
+            "routine_timing": "等到下一個整齊嘅鐘點時段先調校。",
+            "comfort_budget": "限制一段時間內最多可以調校幾多次。",
+            "command_spacing": "每次指令之後留一段最短間隔，忙嗰陣更長。",
+            "low_profile_governor": "來回太頻密嘅時候，安全嘅調校都會暫緩。",
+            "natural_cadence": "為下一次調校揀一個每次都唔同嘅時間。",
+            "comfort_pace": "人哋反覆調得好密嗰陣，揀個平靜時間先回應。",
+            "comfort_envelope": "牆上嘅微調只要喺細範圍內，就由佢保持一陣。",
+            "conflict_quiet": "明顯拉鋸嗰陣就收手。",
+            "tug_of_war_truce": "設定上上落落嗰陣就休戰。",
+            "wall_settling": "等仲喺牆上撳緊嘅人停手先。",
+            "comfort_compromise": "將反覆喺牆上揀嘅溫度，混入一個臨時目標。",
+            "comfort_memory": "由重複又安全嘅牆上選擇，學到一個按時段嘅小偏好。",
+            "repeated_raise_surrender": "有人不停要求同一個數字，就讓佢嘅數字贏一陣。",
+            "wake_up_truce": "清晨睡房門一開，就知道有人起身，提早遷就佢。",
+            "cooler_intent_fast_lane": "大家不停撳凍啲，就唔再靜靜雞，直接幫房間降溫。",
+            "super_defender": "手機或者自動化不停改設定，就即刻回應，唔再等。",
+            "rival_schedule_watch": "將恆溫器 App 自己嘅時間表當成機器，唔當成人去回應。",
+            "desired_state_enforcer": "非主人改咗設定，就還原返揀好嘅狀態。",
+            "comfort_sync": "有人手動改咗之後，調校間隔拉開同放軟。",
+            "cool_mode_restore": "停一陣之後將模式放返做冷氣。",
+            "dynamic_cooldown": "手動改咗之後靜一段時間，撳得越密就越長。",
+            "manual_comfort_grace": "房間舒服嘅時候，由手動嘅改動保持。",
+            "touch_intent": "最近嘅改動明顯想暖啲，就延長寬限。",
+            "setpoint_echo": "等部機報返上次嘅設定，先再發指令。",
+            "repeat_quiet": "同一個數字唔會即刻再發，要等一陣。",
+            "setpoint_stillness": "等牆上嘅設定停低先。",
+            "sensor_rhythm": "揀喺感應器平時更新之後少少先調校。",
+            "hvac_alibi": "等機器真正轉咗狀態先動手。",
+            "telemetry_alibi": "等屋企下一次真正更新數據先動手。",
+            "cooling_runway": "新一輪製冷開始後，等佢行一陣先再調。",
+            "room_trend_guard": "房間自己已經涼緊嗰陣，繼續觀察。",
+            "thermal_momentum": "房間好快自己就會到目標，就等一等。",
+            "weather_drift_timing": "室外溫度穩定或者下降嗰陣暫緩。",
+            "remote_settling_guard": "手機或自動化頻繁改設定，俾佢一段靜止時間。",
+            "natural_walkback": "一小步一小步咁將設定行返轉頭，每步稍有不同。",
+            "touch_signature": "跟返大家喺牆上習慣嘅調幅。",
+            "human_nudge": "後續指令對齊返一般恆溫器嘅調幅。"
+          },
+          "guard_desc_heat": {
+            "hot_room_override": "去到太暖嘅溫度就即刻熄暖氣。",
+            "cool_mode_restore": "停一陣之後將模式放返原位。",
+            "cooler_intent_fast_lane": "大家不停要求少啲暖，就唔再靜靜雞，直接調低暖氣。",
+            "cooling_runway": "新一輪暖氣開始後，等佢行一陣先再調。"
+          },
+          "reason": {
+            "starting_up": "啟動緊",
+            "waiting_fresh_reading": "重啟後等緊最新讀數",
+            "ac_has_room": "等緊，而家由冷氣守護話事",
+            "heat_has_room": "等緊，而家由暖氣守護話事",
+            "device_unavailable": "部機用唔到",
+            "paused_by_owner": "主人暫停咗",
+            "stopped_by_owner": "主人叫全部停手",
+            "protective_preset": "部機喺防凍或者外出模式，唔郁佢",
+            "no_fresh_room_reading": "已經 30 分鐘冇最新室溫，暖氣交返俾控制佢嘅嘢",
+            "below_floor": "房間{room}度，低過最低溫度{floor}度：准開暖氣",
+            "below_floor_stays": "低過最低溫度，繼續准開暖氣",
+            "courtesy_wait": "暖氣開咗，先俾一段客氣時間，之後先熄返",
+            "heating_kept_off": "暖氣保持熄晒，房間高過最低溫度",
+            "holding": "守緊",
+            "heat_idle_comfortable": "暖氣熄咗，房間舒服，冇嘢要做",
+            "unit_off_on_purpose": "部機係特登熄咗",
+            "at_my_temperature": "已經喺我要嘅溫度，冇嘢要做",
+            "already_cooling": "已經向我要嘅溫度降緊溫",
+            "step_rounds_to_nothing": "調幅計出嚟冇變化",
+            "holding_target_stepping": "守住{target}度：慢慢行返去我要嘅溫度",
+            "holding_target_because": "守住{target}度：{because}",
+            "waiting_generic": "等緊",
+            "peak_price_hold": "電價高峰或者用電高，暫緩額外製冷",
+            "peak_fan_saver": "高峰時段，轉用慳電風扇模式",
+            "fan_near_target": "房間接近我要嘅溫度，慳電風扇",
+            "outdoor_room_warming": "房間熱起嚟，開返冷氣模式",
+            "outdoor_warm_again": "室外又暖返，開返冷氣模式",
+            "outdoor_cool_off": "室外涼而且會維持，熄咗部機",
+            "siesta_resting": "午睡：部機休息緊，直到計時完",
+            "siesta_started": "午睡開始",
+            "time_of_day_rule": "時段規則設定咗呢個目標",
+            "weather_rule_blocks": "天氣規則而家唔准調校",
+            "touch_after_command": "指令之後有人調，所以下一步等一等",
+            "next_routine_slot": "將調校對齊下一個例行時段",
+            "budget_used": "呢段時間嘅調校次數用晒",
+            "command_gap": "俾上一個指令一點空間先做下一個",
+            "low_profile": "來回太頻密，低調行事",
+            "next_nudge_slot": "等緊下一個調校時段",
+            "calm_moment": "等一個平靜時機先回應",
+            "small_wall_preference": "牆上設定只係高過我要嘅溫度少少，由佢休息",
+            "tug_of_war_quiet": "明顯係拉鋸，收手一陣",
+            "tug_of_war_truce": "設定不停上上落落，宣佈休戰",
+            "wall_settling": "等牆上設定穩定",
+            "easing_to_wall": "慢慢遷就牆上揀嘅溫度一陣",
+            "learned_hour": "用緊呢個鐘數學到嘅偏好",
+            "someone_keeps_asking": "有人不停要呢個數字，暫時就聽佢",
+            "good_morning": "早晨：門開咗，同意暖啲嘅數字",
+            "asking_cooler": "大家不停要凍啲，唔等喇",
+            "remote_changes_answer": "手機或自動化不停改，即刻回應",
+            "rival_schedule": "恆溫器 App 嘅時間表搞暖咗，回應返佢",
+            "restoring_cool_mode": "還原冷氣模式",
+            "restoring_cool_mode_firmly": "堅決還原冷氣模式",
+            "restoring_my_temperature": "還原我要嘅溫度",
+            "restoring_my_temperature_firmly": "堅決還原我要嘅溫度",
+            "calm_pause_after_change": "恆溫器被改咗，先冷靜停一停",
+            "minimum_gap": "兩個指令之間保持最短間隔",
+            "softened_step": "放軟到{step}度一步",
+            "restore_mode_room_warm": "房間暖，而家還原模式",
+            "restore_mode_changed": "有人改咗模式，放返原位",
+            "restore_mode_soon": "等一陣先還原模式",
+            "restore_mode_wait": "還原模式前等一等",
+            "quiet_after_manual": "手動改咗之後嘅靜止時間",
+            "comfortable_leave_change": "房間仲舒服，由個改動保持",
+            "room_reached_hot": "房間去到{room}度，即刻降溫",
+            "upstairs_hot": "樓上好熱，先降溫",
+            "upstairs_very_hot": "樓上極熱，唔再等",
+            "emergency_too_cold": "緊急模式：太凍",
+            "emergency_someone_upset": "緊急模式：有人嬲咗",
+            "emergency_suspicion_quiet": "緊急模式：有人起疑，靜一靜",
+            "too_cold_off": "太凍，熄咗冷氣",
+            "room_warmed_restore": "房間暖返，還原冷氣模式",
+            "cooling_failure_off": "房間不停升溫，確認製冷失效，熄咗部機",
+            "tamper_truce": "休戰：恆溫器喺一輪較量後消失咗",
+            "front_door_person": "大門偵測到有人",
+            "front_door_off": "大門有人，熄咗部機",
+            "waiting_setpoint_echo": "等部機報返上次嘅設定",
+            "repeat_same_number": "啱啱發過同一個數字，等一陣先再發",
+            "wall_hold_still": "等牆上設定停低",
+            "next_sensor_update": "等感應器下一次更新",
+            "device_activity_change": "等冷氣機轉狀態",
+            "next_home_update": "等屋企下一次正常更新",
+            "cooling_just_started": "冷氣機啱啱開始製冷，等佢行",
+            "room_already_cooling": "房間已經涼緊，睇住佢",
+            "reaching_target_soon": "房間降溫夠快，好快到目標",
+            "outdoor_to_move": "等室外溫度有變化",
+            "remote_settle": "手機或自動化不停改，等佢哋穩定",
+            "walking_back": "退返{step}度",
+            "matching_wall_step": "跟牆上嘅{step}度調幅",
+            "snapped_to_step": "對齊{step}度一步"
+          },
           "band": {
             "crossed": "咁樣會同另一個守護交叉。要守住嘅溫度一定要高過暖氣可以暖到嘅最高溫度。",
             "too_narrow": "兩個守護之間起碼要隔一度，唔係佢哋會成日輪住郁。",
@@ -2408,6 +2575,8 @@
             "now": "而家",
             "guards": "守衛",
             "cost": "費用",
+            "usage_cool": "冷氣用量",
+            "usage_heat": "暖氣用量",
             "log": "紀錄"
           },
           "state": {
@@ -3531,6 +3700,147 @@
       "float_handle": "郁分頁列：拖佢，或者用方向鍵（撳住 Shift 行遠啲）。"
     },
     "dialogs": {
+      "more_info_control": {
+        "add_to": {
+          "item": "加入到…"
+        },
+        "automation": {
+          "is_off": "自動化已關閉",
+          "is_on": "自動化已開啟",
+          "off": "關",
+          "on": "開",
+          "toggle_failed": "改唔到自動化",
+          "toggle_label": "啟用自動化"
+        },
+        "back_to_info": "返回資料",
+        "calendar": {
+          "all_day": "全日",
+          "coming_up": "即將發生",
+          "new_event": "新增事件",
+          "open": "打開日曆"
+        },
+        "camera": {
+          "live": "直播"
+        },
+        "configurator": {
+          "needs_you": "需要你處理"
+        },
+        "counter": {
+          "counts_between": "由 {minimum} 數到 {maximum}，每次 {step}。",
+          "counts_step": "每次數 {step}。",
+          "highest": "最高",
+          "lowest": "最低",
+          "reset_to": "重設為 {value}",
+          "step": "步長"
+        },
+        "date": {
+          "plus_month": "+1 個月",
+          "plus_week": "+1 個星期",
+          "plus_year": "+1 年",
+          "set_date": "設定日期",
+          "today": "今日"
+        },
+        "datetime": {
+          "now": "而家",
+          "set": "設定",
+          "tomorrow": "聽日 {time}",
+          "tonight": "今晚 {time}"
+        },
+        "default": {
+          "area": "區域",
+          "device": "裝置",
+          "entity_id": "實體 ID",
+          "options": "選項"
+        },
+        "details": "詳情",
+        "frame": {
+          "export": "匯出",
+          "export_description": "將呢個視窗嘅內容匯出成 JSON、Markdown 或者純文字",
+          "export_json": "JSON",
+          "export_markdown": "Markdown",
+          "export_text": "文字",
+          "exported": "已儲存 {name}",
+          "read_aloud": "朗讀",
+          "read_aloud_description": "喺成個應用程式開關朗讀功能。會讀出你移到嘅控制項名稱。",
+          "tab_details": "詳情",
+          "tabs": "呢個視窗嘅分頁",
+          "tools_title": "呢個視窗嘅工具"
+        },
+        "group": {
+          "all_off": "全部關",
+          "all_on": "全部開",
+          "confirm_all_off": "呢個群組包含窗簾、門鎖、閥門或者警報。全部關閉可能會關上或者鎖上佢哋。",
+          "confirm_all_on": "呢個群組包含窗簾、門鎖、閥門或者警報。全部開啟可能會打開或者解鎖佢哋。",
+          "confirm_title": "更改每個成員？",
+          "count_on": "{total} 個入面有 {on} 個已開",
+          "result_failed": "改唔到個群組",
+          "result_off": "已經將群組入面全部關咗",
+          "result_on": "已經將群組入面全部開咗"
+        },
+        "history": "歷史",
+        "humidifier": {
+          "now": "而家係 {value}。"
+        },
+        "image": {
+          "error": "載入唔到張圖片。",
+          "open_full_size": "開啟原尺寸",
+          "taken": "拍攝於 {time}",
+          "unavailable": "呢張圖片暫時用唔到。"
+        },
+        "logbook": "活動",
+        "person": {
+          "accuracy": "準確度",
+          "battery": "手機電量",
+          "followed_by": "跟蹤裝置",
+          "since": "自從"
+        },
+        "related": "相關",
+        "sensor": {
+          "changed": "已更改",
+          "loading": "載入緊歷史記錄",
+          "no_history": "呢段時間冇數值歷史記錄",
+          "state_class": "測量種類",
+          "state_class_measurement": "測量",
+          "state_class_measurement_angle": "測量（角度）",
+          "state_class_total": "總計",
+          "state_class_total_increasing": "總計，持續增加",
+          "type": "類型"
+        },
+        "settings": "設定",
+        "show_more": "顯示更多",
+        "siren": {
+          "applies_to_sound_now": "你揀嘅音調同音量會喺撳「立即響」嗰陣生效。",
+          "sound_now": "立即響",
+          "volume_default": "預設"
+        },
+        "sun": {
+          "rise_at": "{time} 日出",
+          "set_at": "{time} 日落",
+          "unavailable": "太陽位置暫時用唔到。"
+        },
+        "time": {
+          "hour": "小時",
+          "invalid_entry": "{entry} 唔係有效時間。小時由 00 到 23，分鐘由 00 到 59。",
+          "keyboard_hint": "用方向鍵改變揀咗嘅部分。亦都可以直接輸入 {example}。",
+          "minute": "分鐘",
+          "set_time": "設定時間"
+        },
+        "timer": {
+          "add_five_minutes": "+5 分鐘",
+          "of_duration": "共 {duration}"
+        },
+        "toggle_yaml_mode": "切換 YAML 模式",
+        "update": {
+          "installed": "已安裝：{version}",
+          "whats_new": "更新內容"
+        },
+        "valve": {
+          "changed": "已更改"
+        },
+        "water_heater": {
+          "now": "而家係 {value}。"
+        }
+      },
       "two_key": {
         "turn_one": "轉第一把鎖匙",
         "turn_two": "轉第二把鎖匙",
@@ -6516,11 +6826,13 @@
           "starting_title": "開緊直播畫面",
           "limited_title": "攝影機服務限制緊直播",
           "limited_text": "短時間內要求咗太多次直播畫面。{time} 後會再試。",
+          "limited_note": "喺受限期間，錄影同其他頁面都唔會再向呢部攝影機要求直播畫面。",
           "try_now": "而家再試",
           "service_said": "服務嘅回覆",
           "show_details": "睇詳情",
           "hide_details": "收埋詳情",
           "offline_title": "攝影機離線",
+          "offline_last_seen": "最後見到係 {time}。",
           "offline_text": "如果有最後一張畫面，就會顯示出嚟。",
           "error_title": "開唔到直播畫面",
           "error_text": "唔會自動再試，準備好就再試一次。",
@@ -6531,7 +6843,13 @@
         }
       },
       "camera_timeline": {
-        "not_kept_by_choice": "按設定唔保留"
+        "back_10": "後退 10 秒",
+        "download": "下載呢段錄影",
+        "forward_10": "前進 10 秒",
+        "not_kept_by_choice": "按設定唔保留",
+        "not_recorded_here": "呢一刻冇錄影。",
+        "play_failed": "播放唔到呢段錄影。",
+        "recorded": "已錄影"
       }
     },
     "page_tools": {

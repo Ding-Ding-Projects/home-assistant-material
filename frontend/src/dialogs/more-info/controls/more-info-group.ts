@@ -17,6 +17,10 @@ import {
   domainMoreInfoType,
   importMoreInfoControl,
 } from "../state_more_info_control";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 // Members in these domains can open doors, valves or alarms, so a bulk
 // action on a group containing them needs an explicit confirmation.
@@ -85,6 +89,10 @@ class MoreInfoGroup extends LitElement {
     }
   }
 
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   protected render() {
     if (!this.hass || !this.stateObj) {
       return nothing;
@@ -99,19 +107,19 @@ class MoreInfoGroup extends LitElement {
         ? ""
         : html`
             <p class="headline">
-              ${this.hass.localize(
+              ${this._modeLocalize(
                 "ui.dialogs.more_info_control.group.count_on",
                 { on: onCount, total: members.length }
               )}
             </p>
             <div class="chips">
               <button type="button" class="chip" @click=${this._allOn}>
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.dialogs.more_info_control.group.all_on"
                 )}
               </button>
               <button type="button" class="chip" @click=${this._allOff}>
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.dialogs.more_info_control.group.all_off"
                 )}
               </button>
@@ -148,7 +156,7 @@ class MoreInfoGroup extends LitElement {
   }
 
   private async _setAll(turnOn: boolean) {
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const sensitive = this.stateObj!.attributes.entity_id.some((entityId) =>
       SENSITIVE_DOMAINS.has(computeDomain(entityId))
     );

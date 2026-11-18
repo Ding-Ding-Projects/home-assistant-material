@@ -15,6 +15,10 @@ import { UNAVAILABLE } from "../../../data/entity/entity";
 import type { HomeAssistantApi } from "../../../types";
 import { showToast } from "../../../util/toast";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-automation")
 class MoreInfoAutomation extends LitElement {
@@ -23,6 +27,10 @@ class MoreInfoAutomation extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._localize);
+  }
 
   @state()
   @consume({ context: apiContext, subscribe: true })
@@ -40,12 +48,12 @@ class MoreInfoAutomation extends LitElement {
       <p class="headline ${isOn ? "ok" : ""}">
         ${
           isOn
-            ? this._localize("ui.dialogs.more_info_control.automation.on")
-            : this._localize("ui.dialogs.more_info_control.automation.off")
+            ? this._modeLocalize("ui.dialogs.more_info_control.automation.on")
+            : this._modeLocalize("ui.dialogs.more_info_control.automation.off")
         }
       </p>
       <p class="subline">
-        ${this._localize("ui.card.automation.last_triggered")}:
+        ${this._modeLocalize("ui.card.automation.last_triggered")}:
         <ha-relative-time
           .datetime=${this.stateObj.attributes.last_triggered}
           capitalize
@@ -56,13 +64,17 @@ class MoreInfoAutomation extends LitElement {
         <span class="toggle-label">
           ${
             isOn
-              ? this._localize("ui.dialogs.more_info_control.automation.is_on")
-              : this._localize("ui.dialogs.more_info_control.automation.is_off")
+              ? this._modeLocalize(
+                  "ui.dialogs.more_info_control.automation.is_on"
+                )
+              : this._modeLocalize(
+                  "ui.dialogs.more_info_control.automation.is_off"
+                )
           }
         </span>
         <ha-switch
           .checked=${isOn}
-          .accessibleLabel=${this._localize(
+          .accessibleLabel=${this._modeLocalize(
             "ui.dialogs.more_info_control.automation.toggle_label"
           )}
           .disabled=${unavailable}
@@ -77,7 +89,7 @@ class MoreInfoAutomation extends LitElement {
           .disabled=${unavailable}
         >
           <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
-          ${this._localize("ui.card.automation.trigger")}
+          ${this._modeLocalize("ui.card.automation.trigger")}
         </ha-button>
       </div>
     `;
@@ -96,7 +108,7 @@ class MoreInfoAutomation extends LitElement {
       // The call failed, so put the switch back to the real state
       target.checked = !checked;
       showToast(this, {
-        message: this._localize(
+        message: this._modeLocalize(
           "ui.dialogs.more_info_control.automation.toggle_failed"
         ),
       });

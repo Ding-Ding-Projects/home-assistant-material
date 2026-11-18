@@ -12,6 +12,10 @@ import {
   entityFirstControl,
 } from "../entity-first-controls";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-default")
 class MoreInfoDefault extends LitElement {
@@ -19,11 +23,15 @@ class MoreInfoDefault extends LitElement {
 
   @property({ attribute: false }) public stateObj?: HassEntity;
 
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   protected render() {
     if (!this.hass || !this.stateObj) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const entityId = this.stateObj.entity_id;
     const registry = this.hass.entities?.[entityId];
     const device = registry?.device_id

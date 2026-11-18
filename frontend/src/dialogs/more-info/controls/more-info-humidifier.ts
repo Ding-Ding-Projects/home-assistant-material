@@ -16,6 +16,10 @@ import type { HumidifierEntity } from "../../../data/humidifier";
 import { HumidifierEntityFeature } from "../../../data/humidifier";
 import "../../../state-control/humidifier/ha-state-control-humidifier-humidity";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-humidifier")
 class MoreInfoHumidifier extends LitElement {
@@ -24,6 +28,10 @@ class MoreInfoHumidifier extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._localize);
+  }
 
   @state()
   @consume({ context: apiContext, subscribe: true })
@@ -62,7 +70,7 @@ class MoreInfoHumidifier extends LitElement {
         ? `${this._formatters.formatEntityAttributeValue(stateObj, "action")}.`
         : undefined,
       stateObj.attributes.current_humidity != null
-        ? this._localize("ui.dialogs.more_info_control.humidifier.now", {
+        ? this._modeLocalize("ui.dialogs.more_info_control.humidifier.now", {
             value: this._formatters.formatEntityAttributeValue(
               stateObj,
               "current_humidity"

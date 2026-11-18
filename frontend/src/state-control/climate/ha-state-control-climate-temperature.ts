@@ -37,6 +37,10 @@ import {
   createStateControlCircularSliderController,
   stateControlCircularSliderStyle,
 } from "../state-control-circular-slider-style";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../common/language-mode/language-mode";
 
 type Target = "value" | "low" | "high";
 
@@ -259,7 +263,7 @@ export class HaStateControlClimateTemperature extends LitElement {
           })}
           data-target=${target}
           .step=${-this._step}
-          .label=${this._i18n.localize(
+          .label=${this._modeLocalize(
             target === "low"
               ? "ui.components.climate-control.lower_temperature_down"
               : target === "high"
@@ -276,7 +280,7 @@ export class HaStateControlClimateTemperature extends LitElement {
           })}
           data-target=${target}
           .step=${this._step}
-          .label=${this._i18n.localize(
+          .label=${this._modeLocalize(
             target === "low"
               ? "ui.components.climate-control.lower_temperature_up"
               : target === "high"
@@ -552,18 +556,18 @@ export class HaStateControlClimateTemperature extends LitElement {
           : "temperature"
     );
     const limitText = atMax
-      ? this._i18n.localize("ui.card.climate.maximum_reached")
+      ? this._modeLocalize("ui.card.climate.maximum_reached")
       : atMin
-        ? this._i18n.localize("ui.card.climate.minimum_reached")
+        ? this._modeLocalize("ui.card.climate.minimum_reached")
         : "";
-    const downLabel = this._i18n.localize(
+    const downLabel = this._modeLocalize(
       target === "low"
         ? "ui.components.climate-control.lower_temperature_down"
         : target === "high"
           ? "ui.components.climate-control.upper_temperature_down"
           : "ui.components.climate-control.temperature_down"
     );
-    const upLabel = this._i18n.localize(
+    const upLabel = this._modeLocalize(
       target === "low"
         ? "ui.components.climate-control.lower_temperature_up"
         : target === "high"
@@ -648,7 +652,7 @@ export class HaStateControlClimateTemperature extends LitElement {
       <p class="board-status">
         ${actionText}${actionText && current != null ? ". " : nothing}${
           current != null
-            ? html`${this._i18n.localize("ui.card.climate.currently")}
+            ? html`${this._modeLocalize("ui.card.climate.currently")}
               ${this._formatters.formatEntityAttributeValue(
                 this.stateObj,
                 "current_temperature",
@@ -658,6 +662,10 @@ export class HaStateControlClimateTemperature extends LitElement {
         }
       </p>
     `;
+  }
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._i18n.localize);
   }
 
   protected render() {

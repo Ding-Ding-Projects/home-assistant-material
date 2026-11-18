@@ -29,6 +29,10 @@ import {
   todayInZone,
   zonedWallTimeToDate,
 } from "./more-info-time-zone";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 // The list shows the next 7 days, the calendar panel has the other views
 const DAYS_AHEAD = 7;
@@ -139,11 +143,15 @@ class MoreInfoCalendar extends LitElement {
     this._events.subscribe(this.hass, this._calendars, start, end);
   }
 
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass.localize);
+  }
+
   protected render() {
     if (!this.stateObj) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const attrs = this.stateObj.attributes;
     const message = attrs.message as string | undefined;
     const loading = !this._events.loaded;
@@ -271,7 +279,7 @@ class MoreInfoCalendar extends LitElement {
       timeZone,
     }).format(start);
     const when = allDay
-      ? `${day}, ${this.hass.localize("ui.dialogs.more_info_control.calendar.all_day")}`
+      ? `${day}, ${this._modeLocalize("ui.dialogs.more_info_control.calendar.all_day")}`
       : `${day}, ${new Intl.DateTimeFormat(language, {
           hour: "numeric",
           minute: "2-digit",

@@ -60,6 +60,34 @@ describe("entity more-info coverage", () => {
     expect(missing).toEqual([]);
   });
 
+  // The platform list above only names platforms. Helpers and core kinds such
+  // as a zone are not platforms, so a mapping removed for one of them would
+  // pass that check. This list is written by hand and must be kept in step
+  // with the board.
+  it("names a first control for every helper and core kind of the board", () => {
+    const expected = {
+      input_boolean: "toggle",
+      input_number: "slider",
+      input_select: "option_tiles",
+      input_text: "text_box",
+      input_datetime: "picker",
+      input_button: "press",
+      script: "press",
+      timer: "remaining_ring",
+      counter: "remaining_ring",
+      person: "map",
+      zone: "map",
+      sun: "forecast",
+      automation: "toggle",
+      group: "toggle",
+      schedule: "state_changed",
+    };
+    expect(ENTITY_FIRST_CONTROL).toMatchObject(expected);
+    Object.keys(expected).forEach((domain) =>
+      expect(ENTITY_FIRST_CONTROL[domain], domain).toBeTruthy()
+    );
+  });
+
   it("keeps the first control of the board for the main kinds", () => {
     expect(ENTITY_FIRST_CONTROL).toMatchObject({
       light: "brightness_bar",

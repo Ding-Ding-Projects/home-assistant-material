@@ -22,6 +22,10 @@ import {
   todayInZone,
   zonedWallTimeToDate,
 } from "./more-info-time-zone";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
@@ -68,6 +72,10 @@ class MoreInfoDatetime extends LitElement {
     this._draft = Number.isNaN(current.getTime()) ? new Date() : current;
   }
 
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this.hass!.localize);
+  }
+
   protected render() {
     if (
       !this.hass ||
@@ -77,7 +85,7 @@ class MoreInfoDatetime extends LitElement {
     ) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const language = this.hass.locale.language;
     const draft = this._draft;
     const changed =

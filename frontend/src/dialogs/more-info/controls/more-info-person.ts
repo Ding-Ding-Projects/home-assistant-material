@@ -27,6 +27,10 @@ import type {
   HomeAssistantFormatters,
   HomeAssistantInternationalization,
 } from "../../../types";
+import {
+  withLanguageMode,
+  type Localize,
+} from "../../../common/language-mode/language-mode";
 
 @customElement("more-info-person")
 class MoreInfoPerson extends LitElement {
@@ -35,6 +39,10 @@ class MoreInfoPerson extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  private get _modeLocalize(): Localize {
+    return withLanguageMode(this._localize);
+  }
 
   @state()
   @consume({ context: statesContext, subscribe: true })
@@ -87,7 +95,7 @@ class MoreInfoPerson extends LitElement {
         </div>
         <div class="since">
           <span class="dot"></span>
-          ${this._localize("ui.dialogs.more_info_control.person.since")}
+          ${this._modeLocalize("ui.dialogs.more_info_control.person.since")}
           <ha-relative-time
             .datetime=${stateObj.last_changed}
           ></ha-relative-time>
@@ -110,7 +118,7 @@ class MoreInfoPerson extends LitElement {
                 ${
                   sourceId
                     ? this._renderStat(
-                        this._localize(
+                        this._modeLocalize(
                           "ui.dialogs.more_info_control.person.followed_by"
                         ),
                         sourceState?.attributes.friendly_name ?? sourceId
@@ -120,7 +128,7 @@ class MoreInfoPerson extends LitElement {
                 ${
                   accuracy !== undefined && accuracy !== null
                     ? this._renderStat(
-                        this._localize(
+                        this._modeLocalize(
                           "ui.dialogs.more_info_control.person.accuracy"
                         ),
                         `${formatNumber(accuracy, this._i18n.locale)} m`
@@ -130,7 +138,7 @@ class MoreInfoPerson extends LitElement {
                 ${
                   battery !== undefined && battery !== null
                     ? this._renderStat(
-                        this._localize(
+                        this._modeLocalize(
                           "ui.dialogs.more_info_control.person.battery"
                         ),
                         `${formatNumber(Number(battery), this._i18n.locale)}%`
@@ -157,7 +165,7 @@ class MoreInfoPerson extends LitElement {
                             slot="start"
                             .path=${mdiMapMarkerPlus}
                           ></ha-svg-icon>
-                          ${this._localize(
+                          ${this._modeLocalize(
                             "ui.dialogs.more_info_control.person.create_zone"
                           )}
                         </ha-button>

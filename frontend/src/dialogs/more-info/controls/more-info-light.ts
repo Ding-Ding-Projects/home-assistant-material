@@ -161,6 +161,7 @@ class MoreInfoLight extends LitElement {
           !supportsBrightness
             ? html`
                 <ha-state-control-toggle
+                  compact
                   .stateObj=${this.stateObj}
                   .iconPathOn=${mdiLightbulbOn}
                   .iconPathOff=${mdiLightbulbOff}

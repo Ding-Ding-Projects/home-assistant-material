@@ -172,6 +172,7 @@ class MoreInfoFan extends LitElement {
               `
             : html`
                 <ha-state-control-toggle
+                  compact
                   .stateObj=${this.stateObj}
                   .iconPathOn=${mdiFan}
                   .iconPathOff=${mdiFanOff}
