@@ -1,15 +1,57 @@
 {
  "format": 1,
- "generated": "2026-11-18T02:42:55Z",
+ "generated": "2026-11-18T03:40:36Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 519,
+ "newest_build": 520,
  "releases": [
+  {
+   "build": 520,
+   "core": "2026.11.1.520",
+   "supervisor": "2026.11.0.520",
+   "os": "18.5.520",
+   "tag": null,
+   "source": "28e6e9e7d",
+   "date": "2026-11-17T22:11:20-05:00",
+   "previous_build": 519,
+   "changes": [
+    {
+     "sha": "28e6e9e7d",
+     "date": "2026-11-17T22:11:20-05:00",
+     "title": "Phone menus become sheets, honest update durations, readable self-check reasons",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Faults from a real run of build 519 on a phone.\n\n- Menus. A step's menu opened upward on the last step and lost its top, so Delete stayed out of reach. Below 600 px every menu is now a sheet from the bottom with 48 px rows that scrolls inside itself and sits above the floating bars. On wide windows menus stay anchored but can no longer grow past the window. Clicked at 390 and 360 px on the first, middle and last step, the editor's own menu and list rows. - Updates. After the reload that follows an update, the row said \"Took 0:05\" for a two-minute update because it timed itself from the reload. The start is now kept from when the update began; if it truly is not known the row says when it finished and gives no duration. The finished card shows a tick, each item's from and to version and a \"What's new\" link, and the last line clears the bar. - Backups. Stage times follow the person's own time zone and clock choice instead of the server's. Every self-check reason has wording in English and Cantonese; an unknown code becomes a readable sentence, never a raw token. - Drafts. Nothing is sent when the content is the same apart from key order or empty values, a server that says \"too soon\" ",
+     "detail_yue": "手機選單變成底部面板、更新用時講真話、自我檢查原因睇得明\n\n喺手機真實行 519 版本搵到嘅問題。\n\n- 選單。最後一步嘅選單向上打開，頂部畀人切走，「刪除」仍然撳唔到。 而家闊度細過 600 像素嘅時候，所有選單都係由底部升上嚟嘅面板， 每行 48 像素，喺入面自己捲動，位置喺浮動欄上面。闊視窗嘅選單 仍然貼住個掣，但唔會再大過個視窗。喺 390 同 360 像素撳過第一、 中間同最後一步、編輯器自己嘅選單同清單行。 - 更新。更新完重新載入之後，嗰行寫「用咗 0:05」，其實更新行咗兩 分鐘，因為佢由重新載入嗰刻開始計。而家開始時間由更新開始嗰刻 記低；真係唔知嘅話就只寫幾點完成，唔寫用時。完成卡有個剔號、 每項由邊個版本去邊個版本同「有乜新嘢」連結，最後一行唔會再畀 底欄遮住。 - 備份。階段時間跟返用戶自己嘅時區同時鐘選擇，唔係跟伺服器。每個 自我檢查原因都有英文同廣東話字眼；唔識嘅代碼會變成一句睇得明 嘅說話，唔會顯示原始代碼。 - 草稿。內容除咗鍵嘅次序或者空值之外冇變就唔會送出；伺服器答 「太快」最多問六次；狀態改變只會重畫草稿嗰行，唔會重畫成個 編輯器。 - 細節：面板標題可以分兩行；分頁列喺可以捲嗰邊淡出得明顯啲；兩個 或以上未設定嘅開關會摺入「更多選項」。\n\n關於嗰次見到嘅撞機：五分鐘閒置測試重現唔到，記憶體同節點數都 平穩，所以原因仲未搵到。上面草稿嘅改動補咗三個弱位，但唔算已經 證實修好。\n\n未驗證：原因字眼同「任何類型最新備份」嗰行未喺瀏覽器睇過；由舊 版本開始嘅隊列；360 像素嘅場景選單。\n\n檢查：型別維持兩個已知錯誤；9274 個測試通過，三個已知失敗。"
+    },
+    {
+     "sha": "2e4885975",
+     "date": "2026-11-17T21:00:43-05:00",
+     "title": "Backup self-check: this system's own copy is local in every hosting mode [skip ci]",
+     "areas": [
+      "core"
+     ],
+     "detail": "Build 519 told people running the full hosting mode that a backup made seconds ago \"could not be fully checked, 0 of 4 checks passed\". Nothing was wrong with the backup. The check was wrong about where the backup was.\n\nThe light check for remote places decided what was local by asking whether Core itself stored the copy. Under a Supervisor the local copy is served by the Supervisor, so it was classed as remote, never read, and every content check gave up.\n\nA copy is now one of three kinds: - local: Core's own storage, or the Supervisor's local storage. Read in full in every mode, as it was before the light check existed. - network: a storage mount on the home network. Read in full in Light mode up to the size limit, lightly above it. - remote: everything else, including cloud places. Light by default.\n\nA local copy is always the one read in full when one exists. With no local copy, Light mode still says \"could not check\" with a reason, never a pass and never a failure.\n\nTests: 38 pass in the self-check file, 8 of them new, using a fake Supervisor storage that streams like the real one. Not verified on a real Supervisor; that needs the next build.",
+     "detail_yue": "備份自我檢查：呢部機自己嗰份副本喺任何寄存模式都算本機 [skip ci]\n\n519 版本同用緊完整寄存模式嘅人講，幾秒前啱啱整好嘅備份「檢查唔 晒，4 項之中 0 項通過」。份備份其實冇事，係個檢查搞錯咗份備份 喺邊。\n\n為遠端位置而設嘅輕量檢查，係靠問「份副本係咪核心自己儲存」嚟決定 邊個算本機。喺監督程式之下，本機副本係由監督程式提供，所以畀人 當咗做遠端、完全冇讀過，所有內容檢查就全部放棄。\n\n而家副本分三種： - 本機：核心自己嘅儲存，或者監督程式嘅本機儲存。任何模式都完整 讀一次，同輕量檢查出現之前一樣。 - 網絡：屋企網絡上面嘅儲存掛載。輕量模式之下，大細上限以內完整 讀，超過就輕量檢查。 - 遠端：其他所有，包括雲端位置。預設輕量。\n\n只要有本機副本，完整讀嗰份一定係本機嗰份。冇本機副本嘅話，輕量 模式仍然會講「檢查唔到」兼附原因，唔會當通過，亦唔會當失敗。\n\n測試：自我檢查檔案 38 個通過，其中 8 個係新嘅，用咗一個同真嘢一樣 會串流嘅假監督程式儲存。未喺真正嘅監督程式上面驗證，要等下一個 版本。"
+    },
+    {
+     "sha": "11e60d596",
+     "date": "2026-11-17T20:17:47-05:00",
+     "title": "Phone: update rows a third of their height, one \"Update coming soon\" card [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The owner uses a phone and has said, more than once, that things must not be big. Measured at 390 px in a local build:\n\n- An update row was 145 px tall. It is 66 px: badge, one-line name, versions, and the Update button. A chevron opens the summary, Notes and the Automatic switch, so every action is one tap or one expand. - The build progress used to be several cards with poster-size words and took more than a screen. It is now one card, \"Update coming soon\", about 120 px closed: build number, the real percentage, a thin bar, jobs done, start time and running time. Open, it lists each stage with its state, an estimate that says it comes from earlier builds, up to three things that will be in the build, and what can be done now. It never installs anything. - The largest type on the Updates page fell from 72 px to 28 px. The Settings front, device health, the greeting, developer tools and the away digest got the same cap. - Action editor fields show their label once, with the description as small help text under the field. An empty name and value editor is one \"Add\" row. - Backups: each place a backup lives shows its self-check result in plain words, with \"Check this copy in full\" be",
+     "detail_yue": "手機：更新行矮咗三分之二，另加一張「更新即將推出」卡 [skip ci]\n\n屋主用手機，而且唔止一次講過啲嘢唔好咁大。喺本機建置、390 像素 量度：\n\n- 更新行以前高 145 像素，而家 66：徽章、一行名稱、版本，同更新掣。 撳箭嘴會打開摘要、說明同自動開關，所以每個動作都係撳一下或者 展開一下就到。 - 建置進度以前係幾張卡，啲字大到好似海報，佔多過一個畫面。而家 係一張卡「更新即將推出」，收埋大約 120 像素：版本編號、真實 百分比、一條幼進度條、完成咗幾多個工作、開始時間同已經行咗幾耐。 打開就列出每個階段同狀態、一個講明係根據以往建置嘅估計、最多 三樣會喺呢個版本入面嘅嘢，同埋而家可以做乜。佢唔會安裝任何嘢。 - 更新頁最大嘅字由 72 像素跌到 28。設定首頁、裝置健康、問候語、 開發者工具同離開摘要都用返同一個上限。 - 動作編輯器嘅欄位標籤只出一次，說明變成欄位下面嘅細字。空嘅名稱 同數值編輯器得返一行「新增」。 - 備份：備份喺每個位置都會用淺白文字顯示自我檢查結果，「完整檢查 呢份副本」會先警告要下載幾大。備份設定多咗「檢查其他位置嘅 副本」：輕量、完整或者關閉，每個有一句老實說明。舊伺服器冇呢啲 欄位就唔會顯示新嘢。\n\n未驗證：更新行用咗範本實體，建置卡用模擬回應；備份詳情用模擬 備份；完整檢查同設定更新未喺真實伺服器行過；廣東話未喺畫面睇過。 手機上面自動更新卡仍然有大約 786 像素高。上一個版本未證實之前 唔要求建置。\n\n檢查：型別維持兩個已知錯誤；9264 個測試通過，三個已知失敗。"
+    }
+   ]
+  },
   {
    "build": 519,
    "core": "2026.11.1.519",
    "supervisor": "2026.11.0.519",
    "os": "18.5.519",
-   "tag": null,
+   "tag": "v2026.11.1.519",
    "source": "900ceccca",
    "date": "2026-11-17T19:09:08-05:00",
    "previous_build": 517,
@@ -4594,72 +4636,6 @@
       "interface"
      ],
      "detail": "The tab strip can now go anywhere and get out of the way:\n\n- Collapse: a button at the start of the strip (and an entry in its menu, and a switch in the profile) shows each tab as its icon only, the name in the tooltip and to screen readers. On a side or floating it becomes a 64 pixel column and the page takes the room back; on the top or bottom it stays one bar. - Float anywhere: a fifth position beside the four edges. The strip becomes a card over the page that takes no room from it. Drag it by its handle, or focus the handle and use the arrow keys (Shift moves further). The place is stored as a share of the window, so it stays put on another window size, and it is always kept fully on screen. - A Tab strip position button beside the collapse button opens the strip's menu, which before was only reachable by right-clicking empty space in the strip. - Both choices are saved per strip and synced with the other tab settings. Pure functions for the stored values have tests.\n\nFixes from viewing build 137 in a running copy:\n\n- On a phone, a data table row that grew past one line had its text against the card's top edge; it now has room above and below. - The colour tool's \"Pick from scr"
-    }
-   ]
-  },
-  {
-   "build": 137,
-   "core": "2026.11.1.137",
-   "supervisor": "2026.11.0.137",
-   "os": "18.5.137",
-   "tag": "v2026.11.1.137",
-   "source": "55d9604cf",
-   "date": "2026-11-12T12:34:16-05:00",
-   "previous_build": 132,
-   "changes": [
-    {
-     "sha": "55d9604cf",
-     "date": "2026-11-12T12:34:16-05:00",
-     "title": "Fixes from the viewing pass on build 131, and what that pass saw",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Batch 40. Published build 131 was driven on three throwaway instances (headless, pictures inspected). Most of what was waiting to be seen works; the roadmap is ticked for exactly that and nothing more. The pass also found defects, fixed here in source and unit tested, not yet seen.\n\n- The link confirmation page threw an error because it focused a button that had not rendered yet, and the error log then fetched a source file from an outside host to explain the stack trace. A page whose whole job is asking before anything leaves should not phone anyone first. Fixed, and the error log now refuses any address that is not this instance's own origin, with a test. - Locks: list rows stack in the narrow panel instead of printing a path one letter per line; the remove prompt stays inside the window; wizard step 2 scrolls above its buttons. The School mode switch waits for the PIN before it shows on. - Appearance: a fill on a data table was hidden under the table's own white surface. Automation editor: one set of Run now and Check instead of three; trace page title and run picker; room under the sticky search. Colour tool: its two names are labelled. - Phone and language: bar labels stack at",
-     "detail_yue": "第 40 批。喺三個用完即棄嘅 131 版本上面逐樣睇過，大部分等緊「未睇過」 嘅功能都真係得，路線圖只係剔返真係見到嗰啲。順手捉到一堆蟲：連結確認頁 未問人就自己去外面攞原始檔嚟解釋錯誤（專責把關嗰頁自己先走漏風聲）；鎖 清單條路徑一個字一行；移除鎖個提示跌咗出畫面；表格上色畀自己層白底冚住； 自動化編輯器有三套「即刻行」。全部喺源碼修好兼有單元測試，未喺瀏覽器 再睇。"
-    },
-    {
-     "sha": "22c552fa7",
-     "date": "2026-11-12T12:08:54-05:00",
-     "title": "Repairs: no \"Unsupported installation method\" when the Supervisor says supported",
-     "areas": [
-      "core"
-     ],
-     "detail": "Batch 39. In full hosting mode the Repairs page showed two cards arguing with each other: \"Unsupported installation method\" on top, and \"Unsupported: Nothing. This installation is supported\" below it.\n\nThe first came from the Supervisor integration's start-up check, which raises that repair for every installation that is not the appliance operating system, without asking anyone. The second comes from the Supervisor itself, which is the one that actually checks the host. The start-up check now raises the repair only when the Supervisor does not report its host as supported. An installation the Supervisor calls unsupported, or one that reports nothing, still gets the repair.\n\nTest: a supported Supervisor on a 64-bit host raises nothing (two architectures). Run in a throwaway container: the 16 installation-check tests passed; the harness's own translation check errors on every test in that file, changed or not.\n\nNot seen in a running build. The stored entry on a running instance clears at the next start after the update.",
-     "detail_yue": "第 39 批。完整託管模式入面，「修復」頁兩張卡喺度拗交：上面話「不支援嘅 安裝方式」，下面話「冇嘢不支援，呢個安裝係受支援」。上面嗰張係開機檢查 見到唔係官方系統就照出，問都唔問；下面嗰張係 Supervisor 自己驗過主機先 講。而家開機檢查會先聽 Supervisor 講：佢話支援就唔出聲，佢話唔支援或者 乜都冇講先照舊提醒。未喺運行中嘅版本睇過。"
-    },
-    {
-     "sha": "95a83e69d",
-     "date": "2026-11-12T12:03:54-05:00",
-     "title": "Deploy Assistant build: stop early when the desktop runtime was not unpacked",
-     "areas": [
-      "docs",
-      "deploy"
-     ],
-     "detail": "Batch 38. `deploy-assistant\\build.bat` was run on Windows for the first time. Install, 21 tests and the window build passed, then the installer step made nothing and the script blamed a missing Setup.exe, which was true and no help at all. The real cause sat four steps earlier: on Node.js 26 the unzip step used by the package install ends early without an error, so the desktop runtime is never unpacked. The release build uses Node.js 22, which is why published installers are fine.\n\n- build.bat now checks for the unpacked runtime straight after the install and names the Node.js version to use. - Records: what was seen of the built window (driven headless, nothing deployed), the defects left for the design lane, and what a read-only look at the logs says about the container found Exited (128): about 95 out-of-memory kills in the Docker virtual machine, an unclean engine restart, and a known engine defect that makes `unless-stopped` skip a container afterwards. The number 128 itself stays unexplained.\n\nThe installer and the packaged window are still unverified on this machine.",
-     "detail_yue": "第 38 批。部署助手個 build.bat 第一次喺 Windows 跑：裝嘢、21 個測試、起 視窗都過，去到整安裝檔就交白卷，仲話搵唔到 Setup.exe，講得啱但係冇用。 真兇喺四步之前：Node.js 26 解壓縮靜雞雞收工，連個桌面執行檔都冇解出嚟。 而家裝完即刻驗，仲話埋你知要用邊個版本。另外記低咗個容器點解瞓低唔起身： 記憶體爆煲、引擎唔乾淨咁重啟，加一個已知嘅引擎問題；128 呢個數就真係 查唔到。"
-    },
-    {
-     "sha": "42de55f75",
-     "date": "2026-11-12T11:07:48-05:00",
-     "title": "Supervisor tests: bring the suite back in line with this project's changes",
-     "areas": [
-      "docs",
-      "supervisor"
-     ],
-     "detail": "Batch 37. The Supervisor unit tests had never been run against this project's changes. First run on Python 3.14 in a throwaway container: 4,030 passed, 34 failed, 75 errors. Every failure was a test still describing the upstream product, not a defect in the changed code.\n\n- The shared fixtures patched a telemetry module attribute that no longer exists, because the reporting hooks are no-ops here. They now replace the hooks themselves, so the existing assertions still run. - The data filter tests need diagnostics on, which this project forces off; a local fixture lets those tests set the flag. - Expected image names and the version channel address now name this project's registry and channel file.\n\nAfter the fixes: 4,139 passed, 0 failed, 0 errors, 1 skipped (the suite's own skip). Only files under supervisor/tests changed. Linters were not run on the edited tests.\n\nAlso recorded: release 2026.11.1.131 was opened in a browser on a throwaway instance and the New tab catalog's sections fill the panel.",
-     "detail_yue": "第 37 批。Supervisor 嘅單元測試由頭到尾未為呢個項目跑過，一跑：34 個 失敗、75 個出錯。睇真啲，全部係測試仲以為自己喺上游，仲去 patch 一個 已經搬走咗嘅遙測屬性、仲期待舊嘅映像名同版本網址。改返啲測試跟返而家 嘅行為，冇郁過正式程式碼。而家 4,139 個過晒，1 個係佢自己跳過。"
-    },
-    {
-     "sha": "b48bd9677",
-     "date": "2026-11-12T10:54:40-05:00",
-     "title": "Media upload: let every file be chosen, refuse the unrelated ones in the app",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Batch 36. On an iPhone the upload button opened a picker full of Ogg files, all greyed out. The file field was limited to audio, video and picture types, and a phone greys out whatever it cannot play itself, which is a strict door policy for a file that only wanted to be uploaded.\n\n- The field names no type now, so every file can be chosen. - A chosen file with no type gets one from its name. The phone hands an Ogg file over with an empty type and the server refuses an upload that has no media type. - Files that are not pictures, video or audio are refused in the interface before anything is sent, in one message that names them. The related files in the same choice still upload. - Chosen pictures get the conversion dropped pictures already had. Audio and video are not converted; they go up as they are.\n\nChecks: file-drop and component tests 1,092 passed in 101 files; type check clean apart from the two known gallery errors. Not seen in a browser and not tried on a phone.",
-     "detail_yue": "第 36 批。iPhone 撳上載，成版 Ogg 檔灰晒揀唔到：個輸入格淨係收「影音圖」， 部電話自己播唔到嘅就當你唔存在。而家乜檔都揀得，冇類型嘅就睇檔名補返； 唔關事嘅檔喺介面度直接請走，仲會點名，同一批入面啱嘅照樣上載。圖片識 自動轉格式，聲同片就原封不動，冇扮識轉。只做咗單元測試，未喺瀏覽器同 真電話試過。"
     }
    ]
   }
