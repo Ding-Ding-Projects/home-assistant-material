@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Heat Defender: keeps the heating off, with a floor that always wins</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+button{font:inherit;cursor:pointer}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</helmet>
+<div style="min-height: 1180px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Heat Defender on a phone. Left: setup. Middle: its page (tap "Make it cold outside" to see the floor take over). Right: its guards.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Set up" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="display: grid; place-items: center; padding-top: 8px"><span style="width: 32px; height: 4px; border-radius: 2px; background: #44474F"></span></div>
+<div style="padding: 10px 16px 4px; display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #5C2E22; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFB59E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6z"/><path d="M9 12h6"/></svg></span><div style="flex: 1"><div style="font-size: 18px; font-weight: 700">Heat Defender</div><div style="font-size: 12px; color: #C4C6D0">Step 1 of 3 · which heating</div></div></div>
+<div style="height: 4px; margin: 8px 16px; border-radius: 2px; background: #2A2D36"><div style="width: 33%; height: 4px; border-radius: 2px; background: #B4C5FF"></div></div>
+<div style="padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="min-height: 56px; border-radius: 12px; background: #14161B; padding: 0 12px; display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #7A3A12; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Hallway thermostat</div><div style="font-size: 12px; color: #C4C6D0">Heating · now 23.5 °C · set 24</div></div><span style="color: #B4C5FF; font-weight: 700">Change</span></div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 12px">Any climate entity that can heat. Several rooms: add it once for each.</div>
+<div style="border-radius: 12px; background: #14161B; padding: 12px; display: flex; flex-direction: column; gap: 8px"><div style="font-size: 13px; color: #C4C6D0">Keep the heating</div><div style="height: 44px; border-radius: 12px; background: #262933; padding: 4px; box-sizing: border-box; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px"><div style="border-radius: 8px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Off</div><div style="border-radius: 8px; display: grid; place-items: center; font-weight: 600">No warmer than</div></div><div style="font-size: 12px; color: #C4C6D0">Off turns heating off whenever something turns it on. "No warmer than" lets it heat, but never above a number you choose.</div></div>
+<div style="border-radius: 12px; background: #3A1512; padding: 12px; display: flex; flex-direction: column; gap: 8px"><div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-weight: 700; color: #FFDAD6">The floor</span><span style="font-size: 24px; font-weight: 700; color: #FFDAD6">16.0 °C</span></div><div style="height: 44px; border-radius: 12px; background: #1F0B09; overflow: hidden"><div style="width: 40%; height: 44px; border-radius: 12px; background: #7A1F1A; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; box-sizing: border-box"><span style="width: 4px; height: 20px; border-radius: 2px; background: #FFB4AB"></span></div></div><div style="font-size: 12px; color: #FFDAD6">Below this the heating is allowed to run, whatever was chosen. It cannot be set under 10 °C or switched off.</div></div>
+</div>
+<div style="padding: 8px 12px 12px; display: flex; gap: 8px; box-shadow: 0 -1px 0 #2A2D36"><span style="height: 48px; padding: 0 20px; border-radius: 24px; display: grid; place-items: center; color: #B4C5FF; font-weight: 700">Cancel</span><span style="flex: 1; height: 48px; border-radius: 24px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Next</span></div>
+</section>
+
+<section aria-label="The Heat Defender page" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px"><span style="width: 44px; height: 44px; border-radius: 50%; background: #1D1F26; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3E2E9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 6-6 6 6 6"/></svg></span><div style="flex: 1; padding-left: 8px; font-size: 20px; font-weight: 700">Heat Defender</div></div>
+<div style="padding: 0 12px 6px; display: flex; gap: 6px"><span style="height: 36px; padding: 0 14px; border-radius: 18px; background: #2B3F6E; color: #D9E2FF; display: flex; align-items: center; font-weight: 700">Now</span><span style="height: 36px; padding: 0 14px; border-radius: 18px; display: flex; align-items: center; color: #C4C6D0">Guards</span><span style="height: 36px; padding: 0 14px; border-radius: 18px; display: flex; align-items: center; color: #C4C6D0">Saved</span><span style="height: 36px; padding: 0 14px; border-radius: 18px; display: flex; align-items: center; color: #C4C6D0">Log</span></div>
+<div style="padding: 6px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="{{card}}">
+<div style="display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-size: 12px; opacity: .8">Hallway thermostat</div><div style="font-size: 18px; font-weight: 700">{{headline}}</div></div><span style="{{pill}}">{{pillText}}</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+<div style="border-radius: 12px; background: rgba(12,13,16,.45); padding: 8px 10px"><div style="font-size: 12px; opacity: .8">Room</div><div style="font-size: 20px; font-weight: 700">{{room}}</div></div>
+<div style="border-radius: 12px; background: rgba(12,13,16,.45); padding: 8px 10px"><div style="font-size: 12px; opacity: .8">Heating</div><div style="font-size: 20px; font-weight: 700">{{heating}}</div></div>
+<div style="border-radius: 12px; background: rgba(12,13,16,.45); padding: 8px 10px"><div style="font-size: 12px; opacity: .8">Floor</div><div style="font-size: 20px; font-weight: 700">16.0°</div></div>
+</div>
+<div style="font-size: 13px">{{why}}</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px"><span style="height: 48px; border-radius: 24px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Let it heat for 1 hour</span><button type="button" onClick="{{flip}}" style="height: 48px; border: 0; border-radius: 24px; background: #262933; color: #E3E2E9; font-weight: 600">{{flipLabel}}</button></div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">WHAT HAPPENED</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0; width: 44px">06:30</span><div style="flex: 1"><div>The thermostat's own schedule turned heat on</div><div style="font-size: 12px; color: #C4C6D0">Rival schedule watch · turned off at 06:31</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0; width: 44px">22:15</span><div style="flex: 1"><div>Someone turned it up at the wall to 24°</div><div style="font-size: 12px; color: #C4C6D0">Courtesy wait · 20 minutes, then stepped down</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0; width: 44px">19:40</span><div style="flex: 1"><div>The same person raised it three times</div><div style="font-size: 12px; color: #C4C6D0">Repeated raise surrender · gave way for 4 hours</div></div></div>
+</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between"><div><div style="font-size: 12px; color: #C4C6D0">Heating kept off today</div><div style="font-weight: 700">5 h 40 min · about $2.10 not spent</div></div><span style="font-size: 12px; color: #C4C6D0">estimate</span></div>
+</div>
+</section>
+
+<section aria-label="Guards" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">SAFETY GUARDS · ALWAYS ON</div>
+<div style="border-radius: 16px; background: #3A1512; color: #FFDAD6; padding: 4px 12px">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-weight: 700">The floor</div><div style="font-size: 12px">Room under 16°: heating may run</div></div><span style="font-size: 12px; font-weight: 700">Cannot be turned off</span></div>
+<div style="height: 1px; background: #5C2E22"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-weight: 700">Freezing outside</div><div style="font-size: 12px">Outdoors at or below 0°: the floor rises to 18°</div></div><span style="font-size: 12px; font-weight: 700">Two keys to turn off</span></div>
+<div style="height: 1px; background: #5C2E22"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-weight: 700">No reading, no defending</div><div style="font-size: 12px">Room sensor silent for 30 min: stands down</div></div><span style="font-size: 12px; font-weight: 700">Cannot be turned off</span></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">THE SAME GUARDS AS ITS SISTER, TURNED AROUND</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<sc-for list="{{guards}}" as="g" hint-placeholder-count="6">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 0 #2A2D36"><div style="flex: 1; min-width: 0"><div style="font-weight: 600">{{g.name}}</div><div style="font-size: 12px; color: #C4C6D0">{{g.note}}</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; display: flex; align-items: center; justify-content: flex-end; padding: 0 4px; box-sizing: border-box; flex: none"><span style="width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+</sc-for>
+</div>
+<div style="border-radius: 12px; background: #1D2A44; color: #D9E2FF; padding: 10px 12px; font-size: 13px">An air conditioner and a heater in the same room: the two defenders know about each other and never work against one another.</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+renderVals() {
+const cold = !!(this.state && this.state.cold);
+const guards = [
+['Rival schedule watch', 'Answers the thermostat\'s own schedule'],
+['Courtesy wait', 'Waits before undoing a wall touch'],
+['Gentle walk-back', 'Steps down 0.5° at a time, never a snap'],
+['Repeated raise surrender', 'Three insists and it gives way for 4 h'],
+['Wake-up truce', 'Lets the room warm before people get up'],
+['Open window', 'Heating stays off while a window is open'],
+].map((g) => ({ name: g[0], note: g[1] }));
+return {
+guards: guards,
+card: 'border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 10px; transition: background .3s; ' + (cold ? 'background: #3A1512; color: #FFDAD6' : 'background: #1D1F26; color: #E3E2E9'),
+headline: cold ? 'Letting the heating run' : 'Keeping the heating off',
+pill: 'height: 28px; padding: 0 10px; border-radius: 14px; display: flex; align-items: center; font-size: 12px; font-weight: 700; ' + (cold ? 'background: #7A1F1A; color: #FFDAD6' : 'background: #17423D; color: #9EEBDD'),
+pillText: cold ? 'Floor' : 'Defending',
+room: cold ? '15.4°' : '22.8°',
+heating: cold ? 'On' : 'Off',
+why: cold ? 'The room is under the floor of 16°. Heating runs until it is back above 17°, then it is turned off again. Your choice does not count below the floor.' : 'Heating is off and the room is comfortable. Nothing to do. Next check in 0:40.',
+flipLabel: cold ? 'Back to normal' : 'Make it cold outside',
+flip: () => this.setState({ cold: !cold }),
+};
+}
+}
+</script>
+</body>
+</html>
