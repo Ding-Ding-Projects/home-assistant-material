@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A free public container registry as a place, locked with your password</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 1160px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Asked for by the owner: use a free, public container image registry as a place for camera recordings and for backups. Public is the point, because it is free, so everything is locked at home with a password the owner sets before it is sent. The password is required and can never be skipped.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Guided setup" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="padding: 14px 16px 6px"><div style="font-size: 12px; color: #C4C6D0">Add a place · step 2 of 4</div><div style="font-size: 20px; font-weight: 700">Container registry</div></div>
+<div style="padding: 0 16px 8px; display: flex; gap: 4px"><span style="flex: 1; height: 4px; border-radius: 2px; background: #B4C5FF"></span><span style="flex: 1; height: 4px; border-radius: 2px; background: #B4C5FF"></span><span style="flex: 1; height: 4px; border-radius: 2px; background: #2A2D36"></span><span style="flex: 1; height: 4px; border-radius: 2px; background: #2A2D36"></span></div>
+<div style="padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">1 · WHICH REGISTRY</div>
+<div style="height: 44px; border-radius: 12px; background: #14161B; padding: 4px; box-sizing: border-box; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px"><div style="border-radius: 8px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700; font-size: 13px">Docker Hub</div><div style="border-radius: 8px; display: grid; place-items: center; font-weight: 600; font-size: 13px">GitHub</div><div style="border-radius: 8px; display: grid; place-items: center; font-weight: 600; font-size: 13px">Other</div></div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">2 · SIGN IN, GUIDED</div>
+<div style="border-radius: 12px; background: #14161B; padding: 4px 12px">
+<div style="min-height: 52px; display: flex; align-items: center; gap: 10px"><span style="width: 22px; height: 22px; border-radius: 50%; background: #1F4A44; color: #7FD6C8; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none">1</span><span style="flex: 1">Open the registry's access token page</span><span style="color: #B4C5FF; font-weight: 700; font-size: 13px">Open</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 10px"><span style="width: 22px; height: 22px; border-radius: 50%; background: #1F4A44; color: #7FD6C8; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none">2</span><span style="flex: 1">Make a token that can read and write</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 10px"><span style="width: 22px; height: 22px; border-radius: 50%; background: #152E66; color: #B4C5FF; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none">3</span><span style="flex: 1">Paste your account name and the token here</span></div>
+</div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 4px">Account name</div>
+<div style="height: 44px; border-radius: 12px; background: #14161B; display: flex; align-items: center; padding: 0 12px; font-family: 'Roboto Mono', monospace; font-size: 13px">your-account</div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 4px">Access token</div>
+<div style="height: 44px; border-radius: 12px; background: #14161B; box-shadow: inset 0 0 0 2px #B4C5FF; display: flex; align-items: center; justify-content: space-between; padding: 0 12px"><span style="letter-spacing: .2em">••••••••••••••••</span><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 4px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7FD6C8; flex: none"></span><span style="flex: 1; font-size: 13px">Signed in. This token can read and write.</span></div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 4px">The token is kept hidden on this system and used only to talk to that registry. Your account password is never asked for.</div>
+<div style="display: flex; gap: 8px; padding-top: 4px"><span style="flex: 1; height: 44px; border-radius: 22px; box-shadow: inset 0 0 0 1px #44474F; display: grid; place-items: center; font-weight: 700; color: #B4C5FF">Back</span><span style="flex: 1; height: 44px; border-radius: 22px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Next</span></div>
+</div>
+</section>
+
+<section aria-label="Password, and the place in use" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">STEP 3 · YOUR PASSWORD LOCKS EVERYTHING</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 10px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7FD6C8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span style="flex: 1; font-weight: 600">Required. It cannot be skipped or turned off.</span></div>
+<div style="font-size: 12px; color: #C4C6D0">Password</div>
+<div style="height: 44px; border-radius: 12px; background: #14161B; display: flex; align-items: center; justify-content: space-between; padding: 0 12px"><span style="letter-spacing: .2em">••••••••••••••••••</span><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></div>
+<div style="display: flex; gap: 4px"><span style="flex: 1; height: 4px; border-radius: 2px; background: #7FD6C8"></span><span style="flex: 1; height: 4px; border-radius: 2px; background: #7FD6C8"></span><span style="flex: 1; height: 4px; border-radius: 2px; background: #7FD6C8"></span><span style="flex: 1; height: 4px; border-radius: 2px; background: #2A2D36"></span></div>
+<div style="font-size: 12px; color: #7FD6C8">Strong enough · 18 characters</div>
+<div style="font-size: 12px; color: #C4C6D0">Type it again</div>
+<div style="height: 44px; border-radius: 12px; background: #14161B; box-shadow: inset 0 0 0 2px #FFB4AB; display: flex; align-items: center; padding: 0 12px"><span style="letter-spacing: .2em">•••••••••••••••••</span></div>
+<div style="font-size: 12px; color: #FFB4AB">The two do not match yet.</div>
+<div style="border-radius: 12px; background: #3A2E12; padding: 10px 12px; font-size: 13px; color: #FFDF9E">The repository is public, so anyone can copy the locked files and try passwords for as long as they like. A long password is the only lock. At least 14 characters; a few unrelated words work well.</div>
+<div style="display: flex; align-items: center; gap: 10px; min-height: 44px"><span style="width: 22px; height: 22px; border-radius: 6px; box-shadow: inset 0 0 0 2px #8E9099; flex: none"></span><span style="flex: 1; font-size: 13px">I know that if I forget this password, nothing stored there can be opened by anyone.</span></div>
+<span style="height: 44px; border-radius: 22px; background: #262933; color: #6F727B; display: grid; place-items: center; font-weight: 700">Next</span>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">STEP 4 · REPOSITORIES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1; min-width: 0"><div style="font-weight: 600">For everything</div><div style="font-size: 12px; color: #C4C6D0; font-family: 'Roboto Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">your-account/home-vault</div></div><span style="font-size: 12px; color: #7FD6C8">Default</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Front Door doorbell</div><div style="font-size: 12px; color: #C4C6D0; font-family: 'Roboto Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">your-account/front-door</div></div><span style="color: #B4C5FF; font-weight: 700; font-size: 13px">Change</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Driveway camera</div><div style="font-size: 12px; color: #C4C6D0">Uses the default</div></div><span style="color: #B4C5FF; font-weight: 700; font-size: 13px">Its own</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Backups</div><div style="font-size: 12px; color: #C4C6D0">Uses the default</div></div><span style="color: #B4C5FF; font-weight: 700; font-size: 13px">Its own</span></div>
+</div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 4px">One repository by default. Any camera, and backups, can have its own. A repository that does not exist yet is made for you.</div>
+</section>
+
+<section aria-label="Use, playback, backups, rules" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">AN OLDER RECORDING, PLAYED FROM THE REGISTRY</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="aspect-ratio: 16 / 9; border-radius: 12px; background: linear-gradient(160deg, #2C3440, #14161B); position: relative"><span style="position: absolute; left: 8px; top: 8px; height: 26px; padding: 0 10px; border-radius: 13px; background: rgba(12,13,16,.7); display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7FD6C8" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>From the registry · unlocked here</span></div>
+<div style="height: 6px; border-radius: 3px; background: #262933; position: relative; overflow: hidden"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 58%; background: #33507F"></div><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 31%; background: #B4C5FF"></div></div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #C4C6D0"><span>17 November · <span style="font-family: 'Roboto Mono', monospace">14:02</span></span><span>fetched 58% · playing</span></div>
+<div style="font-size: 12px; color: #C4C6D0">It starts playing as soon as the first part arrives. The copy on this system is thrown away when you close it.</div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">ON THE TIMELINE</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="height: 24px; border-radius: 8px; background: #14161B; position: relative; overflow: hidden"><span style="position: absolute; left: 4%; width: 52%; top: 0; bottom: 0; background: repeating-linear-gradient(90deg, #2A3550 0 6px, #14161B 6px 9px)"></span><span style="position: absolute; left: 58%; width: 38%; top: 0; bottom: 0; background: #2E6B63"></span></div>
+<div style="display: flex; gap: 12px; font-size: 12px; color: #C4C6D0"><span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #2E6B63"></span>On this system</span><span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #2A3550"></span>In the registry</span></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">ALSO A BACKUP LOCATION</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #2A2D36; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Container registry</div><div style="font-size: 12px; color: #C4C6D0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Public · locked with your password · 3 backups</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; position: relative; flex: none"><span style="position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">RULES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>Public is expected here, because it is free. So the lock is not optional: no password, no upload. There is no switch to turn it off.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>The password is typed twice, must be long, and is never stored or sent. Only the key made from it stays on this system.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>Everything is locked at home before it leaves: the video, the backups, and the names, dates and sizes that would say what they are.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>The page says plainly what public means: anyone can copy the locked files and keep them for ever, and a forgotten password cannot be recovered.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">5</span><span>One repository by default; any camera and backups can have their own.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">6</span><span>An older recording plays straight from the registry: fetched in parts, unlocked here, playing before the whole file has arrived.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">7</span><span>The local copy is removed only after the registry confirms the upload, and a test opens one bundle again before the place is trusted.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">8</span><span>The registry may remove what is not a container image, or slow down heavy use. The page says so, and this is never the only copy unless you choose that.</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1160}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
