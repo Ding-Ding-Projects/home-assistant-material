@@ -18,7 +18,17 @@ export interface AutoUpdateEntity {
   allowed: boolean;
   protected_reason: string | null;
   last_result: AutoUpdateResult | null;
+  // Added with the backup choice; missing on an older server.
+  backup_kind?: BackupKind;
+  backup_app?: string | null;
+  backup_supported?: boolean;
+  backup_first?: boolean;
 }
+
+export type BackupKind =
+  "core" | "supervisor" | "os" | "app" | "integration" | "device";
+
+export type BackupChoiceName = "system" | "all" | "none" | "custom";
 
 export type AutoSystemPartName = "supervisor" | "core" | "os";
 
@@ -69,6 +79,12 @@ export interface AutoSystemInfo {
 export interface AutoUpdateInfo {
   all: boolean;
   backup: boolean;
+  // Added with the backup choice; missing on an older server.
+  backup_kinds?: Record<BackupKind, boolean>;
+  backup_choice?: BackupChoiceName;
+  backup_apps?: string[];
+  backup_apps_seen?: string[];
+  backup_apps_later?: boolean;
   entities: AutoUpdateEntity[];
   // Missing on a server that predates automatic system updates.
   system?: AutoSystemInfo;
@@ -91,6 +107,27 @@ export const setAutoUpdateBackup = (
   hass: HomeAssistant,
   enabled: boolean
 ): Promise<void> => hass.callWS({ type: "auto_update/set_backup", enabled });
+
+export const setAutoUpdateBackupChoice = (
+  hass: HomeAssistant,
+  choice: Exclude<BackupChoiceName, "custom">
+): Promise<void> =>
+  hass.callWS({ type: "auto_update/set_backup_choice", choice });
+
+export const setAutoUpdateBackupKind = (
+  hass: HomeAssistant,
+  kind: BackupKind,
+  enabled: boolean
+): Promise<void> =>
+  hass.callWS({ type: "auto_update/set_backup_kind", kind, enabled });
+
+export const setAutoUpdateBackupApps = (
+  hass: HomeAssistant,
+  apps: string[],
+  installed: string[],
+  later: boolean
+): Promise<void> =>
+  hass.callWS({ type: "auto_update/set_backup_apps", apps, installed, later });
 
 export const setAutoUpdateEntity = (
   hass: HomeAssistant,

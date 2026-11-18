@@ -713,7 +713,7 @@ export class HaUpdateComingSoon extends LitElement {
     const items = this._changeItems(run);
     return html`
       <div class="card s-${look}">
-        <div class="head">
+        <div class="head toggle-head" @click=${this._toggle}>
           ${this._leadIcon(look)}
           <div class="head-text">
             <h2 id="soon-h" class="title">${heading}</h2>
@@ -736,7 +736,6 @@ export class HaUpdateComingSoon extends LitElement {
             }
             aria-expanded=${open ? "true" : "false"}
             aria-controls="soon-body"
-            @click=${this._toggle}
           ></ha-icon-button>
         </div>
         ${
@@ -1226,6 +1225,9 @@ export class HaUpdateComingSoon extends LitElement {
           gap: var(--ha-space-2);
         }
         /* Every job. */
+        .toggle-head {
+          cursor: pointer;
+        }
         .jobs-box summary {
           display: flex;
           align-items: center;

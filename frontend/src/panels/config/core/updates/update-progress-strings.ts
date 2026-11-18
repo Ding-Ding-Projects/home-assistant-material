@@ -23,6 +23,8 @@ export const PROGRESS_FALLBACK: Record<string, string> = {
   "stage_state.failed": "failed",
   "stage_state.skipped": "skipped",
   "stage_note.backup_skipped": "No backup asked for",
+  "stage_note.backup_skipped_choice": "Skipped by your choice",
+  "stage_note.backup_skipped_kind": "No backup for this kind",
   "stage_note.restart_os": "Takes effect after a restart",
   bar_label: "Progress of the update for {name}",
   percent_value: "{percent} percent",

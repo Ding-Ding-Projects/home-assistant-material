@@ -6,6 +6,7 @@ import { extractApiErrorMessage } from "../../../../data/hassio/common";
 import type { UpdateEntity } from "../../../../data/update";
 import { UpdateEntityFeature } from "../../../../data/update";
 import type { HomeAssistant } from "../../../../types";
+import { stepWantsBackup } from "./backup-choice";
 import type { QueueFailure, QueueState, QueueStep } from "./update-queue";
 import {
   createQueue,
@@ -122,11 +123,15 @@ export class UpdateQueueController implements ReactiveController {
   }
 
   /** Builds the queue from the updates that are ready and starts the first. */
-  public start(entities: UpdateEntity[], backup: boolean): void {
+  public start(
+    entities: UpdateEntity[],
+    backup: boolean,
+    backupSteps?: string[]
+  ): void {
     if (this.queue && (this.active || this.queue.failure)) {
       return;
     }
-    const queue = createQueue(entities, backup);
+    const queue = createQueue(entities, backup, backupSteps);
     if (!queue.steps.length) {
       return;
     }
@@ -354,15 +359,20 @@ export class UpdateQueueController implements ReactiveController {
       this._commit({ ...queue, steps, failure });
     }
     if (toStart) {
-      this._install(toStart.entityId, queue.backup);
+      this._install(toStart.entityId, queue);
     }
   }
 
-  private async _install(entityId: string, backup: boolean): Promise<void> {
+  private async _install(entityId: string, queue: QueueState): Promise<void> {
     const hass = this._getHass();
     const entity = hass.states[entityId] as UpdateEntity | undefined;
     const withBackup =
-      backup && !!entity && supportsFeature(entity, UpdateEntityFeature.BACKUP);
+      !!entity &&
+      stepWantsBackup(
+        queue,
+        entityId,
+        supportsFeature(entity, UpdateEntityFeature.BACKUP)
+      );
     const step = this.queue?.steps.find((s) => s.entityId === entityId);
     const restarts = roleRestartsSystem(step?.role);
     this._calling.add(entityId);
@@ -424,7 +434,24 @@ export class UpdateQueueController implements ReactiveController {
     });
   }
 
+  private _endedWithoutTime(step: QueueStep): boolean {
+    return (
+      (step.state === "done" || step.state === "failed") &&
+      typeof step.startedAt === "number" &&
+      typeof step.endedAt !== "number"
+    );
+  }
+
   private _commit(queue: QueueState | undefined): void {
+    const now = Date.now();
+    if (queue?.steps.some((step) => this._endedWithoutTime(step))) {
+      queue = {
+        ...queue,
+        steps: queue.steps.map((step) =>
+          this._endedWithoutTime(step) ? { ...step, endedAt: now } : step
+        ),
+      };
+    }
     this.queue = queue;
     storeQueue(queue);
     this._host.requestUpdate();

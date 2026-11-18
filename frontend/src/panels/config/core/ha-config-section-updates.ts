@@ -43,7 +43,6 @@ import {
   autoUpdateRowState,
   formatAutoUpdateTime,
   setAutoUpdateAll,
-  setAutoUpdateBackup,
   setAutoUpdateEntity,
   subscribeAutoUpdate,
 } from "../../../data/auto-update";
@@ -81,11 +80,20 @@ import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
 import "./updates/ha-update-auto-system";
+import "./updates/ha-update-backup-choice";
 import "./updates/ha-update-changes";
 import "./updates/ha-update-coming-soon";
 import "./updates/ha-update-history";
 import "./updates/ha-update-progress-block";
 import "./updates/ha-update-usb";
+import {
+  markFor,
+  planQueueBackups,
+  settingsFromInfo,
+  subjectFor,
+  subjectWantsBackup,
+} from "./updates/backup-choice";
+import type { BackupMark } from "./updates/backup-choice";
 import { updateDisplayName } from "./updates/ha-update-queue-card";
 import type { ProgressView } from "./updates/update-progress-feed";
 import { UpdateProgressFeed } from "./updates/update-progress-feed";
@@ -417,10 +425,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                       ? backupInProgressAlert
                       : nothing
                   }
-                  ${this._renderHero(readyCount)} ${this._renderAutomatic()}
+                  ${this._renderHero(readyCount)}
                   <ha-update-coming-soon
                     .hass=${this.hass}
                   ></ha-update-coming-soon>
+                  ${this._renderAutomatic()}
                   ${this._renderQueue(installableUpdates)}
                   ${
                     installableUpdates.length
@@ -595,14 +604,16 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       entity.attributes.release_url;
     const hasNotes =
       !!notesUrl || supportsFeature(entity, UpdateEntityFeature.RELEASE_NOTES);
-    const showNotes = variant === "install" || variant === "manual";
+    const showNotes =
+      variant === "install" || variant === "manual" || variant === "current";
     const view =
       variant === "install" ? this._progress.view(entity) : undefined;
     const shownName = this._rowTitle(entity, name);
     // A phone keeps the resting row to one line of name and one of versions;
     // the summary, notes and the automatic switch open under it.
     const compact =
-      !!this.narrow && (variant === "install" || variant === "manual");
+      !!this.narrow &&
+      (variant === "install" || variant === "manual" || variant === "current");
     const open = compact && this._openRows.has(entity.entity_id);
     const autoSwitch =
       variant === "manual" ? nothing : this._renderAutoSwitch(entity);
@@ -638,6 +649,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
             <span class="name" title=${name}>${shownName}</span>
             ${sub && !compact ? html`<span class="sub">${sub}</span>` : nothing}
             ${compact ? nothing : this._renderAutoResult(entity)}
+            ${compact || variant !== "install" ? nothing : this._renderBackupMark(entity)}
           </span>
           ${
             variant === "current"
@@ -671,9 +683,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         ${compact ? nothing : autoSwitch}
         ${
           variant === "current"
-            ? html`<span class="chip current"
-                >${localize("ui.panel.config.updates.current")}</span
-              >`
+            ? compact
+              ? nothing
+              : html`<span class="chip current"
+                  >${localize("ui.panel.config.updates.current")}</span
+                >`
             : html`
                 ${compact ? nothing : notesButton}
                 ${
@@ -734,6 +748,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
           open
             ? html`<div class="row-detail">
                 ${sub ? html`<span class="sub">${sub}</span>` : nothing}
+                ${variant === "install" ? this._renderBackupMark(entity) : nothing}
                 ${this._renderAutoResult(entity)}
                 <div class="row-detail-actions">
                   ${notesButton} ${autoSwitch}
@@ -1005,19 +1020,6 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
             aria-label=${localize("ui.panel.config.updates.auto_all")}
           ></ha-switch>
         </div>
-        <div class="auto-row">
-          <span class="text">
-            <span class="name"
-              >${localize("ui.panel.config.updates.auto_backup")}</span
-            >
-          </span>
-          <ha-switch
-            .checked=${info.backup}
-            haptic
-            @change=${this._toggleBackup}
-            aria-label=${localize("ui.panel.config.updates.auto_backup")}
-          ></ha-switch>
-        </div>
         ${
           info.system
             ? html`<ha-update-auto-system
@@ -1110,12 +1112,6 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     );
   }
 
-  private async _toggleBackup(ev: Event): Promise<void> {
-    await this._saveAuto(() =>
-      setAutoUpdateBackup(this.hass, (ev.currentTarget as HaSwitch).checked)
-    );
-  }
-
   private async _toggleOne(ev: Event): Promise<void> {
     const target = ev.currentTarget as HaSwitch & { entityId: string };
     const enabled = target.checked;
@@ -1148,6 +1144,15 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     return html`
       <section class="card">
         <h2>${localize("ui.panel.config.updates.before_updating")}</h2>
+        ${
+          this._autoInfo
+            ? html`<ha-update-backup-choice
+                .hass=${this.hass}
+                .info=${this._autoInfo}
+                .hasSupervisor=${!!this._supervisorInfo}
+              ></ha-update-backup-choice>`
+            : nothing
+        }
         <button class="link-row" @click=${this._openBackups}>
           <span class="tile"
             ><ha-svg-icon .path=${mdiHistory}></ha-svg-icon
@@ -1311,15 +1316,19 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       return;
     }
     // The list may have changed while the dialog was open.
-    this._queue.start(
-      orderUpdateQueue(
-        this._filterInstallableUpdateEntities(
-          this.hass.states,
-          this.hass.formatEntityName
-        )
-      ),
-      this._autoInfo?.backup ?? false
+    const ordered = orderUpdateQueue(
+      this._filterInstallableUpdateEntities(
+        this.hass.states,
+        this.hass.formatEntityName
+      )
     );
+    const plan = this._autoInfo
+      ? planQueueBackups(
+          ordered.map((entity) => this._backupSubject(entity)),
+          settingsFromInfo(this._autoInfo)
+        )
+      : undefined;
+    this._queue.start(ordered, !!plan?.carriers.length, plan?.carriers ?? []);
   }
 
   private _openSystemUpdate(ev: Event): void {
@@ -1396,12 +1405,62 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     await this._install([entityId]);
   }
 
+  private _backupSubject(entity: UpdateEntity) {
+    return subjectFor(
+      entity,
+      this.hass.entities?.[entity.entity_id]?.platform,
+      this._autoInfo
+    );
+  }
+
+  // The one decision that every way of starting an update shares.
+  private _wantsBackupFor(entityId: string): boolean {
+    const entity = this.hass.states[entityId] as UpdateEntity | undefined;
+    if (!entity || !this._autoInfo) {
+      return false;
+    }
+    return subjectWantsBackup(
+      this._backupSubject(entity),
+      settingsFromInfo(this._autoInfo)
+    );
+  }
+
+  private _backupMark(entity: UpdateEntity): BackupMark | undefined {
+    return this._autoInfo
+      ? markFor(this._backupSubject(entity), settingsFromInfo(this._autoInfo))
+      : undefined;
+  }
+
+  private _renderBackupMark(
+    entity: UpdateEntity
+  ): TemplateResult | typeof nothing {
+    const mark = this._backupMark(entity);
+    if (!mark) {
+      return nothing;
+    }
+    return html`<span class="backup-mark ${mark}"
+      >${this._lang.text(
+        this.hass.localize,
+        `ui.panel.config.updates.backup_choice.${mark}`
+      )}</span
+    >`;
+  }
+
   private async _install(entityIds: string[]): Promise<void> {
     if (!entityIds.length) {
       return;
     }
     try {
-      await installUpdatesTracked(this.hass, entityIds, false);
+      await Promise.all(
+        entityIds.map((entityId) =>
+          installUpdatesTracked(
+            this.hass,
+            [entityId],
+            false,
+            this._wantsBackupFor(entityId)
+          )
+        )
+      );
     } catch (err: any) {
       let message = extractApiErrorMessage(err);
       // The backend error embeds the raw entity_id; swap in the update's name.
@@ -1505,7 +1564,10 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       /* The last line of the page stays above the floating phone bar. */
       :host([narrow]) .page {
         padding: var(--ha-space-2) var(--ha-space-3)
-          calc(var(--ha-space-6) + var(--safe-area-inset-bottom, 0px));
+          calc(var(--ha-space-6) + 144px + var(--safe-area-inset-bottom, 0px));
+      }
+      .row {
+        scroll-margin-bottom: 144px;
       }
       .loading {
         display: flex;
@@ -1526,8 +1588,8 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       h1 {
         margin: 0;
         font-family: var(--ha-font-family-heading, inherit);
-        font-size: clamp(40px, 7vw, 72px);
-        font-weight: 800;
+        font-size: clamp(20px, 3vw, 28px);
+        font-weight: 700;
         line-height: 1;
         letter-spacing: -0.02em;
       }
@@ -1780,6 +1842,19 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       .row-toggle {
         flex: none;
         --ha-icon-button-size: 44px;
+      }
+      .backup-mark {
+        align-self: flex-start;
+        font-size: var(--ha-font-size-s);
+        font-weight: var(--ha-font-weight-medium);
+        padding: 2px 10px;
+        border-radius: 14px;
+        background: var(--secondary-background-color);
+        color: var(--secondary-text-color);
+      }
+      .backup-mark.backup_first {
+        background: var(--success-color);
+        color: var(--text-primary-color);
       }
       .row-detail {
         display: flex;

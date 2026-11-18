@@ -55,7 +55,24 @@ from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
+from homeassistant.loader import async_get_loaded_integration
 from homeassistant.util.hass_dict import HassKey
+
+from .backup_choice import (
+    CHOICE_ALL,
+    CHOICE_NONE,
+    KIND_APP,
+    KINDS,
+    PRESETS,
+    app_slug,
+    choice_for,
+    classify_kind,
+    preset_apps_later,
+    preset_kinds,
+    prune_apps,
+    settings_from_store,
+    wants_backup,
+)
 
 DOMAIN = "auto_update"
 
@@ -173,7 +190,10 @@ class AutoUpdateManager:
         self.hass = hass
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, DOMAIN)
         self.all_enabled = False
-        self.backup = True
+        self.backup_kinds = preset_kinds(CHOICE_ALL)
+        self.backup_apps: list[str] = []
+        self.backup_apps_seen: list[str] = []
+        self.backup_apps_later = True
         self.overrides: dict[str, bool] = {}
         self.results: dict[str, dict[str, Any]] = {}
         self.failed_versions: dict[str, str | None] = {}
@@ -223,7 +243,11 @@ class AutoUpdateManager:
         self.first_seen = dict(data.get("first_seen", {}))
         self.attempts = dict(data.get("attempts", {}))
         self.all_enabled = bool(data.get("all", False))
-        self.backup = bool(data.get("backup", True))
+        backup = settings_from_store(data)
+        self.backup_kinds = backup["kinds"]
+        self.backup_apps = backup["apps"]
+        self.backup_apps_seen = backup["seen"]
+        self.backup_apps_later = backup["later"]
         self.overrides = {
             key: value
             for key, value in data.get("entities", {}).items()
@@ -231,6 +255,11 @@ class AutoUpdateManager:
         }
         self.results = dict(data.get("results", {}))
         self.failed_versions = dict(data.get("failed", {}))
+
+    @property
+    def backup(self) -> bool:
+        """Whether any kind of update asks for a backup first."""
+        return any(self.backup_kinds.values())
 
     @callback
     def _save(self) -> None:
@@ -241,6 +270,10 @@ class AutoUpdateManager:
         return {
             "all": self.all_enabled,
             "backup": self.backup,
+            "backup_kinds": self.backup_kinds,
+            "backup_apps": self.backup_apps,
+            "backup_apps_seen": self.backup_apps_seen,
+            "backup_apps_later": self.backup_apps_later,
             "entities": self.overrides,
             "results": self.results,
             "failed": self.failed_versions,
@@ -301,9 +334,82 @@ class AutoUpdateManager:
 
     @callback
     def async_set_backup(self, enabled: bool) -> None:
-        """Choose whether a backup is requested before installing."""
-        self.backup = enabled
+        """Choose a backup before every update or before none."""
+        self.async_set_backup_choice(CHOICE_ALL if enabled else CHOICE_NONE)
+
+    @callback
+    def async_set_backup_choice(self, choice: str) -> None:
+        """Choose one of the three presets for the backup before an update."""
+        self.backup_kinds = preset_kinds(choice)
+        self.backup_apps = []
+        self.backup_apps_later = preset_apps_later(choice)
         self._changed()
+
+    @callback
+    def async_set_backup_kind(self, kind: str, enabled: bool) -> None:
+        """Choose whether one kind of update gets a backup first."""
+        self.backup_kinds = {**self.backup_kinds, kind: enabled}
+        if kind == KIND_APP:
+            self.backup_apps = []
+            self.backup_apps_later = enabled
+        self._changed()
+
+    @callback
+    def async_set_backup_apps(
+        self, apps: list[str], installed: list[str], later: bool
+    ) -> None:
+        """Choose the apps that get a backup first, among those installed now."""
+        self.backup_kinds = {**self.backup_kinds, KIND_APP: False}
+        self.backup_apps = prune_apps(apps, installed)
+        self.backup_apps_seen = list(dict.fromkeys(installed))
+        self.backup_apps_later = later
+        self._changed()
+
+    @callback
+    def kind_of(self, state: State) -> str:
+        """Return the backup kind of an update entity."""
+        entry = er.async_get(self.hass).async_get(state.entity_id)
+        platform = entry.platform if entry else None
+        custom = False
+        if platform is not None:
+            try:
+                custom = not async_get_loaded_integration(
+                    self.hass, platform
+                ).is_built_in
+            except Exception:  # noqa: BLE001
+                custom = False
+        return classify_kind(
+            state.entity_id,
+            SYSTEM_PARTS,
+            platform,
+            entry.unique_id if entry else None,
+            state.attributes.get("device_class"),
+            custom,
+        )
+
+    @callback
+    def app_slug_of(self, state: State) -> str | None:
+        """Return the app identifier of an app update, otherwise None."""
+        if self.kind_of(state) != KIND_APP:
+            return None
+        entry = er.async_get(self.hass).async_get(state.entity_id)
+        return app_slug(entry.unique_id) if entry else None
+
+    @callback
+    def wants_backup(self, state: State) -> bool:
+        """Whether a backup is requested before this update installs."""
+        return wants_backup(
+            self.kind_of(state),
+            self.backup_kinds,
+            bool(
+                state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
+                & UpdateEntityFeature.BACKUP
+            ),
+            self.app_slug_of(state),
+            self.backup_apps,
+            self.backup_apps_seen,
+            self.backup_apps_later,
+        )
 
     @callback
     def async_set_system(self, part: str, enabled: bool) -> None:
@@ -363,11 +469,25 @@ class AutoUpdateManager:
                     "allowed": reason is None,
                     "protected_reason": reason,
                     "last_result": self.results.get(state.entity_id),
+                    "backup_kind": self.kind_of(state),
+                    "backup_app": self.app_slug_of(state),
+                    "backup_supported": bool(
+                        state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
+                        & UpdateEntityFeature.BACKUP
+                    ),
+                    "backup_first": self.wants_backup(state),
                 }
             )
         return {
             "all": self.all_enabled,
             "backup": self.backup,
+            "backup_kinds": dict(self.backup_kinds),
+            "backup_choice": choice_for(
+                self.backup_kinds, self.backup_apps, self.backup_apps_later
+            ),
+            "backup_apps": list(self.backup_apps),
+            "backup_apps_seen": list(self.backup_apps_seen),
+            "backup_apps_later": self.backup_apps_later,
             "entities": entities,
             "system": self._system_info(),
         }
@@ -632,11 +752,7 @@ class AutoUpdateManager:
         version = state.attributes.get("latest_version")
         self._attempted.add((entity_id, version))
         data: dict[str, Any] = {ATTR_ENTITY_ID: entity_id}
-        if (
-            self.backup
-            and state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
-            & UpdateEntityFeature.BACKUP
-        ):
+        if self.wants_backup(state):
             data["backup"] = True
         name = state.name
         try:
@@ -782,6 +898,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     websocket_api.async_register_command(hass, websocket_set_all)
     websocket_api.async_register_command(hass, websocket_set_entity)
     websocket_api.async_register_command(hass, websocket_set_backup)
+    websocket_api.async_register_command(hass, websocket_set_backup_choice)
+    websocket_api.async_register_command(hass, websocket_set_backup_kind)
+    websocket_api.async_register_command(hass, websocket_set_backup_apps)
     websocket_api.async_register_command(hass, websocket_set_system)
     websocket_api.async_register_command(hass, websocket_set_system_window)
     websocket_api.async_register_command(hass, websocket_set_system_wait)
@@ -872,6 +991,59 @@ def websocket_set_backup(
 ) -> None:
     """Choose whether a backup is requested before installing."""
     hass.data[DATA_MANAGER].async_set_backup(msg["enabled"])
+    connection.send_result(msg["id"])
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "auto_update/set_backup_choice",
+        probatio.Required("choice"): probatio.In(list(PRESETS)),
+    }
+)
+@callback
+def websocket_set_backup_choice(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Choose which updates get a backup first."""
+    hass.data[DATA_MANAGER].async_set_backup_choice(msg["choice"])
+    connection.send_result(msg["id"])
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "auto_update/set_backup_kind",
+        probatio.Required("kind"): probatio.In(list(KINDS)),
+        probatio.Required("enabled"): bool,
+    }
+)
+@callback
+def websocket_set_backup_kind(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Choose whether one kind of update gets a backup first."""
+    hass.data[DATA_MANAGER].async_set_backup_kind(msg["kind"], msg["enabled"])
+    connection.send_result(msg["id"])
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "auto_update/set_backup_apps",
+        probatio.Required("apps"): [str],
+        probatio.Required("installed"): [str],
+        probatio.Required("later"): bool,
+    }
+)
+@callback
+def websocket_set_backup_apps(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Choose the apps that get a backup first."""
+    hass.data[DATA_MANAGER].async_set_backup_apps(
+        msg["apps"], msg["installed"], msg["later"]
+    )
     connection.send_result(msg["id"])
 
 

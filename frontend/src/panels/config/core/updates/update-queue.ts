@@ -24,6 +24,8 @@ export interface QueueStep {
   seenInProgress: boolean;
   /** When the step was started, in milliseconds. */
   startedAt: number | null;
+  /** When the step ended, done or failed, in milliseconds. */
+  endedAt?: number | null;
   /**
    * Since when the update has been sitting at "available, not running" after
    * it was seen running. A real update reports "not running" for a while
@@ -49,6 +51,11 @@ export interface QueueState {
   failure?: QueueFailure;
   /** The backup choice made when the queue was started. */
   backup: boolean;
+  /**
+   * The steps that ask for a backup first, decided when the queue was started.
+   * Missing in a queue stored by an older build.
+   */
+  backupSteps?: string[];
   /** When the queue finished; a finished queue is kept for an hour. */
   finishedAt?: number;
 }
@@ -132,10 +139,12 @@ export const orderUpdateQueue = (entities: UpdateEntity[]): UpdateEntity[] =>
 
 export const createQueue = (
   entities: UpdateEntity[],
-  backup: boolean
+  backup: boolean,
+  backupSteps?: string[]
 ): QueueState => ({
   version: 1,
   backup,
+  ...(backupSteps ? { backupSteps } : {}),
   stopRequested: false,
   steps: orderUpdateQueue(entities).map((entity) => ({
     entityId: entity.entity_id,
@@ -324,6 +333,7 @@ export const parseStoredQueue = (
           : "other",
         seenInProgress: step.seenInProgress === true,
         startedAt: typeof step.startedAt === "number" ? step.startedAt : null,
+        endedAt: typeof step.endedAt === "number" ? step.endedAt : undefined,
         idleSince: typeof step.idleSince === "number" ? step.idleSince : null,
         title:
           typeof step.title === "string" ? step.title.slice(0, 200) : undefined,
@@ -347,6 +357,11 @@ export const parseStoredQueue = (
       version: 1,
       steps,
       backup: data.backup === true,
+      backupSteps: Array.isArray(data.backupSteps)
+        ? data.backupSteps.filter(
+            (item: unknown): item is string => typeof item === "string"
+          )
+        : undefined,
       stopRequested: data.stopRequested === true,
       failure:
         failure && typeof failure.entityId === "string"
@@ -423,8 +438,7 @@ export const stepDone = (
   (step.role === "core" &&
     step.targetVersion !== null &&
     !!configVersion &&
-    configVersion === step.targetVersion &&
-    !entity?.attributes.in_progress);
+    configVersion === step.targetVersion);
 
 /** The step's entity has reached what the step set out to do. */
 export const stepReached = (

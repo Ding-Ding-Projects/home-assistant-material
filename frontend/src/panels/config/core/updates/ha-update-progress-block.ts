@@ -278,7 +278,13 @@ class HaUpdateProgressBlock extends LitElement {
                 ${
                   row.id === "backup" && row.state === "skipped"
                     ? html`<span class="note"
-                        >${t("stage_note.backup_skipped")}</span
+                        >${t(
+                          this.view.kind === "core" ||
+                            this.view.kind === "supervisor" ||
+                            this.view.kind === "os"
+                            ? "stage_note.backup_skipped_choice"
+                            : "stage_note.backup_skipped_kind"
+                        )}</span
                       >`
                     : nothing
                 }

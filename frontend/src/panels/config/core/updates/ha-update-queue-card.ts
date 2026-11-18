@@ -20,8 +20,13 @@ import { notesPageUrlForVersion } from "../../../../data/build-notes";
 import type { UpdateEntity } from "../../../../data/update";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
-import type { QueueStep } from "./update-queue";
-import { queueIsActive, queueProgress } from "./update-queue";
+import type { QueueState, QueueStep } from "./update-queue";
+import {
+  queueIsActive,
+  queueProgress,
+  roleRestartsSystem,
+} from "./update-queue";
+import { queueOrderOf, queuePositionOf } from "./update-progress-model";
 import type { UpdateQueueController } from "./update-queue-controller";
 
 const PREFIX = "ui.panel.config.updates.queue";
@@ -168,7 +173,16 @@ class HaUpdateQueueCard extends LitElement {
       title = queue.stopRequested
         ? this._t("stopped_title")
         : this._t("finished_title");
+      const startedAt = Math.min(
+        ...queue.steps.map((step) => step.startedAt ?? Infinity)
+      );
+      const endedAt = Math.max(...queue.steps.map((step) => step.endedAt ?? 0));
       text = this._t("finished_text", { done, total: progress.total });
+      if (Number.isFinite(startedAt) && endedAt > startedAt) {
+        text += ` ${this._t("finished_took", {
+          time: formatElapsed(endedAt - startedAt),
+        })}`;
+      }
     }
 
     // A finished queue shows a tick where the ring was, never an empty ring.
@@ -262,6 +276,7 @@ class HaUpdateQueueCard extends LitElement {
         <ol class="steps" aria-label=${this._t("steps_label")}>
           ${queue.steps.map((step) => this._renderStep(step, checking))}
         </ol>
+        ${this._renderBackupNotes(queue)}
         <div class="actions">
           ${
             checking
@@ -295,6 +310,38 @@ class HaUpdateQueueCard extends LitElement {
     `;
   }
 
+  // Where the run makes its backups, in plain words.
+  private _renderBackupNotes(
+    queue: QueueState
+  ): TemplateResult | typeof nothing {
+    const carriers = queue.backupSteps ?? [];
+    if (!carriers.length) {
+      return nothing;
+    }
+    const isSystem = (step: QueueStep) => roleRestartsSystem(step.role);
+    const systemWanting = queue.steps.filter(
+      (step) => isSystem(step) && carriers.includes(step.entityId)
+    ).length;
+    const systemSteps = queue.steps.filter(isSystem).length;
+    const appCarriers = queue.steps.filter(
+      (step) => !isSystem(step) && carriers.includes(step.entityId)
+    ).length;
+    const prefix = "ui.panel.config.updates.backup_choice";
+    const notes = [
+      systemWanting && systemSteps > 1 ? "queue_system_covers" : "",
+      appCarriers ? "queue_apps_own" : "",
+    ].filter(Boolean);
+    return notes.length
+      ? html`<p class="backup-notes">
+          ${notes
+            .map((key) =>
+              this._lang.text(this.hass.localize, `${prefix}.${key}`)
+            )
+            .join(" ")}
+        </p>`
+      : nothing;
+  }
+
   private _renderStep(step: QueueStep, checking: boolean): TemplateResult {
     // While the restored page has no real data, a step that was running or
     // failed is shown as checking, never as failed.
@@ -325,9 +372,46 @@ class HaUpdateQueueCard extends LitElement {
               : nothing
           }</span
         >
+        ${step.state === "waiting" ? this._renderWaiting(step) : nothing}
         ${step.state === "done" ? this._renderDone(step) : nothing}
       </li>
     `;
+  }
+
+  // A waiting step says its place and why it waits.
+  private _renderWaiting(step: QueueStep): TemplateResult | typeof nothing {
+    const order = queueOrderOf(this.controller.queue);
+    const place = queuePositionOf(
+      order,
+      step.entityId,
+      step.role === "other" ? "entity" : step.role
+    );
+    if (!place || order.length < 2) {
+      return nothing;
+    }
+    const text = (key: string, values?: Record<string, string | number>) =>
+      this._lang.text(
+        this.hass.localize,
+        `ui.panel.config.updates.progress.${key}`,
+        values
+      );
+    const after = place.afterEntityId
+      ? updateDisplayName(this.hass, place.afterEntityId)
+      : undefined;
+    return html`<span class="step-detail"
+      >${
+        after
+          ? text("queue_after", {
+              position: place.position,
+              total: place.total,
+              name: after,
+            })
+          : text("queue_place", {
+              position: place.position,
+              total: place.total,
+            })
+      }${place.restartsSystem ? html` · ${text("waiting_alone")}` : nothing}</span
+    >`;
   }
 
   // What an installed step went from and to, and where to read what changed.
@@ -342,7 +426,12 @@ class HaUpdateQueueCard extends LitElement {
     if (!to && !url) {
       return nothing;
     }
+    const took =
+      typeof step.startedAt === "number" && typeof step.endedAt === "number"
+        ? formatElapsed(Math.max(0, step.endedAt - step.startedAt))
+        : undefined;
     return html`<span class="step-detail">
+      ${took ? html`<span class="took">${took}</span>` : nothing}
       ${
         to
           ? html`<span class="versions">
@@ -570,6 +659,11 @@ class HaUpdateQueueCard extends LitElement {
         }
         .actions ha-button {
           min-height: 48px;
+        }
+        .backup-notes {
+          margin: 0;
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
         }
         .note {
           flex: 1 1 200px;

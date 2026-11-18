@@ -399,6 +399,11 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     matcher: "data/build-changes.ts",
   },
   {
+    file: "panels/config/core/updates/ha-update-backup-choice.ts",
+    searches:
+      "The installed apps in the choice of which updates get a backup first",
+  },
+  {
     file: "panels/lovelace/editor/dashboard-tools-dialog/hui-dialog-dashboard-tools.ts",
     searches:
       "Every card on a dashboard, by type, name, section, view and entity",
