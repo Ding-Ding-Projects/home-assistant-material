@@ -232,3 +232,45 @@ describe("the sibling row", () => {
     }
   });
 });
+
+const coreFile = (name: string): string =>
+  readFileSync(
+    resolve(
+      __dirname,
+      `../../../core/homeassistant/components/ac_defender/${name}`
+    ),
+    "utf8"
+  );
+
+describe("reasons and guard descriptions", () => {
+  const reasonCodes = [
+    ...coreFile("reasons.py")
+      .split("class Reason")[0]
+      .matchAll(/^ {4}"(\w+)": /gm),
+  ].map((match) => match[1]);
+  const guardIds = [
+    ...coreFile("descriptions.py")
+      .split("HEAT_GUARD_DESCRIPTIONS")[0]
+      .matchAll(/^ {4}"(\w+)": /gm),
+  ].map((match) => match[1]);
+
+  it("finds the codes and the guards in the backend", () => {
+    expect(reasonCodes.length).toBeGreaterThan(80);
+    expect(guardIds).toHaveLength(51);
+  });
+
+  for (const language of ["en", "yue"] as const) {
+    it(`has wording for every reason code in ${language}`, () => {
+      const words = block(language).reason;
+      expect(reasonCodes.filter((code) => !words[code])).toEqual([]);
+      expect(
+        Object.keys(words).filter((c) => !reasonCodes.includes(c))
+      ).toEqual([]);
+    });
+
+    it(`describes every guard in ${language}`, () => {
+      const words = block(language).guard_desc;
+      expect(guardIds.filter((id) => !words[id])).toEqual([]);
+    });
+  }
+});

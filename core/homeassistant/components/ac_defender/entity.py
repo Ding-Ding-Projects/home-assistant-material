@@ -34,6 +34,7 @@ from .coordinator import (
     DefenderCoordinator,
     _number,
 )
+from .descriptions import GUARD_DESCRIPTIONS, HEAT_GUARD_DESCRIPTIONS
 
 
 class DefenderEntity(Entity):
@@ -66,6 +67,11 @@ class DefenderEntity(Entity):
             )
         )
 
+    @property
+    def available(self) -> bool:
+        """Return False while the defended unit is unavailable."""
+        return self.coordinator.unit_available()
+
     @callback
     def _handle_update(self) -> None:
         self.async_write_ha_state()
@@ -85,6 +91,11 @@ class GuardSwitch(DefenderEntity, SwitchEntity):
             "guard": guard_key.replace("_", " ").capitalize()
         }
         self._attr_entity_category = EntityCategory.CONFIG
+        self._description = (
+            HEAT_GUARD_DESCRIPTIONS.get(guard_key)
+            if coordinator.run_mode == "heat"
+            else None
+        ) or GUARD_DESCRIPTIONS[guard_key]
 
     @property
     def is_on(self) -> bool:
@@ -97,6 +108,7 @@ class GuardSwitch(DefenderEntity, SwitchEntity):
         acted = self.coordinator.last_acted.get(self.guard_key)
         return {
             "guard": self.guard_key,
+            "description": self._description,
             "safety": self._spec.safety,
             "group": self._spec.group,
             "last_acted": acted["time"].isoformat() if acted else None,

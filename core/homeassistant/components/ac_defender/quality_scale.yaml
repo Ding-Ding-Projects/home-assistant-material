@@ -32,16 +32,16 @@ rules:
     status: done
     comment: The flow checks that the climate entity exists, can cool or heat, and that the temperatures are within its limits.
   test-before-setup:
-    status: todo
-    comment: Setup does not wait for the climate entity. The defender stands down and sends nothing while the device is unavailable.
+    status: done
+    comment: Setup raises not ready while the climate entity does not exist yet, and retries.
   unique-config-entry: done
   action-exceptions: done
   config-entry-unloading: done
   docs-configuration-parameters: todo
   docs-installation-parameters: todo
   entity-unavailable:
-    status: todo
-    comment: Entities keep reporting the last decision while the climate entity is unavailable.
+    status: done
+    comment: Every entity is unavailable while the defended climate entity is unavailable.
   integration-owner:
     status: todo
     comment: No code owner has been assigned.

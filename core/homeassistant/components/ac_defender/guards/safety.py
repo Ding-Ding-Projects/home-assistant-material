@@ -3,6 +3,7 @@
 from datetime import timedelta
 
 from ..model import Ctx, Decision
+from ..reasons import Reason
 from ..spec import GROUP_SAFETY, Guard, GuardSpec, flag, mins, num
 
 APPROACH = 0.5
@@ -22,7 +23,7 @@ class HotRoomOverride(Guard):
         """Apply this rule of the guard."""
         if not ctx.hot() or ctx.room is None:
             return None
-        reason = f"the room reached {ctx.room:.1f} degrees, cooling now"
+        reason = Reason("room_reached_hot", room=ctx.room)
         if ctx.hvac_mode not in (None, ctx.desired_mode):
             off = ctx.desired_mode == "off"
             return Decision(
@@ -78,12 +79,12 @@ class UpstairsComfortGuard(Guard):
             return None
         c = self.cfg(ctx)
         value = max(ctx.min_temp, min(target, c.comfort_target) - c.boost)
-        return (value, "upstairs is hot, cooling first") if value < target else None
+        return (value, Reason("upstairs_hot")) if value < target else None
 
     def bypass(self, ctx: Ctx) -> str | None:
         """Apply this rule of the guard."""
         if self.st(ctx).get("severe"):
-            return "upstairs is very hot, skipping the waits"
+            return Reason("upstairs_very_hot")
         return None
 
 
@@ -110,7 +111,7 @@ class EmergencyProtocols(Guard):
         """Apply this rule of the guard."""
         state = self.st(ctx)
         if state.get("until") and ctx.now < state["until"]:
-            return f"emergency protocol {state['name']}"
+            return Reason(f"emergency_{state['name']}")
         state.clear()
         return None
 
@@ -123,7 +124,7 @@ class EmergencyProtocols(Guard):
         state = self.st(ctx)
         if self.standdown(ctx) and state.get("off_pending") and ctx.hvac_mode != "off":
             state["off_pending"] = False
-            reason = "too cold, turning the air conditioner off"
+            reason = Reason("too_cold_off")
             return Decision(
                 action="turn_off",
                 reason=reason,
@@ -142,6 +143,7 @@ class CoolingFailureWatch(Guard):
     RISE_MINUTES = 5
     NO_DROP_MINUTES = 45
     RESTORE_RISE = 0.5
+    MIN_ON_MINUTES = 5
 
     def observe(self, ctx: Ctx) -> None:
         """Apply this rule of the guard."""
@@ -185,6 +187,13 @@ class CoolingFailureWatch(Guard):
         """Apply this rule of the guard."""
         return bool(self.st(ctx).get("off"))
 
+    def _minimum_on_passed(self, ctx: Ctx, state: dict) -> bool:
+        """Return True once cooling has run its minimum time since the last restore."""
+        restored = state.get("on_since")
+        return restored is None or ctx.now - restored >= timedelta(
+            minutes=self.MIN_ON_MINUTES
+        )
+
     def act(self, ctx: Ctx) -> Decision | None:
         """Apply this rule of the guard."""
         state = self.st(ctx)
@@ -198,7 +207,8 @@ class CoolingFailureWatch(Guard):
                 and ctx.room >= state["off_room"] + self.RESTORE_RISE
             ):
                 state["off"] = False
-                reason = "the room warmed up, restoring cool mode"
+                state["on_since"] = ctx.now
+                reason = Reason("room_warmed_restore")
                 return Decision(
                     action="set_hvac_mode",
                     value="cool",
@@ -211,10 +221,11 @@ class CoolingFailureWatch(Guard):
             state.get("alert") == "omega"
             and not state.get("respect")
             and ctx.room is not None
+            and self._minimum_on_passed(ctx, state)
         ):
             state["off"] = True
             state["off_room"] = ctx.room
-            reason = "cooling failure confirmed by a rising room, turning the unit off"
+            reason = Reason("cooling_failure_off")
             return Decision(
                 action="turn_off",
                 reason=reason,
@@ -256,7 +267,7 @@ class TamperTruce(Guard):
         """Apply this rule of the guard."""
         state = self.st(ctx)
         if state.get("until") and ctx.now < state["until"]:
-            return "tamper truce: the thermostat disappeared right after an exchange"
+            return Reason("tamper_truce")
         return None
 
 
@@ -283,11 +294,7 @@ class FrontDoorGuardPost(Guard):
     def standdown(self, ctx: Ctx) -> str | None:
         """Apply this rule of the guard."""
         until = self.st(ctx).get("until")
-        return (
-            "a person was detected at the front door"
-            if until and ctx.now < until
-            else None
-        )
+        return Reason("front_door_person") if until and ctx.now < until else None
 
     def holds_off(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -303,7 +310,7 @@ class FrontDoorGuardPost(Guard):
             and ctx.hvac_mode != "off"
         ):
             state["off_pending"] = False
-            reason = "a person at the front door, turning the unit off"
+            reason = Reason("front_door_off")
             return Decision(
                 action="turn_off",
                 reason=reason,

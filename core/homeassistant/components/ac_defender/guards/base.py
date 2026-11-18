@@ -3,13 +3,14 @@
 from datetime import datetime, timedelta
 
 from ..model import Ctx, Hold
+from ..reasons import Reason
 from ..spec import Guard
 
 
 class EpochHold(Guard):
     """Hold until an anchor time plus a duration, computed once per anchor."""
 
-    reason_text = "waiting"
+    reason_text = Reason("waiting_generic")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Return True when the guard applies."""

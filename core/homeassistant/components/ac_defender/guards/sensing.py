@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 
 from ..model import Ctx, Hold
+from ..reasons import Reason
 from ..spec import GROUP_TIMING, GuardSpec, cnt, deg, flag, mins, num, sec
 from .base import EpochHold
 from .pacing import median_interval
@@ -37,7 +38,7 @@ class SetpointEcho(EpochHold):
         GROUP_TIMING,
         (sec("grace_seconds", 30), deg("band", 1.0)),
     )
-    reason_text = "waiting for the device to report the last setpoint"
+    reason_text = Reason("waiting_setpoint_echo")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -68,7 +69,7 @@ class RepeatQuiet(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "the same number was just sent, waiting before repeating it"
+    reason_text = Reason("repeat_same_number")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -105,7 +106,7 @@ class SetpointStillness(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "waiting for the wall setting to hold still"
+    reason_text = Reason("wall_hold_still")
 
     def observe(self, ctx: Ctx) -> None:
         """Apply this rule of the guard."""
@@ -166,7 +167,7 @@ class SensorRhythm(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "waiting for the next sensor update"
+    reason_text = Reason("next_sensor_update")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -206,7 +207,7 @@ class HvacAlibi(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "waiting for the air conditioner to change what it is doing"
+    reason_text = Reason("device_activity_change")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -251,7 +252,7 @@ class TelemetryAlibi(EpochHold):
             flag("use_peak_power", True),
         ),
     )
-    reason_text = "waiting for the next normal update from the home"
+    reason_text = Reason("next_home_update")
 
     def _signals(self, ctx: Ctx) -> list[datetime]:
         c = self.cfg(ctx)
@@ -300,7 +301,7 @@ class CoolingRunway(EpochHold):
         GROUP_TIMING,
         (sec("min_seconds", 120), sec("pressure_extra_seconds", 240), deg("band", 1.0)),
     )
-    reason_text = "the air conditioner just started cooling, letting it work"
+    reason_text = Reason("cooling_just_started")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -329,7 +330,7 @@ class RoomTrendGuard(StartedHold):
             mins("hold_minutes", 8),
         ),
     )
-    reason_text = "the room is already cooling, watching it"
+    reason_text = Reason("room_already_cooling")
 
     def clear(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -359,7 +360,7 @@ class ThermalMomentum(StartedHold):
             mins("hold_minutes", 6),
         ),
     )
-    reason_text = "the room is cooling fast enough to reach the target soon"
+    reason_text = Reason("reaching_target_soon")
 
     def clear(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -403,7 +404,7 @@ class WeatherDriftTiming(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "waiting for the outdoor temperature to move"
+    reason_text = Reason("outdoor_to_move")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -438,7 +439,7 @@ class RemoteSettlingGuard(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "repeated changes from a phone or automation, letting them settle"
+    reason_text = Reason("remote_settle")
 
     def _remote(self, ctx: Ctx):
         return ctx.touches_in(self.cfg(ctx).window_minutes, remote=True)

@@ -123,6 +123,7 @@ class Ctx:
     active_action: str = "cooling"
     floor: float | None = None  # heat only: never let the room fall below this
     floor_margin: float = 1.0
+    courtesy_wait_seconds: float = 600.0
     freeze_floor: float = 18.0
     freeze_guard: bool = True
     reading_age: float = (

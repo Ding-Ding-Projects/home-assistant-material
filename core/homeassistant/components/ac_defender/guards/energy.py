@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 
 from ..model import Ctx, Decision, Hold
+from ..reasons import Reason
 from ..spec import GROUP_MONEY, Guard, GuardSpec, Setting, choice, deg, flag, mins, num
 from .people import in_window
 
@@ -14,6 +15,7 @@ WEATHER_MODES = (
     "outdoor_below_target",
 )
 ROOM_BAND = 1.5
+MIN_DWELL_MINUTES = 5.0  # the original compressor dwell, both ways
 PARK_SETPOINT = 28.0  # the original stand-down park number
 DEBOUNCE_SECONDS = 120
 
@@ -86,7 +88,7 @@ class PeakPowerSaver(Guard):
         return self.hold_for(
             ctx,
             self.st(ctx)["until"],
-            "peak price or high power use, holding extra cooling",
+            Reason("peak_price_hold"),
         )
 
     def act(self, ctx: Ctx) -> Decision | None:
@@ -99,7 +101,7 @@ class PeakPowerSaver(Guard):
             and ctx.fan_mode != c.fan_mode
             and not ctx.over_band(c.band)
         ):
-            reason = "peak hours, using the saver fan mode"
+            reason = Reason("peak_fan_saver")
             return Decision(
                 action="set_fan_mode",
                 value=c.fan_mode,
@@ -131,7 +133,7 @@ class FanEnergySaver(Guard):
             or ctx.fan_mode == c.fan_mode
         ):
             return None
-        reason = "the room is near my temperature, saving fan energy"
+        reason = Reason("fan_near_target")
         return Decision(
             action="set_fan_mode",
             value=c.fan_mode,
@@ -149,11 +151,11 @@ class CoolOutdoorShutdown(Guard):
         "energy",
         GROUP_MONEY,
         (
-            num("below", 20.0, -20, 40, 0.5, "°C"),
-            deg("restore_margin", 1.5),
-            mins("min_off_minutes", 30),
+            num("below", 20.0, 5, 25, 0.5, "°C"),
+            num("restore_margin", 1.5, 0.5, 5.0, 0.05, "°C"),
+            num("min_off_minutes", 30, 5, 240, 1, "min"),
             flag("forecast_gate", True),
-            mins("forecast_gate_hours", 4, 48),
+            num("forecast_gate_hours", 4, 1, 12, 1, "h"),
         ),
         default_on=False,
     )
@@ -173,17 +175,23 @@ class CoolOutdoorShutdown(Guard):
             state.clear()
             return None
         if state.get("off"):
-            dwell = ctx.now - state["since"] >= timedelta(minutes=c.min_off_minutes)
+            dwell = ctx.now - state["since"] >= timedelta(
+                minutes=max(MIN_DWELL_MINUTES, c.min_off_minutes)
+            )
             if ctx.hvac_mode != "off":
                 state["off"] = False
                 state["done"] = True
                 return None
             if ctx.over_band(ROOM_BAND) or (warm and dwell):
                 state["off"] = False
+                if ctx.over_band(ROOM_BAND):
+                    state["reentry_until"] = ctx.now + timedelta(
+                        minutes=MIN_DWELL_MINUTES
+                    )
                 reason = (
-                    "the room is warming, restoring cool mode"
+                    Reason("outdoor_room_warming")
                     if ctx.over_band(ROOM_BAND)
-                    else "it is warm outside again, restoring cool mode"
+                    else Reason("outdoor_warm_again")
                 )
                 return Decision(
                     action="set_hvac_mode",
@@ -195,6 +203,8 @@ class CoolOutdoorShutdown(Guard):
             return None
         if state.get("done") or ctx.outdoor >= c.below or ctx.over_band(ROOM_BAND):
             return None
+        if state.get("reentry_until") and ctx.now < state["reentry_until"]:
+            return None
         if c.forecast_gate and (
             ctx.forecast_peak is None or ctx.forecast_peak >= c.below + c.restore_margin
         ):
@@ -203,7 +213,7 @@ class CoolOutdoorShutdown(Guard):
         state["off"] = True
         if ctx.hvac_mode == "off":
             return None
-        reason = "it is cool outside and stays cool, turning the unit off"
+        reason = Reason("outdoor_cool_off")
         return Decision(
             action="turn_off",
             reason=reason,
@@ -249,7 +259,7 @@ class SiestaWatch(Guard):
         if ctx.now >= state["until"] or ctx.hot() or ctx.over_band(c.wake_band):
             state.clear()
             return None
-        return "siesta: the unit is resting until the timer ends"
+        return Reason("siesta_resting")
 
     def holds_off(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -261,7 +271,7 @@ class SiestaWatch(Guard):
         if not (self.standdown(ctx) and state.get("action_pending")):
             return None
         state["action_pending"] = False
-        reason = "siesta started"
+        reason = Reason("siesta_started")
         if self.cfg(ctx).thermostat_action == "off":
             return Decision(
                 action="turn_off",
@@ -326,7 +336,7 @@ class ScheduleWeatherRules(Guard):
         if rule is None:
             return None
         value = min(ctx.max_temp, max(ctx.min_temp, float(rule["target"])))
-        return value, "a time-of-day rule sets this target"
+        return value, Reason("time_of_day_rule")
 
     def hold(self, ctx: Ctx) -> Hold | None:
         """Apply this rule of the guard."""
@@ -337,7 +347,7 @@ class ScheduleWeatherRules(Guard):
         return self.hold_for(
             ctx,
             ctx.now + timedelta(minutes=5),
-            "the weather rule does not allow a correction now",
+            Reason("weather_rule_blocks"),
         )
 
 

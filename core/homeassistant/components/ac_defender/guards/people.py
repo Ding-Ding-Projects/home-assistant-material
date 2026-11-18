@@ -3,6 +3,7 @@
 from datetime import datetime, time, timedelta
 
 from ..model import Ctx, Decision, RivalBlock
+from ..reasons import Reason
 from ..spec import (
     GROUP_PEOPLE,
     Guard,
@@ -89,7 +90,7 @@ class ComfortCompromise(Guard):
             offset *= max(0.0, 1 - (elapsed - c.hold_minutes) / max(c.decay_minutes, 1))
         if offset <= 0:
             return None
-        return target + offset, "easing toward the wall choice for a while"
+        return target + offset, Reason("easing_to_wall")
 
 
 class ComfortMemory(Guard):
@@ -137,7 +138,7 @@ class ComfortMemory(Guard):
             or ctx.over_band(self.cfg(ctx).band)
         ):
             return None
-        return target + entry["offset"], "using what was learned about this hour"
+        return target + entry["offset"], Reason("learned_hour")
 
 
 class RepeatedRaiseSurrender(Guard):
@@ -181,9 +182,7 @@ class RepeatedRaiseSurrender(Guard):
             and ctx.now < state["until"]
             and state["adopted"] > target
         ):
-            return state[
-                "adopted"
-            ], "someone keeps asking for this number, so it is theirs for now"
+            return state["adopted"], Reason("someone_keeps_asking")
         return None
 
 
@@ -225,9 +224,7 @@ class WakeUpTruce(Guard):
             and ctx.now < state["until"]
             and state["adopted"] > target
         ):
-            return state[
-                "adopted"
-            ], "good morning: the door opened, agreeing on a warmer number"
+            return state["adopted"], Reason("good_morning")
         return None
 
 
@@ -263,7 +260,7 @@ class CoolerIntentFastLane(Guard):
             return None
         if ctx.over_band(c.band):
             return None
-        return "people keep asking for cooler air, skipping the quiet waits"
+        return Reason("asking_cooler")
 
 
 class SuperDefender(Guard):
@@ -303,7 +300,7 @@ class SuperDefender(Guard):
             and ctx.room > ctx.target
             and not ctx.over_band(c.band)
         ):
-            return "repeated phone or automation changes, answering without waiting"
+            return Reason("remote_changes_answer")
         return None
 
 
@@ -334,7 +331,7 @@ class RivalScheduleWatch(Guard):
             or ctx.over_band(c.band)
         ):
             return None
-        return "the air conditioner app's schedule pushed it warmer, answering back"
+        return Reason("rival_schedule")
 
 
 class DesiredStateEnforcer(Guard):
@@ -406,7 +403,9 @@ class DesiredStateEnforcer(Guard):
         decision: Decision | None = None
         if c.enforce_mode and mode_off:
             decision = Decision(
-                action="set_hvac_mode", value="cool", reason="restoring cool mode"
+                action="set_hvac_mode",
+                value="cool",
+                reason=Reason("restoring_cool_mode"),
             )
         elif c.enforce_setpoint and ctx.setpoint is not None:
             off_target = ctx.setpoint < ctx.target - 0.05 or (
@@ -416,13 +415,13 @@ class DesiredStateEnforcer(Guard):
                 decision = Decision(
                     action="set_temperature",
                     value=ctx.target,
-                    reason="restoring my temperature",
+                    reason=Reason("restoring_my_temperature"),
                 )
         if decision is None:
             return None
         state["last_assert"] = ctx.now
         asserts.append(ctx.now)
-        reason = decision.reason + (" firmly" if firm else "")
+        reason = Reason(f"{decision.reason.code}_firmly") if firm else decision.reason
         decision.reason = reason
         decision.guard = self.spec.key
         decision.acted = [(self.spec.key, reason)]

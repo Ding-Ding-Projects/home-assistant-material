@@ -202,15 +202,17 @@ class Arbiter:
                 "heat_off_still_hot",
             )
         elif wanted == HEAT and room < self.low:
-            self._emit(
-                now,
-                "stop",
-                AC,
-                HEAT,
-                f"room is falling toward {self.low:.1f}°. I am stopping. Your floor",
-                room,
-                "ac_stops_falling",
-            )
+            brother = self.members.get(AC)
+            if previous == AC or (previous == NEITHER and brother and brother.running):
+                self._emit(
+                    now,
+                    "stop",
+                    AC,
+                    HEAT,
+                    f"room is falling toward {self.low:.1f}°. I am stopping. Your floor",
+                    room,
+                    "ac_stops_falling",
+                )
         elif wanted == HEAT:
             self._emit(
                 now,

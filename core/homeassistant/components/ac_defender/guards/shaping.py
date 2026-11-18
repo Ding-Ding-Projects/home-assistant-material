@@ -1,6 +1,7 @@
 """Guards that change the size of the setpoint step before it is sent."""
 
 from ..model import Ctx
+from ..reasons import Reason
 from ..spec import GROUP_TIMING, Guard, GuardSpec, cnt, deg, mins
 
 
@@ -30,9 +31,7 @@ class NaturalWalkback(Guard):
             return None
         step = max(0.1, c.step + ctx.rng.uniform(-c.jitter, c.jitter))
         value = max(proposal, ctx.setpoint - step)
-        return (
-            (value, f"walking back {step:.1f} degrees") if value != proposal else None
-        )
+        return (value, Reason("walking_back", step=step)) if value != proposal else None
 
 
 class TouchSignature(Guard):
@@ -72,7 +71,7 @@ class TouchSignature(Guard):
             return None
         value = max(proposal, ctx.setpoint - step)
         return (
-            (value, f"matching the wall step of {step:.1f} degrees")
+            (value, Reason("matching_wall_step", step=step))
             if value != proposal
             else None
         )
@@ -101,7 +100,7 @@ class HumanNudge(Guard):
         steps = max(1, round((ctx.setpoint - proposal) / c.step))
         value = max(ctx.target, ctx.setpoint - steps * c.step)
         return (
-            (value, f"snapped to {c.step:.1f} degree steps")
+            (value, Reason("snapped_to_step", step=c.step))
             if value != proposal
             else None
         )

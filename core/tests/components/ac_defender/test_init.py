@@ -139,12 +139,64 @@ async def test_timer_reevaluates(
 async def test_unavailable_device_gets_no_command(
     hass: HomeAssistant, mock_entry: MockConfigEntry
 ) -> None:
-    """An unavailable device is never commanded and the state says so."""
+    """An unavailable device is never commanded and its entities go unavailable."""
     calls = await mock_climate(hass)
     hass.states.async_set(CLIMATE, "unavailable", {})
     await setup(hass, mock_entry)
     assert calls == []
-    assert hass.states.get(STATE_SENSOR).state == "standing_down"
+    assert hass.states.get(STATE_SENSOR).state == "unavailable"
+    assert mock_entry.runtime_data.decision.state == "standing_down"
+
+
+async def test_entities_come_back_with_the_device(
+    hass: HomeAssistant, mock_entry: MockConfigEntry
+) -> None:
+    """Entities follow the defended unit: unavailable and back."""
+    await mock_climate(hass)
+    set_climate(hass)
+    await setup(hass, mock_entry)
+    assert hass.states.get(STATE_SENSOR).state != "unavailable"
+    hass.states.async_set(CLIMATE, "unavailable", {})
+    await hass.async_block_till_done()
+    assert hass.states.get(STATE_SENSOR).state == "unavailable"
+    set_climate(hass)
+    await hass.async_block_till_done()
+    assert hass.states.get(STATE_SENSOR).state != "unavailable"
+
+
+async def test_setup_is_not_ready_while_the_device_is_missing(
+    hass: HomeAssistant, mock_entry: MockConfigEntry
+) -> None:
+    """A missing climate entity makes setup retry instead of running blind."""
+    await mock_climate(hass)
+    mock_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_entry.entry_id)
+    await hass.async_block_till_done()
+    assert mock_entry.state is ConfigEntryState.SETUP_RETRY
+    set_climate(hass)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=2))
+    await hass.async_block_till_done()
+    assert mock_entry.state is ConfigEntryState.LOADED
+
+
+async def test_guard_switches_are_configuration_and_enabled_with_a_description(
+    hass: HomeAssistant, mock_entry: MockConfigEntry
+) -> None:
+    """The guard switches sit under configuration, stay enabled and say what they do."""
+    await mock_climate(hass)
+    set_climate(hass)
+    await setup(hass, mock_entry)
+    registry = er.async_get(hass)
+    switches = [
+        entry
+        for entry in er.async_entries_for_config_entry(registry, mock_entry.entry_id)
+        if entry.domain == "switch"
+    ]
+    assert len(switches) == len(mock_entry.runtime_data.guards)
+    assert {entry.entity_category for entry in switches} == {er.EntityCategory.CONFIG}
+    assert all(entry.disabled_by is None for entry in switches)
+    state = hass.states.get("switch.living_room_hot_room_override")
+    assert state.attributes["description"].startswith("At the too-hot")
 
 
 async def test_pause_stop_and_defend_again(

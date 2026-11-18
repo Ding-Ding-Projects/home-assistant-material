@@ -47,6 +47,7 @@ from homeassistant.util import dt as dt_util
 from .arbiter import AC, Arbiter, BandError
 from .const import (
     CONF_CLIMATE,
+    CONF_COURTESY_WAIT,
     CONF_DOOR_SENSOR,
     CONF_FLOOR,
     CONF_FREEZE_RULE,
@@ -60,6 +61,7 @@ from .const import (
     CONF_PRESENCE,
     CONF_ROOM_SENSOR,
     CONF_SAFETY_TEMPERATURE,
+    DEFAULT_COURTESY_WAIT,
     DEFAULT_FLOOR,
     DEFAULT_MY_TEMPERATURE,
     DEFAULT_SAFETY_TEMPERATURE,
@@ -69,6 +71,7 @@ from .const import (
     HEAT_MODE_CAP,
     HEAT_MODE_OFF,
     LOG_SIZE,
+    MAX_COURTESY_WAIT,
     PROTECTIVE_PRESETS,
     RESTART_FRESH_WAIT_MINUTES,
     SAVE_DELAY_SECONDS,
@@ -79,6 +82,7 @@ from .cost import CostTracker, PriceTable
 from .guards import guards_for
 from .model import Command, Ctx, Decision, Standdown, Touch
 from .pipeline import build_runtime, clamp_floor, decide
+from .reasons import Reason, reason_parts
 from .siblings import check_band, sibling_of
 
 SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
@@ -86,7 +90,9 @@ SIGNAL_GUARD_ACTED = f"{DOMAIN}_guard_acted_{{}}"
 SIGNAL_HANDOVER = f"{DOMAIN}_handover_{{}}"
 
 KEEP_SAMPLES = timedelta(hours=3)
-KEEP_TOUCHES = timedelta(hours=2)
+KEEP_TOUCHES = timedelta(hours=24)
+MAX_TOUCHES = 100
+MAX_COMMANDS = 200
 
 
 def option(entry: ConfigEntry, key: str, default: Any = None) -> Any:
@@ -129,7 +135,7 @@ class DefenderCoordinator:
         self.action_changes: list[tuple[datetime, str | None]] = []
         self.cooling_started: datetime | None = None
         self.pause: Standdown | None = None
-        self.decision = Decision(state="defending", reason="starting up")
+        self.decision = Decision(state="defending", reason=Reason("starting_up"))
         self.last_acted: dict[str, dict[str, Any]] = {}
         self.log: deque[dict[str, Any]] = deque(maxlen=LOG_SIZE)
         self.cost = CostTracker(PriceTable(), option(entry, CONF_POWER_KW))
@@ -171,7 +177,13 @@ class DefenderCoordinator:
                 option(entry, CONF_FLOOR, DEFAULT_FLOOR)
             )
             self.freeze_guard = bool(option(entry, CONF_FREEZE_RULE, True))
+            try:
+                wait = float(option(entry, CONF_COURTESY_WAIT, DEFAULT_COURTESY_WAIT))
+            except TypeError, ValueError:
+                wait = float(DEFAULT_COURTESY_WAIT)
+            self.courtesy_wait = min(max(wait, 0.0), float(MAX_COURTESY_WAIT))
         else:
+            self.courtesy_wait = float(DEFAULT_COURTESY_WAIT)
             self.heat_mode = HEAT_MODE_OFF
             self.floor = None
             self.freeze_guard = True
@@ -311,6 +323,10 @@ class DefenderCoordinator:
             Touch(dt_util.utcnow(), old_t, new_t, source, event.context.user_id)
         )
 
+    def unit_available(self) -> bool:
+        """Return True while the defended climate entity reports a state."""
+        return self._read_available()
+
     def _read_available(self) -> bool:
         state = self.hass.states.get(self.climate_id)
         return state is not None and state.state not in (
@@ -399,6 +415,7 @@ class DefenderCoordinator:
             active_action=active,
             floor=self.floor,
             freeze_guard=self.freeze_guard,
+            courtesy_wait_seconds=self.courtesy_wait * 60.0,
             reading_age=reading_age,
             preset_mode=preset,
             protective_preset=preset in PROTECTIVE_PRESETS,
@@ -412,8 +429,12 @@ class DefenderCoordinator:
         ]
         self.reading_times = [t for t in self.reading_times if now - t < KEEP_SAMPLES]
         self.action_changes = self.action_changes[-50:]
-        self.touches = [t for t in self.touches if now - t.time < KEEP_TOUCHES]
-        self.commands = [c for c in self.commands if now - c.time < KEEP_TOUCHES]
+        self.touches = [t for t in self.touches if now - t.time < KEEP_TOUCHES][
+            -MAX_TOUCHES:
+        ]
+        self.commands = [c for c in self.commands if now - c.time < KEEP_TOUCHES][
+            -MAX_COMMANDS:
+        ]
 
     async def async_evaluate(self) -> Decision:
         """Run the engine once and send what it decides."""
@@ -424,7 +445,7 @@ class DefenderCoordinator:
         if self._waiting_fresh and not self._reading_is_fresh(now):
             self.decision = Decision(
                 state="waiting",
-                reason="waiting for a fresh reading after the restart",
+                reason=Reason("waiting_fresh_reading"),
             )
             if self.pause is not None:
                 held = decide(ctx, self.guards, self.pause)
@@ -445,8 +466,9 @@ class DefenderCoordinator:
             if sent:
                 await self._send(decision, now)
             else:
-                other = "AC Defender" if self.role == "heat" else "Heat Defender"
-                decision.reason = f"waiting, {other} has the room right now"
+                decision.reason = Reason(
+                    "ac_has_room" if self.role == "heat" else "heat_has_room"
+                )
                 decision.state = "waiting"
         else:
             self.arbiter_update(ctx, decision, now)
@@ -560,7 +582,15 @@ class DefenderCoordinator:
             self.arbiter.note_command(self.role, now)
         guard = decision.guard or "defender"
         message = f"{guard}: {action} {value} ({decision.reason})"
-        self.add_log("command", guard, message, now, value=value, action=action)
+        self.add_log(
+            "command",
+            guard,
+            message,
+            now,
+            value=value,
+            action=action,
+            reason_parts=reason_parts(decision.reason),
+        )
         self.hass.bus.async_fire(
             EVENT_LOGBOOK_ENTRY,
             {
@@ -586,7 +616,11 @@ class DefenderCoordinator:
         )
 
     def _record_acted(self, guard: str, reason: str, now: datetime) -> None:
-        self.last_acted[guard] = {"time": now, "reason": reason}
+        self.last_acted[guard] = {
+            "time": now,
+            "reason": reason,
+            "parts": reason_parts(reason),
+        }
         async_dispatcher_send(
             self.hass, SIGNAL_GUARD_ACTED.format(self.entry.entry_id), guard, reason
         )
@@ -595,7 +629,9 @@ class DefenderCoordinator:
         """Return the other defender of this climate entity, if any."""
         return sibling_of(self.hass, self)
 
-    def start_pause(self, hours: float, reason: str = "paused by the owner") -> None:
+    def start_pause(
+        self, hours: float, reason: str = Reason("paused_by_owner")
+    ) -> None:
         """Stand down for a number of hours."""
         now = dt_util.utcnow()
         self.pause = Standdown("paused", now + timedelta(hours=hours), reason)
@@ -606,9 +642,7 @@ class DefenderCoordinator:
     def stop_everything(self) -> None:
         """Send nothing at all until told to defend again."""
         now = dt_util.utcnow()
-        self.pause = Standdown(
-            STATE_STOPPED, None, "everything is stopped by the owner", True
-        )
+        self.pause = Standdown(STATE_STOPPED, None, Reason("stopped_by_owner"), True)
         self.add_log("stopped", "defender", self.pause.reason, now)
         self._store.async_delay_save(self._data_to_save, 1)
         self._tell_sibling(True)
@@ -707,6 +741,7 @@ class DefenderCoordinator:
             "domain": other.entry.domain,
             "state": other.decision.state,
             "reason": other.decision.reason,
+            "reason_parts": reason_parts(other.decision.reason),
             "paused": other.pause is not None,
             "my_temperature": other.my_temp,
             "floor": other.floor,
@@ -730,6 +765,7 @@ class DefenderCoordinator:
                     "settings": vars(self.cfg[spec.key]),
                     "last_acted": acted["time"].isoformat() if acted else None,
                     "reason": acted["reason"] if acted else None,
+                    "reason_parts": acted.get("parts") if acted else None,
                 }
             )
         return {
@@ -740,6 +776,7 @@ class DefenderCoordinator:
             else None,
             "state": self.decision.state,
             "reason": self.decision.reason,
+            "reason_parts": reason_parts(self.decision.reason),
             "next_check": self.decision.next_check.isoformat()
             if self.decision.next_check
             else None,

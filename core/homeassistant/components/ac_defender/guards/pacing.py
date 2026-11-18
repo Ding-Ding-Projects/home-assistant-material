@@ -5,6 +5,7 @@ from itertools import pairwise
 import math
 
 from ..model import Ctx, Hold
+from ..reasons import Reason
 from ..spec import GROUP_TIMING, GuardSpec, cnt, deg, flag, mins, sec
 from .base import EpochHold
 
@@ -41,7 +42,7 @@ class VisibilityGuard(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "a touch followed the last command, so the next step waits"
+    reason_text = Reason("touch_after_command")
 
     def _notices(self, ctx: Ctx):
         c = self.cfg(ctx)
@@ -78,7 +79,7 @@ class RoutineTiming(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "lining the correction up with the next routine time slot"
+    reason_text = Reason("next_routine_slot")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -122,9 +123,7 @@ class ComfortBudget(EpochHold):
         until = recent[0].time + timedelta(minutes=c.window_minutes)
         if ctx.now >= until:
             return None
-        return self.hold_for(
-            ctx, until, "the correction budget for this window is used"
-        )
+        return self.hold_for(ctx, until, Reason("budget_used"))
 
 
 class CommandSpacing(EpochHold):
@@ -140,7 +139,7 @@ class CommandSpacing(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "giving the last command room before the next one"
+    reason_text = Reason("command_gap")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -171,7 +170,7 @@ class LowProfileGovernor(EpochHold):
             deg("band", 1.2),
         ),
     )
-    reason_text = "too much back and forth, holding a low profile"
+    reason_text = Reason("low_profile")
 
     def score(self, ctx: Ctx) -> float:
         """Return the 0 to 100 pressure score."""
@@ -223,7 +222,7 @@ class NaturalCadence(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "waiting for the next nudge slot"
+    reason_text = Reason("next_nudge_slot")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -258,7 +257,7 @@ class ComfortPace(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "waiting for a calm moment to answer"
+    reason_text = Reason("calm_moment")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -311,9 +310,7 @@ class ComfortEnvelope(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = (
-        "the wall setting is only slightly above my temperature, letting it rest"
-    )
+    reason_text = Reason("small_wall_preference")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -346,7 +343,7 @@ class ConflictQuiet(EpochHold):
         GROUP_TIMING,
         (cnt("touch_threshold", 4), mins("quiet_minutes", 35), deg("band", 1.2)),
     )
-    reason_text = "an obvious tug of war, standing down for a while"
+    reason_text = Reason("tug_of_war_quiet")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -375,7 +372,7 @@ class TugOfWarTruce(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "the setting keeps bouncing up and down, calling a truce"
+    reason_text = Reason("tug_of_war_truce")
 
     def _flips(self, ctx: Ctx) -> list[datetime]:
         directions = []
@@ -414,7 +411,7 @@ class WallSettling(EpochHold):
             deg("band", 1.0),
         ),
     )
-    reason_text = "waiting for the wall setting to settle"
+    reason_text = Reason("wall_settling")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""

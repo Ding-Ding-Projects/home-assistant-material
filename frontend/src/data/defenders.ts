@@ -2,6 +2,12 @@ import type { HomeAssistant } from "../types";
 
 export type DefenderDirection = "cool" | "heat";
 
+/** A reason as a code plus values, so the page can word it in any language. */
+export interface DefenderReasonParts {
+  code: string;
+  params: Record<string, string | number | DefenderReasonParts>;
+}
+
 export interface DefenderGuard {
   id: string;
   family: string;
@@ -11,6 +17,7 @@ export interface DefenderGuard {
   settings: Record<string, string | number | boolean>;
   last_acted: string | null;
   reason: string | null;
+  reason_parts?: DefenderReasonParts | null;
 }
 
 export interface DefenderLogEntry {
@@ -24,6 +31,7 @@ export interface DefenderLogEntry {
     to?: string;
     plain?: boolean;
     values?: { room?: number; low?: number; high?: number };
+    reason_parts?: DefenderReasonParts | null;
   } & Record<string, unknown>;
 }
 
@@ -33,6 +41,7 @@ export interface DefenderSibling {
   domain: string;
   state: string;
   reason: string;
+  reason_parts?: DefenderReasonParts | null;
   paused: boolean;
   my_temperature: number;
   floor: number | null;
@@ -52,6 +61,7 @@ export interface DefenderInfo {
   paused_until: string | null;
   state: string;
   reason: string;
+  reason_parts?: DefenderReasonParts | null;
   next_check: string | null;
   my_temperature: number;
   floor: number | null;
@@ -287,3 +297,66 @@ export const siblingRow = (sibling: DefenderSibling): SiblingRow => ({
       ? sibling.my_temperature
       : undefined,
 });
+
+type ReasonTranslate = (
+  key: string,
+  values?: Record<string, string | number>
+) => string;
+
+const upperFirst = (text: string): string =>
+  text.charAt(0).toUpperCase() + text.slice(1);
+
+/**
+ * The reason in the viewer's language from its code and values, with the plain
+ * English text of the engine as the fallback for a code the page cannot word.
+ * `translate` takes a key under `ui.panel.config.defenders.reason.` and returns
+ * an empty string when the key is missing.
+ */
+export const describeReason = (
+  parts: DefenderReasonParts | null | undefined,
+  fallback: string,
+  translate: ReasonTranslate
+): string => {
+  if (!parts) {
+    return fallback;
+  }
+  const values: Record<string, string | number> = {};
+  for (const [name, value] of Object.entries(parts.params)) {
+    values[name] =
+      typeof value === "object"
+        ? describeReason(value, "", translate)
+        : typeof value === "number"
+          ? value.toFixed(1)
+          : value;
+  }
+  const text = translate(`reason.${parts.code}`, values);
+  return text || fallback;
+};
+
+/** A sentence with a capital first letter, as the page shows reasons. */
+export const sentenceCase = upperFirst;
+
+/** Guards whose one-line description differs for the heating direction. */
+export const HEAT_GUARD_DESCRIPTIONS: ReadonlySet<string> = new Set([
+  "hot_room_override",
+  "cool_mode_restore",
+  "cooler_intent_fast_lane",
+  "cooling_runway",
+]);
+
+/** The block key, under `ui.panel.config.defenders.`, of a guard's description. */
+export const guardDescriptionKey = (
+  id: string,
+  direction: DefenderDirection
+): string =>
+  direction === "heat" && HEAT_GUARD_DESCRIPTIONS.has(id)
+    ? `guard_desc_heat.${id}`
+    : `guard_desc.${id}`;
+
+/** The page of the other defender for the same unit, with its entry selected. */
+export const siblingPath = (sibling: DefenderSibling): string =>
+  `${sibling.role === "ac" ? "/config/ac-defender" : "/config/heat-defender"}?entry=${sibling.entry_id}`;
+
+/** The block key of the label of the third tab, which is not about savings. */
+export const usageTabKey = (direction: DefenderDirection): string =>
+  `tabs.usage_${direction}`;

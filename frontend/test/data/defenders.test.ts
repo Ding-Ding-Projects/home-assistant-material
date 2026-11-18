@@ -3,12 +3,16 @@ import type { DefenderGuard, DefenderLogEntry } from "../../src/data/defenders";
 import {
   commandReason,
   defenderLogLine,
+  describeReason,
   formatHours,
   groupGuards,
+  guardDescriptionKey,
   guardTitle,
   isStandingDown,
   needsConfirmationToDisable,
+  siblingPath,
   splitDuration,
+  usageTabKey,
 } from "../../src/data/defenders";
 
 const guard = (id: string, group: string, safety = false): DefenderGuard => ({
@@ -126,5 +130,77 @@ describe("duration and log helpers", () => {
     expect(
       commandReason("keep_heating_off: set_hvac_mode off (heating is kept off)")
     ).toBe("Heating is kept off");
+  });
+});
+
+describe("reasons in the viewer's language", () => {
+  const words: Record<string, string> = {
+    "reason.below_floor": "Room {room}, floor {floor}",
+    "reason.holding_target_because": "Holding {target}: {because}",
+    "reason.walking_back": "Back {step}",
+  };
+  const translate = (key: string, values?: Record<string, string | number>) =>
+    (words[key] ?? "").replace(/\{(\w+)\}/g, (_, name) =>
+      String(values?.[name])
+    );
+
+  it("words a code with its values to one decimal", () => {
+    expect(
+      describeReason(
+        { code: "below_floor", params: { room: 15, floor: 16 } },
+        "english",
+        translate
+      )
+    ).toBe("Room 15.0, floor 16.0");
+  });
+
+  it("words a reason that has a reason inside", () => {
+    expect(
+      describeReason(
+        {
+          code: "holding_target_because",
+          params: {
+            target: 23,
+            because: { code: "walking_back", params: { step: 0.5 } },
+          },
+        },
+        "english",
+        translate
+      )
+    ).toBe("Holding 23.0: Back 0.5");
+  });
+
+  it("falls back to the plain text for a plain reason or an unknown code", () => {
+    expect(describeReason(null, "plain text", translate)).toBe("plain text");
+    expect(
+      describeReason({ code: "new_code", params: {} }, "plain text", translate)
+    ).toBe("plain text");
+  });
+});
+
+describe("page helpers of the defenders", () => {
+  it("points to the page of the other defender with its entry", () => {
+    const sibling = { role: "heat", entry_id: "abc" } as any;
+    expect(siblingPath(sibling)).toBe("/config/heat-defender?entry=abc");
+    expect(siblingPath({ ...sibling, role: "ac" })).toBe(
+      "/config/ac-defender?entry=abc"
+    );
+  });
+
+  it("uses the heat description only where it differs", () => {
+    expect(guardDescriptionKey("hot_room_override", "heat")).toBe(
+      "guard_desc_heat.hot_room_override"
+    );
+    expect(guardDescriptionKey("hot_room_override", "cool")).toBe(
+      "guard_desc.hot_room_override"
+    );
+    expect(guardDescriptionKey("comfort_sync", "heat")).toBe(
+      "guard_desc.comfort_sync"
+    );
+  });
+
+  it("names the third tab by what it measures", () => {
+    expect(usageTabKey("cool")).toBe("tabs.usage_cool");
+    expect(usageTabKey("heat")).toBe("tabs.usage_heat");
   });
 });

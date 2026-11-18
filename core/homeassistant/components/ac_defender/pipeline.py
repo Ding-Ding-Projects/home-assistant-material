@@ -5,6 +5,7 @@ import math
 
 from .guards import NON_BYPASSABLE, TARGET_ORDER
 from .model import Ctx, Decision, Standdown
+from .reasons import Reason
 from .spec import Guard
 
 FLOOR_MIN = 10.0
@@ -13,7 +14,7 @@ DIRECT_BAND = 2.0  # the original natural safety override
 APPROACH = 0.5
 TOLERANCE = 0.1
 FLOOR_STATE = "_floor"
-KEEP_OFF_GAP_SECONDS = 600
+NO_HEAT_MODES = ("off", "cool", "dry", "fan_only")
 KEEP_OFF_STATE = "_keep_off"
 
 
@@ -48,14 +49,14 @@ def _floor_stage(ctx: Ctx) -> Decision | None:
         state["latched"] = False
         return Decision(
             state="standing_down",
-            reason="the device is in a frost protection or away mode, leaving it alone",
+            reason=Reason("protective_preset"),
             guard="heat_safety",
         )
     if ctx.room is None or ctx.reading_age > STALE_SECONDS:
         state["latched"] = False
         return Decision(
             state="standing_down",
-            reason="no fresh room temperature for 30 minutes, leaving the heating to whatever controls it",
+            reason=Reason("no_fresh_room_reading"),
             guard="heat_safety",
         )
     if ctx.room < floor:
@@ -64,8 +65,8 @@ def _floor_stage(ctx: Ctx) -> Decision | None:
         state["latched"] = False
     if not state.get("latched"):
         return None
-    reason = f"the room is at {ctx.room:.1f} degrees, below the floor of {floor:.1f}: heating is allowed"
-    if ctx.hvac_mode == "off":
+    reason = Reason("below_floor", room=ctx.room, floor=floor)
+    if ctx.hvac_mode in NO_HEAT_MODES:
         return Decision(
             state="heating_allowed",
             reason=reason,
@@ -105,9 +106,7 @@ def _finish(ctx: Ctx, decision: Decision) -> Decision:
         decision.action == "set_hvac_mode" and decision.value == "off"
     )
     if turns_off and ctx.room is not None and ctx.room < clamp_floor(ctx.floor):
-        return Decision(
-            state="heating_allowed", reason="below the floor, heating stays allowed"
-        )
+        return Decision(state="heating_allowed", reason=Reason("below_floor_stays"))
     return decision
 
 
@@ -126,7 +125,7 @@ def decide(  # noqa: C901
         (g.spec.key for g in guards if g.on(ctx) and g.holds_off(ctx)), None
     )
     if not ctx.available:
-        return Decision(state="standing_down", reason="the device is unavailable")
+        return Decision(state="standing_down", reason=Reason("device_unavailable"))
     if pause and pause.stop_everything:
         return Decision(state=pause.kind, reason=pause.reason)
     if ctx.floor is not None:
@@ -194,15 +193,15 @@ def decide(  # noqa: C901
         ctx.state.pop(KEEP_OFF_STATE, None)
     else:
         since = ctx.state.setdefault(KEEP_OFF_STATE, {}).setdefault("since", ctx.now)
-        wait_until = since + timedelta(seconds=KEEP_OFF_GAP_SECONDS)
+        wait_until = since + timedelta(seconds=max(0.0, ctx.courtesy_wait_seconds))
         if ctx.now < wait_until:
             return Decision(
                 state="waiting",
-                reason="the heating was turned on, giving it a courtesy wait before turning it off",
+                reason=Reason("courtesy_wait"),
                 target=target,
                 next_check=wait_until,
             )
-        reason = "heating is kept off, the room is above its floor"
+        reason = Reason("heating_kept_off")
         return _finish(
             ctx,
             Decision(
@@ -215,24 +214,26 @@ def decide(  # noqa: C901
             ),
         )
     if ctx.desired_mode == "off" or ctx.room is None or ctx.setpoint is None:
-        return Decision(state="defending", reason="holding", target=target, guard=None)
+        return Decision(
+            state="defending", reason=Reason("holding"), target=target, guard=None
+        )
     if ctx.off_owner or ctx.hvac_mode != ctx.desired_mode:
         reason = (
-            "heating is off and the room is comfortable, nothing to do"
+            Reason("heat_idle_comfortable")
             if ctx.run_mode == "heat"
-            else "the unit is off on purpose"
+            else Reason("unit_off_on_purpose")
         )
         return Decision(state="defending", reason=reason, target=target)
     if ctx.setpoint <= target + TOLERANCE:
         return Decision(
-            state="defending", reason="at my temperature, nothing to do", target=target
+            state="defending", reason=Reason("at_my_temperature"), target=target
         )
 
     proposal = max(target, ctx.room - APPROACH) if ctx.direct else target
     if proposal >= ctx.setpoint - 0.05:
         return Decision(
             state="defending",
-            reason="already cooling toward my temperature",
+            reason=Reason("already_cooling"),
             target=target,
         )
     shaped: list[tuple[str, str]] = []
@@ -248,7 +249,7 @@ def decide(  # noqa: C901
     ctx.proposal = proposal
     if proposal >= ctx.setpoint - 0.05:
         return Decision(
-            state="defending", reason="the step rounds to no change", target=target
+            state="defending", reason=Reason("step_rounds_to_nothing"), target=target
         )
 
     ctx.bypass = [
@@ -270,8 +271,9 @@ def decide(  # noqa: C901
     decision = Decision(
         action="set_temperature",
         value=proposal,
-        reason=f"holding {target:.1f}: "
-        + (shaped[0][1] if shaped else "stepping back to my temperature"),
+        reason=Reason("holding_target_because", target=target, because=shaped[0][1])
+        if shaped
+        else Reason("holding_target_stepping", target=target),
         acted=[*reasons, *ctx.bypass, *shaped],
         target=target,
     )

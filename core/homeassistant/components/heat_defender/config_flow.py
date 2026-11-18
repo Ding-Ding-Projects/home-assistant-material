@@ -12,6 +12,7 @@ from homeassistant.components.ac_defender.config_flow import (
 )
 from homeassistant.components.ac_defender.const import (
     CONF_CLIMATE,
+    CONF_COURTESY_WAIT,
     CONF_FLOOR,
     CONF_FREEZE_RULE,
     CONF_HEAT_CAP,
@@ -19,10 +20,12 @@ from homeassistant.components.ac_defender.const import (
     CONF_PLAIN_LOG,
     CONF_POWER_KW,
     CONF_SAFETY_TEMPERATURE,
+    DEFAULT_COURTESY_WAIT,
     DEFAULT_FLOOR,
     HARD_FLOOR,
     HEAT_MODE_CAP,
     HEAT_MODE_OFF,
+    MAX_COURTESY_WAIT,
 )
 from homeassistant.components.ac_defender.siblings import sibling_band_error
 from homeassistant.components.climate import DOMAIN as CLIMATE_DOMAIN, HVACMode
@@ -92,6 +95,20 @@ def heat_schema(defaults: dict[str, Any], *, with_unit: bool) -> probatio.Schema
             CONF_FREEZE_RULE, default=defaults.get(CONF_FREEZE_RULE, True)
         )
     ] = selector.BooleanSelector()
+    fields[
+        probatio.Required(
+            CONF_COURTESY_WAIT,
+            default=defaults.get(CONF_COURTESY_WAIT, DEFAULT_COURTESY_WAIT),
+        )
+    ] = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0,
+            max=MAX_COURTESY_WAIT,
+            step=1,
+            unit_of_measurement="min",
+            mode=selector.NumberSelectorMode.SLIDER,
+        )
+    )
     fields[
         probatio.Required(
             CONF_SAFETY_TEMPERATURE,

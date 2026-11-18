@@ -29,6 +29,9 @@ CONF_HEAT_MODE = "heat_mode"
 CONF_HEAT_CAP = "heat_cap"
 CONF_FLOOR = "floor"
 CONF_FREEZE_RULE = "freeze_rule"
+CONF_COURTESY_WAIT = "courtesy_wait_minutes"
+DEFAULT_COURTESY_WAIT = 10
+MAX_COURTESY_WAIT = 30
 
 HEAT_MODE_OFF = "off"
 HEAT_MODE_CAP = "cap"
@@ -73,7 +76,6 @@ ATTR_HOURS = "hours"
 
 DOMAIN_HEAT = "heat_defender"
 EXTRA_EVENT_TYPES = ["heat_safety", "keep_heating_off"]
-KEEP_OFF_GAP_SECONDS = 600
 CONF_PLAIN_LOG = "plain_log"
 ATTR_ALSO_SIBLING = "also_sibling"
 BAND_ERRORS = ("band_crossed", "band_too_narrow", "band_under_floor")

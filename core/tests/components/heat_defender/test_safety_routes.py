@@ -293,7 +293,7 @@ async def test_unavailable_device_gets_no_command(hass: HomeAssistant) -> None:
     calls = await mock_climate(hass)
     hass.states.async_set(CLIMATE, "unavailable", {})
     await setup(hass, make_entry())
-    assert hass.states.get(STATE_SENSOR).state == "standing_down"
+    assert hass.states.get(STATE_SENSOR).state == "unavailable"
     assert calls["set_hvac_mode"] == []
     assert calls["set_temperature"] == []
 

@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 
 from ..model import Ctx, Decision, Hold
+from ..reasons import Reason
 from ..spec import GROUP_TIMING, Guard, GuardSpec, cnt, deg, flag, mins, num, sec
 from .base import EpochHold
 
@@ -31,7 +32,7 @@ class ComfortSync(EpochHold):
             deg("band", 2.0),
         ),
     )
-    reason_text = "taking a calm pause after a change on the thermostat"
+    reason_text = Reason("calm_pause_after_change")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -62,7 +63,7 @@ class ComfortSync(EpochHold):
             return result
         gap_end = ctx.commands[-1].time + timedelta(seconds=c.gap_seconds)
         if ctx.now < gap_end and (result is None or gap_end > result.until):
-            return self.hold_for(ctx, gap_end, "keeping a minimum gap between commands")
+            return self.hold_for(ctx, gap_end, Reason("minimum_gap"))
         return result
 
     def shape(self, ctx: Ctx, proposal: float) -> tuple[float, str] | None:
@@ -75,7 +76,7 @@ class ComfortSync(EpochHold):
         )
         floor = ctx.setpoint - max(step, 0.1)
         if proposal < floor:
-            return floor, f"softened to a {step:.1f} degree step"
+            return floor, Reason("softened_step", step=step)
         return None
 
 
@@ -107,16 +108,16 @@ class CoolModeRestore(Guard):
             ctx.over_band(c.band) or ctx.hot() or severe
         )
         if urgent:
-            return self._restore(ctx, "the room is warm, restoring the mode now")
+            return self._restore(ctx, Reason("restore_mode_room_warm"))
         started = state.setdefault("since", ctx.now)
         delay = state.setdefault("delay", ctx.rng.uniform(c.min_seconds, c.max_seconds))
         until = started + timedelta(seconds=delay)
         if ctx.now >= until:
-            return self._restore(ctx, "someone changed the mode, putting it back")
+            return self._restore(ctx, Reason("restore_mode_changed"))
         return Decision(
             state="waiting",
-            reason="waiting a moment before restoring the mode",
-            holds=[self.hold_for(ctx, until, "waiting before restoring the mode")],
+            reason=Reason("restore_mode_soon"),
+            holds=[self.hold_for(ctx, until, Reason("restore_mode_wait"))],
             guard=self.spec.key,
         )
 
@@ -169,7 +170,7 @@ class DynamicCooldown(EpochHold):
             mins("window_minutes", 30, 240),
         ),
     )
-    reason_text = "quiet period after a manual change"
+    reason_text = Reason("quiet_after_manual")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""
@@ -199,7 +200,7 @@ class ManualComfortGrace(EpochHold):
         GROUP_TIMING,
         (mins("grace_minutes", 20), deg("band", 0.8)),
     )
-    reason_text = "the room is still comfortable, leaving the change alone"
+    reason_text = Reason("comfortable_leave_change")
 
     def trigger(self, ctx: Ctx) -> bool:
         """Apply this rule of the guard."""

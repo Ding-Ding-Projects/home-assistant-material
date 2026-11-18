@@ -7,7 +7,10 @@ import memoizeOne from "memoize-one";
 import { formatDateShort } from "../../../common/datetime/format_date";
 import { formatTime } from "../../../common/datetime/format_time";
 import { relativeTime } from "../../../common/datetime/relative_time";
-import { modeText } from "../../../common/language-mode/language-mode";
+import {
+  composeForMode,
+  modeText,
+} from "../../../common/language-mode/language-mode";
 import { navigate } from "../../../common/navigate";
 import { formatNumber } from "../../../common/number/format_number";
 import { searchMatcher } from "../../../common/regex/filter";
@@ -28,6 +31,7 @@ import type {
   DefenderGuard,
   DefenderInfo,
   DefenderLogEntry,
+  DefenderReasonParts,
 } from "../../../data/defenders";
 import {
   bandErrorKey,
@@ -36,16 +40,20 @@ import {
   controlDefender,
   DEFENDER_DOMAINS,
   defenderLogLine,
+  describeReason,
   fetchDefenderInfo,
   groupGuards,
+  guardDescriptionKey,
   guardTitle,
   isStandingDown,
   needsConfirmationToDisable,
   setDefenderFloor,
   setDefenderGuard,
   setDefenderTemperature,
+  siblingPath,
   siblingRow,
   splitDuration,
+  usageTabKey,
 } from "../../../data/defenders";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
@@ -181,7 +189,12 @@ export class HaDefenderPage extends LitElement {
     }
     const tabs: ToggleButton[] = (
       ["now", "guards", "cost", "log"] as View[]
-    ).map((value) => ({ value, label: this._t(`tabs.${value}`) }));
+    ).map((value) => ({
+      value,
+      label: this._t(
+        value === "cost" ? usageTabKey(this.direction) : `tabs.${value}`
+      ),
+    }));
     return html`
       ${
         this._error
@@ -221,6 +234,25 @@ export class HaDefenderPage extends LitElement {
     `;
   }
 
+  private _reason(
+    parts: DefenderReasonParts | null | undefined,
+    text: string
+  ): string {
+    const sentence = composeForMode(this.hass.localize, (part) =>
+      describeReason(parts, text, (key, values) =>
+        part(`ui.panel.config.defenders.${key}`, values)
+      )
+    );
+    return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+  }
+
+  private _openSibling(ev: Event): void {
+    const path = (ev.currentTarget as HTMLElement).dataset.path;
+    if (path) {
+      navigate(path);
+    }
+  }
+
   private _siblingRow(): TemplateResult | typeof nothing {
     const sibling = this._info?.sibling;
     if (!sibling) {
@@ -250,6 +282,13 @@ export class HaDefenderPage extends LitElement {
         ><strong>${this._t(row.nameKey)}</strong><br /><span class="detail"
           >${parts.join(", ")}</span
         ></span
+      >
+      <ha-button
+        appearance="plain"
+        size="small"
+        data-path=${siblingPath(sibling)}
+        @click=${this._openSibling}
+        >${this._t("sibling.open")}</ha-button
       >
     </div>`;
   }
@@ -356,7 +395,7 @@ export class HaDefenderPage extends LitElement {
           )}
         </div>
         <div class="why">
-          ${info.reason.charAt(0).toUpperCase()}${info.reason.slice(1)}${
+          ${this._reason(info.reason_parts, info.reason)}${
             info.next_check
               ? html` · ${this._t("now.next_check")}
                 ${relativeTime(new Date(info.next_check), this.hass.locale)}`
@@ -637,9 +676,11 @@ export class HaDefenderPage extends LitElement {
   }
 
   private _guardRow(guard: DefenderGuard): TemplateResult {
+    const description = this._t(guardDescriptionKey(guard.id, this.direction));
     return html`<div class=${classMap({ row: true, safety: guard.safety })}>
       <span class="grow">
         ${guardTitle(guard.id, this.direction)}<br />
+        <span class="detail desc" title=${description}>${description}</span>
         <span class="detail"
           >${
             guard.last_acted
@@ -650,7 +691,11 @@ export class HaDefenderPage extends LitElement {
                   ),
                 })
               : this._t("guards.never_acted")
-          }${guard.reason ? `: ${guard.reason}` : ""}</span
+          }${
+            guard.reason
+              ? `: ${this._reason(guard.reason_parts, guard.reason)}`
+              : ""
+          }</span
         >
       </span>
       <ha-switch
@@ -740,6 +785,13 @@ export class HaDefenderPage extends LitElement {
               : this._t("cost.note")
           }
         </div>
+        ${
+          this.direction === "heat"
+            ? html`<div class="row detail">
+                ${this._t("cost.not_measured_heat")}
+              </div>`
+            : nothing
+        }
       </ha-card>`;
   }
 
@@ -775,7 +827,7 @@ export class HaDefenderPage extends LitElement {
       return modeText(this.hass.localize, line.key, line.values);
     }
     return entry.kind === "command"
-      ? commandReason(entry.message)
+      ? this._reason(entry.values.reason_parts, commandReason(entry.message))
       : this._t(`log.${entry.kind}`);
   }
 
@@ -1056,6 +1108,12 @@ export class HaDefenderPage extends LitElement {
       .grow {
         flex: 1;
         min-width: 0;
+      }
+      .desc {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .status {
         display: flex;

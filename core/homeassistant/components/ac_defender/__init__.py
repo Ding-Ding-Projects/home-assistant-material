@@ -1,11 +1,12 @@
 """AC Defender: holds the chosen temperature against schedules, phones and wall touches."""
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, PLATFORMS, STORAGE_VERSION
+from .const import CONF_CLIMATE, DOMAIN, PLATFORMS, STORAGE_VERSION
 from .coordinator import DefenderCoordinator
 from .siblings import async_attach_sibling, async_detach_sibling, async_update_band
 from .types import DefenderConfigEntry
@@ -24,6 +25,13 @@ async def async_setup_defender(
     hass: HomeAssistant, entry: DefenderConfigEntry, run_mode: str
 ) -> None:
     """Set up a defender of either direction; the Heat Defender calls this too."""
+    climate_id = entry.data[CONF_CLIMATE]
+    if hass.states.get(climate_id) is None:
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="climate_not_found",
+            translation_placeholders={"entity_id": climate_id},
+        )
     coordinator = DefenderCoordinator(hass, entry, run_mode)
     entry.runtime_data = coordinator
     async_attach_sibling(hass, coordinator)
