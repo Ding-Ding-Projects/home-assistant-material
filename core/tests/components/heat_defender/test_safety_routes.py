@@ -11,6 +11,7 @@ from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import device_registry as dr
 
 from .conftest import (
     CLIMATE,
@@ -308,3 +309,15 @@ async def test_stop_everything_leaves_the_device_alone_but_floor_resumes(
         blocking=True,
     )
     assert hass.states.get(STATE_SENSOR).state == "paused"
+
+
+async def test_the_device_links_to_its_page(hass: HomeAssistant) -> None:
+    """The device carries an in-app link to the Heat Defender page."""
+    await mock_climate(hass)
+    set_climate(hass)
+    entry = make_entry()
+    await setup(hass, entry)
+    device = dr.async_get(hass).async_get_device_by_identifier(
+        (DOMAIN, entry.entry_id), entry.entry_id
+    )
+    assert device.configuration_url == "homeassistant://config/heat-defender"

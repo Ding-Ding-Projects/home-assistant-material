@@ -201,3 +201,38 @@ export const defenderLogLine = (
 /** True when turning a guard off needs the two-key confirmation. */
 export const needsConfirmationToDisable = (guard: DefenderGuard): boolean =>
   guard.safety && guard.enabled;
+
+const BAND_CODES = ["band_crossed", "band_too_narrow", "band_under_floor"];
+
+/**
+ * The block key, under `ui.panel.config.defenders.`, of the plain message for a
+ * rejected temperature or floor, or `undefined` when the error is not about the
+ * shared band.
+ */
+export const bandErrorKey = (
+  message: string | undefined
+): string | undefined => {
+  const code = BAND_CODES.find((candidate) => message?.includes(candidate));
+  return code ? `band.${code.slice("band_".length)}` : undefined;
+};
+
+export interface SiblingRow {
+  /** Block key of the sibling's name. */
+  nameKey: string;
+  /** Block key of its state word. */
+  stateKey: string;
+  paused: boolean;
+  /** The temperature it holds, or `undefined` when it keeps the heat off. */
+  temperature: number | undefined;
+}
+
+/** What the compact row for the other defender shows. */
+export const siblingRow = (sibling: DefenderSibling): SiblingRow => ({
+  nameKey: `sibling.${sibling.role}`,
+  stateKey: `state.${sibling.state}`,
+  paused: sibling.paused,
+  temperature:
+    sibling.role === "ac" || sibling.heat_mode === "cap"
+      ? sibling.my_temperature
+      : undefined,
+});

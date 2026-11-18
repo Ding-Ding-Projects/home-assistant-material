@@ -1,0 +1,95 @@
+rules:
+  action-setup:
+    status: exempt
+    comment: The actions are entity services registered by the sensor platform.
+  appropriate-polling:
+    status: done
+    comment: Nothing is polled. The defender reacts to state changes and evaluates on a 30 second timer because its decisions depend on time.
+  brands: todo
+  common-modules: done
+  config-flow-test-coverage:
+    status: todo
+    comment: The flows are tested, but the coverage percentage has not been measured.
+  config-flow: done
+  dependency-transparency:
+    status: exempt
+    comment: No external requirements.
+  docs-actions: todo
+  docs-conditions:
+    status: exempt
+    comment: The integration has no conditions.
+  docs-high-level-description: todo
+  docs-installation-instructions: todo
+  docs-removal-instructions: todo
+  docs-triggers:
+    status: exempt
+    comment: The integration has no triggers.
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure:
+    status: done
+    comment: The flow checks that the climate entity exists, can cool or heat, and that the temperatures are within its limits.
+  test-before-setup:
+    status: todo
+    comment: Setup does not wait for the climate entity. The defender stands down and sends nothing while the device is unavailable.
+  unique-config-entry: done
+  action-exceptions: done
+  config-entry-unloading: done
+  docs-configuration-parameters: todo
+  docs-installation-parameters: todo
+  entity-unavailable:
+    status: todo
+    comment: Entities keep reporting the last decision while the climate entity is unavailable.
+  integration-owner:
+    status: todo
+    comment: No code owner has been assigned.
+  log-when-unavailable: todo
+  parallel-updates:
+    status: exempt
+    comment: No platform fetches data. Entities only read the coordinator.
+  reauthentication-flow:
+    status: exempt
+    comment: No authentication.
+  test-coverage:
+    status: todo
+    comment: Coverage has not been measured.
+  devices: done
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: The defended climate entity is chosen by the user.
+  discovery-update-info:
+    status: exempt
+    comment: No discovery.
+  docs-data-update: todo
+  docs-examples: todo
+  docs-known-limitations: todo
+  docs-supported-devices: todo
+  docs-supported-functions: todo
+  docs-troubleshooting: todo
+  docs-use-cases: todo
+  dynamic-devices:
+    status: exempt
+    comment: Each entry has exactly one device.
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default:
+    status: todo
+    comment: All guard switches are enabled by default.
+  entity-translations: done
+  exception-translations:
+    status: todo
+    comment: The messages of the validation errors are not translated yet.
+  icon-translations: done
+  reconfiguration-flow: done
+  repair-issues: todo
+  stale-devices:
+    status: exempt
+    comment: Each entry has exactly one device that is removed with it.
+  async-dependency: done
+  inject-websession:
+    status: exempt
+    comment: No web requests.
+  strict-typing: todo

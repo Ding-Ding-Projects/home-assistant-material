@@ -2,9 +2,10 @@
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, PLATFORMS
+from .const import DOMAIN, PLATFORMS, STORAGE_VERSION
 from .coordinator import DefenderCoordinator
 from .siblings import async_attach_sibling, async_detach_sibling, async_update_band
 from .types import DefenderConfigEntry
@@ -36,6 +37,7 @@ async def async_unload_defender(
 ) -> None:
     """Unload a defender."""
     await hass.config_entries.async_unload_platforms_or_raise(entry, PLATFORMS)
+    await entry.runtime_data.async_save()
     entry.runtime_data.async_stop()
     async_detach_sibling(hass, entry.runtime_data)
 
@@ -56,3 +58,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: DefenderConfigEntry) -> 
 async def async_unload_entry(hass: HomeAssistant, entry: DefenderConfigEntry) -> None:
     """Unload AC Defender."""
     await async_unload_defender(hass, entry)
+
+
+async def async_remove_defender(
+    hass: HomeAssistant, entry: DefenderConfigEntry
+) -> None:
+    """Delete the saved state of a removed defender."""
+    await Store(
+        hass, STORAGE_VERSION, f"{entry.domain}.{entry.entry_id}"
+    ).async_remove()
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: DefenderConfigEntry) -> None:
+    """Delete the saved state of a removed entry."""
+    await async_remove_defender(hass, entry)

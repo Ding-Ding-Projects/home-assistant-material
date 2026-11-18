@@ -77,3 +77,7 @@ KEEP_OFF_GAP_SECONDS = 600
 CONF_PLAIN_LOG = "plain_log"
 ATTR_ALSO_SIBLING = "also_sibling"
 BAND_ERRORS = ("band_crossed", "band_too_narrow", "band_under_floor")
+
+STORAGE_VERSION = 1
+SAVE_DELAY_SECONDS = 30
+RESTART_FRESH_WAIT_MINUTES = 10

@@ -41,6 +41,7 @@ from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
 )
+from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .arbiter import AC, Arbiter, BandError
@@ -69,7 +70,10 @@ from .const import (
     HEAT_MODE_OFF,
     LOG_SIZE,
     PROTECTIVE_PRESETS,
+    RESTART_FRESH_WAIT_MINUTES,
+    SAVE_DELAY_SECONDS,
     STATE_STOPPED,
+    STORAGE_VERSION,
 )
 from .cost import CostTracker, PriceTable
 from .guards import guards_for
@@ -138,6 +142,12 @@ class DefenderCoordinator:
         self._last_action: str | None = None
         self._last_command_time: datetime | None = None
         self._unsubs: list[CALLBACK_TYPE] = []
+        self._store: Store[dict[str, Any]] = Store(
+            hass, STORAGE_VERSION, f"{entry.domain}.{entry.entry_id}"
+        )
+        self._started_at = dt_util.utcnow()
+        self._waiting_fresh = False
+        self.restored_holder: str | None = None
         self.reload_options()
 
     @property
@@ -178,8 +188,76 @@ class DefenderCoordinator:
             *(v for k in keys if (v := option(self.entry, k))),
         ]
 
+    def _data_to_save(self) -> dict[str, Any]:
+        """Return what must survive a restart."""
+        pause = self.pause
+        cost = self.cost
+        return {
+            "saved_at": dt_util.utcnow().isoformat(),
+            "pause": {
+                "kind": pause.kind,
+                "until": pause.until.isoformat() if pause.until else None,
+                "reason": pause.reason,
+                "stop_everything": pause.stop_everything,
+            }
+            if pause
+            else None,
+            "last_acted": {
+                guard: {"time": item["time"].isoformat(), "reason": item["reason"]}
+                for guard, item in self.last_acted.items()
+            },
+            "log": list(self.log),
+            "holder": self.arbiter.holder if self.arbiter else None,
+            "cost": {
+                "day": cost.day,
+                "month": cost.month,
+                "seconds_today": cost.seconds_today,
+                "seconds_month": cost.seconds_month,
+                "cost_today": cost.cost_today,
+                "cost_month": cost.cost_month,
+            },
+        }
+
+    async def async_restore(self) -> bool:
+        """Load the saved state; return True when there was one."""
+        data = await self._store.async_load()
+        if not data:
+            return False
+        if saved := data.get("pause"):
+            until = dt_util.parse_datetime(saved["until"]) if saved["until"] else None
+            if saved["stop_everything"] or (until and until > dt_util.utcnow()):
+                self.pause = Standdown(
+                    saved["kind"], until, saved["reason"], saved["stop_everything"]
+                )
+        for guard, item in data.get("last_acted", {}).items():
+            if (when := dt_util.parse_datetime(item["time"])) is not None:
+                self.last_acted[guard] = {"time": when, "reason": item["reason"]}
+        self.log.extend(data.get("log", []))
+        saved_cost = data.get("cost", {})
+        cost = self.cost
+        cost.day, cost.month = saved_cost.get("day"), saved_cost.get("month")
+        cost.seconds_today = saved_cost.get("seconds_today", 0.0)
+        cost.seconds_month = saved_cost.get("seconds_month", 0.0)
+        cost.cost_today = saved_cost.get("cost_today", 0.0)
+        cost.cost_month = saved_cost.get("cost_month", 0.0)
+        self.restored_holder = data.get("holder")
+        return True
+
+    async def async_save(self) -> None:
+        """Write the state now."""
+        await self._store.async_save(self._data_to_save())
+
+    async def async_remove_saved(self) -> None:
+        """Delete the saved state of a removed entry."""
+        await self._store.async_remove()
+
     async def async_start(self) -> None:
-        """Start listening and evaluate once."""
+        """Restore, listen and evaluate once."""
+        self._started_at = dt_util.utcnow()
+        self._waiting_fresh = await self.async_restore()
+        if self.arbiter is not None and self.restored_holder:
+            if self.arbiter.holder == "neither":
+                self.arbiter.holder = self.restored_holder
         self._unsubs.append(
             async_track_state_change_event(
                 self.hass, self.tracked_entities(), self._handle_state_change
@@ -338,6 +416,19 @@ class DefenderCoordinator:
         if self.pause and self.pause.until and now >= self.pause.until:
             self.pause = None
         ctx = self.build_ctx(now)
+        if self._waiting_fresh and not self._reading_is_fresh(now):
+            self.decision = Decision(
+                state="waiting",
+                reason="waiting for a fresh reading after the restart",
+            )
+            if self.pause is not None:
+                held = decide(ctx, self.guards, self.pause)
+                self.decision = Decision(
+                    state=held.state, reason=held.reason, guard=held.guard
+                )
+            async_dispatcher_send(self.hass, self.signal)
+            return self.decision
+        self._waiting_fresh = False
         decision = decide(ctx, self.guards, self.pause)
         self.decision = decision
         sent = True
@@ -355,8 +446,17 @@ class DefenderCoordinator:
                 self._record_acted(guard, reason, now)
         await self._keep_dual_setpoint_consistent(ctx, now)
         self.cost.update(now, ctx.hvac_action == ctx.active_action)
+        self._store.async_delay_save(self._data_to_save, SAVE_DELAY_SECONDS)
         async_dispatcher_send(self.hass, self.signal)
         return decision
+
+    def _reading_is_fresh(self, now: datetime) -> bool:
+        """Return True once the device has reported since the start, or after the cap."""
+        if now - self._started_at >= timedelta(minutes=RESTART_FRESH_WAIT_MINUTES):
+            return True
+        room_id = option(self.entry, CONF_ROOM_SENSOR)
+        state = self.hass.states.get(room_id or self.climate_id)
+        return state is not None and state.last_reported > self._started_at
 
     def _may_send(self, now: datetime) -> bool:
         if self.arbiter is None:

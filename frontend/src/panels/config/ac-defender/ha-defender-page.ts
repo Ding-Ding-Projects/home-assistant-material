@@ -22,6 +22,7 @@ import type {
   DefenderInfo,
 } from "../../../data/defenders";
 import {
+  bandErrorKey,
   controlDefender,
   DEFENDER_DOMAINS,
   defenderLogLine,
@@ -33,6 +34,7 @@ import {
   setDefenderFloor,
   setDefenderGuard,
   setDefenderTemperature,
+  siblingRow,
 } from "../../../data/defenders";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
@@ -150,6 +152,11 @@ export class HaDefenderPage extends LitElement {
     ).map((value) => ({ value, label: this._t(`tabs.${value}`) }));
     return html`
       ${
+        this._error
+          ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
+          : nothing
+      }
+      ${
         this._entries && this._entries.length > 1
           ? html`<ha-button-toggle-group
               size="s"
@@ -187,12 +194,13 @@ export class HaDefenderPage extends LitElement {
     if (!sibling) {
       return nothing;
     }
-    const name = this._t(`sibling.${sibling.role}`);
-    const stateText = this._t(`state.${sibling.state}`);
+    const row = siblingRow(sibling);
+    const name = this._t(row.nameKey);
+    const stateText = this._t(row.stateKey);
     const temp =
-      sibling.role === "ac" || sibling.heat_mode === "cap"
-        ? `${sibling.my_temperature.toFixed(1)}°`
-        : this._t("now.heat_off");
+      row.temperature === undefined
+        ? this._t("now.heat_off")
+        : `${row.temperature.toFixed(1)}°`;
     return html`<div class="row sibling" role="status">
       <span class="grow"
         ><strong>${name}</strong><br /><span class="detail"
@@ -451,9 +459,16 @@ export class HaDefenderPage extends LitElement {
       await setDefenderTemperature(this.hass, this._entryId, value);
       this._error = undefined;
     } catch (err: any) {
-      this._error = this._t("now.save_failed", { error: err?.message ?? "" });
+      this._error = this._saveError(err);
     }
     await this._refresh();
+  }
+
+  private _saveError(err: { message?: string }): string {
+    const key = bandErrorKey(err?.message);
+    return key
+      ? this._t(key)
+      : this._t("now.save_failed", { error: err?.message ?? "" });
   }
 
   private _floorMoved(ev: CustomEvent<{ value?: number }>): void {
@@ -472,7 +487,7 @@ export class HaDefenderPage extends LitElement {
       await setDefenderFloor(this.hass, this._entryId, value);
       this._error = undefined;
     } catch (err: any) {
-      this._error = this._t("now.save_failed", { error: err?.message ?? "" });
+      this._error = this._saveError(err);
     }
     await this._refresh();
   }

@@ -21042,6 +21042,11 @@
           "loading": "Loading",
           "none": "Nothing is set up yet. Add it from Settings, Devices and services.",
           "error": "Could not load the defender: {error}",
+          "band": {
+            "crossed": "That would cross the other defender. The temperature to hold must stay above the warmest the heater may make the room.",
+            "too_narrow": "The two defenders need at least one degree between them so they do not take turns all day.",
+            "under_floor": "The heater's comfortable temperature must stay above its floor."
+          },
           "tabs": {
             "now": "Now",
             "guards": "Guards",

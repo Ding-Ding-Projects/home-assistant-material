@@ -48,8 +48,11 @@ class DefenderEntity(Entity):
         entry = coordinator.entry
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_translation_key = key
+        page = "ac-defender" if coordinator.run_mode == "cool" else "heat-defender"
         self._attr_device_info = DeviceInfo(
-            identifiers={(entry.domain, entry.entry_id)}, name=entry.title
+            identifiers={(entry.domain, entry.entry_id)},
+            name=entry.title,
+            configuration_url=f"homeassistant://config/{page}",
         )
 
     async def async_added_to_hass(self) -> None:

@@ -19,7 +19,7 @@ from homeassistant.components.ac_defender.const import (
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_LOGBOOK_ENTRY
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 
@@ -277,3 +277,15 @@ async def test_diagnostics_redacts_entities(
     result = await get_diagnostics_for_config_entry(hass, hass_client, mock_entry)
     assert result["data"]["climate_entity_id"] == "**REDACTED**"
     assert result["info"]["state"] == "defending"
+
+
+async def test_the_device_links_to_the_page(
+    hass: HomeAssistant, mock_entry: MockConfigEntry
+) -> None:
+    """The device carries an in-app link to the page of the defender."""
+    set_climate(hass)
+    await setup(hass, mock_entry)
+    device = dr.async_get(hass).async_get_device_by_identifier(
+        (DOMAIN, mock_entry.entry_id), mock_entry.entry_id
+    )
+    assert device.configuration_url == "homeassistant://config/ac-defender"
