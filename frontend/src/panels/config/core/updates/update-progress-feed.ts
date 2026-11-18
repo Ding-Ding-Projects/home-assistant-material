@@ -8,6 +8,8 @@ import { fetchErrorLog } from "../../../../data/error_log";
 import { fetchHassioLogs } from "../../../../data/hassio/supervisor";
 import type { UpdateEntity } from "../../../../data/update";
 import { updateIsInstalling } from "../../../../data/update";
+import { filterUpdateLog, logSourceFor } from "./update-log-source";
+import { resolveStart } from "./update-start-time";
 import type { HomeAssistant } from "../../../../types";
 import type {
   PercentSamples,
@@ -27,7 +29,6 @@ import {
   estimateRemainingMs,
   jobNameMatches,
   loadRecords,
-  logProviderFor,
   prepareLogLines,
   progressKindOf,
   RECORD_KEEP_MS,
@@ -184,6 +185,22 @@ export class UpdateProgressFeed implements ReactiveController {
     }
   }
 
+  private _turnedOn = new Map<string, number>();
+
+  private _seenIdle = new Set<string>();
+
+  // The creation time of the Supervisor job of an update that is running.
+  private _runningJobCreated(entity: UpdateEntity): string | undefined {
+    const { root } = this._jobFor(
+      progressKindOf(
+        entity,
+        this._getHass().entities?.[entity.entity_id]?.platform
+      ),
+      appSlugOf(entity)
+    );
+    return root && !root.done ? (root.created ?? undefined) : undefined;
+  }
+
   /** The job of this update and the newest running job below it. */
   private _jobFor(
     kind: ProgressKind,
@@ -249,7 +266,8 @@ export class UpdateProgressFeed implements ReactiveController {
     const entity = hass.states[record.entityId] as UpdateEntity | undefined;
     const hassio = isComponentLoaded(hass.config, "hassio");
     const slug = entity ? appSlugOf(entity) : undefined;
-    const provider = logProviderFor(record.kind, slug, hassio);
+    const source = logSourceFor(record.kind, record.lastStage, slug, hassio);
+    const provider = source.provider;
     const slot = this._logs.get(record.entityId) ?? {
       lines: [],
       state: "waiting" as OutputState,
@@ -276,6 +294,9 @@ export class UpdateProgressFeed implements ReactiveController {
           throw new Error("log not available");
         }
         text = await response.text();
+        if (source.filtered) {
+          text = filterUpdateLog(text, record.toVersion ?? undefined);
+        }
       } else {
         text = (await fetchErrorLog(hass))
           .split("\n")
@@ -311,6 +332,15 @@ export class UpdateProgressFeed implements ReactiveController {
     for (const entity of entities) {
       const id = entity.entity_id;
       const installing = updateIsInstalling(entity);
+      // Only a change seen by this page counts; an update that was already
+      // running when the page opened has no known start from here.
+      if (!installing) {
+        this._turnedOn.delete(id);
+        this._seenIdle.add(id);
+      } else if (this._seenIdle.has(id)) {
+        this._turnedOn.set(id, now);
+        this._seenIdle.delete(id);
+      }
       let record = this._records.get(id);
       const run = updateInstallTracker.get(id);
       if (installing && (!record || record.result)) {
@@ -318,12 +348,17 @@ export class UpdateProgressFeed implements ReactiveController {
         // page only adopted after a reload carries the time it was noticed,
         // not the time it began), or else the queue step that was started
         // before a reload. Without either, the start is not known.
-        const startedAt =
-          (run?.canRetry ? run.startedAt : undefined) ??
-          loadStoredQueue()?.steps.find(
-            (step) => step.entityId === id && step.state === "updating"
-          )?.startedAt ??
-          undefined;
+        const { startedAt } = resolveStart(
+          {
+            runStartedAt: run?.canRetry ? run.startedAt : undefined,
+            jobCreated: this._runningJobCreated(entity),
+            queueStartedAt: loadStoredQueue()?.steps.find(
+              (step) => step.entityId === id && step.state === "updating"
+            )?.startedAt,
+            seenTurnedOnAt: this._turnedOn.get(id),
+          },
+          now
+        );
         record = {
           entityId: id,
           kind: progressKindOf(entity, hass.entities?.[id]?.platform),

@@ -79,6 +79,11 @@ import { haMotionKeyframes } from "../../../resources/motion-styles";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
+import { isReduced } from "../../../common/motion/page-entry";
+import {
+  newlyInstalling,
+  scrollBehaviorFor,
+} from "./updates/scroll-to-installing";
 import "./updates/ha-update-auto-system";
 import "./updates/ha-update-backup-choice";
 import "./updates/ha-update-changes";
@@ -224,6 +229,29 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       if (old && old.connected === false && this.hass.connected !== false) {
         this._supervisorLoad.retryNow();
       }
+    }
+  }
+
+  private _installingIds?: Set<string>;
+
+  protected updated(changedProps: PropertyValues<this>) {
+    super.updated(changedProps);
+    if (!changedProps.has("hass")) {
+      return;
+    }
+    const running = filterUpdateEntities(
+      this.hass.states,
+      this.hass.formatEntityName
+    )
+      .filter((entity) => updateIsInstalling(entity))
+      .map((entity) => entity.entity_id);
+    const started = newlyInstalling(this._installingIds, running);
+    this._installingIds = new Set(running);
+    if (started.length) {
+      this.shadowRoot?.getElementById(`row-${started[0]}`)?.scrollIntoView({
+        block: "center",
+        behavior: scrollBehaviorFor(isReduced()),
+      });
     }
   }
 
@@ -633,7 +661,10 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         : nothing;
 
     return html`
-      <div class="row ${compact ? "compact" : ""}">
+      <div
+        class="row ${compact ? "compact" : ""}"
+        id=${`row-${entity.entity_id}`}
+      >
         <button
           class="row-main"
           aria-label=${name}

@@ -1,5 +1,19 @@
 {
   "ui": {
+    "entity_sheet": {
+      "slide_to_unlock": "撥動解鎖",
+      "purpose": {
+        "assist_satellite": "語音衛星：聽喚醒詞然後啟動助手。呢頁只顯示佢嘅狀態，要由助手或者自動化嚟啟動。",
+        "conversation": "對話代理：回答助手傳嚟嘅句子。喺助手面板試用。",
+        "stt": "語音轉文字服務：將語音變成文字俾助手用。",
+        "tts": "文字轉語音服務：將文字變成語音。喺自動化呼叫朗讀動作就可以聽到測試句子。",
+        "wake_word": "喚醒詞偵測器：聽啟動助手嘅短語。",
+        "ai_task": "AI 任務：處理自動化同腳本傳嚟嘅生成資料同生成圖像要求。",
+        "infrared": "紅外線發射器：喺自動化同腳本發送紅外線指令。",
+        "radio_frequency": "射頻發射器：喺自動化同腳本發送無線電指令。",
+        "notify": "通知目標：用通知動作傳訊息俾佢。"
+      }
+    },
     "common": {
       "color_palette": {
         "title": "命名顏色",
@@ -1601,6 +1615,61 @@
           }
         },
         "updates": {
+          "backup_choice": {
+            "title": "更新前先備份",
+            "preset_system": "只係系統更新",
+            "preset_system_help": "Core、Supervisor 同作業系統",
+            "preset_all": "每個更新",
+            "preset_all_help": "連應用程式、整合同裝置都包括",
+            "preset_none": "冇更新",
+            "preset_none_help": "你自己做備份",
+            "preset_custom": "自訂",
+            "preset_custom_help": "喺下面逐項設定",
+            "kinds_title": "逐類睇係咩意思",
+            "kinds_hint": "㩒一類就可以自己設定，上面嘅選擇之後會顯示「自訂」。",
+            "kind_core": "Home Assistant Core",
+            "kind_core_help": "會重新啟動 Home Assistant",
+            "kind_supervisor": "Supervisor",
+            "kind_supervisor_help": "會重新啟動 Supervisor",
+            "kind_os": "作業系統",
+            "kind_os_help": "會重新啟動成個系統",
+            "kind_app": "應用程式",
+            "kind_app_help": "每個應用程式都可以單獨揀",
+            "kind_integration": "整合",
+            "kind_integration_help": "嚟自社群商店或者其他自訂來源",
+            "kind_device": "裝置同韌體",
+            "kind_device_help": "備份救唔返呢啲",
+            "backup_first": "先備份",
+            "no_backup": "冇備份",
+            "unsupported": "呢個更新做唔到備份",
+            "apps_chosen": "已揀 {count} 個",
+            "choose_apps": "揀應用程式",
+            "hide_apps": "收埋應用程式",
+            "apps_title": "揀應用程式",
+            "apps_search": "搜尋你嘅應用程式",
+            "apps_count": "已揀 {chosen} / {total} 個",
+            "apps_empty": "冇安裝任何應用程式。",
+            "apps_no_match": "冇相符嘅應用程式。",
+            "app_line": "呢個應用程式嘅備份包括佢嘅設定同資料。",
+            "apps_later": "之後安裝嘅應用程式",
+            "later_chosen": "已揀",
+            "later_not": "冇揀",
+            "apps_hint": "已揀嘅應用程式有更新時，會先單獨備份嗰個應用程式。其他嘅會即刻更新。",
+            "summary_system": "更新 Core、Supervisor 同作業系統之前會先備份，其他更新會即刻開始。",
+            "summary_all": "每個支援備份嘅更新之前都會先備份。",
+            "summary_none": "任何更新之前都唔會備份。",
+            "summary_custom": "標示「先備份」嘅類別同應用程式會先備份，其餘嘅即刻開始。",
+            "summary_no_supervisor": "呢個系統冇 Supervisor，所以冇應用程式，由上面嘅類別決定。",
+            "confirm_title": "要關閉系統更新嘅備份嗎？",
+            "confirm_text": "冇備份嘅系統更新係冇辦法返轉頭嘅。轉動兩把鎖匙確認。",
+            "confirm_button": "關閉備份",
+            "app_size": "上一次備份大約 {size} MB。",
+            "only_this_update": "只係套用喺呢個更新，其他更新照你嘅選擇。",
+            "save_failed": "儲存唔到呢個選擇。",
+            "queue_system_covers": "會先做一次 Core 備份，涵蓋其他系統步驟。",
+            "queue_apps_own": "每個已揀嘅應用程式喺自己嗰一步之前都有自己嘅備份。",
+            "queue_full_covers": "開頭做嘅完整備份已經涵蓋咗應用程式。"
+          },
           "check_updates": "檢查更新",
           "caption": "更新",
           "check_now": "立即檢查",
@@ -1702,6 +1771,7 @@
             "stopped_title": "已停止",
             "finished_title": "更新全部完成",
             "finished_text": "{total} 個更新之中，有 {done} 個已經安裝。",
+            "finished_took": "成次更新用咗 {time}。",
             "failed_title": "{name} 更新唔成功",
             "failed_text_failed": "更新返回到「有更新」嘅狀態，冇安裝到。剩低嘅更新未有開始。",
             "failed_text_timeout": "呢個更新用咗超過 30 分鐘。剩低嘅更新未有開始。",
@@ -2054,6 +2124,8 @@
             },
             "stage_note": {
               "backup_skipped": "冇要求備份",
+              "backup_skipped_choice": "照你嘅選擇略過",
+              "backup_skipped_kind": "呢類更新冇備份",
               "restart_os": "重新啟動之後先生效"
             },
             "bar_label": "{name} 更新嘅進度",
@@ -2245,6 +2317,71 @@
           "import_scene_entities_not_mapping": "實體必須係「實體 ID 對應狀態」嘅對照表。",
           "import_scene_bad_entity": "{entity} 唔係有效嘅實體 ID。",
           "import_scene_bad_state": "{entity} 嘅狀態讀取唔到。"
+        },
+        "camera_recording": {
+          "caption": "鏡頭錄影",
+          "description": "日夜錄影嘅鏡頭、錄影擺喺邊度，同埋仲等緊複製嘅檔案。錄影可以喺每部鏡頭下面嘅時間軸播放。",
+          "none": "未有鏡頭錄影。",
+          "set_up": "設定錄影",
+          "add_another": "錄去另一個地方",
+          "count_of": "{total} 部入面有 {count} 部",
+          "recording": "錄緊影嘅鏡頭",
+          "used": "已用空間",
+          "used_of": "已用，上限 {limit}",
+          "waiting": "等緊複製",
+          "last_copy": "上次複製",
+          "copy_problem": "錄影複製唔到：{error}。檔案會留喺呢部電腦，目的地返嚟就會複製。",
+          "camera": "鏡頭",
+          "state": "狀態",
+          "newest": "最新錄影",
+          "oldest": "最舊保留",
+          "actions": "操作",
+          "pause": "暫停",
+          "resume": "繼續",
+          "pause_all": "全部暫停",
+          "resume_all": "全部繼續",
+          "change": "鏡頭同限制",
+          "states": {
+            "starting": "開緊",
+            "recording": "錄緊",
+            "reconnecting": "重新連線中",
+            "no_stream": "冇影像串流",
+            "limited": "等緊",
+            "event_clips": "事件片段",
+            "paused": "已暫停",
+            "stopped": "已停止"
+          },
+          "provider_only_note": "呢部鏡頭淨係可以透過供應商睇直播，所以改為保留佢嘅事件片段。",
+          "light_short": "輕量：淨係保留事件前後",
+          "amount": {
+            "title": "保留幾多",
+            "all_day": "全日",
+            "light": "輕量",
+            "off": "關閉",
+            "explain_all_day": "全日會保留晒所有片段。",
+            "explain_light": "輕量只保留見到嘢嗰陣前後嘅影片：事件前 {pre} 秒至事件後 {post} 秒。",
+            "explain_off": "關閉就唔會再保留新片段，已經錄咗嘅會繼續保留。",
+            "provider_only": "呢部鏡頭只可以保留事件片段。每個事件嘅片段或者相片會連同時間一齊儲起，同其他錄影一樣保留 {days} 日。",
+            "today": "輕量，今日：保留咗 {count} 個事件，{size}。",
+            "no_event_source": "呢部鏡頭冇任何嘢可以講到幾時見到嘢，所以會維持喺全日。",
+            "cap_hit": "有一段片段去到最長 {minutes} 分鐘就被截斷，所以輕量唔會變成全日錄影。",
+            "keeps_existing": "更改設定唔會刪除已經錄好嘅片段。",
+            "before": "之前：{seconds} 秒",
+            "after": "之後：{seconds} 秒",
+            "sources": "點樣先算見到嘢",
+            "sources_auto": "自動",
+            "sources_count": "已揀 {count} 個",
+            "source_integration": "鏡頭自己嘅事件",
+            "kinds": {
+              "motion": "移動",
+              "person": "有人",
+              "vehicle": "車輛",
+              "animal": "動物",
+              "doorbell": "門鐘",
+              "sound": "聲音",
+              "integration": "鏡頭服務"
+            }
+          }
         }
       },
       "profile": {
@@ -6207,6 +6344,28 @@
           "action__make": "接通",
           "action__break": "斷開"
         }
+      },
+      "web-rtc-player": {
+        "state": {
+          "starting_title": "開緊直播畫面",
+          "limited_title": "攝影機服務限制緊直播",
+          "limited_text": "短時間內要求咗太多次直播畫面。{time} 後會再試。",
+          "try_now": "而家再試",
+          "service_said": "服務嘅回覆",
+          "show_details": "睇詳情",
+          "hide_details": "收埋詳情",
+          "offline_title": "攝影機離線",
+          "offline_text": "如果有最後一張畫面，就會顯示出嚟。",
+          "error_title": "開唔到直播畫面",
+          "error_text": "唔會自動再試，準備好就再試一次。",
+          "try_again": "再試一次",
+          "placeholder_title": "撳一下先會開直播",
+          "placeholder_text": "呢部攝影機淨係可以透過供應商睇直播，所以每次睇都會用去佢一部分限額。",
+          "start": "開始直播"
+        }
+      },
+      "camera_timeline": {
+        "not_kept_by_choice": "按設定唔保留"
       }
     },
     "page_tools": {

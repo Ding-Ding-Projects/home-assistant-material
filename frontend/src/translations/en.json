@@ -75,6 +75,20 @@
     }
   },
   "ui": {
+    "entity_sheet": {
+      "slide_to_unlock": "Slide to unlock",
+      "purpose": {
+        "assist_satellite": "A voice satellite: it listens for a wake word and runs the assistant. This page shows its state; start it from an assistant or an automation.",
+        "conversation": "A conversation agent: it answers sentences from an assistant. Try it from the assistant panel.",
+        "stt": "A speech to text service: it turns spoken audio into text for an assistant.",
+        "tts": "A text to speech service: it turns text into spoken audio. Call the speak action from an automation to hear a test sentence.",
+        "wake_word": "A wake word detector: it listens for the phrase that starts an assistant.",
+        "ai_task": "An AI task: it runs generate data and generate image requests from automations and scripts.",
+        "infrared": "An infrared transmitter: it sends infrared commands from automations and scripts.",
+        "radio_frequency": "A radio frequency transmitter: it sends radio commands from automations and scripts.",
+        "notify": "A notification target: send a message to it with the notify action."
+      }
+    },
     "help": {
       "title": "Help article",
       "search": "Search help articles",
@@ -725,7 +739,8 @@
           "animal": "Animal",
           "doorbell": "Doorbell",
           "sound": "Sound"
-        }
+        },
+        "not_kept_by_choice": "Not kept by choice"
       },
       "action-field-adapter": {
         "amount": "Number of days or weeks",
@@ -3936,7 +3951,24 @@
         "start_failed": "Failed to start the WebRTC stream: {message}",
         "connect_failed": "Failed to connect the WebRTC stream: {message}",
         "microphone_failed": "Could not access the microphone: {message}",
-        "microphone_connect_failed": "Could not connect the microphone to the camera: {message}"
+        "microphone_connect_failed": "Could not connect the microphone to the camera: {message}",
+        "state": {
+          "starting_title": "Starting live video",
+          "limited_title": "The camera service is limiting live video",
+          "limited_text": "Too many live views were asked for in a short time. Trying again in {time}.",
+          "try_now": "Try now",
+          "service_said": "What the service said",
+          "show_details": "Show details",
+          "hide_details": "Hide details",
+          "offline_title": "The camera is offline",
+          "offline_text": "The last picture is shown when there is one.",
+          "error_title": "Live video could not start",
+          "error_text": "Nothing asks again by itself. Try again when you are ready.",
+          "try_again": "Try again",
+          "placeholder_title": "Live video starts when you ask",
+          "placeholder_text": "This camera only offers live video through its provider, so each view uses part of its allowance.",
+          "start": "Start live video"
+        }
       },
       "siren": {
         "more_controls": "More controls",
@@ -8459,6 +8491,61 @@
           }
         },
         "updates": {
+          "backup_choice": {
+            "title": "Make a backup first for",
+            "preset_system": "System updates only",
+            "preset_system_help": "Core, Supervisor and the operating system",
+            "preset_all": "Every update",
+            "preset_all_help": "Apps, integrations and devices too",
+            "preset_none": "No update",
+            "preset_none_help": "You make backups yourself",
+            "preset_custom": "Custom",
+            "preset_custom_help": "Set by hand below",
+            "kinds_title": "What that means, kind by kind",
+            "kinds_hint": "Tap a kind to set it by hand. The choice above then reads \"Custom\".",
+            "kind_core": "Home Assistant Core",
+            "kind_core_help": "Restarts Home Assistant",
+            "kind_supervisor": "Supervisor",
+            "kind_supervisor_help": "Restarts the Supervisor",
+            "kind_os": "Operating system",
+            "kind_os_help": "Restarts the whole system",
+            "kind_app": "Apps",
+            "kind_app_help": "Each app can also be chosen on its own",
+            "kind_integration": "Integrations",
+            "kind_integration_help": "From the community store or another custom source",
+            "kind_device": "Devices and firmware",
+            "kind_device_help": "A backup cannot undo these",
+            "backup_first": "Backup first",
+            "no_backup": "No backup",
+            "unsupported": "This update cannot make a backup",
+            "apps_chosen": "{count} chosen",
+            "choose_apps": "Choose apps",
+            "hide_apps": "Hide apps",
+            "apps_title": "Choose the apps",
+            "apps_search": "Search your apps",
+            "apps_count": "{chosen} of {total} chosen",
+            "apps_empty": "No apps are installed.",
+            "apps_no_match": "No app matches.",
+            "app_line": "A backup of this app holds its settings and its data.",
+            "apps_later": "Apps installed later",
+            "later_chosen": "Chosen",
+            "later_not": "Not chosen",
+            "apps_hint": "When a chosen app has an update, a backup of that app alone is made first. The others update at once.",
+            "summary_system": "A backup is made before Core, Supervisor and operating system updates. Other updates start at once.",
+            "summary_all": "A backup is made before every update that supports one.",
+            "summary_none": "No backup is made before any update.",
+            "summary_custom": "A backup is made before the kinds and apps marked \"Backup first\". The rest start at once.",
+            "summary_no_supervisor": "This home has no Supervisor, so it has no apps. The kinds above decide.",
+            "confirm_title": "Turn off the backup for system updates?",
+            "confirm_text": "A system update without a backup has no way back. Turn the two keys to confirm.",
+            "confirm_button": "Turn off the backup",
+            "app_size": "About {size} MB in the last backup.",
+            "only_this_update": "This applies to this update only. Your choice for other updates stays.",
+            "save_failed": "The choice could not be saved.",
+            "queue_system_covers": "One backup of Core is made first and covers the other system steps.",
+            "queue_apps_own": "Each chosen app gets its own backup right before its step.",
+            "queue_full_covers": "The full backup made at the start covers the apps."
+          },
           "caption": "Updates",
           "description": "Manage updates of Home Assistant, apps, and devices",
           "group_system": "Home Assistant",
@@ -8581,6 +8668,7 @@
             "stopped_title": "Stopped",
             "finished_title": "Updates finished",
             "finished_text": "{done} of {total} updates were installed.",
+            "finished_took": "The whole run took {time}.",
             "failed_title": "{name} did not update",
             "failed_text_failed": "The update went back to available without installing. The rest were not started.",
             "failed_text_timeout": "The update took longer than 30 minutes. The rest were not started.",
@@ -8944,6 +9032,8 @@
             },
             "stage_note": {
               "backup_skipped": "No backup asked for",
+              "backup_skipped_choice": "Skipped by your choice",
+              "backup_skipped_kind": "No backup for this kind",
               "restart_os": "Takes effect after a restart"
             },
             "bar_label": "Progress of the update for {name}",
@@ -12847,7 +12937,40 @@
             "reconnecting": "Reconnecting",
             "no_stream": "No video stream",
             "paused": "Paused",
-            "stopped": "Stopped"
+            "stopped": "Stopped",
+            "limited": "Waiting",
+            "event_clips": "Event clips"
+          },
+          "provider_only_note": "This camera only offers live video through its provider. Its event clips are kept instead.",
+          "light_short": "Light: kept only around events",
+          "amount": {
+            "title": "How much to keep",
+            "all_day": "All day",
+            "light": "Light",
+            "off": "Off",
+            "explain_all_day": "All day keeps everything.",
+            "explain_light": "Light keeps video only around something being seen: from {pre} s before to {post} s after.",
+            "explain_off": "Off keeps nothing new. What was already recorded stays.",
+            "provider_only": "Event clips are the only thing that can be kept for this camera. Each event's clip or picture is saved with its time and kept for {days} days, like any recording.",
+            "today": "Light, today: {count, plural,\n  one {# event}\n  other {# events}\n} kept, {size}.",
+            "no_event_source": "This camera has nothing that can tell when something is seen, so it stays on All day.",
+            "cap_hit": "A clip reached the longest length of {minutes} minutes and was cut, so Light cannot turn into all-day recording.",
+            "keeps_existing": "Changing this does not delete what was already recorded.",
+            "before": "Before: {seconds} s",
+            "after": "After: {seconds} s",
+            "sources": "What counts as seen",
+            "sources_auto": "Automatic",
+            "sources_count": "{count} chosen",
+            "source_integration": "The camera's own events",
+            "kinds": {
+              "motion": "Motion",
+              "person": "Person",
+              "vehicle": "Vehicle",
+              "animal": "Animal",
+              "doorbell": "Doorbell",
+              "sound": "Sound",
+              "integration": "Camera service"
+            }
           }
         },
         "activity_record": {

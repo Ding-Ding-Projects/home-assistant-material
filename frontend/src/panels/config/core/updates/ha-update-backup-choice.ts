@@ -21,8 +21,14 @@ import { showConfirmationDialog } from "../../../../dialogs/generic/show-dialog-
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
 import { showToast } from "../../../../util/toast";
-import type { BackupSettings, PresetChoice } from "./backup-choice";
+import type {
+  BackupAppSizeSource,
+  BackupSettings,
+  PresetChoice,
+} from "./backup-choice";
 import {
+  appSizesFromBackups,
+  formatAppSizeMb,
   BACKUP_KINDS,
   PRESET_CHOICES,
   choiceFor,
@@ -53,6 +59,9 @@ export class HaUpdateBackupChoice extends LitElement {
 
   @state() private _appsOpen = false;
 
+  // MB per app slug in the newest backups that hold the app.
+  @state() private _sizes: Record<string, number> = {};
+
   @state() private _query = "";
 
   private _lang = new LanguageModeController(this);
@@ -75,6 +84,42 @@ export class HaUpdateBackupChoice extends LitElement {
     } catch (_err) {
       this._loadedApps = false;
       this._apps = [];
+      return;
+    }
+    await this._loadSizes();
+  }
+
+  // What the last backups say each app weighs; nothing is shown when none says.
+  private async _loadSizes(): Promise<void> {
+    try {
+      const list = await this.hass.callWS<{
+        backups?: {
+          slug: string;
+          date: string;
+          content?: { addons?: string[] };
+        }[];
+      }>({ type: "supervisor/api", endpoint: "/backups", method: "get" });
+      const withApps = (list.backups ?? [])
+        .filter((backup) => backup.content?.addons?.length)
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .slice(0, 3);
+      const infos = await Promise.all(
+        withApps.map((backup) =>
+          this.hass.callWS<{ addons?: BackupAppSizeSource["addons"] }>({
+            type: "supervisor/api",
+            endpoint: `/backups/${backup.slug}/info`,
+            method: "get",
+          })
+        )
+      );
+      this._sizes = appSizesFromBackups(
+        infos.map((info, index) => ({
+          date: withApps[index].date,
+          addons: info.addons,
+        }))
+      );
+    } catch (_err) {
+      this._sizes = {};
     }
   }
 
@@ -227,7 +272,13 @@ export class HaUpdateBackupChoice extends LitElement {
                         @change=${this._toggleApp}
                       >
                         ${app.name}
-                        <span slot="hint">${this._t("app_line")}</span>
+                        <span slot="hint"
+                          >${this._t("app_line")}${
+                            app.slug in this._sizes
+                              ? ` ${this._t("app_size", { size: formatAppSizeMb(this._sizes[app.slug]) })}`
+                              : ""
+                          }</span
+                        >
                       </ha-checkbox>
                     </li>`;
                   })}

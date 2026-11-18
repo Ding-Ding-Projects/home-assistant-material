@@ -13,7 +13,15 @@ import type { LocalizeFunc } from "../../../../common/translations/localize";
 import "../../../../components/animation/ha-fade-in";
 import "../../../../components/ha-switch";
 import "../../../../components/item/ha-row-item";
+import type { AutoUpdateInfo } from "../../../../data/auto-update";
 import type { BackupConfig } from "../../../../data/backup";
+import {
+  SYSTEM_BACKUP_KINDS,
+  settingsFromInfo,
+  subjectFor,
+  subjectWantsBackup,
+} from "../../../../panels/config/core/updates/backup-choice";
+import { showConfirmationDialog } from "../../../generic/show-dialog-box";
 import { fetchBackupConfig } from "../../../../data/backup";
 import {
   apiContext,
@@ -64,6 +72,11 @@ export class HaMoreInfoUpdateBackup extends LitElement {
   @state() private _createBackup = false;
 
   @state() private _entitySources?: EntitySources;
+
+  // What the stored choice says for this update, and whether it is a system one.
+  @state() private _choiceDefault?: boolean;
+
+  private _systemKind = false;
 
   @consume({ context: apiContext, subscribe: true })
   private _api!: HomeAssistantApi;
@@ -132,6 +145,16 @@ export class HaMoreInfoUpdateBackup extends LitElement {
               ></ha-switch>`
         }
       </ha-row-item>
+      ${
+        this._choiceDefault !== undefined &&
+        this._createBackup !== this._choiceDefault
+          ? html`<p class="only-this">
+              ${(this._localize as LocalizeFunc<string>)(
+                "ui.panel.config.updates.backup_choice.only_this_update"
+              )}
+            </p>`
+          : nothing
+      }
     `;
   }
 
@@ -159,11 +182,34 @@ export class HaMoreInfoUpdateBackup extends LitElement {
     if (type === undefined) {
       this._createBackupLoading = false;
       this._backupConfigLoading = false;
+      await this._applyChoice();
       return;
     }
 
-    this._fetchUpdateBackupConfig(type);
-    this._fetchBackupConfig(type);
+    await Promise.all([
+      this._fetchUpdateBackupConfig(type),
+      this._fetchBackupConfig(type),
+    ]);
+    await this._applyChoice();
+  }
+
+  // The same decision as the Updates page and the automatic updates: the
+  // switch starts where the stored choice puts this update.
+  private async _applyChoice(): Promise<void> {
+    try {
+      const info = await this._api.callWS<AutoUpdateInfo>({
+        type: "auto_update/info",
+      });
+      if (!info.backup_kinds || !this.stateObj) {
+        return;
+      }
+      const subject = subjectFor(this.stateObj, undefined, info);
+      this._systemKind = SYSTEM_BACKUP_KINDS.includes(subject.kind);
+      this._createBackup = subjectWantsBackup(subject, settingsFromInfo(info));
+      this._choiceDefault = this._createBackup;
+    } catch (_err) {
+      // Not an administrator or an older server: the switch keeps its own start.
+    }
   }
 
   private async _fetchUpdateBackupConfig(type: UpdateType) {
@@ -292,8 +338,30 @@ export class HaMoreInfoUpdateBackup extends LitElement {
     };
   }
 
-  private _createBackupChanged(ev) {
-    this._createBackup = ev.target.checked;
+  private async _createBackupChanged(ev) {
+    const checked = ev.target.checked as boolean;
+    if (
+      !checked &&
+      this._createBackup &&
+      this._systemKind &&
+      !(await showConfirmationDialog(this, {
+        title: this._localize(
+          "ui.panel.config.updates.backup_choice.confirm_title"
+        ),
+        text: this._localize(
+          "ui.panel.config.updates.backup_choice.confirm_text"
+        ),
+        confirmText: this._localize(
+          "ui.panel.config.updates.backup_choice.confirm_button"
+        ),
+        dismissText: this._localize("ui.common.cancel"),
+        destructive: true,
+      }))
+    ) {
+      ev.target.checked = true;
+      return;
+    }
+    this._createBackup = checked;
   }
 
   static styles = css`
@@ -304,6 +372,12 @@ export class HaMoreInfoUpdateBackup extends LitElement {
     ha-row-item {
       width: 100%;
       --ha-row-item-padding-inline: var(--ha-space-6);
+    }
+    .only-this {
+      margin: 0;
+      padding: 0 var(--ha-space-6) var(--ha-space-2);
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
     }
     .skeleton-end {
       width: 48px;

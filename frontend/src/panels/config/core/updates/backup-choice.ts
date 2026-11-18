@@ -248,6 +248,41 @@ export const needsSystemConfirmation = (
 ): boolean =>
   SYSTEM_BACKUP_KINDS.some((kind) => before.kinds[kind] && !after.kinds[kind]);
 
+export interface BackupAppSizeSource {
+  date: string;
+  /** The apps in the backup with the size the Supervisor reports, in MB. */
+  addons?: { slug: string; size?: number }[];
+}
+
+/**
+ * The size of each app in the newest backup that holds it, in MB. The
+ * Supervisor reports the size of each app inside a backup; it reports none for
+ * an app that has never been backed up.
+ */
+export const appSizesFromBackups = (
+  backups: BackupAppSizeSource[]
+): Record<string, number> => {
+  const sizes: Record<string, number> = {};
+  const newestFirst = [...backups].sort((a, b) => b.date.localeCompare(a.date));
+  for (const backup of newestFirst) {
+    for (const app of backup.addons ?? []) {
+      if (
+        typeof app.size === "number" &&
+        Number.isFinite(app.size) &&
+        app.size >= 0 &&
+        !(app.slug in sizes)
+      ) {
+        sizes[app.slug] = app.size;
+      }
+    }
+  }
+  return sizes;
+};
+
+/** "less than 1" or the size rounded to a whole number of MB. */
+export const formatAppSizeMb = (size: number): string =>
+  size < 1 ? "<1" : String(Math.round(size));
+
 export type BackupSummaryKey =
   | "summary_system"
   | "summary_all"
