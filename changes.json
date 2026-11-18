@@ -1,15 +1,58 @@
 {
  "format": 1,
- "generated": "2026-11-18T20:03:38Z",
+ "generated": "2026-11-18T20:38:49Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 523,
+ "newest_build": 524,
  "releases": [
+  {
+   "build": 524,
+   "core": "2026.11.1.524",
+   "supervisor": "2026.11.0.524",
+   "os": "18.5.524",
+   "tag": null,
+   "source": "c9e3a5e67",
+   "date": "2026-11-18T15:05:18-05:00",
+   "previous_build": 523,
+   "changes": [
+    {
+     "sha": "c9e3a5e67",
+     "date": "2026-11-18T15:05:18-05:00",
+     "title": "Faults from the real run of 523, and the search look-over [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "Eight things a real update run turned up. A page opened in the middle of an update read the job list in a shape it did not understand, so it never found the start time, and it told the reader the backup was \"skipped by your choice\" when nobody on that page had chosen anything. The Core row now says \"Update the Supervisor first\" instead of trying and being refused. The build card stops pretending to be busy once that build is installed. The release link in an update sheet points at the build on offer, not the one already installed. The backup self-check card refreshes by itself when a new backup is checked. \"Custom\" on the backup choice stays selected. Release notes marks the words it finds and steps through them. A search on Personal settings no longer matches help text nobody can see. Entity sheets glide between heights instead of jumping.\n\nFrom looking at every moved search page in a browser: the count, \"no matches\" and \"found in\" speak Cantonese in Cantonese mode, the \"found in\" line wraps instead of being cut off, and a stray dark box is gone from the developer tools state header.\n\nThe fault fixes are tested but have not been watched in a real update run yet.",
+     "detail_yue": "真係行一次 523 更新搵到嘅八樣嘢。喺更新中途先開嘅頁面，讀到嘅工作 清單格式佢睇唔明，所以一直搵唔到開始時間，仲同人講備份係「你揀咗 跳過」，其實嗰頁根本冇人揀過乜。核心嗰行而家會直接寫「請先更新 監督程式」，唔使撞咗板先知。版本卡喺裝好嗰個版本之後唔再扮忙。 更新面板條說明連結指去準備裝嗰版，唔係已經裝咗嗰版。新備份檢查完， 自我檢查張卡會自己更新。備份選項「自訂」撳完會保持揀中。版本說明 搜尋會標出搵到嘅字，仲可以逐個跳。個人設定搜尋唔再搵埋人哋睇唔到 嘅說明文字。實體面板轉高度會滑過去，唔再彈跳。\n\n喺瀏覽器逐頁睇過搬咗上頂欄嘅搜尋：廣東話模式入面，數目、「搵唔到」 同「喺呢度搵到」都講廣東話，「喺呢度搵到」嗰行會換行唔會畀人切走， 開發者工具狀態表頭嗰嚿黑色空格冇咗。\n\n呢批修正有測試，但係未喺真嘅更新過程入面睇過。"
+    },
+    {
+     "sha": "28cd39810",
+     "date": "2026-11-18T13:32:43-05:00",
+     "title": "Top bar search on the tools tabs, phone lists and nine more pages [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The rest of the pages hand their search to the top bar. Developer tools gets the standard page shell and a small event route, so each tab (state, statistics, action history, converter, YAML) drives the bar and keeps its own words. List pages on a phone now use the same bar field as wide windows. Settings home, automation history and its repository page, activity record, dashboard history, guided setup, the Ollama page, the defender Guards list and the \"What changed\" list on the Updates page follow.\n\nTwo pages change how they behave: automation history had two fields and now one search filters both lists, and the tools page shell was replaced, which is the riskiest edit here.\n\nWritten and unit-checked only; nothing here has been built or seen in a browser yet.",
+     "detail_yue": "其餘頁面都將搜尋交畀頂欄。開發者工具換咗標準頁面外殼，加咗條細細 嘅事件通道，每個分頁（狀態、統計、動作記錄、轉換器、YAML）都可以 指揮頂欄，仲記得自己打過嘅字。手機上面嘅清單頁同闊螢幕用返同一個 頂欄搜尋。設定首頁、自動化歷史同佢嘅儲存庫頁、活動記錄、儀表板 歷史、引導設定、Ollama 頁、守護守則清單，同埋更新頁嘅「改咗乜」清單 都跟住搬。\n\n有兩頁行為有變：自動化歷史以前有兩個搜尋欄，而家一個搜尋篩晒兩張 清單；工具頁成個外殼換咗，係今次最大風險嘅改動。\n\n只係寫咗同做咗單元檢查，未建置亦未喺瀏覽器睇過。"
+    },
+    {
+     "sha": "92fb942bc",
+     "date": "2026-11-18T13:20:51-05:00",
+     "title": "Top bar search: problem log, help, and counts in the bar [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Two more pages hand their search to the top bar: the problem log and the help page. Logs and the integrations page now show \"n of total\" in the bar instead of keeping the number to themselves, and the summary line under a list title stays on one line at wide width.\n\nWritten only; not yet built or seen in a browser. The developer tools tabs and about ten other pages are still to move.",
+     "detail_yue": "再多兩頁將搜尋交畀頂欄：問題記錄同說明頁。記錄頁同整合頁而家會喺 頂欄顯示「幾多個之中嘅幾多個」，唔再收埋個數。清單標題下面嗰行 摘要喺闊螢幕會保持一行。\n\n只係寫咗，未建置亦未喺瀏覽器睇過。開發者工具分頁同大約十頁仲未搬。"
+    }
+   ]
+  },
   {
    "build": 523,
    "core": "2026.11.1.523",
    "supervisor": "2026.11.0.523",
    "os": "18.5.523",
-   "tag": null,
+   "tag": "v2026.11.1.523",
    "source": "02dd3f9b4",
    "date": "2026-11-18T12:50:27-05:00",
    "previous_build": 522,
@@ -2746,50 +2789,6 @@
       "design"
      ],
      "detail": "Redrawn in the modern look of canvas 23 for 31-modern-requests."
-    }
-   ]
-  },
-  {
-   "build": 348,
-   "core": "2026.11.1.348",
-   "supervisor": "2026.11.0.348",
-   "os": "18.5.348",
-   "tag": "v2026.11.1.348",
-   "source": "b431284c5",
-   "date": "2026-11-12T20:09:33-05:00",
-   "previous_build": 347,
-   "changes": [
-    {
-     "sha": "b431284c5",
-     "date": "2026-11-12T20:09:33-05:00",
-     "title": "Shell follows the modern boards: side pane, tool pill, floating phone bar",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Batch 45. The owner looked at build 347 and said it still does not look like the design. Fair: the colours matched, the frame around every page did not. Unit tested only; nothing here has been seen in a browser.\n\n- Wide: one navigation pane is the default, drawn as a floating card on the left with the page as a second card. A choice of \"off\" is kept. A fresh browser used to land on the top edge because empty saved lists were read as proof of an older version; a stored \"top\" that nobody chose is returned to the left pane once per browser. - Page top: one floating tool pill instead of a search field and about ten icons. Search this page hides behind a magnifier. - Automation editor: one bar and one Save. Build 347 showed two of each. - Phone: a floating pill bottom bar with Settings where Access was; accessibility tools open from the Menu drawer; one hamburger fewer.\n\nChecks: 291 test files, 3,282 tests passed across components, layouts, panels, tabs, regex, language mode and locks; sync tests 69 passed; type check clean apart from the two known gallery errors.",
-     "detail_yue": "第 45 批。屋主睇完 347 話「都唔似設計圖」，講得啱：顏色啱晒，但個殼仲係 舊嗰個。今次換殼：闊螢幕預設一塊浮起嘅側邊窗格，頁面自己一張卡；頁頂 十幾粒圖示收埋做一粒浮動工具藥丸；自動化編輯器由兩條列兩粒儲存掣變返 一條一粒；手機底列變浮動藥丸，設定頂替咗輔助功能個位，輔助功能搬入選單。 以前冇人揀過但係自動寫低嘅「頂部」位置，每個瀏覽器會自動還原一次去左邊。 全部只係單元測試過，未喺瀏覽器睇過。"
-    },
-    {
-     "sha": "99faa48fa",
-     "date": "2026-11-12T19:56:58-05:00",
-     "title": "Editor tools from canvas 30, polish from canvases 28 and 29",
-     "areas": [
-      "docs",
-      "interface"
-     ],
-     "detail": "Batch 44. Unit tested only; nothing here has been seen in a browser.\n\n- Automation editor: a Tools entry in the editor menu. Flow view with a minimap, trace list, simulator on the existing dry run (it never calls a service and says which conditions it cannot judge), conflict and loop detector, plain language, steps on and off, variable and template inspector, blueprint maker with a snippet library, health score with its formula shown, week ahead, and an entity swap across automations with a review step. - Dashboard editor: screens side by side, grid layout per card, visibility, interactions, style and theme per view, state simulator on a copy of the states, entity inspector, accessibility scan, wall panel (per browser, off by default), card library with versions, redraw time per card, and a diff between named checkpoints. - Polish: PIN keypad, lock wizard and list, personal settings tiles, guided setup cards, notification count, a date range on release notes, timelines in page history and schedules, focus modes as cards, a token swatch grid. - Not built, because nothing real backs them: live breakpoints, replay of a recorded day, test case coverage, free pixel layout. The full list",
-     "detail_yue": "第 44 批。畫布 30 嗰廿幾樣編輯器新工具落咗地：自動化有流程圖、追蹤、模擬 （淨係計，絕對唔會真係開你盞燈）、衝突偵測、健康分數、一星期預告；儀表板 有並排睇四種螢幕、狀態模擬、無障礙掃描、掛牆模式、卡片庫同版本對比。 冇真數據撐嘅嘢一律唔起，唔會整啲假數字出嚟呃人。順手執返三個喺 main 度 紅咗嘅粵語測試。全部只係單元測試過，未喺瀏覽器睇過。"
-    },
-    {
-     "sha": "98ba6d94d",
-     "date": "2026-11-12T19:35:07-05:00",
-     "title": "Modern everyday pages: media browser header, embedded page as cards",
-     "areas": [
-      "interface"
-     ],
-     "detail": "Batch 43, from design canvas 24-modern-everyday. Unit checks only; not seen in a browser.\n\n- Media browser: a large \"Media\" title with one summary line at the top level. Inside a folder it steps aside so the folder name leads. - Embedded page: the frame, the address bar and the notices sit in rounded cards with spacing instead of running edge to edge. - One new English string for the summary line.\n\nBy source reading the history, activity, calendar, to-do, map, profile and maintenance pages already match their boards through the shared theme. Dashboards, energy, climate, lights, security and the first-run pages have not been compared yet.\n\nChecks: type check clean apart from the two known gallery errors; prettier, eslint and the template check pass on both files.",
-     "detail_yue": "第 43 批。媒體瀏覽器終於有個大大隻「媒體」標題同一句簡介，入到資料夾 就自動讓位畀資料夾名做主角。內嵌頁面唔再貼到盡，個框、網址列同提示全部 入晒圓角卡片，透返啖氣。其餘日常頁面睇源碼已經跟到塊板，儀表板、能源 嗰批仲未對。只做咗單元檢查，未喺瀏覽器睇過。"
     }
    ]
   }
