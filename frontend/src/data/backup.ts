@@ -145,10 +145,45 @@ export interface BackupSelfCheckResult {
   detail?: string[];
 }
 
+export type BackupSelfCheckCopyStatus =
+  | "verified_in_full"
+  | "present_size_matches"
+  | "present_size_differs"
+  | "content_differs"
+  | "damaged"
+  | "missing"
+  | "could_not_check"
+  | "not_checked";
+
+/** The result of checking the copy of a backup at one location. */
+export interface BackupSelfCheckCopy {
+  agent_id: string;
+  method: "full" | "light" | "none" | string;
+  status: BackupSelfCheckCopyStatus | string;
+  reason?: string;
+  size_reported?: number;
+  size_expected?: number;
+  size_read?: number;
+  opened?: boolean;
+  /** Set when a full check was changed to a light one, with the reason. */
+  downgraded?: string;
+}
+
+export type BackupSelfCheckRemoteMode = "off" | "light" | "full";
+
+export interface BackupSelfCheckSettings {
+  remote_mode: BackupSelfCheckRemoteMode;
+  /** Bytes above which a full download never starts by itself; null for no limit. */
+  max_full_download_bytes: number | null;
+}
+
 export interface BackupSelfCheck {
   status: "passed" | "failed" | "could_not_check";
   checked_at: string;
   checks: BackupSelfCheckResult[];
+  // Missing when Core is older and does not report each location
+  copies?: BackupSelfCheckCopy[];
+  settings?: BackupSelfCheckSettings;
 }
 
 export interface BackupData {
@@ -287,6 +322,37 @@ export const runBackupSelfCheck = (
     type: "backup/self_check",
     backup_id: id,
   });
+
+/** Check the copy at one location again; a full check downloads the copy. */
+export const runBackupSelfCheckLocation = (
+  hass: HomeAssistant,
+  id: string,
+  agentId: string,
+  fullDownload: boolean
+): Promise<{ copy: BackupSelfCheckCopy; self_check: BackupSelfCheck }> =>
+  hass.callWS({
+    type: "backup/self_check/location",
+    backup_id: id,
+    agent_id: agentId,
+    full_download: fullDownload,
+  });
+
+export interface BackupSelfCheckConfigInfo {
+  config: BackupSelfCheckSettings;
+  defaults: BackupSelfCheckSettings;
+  modes: BackupSelfCheckRemoteMode[];
+}
+
+export const fetchBackupSelfCheckConfig = (
+  hass: HomeAssistant
+): Promise<BackupSelfCheckConfigInfo> =>
+  hass.callWS({ type: "backup/self_check/config/info" });
+
+export const updateBackupSelfCheckConfig = (
+  hass: HomeAssistant,
+  changes: Partial<BackupSelfCheckSettings>
+): Promise<{ config: BackupSelfCheckSettings }> =>
+  hass.callWS({ type: "backup/self_check/config/update", ...changes });
 
 export const fetchBackupAgentsInfo = (
   hass: HomeAssistant

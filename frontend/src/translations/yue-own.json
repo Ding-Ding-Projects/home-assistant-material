@@ -1366,7 +1366,46 @@
               "backup_agent_unreachable": "連唔到存放位置",
               "backup_not_found": "搵唔到備份",
               "read_error": "讀唔到檔案",
-              "unexpected_error": "檢查遇到意外錯誤而停止"
+              "unexpected_error": "檢查遇到意外錯誤而停止",
+              "timeout": "嗰個地方未能及時回應",
+              "remote_checks_off": "其他地方嘅檢查已經關閉"
+            },
+            "copy": {
+              "check_full": "完整檢查呢份複本",
+              "check_full_title": "要完整檢查 {name} 嘅複本嗎？",
+              "check_full_text": "完整檢查會由 {name} 下載成份複本（{size}），再由頭讀到尾。可能要等好耐，亦會用到你嘅網絡。唔會還原或者改動任何嘢。",
+              "check_full_confirm": "下載並檢查",
+              "over_size_limit": "份複本太大，唔會自動完整下載，所以只做咗簡易檢查",
+              "error_running": "已經有另一個檢查喺度行緊，等佢完咗再試。",
+              "error_busy": "而家有備份、上傳或者還原行緊，等佢完咗再試。",
+              "error_failed": "未能進行檢查。",
+              "status": {
+                "verified_in_full": "已完整驗證",
+                "present_size_matches": "存在，大小相符",
+                "present_size_differs": "存在，但大小唔同",
+                "content_differs": "內容同其他複本唔同",
+                "damaged": "損毀或者唔完整",
+                "missing": "搵唔到",
+                "could_not_check": "未能檢查",
+                "not_checked": "未檢查"
+              }
+            },
+            "settings": {
+              "title": "檢查其他地方嘅複本",
+              "description": "每次備份之後，呢部系統上嘅複本一定會由頭讀到尾。呢個設定係管放喺其他地方嘅複本，例如雲端硬碟或者網絡共享。",
+              "mode": {
+                "light": "簡易",
+                "full": "完整",
+                "off": "關閉"
+              },
+              "help": {
+                "light": "簡易檢查會向嗰個地方要求份複本、對照佢報告嘅大小，再打開份複本讀頭一小部分。咁樣可以知道份複本存在而且打開到，但係證明唔到每個位元組都冇壞，因為各個地方都冇提供校驗碼，而佢哋報告嘅大小係上傳嗰陣記低嘅。",
+                "full": "完整檢查會下載每份複本，再由頭讀到尾。可以證明份複本讀得到，但每次備份之後都會用到你嘅網絡。大過大小上限嘅複本會改為簡易檢查。",
+                "off": "唔會檢查其他地方嘅複本，只會檢查呢部系統上嘅複本。"
+              },
+              "limit": "完整檢查嘅大小上限（GB）",
+              "limit_help": "大過呢個大小嘅複本唔會自動下載。留空代表冇上限。",
+              "error": "未能儲存設定。"
             }
           },
           "hosting": {
@@ -1796,7 +1835,14 @@
             "stage_count": "{total} 個工作，完成 {done} 個",
             "stage_note_offer": "呢步完成之後就可以安裝 Core",
             "stage_note_system": "呢部分最慢",
-            "checked_again": "建置運行期間每 3 分鐘再檢查一次。"
+            "checked_again": "建置運行期間每 3 分鐘再檢查一次。",
+            "show_details": "顯示詳情",
+            "hide_details": "收埋詳情",
+            "whats_in": "會包含啲乜",
+            "more_changes": "同另外 {count} 項",
+            "can_do": "你而家可以做嘅：",
+            "can_do_wait": "唔使做任何嘢。呢張卡片只係顯示進度，絕對唔會自己安裝。更新發佈之後，會出現喺下面嘅清單。",
+            "can_do_nothing": "唔使做任何嘢。你已經有呢個建置。"
           },
           "compare": {
             "title": "有咩更改",
@@ -2045,7 +2091,9 @@
               "supervisor": "Supervisor",
               "os": "作業系統"
             }
-          }
+          },
+          "row_more": "顯示摘要、說明同自動更新",
+          "row_less": "收埋摘要、說明同自動更新"
         },
         "system_dashboard": {
           "restart_homeassistant": "重新啟動 Home Assistant"

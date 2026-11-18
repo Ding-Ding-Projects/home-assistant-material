@@ -27,6 +27,7 @@ import {
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
+import "./components/ha-backup-self-check-settings";
 import "./components/config/ha-backup-config-agents";
 import "./components/config/ha-backup-config-data";
 import "./components/config/ha-backup-config-encryption-key";
@@ -285,6 +286,10 @@ class HaConfigBackupSettings extends LitElement {
                 }
               </div>
             </ha-card>
+
+            <ha-backup-self-check-settings
+              .hass=${this.hass}
+            ></ha-backup-self-check-settings>
 
             <ha-card class="encryption" id="encryption">
               <div class="card-header">

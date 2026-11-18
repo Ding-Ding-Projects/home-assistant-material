@@ -635,7 +635,7 @@ export class HaUpdateHistory extends LitElement {
           display: flex;
           flex-direction: column;
           gap: var(--ha-space-4);
-          padding: clamp(20px, 3vw, 32px);
+          padding: clamp(16px, 3vw, 32px);
           border-radius: calc(var(--ha-border-radius-6xl) + 4px);
           background: var(--card-background-color);
         }
@@ -647,7 +647,7 @@ export class HaUpdateHistory extends LitElement {
         }
         h2 {
           font-family: var(--ha-font-family-heading, inherit);
-          font-size: clamp(28px, 4.4vw, 44px);
+          font-size: clamp(22px, 4.4vw, 44px);
           font-weight: var(--ha-font-weight-bold);
           line-height: 1.05;
           letter-spacing: -0.01em;
@@ -709,7 +709,7 @@ export class HaUpdateHistory extends LitElement {
           font-weight: var(--ha-font-weight-bold);
         }
         .hero-build {
-          font-size: clamp(32px, 6vw, 56px);
+          font-size: clamp(22px, 6vw, 56px);
           line-height: 1;
           font-weight: 800;
           font-variant-numeric: tabular-nums;

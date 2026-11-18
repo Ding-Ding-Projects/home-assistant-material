@@ -1,4 +1,5 @@
 import {
+  mdiCheckAll,
   mdiDelete,
   mdiDotsVertical,
   mdiDownload,
@@ -25,6 +26,7 @@ import "../../../components/item/ha-list-item-base";
 import "../../../components/list/ha-list-base";
 import type {
   BackupAgent,
+  BackupSelfCheckCopy,
   BackupConfig,
   BackupContentAgent,
   BackupContentExtended,
@@ -36,11 +38,14 @@ import {
   fetchBackupDetails,
   isLocalAgent,
   isNetworkMountAgent,
+  runBackupSelfCheckLocation,
 } from "../../../data/backup";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
+import { bytesToString } from "../../../util/bytes-to-string";
+import { showToast } from "../../../util/toast";
 import "./components/ha-backup-details-restore";
 import "./components/ha-backup-details-summary";
 import "./components/ha-backup-self-check";
@@ -90,6 +95,9 @@ class HaConfigBackupDetails extends LitElement {
   @state() private _backup?: BackupContentExtended | null;
 
   @state() private _agents: Agent[] = [];
+
+  // The location whose copy is being checked in full right now.
+  @state() private _checkingAgent?: string;
 
   @state() private _error?: string;
 
@@ -279,6 +287,7 @@ class HaConfigBackupDetails extends LitElement {
                                              >
                                            `
                                    }
+                                   ${success ? this._renderCopy(agentId) : nothing}
                                 </div>
                               </div>
                               ${
@@ -297,6 +306,23 @@ class HaConfigBackupDetails extends LitElement {
                                           )}
                                           .path=${mdiDotsVertical}
                                         ></ha-icon-button>
+                                        ${
+                                          !isLocalAgent(agentId)
+                                            ? html`<ha-dropdown-item
+                                                value="check_full"
+                                                .disabled=${!!this._checkingAgent}
+                                              >
+                                                <ha-svg-icon
+                                                  slot="icon"
+                                                  .path=${mdiCheckAll}
+                                                ></ha-svg-icon>
+                                                ${modeText(
+                                                  this.hass.localize,
+                                                  "ui.panel.config.backup.self_check.copy.check_full"
+                                                )}
+                                              </ha-dropdown-item>`
+                                            : nothing
+                                        }
                                         <ha-dropdown-item value="download">
                                           <ha-svg-icon
                                             slot="icon"
@@ -367,7 +393,117 @@ class HaConfigBackupDetails extends LitElement {
   private _handleAgentAction(ev: HaDropdownSelectEvent) {
     const button = ev.currentTarget;
     const agentId = (button as any).agent;
+    if (ev.detail.item.value === "check_full") {
+      this._checkLocationInFull(agentId);
+      return;
+    }
     this._downloadBackup(agentId);
+  }
+
+  private _copyText(key: string, values?: Record<string, string | number>) {
+    return modeText(
+      this.hass.localize,
+      `ui.panel.config.backup.self_check.copy.${key}` as any,
+      values
+    );
+  }
+
+  // The result of the last self-check for the copy at one location, in plain
+  // words. An older Core does not report each location, and then nothing is
+  // shown here.
+  private _renderCopy(agentId: string) {
+    const selfCheck = this._backup?.self_check;
+    if (!selfCheck || !Array.isArray(selfCheck.copies)) {
+      return nothing;
+    }
+    const copy: BackupSelfCheckCopy | undefined = selfCheck.copies.find(
+      (item) => item.agent_id === agentId
+    );
+    const status = copy?.status ?? "not_checked";
+    const known = [
+      "verified_in_full",
+      "present_size_matches",
+      "present_size_differs",
+      "content_differs",
+      "damaged",
+      "missing",
+      "could_not_check",
+      "not_checked",
+    ].includes(status);
+    const tone =
+      status === "verified_in_full" || status === "present_size_matches"
+        ? "success"
+        : status === "could_not_check" || status === "not_checked" || !known
+          ? "neutral"
+          : "error";
+    let reason = "";
+    if (copy?.reason && status === "could_not_check") {
+      const key = `ui.panel.config.backup.self_check.reasons.${copy.reason}`;
+      reason = this.hass.localize(key as any)
+        ? modeText(this.hass.localize, key as any)
+        : copy.reason;
+    }
+    const note =
+      copy?.downgraded === "over_size_limit"
+        ? this._copyText("over_size_limit")
+        : "";
+    return html`<span class="copy">
+      <span class="dot ${tone}"></span>
+      <span
+        >${known ? this._copyText(`status.${status}`) : status}${
+          reason ? html`: ${reason}` : nothing
+        }${note ? html` · ${note}` : nothing}</span
+      >
+    </span>`;
+  }
+
+  private async _checkLocationInFull(agentId: string): Promise<void> {
+    const backup = this._backup;
+    if (!backup || this._checkingAgent) {
+      return;
+    }
+    const agent = this._agents.find((item) => item.id === agentId);
+    const name = computeBackupAgentName(
+      this.hass.localize,
+      agentId,
+      this.agents
+    );
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._copyText("check_full_title", { name }),
+      text: this._copyText("check_full_text", {
+        name,
+        size: agent?.size ? bytesToString(agent.size, 1) : "?",
+      }),
+      confirmText: this._copyText("check_full_confirm"),
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._checkingAgent = agentId;
+    try {
+      const { self_check: selfCheck } = await runBackupSelfCheckLocation(
+        this.hass,
+        backup.backup_id,
+        agentId,
+        true
+      );
+      this._backup = { ...backup, self_check: selfCheck };
+      fireEvent(this, "ha-refresh-backup-info");
+    } catch (err: any) {
+      const code = err?.code;
+      showToast(this, {
+        message:
+          code === "self_check_running"
+            ? this._copyText("error_running")
+            : code === "backup_manager_busy"
+              ? this._copyText("error_busy")
+              : this._copyText("error_failed"),
+        duration: 8000,
+        dismissable: true,
+      });
+    } finally {
+      this._checkingAgent = undefined;
+    }
   }
 
   private async _downloadBackup(agentId?: string): Promise<void> {
@@ -398,6 +534,7 @@ class HaConfigBackupDetails extends LitElement {
       margin: 0 auto;
       gap: var(--ha-space-6);
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       margin-bottom: 24px;
     }
     ha-spinner {
@@ -425,6 +562,7 @@ class HaConfigBackupDetails extends LitElement {
     }
     ha-list-item-base [slot="supporting-text"] {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       flex-direction: row;
       gap: var(--ha-space-2);
@@ -450,6 +588,35 @@ class HaConfigBackupDetails extends LitElement {
     }
     .card-header {
       padding-bottom: 8px;
+    }
+    .copy {
+      white-space: normal;
+      text-overflow: clip;
+      overflow: visible;
+      display: inline-flex;
+      flex: 1 1 100%;
+      align-items: center;
+      gap: var(--ha-space-2);
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .dot.neutral {
+      background-color: var(--disabled-color);
+    }
+    @media (max-width: 600px) {
+      .content {
+        padding: var(--ha-space-3) var(--ha-space-3) 0;
+        gap: var(--ha-space-3);
+      }
+      .card-content {
+        padding: 0 var(--ha-space-3);
+      }
+      ha-list-item-base ha-svg-icon[slot="start"] {
+        --mdc-icon-size: 36px;
+      }
+      ha-list-item-base img {
+        width: 36px;
+      }
     }
   `;
 }

@@ -630,7 +630,7 @@ class HaConfigDeviceHealth extends LitElement {
           border-radius: 20px;
         }
         :host([narrow]) .numeral {
-          font-size: 32px;
+          font-size: 28px;
           font-stretch: 100%;
         }
         :host([narrow]) .tile-label {

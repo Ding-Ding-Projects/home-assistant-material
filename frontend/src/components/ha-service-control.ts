@@ -1274,6 +1274,23 @@ export class HaServiceControl extends LitElement {
     // at the end of the row, so no spacer is needed.
     void hasOptional;
 
+    // The label is shown once, above the field. Under a field that is not a
+    // switch the description is small helper text below it.
+    const descriptionTemplate = html`<span
+      class="field-description ${showOptional ? "clickable" : ""}"
+      @click=${showOptional ? this._toggleCheckbox : undefined}
+      ><ha-markdown
+        breaks
+        allow-svg
+        .content=${
+          this.hass.localize(
+            `component.${domain}.services.${serviceName}.fields.${dataField.key}.description`,
+            descriptionPlaceholders
+          ) || dataField?.description
+        }
+      ></ha-markdown>
+    </span>`;
+
     return html`<div class="field">
       <div class="field-head">
         <span class="field-tile"
@@ -1285,20 +1302,7 @@ export class HaServiceControl extends LitElement {
             @click=${showOptional ? this._toggleCheckbox : undefined}
             >${label}</span
           >
-          <span
-            class="field-description ${showOptional ? "clickable" : ""}"
-            @click=${showOptional ? this._toggleCheckbox : undefined}
-            ><ha-markdown
-              breaks
-              allow-svg
-              .content=${
-                this.hass.localize(
-                  `component.${domain}.services.${serviceName}.fields.${dataField.key}.description`,
-                  descriptionPlaceholders
-                ) || dataField?.description
-              }
-            ></ha-markdown>
-          </span>
+          ${inline ? descriptionTemplate : nothing}
         </div>
         ${
           inline
@@ -1319,7 +1323,12 @@ export class HaServiceControl extends LitElement {
             : nothing
         }
       </div>
-      ${inline ? nothing : html`<div class="field-control">${selectorTemplate}</div>`}
+      ${
+        inline
+          ? nothing
+          : html`<div class="field-control">${selectorTemplate}</div>
+              ${descriptionTemplate}`
+      }
     </div>`;
   };
 
@@ -1617,6 +1626,21 @@ export class HaServiceControl extends LitElement {
     }
     .field-inline {
       flex: none;
+    }
+    .field > .field-description {
+      display: block;
+      padding-block-end: var(--ha-space-1);
+    }
+    @media (max-width: 600px) {
+      .field {
+        padding: var(--ha-space-2) var(--ha-space-3);
+      }
+      .field-tile {
+        display: none;
+      }
+      .field-head {
+        min-height: 32px;
+      }
     }
     .field-control {
       padding: var(--ha-space-1) 0 var(--ha-space-2);

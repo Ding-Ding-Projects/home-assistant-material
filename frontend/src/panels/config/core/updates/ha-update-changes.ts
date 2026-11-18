@@ -895,7 +895,7 @@ export class HaUpdateChanges extends LitElement {
           display: flex;
           flex-direction: column;
           gap: var(--ha-space-5);
-          padding: clamp(20px, 3vw, 32px);
+          padding: clamp(16px, 3vw, 32px);
           border-radius: calc(var(--ha-border-radius-6xl) + 4px);
           background: var(--card-background-color);
         }
@@ -905,7 +905,7 @@ export class HaUpdateChanges extends LitElement {
         }
         h2 {
           font-family: var(--ha-font-family-heading, inherit);
-          font-size: clamp(28px, 4.4vw, 44px);
+          font-size: clamp(22px, 4.4vw, 44px);
           font-weight: var(--ha-font-weight-bold);
           line-height: 1.05;
           letter-spacing: -0.01em;
@@ -1022,13 +1022,13 @@ export class HaUpdateChanges extends LitElement {
           min-width: 0;
         }
         .build-number {
-          font-size: 56px;
+          font-size: clamp(24px, 6vw, 56px);
           line-height: 1;
           font-weight: 800;
           font-variant-numeric: tabular-nums;
         }
         .huge {
-          font-size: clamp(72px, 12vw, 120px);
+          font-size: clamp(28px, 7vw, 120px);
           line-height: 0.95;
           font-weight: 800;
           font-variant-numeric: tabular-nums;
@@ -1206,7 +1206,7 @@ export class HaUpdateChanges extends LitElement {
           margin-block-end: var(--ha-space-3);
         }
         .group-number {
-          font-size: 32px;
+          font-size: clamp(22px, 5vw, 32px);
           line-height: 1;
           font-weight: 800;
           font-variant-numeric: tabular-nums;

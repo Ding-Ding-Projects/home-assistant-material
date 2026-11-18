@@ -722,7 +722,7 @@ class HaPanelDevState extends LitElement {
         }
 
         h1 {
-          font-size: 28px;
+          font-size: clamp(22px, 6vw, 28px);
         }
 
         .set-card ha-alert {
@@ -760,13 +760,13 @@ class HaPanelDevState extends LitElement {
           display: flex;
           flex-direction: column;
           gap: var(--ha-space-3);
-          padding: var(--ha-space-5);
+          padding: clamp(12px, 3vw, 20px);
           border-radius: var(--ha-border-radius-3xl);
           background: var(--card-background-color);
         }
 
         h2 {
-          font-size: 24px;
+          font-size: clamp(18px, 5vw, 24px);
         }
 
         .field-label {

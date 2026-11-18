@@ -883,7 +883,7 @@ export class HaActionQuickControls extends LitElement {
               data-key=${control.key}
               .rows=${3}
               resize="vertical"
-              .label=${this._label(control)}
+              aria-label=${this._label(control)}
               .value=${value}
               .disabled=${this.disabled}
               @input=${this._onTextInput}
@@ -893,7 +893,7 @@ export class HaActionQuickControls extends LitElement {
               class="box"
               data-key=${control.key}
               type=${control.inputType ?? "text"}
-              .label=${this._label(control)}
+              .accessibleLabel=${this._label(control)}
               .value=${value}
               .disabled=${this.disabled}
               @input=${this._onTextInput}
@@ -972,6 +972,8 @@ export class HaActionQuickControls extends LitElement {
       display: block;
     }
     .control {
+      display: flex;
+      flex-direction: column;
       padding: var(--ha-space-2) var(--ha-space-4);
       border-top: var(
         --service-control-items-border-top,
@@ -980,6 +982,7 @@ export class HaActionQuickControls extends LitElement {
     }
     .control.row {
       display: flex;
+      flex-direction: row;
       align-items: center;
       justify-content: space-between;
       gap: var(--ha-space-3);
@@ -1001,6 +1004,12 @@ export class HaActionQuickControls extends LitElement {
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);
       overflow-wrap: anywhere;
+    }
+    /* The label is shown once, above the field; the description is small
+       helper text under the field. */
+    .hint {
+      order: 2;
+      padding-block-start: var(--ha-space-1);
     }
     .count {
       text-align: end;
@@ -1154,6 +1163,9 @@ export class HaActionQuickControls extends LitElement {
     @media (max-width: 600px) {
       .control {
         padding: var(--ha-space-2) var(--ha-space-3);
+      }
+      .head {
+        min-height: 32px;
       }
       .notice {
         margin: var(--ha-space-2) var(--ha-space-3);

@@ -281,7 +281,7 @@ class HaUpdateQueueCard extends LitElement {
         }
         .card {
           box-sizing: border-box;
-          padding: clamp(20px, 3vw, 32px);
+          padding: clamp(16px, 3vw, 32px);
           border-radius: calc(var(--ha-border-radius-6xl) + 4px);
           background: color-mix(
             in srgb,

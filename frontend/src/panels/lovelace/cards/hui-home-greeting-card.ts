@@ -204,7 +204,7 @@ export class HuiHomeGreetingCard extends LitElement implements LovelaceCard {
     h1 {
       margin: 0;
       font-family: var(--ha-font-family-heading, inherit);
-      font-size: clamp(32px, 4.4vw, 56px);
+      font-size: clamp(24px, 4.4vw, 56px);
       font-weight: var(--ha-font-weight-medium);
       line-height: 1.1;
       letter-spacing: -0.01em;

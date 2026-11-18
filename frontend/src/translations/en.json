@@ -845,7 +845,6 @@
           }
         }
       },
-
       "section_tabs": {
         "label": "Sections",
         "more": "More tabs",
@@ -8724,7 +8723,14 @@
             "stage_count": "{done} of {total, plural,\n  one {# job}\n  other {# jobs}\n}",
             "stage_note_offer": "Core installable after this",
             "stage_note_system": "the slow part",
-            "checked_again": "Checked again every 3 minutes while a build runs."
+            "checked_again": "Checked again every 3 minutes while a build runs.",
+            "show_details": "Show details",
+            "hide_details": "Hide details",
+            "whats_in": "What will be in it",
+            "more_changes": "and {count} more",
+            "can_do": "What you can do now:",
+            "can_do_wait": "Nothing. This card only shows progress and never installs anything. When the update is published it appears in the list below.",
+            "can_do_nothing": "Nothing. You already have this build."
           },
           "compare": {
             "title": "What changed",
@@ -8984,7 +8990,9 @@
               "supervisor": "Supervisor",
               "os": "Operating System"
             }
-          }
+          },
+          "row_more": "Show summary, notes and automatic updates",
+          "row_less": "Hide summary, notes and automatic updates"
         },
         "repairs": {
           "caption": "Repairs",
@@ -9686,7 +9694,46 @@
               "backup_agent_unreachable": "The location could not be reached",
               "backup_not_found": "The backup was not found",
               "read_error": "The file could not be read",
-              "unexpected_error": "The check stopped on an unexpected error"
+              "unexpected_error": "The check stopped on an unexpected error",
+              "timeout": "The location did not answer in time",
+              "remote_checks_off": "Checks of other places are turned off"
+            },
+            "copy": {
+              "check_full": "Check this copy in full",
+              "check_full_title": "Check the copy at {name} in full?",
+              "check_full_text": "A full check downloads the whole copy ({size}) from {name} and reads it to the end. It can take a long time and uses your internet connection. Nothing is restored or changed.",
+              "check_full_confirm": "Download and check",
+              "over_size_limit": "Too large to download in full by itself, so it was checked lightly",
+              "error_running": "Another check is already running. Try again when it has finished.",
+              "error_busy": "A backup, upload or restore is running. Try again when it has finished.",
+              "error_failed": "The check could not be run.",
+              "status": {
+                "verified_in_full": "Verified in full",
+                "present_size_matches": "Present, size matches",
+                "present_size_differs": "Present, size differs",
+                "content_differs": "Content differs from the other copies",
+                "damaged": "Damaged or incomplete",
+                "missing": "Missing",
+                "could_not_check": "Could not be checked",
+                "not_checked": "Not checked"
+              }
+            },
+            "settings": {
+              "title": "Checking copies in other places",
+              "description": "After each backup, the copy on this system is always read to the end. This setting is for the copies kept in other places, such as a cloud drive or a network share.",
+              "mode": {
+                "light": "Light",
+                "full": "Full",
+                "off": "Off"
+              },
+              "help": {
+                "light": "A light check asks the place for the copy, compares the size it reports and opens the copy to read its first part. It shows that the copy exists and opens. It does not prove that every byte is intact, because places give no checksum and the size they report was written when the copy was uploaded.",
+                "full": "A full check downloads each copy and reads it to the end. It proves the copy can be read, but it uses your internet connection after every backup. Copies larger than the size limit are checked lightly instead.",
+                "off": "Copies in other places are not checked. Only the copy on this system is."
+              },
+              "limit": "Size limit for a full check (GB)",
+              "limit_help": "Larger copies are never downloaded by themselves. Leave empty for no limit.",
+              "error": "The setting could not be saved."
             }
           },
           "create_backup": "Create backup",

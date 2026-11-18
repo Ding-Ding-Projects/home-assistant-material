@@ -780,7 +780,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           border-radius: 24px;
         }
         :host([narrow]) .numeral {
-          font-size: 40px;
+          font-size: 28px;
         }
         :host([narrow]) .attention-body {
           gap: var(--ha-space-2);

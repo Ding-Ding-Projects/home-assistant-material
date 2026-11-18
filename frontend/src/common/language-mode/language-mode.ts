@@ -54,6 +54,7 @@ export const YUE_PREFIXES = [
   "ui.panel.config.updates.current",
   "ui.panel.config.updates.notes",
   "ui.panel.config.updates.show_",
+  "ui.panel.config.updates.row_",
   "ui.panel.config.updates.skipped",
   "ui.panel.config.updates.title_",
   "ui.panel.config.updates.up_to_date",

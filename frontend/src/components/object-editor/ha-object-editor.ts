@@ -193,13 +193,15 @@ export class HaObjectEditor extends LitElement {
         ${top && isDict && !this.disabled ? this._renderKnownOptions(node) : nothing}
         ${
           node.entries.length === 0
-            ? html`<div class="empty">
-                ${
-                  top
-                    ? this._t(isDict ? "empty_title" : "empty_list_title")
-                    : this._t(isDict ? "empty_nested" : "empty_list_nested")
-                }
-              </div>`
+            ? top && !this.disabled
+              ? nothing
+              : html`<div class="empty">
+                  ${
+                    top
+                      ? this._t(isDict ? "empty_title" : "empty_list_title")
+                      : this._t(isDict ? "empty_nested" : "empty_list_nested")
+                  }
+                </div>`
             : node.entries.map((entry, index) =>
                 this._renderEntry(node, entry, index)
               )

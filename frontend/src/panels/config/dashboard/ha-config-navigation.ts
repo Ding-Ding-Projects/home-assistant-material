@@ -503,7 +503,7 @@ class HaConfigNavigation extends LitElement {
           font-size: 14px;
         }
         .numeral {
-          font-size: 36px;
+          font-size: 28px;
         }
         .eyebrow {
           margin-top: var(--ha-space-4);

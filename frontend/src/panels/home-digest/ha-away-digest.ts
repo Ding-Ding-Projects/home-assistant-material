@@ -470,7 +470,7 @@ export class HuiAwayDigestCard extends LitElement implements LovelaceCard {
         border-radius: 16px;
       }
       .numeral {
-        font-size: 32px;
+        font-size: 28px;
         font-stretch: 100%;
       }
       .row {

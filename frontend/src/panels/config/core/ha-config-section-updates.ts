@@ -1,6 +1,8 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
+  mdiChevronDown,
   mdiChevronRight,
+  mdiChevronUp,
   mdiDotsVertical,
   mdiHistory,
   mdiLocationEnter,
@@ -124,6 +126,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   @state() private _showSkipped = false;
 
   @state() private _showAllCurrent = false;
+
+  // Rows whose detail line (notes, automatic switch, summary) is open on a phone.
+  @state() private _openRows = new Set<string>();
 
   @state() private _backupState?: ManagerState;
 
@@ -594,9 +599,30 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     const view =
       variant === "install" ? this._progress.view(entity) : undefined;
     const shownName = this._rowTitle(entity, name);
+    // A phone keeps the resting row to one line of name and one of versions;
+    // the summary, notes and the automatic switch open under it.
+    const compact =
+      !!this.narrow && (variant === "install" || variant === "manual");
+    const open = compact && this._openRows.has(entity.entity_id);
+    const autoSwitch =
+      variant === "manual" ? nothing : this._renderAutoSwitch(entity);
+    const notesButton =
+      showNotes && hasNotes
+        ? html`<ha-button
+            appearance="plain"
+            size="s"
+            .entityId=${entity.entity_id}
+            .href=${notesUrl || undefined}
+            .target=${notesUrl ? "_blank" : undefined}
+            .rel=${notesUrl ? "noopener noreferrer" : undefined}
+            @click=${notesUrl ? undefined : this._openMoreInfo}
+          >
+            ${localize("ui.panel.config.updates.notes")}
+          </ha-button>`
+        : nothing;
 
     return html`
-      <div class="row">
+      <div class="row ${compact ? "compact" : ""}">
         <button
           class="row-main"
           aria-label=${name}
@@ -610,8 +636,8 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
           ></state-badge>
           <span class="text">
             <span class="name" title=${name}>${shownName}</span>
-            ${sub ? html`<span class="sub">${sub}</span>` : nothing}
-            ${this._renderAutoResult(entity)}
+            ${sub && !compact ? html`<span class="sub">${sub}</span>` : nothing}
+            ${compact ? nothing : this._renderAutoResult(entity)}
           </span>
           ${
             variant === "current"
@@ -642,28 +668,14 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
               : nothing
           }
         </button>
-        ${variant === "manual" ? nothing : this._renderAutoSwitch(entity)}
+        ${compact ? nothing : autoSwitch}
         ${
           variant === "current"
             ? html`<span class="chip current"
                 >${localize("ui.panel.config.updates.current")}</span
               >`
             : html`
-                ${
-                  showNotes && hasNotes
-                    ? html`<ha-button
-                        appearance="plain"
-                        size="s"
-                        .entityId=${entity.entity_id}
-                        .href=${notesUrl || undefined}
-                        .target=${notesUrl ? "_blank" : undefined}
-                        .rel=${notesUrl ? "noopener noreferrer" : undefined}
-                        @click=${notesUrl ? undefined : this._openMoreInfo}
-                      >
-                        ${localize("ui.panel.config.updates.notes")}
-                      </ha-button>`
-                    : nothing
-                }
+                ${compact ? nothing : notesButton}
                 ${
                   variant === "install"
                     ? installing
@@ -703,6 +715,33 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
               `
         }
         ${
+          compact && (sub || autoSwitch !== nothing || hasNotes)
+            ? html`<ha-icon-button
+                class="row-toggle"
+                .path=${open ? mdiChevronUp : mdiChevronDown}
+                .label=${localize(
+                  open
+                    ? "ui.panel.config.updates.row_less"
+                    : "ui.panel.config.updates.row_more"
+                )}
+                aria-expanded=${open ? "true" : "false"}
+                .entityId=${entity.entity_id}
+                @click=${this._toggleRow}
+              ></ha-icon-button>`
+            : nothing
+        }
+        ${
+          open
+            ? html`<div class="row-detail">
+                ${sub ? html`<span class="sub">${sub}</span>` : nothing}
+                ${this._renderAutoResult(entity)}
+                <div class="row-detail-actions">
+                  ${notesButton} ${autoSwitch}
+                </div>
+              </div>`
+            : nothing
+        }
+        ${
           view
             ? html`<ha-update-progress-block
                 class="progress"
@@ -717,6 +756,16 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         }
       </div>
     `;
+  }
+
+  private _toggleRow(ev: Event): void {
+    const id = (ev.currentTarget as HTMLElement & { entityId: string })
+      .entityId;
+    const next = new Set(this._openRows);
+    if (!next.delete(id)) {
+      next.add(id);
+    }
+    this._openRows = next;
   }
 
   // The shorter title of a row: the system updates drop "Home Assistant" and
@@ -1710,6 +1759,49 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       }
       :host([narrow]) .row-main {
         min-height: 48px;
+      }
+      /* A resting phone row: the name and the versions on the left, the one
+         main action and the toggle for the rest on the right. */
+      :host([narrow]) .row.compact {
+        flex-wrap: wrap;
+        gap: 0 var(--ha-space-2);
+        padding: var(--ha-space-1) var(--ha-space-1) var(--ha-space-1)
+          var(--ha-space-3);
+      }
+      :host([narrow]) .row.compact .row-main {
+        flex: 1 1 0;
+        min-height: 52px;
+      }
+      :host([narrow]) .row.compact ha-button {
+        --ha-button-height: 44px;
+      }
+      .row-toggle {
+        flex: none;
+        --ha-icon-button-size: 44px;
+      }
+      .row-detail {
+        display: flex;
+        flex: 1 1 100%;
+        flex-direction: column;
+        gap: var(--ha-space-2);
+        padding: var(--ha-space-2) var(--ha-space-1);
+        border-top: 1px solid var(--divider-color);
+      }
+      .row-detail-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--ha-space-2);
+      }
+      :host([narrow]) .card {
+        padding: var(--ha-space-3) var(--ha-space-4);
+        border-radius: var(--ha-border-radius-4xl, 24px);
+      }
+      :host([narrow]) h2 {
+        font-size: var(--ha-font-size-l);
+      }
+      :host([narrow]) .check {
+        --ha-button-height: 44px;
       }
       .chip {
         flex: none;
