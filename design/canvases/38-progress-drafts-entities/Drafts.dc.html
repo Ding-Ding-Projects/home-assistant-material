@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Drafts saved by themselves, import and export</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1180px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">The automation editor on a phone (scripts and scenes are the same). Left: coming back after a crash. Middle: the menu as a sheet, with draft history, export and import. Right: importing a file.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Coming back to a draft" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px"><span style="width: 44px; height: 44px; border-radius: 50%; background: #1D1F26; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3E2E9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 6-6 6 6 6"/></svg></span><div style="flex: 1; padding-left: 8px; font-size: 20px; font-weight: 700">Washing done</div><span style="width: 44px; height: 44px; display: grid; place-items: center; color: #C4C6D0"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></span></div>
+<div style="padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px">
+
+<sc-if value="{{offer}}" hint-placeholder-val="{{true}}">
+<div style="border-radius: 16px; background: #1D2A44; color: #D9E2FF; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-weight: 700">You have unsaved changes from 20:22</div>
+<div style="font-size: 13px">They were kept when the page closed. The automation that runs is still the one you last saved.</div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap"><button type="button" onClick="{{take}}" style="height: 44px; padding: 0 16px; border: 0; border-radius: 22px; background: #B4C5FF; color: #152E66; font-weight: 700">Continue editing</button><span style="height: 44px; padding: 0 14px; border-radius: 22px; box-shadow: inset 0 0 0 1px #B4C5FF; display: flex; align-items: center; font-weight: 600">See what changed</span><button type="button" onClick="{{drop}}" style="height: 44px; padding: 0 14px; border: 0; border-radius: 22px; background: transparent; color: #D9E2FF; font-weight: 600">Discard</button></div>
+</div>
+</sc-if>
+
+<div style="height: 44px; border-radius: 12px; background: #1D1F26; padding: 4px; box-sizing: border-box; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px"><div style="border-radius: 8px; display: grid; place-items: center; font-weight: 600">Simple</div><div style="border-radius: 8px; background: #2B3F6E; color: #D9E2FF; display: grid; place-items: center; font-weight: 700">Advanced</div><div style="border-radius: 8px; display: grid; place-items: center; font-weight: 600">YAML</div></div>
+
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 26px; height: 26px; border-radius: 50%; background: #2B3F6E; color: #D9E2FF; display: grid; place-items: center; font-size: 12px; font-weight: 700">3</span><span style="font-weight: 700">Then do</span></div>
+<div style="min-height: 52px; border-radius: 12px; background: #262933; padding: 0 12px; display: flex; align-items: center; gap: 10px"><span style="flex: 1">Send "The washing is done" to Family chat</span></div>
+<sc-if value="{{restored}}" hint-placeholder-val="{{false}}">
+<div style="min-height: 52px; border-radius: 12px; background: #262933; box-shadow: inset 0 0 0 1.5px #B4C5FF; padding: 0 12px; display: flex; align-items: center; gap: 10px"><span style="flex: 1">Turn on Hall lamp at 40%</span><span style="font-size: 12px; color: #B4C5FF">from the draft</span></div>
+</sc-if>
+<div style="min-height: 44px; border-radius: 12px; box-shadow: inset 0 0 0 1px #44474F; display: grid; place-items: center; color: #B4C5FF; font-weight: 700">+ Add action</div>
+</div>
+</div>
+<div style="margin-top: auto; padding: 6px 12px 12px; background: #14161B; box-shadow: 0 -1px 0 #2A2D36; display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 12px; color: #C4C6D0; text-align: right">{{status}}</div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 48px; border-radius: 24px; box-shadow: inset 0 0 0 1px #44474F; display: grid; place-items: center; color: #B4C5FF; font-weight: 700">Check</span><span style="flex: 1; height: 48px; border-radius: 24px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Save</span></div>
+</div>
+</section>
+
+<section aria-label="The editor menu as a sheet" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="display: grid; place-items: center; padding-top: 8px"><span style="width: 32px; height: 4px; border-radius: 2px; background: #44474F"></span></div>
+<div style="padding: 8px 16px; font-size: 18px; font-weight: 700">Washing done</div>
+<div style="padding: 0 4px 8px; display: flex; flex-direction: column">
+<div style="min-height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 14px"><span style="width: 20px; color: #C4C6D0">↺</span><div style="flex: 1">Draft history</div><span style="font-size: 12px; color: #C4C6D0">7 saved</span></div>
+<div style="min-height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 14px"><span style="width: 20px; color: #C4C6D0">↓</span><div style="flex: 1">Download as a file</div><span style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0">washing-done.yaml</span></div>
+<div style="min-height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 14px"><span style="width: 20px; color: #C4C6D0">⧉</span><div style="flex: 1">Copy as text</div></div>
+<div style="min-height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 14px"><span style="width: 20px; color: #C4C6D0">↑</span><div style="flex: 1">Import a file</div></div>
+<div style="height: 1px; background: #2A2D36; margin: 4px 12px"></div>
+<div style="min-height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 14px"><span style="width: 20px; color: #C4C6D0">▷</span><div style="flex: 1">Run now</div></div>
+<div style="min-height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 14px"><span style="width: 20px; color: #C4C6D0">⏸</span><div style="flex: 1">Turn off</div></div>
+<div style="height: 1px; background: #2A2D36; margin: 4px 12px"></div>
+<div style="min-height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 14px; color: #FFB4AB"><span style="width: 20px">✕</span><div style="flex: 1; font-weight: 600">Delete</div></div>
+</div>
+<div style="margin: 0 12px 12px; border-radius: 16px; background: #14161B; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0">DRAFT HISTORY</div>
+<div style="min-height: 44px; display: flex; align-items: center; gap: 10px"><span style="font-family: 'Roboto Mono', monospace; width: 56px">20:22</span><span style="flex: 1; color: #C4C6D0">added Turn on Hall lamp</span><span style="color: #B4C5FF; font-weight: 700">Restore</span></div>
+<div style="min-height: 44px; display: flex; align-items: center; gap: 10px"><span style="font-family: 'Roboto Mono', monospace; width: 56px">20:19</span><span style="flex: 1; color: #C4C6D0">changed the message</span><span style="color: #B4C5FF; font-weight: 700">Restore</span></div>
+<div style="min-height: 44px; display: flex; align-items: center; gap: 10px"><span style="font-family: 'Roboto Mono', monospace; width: 56px">20:11</span><span style="flex: 1; color: #C4C6D0">opened for editing</span><span style="color: #B4C5FF; font-weight: 700">Restore</span></div>
+<div style="font-size: 12px; color: #C4C6D0">Restoring puts that version in the editor. Nothing live changes until you press Save.</div>
+</div>
+</section>
+
+<section aria-label="Importing a file" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="display: grid; place-items: center; padding-top: 8px"><span style="width: 32px; height: 4px; border-radius: 2px; background: #44474F"></span></div>
+<div style="padding: 8px 16px 4px"><div style="font-size: 18px; font-weight: 700">Import</div><div style="font-size: 12px; color: #C4C6D0">A file or pasted text. One item or a list.</div></div>
+<div style="padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="min-height: 56px; border-radius: 12px; box-shadow: inset 0 0 0 1.5px #44474F; padding: 0 12px; display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 10px; background: #2B3F6E; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">evening.yaml</div><div style="font-size: 12px; color: #C4C6D0">2 automations · 1.4 kB</div></div><span style="color: #B4C5FF; font-weight: 700">Change</span></div>
+
+<div style="border-radius: 16px; background: #14161B; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="flex: 1; font-weight: 700">Evening lights</span><span style="font-size: 12px; color: #6FD8C8">Ready</span></div>
+<div style="font-size: 13px; color: #C4C6D0">When the sun sets, turn on Hall lamp and Porch light.</div>
+<div style="font-size: 12px; color: #C4C6D0">1 trigger · 0 conditions · 2 actions</div>
+</div>
+<div style="border-radius: 16px; background: #14161B; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="flex: 1; font-weight: 700">Garage reminder</span><span style="font-size: 12px; color: #FFDF9E">2 things missing</span></div>
+<div style="font-size: 13px; color: #C4C6D0">When Garage door stays open for 10 minutes, tell Family chat.</div>
+<div style="border-radius: 10px; background: #3A2E12; color: #FFDF9E; padding: 8px 10px; font-size: 12px">Not in this home: Garage door, Family chat. You can pick replacements after it opens.</div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between"><span style="font-size: 13px">Same name as one you have</span><span style="height: 32px; padding: 0 10px; border-radius: 8px; box-shadow: inset 0 0 0 1px #44474F; display: flex; align-items: center; font-size: 13px">Keep both ▾</span></div>
+</div>
+<div style="font-size: 12px; color: #C4C6D0">Imported items open unsaved and turned off. Nothing runs and nothing is replaced until you save. Blueprint files and whole configuration packages are not imported here.</div>
+<div style="display: flex; gap: 8px"><span style="height: 48px; padding: 0 20px; border-radius: 24px; display: grid; place-items: center; color: #B4C5FF; font-weight: 700">Cancel</span><span style="flex: 1; height: 48px; border-radius: 24px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Open 2 in the editor</span></div>
+<div style="height: 1px; background: #2A2D36; margin: 4px 0"></div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0">BEFORE A FILE LEAVES</div>
+<div style="border-radius: 12px; background: #3A2E12; color: #FFDF9E; padding: 10px 12px; font-size: 13px">This file contains a webhook address. Anyone with the file could trigger it. <span style="font-weight: 700">Export anyway</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+renderVals() {
+const s = this.state || {};
+const offer = s.offer === undefined ? true : s.offer;
+const restored = !!s.restored;
+return {
+offer: offer, restored: restored,
+status: restored ? 'Draft saved 20:22' : (offer ? 'A draft is waiting' : 'No unsaved changes'),
+take: () => this.setState({ offer: false, restored: true }),
+drop: () => this.setState({ offer: false, restored: false }),
+};
+}
+}
+</script>
+</body>
+</html>

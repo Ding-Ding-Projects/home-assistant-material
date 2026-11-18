@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Every entity kind: row, detail sheet, tile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+button{font:inherit;cursor:pointer}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</helmet>
+<div style="min-height: 1400px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Every entity kind gets the same three things at phone size. Tap a row on the left to see that kind's detail sheet in the middle. On the right: what the first control is for each kind.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Entities list" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; padding: 0 16px; font-size: 20px; font-weight: 700">Entities</div>
+<div style="padding: 0 12px 6px; display: flex; gap: 6px"><span style="height: 36px; padding: 0 14px; border-radius: 18px; display: flex; align-items: center; color: #C4C6D0">Devices</span><span style="height: 36px; padding: 0 14px; border-radius: 18px; background: #2B3F6E; color: #D9E2FF; display: flex; align-items: center; font-weight: 700">Entities</span><span style="height: 36px; padding: 0 14px; border-radius: 18px; display: flex; align-items: center; color: #C4C6D0">Helpers</span></div>
+<div style="padding: 6px 12px 12px; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+<button type="button" onClick="{{r.pick}}" aria-pressed="{{r.on}}" style="{{r.style}}"><span style="{{r.badge}}">{{r.glyph}}</span><span style="flex: 1; min-width: 0; text-align: left"><span style="display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span><span style="display: block; font-size: 12px; color: #C4C6D0">{{r.sub}}</span></span><span style="font-size: 13px; font-weight: 600">{{r.state}}</span></button>
+</sc-for>
+</div>
+</section>
+
+<section aria-label="Detail sheet" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="display: grid; place-items: center; padding-top: 8px"><span style="width: 32px; height: 4px; border-radius: 2px; background: #44474F"></span></div>
+<div style="padding: 8px 16px 4px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-size: 18px; font-weight: 700">{{title}}</div><div style="font-size: 12px; color: #C4C6D0">{{subtitle}}</div></div><span style="width: 44px; height: 44px; display: grid; place-items: center; color: #C4C6D0"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></span></div>
+<div style="padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+
+<sc-if value="{{isLight}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 13px; color: #C4C6D0">Brightness</span><span style="font-size: 24px; font-weight: 700">70%</span></div>
+<div style="height: 52px; border-radius: 14px; background: #14161B; overflow: hidden"><div style="width: 70%; height: 52px; border-radius: 14px; background: #7A5A12; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; box-sizing: border-box"><span style="width: 4px; height: 22px; border-radius: 2px; background: #FFDF9E"></span></div></div>
+<div style="height: 44px; border-radius: 12px; background: #14161B; padding: 4px; box-sizing: border-box; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px"><div style="border-radius: 8px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Colour</div><div style="border-radius: 8px; display: grid; place-items: center; font-weight: 600">White</div><div style="border-radius: 8px; display: grid; place-items: center; font-weight: 600">Effect</div></div>
+<div style="display: flex; align-items: center; gap: 12px"><div style="width: 132px; height: 132px; border-radius: 50%; background: conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); position: relative; flex: none"><span style="position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0) 68%)"></span><span style="position: absolute; left: 78px; top: 30px; width: 22px; height: 22px; border-radius: 50%; background: #FF9A4D; box-shadow: 0 0 0 3px #fff"></span></div><div style="flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px"><span style="height: 40px; border-radius: 12px; background: #FF9A4D"></span><span style="height: 40px; border-radius: 12px; background: #FFE2B8"></span><span style="height: 40px; border-radius: 12px; background: #8FC7FF"></span><span style="height: 40px; border-radius: 12px; background: #FF6B8A"></span><span style="height: 40px; border-radius: 12px; background: #9CE8A2"></span><span style="height: 40px; border-radius: 12px; box-shadow: inset 0 0 0 1.5px #8E9099; display: grid; place-items: center; font-size: 18px; color: #C4C6D0">+</span></div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isClimate}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><span style="width: 52px; height: 52px; border-radius: 16px; background: #14161B; display: grid; place-items: center; font-size: 24px">−</span><div style="text-align: center"><div style="font-size: 28px; line-height: 32px; font-weight: 700">21.5 °C</div><div style="font-size: 12px; color: #C4C6D0">now 20.1 · heating</div></div><span style="width: 52px; height: 52px; border-radius: 16px; background: #14161B; display: grid; place-items: center; font-size: 24px">+</span></div>
+<div style="height: 12px; border-radius: 6px; background: linear-gradient(90deg, #8FC7FF, #FFDF9E, #FF9A4D); position: relative"><span style="position: absolute; left: 55%; top: -5px; width: 6px; height: 22px; border-radius: 3px; background: #fff"></span></div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #C4C6D0"><span>7</span><span>its own limits</span><span>35 °C</span></div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px"><div style="height: 52px; border-radius: 12px; background: #7A3A12; color: #FFDCC4; display: grid; place-items: center; font-weight: 700">Heat</div><div style="height: 52px; border-radius: 12px; background: #14161B; display: grid; place-items: center">Cool</div><div style="height: 52px; border-radius: 12px; background: #14161B; display: grid; place-items: center">Auto</div><div style="height: 52px; border-radius: 12px; background: #14161B; display: grid; place-items: center">Off</div></div>
+<div style="min-height: 52px; border-radius: 12px; background: #14161B; padding: 0 12px; display: flex; align-items: center; justify-content: space-between"><span>Fan</span><span style="color: #B4C5FF; font-weight: 700">Low ›</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isCover}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; gap: 12px">
+<div style="width: 96px; height: 200px; border-radius: 16px; background: #14161B; overflow: hidden; flex: none; display: flex; flex-direction: column; justify-content: flex-start"><div style="height: 60%; background: #3B2F5C; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; box-sizing: border-box"><span style="width: 28px; height: 4px; border-radius: 2px; background: #CDBDFF"></span></div></div>
+<div style="flex: 1; display: flex; flex-direction: column; gap: 6px"><div style="font-size: 24px; font-weight: 700">40% open</div><div style="height: 48px; border-radius: 12px; background: #14161B; display: grid; place-items: center; font-weight: 600">Open</div><div style="height: 48px; border-radius: 12px; background: #14161B; display: grid; place-items: center; font-weight: 600">Stop</div><div style="height: 48px; border-radius: 12px; background: #14161B; display: grid; place-items: center; font-weight: 600">Close</div></div>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 13px; color: #C4C6D0; padding-top: 4px"><span>Tilt</span><span style="color: #E3E2E9; font-weight: 700">25%</span></div>
+<div style="height: 44px; border-radius: 12px; background: #14161B; overflow: hidden"><div style="width: 25%; height: 44px; border-radius: 12px; background: #3B2F5C"></div></div>
+</sc-if>
+
+<sc-if value="{{isLock}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px; align-items: stretch">
+<div style="height: 120px; border-radius: 20px; background: #17423D; color: #D6F7F1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px"><svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6FD8C8" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><div style="font-size: 20px; font-weight: 700">Locked</div><div style="font-size: 12px">since 22:14</div></div>
+<div style="height: 52px; border-radius: 26px; background: #14161B; display: flex; align-items: center; padding: 4px; box-sizing: border-box; gap: 10px"><span style="width: 44px; height: 44px; border-radius: 50%; background: #B4C5FF; display: grid; place-items: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#152E66" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></span><span style="color: #C4C6D0">Slide to unlock</span></div>
+<div style="font-size: 12px; color: #C4C6D0">This lock asks for its code. The code is typed on a keypad and never shown.</div>
+</div>
+</sc-if>
+
+<div style="height: 1px; background: #2A2D36; margin: 4px 0"></div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap"><span style="height: 36px; padding: 0 12px; border-radius: 8px; box-shadow: inset 0 0 0 1px #44474F; display: flex; align-items: center; font-size: 13px">History</span><span style="height: 36px; padding: 0 12px; border-radius: 8px; box-shadow: inset 0 0 0 1px #44474F; display: flex; align-items: center; font-size: 13px">Use in an automation</span><span style="height: 36px; padding: 0 12px; border-radius: 8px; box-shadow: inset 0 0 0 1px #44474F; display: flex; align-items: center; font-size: 13px">Settings</span></div>
+</div>
+</section>
+
+<section aria-label="First control per kind" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">THE FIRST CONTROL, BY KIND</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<sc-for list="{{kinds}}" as="k" hint-placeholder-count="20">
+<div style="min-height: 40px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 0 #2A2D36"><span style="width: 132px; flex: none; font-weight: 600">{{k.kind}}</span><span style="flex: 1; color: #C4C6D0; font-size: 13px">{{k.first}}</span></div>
+</sc-for>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">AS A TILE</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="border-radius: 16px; background: #1D1F26; padding: 10px; display: flex; flex-direction: column; gap: 8px"><div style="display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #7A5A12; flex: none"></span><div><div style="font-weight: 600">Hall lamp</div><div style="font-size: 12px; color: #C4C6D0">70%</div></div></div><div style="height: 36px; border-radius: 10px; background: #14161B; overflow: hidden"><div style="width: 70%; height: 36px; background: #7A5A12; border-radius: 10px"></div></div></div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 10px; display: flex; flex-direction: column; gap: 8px"><div style="display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #7A3A12; flex: none"></span><div><div style="font-weight: 600">Living room</div><div style="font-size: 12px; color: #C4C6D0">21.5 °C</div></div></div><div style="height: 36px; border-radius: 10px; background: #14161B; display: grid; grid-template-columns: 1fr 1fr; place-items: center"><span>−</span><span>+</span></div></div>
+</div>
+<div style="border-radius: 12px; background: #3A2E12; color: #FFDF9E; padding: 10px 12px; font-size: 13px">The check puts one of every kind on screen and uses each control with a real pointer. A kind that cannot be shown is listed with the reason.</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1400}}'>
+class Component extends DCLogic {
+renderVals() {
+const pick = (this.state && this.state.pick) || 'light';
+const data = [
+['light', 'Hall lamp', 'Light · Hall', '70%', '#7A5A12', 'L'],
+['climate', 'Living room', 'Climate · Living room', '21.5 °C', '#7A3A12', 'C'],
+['cover', 'Bedroom blind', 'Cover · Bedroom', '40%', '#3B2F5C', 'B'],
+['lock', 'Front door', 'Lock · Hall', 'Locked', '#17423D', 'K'],
+];
+const still = [
+['Kitchen motion', 'Binary sensor · Kitchen', 'Clear', '#2A2D36', 'M'],
+['Washer power', 'Sensor · Utility', '312 W', '#2A2D36', 'W'],
+['Morning alarm', 'Time helper', '06:45', '#2A2D36', 'T'],
+['Downstairs vacuum', 'Vacuum · Hall', 'Docked', '#17423D', 'V'],
+];
+const base = 'min-height: 56px; border: 0; border-radius: 16px; padding: 0 12px; display: flex; align-items: center; gap: 12px; color: #E3E2E9; transition: background .2s; ';
+const badge = (c) => 'width: 36px; height: 36px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #E3E2E9; background: ' + c;
+const rows = data.map((d) => ({ name: d[1], sub: d[2], state: d[3], glyph: d[5], on: pick === d[0], style: base + (pick === d[0] ? 'background: #2B3F6E' : 'background: #1D1F26'), badge: badge(d[4]), pick: () => this.setState({ pick: d[0] }) }))
+.concat(still.map((d) => ({ name: d[0], sub: d[1], state: d[2], glyph: d[4], on: false, style: base + 'background: #1D1F26', badge: badge(d[3]), pick: () => {} })));
+const cur = data.find((d) => d[0] === pick);
+const kinds = [
+['Light', 'Brightness bar, then colour'], ['Switch, input boolean', 'One large toggle'], ['Climate, water heater', 'Target with its own limits'],
+['Cover, valve', 'Position, open, stop, close'], ['Fan, humidifier', 'Level bar, then modes'], ['Lock', 'Slide to unlock'],
+['Alarm panel', 'Mode tiles, keypad if coded'], ['Media player', 'Transport, volume, source'], ['Vacuum, lawn mower', 'Start, pause, dock'],
+['Camera, image', 'The picture, full width'], ['Sensor', 'Value, then its graph'], ['Binary sensor, event', 'State and when it changed'],
+['Number, input number', 'Slider with unit'], ['Select, input select', 'Tiles up to 5, list above'], ['Text, input text', 'Text box with counter'],
+['Date, time, date and time', 'Real pickers, 24-hour'], ['Button, scene, script', 'One press button'], ['Timer, counter', 'Remaining ring, start and stop'],
+['Update', 'Versions, Update, progress'], ['Calendar, to-do', 'Next items, add one'], ['Person, tracker, zone', 'Map with the place'],
+['Weather, sun', 'Now, then the forecast'], ['Remote, siren', 'Named actions as tiles'], ['Assistants, speech', 'State and a test line'],
+].map((k) => ({ kind: k[0], first: k[1] }));
+return { rows: rows, kinds: kinds, title: cur[1], subtitle: cur[2] + ' · ' + cur[3], isLight: pick === 'light', isClimate: pick === 'climate', isCover: pick === 'cover', isLock: pick === 'lock' };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Backups: each stage and each place on its own row</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 1180px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Settings, Backups, on a phone. Left: a backup running. Middle: finished, with the check of each copy. Right: the setting for checking copies in other places.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="A backup running" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; padding: 0 16px; font-size: 20px; font-weight: 700">Backups</div>
+<div style="padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 10px"><div style="flex: 1"><div style="font-weight: 700">Uploading to Google Drive</div><div style="font-size: 12px; color: #C4C6D0">Step 5 of 6 · started 16:29:04 · 6:12 so far</div></div><span style="font-weight: 700; font-size: 18px">58%</span></div>
+<div style="display: flex; flex-direction: column">
+<div style="min-height: 34px; display: flex; align-items: center; gap: 10px"><span style="width: 16px; height: 16px; border-radius: 50%; background: #6FD8C8; flex: none"></span><span style="flex: 1">Home Assistant settings and history</span><span style="font-size: 12px; color: #C4C6D0">0:41</span></div>
+<div style="min-height: 34px; display: flex; align-items: center; gap: 10px"><span style="width: 16px; height: 16px; border-radius: 50%; background: #6FD8C8; flex: none"></span><span style="flex: 1">Apps</span><span style="font-size: 12px; color: #C4C6D0">1:58</span></div>
+<div style="min-height: 34px; display: flex; align-items: center; gap: 10px"><span style="width: 16px; height: 16px; border-radius: 50%; background: #6FD8C8; flex: none"></span><span style="flex: 1">Folders and media</span><span style="font-size: 12px; color: #C4C6D0">0:52</span></div>
+<div style="min-height: 34px; display: flex; align-items: center; gap: 10px"><span style="width: 16px; height: 16px; border-radius: 50%; background: #6FD8C8; flex: none"></span><span style="flex: 1">Waiting for apps to restart</span><span style="font-size: 12px; color: #C4C6D0">0:09</span></div>
+<div style="min-height: 34px; display: flex; align-items: center; gap: 10px"><span style="width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 3px #B4C5FF; flex: none"></span><span style="flex: 1; font-weight: 700">Uploading to places</span><span style="font-size: 12px; color: #D9E2FF">Running</span></div>
+<div style="margin-left: 26px; display: flex; flex-direction: column; gap: 8px; padding: 4px 0 8px">
+<div style="border-radius: 12px; background: #14161B; padding: 10px"><div style="display: flex; justify-content: space-between"><span style="font-weight: 600">This system</span><span style="font-size: 12px; color: #6FD8C8">Done · 0:14</span></div><div style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0">8.88 GB of 8.88 GB</div></div>
+<div style="border-radius: 12px; background: #14161B; padding: 10px; display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between"><span style="font-weight: 600">Google Drive</span><span style="font-weight: 700">58%</span></div><div role="progressbar" aria-valuenow="58" aria-valuemin="0" aria-valuemax="100" aria-label="Google Drive upload" style="height: 8px; border-radius: 4px; background: #262933"><div style="width: 58%; height: 8px; border-radius: 4px; background: #B4C5FF"></div></div><div style="display: flex; justify-content: space-between; font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0"><span>5.15 of 8.88 GB</span><span>21 MB/s</span></div><div style="font-size: 12px; color: #C4C6D0">About 3 min left (estimate)</div></div>
+<div style="border-radius: 12px; background: #14161B; padding: 10px; display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between"><span style="font-weight: 600">Garage NAS</span><span style="font-size: 12px; color: #C4C6D0">Running</span></div><div style="height: 8px; border-radius: 4px; background: repeating-linear-gradient(90deg, #262933 0 16px, #3A3D48 16px 32px)"></div><div style="font-size: 12px; color: #C4C6D0">This place reports no progress.</div></div>
+</div>
+<div style="min-height: 34px; display: flex; align-items: center; gap: 10px; color: #C4C6D0"><span style="width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #8E9099; flex: none"></span><span style="flex: 1">Removing old backups</span><span style="font-size: 12px">Waiting</span></div>
+</div>
+<div style="border-radius: 12px; background: #0C0D10; padding: 10px 12px; font-family: 'Roboto Mono', monospace; font-size: 11px; line-height: 17px; color: #C4C6D0">16:35:02 upload part 62 of 107 sent<br>16:35:09 upload part 63 of 107 sent<br><span style="color: #E3E2E9">16:35:16 upload part 64 of 107 sent</span></div>
+</div>
+<div style="height: 48px; border-radius: 24px; background: #262933; color: #C4C6D0; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700"><span style="width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 3px #B4C5FF"></span>Backup running</div>
+<div style="font-size: 12px; color: #C4C6D0; text-align: center">A running backup cannot be cancelled.</div>
+</div>
+</section>
+
+<section aria-label="Finished, with the check of each copy" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px"><span style="width: 44px; height: 44px; border-radius: 50%; background: #1D1F26; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3E2E9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 6-6 6 6 6"/></svg></span><div style="flex: 1; padding-left: 8px; font-size: 20px; font-weight: 700">Manual backup</div></div>
+<div style="padding: 0 16px 8px; font-size: 13px; color: #C4C6D0">17 November, 16:29 · 8.88 GB · took 9:41</div>
+<div style="padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 16px; background: #17423D; color: #D6F7F1; padding: 12px; display: flex; align-items: center; gap: 10px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6FD8C8" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg><div style="flex: 1"><div style="font-weight: 700">The backup opens and is complete</div><div style="font-size: 12px">Read in full from This system at 16:39</div></div></div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 4px 4px 0">WHERE IT LIVES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span style="width: 16px; height: 16px; border-radius: 50%; background: #6FD8C8; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">This system</div><div style="font-size: 12px; color: #C4C6D0">Checked in full</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span style="width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 3px #6FD8C8; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Google Drive</div><div style="font-size: 12px; color: #C4C6D0">Present, size matches. Not downloaded.</div></div><span style="color: #B4C5FF; font-weight: 700; font-size: 13px">Check in full</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span style="width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #FFDF9E; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Garage NAS</div><div style="font-size: 12px; color: #FFDF9E">Could not be checked: it did not answer in time.</div></div><span style="color: #B4C5FF; font-weight: 700; font-size: 13px">Try again</span></div>
+</div>
+<div style="border-radius: 12px; background: #1D2A44; color: #D9E2FF; padding: 10px 12px; font-size: 13px">Checking Google Drive in full downloads 8.88 GB once. It is asked for, never done by itself.</div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 48px; border-radius: 24px; box-shadow: inset 0 0 0 1px #44474F; display: grid; place-items: center; color: #B4C5FF; font-weight: 700">Download</span><span style="flex: 1; height: 48px; border-radius: 24px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Restore</span></div>
+</div>
+</section>
+
+<section aria-label="Setting for checking copies" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">BACKUP SETTINGS · CHECKING COPIES IN OTHER PLACES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+<div style="height: 44px; border-radius: 12px; background: #14161B; padding: 4px; box-sizing: border-box; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px"><div style="border-radius: 8px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Light</div><div style="border-radius: 8px; display: grid; place-items: center; font-weight: 600">Full</div><div style="border-radius: 8px; display: grid; place-items: center; font-weight: 600">Off</div></div>
+<div style="font-size: 13px; color: #C4C6D0">Light asks each place whether the copy is there and compares its size. It shows the copy exists and opens. It does not prove every byte.</div>
+</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 52px; display: flex; align-items: center; justify-content: space-between"><div><div>The copy on this system</div><div style="font-size: 12px; color: #C4C6D0">Always read in full</div></div><span style="font-size: 12px; color: #6FD8C8">On</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; justify-content: space-between"><div><div>Places on the home network</div><div style="font-size: 12px; color: #C4C6D0">In full up to the size limit</div></div><span style="font-family: 'Roboto Mono', monospace">1 GB</span></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">PLACES, COMPACT</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="border-radius: 16px; background: #1D1F26; padding: 10px 12px"><div style="font-size: 12px; color: #C4C6D0">This system</div><div style="font-size: 18px; font-weight: 700">7 backups</div><div style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0">61.99 GB</div></div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 10px 12px"><div style="font-size: 12px; color: #C4C6D0">Google Drive</div><div style="font-size: 18px; font-weight: 700">17 backups</div><div style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0">149.84 GB</div></div>
+</div>
+<div style="border-radius: 12px; background: #3A2E12; color: #FFDF9E; padding: 10px 12px; font-size: 13px">Building the archive reports no numbers today, so those stages show a state and a time only. Uploads report bytes.</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
