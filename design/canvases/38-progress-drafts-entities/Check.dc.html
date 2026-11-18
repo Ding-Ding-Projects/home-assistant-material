@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recording check and updating in the right order</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 1040px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Two small things that were built before they were drawn. Left and middle: a camera's "Recording check" on the camera recording page. Right: the Updates page when the Supervisor has to go first, and after the build is installed.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Recording check, all well" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px"><span style="width: 44px; height: 44px; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></span><span style="flex: 1; font-size: 20px; font-weight: 700">Camera recording</span></div>
+<div style="padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #5A4514; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Front Door doorbell</div><div style="font-size: 12px; color: #C4C6D0">Streams through its service · Events</div></div><span style="height: 28px; padding: 0 10px; border-radius: 14px; background: #1F4A44; color: #7FD6C8; display: flex; align-items: center; font-size: 12px; font-weight: 700">Ready</span></div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding-top: 4px">RECORDING CHECK</div>
+<div style="min-height: 44px; display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7FD6C8; flex: none"></span><span style="flex: 1">Video helper is set up</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7FD6C8; flex: none"></span><span style="flex: 1">Last event heard</span><span style="font-size: 13px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">09:35</span> · doorbell</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7FD6C8; flex: none"></span><span style="flex: 1">Last clip</span><span style="font-size: 13px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">09:35</span> · recorded here · 0:40</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #8E9099; flex: none"></span><span style="flex: 1">Last problem</span><span style="font-size: 13px; color: #C4C6D0">None today</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7FD6C8; flex: none"></span><span style="flex: 1">Clips left this hour</span><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF">11 of 12</span></div>
+<span style="height: 44px; border-radius: 22px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: grid; place-items: center; font-weight: 700; margin-top: 4px">Record a 10 second test clip now</span>
+<div style="font-size: 12px; color: #C4C6D0">Uses one live view from the camera service. Kept for 14 days.</div>
+</div>
+</div>
+</section>
+
+<section aria-label="Recording check, problems in plain words" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">WHEN SOMETHING IS WRONG</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #5A4514; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Front Door doorbell</div><div style="font-size: 12px; color: #C4C6D0">Streams through its service · Events</div></div><span style="height: 28px; padding: 0 10px; border-radius: 14px; background: #3A2E12; color: #FFDF9E; display: flex; align-items: center; font-size: 12px; font-weight: 700">Waiting</span></div>
+<div style="min-height: 44px; display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFDF9E; flex: none"></span><div style="flex: 1"><div>Last problem</div><div style="font-size: 12px; color: #FFDF9E">05:55 · The camera service refused the video (too many requests).</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFDF9E; flex: none"></span><span style="flex: 1">Trying again in</span><span style="font-family: 'Roboto Mono', monospace; color: #FFDF9E">1:42</span></div>
+<span style="height: 44px; border-radius: 22px; background: #262933; color: #6F727B; display: grid; place-items: center; font-weight: 700">Test clip after the wait</span>
+</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFB4AB; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Video helper is not set up</div><div style="font-size: 13px; color: #C4C6D0">Live video around events needs it. Clips the camera service keeps are still copied in.</div></div></div>
+<span style="height: 44px; border-radius: 22px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Set it up</span>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">A TEST CLIP, WHILE IT RUNS AND AFTER</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between"><span>Recording a test clip</span><span style="font-family: 'Roboto Mono', monospace; color: #C4C6D0">0:06 of 0:10</span></div>
+<div style="height: 6px; border-radius: 3px; background: #262933; overflow: hidden"><div style="height: 100%; width: 60%; background: #7FD6C8"></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7FD6C8; flex: none"></span><span style="flex: 1">Test clip saved · 0:10 · 290 KB</span><span style="color: #B4C5FF; font-weight: 700; min-height: 44px; display: flex; align-items: center">Play</span></div>
+</div>
+</section>
+
+<section aria-label="Updates: the right order, and after installing" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">UPDATES · SUPERVISOR GOES FIRST</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #1F3A5C; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Supervisor</div><div style="font-size: 12px; color: #C4C6D0; font-family: 'Roboto Mono', monospace">524 → 525</div></div><span style="height: 40px; padding: 0 14px; border-radius: 20px; background: #152E66; color: #B4C5FF; display: flex; align-items: center; font-weight: 700">Update</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #1F3A5C; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Core</div><div style="font-size: 12px; color: #C4C6D0; font-family: 'Roboto Mono', monospace">524 → 525</div><div style="font-size: 12px; color: #FFDF9E">Needs the Supervisor update first</div></div><span style="height: 40px; padding: 0 12px; border-radius: 20px; background: #B4C5FF; color: #152E66; display: flex; align-items: center; font-weight: 700; font-size: 13px">Update both</span></div>
+</div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 4px">"Update both" runs the Supervisor, then Core, in the queue. The notes link on each row opens the build on offer.</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">AFTER THE BUILD IS INSTALLED</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px"><div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7FD6C8; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">You have build 525</div><div style="font-size: 12px; color: #C4C6D0">Nothing to install.</div></div><span style="color: #B4C5FF; font-weight: 700; min-height: 44px; display: flex; align-items: center">What's new</span></div></div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">A PAGE OPENED IN THE MIDDLE OF AN UPDATE</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between"><span style="font-weight: 600">Core · installing</span><span style="font-family: 'Roboto Mono', monospace; color: #C4C6D0">82%</span></div>
+<div style="height: 6px; border-radius: 3px; background: #262933; overflow: hidden"><div style="height: 100%; width: 82%; background: #B4C5FF"></div></div>
+<div style="font-size: 12px; color: #C4C6D0">Started <span style="font-family: 'Roboto Mono', monospace">13:42</span> · Running for <span style="font-family: 'Roboto Mono', monospace">1:31</span> · Backup done</div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">RULES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>The check says each fact in one row, with its time. A problem is one plain line, never a code.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>A test clip is offered only when it can run; while the service is making the home wait, the button says so.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>A row never offers an update that would be refused. It offers the order that works.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>Any page shows the same start time for a running update, and says a backup was made only when one was.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">5</span><span>Once a build is installed its card is one quiet row with What's new. That button is always there.</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
