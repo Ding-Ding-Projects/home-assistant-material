@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Keep what is watched: live views and snapshots</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 980px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Asked for by the owner: record every time a live view or a snapshot is triggered, so nothing is lost. Whatever the camera was asked to show is kept, whoever or whatever asked.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Live view being kept" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="display: grid; place-items: center; padding-top: 8px"><span style="width: 32px; height: 4px; border-radius: 2px; background: #44474F"></span></div>
+<div style="padding: 8px 12px 8px 16px; display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #5A4514; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-size: 12px; color: #C4C6D0">Front Door</div><div style="font-size: 18px; font-weight: 700">Front Door doorbell</div></div><span style="height: 28px; padding: 0 10px; border-radius: 14px; background: #7A1F1A; color: #FFDAD6; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFB4AB"></span>Live</span></div>
+<div style="margin: 0 12px; aspect-ratio: 16 / 9; border-radius: 16px; background: linear-gradient(160deg, #2C3440, #14161B); position: relative"><span style="position: absolute; left: 8px; top: 8px; height: 26px; padding: 0 10px; border-radius: 13px; background: rgba(12,13,16,.7); display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FF5449"></span>Keeping this · <span style="font-family: 'Roboto Mono', monospace">0:24</span></span><span style="position: absolute; right: 8px; bottom: 6px; width: 40px; height: 40px; border-radius: 50%; background: rgba(12,13,16,.6); display: grid; place-items: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E3E2E9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="12" cy="12.5" r="3.2"/><path d="M8 6l1.5-2h5L16 6"/></svg></span></div>
+<div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; color: #C4C6D0">This live view is being kept while it is open. One live view from the camera service is used for watching and keeping.</div>
+<div style="font-weight: 600">Today</div>
+<div style="height: 28px; border-radius: 8px; background: #14161B; position: relative"><span style="position: absolute; left: 24.6%; width: 1.2%; min-width: 5px; top: 0; bottom: 0; background: #2E6B63; border-radius: 3px"></span><span style="position: absolute; left: 33%; width: 2.2%; min-width: 5px; top: 0; bottom: 0; background: #33507F; border-radius: 3px"></span><span style="position: absolute; left: 39.9%; width: 1.2%; min-width: 5px; top: 0; bottom: 0; background: #2E6B63; border-radius: 3px"></span><span style="position: absolute; left: 44%; top: 6px; width: 6px; height: 16px; border-radius: 3px; background: #D5BBFF"></span><span style="position: absolute; left: 46.4%; width: 0.8%; min-width: 5px; top: 0; bottom: 0; background: #33507F; border-radius: 3px"></span><span style="position: absolute; left: 47%; top: -4px; bottom: -4px; width: 2px; background: #FFB4AB"></span></div>
+<div style="display: flex; gap: 12px; font-size: 12px; color: #C4C6D0; flex-wrap: wrap"><span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #2E6B63"></span>Event</span><span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #33507F"></span>Live view</span><span style="display: flex; align-items: center; gap: 6px"><span style="width: 6px; height: 12px; border-radius: 3px; background: #D5BBFF"></span>Snapshot</span></div>
+</div>
+</section>
+
+<section aria-label="What was kept" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">TODAY, IN THE LIST</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #22324F; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B4C5FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Live view</div><div style="font-size: 12px; color: #C4C6D0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span style="font-family: 'Roboto Mono', monospace">11:08</span> · 1:12 · opened on a phone</div></div><span style="height: 40px; padding: 0 14px; border-radius: 20px; background: #152E66; color: #B4C5FF; display: flex; align-items: center; gap: 6px; font-weight: 700"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="#B4C5FF"><path d="M6 4l14 8-14 8z"/></svg>Play</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #3B2A5C; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D5BBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="12" cy="12.5" r="3.2"/><path d="M8 6l1.5-2h5L16 6"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Snapshot</div><div style="font-size: 12px; color: #C4C6D0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span style="font-family: 'Roboto Mono', monospace">10:34</span> · by an automation · 212 KB</div></div><span style="height: 40px; padding: 0 14px; border-radius: 20px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: flex; align-items: center; font-weight: 700">Picture</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #22324F; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B4C5FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Live view</div><div style="font-size: 12px; color: #C4C6D0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span style="font-family: 'Roboto Mono', monospace">07:55</span> · 0:31 · on the wall tablet</div></div><span style="height: 40px; padding: 0 14px; border-radius: 20px; background: #152E66; color: #B4C5FF; display: flex; align-items: center; gap: 6px; font-weight: 700"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="#B4C5FF"><path d="M6 4l14 8-14 8z"/></svg>Play</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #262933; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Live view</div><div style="font-size: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">06:12</span> · not kept</div><div style="font-size: 12px; color: #FFDF9E">The camera service refused the video (too many requests).</div></div></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">FILTER CHIPS ABOVE THE LIST</div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap">
+<span style="height: 36px; padding: 0 12px; border-radius: 18px; background: #262933; display: flex; align-items: center; font-weight: 600">All</span>
+<span style="height: 36px; padding: 0 12px; border-radius: 18px; box-shadow: inset 0 0 0 1px #2A2D36; display: flex; align-items: center">Events</span>
+<span style="height: 36px; padding: 0 12px; border-radius: 18px; box-shadow: inset 0 0 0 1px #2A2D36; display: flex; align-items: center">Live views</span>
+<span style="height: 36px; padding: 0 12px; border-radius: 18px; box-shadow: inset 0 0 0 1px #2A2D36; display: flex; align-items: center">Snapshots</span>
+</div>
+</section>
+
+<section aria-label="Settings and rules" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">CAMERA RECORDING · THIS CAMERA</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-weight: 600">Start live video when it is on screen</div><div style="font-size: 12px; color: #C4C6D0">On a dashboard or a sheet, with no tap</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; position: relative; flex: none"><span style="position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-weight: 600">Keep every live view</div><div style="font-size: 12px; color: #C4C6D0">Recorded for as long as it is open</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; position: relative; flex: none"><span style="position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><div style="flex: 1"><div style="font-weight: 600">Keep every snapshot</div><div style="font-size: 12px; color: #C4C6D0">Taken by a person, a dashboard or an automation</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; position: relative; flex: none"><span style="position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>Longest live view kept</span><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF">10 min</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>Snapshots that repeat</span><span style="font-size: 13px; color: #C4C6D0">one a minute at most</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; justify-content: space-between"><span>Kept today</span><span style="font-size: 13px; color: #C4C6D0">4 live views · 9 snapshots · 61 MB</span></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">RULES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>Both switches are on by default. Anything the camera is asked to show is kept: by a person, a dashboard, another device or an automation.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>Keeping a live view never costs a second live view from the camera service: the same one is watched and kept.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>While a live view is being kept, the picture says so. Nothing is recorded silently.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>A dashboard picture that refreshes all day would fill the disk: repeating snapshots are kept once a minute at most, and only when the picture changed.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">5</span><span>If it cannot be kept, its row says why. It is never left out of the list.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">6</span><span>A camera already recorded all day keeps nothing twice: the row points at the recording.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">7</span><span>Live video starts by itself whenever the camera is on screen, and stops soon after it leaves the screen. Every moment it can be seen is kept.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">8</span><span>When the camera service says "too many requests", the picture shows the wait and the last picture, and live video starts again by itself when the wait is over.</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
