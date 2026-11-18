@@ -61,6 +61,21 @@ export const entityYueKey = (key: string): string | undefined => {
   return mapped;
 };
 
+// Integration keys: `component.<platform>.entity.<domain>.<translation key>.state.<state>`
+// (and `.state_attributes.<attribute>.state.<value>`). Integrations often word
+// a state as the generic entity component does ("Off"), so the generic key
+// answers for them, but only when it says exactly the same English text.
+const INTEGRATION_KEY =
+  /^component\.[^.]+\.entity\.([^.]+)\.[^.]+\.((?:state\.|state_attributes\.[^.]+\.state\.).+)$/;
+
+/** The generic entity component key that an integration key may share words with. */
+export const genericEntityKey = (key: string): string | undefined => {
+  const match = INTEGRATION_KEY.exec(key);
+  return match
+    ? `component.${match[1]}.entity_component._.${match[2]}`
+    : undefined;
+};
+
 // The stored mode is read from browser storage, which is far too slow to do
 // for every row of every list. The answer is kept for a moment, and callers
 // that know the mode changed (see `refreshEntityLanguageMode`) drop it.
@@ -118,7 +133,16 @@ export const createEntityModeLocalize = (
     if (known !== undefined) {
       return known;
     }
-    const yueKey = entityYueKey(key);
+    let yueKey = entityYueKey(key);
+    if (yueKey === undefined) {
+      const generic = genericEntityKey(key);
+      if (
+        generic !== undefined &&
+        (localize as (...args: unknown[]) => string)(generic) === english
+      ) {
+        yueKey = entityYueKey(generic);
+      }
+    }
     const yue = yueKey === undefined ? undefined : yueString(yueKey);
     const text =
       yue === undefined

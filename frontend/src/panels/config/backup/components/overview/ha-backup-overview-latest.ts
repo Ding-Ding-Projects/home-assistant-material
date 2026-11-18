@@ -194,6 +194,9 @@ class HaBackupOverviewLatest extends LitElement {
     return [
       haStyle,
       css`
+        .foot ha-button {
+          --ha-button-height: 44px;
+        }
         .card {
           box-sizing: border-box;
           padding: var(--ha-space-5) var(--ha-space-6);

@@ -8904,6 +8904,47 @@
         }
       }
     },
+    "group": {
+      "_": {
+        "state": {
+          "closed": "閂咗",
+          "home": "喺屋企",
+          "locked": "鎖咗",
+          "not_home": "唔喺屋企",
+          "off": "關",
+          "ok": "正常",
+          "on": "開",
+          "open": "打開",
+          "problem": "有問題",
+          "unlocked": "冇鎖"
+        }
+      }
+    },
+    "schedule": {
+      "_": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        }
+      }
+    },
+    "calendar": {
+      "_": {
+        "state": {
+          "off": "關",
+          "on": "開"
+        }
+      }
+    },
+    "camera": {
+      "_": {
+        "state": {
+          "idle": "閒置",
+          "recording": "錄影中",
+          "streaming": "串流中"
+        }
+      }
+    },
     "default": {
       "unavailable": "用唔到",
       "unknown": "未知"

@@ -302,8 +302,44 @@ export class HaUpdateComingSoon extends LitElement {
                 </div>`
               : nothing
         }
+        ${this._renderInstalledNotes(snapshot)}
         <p class="privacy">${this._t(`${DATA_PREFIX}.privacy`)}</p>
       </section>
+    `;
+  }
+
+  // The notes of the installed build stay one tap away when the card above
+  // does not carry them: no build list could be read, or a newer build is
+  // being made. The card for an installed build has its own button.
+  private _renderInstalledNotes(
+    snapshot: BuildSnapshot | undefined
+  ): TemplateResult | typeof nothing {
+    const installed = parseBuildNumber(this.hass.config.version);
+    if (!installed) {
+      return nothing;
+    }
+    if (snapshot && snapshot.choice.kind !== "none") {
+      const { run } = snapshot.choice;
+      const stages = buildStages(snapshot.jobs, run, this._now);
+      if (this._cardState(snapshot, stages) === "have") {
+        return nothing;
+      }
+    }
+    return html`
+      <div class="installed-notes">
+        <span class="installed-text"
+          >${this._t(`${PREFIX}.have_title`, { build: installed })}</span
+        >
+        <ha-button
+          appearance="plain"
+          size="small"
+          href=${notesPageUrl(installed)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          ${this._t("ui.panel.config.updates.whats_new", { build: installed })}
+        </ha-button>
+      </div>
     `;
   }
 
@@ -1311,6 +1347,18 @@ export class HaUpdateComingSoon extends LitElement {
           background: var(--secondary-background-color);
           font-size: var(--ha-font-size-s);
           font-weight: var(--ha-font-weight-bold);
+        }
+        .installed-notes {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ha-space-2);
+          padding-inline: var(--ha-space-2);
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+        .installed-text {
+          min-width: 0;
         }
         .privacy {
           padding-inline: var(--ha-space-2);

@@ -60,6 +60,12 @@ const DOMAINS = [
   "button",
 ];
 
+/**
+ * Domains whose state words are in the table. Their attribute names are not,
+ * because they are rare technical names that are not shown on the usual pages.
+ */
+const STATE_ONLY_DOMAINS = ["group", "schedule", "calendar", "camera"];
+
 /** Domains with no state words or attribute names in the backend. */
 const NO_BACKEND_WORDS: Record<string, string> = {
   scene: "its state is the time it was last activated, shown as a date",
@@ -111,7 +117,8 @@ const loadBackendWords = (): Record<string, string> => {
     return follow(target);
   };
   const words: Record<string, string> = {};
-  for (const domain of DOMAINS) {
+  for (const domain of [...DOMAINS, ...STATE_ONLY_DOMAINS]) {
+    const stateOnly = STATE_ONLY_DOMAINS.includes(domain);
     const file = resolve(CORE, domain, "strings.json");
     if (!existsSync(file)) {
       continue;
@@ -123,6 +130,9 @@ const loadBackendWords = (): Record<string, string> => {
     )) {
       for (const [state, text] of Object.entries<string>(entry.state ?? {})) {
         words[`${base}.${deviceClass}.state.${state}`] = follow(text);
+      }
+      if (stateOnly) {
+        continue;
       }
       for (const [name, attribute] of Object.entries<any>(
         entry.state_attributes ?? {}
@@ -254,6 +264,24 @@ const withMode = (mode: LanguageMode) =>
   createEntityModeLocalize(localize, () => mode);
 
 describe("createEntityModeLocalize", () => {
+  it("answers an integration key with the generic Cantonese word only when the English text matches", () => {
+    const keyed: Record<string, string> = {
+      ...baseLocalize,
+      "component.demo.entity.light.x.state.off": "Off",
+      "component.demo.entity.light.x.state.on": "Bright",
+    };
+    const wrapped = createEntityModeLocalize(
+      ((key: string) => keyed[key] ?? "") as LocalizeFunc,
+      () => "cantonese"
+    );
+    expect(wrapped("component.demo.entity.light.x.state.off" as any)).toBe(
+      "關"
+    );
+    expect(wrapped("component.demo.entity.light.x.state.on" as any)).toBe(
+      "Bright"
+    );
+  });
+
   it("returns exactly the original text in English", () => {
     const english = withMode("english");
     Object.keys(baseLocalize).forEach((key) =>
