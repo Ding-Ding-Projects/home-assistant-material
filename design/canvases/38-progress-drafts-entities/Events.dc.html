@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Camera events: clip saved, being saved, not kept</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 1040px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">The lower half of a doorbell's detail sheet on a phone. A row offers Play only when a clip is really saved. Everything else says what happened instead.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Events with clips" style="width: 100%; max-width: 390px; border-radius: 28px; background: #1D1F26; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="padding: 12px 12px 8px; display: flex; align-items: center; gap: 8px"><span style="flex: 1; font-weight: 600">Today</span><div style="height: 36px; border-radius: 10px; background: #14161B; padding: 3px; box-sizing: border-box; display: grid; grid-template-columns: repeat(3, auto); gap: 3px"><div style="padding: 0 10px; border-radius: 7px; display: grid; place-items: center; font-size: 13px">1 h</div><div style="padding: 0 10px; border-radius: 7px; display: grid; place-items: center; font-size: 13px">6 h</div><div style="padding: 0 10px; border-radius: 7px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-size: 13px; font-weight: 700">24 h</div></div></div>
+<div style="padding: 0 12px"><div style="height: 28px; border-radius: 8px; background: #14161B; position: relative"><span style="position: absolute; left: 24.6%; width: 1.2%; min-width: 5px; top: 0; bottom: 0; background: #2E6B63; border-radius: 3px"></span><span style="position: absolute; left: 39.9%; width: 1.2%; min-width: 5px; top: 0; bottom: 0; background: #2E6B63; border-radius: 3px"></span><span style="position: absolute; left: 45.6%; width: 1%; min-width: 5px; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, #7A3A33 0 3px, #14161B 3px 6px); border-radius: 3px"></span><span style="position: absolute; left: 47%; top: -4px; bottom: -4px; width: 2px; background: #FFB4AB"></span></div>
+<div style="display: flex; justify-content: space-between; font-family: 'Roboto Mono', monospace; font-size: 11px; color: #C4C6D0; padding-top: 4px"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div></div>
+<div style="margin: 10px 12px 4px; border-radius: 12px; background: #14161B; padding: 8px 12px; display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7FD6C8; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-size: 13px; font-weight: 600">Recording around events</div><div style="font-size: 12px; color: #C4C6D0">This camera streams only through its service, so the home keeps a clip each time something is seen. 3 kept today, 41 MB.</div></div><span style="color: #B4C5FF; font-weight: 700; font-size: 13px; flex: none">Change</span></div>
+<div style="padding: 4px 12px 12px; display: flex; flex-direction: column">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #3B2A5C; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D5BBFF" stroke-width="2"><rect x="7" y="3" width="10" height="18" rx="2"/><circle cx="12" cy="13" r="1.4" fill="#D5BBFF"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Doorbell pressed</div><div style="font-size: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">09:35</span> · clip 0:42 · 14 MB</div></div><span style="height: 40px; padding: 0 14px; border-radius: 20px; background: #152E66; color: #B4C5FF; display: flex; align-items: center; gap: 6px; font-weight: 700"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="#B4C5FF"><path d="M6 4l14 8-14 8z"/></svg>Play</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #1F4A44; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7FD6C8" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="6" r="2.4"/><path d="M12 9v6M8 21l4-6 4 6M7 12h10"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Person seen</div><div style="font-size: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">09:34</span> · saving the clip, 0:18 so far</div><div style="height: 4px; border-radius: 2px; background: #262933; margin-top: 4px; overflow: hidden"><div style="height: 100%; width: 45%; background: #7FD6C8"></div></div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #262933; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E9099" stroke-width="2" stroke-linecap="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M4 4l16 16"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Motion</div><div style="font-size: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">05:55</span> · no clip kept</div><div style="font-size: 12px; color: #FFDF9E">The camera service refused the video (too many requests).</div></div><span style="color: #B4C5FF; font-weight: 700; font-size: 13px; flex: none; min-height: 44px; display: flex; align-items: center">Why</span></div>
+</div>
+</section>
+
+<section aria-label="Before recording was on, and the reasons" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">WHEN NOTHING IS BEING KEPT</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFDF9E; flex: none"></span><div style="flex: 1"><div style="font-weight: 700">This camera is not being recorded</div><div style="font-size: 13px; color: #C4C6D0">Events are listed, but no video is kept for them yet.</div></div></div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 44px; border-radius: 22px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Keep a clip for each event</span></div>
+<div style="font-size: 12px; color: #C4C6D0">Uses the camera's live video for about 40 seconds per event. Nothing leaves the home.</div>
+</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #262933; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Motion</div><div style="font-size: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">05:55</span> · no clip kept · recording was off</div></div></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">THE REASONS A CLIP CAN BE MISSING, IN PLAIN WORDS</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px; font-size: 13px">
+<div style="min-height: 44px; display: flex; align-items: center">Recording was off for this camera.</div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center">The camera service refused the video (too many requests).</div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center">The camera did not answer in time.</div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center">The camera's video is a kind the home cannot save yet.</div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center">The storage place was full or could not be reached.</div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center">The clip was removed to make room (kept for 14 days).</div>
+</div>
+</section>
+
+<section aria-label="Rules" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">CAMERA RECORDING · THIS CAMERA</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 36px; height: 36px; border-radius: 50%; background: #5A4514; flex: none"></span><div style="flex: 1"><div style="font-weight: 600">Front Door doorbell</div><div style="font-size: 12px; color: #C4C6D0">Streams through its service</div></div></div>
+<div style="height: 44px; border-radius: 12px; background: #14161B; padding: 4px; box-sizing: border-box; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px"><div style="border-radius: 8px; display: grid; place-items: center; font-weight: 600; color: #6F727B">All day</div><div style="border-radius: 8px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Events</div><div style="border-radius: 8px; display: grid; place-items: center; font-weight: 600">Off</div></div>
+<div style="font-size: 13px; color: #C4C6D0">All day is not offered for this camera: its service allows only short live views. A clip is kept for each event instead.</div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between"><span>Clip length</span><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF">0:40</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between"><span>Last clip</span><span style="font-size: 13px; color: #C4C6D0">09:35 · saved</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 44px; display: flex; align-items: center; justify-content: space-between"><span>Last problem</span><span style="font-size: 13px; color: #FFDF9E">05:55 · refused</span></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 8px 4px 0">RULES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>Play appears only when a clip is on disk. Never a button that leads to "no recording".</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>A missing clip says why, in one line, on its own row.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>The timeline marks what is kept, and hatches an event whose clip is missing.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>A camera that streams only through its service is recorded around events by the home itself. Its sign-in never leaves the part that already holds it.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">5</span><span>One live view at a time per camera, shared; after a refusal nothing asks again until the wait is over.</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
