@@ -222,6 +222,9 @@
             }
           },
           "tabs": {
+            "action_history": {
+              "search": "搜尋動作記錄"
+            },
             "converter": {
               "error_image_timeout": "圖片處理等候太耐。請試用較細嘅圖片或另一個瀏覽器。"
             }
@@ -1376,6 +1379,7 @@
             },
             "title": "備份開唔開得",
             "check_failed": "檢查無法執行。",
+            "checking_new": "檢查緊新備份…",
             "open_backup": "打開呢個備份",
             "status": {
               "passed": "通過",
@@ -1647,6 +1651,7 @@
             "preset_none_help": "你自己做備份",
             "preset_custom": "自訂",
             "preset_custom_help": "喺下面逐項設定",
+            "custom_same_as": "喺你改動某一項之前，同「{preset}」一樣。",
             "kinds_title": "逐類睇係咩意思",
             "kinds_hint": "㩒一類就可以自己設定，上面嘅選擇之後會顯示「自訂」。",
             "kind_core": "Home Assistant Core",
@@ -1811,6 +1816,8 @@
             "dismiss": "閂咗佢",
             "waiting_for": "等緊 {name} 完成",
             "waiting_queue": "等緊整個更新隊列完成",
+            "supervisor_first": "先更新 Supervisor",
+            "supervisor_first_hint": "要先更新 Supervisor 先可以更新 Core。呢個會先更新 Supervisor，再更新 Core。",
             "announce_start": "更新緊 {name}",
             "announce_done": "{name} 已更新",
             "announce_failed": "{name} 更新唔成功",
@@ -1933,6 +1940,7 @@
             "have_title": "你已經有第 {build} 版建置",
             "have_rest": "呢個建置其餘嘅部分，例如作業系統映像，仲喺度製作。冇嘢需要安裝，亦唔使做任何嘢。",
             "have_done": "呢個建置已經完成，而你已經有咗。冇嘢需要安裝。",
+            "have_quiet": "冇嘢需要安裝。",
             "ring_jobs": "{total} 個工作，完成 {done} 個",
             "ring_valuetext": "百分之 {percent}，{total} 個工作完成咗 {done} 個，{running} 個運行緊",
             "ring_valuetext_failed": "停喺 {total} 個工作之中嘅第 {done} 個，{failed} 個失敗",

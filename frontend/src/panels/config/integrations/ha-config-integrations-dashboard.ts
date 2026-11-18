@@ -5,6 +5,7 @@ import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { fuseSearch } from "../../../resources/fuseMultiTerm";
 import { consume } from "../../../common/decorators/consume";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
@@ -558,7 +559,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         .searchValue=${this._filter}
         .searchCountText=${
           this._filter
-            ? this.hass.localize("ui.components.top_bar_search.count", {
+            ? searchCountText(this.hass.localize, {
                 current: shownIntegrations.length,
                 total: totalIntegrations,
               })

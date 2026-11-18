@@ -9,6 +9,7 @@ import {
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { formatDateTime } from "../../../common/datetime/format_date_time";
 import type {
   ConsentStatus,
@@ -144,7 +145,7 @@ class HaConfigExtensions extends LitElement {
         .searchValue=${this._filter}
         .searchCountText=${
           this._filter
-            ? this.hass.localize("ui.components.top_bar_search.count", {
+            ? searchCountText(this.hass.localize, {
                 current: this._matchCount(resources, panels),
                 total: resources.length + panels.length,
               })

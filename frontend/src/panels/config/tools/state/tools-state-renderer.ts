@@ -387,6 +387,10 @@ class HaPanelDevStateRenderer extends LitElement {
           background-color: var(--card-background-color);
         }
 
+        .filters .header.filter-entities {
+          background: none;
+        }
+
         .cell .secondary {
           color: var(--secondary-text-color);
           font-size: var(--ha-font-size-s);

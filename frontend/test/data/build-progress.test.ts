@@ -6,6 +6,7 @@ import type {
 } from "../../src/data/build-progress";
 import {
   alreadyInstalled,
+  buildCardLook,
   buildRelation,
   buildStages,
   chooseRun,
@@ -445,5 +446,30 @@ describe("buildRelation", () => {
     expect(alreadyInstalled("older")).toBe(true);
     expect(alreadyInstalled("newer")).toBe(false);
     expect(alreadyInstalled("unknown")).toBe(false);
+  });
+});
+
+describe("buildCardLook for a build the reader already has", () => {
+  const stage = (state: StageSummary["state"]): StageSummary =>
+    ({ id: "images", state, jobs: [] }) as unknown as StageSummary;
+
+  it("shows no progress when the installed build is the tracked build", () => {
+    // Build 523 is installed and its operating system images are still being made.
+    expect(buildCardLook("active", "same", [stage("running")])).toBe("have");
+    expect(buildCardLook("active", "older", [stage("running")])).toBe("have");
+  });
+
+  it("never turns an image failure of an installed build into an error", () => {
+    expect(buildCardLook("active", "same", [stage("failed")])).toBe("have");
+    expect(buildCardLook("failed", "same", [])).toBe("have");
+    expect(buildCardLook("ready", "same", [])).toBe("have");
+  });
+
+  it("still follows a newer build", () => {
+    expect(buildCardLook("active", "newer", [stage("running")])).toBe("active");
+    expect(buildCardLook("active", "newer", [stage("failed")])).toBe("failed");
+    expect(buildCardLook("ready", "newer", [])).toBe("ready");
+    expect(buildCardLook("none", "same", [])).toBe("none");
+    expect(buildCardLook("waiting", "unknown", [])).toBe("waiting");
   });
 });

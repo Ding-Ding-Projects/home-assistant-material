@@ -4,6 +4,7 @@ import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { searchCountText } from "../../../../components/ha-top-bar-search";
 import { isComponentLoaded } from "../../../../common/config/is_component_loaded";
 import { formatShortDateTimeWithSeconds } from "../../../../common/datetime/format_date_time";
 import type { HASSDomEvent } from "../../../../common/dom/fire_event";
@@ -27,6 +28,7 @@ import type { TraceContexts } from "../../../../data/trace";
 import { loadTraceContexts } from "../../../../data/trace";
 import { fetchUsers } from "../../../../data/user";
 import { haStyle } from "../../../../resources/styles";
+import { modeText } from "../../../../common/language-mode/language-mode";
 import { reportToolsSearch } from "../tools-search";
 import type { FrontendLocaleData } from "../../../../data/translation";
 import type { HomeAssistant } from "../../../../types";
@@ -384,12 +386,13 @@ ${this.hass.language}`;
     reportToolsSearch(this, {
       panel: "action-history",
       searchable: true,
-      label: this.hass.localize(
+      label: modeText(
+        this.hass.localize,
         "ui.panel.config.tools.tabs.action_history.search"
       ),
       value: this._filter,
       countText: searching
-        ? this.hass.localize("ui.components.top_bar_search.count", {
+        ? searchCountText(this.hass.localize, {
             current: shown,
             total: rows.length,
           })

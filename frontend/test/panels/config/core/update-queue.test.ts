@@ -11,6 +11,7 @@ import {
   parseStoredQueue,
   queueProgress,
   stepReached,
+  supervisorUpdateFirst,
   updateBlockReason,
   updateRole,
 } from "../../../../src/panels/config/core/updates/update-queue";
@@ -62,6 +63,56 @@ describe("updateRole", () => {
     expect(
       updateRole(entity("update.my_core", { title: "Home Assistant Core" }))
     ).toBe("core");
+  });
+});
+
+// Core is refused by the Supervisor while a newer Supervisor is on offer, so
+// the page has to know beforehand and offer the Supervisor first.
+describe("supervisorUpdateFirst", () => {
+  it("names the Supervisor update that Core has to wait for", () => {
+    expect(
+      supervisorUpdateFirst(core(), [core(), supervisor()])?.entity_id
+    ).toBe("update.home_assistant_supervisor_update");
+  });
+
+  it("says nothing when the Supervisor is current, running or skipped", () => {
+    expect(supervisorUpdateFirst(core(), [core()])).toBeUndefined();
+    expect(
+      supervisorUpdateFirst(core(), [
+        core(),
+        entity("update.home_assistant_supervisor_update", {}, "off"),
+      ])
+    ).toBeUndefined();
+    expect(
+      supervisorUpdateFirst(core(), [
+        core(),
+        entity("update.home_assistant_supervisor_update", {
+          in_progress: true,
+        }),
+      ])
+    ).toBeUndefined();
+    expect(
+      supervisorUpdateFirst(core(), [
+        core(),
+        entity("update.home_assistant_supervisor_update", {
+          skipped_version: "2",
+        }),
+      ])
+    ).toBeUndefined();
+  });
+
+  it("applies to Core only", () => {
+    expect(supervisorUpdateFirst(app("a"), [app("a"), supervisor()])).toBe(
+      undefined
+    );
+    expect(supervisorUpdateFirst(os(), [os(), supervisor()])).toBeUndefined();
+  });
+
+  it("puts the Supervisor before Core in the queue it starts", () => {
+    expect(ids(orderUpdateQueue([core(), supervisor()]))).toEqual([
+      "update.home_assistant_supervisor_update",
+      "update.home_assistant_core_update",
+    ]);
   });
 });
 

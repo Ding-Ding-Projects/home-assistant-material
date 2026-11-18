@@ -11,6 +11,7 @@ import { formatShortDateTime } from "../../../../common/datetime/format_date_tim
 import { fireEvent } from "../../../../common/dom/fire_event";
 import { modeText } from "../../../../common/language-mode/language-mode";
 import "../../../../components/ha-button";
+import "../../../../components/ha-spinner";
 import "../../../../components/ha-svg-icon";
 import type {
   BackupContent,
@@ -51,6 +52,9 @@ class HaBackupSelfCheck extends LitElement {
   @property({ attribute: "variant" }) public variant: "overview" | "details" =
     "details";
 
+  /** A self-check of a new backup is running: the shown result is about to change. */
+  @property({ type: Boolean }) public checking = false;
+
   @state() private _checking = false;
 
   @state() private _error = false;
@@ -71,6 +75,16 @@ class HaBackupSelfCheck extends LitElement {
   }
 
   protected render() {
+    if (this.checking && this.variant === "overview") {
+      return html`<section class="card checking" role="status">
+        <div class="head">
+          <ha-spinner size="small"></ha-spinner>
+          <div class="titles">
+            <h3>${this._t("checking_new")}</h3>
+          </div>
+        </div>
+      </section>`;
+    }
     const selfCheck = this.backup?.self_check;
     const summary = summarizeSelfCheck(selfCheck);
     if (!this.backup || !selfCheck || !summary) {
@@ -229,6 +243,9 @@ class HaBackupSelfCheck extends LitElement {
           display: flex;
           gap: var(--ha-space-3);
           align-items: flex-start;
+        }
+        .head > ha-spinner {
+          flex: none;
         }
         .head > ha-svg-icon {
           flex: none;

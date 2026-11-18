@@ -20,6 +20,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { ifDefined } from "lit/directives/if-defined";
 import memoizeOne from "memoize-one";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { supportsFeature } from "../../../common/entity/supports-feature";
@@ -49,7 +50,10 @@ import {
 } from "../../../data/auto-update";
 import type { ManagerState } from "../../../data/backup_manager";
 import { subscribeBackupEvents } from "../../../data/backup_manager";
-import { notesPageUrlForVersion } from "../../../data/build-notes";
+import {
+  notesPageUrlForVersion,
+  offeredNotesUrl,
+} from "../../../data/build-notes";
 import { extractApiErrorMessage } from "../../../data/hassio/common";
 import type {
   HassioSupervisorInfo,
@@ -115,6 +119,7 @@ import { makeProgressText } from "./updates/update-progress-strings";
 import { UpdateQueueController } from "./updates/update-queue-controller";
 import {
   orderUpdateQueue,
+  supervisorUpdateFirst,
   updateBlockReason,
   updateRole,
 } from "./updates/update-queue";
@@ -243,7 +248,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     if (!search?.available || this._changesQuery.trim() === "") {
       return undefined;
     }
-    return this.hass.localize("ui.components.top_bar_search.count", {
+    return searchCountText(this.hass.localize, {
       current: search.shown,
       total: search.total,
     });
@@ -672,13 +677,25 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     const system = isSystemUpdate(entity);
     // Core, Supervisor and the operating system open their page on the
     // public updates log; everything else keeps the link its author gave.
-    const notesUrl =
-      (system ? notesPageUrlForVersion(latest) : undefined) ||
-      entity.attributes.release_url;
+    const notesUrl = offeredNotesUrl(
+      system,
+      latest,
+      entity.attributes.release_url
+    );
     const hasNotes =
       !!notesUrl || supportsFeature(entity, UpdateEntityFeature.RELEASE_NOTES);
     const showNotes =
       variant === "install" || variant === "manual" || variant === "current";
+    const supervisorFirst =
+      variant === "install"
+        ? supervisorUpdateFirst(
+            entity,
+            this._filterInstallableUpdateEntities(
+              this.hass.states,
+              this.hass.formatEntityName
+            )
+          )
+        : undefined;
     const view =
       variant === "install" ? this._progress.view(entity) : undefined;
     const shownName = this._rowTitle(entity, name);
@@ -773,19 +790,30 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                           <ha-spinner size="small"></ha-spinner>
                           ${localize("ui.panel.config.updates.update_in_progress")}
                         </span>`
-                      : html`<ha-button
-                          appearance="accent"
-                          size="s"
-                          .entityId=${entity.entity_id}
-                          .disabled=${
-                            !!blockText ||
-                            (this._backupInProgress() &&
-                              this._isAppUpdate(entity))
-                          }
-                          @click=${system ? this._openSystemUpdate : this._updateOne}
-                        >
-                          ${localize("ui.common.update")}
-                        </ha-button>`
+                      : supervisorFirst
+                        ? html`<ha-button
+                            appearance="accent"
+                            size="s"
+                            title=${this._text("supervisor_first_hint")}
+                            .entityId=${entity.entity_id}
+                            .disabled=${!!blockText}
+                            @click=${this._updateSupervisorThenCore}
+                          >
+                            ${this._text("supervisor_first")}
+                          </ha-button>`
+                        : html`<ha-button
+                            appearance="accent"
+                            size="s"
+                            .entityId=${entity.entity_id}
+                            .disabled=${
+                              !!blockText ||
+                              (this._backupInProgress() &&
+                                this._isAppUpdate(entity))
+                            }
+                            @click=${system ? this._openSystemUpdate : this._updateOne}
+                          >
+                            ${localize("ui.common.update")}
+                          </ha-button>`
                     : variant === "manual"
                       ? html`<ha-button
                           class="action-spacer"
@@ -1522,6 +1550,32 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       return;
     }
     await this._install([entityId]);
+  }
+
+  // Core waits for the Supervisor: one press updates the Supervisor, then Core,
+  // through the same queue "Update everything" uses.
+  private _updateSupervisorThenCore(ev: Event): void {
+    const entityId = (ev.currentTarget as any).entityId as string;
+    if (this._isBlockedNow(entityId)) {
+      return;
+    }
+    const updates = this._filterInstallableUpdateEntities(
+      this.hass.states,
+      this.hass.formatEntityName
+    );
+    const core = updates.find((entity) => entity.entity_id === entityId);
+    const supervisor = core ? supervisorUpdateFirst(core, updates) : undefined;
+    if (!core || !supervisor) {
+      return;
+    }
+    const ordered = orderUpdateQueue([core, supervisor]);
+    const plan = this._autoInfo
+      ? planQueueBackups(
+          ordered.map((entity) => this._backupSubject(entity)),
+          settingsFromInfo(this._autoInfo)
+        )
+      : undefined;
+    this._queue.start(ordered, !!plan?.carriers.length, plan?.carriers ?? []);
   }
 
   private _backupSubject(entity: UpdateEntity) {

@@ -11,6 +11,10 @@ import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import { mdiCheckCircle, mdiChevronRight, mdiDotsVertical } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
+import {
+  searchCountText,
+  searchWhereText,
+} from "../../../components/ha-top-bar-search";
 import { navigate } from "../../../common/navigate";
 import {
   ACCESSIBILITY_STORAGE_KEY,
@@ -1337,7 +1341,9 @@ export class HaConfigSectionPersonal extends LitElement {
         .filter(
           (row) =>
             row.group === group &&
-            matches(row.label, row.description, row.reach, row.defaultText)
+            // Only text the row shows: the help popover text is not read, so a
+            // row is never reported for a word the person cannot see on it.
+            matches(row.label, row.description)
         )
         .forEach((row) => add(row.id, this._t(`group.${group}.title`)))
     );
@@ -1450,16 +1456,13 @@ export class HaConfigSectionPersonal extends LitElement {
         .searchTotal=${total}
         .searchCountText=${
           total
-            ? this.hass.localize("ui.components.top_bar_search.count", {
+            ? searchCountText(this.hass.localize, {
                 current: this._matchIndex + 1,
                 total,
               })
             : undefined
         }
-        .searchWhere=${this.hass.localize(
-          "ui.components.top_bar_search.found_in",
-          { places: this._matchPlaces }
-        )}
+        .searchWhere=${searchWhereText(this.hass.localize, this._matchPlaces)}
         @top-bar-search-open=${this._searchOpened}
         @top-bar-search-close=${this._searchClosed}
         @top-bar-search-input=${this._searchInput}

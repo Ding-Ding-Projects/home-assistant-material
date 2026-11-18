@@ -26,6 +26,7 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
 import { consume } from "../../../common/decorators/consume";
@@ -430,7 +431,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         .searchValue=${this._tableSettings.search}
         .searchCountText=${
           this._tableSettings.search
-            ? this.hass.localize("ui.components.top_bar_search.count", {
+            ? searchCountText(this.hass.localize, {
                 current: scenes.length,
                 total: allScenes.length,
               })

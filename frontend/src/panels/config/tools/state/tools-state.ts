@@ -10,6 +10,7 @@ import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { searchCountText } from "../../../../components/ha-top-bar-search";
 import { regexQuery } from "../../../../common/regex/filter";
 import { consume } from "../../../../common/decorators/consume";
 import { formatDateTimeWithSeconds } from "../../../../common/datetime/format_date_time";
@@ -202,7 +203,7 @@ ${this._i18n.locale.language}`;
       value: this._entityFilter,
       countText:
         this._entityFilter.trim() !== ""
-          ? this._i18n.localize("ui.components.top_bar_search.count", {
+          ? searchCountText(this._i18n.localize, {
               current: entities.length,
               total,
             })

@@ -51,6 +51,13 @@ LIGHT_CHECK_TIMEOUT = 60
 SETTINGS_STORAGE_KEY = "backup.self_check"
 SETTINGS_STORAGE_VERSION = 1
 
+# Fired on the event bus when the self-check of a backup starts and when it
+# ends, so a page can refresh the result by itself. The data holds the backup
+# id and a state: "started" or "finished".
+EVENT_SELF_CHECK = f"{DOMAIN}_self_check"
+SELF_CHECK_STARTED = "started"
+SELF_CHECK_FINISHED = "finished"
+
 KIND_LOCAL = "local"
 KIND_NETWORK = "network"
 KIND_REMOTE = "remote"
@@ -1254,7 +1261,22 @@ class SelfCheckRunner:
         for task in list(self._tasks.values()):
             task.cancel()
 
+    @callback
+    def _fire(self, backup_id: str, state: str) -> None:
+        """Tell listeners that the self-check of a backup started or ended."""
+        self._manager.hass.bus.async_fire(
+            EVENT_SELF_CHECK, {"backup_id": backup_id, "state": state}
+        )
+
     async def _run(self, backup_id: str) -> None:
+        """Run the self-check, store the result and announce both ends."""
+        self._fire(backup_id, SELF_CHECK_STARTED)
+        try:
+            await self._check(backup_id)
+        finally:
+            self._fire(backup_id, SELF_CHECK_FINISHED)
+
+    async def _check(self, backup_id: str) -> None:
         """Run the self-check and store the result."""
         manager = self._manager
         try:

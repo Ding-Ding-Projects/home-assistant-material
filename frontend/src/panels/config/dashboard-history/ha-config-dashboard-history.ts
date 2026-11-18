@@ -3,6 +3,7 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
 import { formatShortDateTime } from "../../../common/datetime/format_date_time";
 import { navigate } from "../../../common/navigate";
@@ -953,7 +954,7 @@ export class HaConfigDashboardHistory extends LitElement {
     if (!(detail ? this._search : this._overviewSearch).trim()) {
       return undefined;
     }
-    return this.hass.localize("ui.components.top_bar_search.count", {
+    return searchCountText(this.hass.localize, {
       current: detail
         ? this._visibleCommits().length
         : this._overviewMatches().length,

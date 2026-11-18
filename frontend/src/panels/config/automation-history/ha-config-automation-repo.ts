@@ -14,6 +14,7 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { consume } from "../../../common/decorators/consume";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { searchMatcher } from "../../../common/regex/filter";
@@ -740,7 +741,7 @@ export class HaConfigAutomationRepo extends LitElement {
           <span>${suggested || info.alias}</span>
         </p>
         <ha-input
-          class="message"
+          class="commit-message"
           appearance="outlined"
           type="text"
           .maxlength=${500}
@@ -868,7 +869,7 @@ export class HaConfigAutomationRepo extends LitElement {
     if (this._search.trim() === "") {
       return undefined;
     }
-    return this.hass.localize("ui.components.top_bar_search.count", {
+    return searchCountText(this.hass.localize, {
       current: this._visibleCommits().length,
       total: this._commits.length,
     });
@@ -1229,7 +1230,7 @@ export class HaConfigAutomationRepo extends LitElement {
       cursor: pointer;
       text-align: start;
     }
-    .message {
+    .commit-message {
       display: block;
       min-width: 0;
     }

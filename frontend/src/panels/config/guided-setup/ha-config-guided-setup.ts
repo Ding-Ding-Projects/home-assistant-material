@@ -3,6 +3,7 @@ import type { TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { classMap } from "lit/directives/class-map";
 import { customElement, property, state } from "lit/decorators";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { navigate } from "../../../common/navigate";
 import { searchMatcher } from "../../../common/regex/filter";
@@ -113,7 +114,7 @@ class HaConfigGuidedSetup extends LitElement {
     if (this._filter.trim() === "" || !this._catalog || this._active) {
       return undefined;
     }
-    return this.hass.localize("ui.components.top_bar_search.count", {
+    return searchCountText(this.hass.localize, {
       current: this._shown().length,
       total: this._catalog.integrations.length,
     });

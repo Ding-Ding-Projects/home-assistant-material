@@ -3,6 +3,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import type { HASSDomEvent } from "../../../common/dom/fire_event";
 import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-button";
@@ -182,7 +183,7 @@ class HaConfigHelp extends LitElement {
         .searchValue=${this._filter}
         .searchCountText=${
           this._filter && index
-            ? this.hass.localize("ui.components.top_bar_search.count", {
+            ? searchCountText(this.hass.localize, {
                 current: index.articles.filter((a) =>
                   searchMatcher(this._filter)(a.title, a.path)
                 ).length,

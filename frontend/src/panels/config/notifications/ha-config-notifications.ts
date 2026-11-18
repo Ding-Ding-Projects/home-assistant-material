@@ -12,6 +12,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { relativeTime } from "../../../common/datetime/relative_time";
 import { navigate } from "../../../common/navigate";
 import { searchMatcher } from "../../../common/regex/filter";
@@ -190,7 +191,7 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
         .searchValue=${this._filter}
         .searchCountText=${
           this._filter
-            ? this.hass.localize("ui.components.top_bar_search.count", {
+            ? searchCountText(this.hass.localize, {
                 current: this._showDismissed
                   ? dismissedShown.length
                   : shown.length,

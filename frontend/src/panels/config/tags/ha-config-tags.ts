@@ -12,6 +12,7 @@ import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
 import type { HASSDomEvent } from "../../../common/dom/fire_event";
 import { computeStateDomain } from "../../../common/entity/compute_state_domain";
@@ -336,7 +337,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
         .searchValue=${this._cardSearch}
         .searchCountText=${
           this._cardSearch
-            ? localize("ui.components.top_bar_search.count", {
+            ? searchCountText(localize, {
                 current: tags.length,
                 total: this._tags.length,
               })

@@ -4,6 +4,7 @@ import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { formatDateShort } from "../../../common/datetime/format_date";
 import { formatTime } from "../../../common/datetime/format_time";
 import { relativeTime } from "../../../common/datetime/relative_time";
@@ -953,7 +954,7 @@ export class HaDefenderPage extends LitElement {
       return undefined;
     }
     const matcher = searchMatcher(this._filter);
-    return this.hass.localize("ui.components.top_bar_search.count", {
+    return searchCountText(this.hass.localize, {
       current: info.guards.filter((guard) =>
         matcher(guard.id, this._guardTitle(guard.id), guard.family)
       ).length,

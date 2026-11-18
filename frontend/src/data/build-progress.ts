@@ -600,6 +600,35 @@ export const currentStage = (
   stages.find((stage) => stage.state === "running") ??
   stages.find((stage) => stage.state === "waiting");
 
+/** The look of the build card. */
+export type BuildCardLook =
+  "active" | "core" | "waiting" | "ready" | "failed" | "none" | "have";
+
+/**
+ * Which look the card takes. A build the reader already has (the installed
+ * build, or an older one) is always `have`: it never shows progress, however
+ * many of its images are still being made, and never an error.
+ */
+export const buildCardLook = (
+  choiceKind: RunChoice["kind"],
+  relation: BuildRelation,
+  stages: StageSummary[]
+): BuildCardLook => {
+  if (choiceKind === "none" || choiceKind === "waiting") {
+    return choiceKind;
+  }
+  if (alreadyInstalled(relation)) {
+    return "have";
+  }
+  if (choiceKind === "ready" || choiceKind === "failed") {
+    return choiceKind;
+  }
+  if (stages.some((stage) => stage.state === "failed")) {
+    return "failed";
+  }
+  return coreUpdateOffered(stages) ? "core" : "active";
+};
+
 /** True when the Core and Supervisor update has been offered by this build. */
 export const coreUpdateOffered = (stages: StageSummary[]): boolean =>
   stages.find((stage) => stage.id === "offer")?.state === "done";

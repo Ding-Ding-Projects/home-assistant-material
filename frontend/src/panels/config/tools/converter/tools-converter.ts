@@ -19,6 +19,7 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { searchCountText } from "../../../../components/ha-top-bar-search";
 import { visuallyHiddenFileInputStyles } from "../../../../resources/visually-hidden-file-input";
 import type { ArchiveEntry } from "../../../../common/converter/archive-types";
 import { baseName } from "../../../../common/converter/archive-types";
@@ -1530,7 +1531,7 @@ ${this.hass.locale?.language}`;
       label,
       value: this._search,
       countText: searching
-        ? this.hass.localize("ui.components.top_bar_search.count", {
+        ? searchCountText(this.hass.localize, {
             current: shown,
             total,
           })

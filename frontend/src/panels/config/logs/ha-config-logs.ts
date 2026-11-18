@@ -13,6 +13,7 @@ import type { CSSResultGroup, TemplateResult, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { atLeastVersion } from "../../../common/config/version";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
@@ -225,7 +226,7 @@ export class HaConfigLogs extends LitElement {
         .searchValue=${this._filter}
         .searchCountText=${
           this._filter && this._logCount && core && !this._detail
-            ? this.hass.localize("ui.components.top_bar_search.count", {
+            ? searchCountText(this.hass.localize, {
                 current: this._logCount.current,
                 total: this._logCount.total,
               })

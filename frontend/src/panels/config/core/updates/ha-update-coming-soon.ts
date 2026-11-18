@@ -23,6 +23,7 @@ import "../../../../components/ha-button";
 import "../../../../components/ha-icon-button";
 import "../../../../components/ha-spinner";
 import "../../../../components/ha-svg-icon";
+import { notesPageUrl } from "../../../../data/build-notes";
 import type { ChangeList } from "../../../../data/build-changes";
 import {
   fetchChangeList,
@@ -38,12 +39,11 @@ import {
   BUILD_REPOSITORY,
   REFRESH_COOLDOWN_MS,
   REFRESH_INTERVAL_MS,
-  alreadyInstalled,
   buildRelation,
   buildStages,
   computeProgress,
   coreBase,
-  coreUpdateOffered,
+  buildCardLook,
   coreVersionFor,
   currentStage,
   durationSeconds,
@@ -391,37 +391,16 @@ export class HaUpdateComingSoon extends LitElement {
     stages: StageSummary[]
   ): CardState {
     const { choice } = snapshot;
-    switch (choice.kind) {
-      case "none":
-        return "none";
-      case "waiting":
-        return "waiting";
-      case "ready":
-        return this._alreadyInstalled(snapshot) ? "have" : "ready";
-      case "failed":
-        return "failed";
-      default:
-        if (stages.some((stage) => stage.state === "failed")) {
-          return "failed";
-        }
-        if (this._alreadyInstalled(snapshot)) {
-          return "have";
-        }
-        return coreUpdateOffered(stages) ? "core" : "active";
-    }
-  }
-
-  // True when the build in this card is the installed build or an older one.
-  private _alreadyInstalled(snapshot: BuildSnapshot): boolean {
-    const run =
-      snapshot.choice.kind === "active" || snapshot.choice.kind === "ready"
-        ? snapshot.choice.run
-        : undefined;
-    return (
-      !!run &&
-      alreadyInstalled(
-        buildRelation(parseBuildNumber(this.hass.config.version), run.runNumber)
-      )
+    const run = "run" in choice ? choice.run : undefined;
+    return buildCardLook(
+      choice.kind,
+      run
+        ? buildRelation(
+            parseBuildNumber(this.hass.config.version),
+            run.runNumber
+          )
+        : "unknown",
+      stages
     );
   }
 
@@ -551,6 +530,36 @@ export class HaUpdateComingSoon extends LitElement {
     }
   }
 
+  // The installed build is the tracked build or newer: nothing is running for
+  // the reader, so no progress, spinner or timer is shown, only one quiet line
+  // and the notes of the build. Images still being made are not something to wait for.
+  private _renderHave(run: BuildRun): TemplateResult {
+    const installed =
+      parseBuildNumber(this.hass.config.version) ?? run.runNumber;
+    return html`
+      <div class="card s-have">
+        <div class="head">
+          <ha-svg-icon class="lead good" .path=${mdiCheckCircle}></ha-svg-icon>
+          <div class="head-text">
+            <h2 id="soon-h" class="title">
+              ${this._t(`${PREFIX}.have_title`, { build: installed })}
+            </h2>
+            <p class="sub">${this._t(`${PREFIX}.have_quiet`)}</p>
+          </div>
+          <ha-button
+            appearance="plain"
+            size="s"
+            href=${notesPageUrl(installed)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ${this._t("ui.panel.config.updates.whats_new", { build: installed })}
+          </ha-button>
+        </div>
+      </div>
+    `;
+  }
+
   // The one card: a head with the build and the real percentage, a thin bar, and
   // behind the toggle the stages, what will be in the build and what to do.
   private _renderCard(
@@ -559,6 +568,9 @@ export class HaUpdateComingSoon extends LitElement {
     stages: StageSummary[],
     look: CardState
   ): TemplateResult {
+    if (look === "have") {
+      return this._renderHave(run);
+    }
     const progress = computeProgress(snapshot.jobs);
     const counts = jobStateCounts(snapshot.jobs);
     const active = snapshot.choice.kind === "active";
@@ -600,27 +612,6 @@ export class HaUpdateComingSoon extends LitElement {
           </p>`,
         ];
         canDo = this._t(`${PREFIX}.core_ready_hint`);
-        break;
-      case "have":
-        heading = this._t(`${PREFIX}.have_title`, {
-          build: parseBuildNumber(this.hass.config.version) ?? run.runNumber,
-        });
-        lines = [
-          active
-            ? html`<p class="line">
-                ${this._lang.compose(this.hass.localize, (part) =>
-                  [
-                    this._stageLine(part, stage, stages),
-                    this._estimateWith(part, estimate),
-                    part(`${PREFIX}.have_rest`),
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                )}
-              </p>`
-            : html`<p class="line">${this._t(`${PREFIX}.have_done`)}</p>`,
-        ];
-        canDo = this._t(`${PREFIX}.can_do_nothing`);
         break;
       case "ready":
         heading = this._t(`${PREFIX}.ready`, { build: run.runNumber });
@@ -707,9 +698,7 @@ export class HaUpdateComingSoon extends LitElement {
       Math.round((counts.running / total) * 100)
     );
     const meta =
-      look === "active" || look === "core" || look === "have"
-        ? this._renderStartedLine(run)
-        : "";
+      look === "active" || look === "core" ? this._renderStartedLine(run) : "";
     const items = this._changeItems(run);
     return html`
       <div class="card s-${look}">

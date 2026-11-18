@@ -1,13 +1,22 @@
 import { mdiContentCopy, mdiTextBoxRemoveOutline } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import {
+  customElement,
+  property,
+  query,
+  queryAll,
+  state,
+} from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { navigate } from "../../../common/navigate";
 import { supportsFeature } from "../../../common/entity/supports-feature";
 import { computeStateDomain } from "../../../common/entity/compute_state_domain";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import { searchMatcher } from "../../../common/regex/filter";
+import { splitMatches } from "../../../common/log-terminal/log-terminal-logic";
+import { isReduced } from "../../../common/motion/page-entry";
 import "../../../components/ha-button";
 import "../../../components/ha-empty-state";
 import "../../../components/ha-markdown";
@@ -61,6 +70,13 @@ class HaConfigReleaseNotes extends LitElement {
 
   @state() private _chip: NoteFilter = "all";
 
+  // The marked word that Enter has reached, and how many marks the text holds.
+  @state() private _markIndex = 0;
+
+  @queryAll("mark") private _marks!: NodeListOf<HTMLElement>;
+
+  @query("mark.current") private _currentMark?: HTMLElement;
+
   @state() private _from?: string;
 
   @state() private _to?: string;
@@ -113,6 +129,23 @@ class HaConfigReleaseNotes extends LitElement {
     const shown = days.reduce((sum, day) => sum + day.entries.length, 0);
     const search = this._l("search");
     const updates = this._updates();
+    const marks = this._filter.trim()
+      ? days.reduce(
+          (sum, day) =>
+            sum +
+            day.entries.reduce(
+              (inner, entry) =>
+                inner +
+                splitMatches(entry.text, this._filter).filter(
+                  (part) => part.match
+                ).length,
+              0
+            ),
+          0
+        )
+      : 0;
+    // Each mark takes its place from this counter while the days are drawn.
+    const cursor = { next: 0 };
     return html`
       <hass-subpage
         .hass=${this.hass}
@@ -122,14 +155,21 @@ class HaConfigReleaseNotes extends LitElement {
         searchable
         .searchLabel=${search}
         .searchValue=${this._filter}
+        .searchTotal=${marks}
         .searchCountText=${
           this._filter
-            ? this.hass.localize("ui.components.top_bar_search.count", {
-                current: shown,
-                total,
-              })
+            ? searchCountText(
+                this.hass.localize,
+                marks
+                  ? {
+                      current: Math.min(this._markIndex, marks - 1) + 1,
+                      total: marks,
+                    }
+                  : { current: shown, total }
+              )
             : undefined
         }
+        @top-bar-search-step=${this._searchStep}
         .searchSamples=${all.flatMap((day) =>
           day.entries.map((entry) => entry.text)
         )}
@@ -209,7 +249,7 @@ class HaConfigReleaseNotes extends LitElement {
                     ? html`<p class="empty" role="status">
                         ${this._l("empty")}
                       </p>`
-                    : days.map((day) => this._renderDay(day))
+                    : days.map((day) => this._renderDay(day, cursor))
               }
               <p class="note" role="status">
                 ${this._l("count", { shown, total })} ${this._l("note")}
@@ -236,7 +276,7 @@ class HaConfigReleaseNotes extends LitElement {
     `;
   }
 
-  private _renderDay(day: NoteDay): TemplateResult {
+  private _renderDay(day: NoteDay, cursor: { next: number }): TemplateResult {
     const heading = this._formatDay(day.date);
     return html`
       <section class="day" aria-label=${heading}>
@@ -268,7 +308,9 @@ class HaConfigReleaseNotes extends LitElement {
                     ? html`<span class="badge">${this._l("badge_fixed")}</span>`
                     : nothing
                 }
-                <span class="text">${entry.text}</span>
+                <span class="text"
+                  >${this._renderText(entry.text, cursor)}</span
+                >
                 ${
                   entry.page
                     ? html`<a
@@ -373,6 +415,43 @@ class HaConfigReleaseNotes extends LitElement {
 
   private _filterChanged(ev: CustomEvent<{ value: string }>): void {
     this._filter = ev.detail.value;
+    this._markIndex = 0;
+    this._showMark();
+  }
+
+  /** The text of one change with every match of the search marked. */
+  private _renderText(
+    text: string,
+    cursor: { next: number }
+  ): TemplateResult | string {
+    if (!this._filter.trim()) {
+      return text;
+    }
+    return html`${splitMatches(text, this._filter).map((part) => {
+      if (!part.match) {
+        return part.text;
+      }
+      const current = cursor.next++ === this._markIndex;
+      return html`<mark class=${classMap({ current })}>${part.text}</mark>`;
+    })}`;
+  }
+
+  // Enter goes to the next mark, Shift+Enter to the one before it.
+  private _searchStep(ev: CustomEvent<{ direction: 1 | -1 }>): void {
+    const total = this._marks.length;
+    if (!total) {
+      return;
+    }
+    this._markIndex = (this._markIndex + ev.detail.direction + total) % total;
+    this._showMark();
+  }
+
+  private async _showMark(): Promise<void> {
+    await this.updateComplete;
+    this._currentMark?.scrollIntoView({
+      behavior: isReduced() ? "auto" : "smooth",
+      block: "center",
+    });
   }
 
   private _fromChanged(ev: CustomEvent<{ value?: string }>): void {
@@ -550,6 +629,15 @@ class HaConfigReleaseNotes extends LitElement {
           flex: 1 1 200px;
           min-width: 0;
           overflow-wrap: anywhere;
+        }
+        mark {
+          background: var(--ha-color-fill-primary-quiet-resting);
+          color: inherit;
+          border-radius: var(--ha-border-radius-sm);
+        }
+        mark.current {
+          background: var(--primary-color);
+          color: var(--text-primary-color);
         }
         .badge {
           flex: none;

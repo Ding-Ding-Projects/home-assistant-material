@@ -33,6 +33,7 @@ import {
   PRESET_CHOICES,
   choiceFor,
   needsSystemConfirmation,
+  shownChoice,
   presetSettings,
   pruneApps,
   settingsFromInfo,
@@ -64,6 +65,9 @@ export class HaUpdateBackupChoice extends LitElement {
 
   @state() private _query = "";
 
+  // Custom was tapped while the settings still equal a preset.
+  @state() private _customPicked = false;
+
   @query(".apps") private _appsPanel?: HTMLElement;
 
   @query(".kinds") private _kindsPanel?: HTMLElement;
@@ -73,6 +77,10 @@ export class HaUpdateBackupChoice extends LitElement {
   private _loadedApps = false;
 
   protected willUpdate(changed: PropertyValues<this>): void {
+    if (this._customPicked && choiceFor(this._settings) === "custom") {
+      // The settings really differ now, so Custom is the stored choice.
+      this._customPicked = false;
+    }
     if (changed.has("hasSupervisor") && this.hasSupervisor) {
       this._loadApps();
     }
@@ -141,7 +149,7 @@ export class HaUpdateBackupChoice extends LitElement {
 
   protected render(): TemplateResult {
     const settings = this._settings;
-    const choice = choiceFor(settings);
+    const { choice, sameAs } = shownChoice(settings, this._customPicked);
     return html`
       <div class="choice" role="group" aria-labelledby="choice-title">
         <h3 id="choice-title">${this._t("title")}</h3>
@@ -153,6 +161,15 @@ export class HaUpdateBackupChoice extends LitElement {
         <p class="summary" aria-live="polite">
           ${this._t(summaryKey(choice, this.hasSupervisor))}
         </p>
+        ${
+          sameAs
+            ? html`<p class="note" aria-live="polite">
+                ${this._t("custom_same_as", {
+                  preset: this._t(`preset_${sameAs}`),
+                })}
+              </p>`
+            : nothing
+        }
         ${this.hasSupervisor ? this._renderAppsRow(settings) : nothing}
         ${
           this.hasSupervisor && this._appsOpen
@@ -399,6 +416,7 @@ export class HaUpdateBackupChoice extends LitElement {
       // Custom is the state of the kinds and apps below. Tapping it takes the
       // person there: the app list opens, ready to be set by hand.
       // Without a Supervisor there are no apps, so it goes to the kinds.
+      this._customPicked = true;
       this._appsOpen = this.hasSupervisor;
       await this.updateComplete;
       (this._appsPanel ?? this._kindsPanel)?.scrollIntoView({
@@ -406,6 +424,7 @@ export class HaUpdateBackupChoice extends LitElement {
       });
       return;
     }
+    this._customPicked = false;
     if (choice === choiceFor(this._settings)) {
       return;
     }

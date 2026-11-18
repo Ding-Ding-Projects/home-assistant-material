@@ -22,6 +22,7 @@ import {
 } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { searchCountText } from "../../../../components/ha-top-bar-search";
 import { consume } from "../../../../common/decorators/consume";
 import { QueryParamsController } from "../../../../common/controllers/query-params-controller";
 import { transform } from "../../../../common/decorators/transform";
@@ -233,7 +234,7 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
       ),
       value: this._filter,
       countText: searching
-        ? this._i18n.localize("ui.components.top_bar_search.count", {
+        ? searchCountText(this._i18n.localize, {
             current: shown,
             total,
           })

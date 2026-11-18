@@ -92,6 +92,44 @@ class HaConfigBackupOverview extends LitElement {
 
   @state() private _config?: BackupConfig;
 
+  /** A self-check of a new backup is running; its result is not in yet. */
+  @state() private _selfChecking = false;
+
+  private _unsubSelfCheck?: () => void;
+
+  private async _followSelfCheck(): Promise<void> {
+    if (this._unsubSelfCheck) {
+      return;
+    }
+    try {
+      const unsub = await this.hass.connection.subscribeEvents<{
+        data: { backup_id?: string; state?: string };
+      }>((event) => {
+        if (event.data?.state === "started") {
+          this._selfChecking = true;
+        } else if (event.data?.state === "finished") {
+          this._selfChecking = false;
+          // The new result is stored by now: read the backups again.
+          fireEvent(this, "ha-refresh-backup-info");
+        }
+      }, "backup_self_check");
+      if (this.isConnected) {
+        this._unsubSelfCheck = unsub;
+      } else {
+        unsub();
+      }
+    } catch (_err) {
+      // Not an administrator: the result then refreshes with the page.
+    }
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._unsubSelfCheck?.();
+    this._unsubSelfCheck = undefined;
+    this._selfChecking = false;
+  }
+
   protected willUpdate(changedProperties: PropertyValues<this>): void {
     super.willUpdate(changedProperties);
     if (changedProperties.has("config") && !this._config) {
@@ -113,6 +151,7 @@ class HaConfigBackupOverview extends LitElement {
     super.connectedCallback();
     // Update config when the page is displayed (e.g. when coming back from a settings page)
     this._config = this.config;
+    void this._followSelfCheck();
   }
 
   private _uploadBackup = async () => {
@@ -384,11 +423,12 @@ class HaConfigBackupOverview extends LitElement {
           </div>
 
           ${
-            this._latestSelfChecked
+            this._latestSelfChecked || this._selfChecking
               ? html`<ha-backup-self-check
                   variant="overview"
                   .hass=${this.hass}
-                  .backup=${this._latestSelfChecked.backup}
+                  .checking=${this._selfChecking}
+                  .backup=${this._latestSelfChecked?.backup}
                   @backup-self-check-new-backup=${this._newBackup}
                 ></ha-backup-self-check>`
               : nothing

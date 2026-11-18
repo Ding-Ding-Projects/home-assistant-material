@@ -3,6 +3,7 @@ import {
   findNotes,
   notesPageUrl,
   notesPageUrlForVersion,
+  offeredNotesUrl,
   parseNotes,
   summaryForMode,
   whatForMode,
@@ -92,5 +93,21 @@ describe("build notes", () => {
     expect(notesPageUrlForVersion("2026.11.0.dev0")).toBeUndefined();
     expect(notesPageUrlForVersion("")).toBeUndefined();
     expect(notesPageUrlForVersion(null)).toBeUndefined();
+  });
+
+  it("links an update on offer to the offered build, never the installed one", () => {
+    // Build 523 is offered while 522 is installed: the link is for 523.
+    expect(offeredNotesUrl(true, "2026.11.1.523", "https://x.test/a")).toBe(
+      notesPageUrl(523)
+    );
+    // Something that is not a system update keeps the link its author gave.
+    expect(offeredNotesUrl(false, "2026.11.1.523", "https://x.test/a")).toBe(
+      "https://x.test/a"
+    );
+    // A system version without a build number falls back to the entity link.
+    expect(offeredNotesUrl(true, "2026.11.0.dev0", "https://x.test/a")).toBe(
+      "https://x.test/a"
+    );
+    expect(offeredNotesUrl(true, null, null)).toBeUndefined();
   });
 });

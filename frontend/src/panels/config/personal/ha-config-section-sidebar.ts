@@ -2,6 +2,7 @@ import { mdiBell, mdiHammer, mdiRestore } from "@mdi/js";
 import type { TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { getStorage } from "../../../common/decorators/storage";
 import { searchMatcher } from "../../../common/regex/filter";
 import type { TabAppearanceStore } from "../../../common/tabs/tab-appearance-store";
@@ -168,7 +169,7 @@ export class HaConfigSectionSidebar extends LitElement {
         .searchValue=${this._filter}
         .searchCountText=${
           this._filter
-            ? this.hass.localize("ui.components.top_bar_search.count", {
+            ? searchCountText(this.hass.localize, {
                 current: rows.length,
                 total: this._rows().length,
               })

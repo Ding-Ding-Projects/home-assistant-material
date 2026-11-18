@@ -10,6 +10,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { searchMatcher } from "../../../common/regex/filter";
 import { navigate } from "../../../common/navigate";
 import { caseInsensitiveStringCompare } from "../../../common/string/compare";
@@ -104,7 +105,7 @@ export class HaConfigAppsInstalled extends LitElement {
         .searchValue=${this._filter ?? ""}
         .searchCountText=${
           this._filter
-            ? this.hass.localize("ui.components.top_bar_search.count", {
+            ? searchCountText(this.hass.localize, {
                 current: addons.length,
                 total: all.length,
               })

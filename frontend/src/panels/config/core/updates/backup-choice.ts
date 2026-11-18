@@ -103,6 +103,23 @@ export const choiceFor = (settings: BackupSettings): BackupChoiceName => {
   return "custom";
 };
 
+/**
+ * The choice the page shows as selected. The stored settings decide, except
+ * that a person who tapped Custom keeps Custom selected while the settings
+ * still equal a preset; `sameAs` then names that preset so the page can say
+ * so. Custom only becomes the stored choice once a kind differs.
+ */
+export const shownChoice = (
+  settings: BackupSettings,
+  customPicked: boolean
+): { choice: BackupChoiceName; sameAs?: PresetChoice } => {
+  const stored = choiceFor(settings);
+  if (customPicked && stored !== "custom") {
+    return { choice: "custom", sameAs: stored };
+  }
+  return { choice: stored };
+};
+
 /** Whether a backup is requested before an update of this kind installs. */
 export const wantsBackup = (
   kind: BackupKind,

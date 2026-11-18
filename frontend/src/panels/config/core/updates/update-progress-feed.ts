@@ -9,6 +9,8 @@ import { fetchHassioLogs } from "../../../../data/hassio/supervisor";
 import type { UpdateEntity } from "../../../../data/update";
 import { updateIsInstalling } from "../../../../data/update";
 import { filterUpdateLog, logSourceFor } from "./update-log-source";
+import type { JobNode } from "./update-job-tree";
+import { flattenJobTree, updateJobFacts } from "./update-job-tree";
 import { resolveStart, startFoundLater } from "./update-start-time";
 import type { HomeAssistant } from "../../../../types";
 import type {
@@ -27,7 +29,6 @@ import {
   currentStage,
   deriveStages,
   estimateRemainingMs,
-  jobNameMatches,
   loadRecords,
   prepareLogLines,
   progressKindOf,
@@ -66,10 +67,6 @@ export interface ProgressView {
   output: OutputView;
   /** Whether the Supervisor jobs could be read at all. */
   jobsAvailable: boolean;
-}
-
-interface JobNode extends SupervisorJobData {
-  child_jobs?: JobNode[];
 }
 
 /** The percentage the job or the entity really reported; a job that said nothing yet shows none. */
@@ -141,11 +138,19 @@ export class UpdateProgressFeed implements ReactiveController {
 
   // ---- jobs ----
 
+  private _subscribing = false;
+
   private async _subscribeJobs(): Promise<void> {
     const hass = this._getHass();
-    if (!hass?.user?.is_admin || !isComponentLoaded(hass.config, "hassio")) {
+    if (
+      this._unsub ||
+      this._subscribing ||
+      !hass?.user?.is_admin ||
+      !isComponentLoaded(hass.config, "hassio")
+    ) {
       return;
     }
+    this._subscribing = true;
     try {
       this._unsub = await hass.connection.subscribeMessage<{
         event?: string;
@@ -164,6 +169,8 @@ export class UpdateProgressFeed implements ReactiveController {
     } catch (_err) {
       // Not an administrator or no Supervisor: the entity's own report is used.
       this.jobsAvailable = false;
+    } finally {
+      this._subscribing = false;
     }
   }
 
@@ -173,12 +180,8 @@ export class UpdateProgressFeed implements ReactiveController {
       const info = await hass.connection.sendMessagePromise<{
         jobs?: JobNode[];
       }>({ type: "supervisor/api", endpoint: "/jobs/info", method: "get" });
-      const queue = [...(info?.jobs ?? [])];
-      while (queue.length) {
-        const job = queue.shift()!;
-        this._jobs.set(job.uuid, job);
-        queue.push(...(job.child_jobs ?? []));
-      }
+      // The tree comes nested and without parent ids; the events carry the ids.
+      flattenJobTree(info?.jobs ?? [], this._jobs);
       this._host.requestUpdate();
     } catch (_err) {
       // Events still carry the jobs that change from now on.
@@ -189,72 +192,39 @@ export class UpdateProgressFeed implements ReactiveController {
 
   private _seenIdle = new Set<string>();
 
-  // The creation time of the Supervisor job of an update that is running.
+  // When the Supervisor began the job of an update that is running.
   private _runningJobCreated(entity: UpdateEntity): string | undefined {
-    const { root } = this._jobFor(
+    const facts = this._jobFor(
       progressKindOf(
         entity,
         this._getHass().entities?.[entity.entity_id]?.platform
       ),
       appSlugOf(entity)
     );
-    return root && !root.done ? (root.created ?? undefined) : undefined;
+    return facts.root && !facts.root.done ? facts.created : undefined;
   }
 
-  /** The job of this update and the newest running job below it. */
-  private _jobFor(
-    kind: ProgressKind,
-    slug: string | undefined
-  ): { root?: JobNode; leaf?: JobNode; backupRunning: boolean } {
-    let root: JobNode | undefined;
-    for (const job of this._jobs.values()) {
-      if (!jobNameMatches(kind, job.name)) {
-        continue;
-      }
-      if (kind === "app" && slug && job.reference !== slug) {
-        continue;
-      }
-      if (
-        !root ||
-        (root.done && !job.done) ||
-        (!!root.done === !!job.done &&
-          (job.created ?? "") > (root.created ?? ""))
-      ) {
-        root = job;
-      }
-    }
-    if (!root) {
-      return { backupRunning: false };
-    }
-    const below: JobNode[] = [];
-    const walk = (parent: string) => {
-      for (const job of this._jobs.values()) {
-        if (job.parent_id === parent) {
-          below.push(job);
-          walk(job.uuid);
-        }
-      }
-    };
-    walk(root.uuid);
-    const running = below.filter((job) => !job.done);
-    const leaf =
-      [...running].reverse().find((job) => !!job.stage) ??
-      running[running.length - 1];
-    return {
-      root,
-      leaf,
-      backupRunning: running.some((job) =>
-        (job.name ?? "").toLowerCase().includes("backup")
-      ),
-    };
+  /** The job of this update, the newest running job below it and what they say. */
+  private _jobFor(kind: ProgressKind, slug: string | undefined) {
+    return updateJobFacts(this._jobs, kind, slug);
   }
 
   // ---- logs ----
 
   private _pollLogs(): void {
+    let jobsWanted = false;
     for (const record of this._records.values()) {
       if (!record.result) {
         void this._readLog(record);
+        jobsWanted ||= record.startUnknown === true || record.backup === null;
+      }
+    }
+    // A page opened in the middle of an update may have missed its jobs: read
+    // them again until the start and the backup are known.
+    if (jobsWanted) {
+      void this._subscribeJobs();
+      if (this.jobsAvailable) {
+        void this._readJobs();
       }
     }
   }
@@ -367,7 +337,8 @@ export class UpdateProgressFeed implements ReactiveController {
           toVersion: entity.attributes.latest_version,
           startedAt: startedAt ?? now,
           startUnknown: startedAt === undefined ? true : undefined,
-          backup: run ? run.backupRequested : null,
+          // An install this page did not start has no known backup choice.
+          backup: run?.canRetry ? run.backupRequested : null,
         };
         this._records.set(id, record);
         this._logs.delete(id);
@@ -396,10 +367,14 @@ export class UpdateProgressFeed implements ReactiveController {
           delete record.startUnknown;
         }
       }
-      const { root, leaf, backupRunning } = this._jobFor(
+      const { root, leaf, backupRunning, backupSeen } = this._jobFor(
         record.kind,
         appSlugOf(entity)
       );
+      if (record.backup === null && (backupRunning || backupSeen)) {
+        // A backup job below the update job: one was made for this update.
+        record.backup = true;
+      }
       const percent = reportedPercent(root, entity);
       const samples: PercentSamples | undefined = addPercentSample(
         record.samples,

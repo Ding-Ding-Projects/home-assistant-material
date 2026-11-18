@@ -4,10 +4,36 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { fireEvent } from "../common/dom/fire_event";
+import {
+  currentLanguageMode,
+  modeText,
+} from "../common/language-mode/language-mode";
 import type { LocalizeFunc } from "../common/translations/localize";
 import "./ha-icon-button";
 import "./input/ha-input-search";
 import type { HaInputSearch } from "./input/ha-input-search";
+
+/**
+ * The short "n of m" text of a page search. In Cantonese mode it is the
+ * Cantonese sentence; in English and both-language mode it stays the short
+ * English text, because it has to fit inside the field.
+ */
+export const searchCountText = (
+  localize: LocalizeFunc,
+  values: { current: number; total: number }
+): string =>
+  currentLanguageMode() === "cantonese"
+    ? modeText(localize, "ui.components.top_bar_search.count", values)
+    : localize("ui.components.top_bar_search.count", values);
+
+/** The "found in" line under the field, with the same language rule as the count. */
+export const searchWhereText = (
+  localize: LocalizeFunc,
+  places: string
+): string =>
+  currentLanguageMode() === "cantonese"
+    ? modeText(localize, "ui.components.top_bar_search.found_in", { places })
+    : localize("ui.components.top_bar_search.found_in", { places });
 
 export interface TopBarSearchInputDetail {
   value: string;
@@ -73,7 +99,8 @@ export class HaTopBarSearch extends LitElement {
 
   protected render(): TemplateResult {
     const label =
-      this.label || this.localize("ui.components.top_bar_search.open");
+      this.label ||
+      modeText(this.localize, "ui.components.top_bar_search.open");
     if (!this.open) {
       return html`<ha-icon-button
         class=${classMap({ "open-button": true, "has-value": !!this.value })}
@@ -103,7 +130,7 @@ export class HaTopBarSearch extends LitElement {
         </ha-input-search>
         <ha-icon-button
           class="close"
-          .label=${this.localize("ui.components.top_bar_search.close")}
+          .label=${modeText(this.localize, "ui.components.top_bar_search.close")}
           .path=${mdiClose}
           @click=${this._close}
         ></ha-icon-button>
@@ -219,18 +246,18 @@ export class HaTopBarSearchSteps extends LitElement {
       <span class="where" role="status"
         >${
           none
-            ? this.localize("ui.components.top_bar_search.no_matches")
+            ? modeText(this.localize, "ui.components.top_bar_search.no_matches")
             : this.where
         }</span
       >
       <ha-icon-button
-        .label=${this.localize("ui.components.top_bar_search.previous")}
+        .label=${modeText(this.localize, "ui.components.top_bar_search.previous")}
         .path=${mdiChevronUp}
         ?disabled=${none}
         @click=${this._previous}
       ></ha-icon-button>
       <ha-icon-button
-        .label=${this.localize("ui.components.top_bar_search.next")}
+        .label=${modeText(this.localize, "ui.components.top_bar_search.next")}
         .path=${mdiChevronDown}
         ?disabled=${none}
         @click=${this._next}
@@ -252,7 +279,7 @@ export class HaTopBarSearchSteps extends LitElement {
       align-items: center;
       gap: var(--ha-space-2);
       min-height: 44px;
-      padding: 0 var(--ha-space-3);
+      padding: var(--ha-space-1) var(--ha-space-3);
       box-sizing: border-box;
       border-bottom: 1px solid var(--divider-color);
     }
@@ -262,8 +289,11 @@ export class HaTopBarSearchSteps extends LitElement {
       font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      overflow-wrap: anywhere;
     }
     ha-icon-button {
       --ha-icon-button-size: 44px;

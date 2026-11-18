@@ -262,6 +262,25 @@ export const updateBlockReason = (
   return queueActive ? { kind: "queue_running" } : undefined;
 };
 
+/**
+ * The Supervisor update that has to go before this one, or undefined. Core
+ * is refused by the Supervisor while a newer Supervisor is on offer, so the
+ * page says so beforehand instead of letting the press fail.
+ */
+export const supervisorUpdateFirst = (
+  entity: UpdateEntity,
+  allUpdates: UpdateEntity[]
+): UpdateEntity | undefined =>
+  updateRole(entity) === "core"
+    ? allUpdates.find(
+        (other) =>
+          updateRole(other) === "supervisor" &&
+          other.state === "on" &&
+          !isInProgress(other) &&
+          !latestVersionIsSkipped(other)
+      )
+    : undefined;
+
 /** A queue is active while it has a step that is waiting or running. */
 export const queueIsActive = (queue: QueueState | undefined): boolean =>
   !!queue &&

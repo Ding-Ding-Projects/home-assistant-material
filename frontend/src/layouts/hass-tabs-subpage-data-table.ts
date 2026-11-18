@@ -25,6 +25,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { searchCountText } from "../components/ha-top-bar-search";
 import { canShowPage } from "../common/config/can_show_page";
 import { QueryParamsController } from "../common/controllers/query-params-controller";
 import { consume } from "../common/decorators/consume";
@@ -1066,7 +1067,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         .searchValue=${this.filter}
         .searchCountText=${
           this.filter && this._matchingRows !== undefined
-            ? localize("ui.components.top_bar_search.count", {
+            ? searchCountText(localize, {
                 current: this._matchingRows,
                 total: this.data.length,
               })

@@ -12,6 +12,7 @@ import {
   presetSettings,
   pruneApps,
   settingsFromInfo,
+  shownChoice,
   stepWantsBackup,
   summaryKey,
   wantsBackup,
@@ -70,6 +71,32 @@ describe("wantsBackup", () => {
       false
     );
     expect(wantsBackup("app", { ...base, later: true }, true, "a")).toBe(false);
+  });
+});
+
+describe("shownChoice", () => {
+  it("shows the stored choice when Custom was not tapped", () => {
+    expect(shownChoice(presetSettings("system"), false)).toEqual({
+      choice: "system",
+    });
+  });
+
+  it("keeps Custom selected after a tap while the settings equal a preset", () => {
+    expect(shownChoice(presetSettings("system"), true)).toEqual({
+      choice: "custom",
+      sameAs: "system",
+    });
+    expect(shownChoice(presetSettings("none"), true)).toEqual({
+      choice: "custom",
+      sameAs: "none",
+    });
+  });
+
+  it("is Custom for real once a kind differs, with nothing to say about a preset", () => {
+    const settings = presetSettings("system");
+    settings.kinds.app = true;
+    expect(shownChoice(settings, true)).toEqual({ choice: "custom" });
+    expect(shownChoice(settings, false)).toEqual({ choice: "custom" });
   });
 });
 

@@ -8,6 +8,7 @@ import type { CSSResultGroup, TemplateResult, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { searchCountText } from "../../../../components/ha-top-bar-search";
 import { componentsWithService } from "../../../../common/config/components_with_service";
 import { computeDomain } from "../../../../common/entity/compute_domain";
 import { searchMatcher } from "../../../../common/regex/filter";
@@ -96,7 +97,7 @@ ${this.hass.language}`;
       ),
       value: this._filter,
       countText: filtering
-        ? this.hass.localize("ui.components.top_bar_search.count", {
+        ? searchCountText(this.hass.localize, {
             current: shown,
             total,
           })

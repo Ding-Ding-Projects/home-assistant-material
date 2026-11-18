@@ -2,6 +2,7 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { formatTimeWithSeconds } from "../../../common/datetime/format_time";
 import { fireEvent } from "../../../common/dom/fire_event";
@@ -623,7 +624,7 @@ export class HaConfigActivityRecord extends LitElement {
     if (!this._search.trim() || !this._day) {
       return undefined;
     }
-    return this.hass.localize("ui.components.top_bar_search.count", {
+    return searchCountText(this.hass.localize, {
       current: this._visibleEntries().length,
       total: this._entries.length,
     });

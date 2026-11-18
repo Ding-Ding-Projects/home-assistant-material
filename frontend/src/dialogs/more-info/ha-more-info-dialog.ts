@@ -30,6 +30,7 @@ import { keyed } from "lit/directives/keyed";
 import { styleMap } from "lit/directives/style-map";
 import type { RequestSelectedDetail } from "@material/mwc-list/mwc-list-item";
 import { dynamicElement } from "../../common/dom/dynamic-element-directive";
+import { isReduced } from "../../common/motion/page-entry";
 import type { HASSDomEvent } from "../../common/dom/fire_event";
 import { fireEvent } from "../../common/dom/fire_event";
 import { mainWindow } from "../../common/dom/get_main_window";
@@ -1400,8 +1401,56 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     this.addEventListener("close-child-view", () => this._goBack());
   }
 
+  // The height the content area had before a tab change, to glide from.
+  private _heightBeforeTab?: number;
+
+  protected willUpdate(changedProps: PropertyValues) {
+    super.willUpdate(changedProps);
+    if (changedProps.has("_currView") && changedProps.get("_currView")) {
+      this._heightBeforeTab = this._contentElement?.offsetHeight;
+    }
+  }
+
+  // The sheet is as tall as its content, so a taller or shorter tab changes
+  // its height. The change glides instead of jumping; the tabs at the foot
+  // stay where they are because the sheet grows upward from the bottom.
+  private _glideToNewHeight(before: number) {
+    const content = this._contentElement;
+    if (
+      !content ||
+      isReduced() ||
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+    content.style.transition = "none";
+    content.style.height = "auto";
+    const target = content.offsetHeight;
+    if (Math.abs(target - before) < 2) {
+      content.style.height = "";
+      content.style.transition = "";
+      return;
+    }
+    content.style.height = `${before}px`;
+    // Reading the height applies the start before the glide begins.
+    void content.offsetHeight;
+    content.style.transition = "height 200ms var(--ha-easing-standard, ease)";
+    content.style.height = `${target}px`;
+    const done = () => {
+      content.style.height = "";
+      content.style.transition = "";
+      content.removeEventListener("transitionend", done);
+    };
+    content.addEventListener("transitionend", done);
+  }
+
   protected updated(changedProps: PropertyValues) {
     super.updated(changedProps);
+    if (this._heightBeforeTab !== undefined) {
+      const before = this._heightBeforeTab;
+      this._heightBeforeTab = undefined;
+      this._glideToNewHeight(before);
+    }
     const previousView = changedProps.get("_currView") as
       MoreInfoView | undefined;
 

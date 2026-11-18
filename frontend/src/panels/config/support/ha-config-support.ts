@@ -11,6 +11,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { copyToClipboard } from "../../../common/util/copy-clipboard";
 import type { SupportTicket } from "../../../common/locks/support-tickets";
 import {
@@ -136,7 +137,7 @@ class HaConfigSupport extends LitElement {
         .searchValue=${this._query}
         .searchCountText=${
           this._query
-            ? this.hass.localize("ui.components.top_bar_search.count", {
+            ? searchCountText(this.hass.localize, {
                 current: viewTickets(this._tickets, this._extras, {
                   query: this._query,
                   status: this._statusFilter,

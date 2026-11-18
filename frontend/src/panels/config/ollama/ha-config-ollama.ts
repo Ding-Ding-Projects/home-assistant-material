@@ -17,6 +17,7 @@ import {
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { formatDateTime } from "../../../common/datetime/format_date_time";
 import { relativeTime } from "../../../common/datetime/relative_time";
 import { copyToClipboard } from "../../../common/util/copy-clipboard";
@@ -243,7 +244,7 @@ class HaConfigOllama extends LitElement {
     if (this._filter.trim() === "" || !this._modelsSearchable()) {
       return undefined;
     }
-    return this.hass.localize("ui.components.top_bar_search.count", {
+    return searchCountText(this.hass.localize, {
       current: this._shownModels().length,
       total: this._models?.length ?? 0,
     });

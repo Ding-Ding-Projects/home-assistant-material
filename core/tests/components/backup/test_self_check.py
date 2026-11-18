@@ -30,6 +30,7 @@ from homeassistant.components.backup.manager import (
 from homeassistant.components.backup.models import BackupNotFound
 from homeassistant.components.backup.self_check import (
     CHECK_IDS,
+    EVENT_SELF_CHECK,
     REMOTE_MODE_FULL,
     REMOTE_MODE_LIGHT,
     REMOTE_MODE_OFF,
@@ -448,6 +449,33 @@ async def test_exception_becomes_could_not_check(hass: HomeAssistant) -> None:
     assert all(
         check["reason"] == "unexpected_error" for check in stored[0][1]["checks"]
     )
+
+
+async def test_self_check_announces_its_start_and_end(hass: HomeAssistant) -> None:
+    """A page can refresh itself: the bus gets a started and a finished event."""
+    manager = SimpleNamespace(
+        hass=hass,
+        state=BackupManagerState.IDLE,
+        known_backups=SimpleNamespace(set_self_check=lambda *args: None),
+    )
+    events: list[tuple[str, str]] = []
+    hass.bus.async_listen(
+        EVENT_SELF_CHECK,
+        lambda event: events.append(
+            (event.data["backup_id"], event.data["state"])
+        ),
+    )
+    runner = SelfCheckRunner(manager)
+
+    # Even a check that fails with an unexpected error ends with "finished".
+    with patch(
+        "homeassistant.components.backup.self_check.async_self_check",
+        side_effect=RuntimeError("boom"),
+    ):
+        await runner._run(BACKUP_ID)
+    await hass.async_block_till_done()
+
+    assert events == [(BACKUP_ID, "started"), (BACKUP_ID, "finished")]
 
 
 async def test_failed_check_creates_issue(

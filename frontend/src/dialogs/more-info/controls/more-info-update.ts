@@ -13,6 +13,8 @@ import { transform } from "../../../common/decorators/transform";
 import { supportsFeature } from "../../../common/entity/supports-feature";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import { sanitizeHttpUrl } from "../../../common/url/sanitize-http-url";
+import { offeredNotesUrl } from "../../../data/build-notes";
+import { updateRole } from "../../../panels/config/core/updates/update-queue";
 import { closestWithProperty } from "../../../common/dom/ancestors-with-property";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
@@ -191,7 +193,14 @@ class MoreInfoUpdate extends LitElement {
       return nothing;
     }
 
-    const releaseUrl = sanitizeHttpUrl(this.stateObj.attributes.release_url);
+    // A system update opens the notes of the build on offer, not the installed one.
+    const releaseUrl = sanitizeHttpUrl(
+      offeredNotesUrl(
+        updateRole(this.stateObj) !== "other",
+        this.stateObj.attributes.latest_version,
+        this.stateObj.attributes.release_url
+      )
+    );
     const backupInProgressMessage = this._backupInProgressMessage();
 
     return html`

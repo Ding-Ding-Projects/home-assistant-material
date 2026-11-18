@@ -152,6 +152,20 @@ export const notesPageUrlForVersion = (
   return build > 0 ? notesPageUrl(build) : undefined;
 };
 
+/**
+ * The link to the notes of an update that is on offer. A system update (Core,
+ * Supervisor, operating system) opens the page of the offered build, never the
+ * installed one; anything else keeps the link its author gave.
+ */
+export const offeredNotesUrl = (
+  system: boolean,
+  latestVersion: string | null | undefined,
+  entityUrl: string | null | undefined
+): string | undefined =>
+  (system ? notesPageUrlForVersion(latestVersion) : undefined) ||
+  entityUrl ||
+  undefined;
+
 /** How long the loaded file is reused before it is read again. */
 export const NOTES_CACHE_MS = 300_000;
 

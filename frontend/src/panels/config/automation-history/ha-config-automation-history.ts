@@ -27,6 +27,7 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { searchCountText } from "../../../components/ha-top-bar-search";
 import { ensureArray } from "../../../common/array/ensure-array";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
 import { navigate } from "../../../common/navigate";
@@ -2443,7 +2444,7 @@ export class HaConfigAutomationHistory extends LitElement {
     if (this._search.trim() === "") {
       return undefined;
     }
-    return this.hass.localize("ui.components.top_bar_search.count", {
+    return searchCountText(this.hass.localize, {
       current: this._visibleRows().length,
       total: this._rows.length,
     });
