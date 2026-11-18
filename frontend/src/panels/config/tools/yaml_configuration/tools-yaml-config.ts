@@ -9,7 +9,6 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { componentsWithService } from "../../../../common/config/components_with_service";
-import type { HASSDomTargetEvent } from "../../../../common/dom/fire_event";
 import { computeDomain } from "../../../../common/entity/compute_domain";
 import { searchMatcher } from "../../../../common/regex/filter";
 import { stringCompare } from "../../../../common/string/compare";
@@ -19,13 +18,12 @@ import "../../../../components/ha-button";
 import "../../../../components/ha-relative-time";
 import "../../../../components/ha-spinner";
 import "../../../../components/ha-svg-icon";
-import "../../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../../components/input/ha-input-search";
 import type { CheckConfigResult } from "../../../../data/core";
 import { checkCoreConfig } from "../../../../data/core";
 import { domainToName } from "../../../../data/integration";
 import { showRestartDialog } from "../../../../dialogs/restart/show-dialog-restart";
 import { haStyle } from "../../../../resources/styles";
+import { reportToolsSearch } from "../tools-search";
 import type { HomeAssistant, Route, TranslationDict } from "../../../../types";
 
 type ReloadableDomain = Exclude<
@@ -70,7 +68,48 @@ export class ToolsYamlConfig extends LitElement {
     this._checkedAt = undefined;
   }
 
+  // What the tools page last heard about this tab's search
+  private _reportedSearch?: string;
+
+  // The tools page draws this tab's search in its top bar
+  private _reportSearch() {
+    const total = this._reloadableItems.length;
+    const filtering = this._filter.trim() !== "";
+    const shown = filtering
+      ? this._reloadableItems.filter((item) =>
+          searchMatcher(this._filter)(item.name)
+        ).length
+      : 0;
+    const key = `${this._filter}
+${shown}
+${total}
+${this.hass.language}`;
+    if (key === this._reportedSearch) {
+      return;
+    }
+    this._reportedSearch = key;
+    reportToolsSearch(this, {
+      panel: "yaml",
+      searchable: true,
+      label: this.hass.localize(
+        "ui.panel.config.tools.tabs.yaml.search_reloadable"
+      ),
+      value: this._filter,
+      countText: filtering
+        ? this.hass.localize("ui.components.top_bar_search.count", {
+            current: shown,
+            total,
+          })
+        : undefined,
+      samples: this._reloadableItems.map((item) => item.name),
+      onInput: (value) => {
+        this._filter = value;
+      },
+    });
+  }
+
   protected updated(changedProperties: PropertyValues<this>) {
+    this._reportSearch();
     const oldHass = changedProperties.get("hass");
     if (
       changedProperties.has("hass") &&
@@ -289,13 +328,6 @@ export class ToolsYamlConfig extends LitElement {
           )}
         </p>
         <div class="reload-toolbar">
-          <ha-input-search
-            .label=${localize(
-              "ui.panel.config.tools.tabs.yaml.search_reloadable"
-            )}
-            .value=${this._filter}
-            @input=${this._filterChanged}
-          ></ha-input-search>
           <ha-call-service-button
             domain="homeassistant"
             service="reload_all"
@@ -373,10 +405,6 @@ export class ToolsYamlConfig extends LitElement {
         </ha-call-service-button>
       </li>
     `;
-  }
-
-  private _filterChanged(ev: HASSDomTargetEvent<HaInputSearch>) {
-    this._filter = ev.target.value ?? "";
   }
 
   private _toggleShowAll() {
@@ -538,11 +566,6 @@ export class ToolsYamlConfig extends LitElement {
           flex-wrap: wrap;
           align-items: center;
           gap: var(--ha-space-3);
-        }
-
-        .reload-toolbar ha-input-search {
-          flex: 1;
-          min-width: 200px;
         }
 
         .reload-list {

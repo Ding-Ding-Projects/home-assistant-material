@@ -302,6 +302,14 @@ export class HaConfigActivityRecord extends LitElement {
           this.hass.localize("panel.config"),
           this._l("caption"),
         ].join(", ")}
+        .searchable=${!!this._day}
+        .searchLabel=${this._l("search_day")}
+        .searchValue=${this._search}
+        .searchCountText=${this._searchCount()}
+        .searchSamples=${this._entries
+          .slice(0, 50)
+          .map((entry) => this._entryValues(entry).join(" "))}
+        @top-bar-search-input=${this._searchChanged}
       >
         <div class="page">
           <h1>${this._l("title")}</h1>
@@ -580,25 +588,6 @@ export class HaConfigActivityRecord extends LitElement {
             })}</span
           >
         </div>
-        <div class="toolbar">
-          <ha-input-search
-            appearance="outlined"
-            .value=${this._search}
-            .placeholder=${this._l("search_day")}
-            .accessibleLabel=${this._l("search_day")}
-            .patternSamples=${this._entries
-              .slice(0, 50)
-              .map((entry) => this._entryValues(entry).join(" "))}
-            @input=${this._searchChanged}
-          ></ha-input-search>
-        </div>
-        ${
-          filtering
-            ? html`<p class="secondary" role="status">
-                ${this._l("search_matches", { count: visible.length })}
-              </p>`
-            : nothing
-        }
         ${
           this._dayLoading && !this._entries.length
             ? html`<p class="empty">${this._l("loading")}</p>`
@@ -630,8 +619,18 @@ export class HaConfigActivityRecord extends LitElement {
     `;
   }
 
-  private _searchChanged(ev: Event) {
-    this._search = (ev.target as HaInput).value ?? "";
+  private _searchCount(): string | undefined {
+    if (!this._search.trim() || !this._day) {
+      return undefined;
+    }
+    return this.hass.localize("ui.components.top_bar_search.count", {
+      current: this._visibleEntries().length,
+      total: this._entries.length,
+    });
+  }
+
+  private _searchChanged(ev: CustomEvent<{ value: string }>) {
+    this._search = ev.detail.value ?? "";
   }
 
   private _renderSearchAll() {
@@ -1206,16 +1205,11 @@ export class HaConfigActivityRecord extends LitElement {
     .result-day {
       padding: var(--ha-space-3) var(--ha-space-3) 0;
     }
-    .toolbar,
     .range {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: var(--ha-space-2);
-    }
-    .toolbar ha-input-search {
-      flex: 1 1 240px;
-      min-width: 0;
     }
     .range ha-input {
       flex: 1 1 140px;

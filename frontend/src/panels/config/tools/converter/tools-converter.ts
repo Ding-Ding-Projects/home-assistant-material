@@ -15,7 +15,7 @@ import {
   mdiTextBox,
   mdiVideo,
 } from "@mdi/js";
-import type { CSSResultGroup, TemplateResult } from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
@@ -99,8 +99,8 @@ import type { HaSelectSelectEvent } from "../../../../components/ha-select";
 import "../../../../components/ha-slider";
 import type { HaSlider } from "../../../../components/ha-slider";
 import "../../../../components/ha-svg-icon";
-import "../../../../components/input/ha-input-search";
 import { haStyle } from "../../../../resources/styles";
+import { reportToolsSearch } from "../tools-search";
 import type { HomeAssistant } from "../../../../types";
 import { fileDownload } from "../../../../util/file_download";
 
@@ -1117,7 +1117,6 @@ class ToolsConverter extends LitElement {
     const kind = this._inputKind;
     const offered = kind ? this._offered(kind) : undefined;
     const searching = this._search.trim() !== "";
-    const total = CATEGORIES.reduce((sum, c) => sum + c.targets.length, 0);
     const formatRow = (target: TargetId) => {
       const here = targetAvailable(target, this._caps);
       const usable = here && (!offered || offered.includes(target));
@@ -1171,13 +1170,6 @@ class ToolsConverter extends LitElement {
       };
     }).filter((item) => item.show);
     return html`
-      <ha-input-search
-        appearance="outlined"
-        .placeholder=${this._l("search_formats", { count: total })}
-        .accessibleLabel=${this._l("search_formats", { count: total })}
-        .value=${this._search}
-        @input=${this._searchChanged}
-      ></ha-input-search>
       ${
         visible.length
           ? html`<ul class="categories">
@@ -1495,8 +1487,61 @@ class ToolsConverter extends LitElement {
     this._open = this._open === id ? undefined : id;
   }
 
-  private _searchChanged(ev: Event): void {
-    this._search = (ev.currentTarget as HTMLInputElement).value ?? "";
+  // What the tools page last heard about this tab's search
+  private _reportedSearch?: string;
+
+  protected updated(changedProps: PropertyValues<this>): void {
+    super.updated(changedProps);
+    this._reportSearch();
+  }
+
+  // The tools page draws this tab's search in its top bar
+  private _reportSearch(): void {
+    const total = CATEGORIES.reduce((sum, c) => sum + c.targets.length, 0);
+    const searching = this._search.trim() !== "";
+    const matches = searchMatcher(this._search);
+    const shown = searching
+      ? CATEGORIES.reduce(
+          (sum, category) =>
+            sum +
+            category.targets.filter((target) =>
+              matches(
+                this._formatName(target),
+                this._l(`format_${formatKey(target)}_desc`),
+                this._l(`category_${category.id}`),
+                target
+              )
+            ).length,
+          0
+        )
+      : 0;
+    const key = `${this._search}
+${shown}
+${total}
+${this.hass.locale?.language}`;
+    if (key === this._reportedSearch) {
+      return;
+    }
+    this._reportedSearch = key;
+    const label = this._l("search_formats", { count: total });
+    reportToolsSearch(this, {
+      panel: "converter",
+      searchable: true,
+      label,
+      value: this._search,
+      countText: searching
+        ? this.hass.localize("ui.components.top_bar_search.count", {
+            current: shown,
+            total,
+          })
+        : undefined,
+      samples: CATEGORIES.flatMap((category) =>
+        category.targets.map((target) => this._formatName(target))
+      ),
+      onInput: (value) => {
+        this._search = value;
+      },
+    });
   }
 
   // Options.
@@ -2387,10 +2432,6 @@ class ToolsConverter extends LitElement {
         .category-text strong {
           font-size: var(--ha-font-size-m);
           color: var(--primary-text-color);
-        }
-        ha-input-search {
-          /* A touch target: 44 px high. */
-          --ha-input-search-height: 44px;
         }
         :host([narrow]) .category-head {
           flex-wrap: wrap;

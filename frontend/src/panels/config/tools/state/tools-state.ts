@@ -6,7 +6,7 @@ import type {
   HassEntity,
   HassEntityAttributeBase,
 } from "home-assistant-js-websocket";
-import type { CSSResultGroup } from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
@@ -42,6 +42,7 @@ import {
 } from "../../../../data/context";
 import { showAlertDialog } from "../../../../dialogs/generic/show-dialog-box";
 import { haStyle } from "../../../../resources/styles";
+import { reportToolsSearch } from "../tools-search";
 import type { HomeAssistant, HomeAssistantRegistries } from "../../../../types";
 import { showToast } from "../../../../util/toast";
 import "./tools-state-renderer";
@@ -150,6 +151,69 @@ class HaPanelDevState extends LitElement {
       )
   );
 
+  // What the tools page last heard about this tab's main search
+  private _reportedSearch?: string;
+
+  protected updated(changedProps: PropertyValues<this>) {
+    super.updated(changedProps);
+    this._reportSearch();
+  }
+
+  // The main entity search lives in the tools page top bar. The state, device,
+  // area and attribute fields stay in the list header as local column filters.
+  private _reportSearch() {
+    if (!this._i18n || !this._registries || !this._states) {
+      return;
+    }
+    const entities = this._filteredEntities(
+      this._entityFilter,
+      this._stateFilter,
+      this._attributeFilter,
+      this._deviceFilter,
+      this._areaFilter,
+      this._states,
+      this._registries.entities,
+      this._registries.devices,
+      this._registries.areas
+    );
+    const total = Object.keys(this._states).length;
+    const filtering = [
+      this._entityFilter,
+      this._stateFilter,
+      this._attributeFilter,
+      this._deviceFilter,
+      this._areaFilter,
+    ].some((value) => value.trim() !== "");
+    const key = `${this._entityFilter}
+${filtering}
+${entities.length}
+${total}
+${this._i18n.locale.language}`;
+    if (key === this._reportedSearch) {
+      return;
+    }
+    this._reportedSearch = key;
+    reportToolsSearch(this, {
+      panel: "state",
+      searchable: true,
+      label: this._i18n.localize(
+        "ui.panel.config.tools.tabs.states.filter_entities"
+      ),
+      value: this._entityFilter,
+      countText:
+        this._entityFilter.trim() !== ""
+          ? this._i18n.localize("ui.components.top_bar_search.count", {
+              current: entities.length,
+              total,
+            })
+          : undefined,
+      samples: Object.keys(this._states).slice(0, 300),
+      onInput: (value) => {
+        this._entityFilter = value;
+      },
+    });
+  }
+
   protected render() {
     const entities = this._filteredEntities(
       this._entityFilter,
@@ -222,14 +286,6 @@ class HaPanelDevState extends LitElement {
             .showArea=${this._showArea}
             @states-tool-entity-selected=${this._entitySelected}
           >
-            <ha-input-search
-              slot="filter-entities"
-              .label=${this._i18n.localize(
-                "ui.panel.config.tools.tabs.states.filter_entities"
-              )}
-              .value=${this._entityFilter}
-              @input=${this._entityFilterChanged}
-            ></ha-input-search>
             <ha-input-search
               slot="filter-states"
               .label=${this._i18n.localize(
@@ -437,10 +493,6 @@ class HaPanelDevState extends LitElement {
 
   private _stateChanged(ev: HASSDomTargetEvent<HaInput>) {
     this._state = ev.target.value ?? "";
-  }
-
-  private _entityFilterChanged(ev: HASSDomTargetEvent<HaInputSearch>) {
-    this._entityFilter = ev.target.value ?? "";
   }
 
   private _stateFilterChanged(ev: HASSDomTargetEvent<HaInputSearch>) {

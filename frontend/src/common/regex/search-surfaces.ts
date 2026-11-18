@@ -178,32 +178,13 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   {
     file: "components/ha-top-bar-search.ts",
     searches:
-      "The page search drawn in the top bar of any page built on the subpage layouts that opts in with the searchable property. Pages moved onto it: personal settings and sidebar labels, release notes, notifications, support, apps installed and available, extensions, the logs page, the integrations page, the help page, the problem log, tags and scenes in card view. The matching stays on each page, in its own file",
+      "The page search drawn in the top bar of any page built on the subpage layouts that opts in with the searchable property. Pages moved onto it: personal settings and sidebar labels, release notes, notifications, support, apps installed and available, extensions, the logs page, the integrations page, the help page, the problem log, tags and scenes in card view, the Settings home page, automation versions and repositories, the commits of one automation, the history of dashboards and of one dashboard, the activity record of one day, guided setup, the Ollama models, the AC Defender and Heat Defender guards, and the changes list of the Updates page, plus the developer tools tabs for action history, the file converter, statistics and YAML, which report their search to the tools page. The matching stays on each page, in its own file",
     matcher: "panels/config/personal/ha-config-section-personal.ts",
-  },
-  {
-    file: "panels/config/dashboard/ha-config-dashboard.ts",
-    searches: "The sections on the settings home page",
-    matcher: "panels/config/dashboard/ha-config-navigation.ts",
-  },
-  {
-    file: "panels/config/automation-history/ha-config-automation-history.ts",
-    searches:
-      "Versions of automations, by name, message, commit and author, and the automation repositories, by name and folder",
-  },
-  {
-    file: "panels/config/automation-history/ha-config-automation-repo.ts",
-    searches: "Commits of one automation, by message, author and commit",
   },
   {
     file: "panels/config/activity-record/ha-config-activity-record.ts",
     searches:
       "The loaded entries of one day of the permanent activity record, by name, text, entity and cause; and the search over all days, whose pattern filters the rows the server returns",
-  },
-  {
-    file: "panels/config/dashboard-history/ha-config-dashboard-history.ts",
-    searches:
-      "Dashboards and their tabs, by title, address and key; and commits of one dashboard or one of its views, by message, author, date and commit",
   },
   {
     file: "components/history/ha-version-picker.ts",
@@ -279,15 +260,6 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Lines of a system log shown in a dialog",
   },
   {
-    file: "panels/config/tools/action_history/tools-action-history.ts",
-    searches: "Past actions",
-    matcher: TABLE_WORKER,
-  },
-  {
-    file: "panels/config/tools/converter/tools-converter.ts",
-    searches: "The formats the file converter can write",
-  },
-  {
     file: "panels/config/tools/event/event-subscribe-card.ts",
     searches: "Keys and values of the events being listened to",
   },
@@ -295,27 +267,6 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     file: "panels/config/tools/state/tools-state.ts",
     searches:
       "Entities by name, state, device, area and attribute, one field each",
-  },
-  {
-    file: "panels/config/tools/statistics/tools-statistics.ts",
-    searches: "Statistics by id, name, device, area, unit, source and problem",
-  },
-  {
-    file: "panels/config/tools/yaml_configuration/tools-yaml-config.ts",
-    searches: "Kinds of YAML configuration that can be reloaded",
-  },
-  {
-    file: "panels/config/guided-setup/ha-config-guided-setup.ts",
-    searches: "Integrations that have no setup screen",
-  },
-  {
-    file: "panels/config/ac-defender/ha-defender-page.ts",
-    searches: "Guards of the AC Defender and Heat Defender by name and family",
-  },
-  {
-    file: "panels/config/ollama/ha-config-ollama.ts",
-    searches:
-      "Models stored on an Ollama server by name, family, size and quantisation",
   },
   {
     file: "panels/config/voice-assistants/dialog-expose-entity.ts",
@@ -340,12 +291,6 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   {
     file: "panels/lovelace/editor/card-editor/hui-card-picker.ts",
     searches: "Card types",
-  },
-  {
-    file: "panels/config/core/updates/ha-update-changes.ts",
-    searches:
-      "The changes between two builds on the Updates page, by title, detail text and commit id",
-    matcher: "data/build-changes.ts",
   },
   {
     file: "panels/config/core/updates/ha-update-backup-choice.ts",

@@ -22,8 +22,6 @@ import "../../../components/ha-button-toggle-group";
 import "../../../components/ha-card";
 import "../../../components/ha-control-slider";
 import "../../../components/ha-switch";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type { ConfigEntry } from "../../../data/config_entries";
 import { getConfigEntries } from "../../../data/config_entries";
 import type {
@@ -193,6 +191,13 @@ export class HaDefenderPage extends LitElement {
         .narrow=${this.narrow}
         .header=${title}
         back-path="/config"
+        .searchable=${!!this._info}
+        .searchLabel=${this._t("guards.search")}
+        .searchValue=${this._filter}
+        .searchCountText=${this._searchCount()}
+        .searchSamples=${this._info?.guards.map((guard) => guard.id)}
+        @top-bar-search-open=${this._searchOpened}
+        @top-bar-search-input=${this._filterChanged}
       >
         <div class="content">
           <p class="intro">${this._t(`intro_${this.direction}`)}</p>
@@ -611,7 +616,6 @@ export class HaDefenderPage extends LitElement {
   }
 
   private _guards(info: DefenderInfo): TemplateResult {
-    const search = this._t("guards.search");
     const matcher = searchMatcher(this._filter);
     const match = (guard: DefenderGuard) =>
       matcher(guard.id, this._guardTitle(guard.id), guard.family);
@@ -631,14 +635,6 @@ export class HaDefenderPage extends LitElement {
       label: this._t(`guards.${value}`),
     }));
     return html`
-      <ha-input-search
-        appearance="outlined"
-        .placeholder=${search}
-        .accessibleLabel=${search}
-        .value=${this._filter}
-        .patternSamples=${info.guards.map((g) => g.id)}
-        @input=${this._filterChanged}
-      ></ha-input-search>
       <ha-button-toggle-group
         size="s"
         aria-label=${this._t("guards.filter")}
@@ -942,8 +938,27 @@ export class HaDefenderPage extends LitElement {
     this._guardFilter = ev.detail.value;
   }
 
-  private _filterChanged(ev: Event): void {
-    this._filter = (ev.target as HaInputSearch).value ?? "";
+  private _filterChanged(ev: CustomEvent<{ value: string }>): void {
+    this._filter = ev.detail.value ?? "";
+  }
+
+  /** The search lives in the top bar on every tab; it looks through the guards. */
+  private _searchOpened(): void {
+    this._view = "guards";
+  }
+
+  private _searchCount(): string | undefined {
+    const info = this._info;
+    if (!info || this._filter.trim() === "") {
+      return undefined;
+    }
+    const matcher = searchMatcher(this._filter);
+    return this.hass.localize("ui.components.top_bar_search.count", {
+      current: info.guards.filter((guard) =>
+        matcher(guard.id, this._guardTitle(guard.id), guard.family)
+      ).length,
+      total: info.guards.length,
+    });
   }
 
   private _moved(ev: CustomEvent<{ value?: number }>): void {
@@ -1250,9 +1265,6 @@ export class HaDefenderPage extends LitElement {
       .detail {
         color: var(--secondary-text-color);
         font-size: var(--ha-font-size-s);
-      }
-      ha-input-search {
-        display: block;
       }
       ha-card {
         overflow: hidden;

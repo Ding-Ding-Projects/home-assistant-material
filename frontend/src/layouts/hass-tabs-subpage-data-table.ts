@@ -14,7 +14,6 @@ import {
   mdiFilterVariantRemove,
   mdiFormatListChecks,
   mdiInboxOutline,
-  mdiMagnify,
   mdiMenuDown,
   mdiPlus,
   mdiTableCog,
@@ -85,7 +84,7 @@ import {
 import { KeyboardShortcutMixin } from "../mixins/keyboard-shortcut-mixin";
 import type { HomeAssistant, Route } from "../types";
 import "./hass-tabs-subpage";
-import type { PageNavigation } from "./hass-tabs-subpage";
+import type { HassTabsSubpage, PageNavigation } from "./hass-tabs-subpage";
 
 // The filter pane can be dragged between these widths (pixels)
 const PANE_DEFAULT_WIDTH = 250;
@@ -285,10 +284,6 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
   @state() private _hasFilterChips = false;
 
-  // On a phone the search field opens from an icon beside the title, so the
-  // header stays one row.
-  @state() private _searchOpen = false;
-
   /** How many rows the table shows after the search and the filters. */
   @state() private _matchingRows?: number;
 
@@ -414,16 +409,12 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
   @query("ha-data-table", true) private _dataTable!: HaDataTable;
 
-  @query("ha-input-search") private _searchInput!: HaInputSearch;
+  @query("hass-tabs-subpage") private _layout?: HassTabsSubpage;
 
   protected supportedShortcuts(): SupportedShortcuts {
     return {
       f: () => {
-        if (this.narrow && !this._searchOpen) {
-          this._openSearch();
-          return;
-        }
-        this._searchInput?.focus();
+        this._layout?.openSearch();
       },
     };
   }
@@ -628,13 +619,11 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     >
     </ha-input-search>`;
 
-    // A phone shows the title and a search icon; the field opens from the
-    // icon, and stays open while it holds text or the person is using it.
-    // A wide window searches from the top bar, which never scrolls; a phone
-    // already turns its title into the field.
-    const barSearch = !this.narrow && !(this.empty && !this.loading);
+    // Every width searches from the top bar, which never scrolls. On a phone
+    // the bar's title turns into the field while it is open.
+    const barSearch = !(this.empty && !this.loading);
 
-    const titleRow = !!this._pageTitle && !this._searchOpen && !this.filter;
+    const titleRow = !!this._pageTitle;
 
     const sortByMenu = Object.values(this.columns).find((col) => col.sortable)
       ? html`
@@ -1174,24 +1163,9 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                           ${
                             titleRow
                               ? html`<h1 class="narrow-title">
-                                    ${this._pageTitle}
-                                  </h1>
-                                  <ha-icon-button
-                                    class="open-search"
-                                    .label=${localize(
-                                      "ui.components.subpage-data-table.open_search"
-                                    )}
-                                    .path=${mdiMagnify}
-                                    @click=${this._openSearch}
-                                  ></ha-icon-button>`
-                              : html`<slot name="header">
-                                  <div
-                                    class="search-toolbar"
-                                    @keydown=${this._searchKeydown}
-                                  >
-                                    ${searchBar}
-                                  </div>
-                                </slot>`
+                                  ${this._pageTitle}
+                                </h1>`
+                              : html`<slot name="header"></slot>`
                           }
                         </div>
                       `
@@ -1879,18 +1853,6 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     fireEvent(this, "search-changed", { value });
   }
 
-  private _openSearch = async () => {
-    this._searchOpen = true;
-    await this.updateComplete;
-    this._searchInput?.focus();
-  };
-
-  private _searchKeydown = (ev: KeyboardEvent) => {
-    if (ev.key === "Escape" && !this.filter) {
-      this._searchOpen = false;
-    }
-  };
-
   private _pageTitleChanged(ev: CustomEvent<{ title: string }>): void {
     this._pageTitle = ev.detail.title;
   }
@@ -2190,12 +2152,6 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .open-search {
-      flex: none;
-      min-width: 48px;
-      min-height: 48px;
-      color: var(--secondary-text-color);
-    }
     /* The same heavy, wrapping title the wide page header carries. */
     .narrow-title {
       /* Room above so the title never touches the top edge of a phone. */
@@ -2209,17 +2165,6 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       color: var(--primary-text-color);
       white-space: normal;
       overflow-wrap: break-word;
-    }
-    .search-toolbar {
-      display: flex;
-      align-items: center;
-      color: var(--secondary-text-color);
-    }
-    .search-toolbar ha-input-search {
-      min-width: 0;
-      /* A tall pill; the page header around it keeps its own height */
-      --ha-input-search-height: 48px;
-      --ha-input-search-border-radius: 24px;
     }
     .filters {
       --mdc-text-field-fill-color: var(--input-fill-color);

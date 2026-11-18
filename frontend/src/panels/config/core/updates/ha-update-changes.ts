@@ -1,10 +1,11 @@
 import { mdiCheck, mdiChevronDown, mdiContentCopy, mdiRefresh } from "@mdi/js";
-import type { CSSResultGroup, TemplateResult } from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
+import { fireEvent } from "../../../../common/dom/fire_event";
 import { copyToClipboard } from "../../../../common/util/copy-clipboard";
 import { formatDateTime } from "../../../../common/datetime/format_date_time";
 import { formatTime } from "../../../../common/datetime/format_time";
@@ -22,7 +23,6 @@ import type {
 import "../../../../components/ha-select";
 import "../../../../components/ha-spinner";
 import "../../../../components/ha-svg-icon";
-import "../../../../components/input/ha-input-search";
 import type {
   ChangeEntry,
   ChangeList,
@@ -80,7 +80,13 @@ export class HaUpdateChanges extends LitElement {
 
   @state() private _areas: ReadonlySet<string> = new Set();
 
-  @state() private _query = "";
+  /**
+   * The search text. The page keeps it, because the search lives in the top
+   * bar of the page, and hands it down.
+   */
+  @property({ attribute: false }) public query = "";
+
+  private _lastSearchState = "";
 
   @state() private _expanded: ReadonlySet<string> = new Set();
 
@@ -91,6 +97,43 @@ export class HaUpdateChanges extends LitElement {
   public connectedCallback(): void {
     super.connectedCallback();
     this._load(false);
+  }
+
+  protected updated(changed: PropertyValues): void {
+    super.updated(changed);
+    this._reportSearchState();
+  }
+
+  /** Tells the page what its top bar search looks through, and how much matched. */
+  private _reportSearchState(): void {
+    const list = this._list;
+    const from = this._from;
+    const to = this._to;
+    const range =
+      list && list.releases.length > 0 && from !== undefined && to !== undefined
+        ? this._range(list.releases, from, to)
+        : undefined;
+    const detail: ChangesSearchState = {
+      available: !!range,
+      shown: range ? countChanges(this._currentVisible()) : 0,
+      total: range ? countChanges(range) : 0,
+      samples: range
+        ? range.flatMap((release) =>
+            release.changes.map((change) => change.title)
+          )
+        : [],
+    };
+    const key = JSON.stringify([
+      detail.available,
+      detail.shown,
+      detail.total,
+      detail.samples.length,
+    ]);
+    if (key === this._lastSearchState) {
+      return;
+    }
+    this._lastSearchState = key;
+    fireEvent(this, "changes-search-state", detail);
   }
 
   public disconnectedCallback(): void {
@@ -228,8 +271,8 @@ export class HaUpdateChanges extends LitElement {
       </ha-alert>`;
     }
     const range = this._range(list.releases, this._from, this._to);
-    const byQuery = this._byQuery(range, this._query);
-    const visible = this._visible(range, this._areas, this._query);
+    const byQuery = this._byQuery(range, this.query);
+    const visible = this._visible(range, this._areas, this.query);
     return html`
       ${
         this._belowList
@@ -394,7 +437,7 @@ export class HaUpdateChanges extends LitElement {
   private _summaryText(range: ReleaseEntry[]): string {
     const total = countChanges(range);
     const shown = countChanges(this._currentVisible());
-    const filtering = isFiltering({ areas: this._areas, query: this._query });
+    const filtering = isFiltering({ areas: this._areas, query: this.query });
     return this._lang.compose(this.hass.localize, (part) => {
       const base =
         this._from === this._to
@@ -550,12 +593,9 @@ export class HaUpdateChanges extends LitElement {
     range: ReleaseEntry[],
     visible: ReleaseEntry[]
   ): TemplateResult {
-    const samples = range.flatMap((release) =>
-      release.changes.map((change) => change.title)
-    );
     const total = countChanges(range);
     const shown = countChanges(visible);
-    const filtering = isFiltering({ areas: this._areas, query: this._query });
+    const filtering = isFiltering({ areas: this._areas, query: this.query });
     const hint = this._lang.compose(this.hass.localize, (part) => {
       const names = [...this._areas]
         .map((area) => part(`${PREFIX}.area.${area}`) || area)
@@ -564,14 +604,6 @@ export class HaUpdateChanges extends LitElement {
     });
     return html`
       <div class="search-col">
-        <ha-input-search
-          appearance="outlined"
-          .value=${this._query}
-          .label=${this._t(`${PREFIX}.search`)}
-          .placeholder=${this._t(`${PREFIX}.search`)}
-          .patternSamples=${samples}
-          @input=${this._queryChanged}
-        ></ha-input-search>
         <div class="tools">
           <ha-button appearance="outlined" @click=${this._expandAll}>
             ${this._t(`${PREFIX}.expand_all`)}
@@ -610,10 +642,6 @@ export class HaUpdateChanges extends LitElement {
     `;
   }
 
-  private _queryChanged(ev: Event): void {
-    this._query = (ev.target as HTMLInputElement).value ?? "";
-  }
-
   private _toggleArea(ev: Event): void {
     const area = (ev.currentTarget as HTMLElement & { area: string }).area;
     const next = new Set(this._areas);
@@ -627,7 +655,9 @@ export class HaUpdateChanges extends LitElement {
 
   private _clearFilters = () => {
     this._areas = new Set();
-    this._query = "";
+    if (this.query !== "") {
+      fireEvent(this, "changes-query-clear");
+    }
   };
 
   private _currentVisible(): ReleaseEntry[] {
@@ -638,7 +668,7 @@ export class HaUpdateChanges extends LitElement {
     return this._visible(
       this._range(list.releases, this._from, this._to),
       this._areas,
-      this._query
+      this.query
     );
   }
 
@@ -1155,10 +1185,6 @@ export class HaUpdateChanges extends LitElement {
           gap: var(--ha-space-3);
           min-width: 0;
         }
-        ha-input-search {
-          --ha-input-search-height: 64px;
-          --ha-input-search-border-radius: var(--ha-border-radius-6xl);
-        }
         .tools {
           display: flex;
           flex-wrap: wrap;
@@ -1350,7 +1376,19 @@ export class HaUpdateChanges extends LitElement {
   }
 }
 
+export interface ChangesSearchState {
+  /** Whether there is a list of changes to search through. */
+  available: boolean;
+  shown: number;
+  total: number;
+  samples: string[];
+}
+
 declare global {
+  interface HASSDomEvents {
+    "changes-search-state": ChangesSearchState;
+    "changes-query-clear": undefined;
+  }
   interface HTMLElementTagNameMap {
     "ha-update-changes": HaUpdateChanges;
   }

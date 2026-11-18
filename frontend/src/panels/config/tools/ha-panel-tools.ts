@@ -1,7 +1,7 @@
 import { mdiChevronDown, mdiDotsVertical } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { modeText } from "../../../common/language-mode/language-mode";
@@ -11,12 +11,12 @@ import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
 import "../../../components/ha-icon-button";
-import "../../../components/ha-icon-button-arrow-prev";
 import "../../../components/ha-svg-icon";
-import "../../../components/ha-top-app-bar-fixed";
+import "../../../layouts/hass-subpage";
 import type { LocalizeKeys } from "../../../common/translations/localize";
 import type { HomeAssistant, Route } from "../../../types";
 import { partitionTools, resolveToolPanel } from "./tools-navigation";
+import type { ToolsSearchState } from "./tools-search";
 import "./tools-router";
 
 @customElement("ha-panel-tools")
@@ -26,6 +26,12 @@ class PanelTools extends LitElement {
   @property({ attribute: false }) public route!: Route;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
+
+  // What each tab told the page about its main search, by tab
+  @state() private _searches: Record<string, ToolsSearchState> = {};
+
+  @query("hass-subpage")
+  private _layout?: HTMLElementTagNameMap["hass-subpage"];
 
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
@@ -40,14 +46,24 @@ class PanelTools extends LitElement {
     );
     const moreActive = more.some((tab) => tab.panel === page);
     const localize = this.hass.localize;
+    const search = this._searches[page];
 
     return html`
-      <ha-top-app-bar-fixed .narrow=${this.narrow}>
-        <ha-icon-button-arrow-prev
-          slot="navigationIcon"
-          @click=${this._handleBack}
-        ></ha-icon-button-arrow-prev>
-        <ha-dropdown slot="actionItems" @wa-select=${this._handleMenuAction}>
+      <hass-subpage
+        .hass=${this.hass}
+        .narrow=${this.narrow}
+        back-path="/config"
+        .header=${localize("ui.panel.config.dashboard.tools.main")}
+        .searchable=${!!search?.searchable}
+        .searchLabel=${search?.label}
+        .searchValue=${search?.value ?? ""}
+        .searchCountText=${search?.countText}
+        .searchSamples=${search?.samples}
+        @top-bar-search-input=${this._searchInput}
+        @top-bar-search-close=${this._searchClosed}
+        @top-bar-search-step=${this._searchStep}
+      >
+        <ha-dropdown slot="toolbar-icon" @wa-select=${this._handleMenuAction}>
           <ha-icon-button
             slot="trigger"
             .label=${localize("ui.common.menu")}
@@ -59,7 +75,6 @@ class PanelTools extends LitElement {
         </ha-dropdown>
         <div class="wrapper">
           <header class="header">
-            <h1>${localize("ui.panel.config.dashboard.tools.main")}</h1>
             <nav
               class="pills"
               aria-label=${modeText(localize, "ui.panel.config.tools.nav.label")}
@@ -126,9 +141,11 @@ class PanelTools extends LitElement {
             .route=${this.route}
             .narrow=${this.narrow}
             .hass=${this.hass}
+            @tools-search-state=${this._searchReported}
+            @tools-search-open=${this._searchOpenRequested}
           ></tools-router>
         </div>
-      </ha-top-app-bar-fixed>
+      </hass-subpage>
     `;
   }
 
@@ -161,8 +178,34 @@ class PanelTools extends LitElement {
     return this.route.path.substr(1);
   }
 
-  private _handleBack() {
-    navigate("/config");
+  // The tab that is showing owns the bar's search; the others keep their own words
+  private get _activeSearch(): ToolsSearchState | undefined {
+    return this._searches[resolveToolPanel(this._page)];
+  }
+
+  private _searchReported(ev: CustomEvent<ToolsSearchState>) {
+    ev.stopPropagation();
+    this._searches = { ...this._searches, [ev.detail.panel]: ev.detail };
+  }
+
+  private _searchOpenRequested(ev: Event) {
+    ev.stopPropagation();
+    this._layout?.openSearch();
+  }
+
+  private _searchInput(ev: CustomEvent<{ value: string }>) {
+    ev.stopPropagation();
+    this._activeSearch?.onInput?.(ev.detail.value);
+  }
+
+  private _searchClosed(ev: Event) {
+    ev.stopPropagation();
+    this._activeSearch?.onClose?.();
+  }
+
+  private _searchStep(ev: CustomEvent<{ direction: 1 | -1 }>) {
+    ev.stopPropagation();
+    this._activeSearch?.onStep?.(ev.detail.direction);
   }
 
   static readonly styles: CSSResultGroup = css`
@@ -180,17 +223,6 @@ class PanelTools extends LitElement {
       width: 100%;
       margin: 0 auto;
       box-sizing: border-box;
-    }
-    h1 {
-      margin: 0;
-      font-family: var(--ha-font-family-heading, inherit);
-      font-size: var(--ha-font-size-3xl);
-      font-weight: var(--ha-font-weight-bold, 700);
-      line-height: var(--ha-line-height-condensed);
-      white-space: normal;
-      overflow: visible;
-      text-overflow: clip;
-      overflow-wrap: anywhere;
     }
     .pills {
       display: flex;
@@ -260,9 +292,6 @@ class PanelTools extends LitElement {
       .header {
         gap: var(--ha-space-2);
         padding: var(--ha-space-3) var(--ha-space-3) 0;
-      }
-      h1 {
-        font-size: 22px;
       }
       .pill {
         min-height: 44px;

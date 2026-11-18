@@ -2,14 +2,11 @@ import { mdiRefresh } from "@mdi/js";
 import type { HassConfig } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../../common/config/is_component_loaded";
 import { formatShortDateTimeWithSeconds } from "../../../../common/datetime/format_date_time";
-import type {
-  HASSDomEvent,
-  HASSDomTargetEvent,
-} from "../../../../common/dom/fire_event";
+import type { HASSDomEvent } from "../../../../common/dom/fire_event";
 import { computeDeviceName } from "../../../../common/entity/compute_device_name";
 import { computeStateDomain } from "../../../../common/entity/compute_state_domain";
 import type { LocalizeFunc } from "../../../../common/translations/localize";
@@ -17,19 +14,20 @@ import "../../../../components/data-table/ha-data-table";
 import type {
   DataTableColumnContainer,
   DataTableRowData,
+  HaDataTable,
   RowClickedEvent,
 } from "../../../../components/data-table/ha-data-table";
 import "../../../../components/date-picker/ha-date-range-nav";
 import "../../../../components/ha-alert";
 import "../../../../components/ha-icon-button";
-import "../../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../../components/input/ha-input-search";
+import { tablePatternSamples } from "../../../../components/data-table/pattern-samples";
 import type { LogbookActionCall } from "../../../../data/logbook";
 import { getLogbookActionCalls } from "../../../../data/logbook";
 import type { TraceContexts } from "../../../../data/trace";
 import { loadTraceContexts } from "../../../../data/trace";
 import { fetchUsers } from "../../../../data/user";
 import { haStyle } from "../../../../resources/styles";
+import { reportToolsSearch } from "../tools-search";
 import type { FrontendLocaleData } from "../../../../data/translation";
 import type { HomeAssistant } from "../../../../types";
 import type { LogbookCause } from "../../../logbook/logbook-entry-model";
@@ -229,12 +227,6 @@ class HaPanelToolsActionHistory extends LitElement {
   protected render() {
     const localize = this.hass.localize;
 
-    const searchBar = html`<ha-input-search
-      appearance="outlined"
-      .value=${this._filter}
-      @input=${this._handleSearchChange}
-    ></ha-input-search>`;
-
     const controls = html`
       <ha-date-range-nav
         .startDate=${this._range[0]}
@@ -253,11 +245,6 @@ class HaPanelToolsActionHistory extends LitElement {
 
     return html`
       <div class="table-with-toolbars">
-        ${
-          this.narrow
-            ? html`<div class="search-toolbar">${searchBar}</div>`
-            : nothing
-        }
         ${
           this._error
             ? html`<ha-alert alert-type="error">
@@ -284,6 +271,7 @@ class HaPanelToolsActionHistory extends LitElement {
           .filter=${this._filter}
           clickable
           @row-click=${this._rowClicked}
+          @filtered-rows-changed=${this._reportSearch}
         >
           ${
             this.narrow
@@ -292,7 +280,7 @@ class HaPanelToolsActionHistory extends LitElement {
                     ${controls}
                   </div>`
               : html`<div slot="header">
-                  <div class="table-header">${searchBar}${controls}</div>
+                  <div class="table-header">${controls}</div>
                 </div>`
           }
         </ha-data-table>
@@ -364,9 +352,60 @@ class HaPanelToolsActionHistory extends LitElement {
     this._refresh();
   }
 
-  private _handleSearchChange(ev: HASSDomTargetEvent<HaInputSearch>) {
-    this._filter = ev.target.value ?? "";
+  private _barSearchInput = (value: string) => {
+    this._filter = value;
+  };
+
+  protected updated(changedProps: PropertyValues<this>) {
+    super.updated(changedProps);
+    this._reportSearch();
   }
+
+  @query("ha-data-table") private _table?: HaDataTable;
+
+  // What the tools page last heard about this tab's search
+  private _reportedSearch?: string;
+
+  // The tools page draws this tab's search in its top bar
+  private _reportSearch = () => {
+    const rows = this._displayRows();
+    const searching = this._filter.trim() !== "";
+    const shown = searching
+      ? (this._table?.matchingRowCount ?? rows.length)
+      : 0;
+    const key = `${this._filter}
+${shown}
+${rows.length}
+${this.hass.language}`;
+    if (key === this._reportedSearch) {
+      return;
+    }
+    this._reportedSearch = key;
+    reportToolsSearch(this, {
+      panel: "action-history",
+      searchable: true,
+      label: this.hass.localize(
+        "ui.panel.config.tools.tabs.action_history.search"
+      ),
+      value: this._filter,
+      countText: searching
+        ? this.hass.localize("ui.components.top_bar_search.count", {
+            current: shown,
+            total: rows.length,
+          })
+        : undefined,
+      samples: tablePatternSamples(
+        rows,
+        this._columns(
+          this.hass.localize,
+          this.narrow,
+          this.hass.locale,
+          this.hass.config
+        )
+      ),
+      onInput: this._barSearchInput,
+    });
+  };
 
   private _rowClicked(ev: HASSDomEvent<RowClickedEvent>) {
     const row = this._displayRows()[Number(ev.detail.id)];
@@ -422,19 +461,10 @@ class HaPanelToolsActionHistory extends LitElement {
             var(--ha-space-4) + var(--data-table-inset-right, 0px)
           );
           gap: var(--ha-space-4);
+          justify-content: flex-end;
           box-sizing: border-box;
           background: var(--primary-background-color);
           border-bottom: 1px solid var(--divider-color);
-        }
-
-        ha-input-search {
-          flex: 1;
-        }
-
-        .search-toolbar {
-          display: flex;
-          align-items: center;
-          padding: var(--ha-space-2) var(--ha-space-4) 0;
         }
 
         .narrow-header-row {

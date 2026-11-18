@@ -11355,6 +11355,7 @@
             },
             "action_history": {
               "title": "Action history",
+              "search": "Search action history",
               "action": "Action",
               "action_id": "Action ID",
               "targets": "Targets",

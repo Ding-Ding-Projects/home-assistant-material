@@ -31,8 +31,6 @@ import type {
 import { RequestToken } from "../../../components/history/version-picker-logic";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type {
   AutomationConfig,
   Condition,
@@ -403,6 +401,14 @@ export class HaConfigAutomationRepo extends LitElement {
         back-path="/config/automation_history"
         .header=${this._l("vh_title")}
         .breadcrumb=${breadcrumb}
+        .searchable=${!!this._info}
+        .searchLabel=${this._l("vh_search_commits", {
+          count: this._commits.length,
+        })}
+        .searchValue=${this._search}
+        .searchCountText=${this._searchCount()}
+        .searchSamples=${this._commits.map((commit) => commit.message)}
+        @top-bar-search-input=${this._searchChanged}
       >
         <div class="page">
           ${
@@ -493,15 +499,6 @@ export class HaConfigAutomationRepo extends LitElement {
     const key = this._selectedKey;
     return html`
       <div class="filters">
-        <ha-input-search
-          appearance="outlined"
-          .value=${this._search}
-          .placeholder=${this._l("vh_search_commits", {
-            count: this._commits.length,
-          })}
-          .patternSamples=${this._commits.map((commit) => commit.message)}
-          @input=${this._searchChanged}
-        ></ha-input-search>
         ${this._authors().map(
           (author) => html`
             <button
@@ -867,8 +864,18 @@ export class HaConfigAutomationRepo extends LitElement {
 
   // ---- Handlers ----
 
-  private _searchChanged(ev: Event) {
-    this._search = (ev.target as HaInputSearch).value ?? "";
+  private _searchCount(): string | undefined {
+    if (this._search.trim() === "") {
+      return undefined;
+    }
+    return this.hass.localize("ui.components.top_bar_search.count", {
+      current: this._visibleCommits().length,
+      total: this._commits.length,
+    });
+  }
+
+  private _searchChanged(ev: CustomEvent<{ value: string }>) {
+    this._search = ev.detail.value ?? "";
   }
 
   private _toggleAuthor(ev: Event) {
@@ -1213,10 +1220,6 @@ export class HaConfigAutomationRepo extends LitElement {
       flex-wrap: wrap;
       align-items: center;
       gap: var(--ha-space-2);
-    }
-    .filters ha-input-search {
-      flex: 1 1 200px;
-      --ha-input-search-border-radius: var(--ha-border-radius-pill);
     }
     button {
       font: inherit;

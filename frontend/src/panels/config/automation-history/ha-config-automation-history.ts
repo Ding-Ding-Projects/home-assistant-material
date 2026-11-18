@@ -61,8 +61,6 @@ import "../../../components/ha-relative-time";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
 import "../../../components/ha-textarea";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type { AutomationConfig, Condition } from "../../../data/automation";
 import {
   fetchAutomationFileConfig,
@@ -276,8 +274,6 @@ export class HaConfigAutomationHistory extends LitElement {
   @state() private _pushResult?: AutomationPushResult;
 
   @state() private _preview?: { title: string; text: string };
-
-  @state() private _repoSearch = "";
 
   @state() private _repoFilter?: RepoFilter;
 
@@ -1456,6 +1452,14 @@ export class HaConfigAutomationHistory extends LitElement {
         .route=${this.route}
         back-path="/config"
         .tabs=${configSections.automations}
+        searchable
+        .searchLabel=${this._l("search", { count: this._rows.length })}
+        .searchValue=${this._search}
+        .searchCountText=${this._searchCount()}
+        .searchSamples=${this._rows.map(
+          (row) => `${row.alias}: ${row.message}`
+        )}
+        @top-bar-search-input=${this._searchChanged}
       >
         <div class="page">
           ${
@@ -1661,7 +1665,8 @@ export class HaConfigAutomationHistory extends LitElement {
   }
 
   private _visibleRepos() {
-    const matches = searchMatcher(this._repoSearch);
+    // One search in the top bar looks through the versions and the repositories.
+    const matches = searchMatcher(this._search);
     return (this._status?.automations ?? []).filter(
       (item) =>
         matches(item.alias, item.repository) &&
@@ -1688,17 +1693,6 @@ export class HaConfigAutomationHistory extends LitElement {
     return html`
       <div class="repos">
         <div class="filters">
-          <ha-input-search
-            appearance="outlined"
-            .value=${this._repoSearch}
-            .placeholder=${this._l("repo_search", {
-              count: status.automations.length,
-            })}
-            .patternSamples=${status.automations.map(
-              (item) => `${item.alias} ${item.repository}`
-            )}
-            @input=${this._repoSearchChanged}
-          ></ha-input-search>
           ${(["changes", "clean"] as const).map(
             (filter) => html`
               <button
@@ -2020,15 +2014,6 @@ export class HaConfigAutomationHistory extends LitElement {
     const selected = new Set(this._selected);
     return html`
       <div class="filters">
-        <ha-input-search
-          appearance="outlined"
-          .value=${this._search}
-          .placeholder=${this._l("search", { count: this._rows.length })}
-          .patternSamples=${this._rows.map(
-            (row) => `${row.alias}: ${row.message}`
-          )}
-          @input=${this._searchChanged}
-        ></ha-input-search>
         ${HISTORY_FILTERS.map(
           (filter) => html`
             <button
@@ -2454,8 +2439,18 @@ export class HaConfigAutomationHistory extends LitElement {
     this._message = (ev.currentTarget as HaInput).value ?? "";
   }
 
-  private _searchChanged(ev: Event) {
-    this._search = (ev.target as HaInputSearch).value ?? "";
+  private _searchCount(): string | undefined {
+    if (this._search.trim() === "") {
+      return undefined;
+    }
+    return this.hass.localize("ui.components.top_bar_search.count", {
+      current: this._visibleRows().length,
+      total: this._rows.length,
+    });
+  }
+
+  private _searchChanged(ev: CustomEvent<{ value: string }>) {
+    this._search = ev.detail.value ?? "";
     this._limit = PAGE_SIZE;
     this._writeUrl(true);
   }
@@ -2599,10 +2594,6 @@ export class HaConfigAutomationHistory extends LitElement {
   private _closePreview = () => {
     this._preview = undefined;
   };
-
-  private _repoSearchChanged(ev: Event) {
-    this._repoSearch = (ev.target as HaInputSearch).value ?? "";
-  }
 
   private _toggleRepoFilter(ev: Event) {
     const filter = (
@@ -2894,10 +2885,6 @@ export class HaConfigAutomationHistory extends LitElement {
       flex-wrap: wrap;
       align-items: center;
       gap: var(--ha-space-2);
-    }
-    .filters ha-input-search {
-      flex: 1 1 260px;
-      --ha-input-search-border-radius: var(--ha-border-radius-pill);
     }
     .chip {
       min-height: var(--ha-space-9);

@@ -15,6 +15,7 @@ import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import { ctrlOrCmdLabel } from "../../../common/keyboard/ctrl-or-cmd";
+import { ShortcutManager } from "../../../common/keyboard/shortcuts";
 import { PageLockController } from "../../../common/locks/page-lock-controller";
 import {
   joinForMode,
@@ -30,8 +31,7 @@ import "../../../components/ha-svg-icon";
 import "../../../components/ha-menu-button";
 import "../../../components/ha-tip";
 import { navigate } from "../../../common/navigate";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
+import "../../../components/ha-top-bar-search";
 import "../../../components/page/ha-page-footer";
 import "../../../components/page/ha-page-lock-banner";
 import "../../../components/page/ha-page-tools";
@@ -155,6 +155,11 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
 
   @state() private _filter = "";
 
+  /** The search is in the page's own bar, which never scrolls. */
+  @state() private _searchOpen = false;
+
+  private _shortcuts = new ShortcutManager();
+
   @state() private _integrations?: number;
 
   private _pageLock = new PageLockController(this);
@@ -269,6 +274,26 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
     values?: Record<string, string | number>
   ): string => this._lang.text(this.hass.localize, key, values);
 
+  public connectedCallback(): void {
+    super.connectedCallback();
+    // The slash key opens the search, except while typing in a field.
+    this._shortcuts.add({
+      "/": {
+        handler: (ev) => {
+          if (!this._searchOpen) {
+            ev.preventDefault();
+            this._searchOpen = true;
+          }
+        },
+      },
+    });
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._shortcuts.remove();
+  }
+
   protected firstUpdated(changedProps: PropertyValues<this>): void {
     super.firstUpdated(changedProps);
     if (this.hass.user?.is_admin) {
@@ -343,13 +368,28 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
               ></ha-menu-button>`
             : nothing
         }
-        <div class="spacer"></div>
+        <div class="spacer" ?hidden=${this._searchOpen && this.narrow}></div>
+        <ha-top-bar-search
+          .localize=${this.hass.localize}
+          .label=${this._t("ui.panel.config.dashboard.search")}
+          .value=${this._filter}
+          .open=${this._searchOpen}
+          .wide=${!this.narrow}
+          @top-bar-search-open=${this._openSearch}
+          @top-bar-search-close=${this._closeSearch}
+          @top-bar-search-input=${this._filterChanged}
+        ></ha-top-bar-search>
         <ha-page-tools
           no-find
+          ?hidden=${this._searchOpen && this.narrow}
           .compact=${this.narrow}
           .pageTitle=${title}
         ></ha-page-tools>
-        <ha-dropdown ?inert=${locked} @wa-select=${this._handleMenuAction}>
+        <ha-dropdown
+          ?hidden=${this._searchOpen && this.narrow}
+          ?inert=${locked}
+          @wa-select=${this._handleMenuAction}
+        >
           <ha-icon-button
             slot="trigger"
             .label=${this._t("ui.common.menu")}
@@ -371,7 +411,6 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
       <div class="content ha-scrollbar" ?inert=${locked}>
         <section class="hero rise">
           <h1>${title}</h1>
-          ${this._renderSearch()}
         </section>
         ${
           attention
@@ -486,20 +525,19 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
     `;
   }
 
-  private _renderSearch(): TemplateResult {
-    const label = this._t("ui.panel.config.dashboard.search");
-    return html`<ha-input-search
-      class="search"
-      appearance="outlined"
-      .placeholder=${this._t("ui.panel.config.dashboard.find_any")}
-      .accessibleLabel=${label}
-      .value=${this._filter}
-      @input=${this._filterChanged}
-    ></ha-input-search>`;
+  private _openSearch(ev: Event): void {
+    ev.stopPropagation();
+    this._searchOpen = true;
   }
 
-  private _filterChanged(ev: Event): void {
-    this._filter = (ev.target as HaInputSearch).value ?? "";
+  /** Gives the bar back. The page stays where it is and the words stay. */
+  private _closeSearch(ev: Event): void {
+    ev.stopPropagation();
+    this._searchOpen = false;
+  }
+
+  private _filterChanged(ev: CustomEvent<{ value: string }>): void {
+    this._filter = ev.detail.value ?? "";
   }
 
   protected override updated(changedProps: PropertyValues<this>): void {
@@ -595,6 +633,12 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
         .spacer {
           flex: 1;
         }
+        [hidden] {
+          display: none !important;
+        }
+        :host(:not([narrow])) ha-top-bar-search {
+          margin-inline-end: var(--ha-space-2);
+        }
         ha-page-footer,
         ha-page-lock-banner {
           flex: none;
@@ -638,13 +682,6 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           line-height: 1;
           color: var(--primary-text-color);
           unicode-bidi: plaintext;
-        }
-        .search {
-          display: block;
-          width: 100%;
-          max-width: 760px;
-          --ha-input-search-height: 68px;
-          --ha-input-search-border-radius: 34px;
         }
 
         .attention {
@@ -768,10 +805,6 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           font-stretch: 100%;
           letter-spacing: -0.01em;
           line-height: 1.2;
-        }
-        :host([narrow]) .search {
-          --ha-input-search-height: 48px;
-          --ha-input-search-border-radius: 24px;
         }
         :host([narrow]) .attention {
           gap: var(--ha-space-3);

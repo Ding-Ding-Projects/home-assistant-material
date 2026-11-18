@@ -20,15 +20,12 @@ import {
   nothing,
   type PropertyValues,
 } from "lit";
-import { customElement, property, query, state } from "lit/decorators";
+import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { consume } from "../../../../common/decorators/consume";
 import { QueryParamsController } from "../../../../common/controllers/query-params-controller";
 import { transform } from "../../../../common/decorators/transform";
-import type {
-  HASSDomCurrentTargetEvent,
-  HASSDomTargetEvent,
-} from "../../../../common/dom/fire_event";
+import type { HASSDomCurrentTargetEvent } from "../../../../common/dom/fire_event";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import { computeAreaName } from "../../../../common/entity/compute_area_name";
 import {
@@ -60,8 +57,6 @@ import "../../../../components/ha-dropdown-item";
 import "../../../../components/ha-icon-button";
 import "../../../../components/ha-spinner";
 import "../../../../components/ha-svg-icon";
-import "../../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../../components/input/ha-input-search";
 import type {
   StatisticsMetaData,
   StatisticsValidationResult,
@@ -82,6 +77,7 @@ import {
 } from "../../../../data/context";
 import { KeyboardShortcutMixin } from "../../../../mixins/keyboard-shortcut-mixin";
 import { haStyle } from "../../../../resources/styles";
+import { openToolsSearch, reportToolsSearch } from "../tools-search";
 import type {
   HomeAssistantFormatters,
   HomeAssistantRegistries,
@@ -187,7 +183,8 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
   @consume({ context: statesContext, subscribe: true })
   private _states!: ContextType<typeof statesContext>;
 
-  @query("ha-input-search") private _searchInput!: HaInputSearch;
+  // What the tools page last heard about this tab's search
+  private _reportedSearch?: string;
 
   // The search, sort and grouping are kept in the page address. Nothing is
   // stored, so opening the page again without params, like from another tools
@@ -209,6 +206,51 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
       this._applyUrl();
     }
   }
+
+  protected updated(changedProps: PropertyValues<this>) {
+    super.updated(changedProps);
+    this._reportSearch();
+  }
+
+  // The tools page draws this tab's main search in its top bar
+  private _reportSearch() {
+    if (!this._i18n || !this._registries) {
+      return;
+    }
+    const total = this._data.length;
+    const searching = this._filter.trim() !== "";
+    const shown = searching ? this._currentRows().length : 0;
+    const key = `${this._filter}\n${shown}\n${total}\n${this._i18n.locale.language}`;
+    if (key === this._reportedSearch) {
+      return;
+    }
+    this._reportedSearch = key;
+    reportToolsSearch(this, {
+      panel: "statistics",
+      searchable: true,
+      label: this._i18n.localize(
+        "ui.panel.config.tools.tabs.statistics.search_statistics"
+      ),
+      value: this._filter,
+      countText: searching
+        ? this._i18n.localize("ui.components.top_bar_search.count", {
+            current: shown,
+            total,
+          })
+        : undefined,
+      samples: this._data.map((item) => item.statistic_id),
+      onInput: this._barSearchInput,
+      onClose: () => this._flushUrl(),
+    });
+  }
+
+  private _barSearchInput = (value: string) => {
+    if (this._filter === value) {
+      return;
+    }
+    this._filter = value;
+    this._writeUrl(true);
+  };
 
   // The ways to sort and group, with the names they have in the address
   private _columns = memoizeOne(
@@ -573,14 +615,6 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
     return html`
       <div class="page">
         <div class="toolbar">
-          <ha-input-search
-            .label=${localize(
-              "ui.panel.config.tools.tabs.statistics.search_statistics"
-            )}
-            .value=${this._filter}
-            @input=${this._handleSearchChange}
-            @blur=${this._flushUrl}
-          ></ha-input-search>
           ${this._renderSortMenu(localize)} ${this._renderGroupMenu(localize)}
           <ha-filter-chip
             .label=${localize(
@@ -838,14 +872,6 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
     `;
   }
 
-  private _handleSearchChange(ev: HASSDomTargetEvent<HaInputSearch>) {
-    if (this._filter === ev.target.value) {
-      return;
-    }
-    this._filter = ev.target.value ?? "";
-    this._writeUrl(true);
-  }
-
   // A link with table params wins over what was picked before
   private _applyUrl() {
     const searchParams = this._queryParams.searchParams();
@@ -1095,7 +1121,7 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
 
   protected supportedShortcuts(): SupportedShortcuts {
     return {
-      f: () => this._searchInput.focus(),
+      f: () => openToolsSearch(this),
     };
   }
 
@@ -1123,12 +1149,6 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
           flex-wrap: wrap;
           align-items: center;
           gap: var(--ha-space-3);
-        }
-
-        .toolbar ha-input-search {
-          flex: 1;
-          min-width: 220px;
-          max-width: 420px;
         }
 
         ha-assist-chip {

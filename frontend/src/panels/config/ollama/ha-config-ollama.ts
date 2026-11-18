@@ -31,8 +31,6 @@ import "../../../components/layout/ha-split-panels";
 import "./ha-ollama-chat";
 import type { HaOllamaChat } from "./ha-ollama-chat";
 import "./ha-ollama-pull";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type {
   OllamaModel,
   OllamaModelInfo,
@@ -227,8 +225,28 @@ class HaConfigOllama extends LitElement {
     });
   }
 
-  private _filterChanged(ev: Event): void {
-    this._filter = (ev.target as HaInputSearch).value ?? "";
+  private _filterChanged(ev: CustomEvent<{ value: string }>): void {
+    this._filter = ev.detail.value ?? "";
+  }
+
+  private _modelsSearchable(): boolean {
+    return (
+      !!this._servers &&
+      !this._error &&
+      !!this._serverId &&
+      !this._loadingModels &&
+      !this._modelsError
+    );
+  }
+
+  private _searchCount(): string | undefined {
+    if (this._filter.trim() === "" || !this._modelsSearchable()) {
+      return undefined;
+    }
+    return this.hass.localize("ui.components.top_bar_search.count", {
+      current: this._shownModels().length,
+      total: this._models?.length ?? 0,
+    });
   }
 
   private _sortBy(ev: Event): void {
@@ -448,6 +466,14 @@ class HaConfigOllama extends LitElement {
         .narrow=${this.narrow}
         back-path="/config"
         .header=${this._l("title")}
+        .searchable=${this._modelsSearchable()}
+        .searchLabel=${this._l("search_n", {
+          count: this._models?.length ?? 0,
+        })}
+        .searchValue=${this._filter}
+        .searchCountText=${this._searchCount()}
+        .searchSamples=${(this._models ?? []).map((model) => model.name ?? "")}
+        @top-bar-search-input=${this._filterChanged}
       >
         <div class=${classMap({ content: true, narrow: this.narrow })}>
           ${this._renderBody()}
@@ -676,7 +702,6 @@ class HaConfigOllama extends LitElement {
   private _renderModels(): TemplateResult {
     const shown = this._shownModels();
     const total = this._models?.length ?? 0;
-    const search = this._l("search_n", { count: total });
     if (!this._serverId) {
       // No server answers, so there is no model list to show; saying "no
       // models yet" here would read as an empty server.
@@ -696,68 +721,58 @@ class HaConfigOllama extends LitElement {
             </div>`
           : this._modelsError
             ? html`<ha-alert alert-type="error">${this._modelsError}</ha-alert>`
-            : html`<ha-input-search
-                  appearance="outlined"
-                  .placeholder=${search}
-                  .accessibleLabel=${search}
-                  .value=${this._filter}
-                  .patternSamples=${(this._models ?? []).map(
-                    (model) => model.name ?? ""
-                  )}
-                  @input=${this._filterChanged}
-                ></ha-input-search>
-                ${
-                  this._truncated
-                    ? html`<p class="detail">${this._l("truncated")}</p>`
-                    : nothing
-                }
-                ${
-                  shown.length
-                    ? html`<div class="table-scroll">
-                        <table>
-                          <thead>
-                            <tr>
-                              ${this._sortHeader("name", this._l("col_name"))}
-                              ${this._sortHeader("size", this._l("col_size"))}
-                              ${
-                                this.narrow
-                                  ? nothing
-                                  : html`<th scope="col">
-                                        ${this._l("col_family")}
-                                      </th>
-                                      <th scope="col">
-                                        ${this._l("col_parameters")}
-                                      </th>
-                                      <th scope="col">
-                                        ${this._l("col_quantisation")}
-                                      </th>
-                                      ${this._sortHeader(
-                                        "modified_at",
-                                        this._l("col_modified")
-                                      )}`
-                              }
-                              <th scope="col">
-                                <span class="visually-hidden"
-                                  >${this._l("col_actions")}</span
-                                >
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            ${shown.map((model) => this._renderModelRow(model))}
-                          </tbody>
-                        </table>
-                      </div>`
-                    : html`<p class="detail" role="status">
-                        ${
-                          total
-                            ? this._l("no_match", {
-                                query: this._filter.trim(),
-                              })
-                            : this._l("no_models")
-                        }
-                      </p>`
-                }`
+            : html`${
+                this._truncated
+                  ? html`<p class="detail">${this._l("truncated")}</p>`
+                  : nothing
+              }
+              ${
+                shown.length
+                  ? html`<div class="table-scroll">
+                      <table>
+                        <thead>
+                          <tr>
+                            ${this._sortHeader("name", this._l("col_name"))}
+                            ${this._sortHeader("size", this._l("col_size"))}
+                            ${
+                              this.narrow
+                                ? nothing
+                                : html`<th scope="col">
+                                      ${this._l("col_family")}
+                                    </th>
+                                    <th scope="col">
+                                      ${this._l("col_parameters")}
+                                    </th>
+                                    <th scope="col">
+                                      ${this._l("col_quantisation")}
+                                    </th>
+                                    ${this._sortHeader(
+                                      "modified_at",
+                                      this._l("col_modified")
+                                    )}`
+                            }
+                            <th scope="col">
+                              <span class="visually-hidden"
+                                >${this._l("col_actions")}</span
+                              >
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${shown.map((model) => this._renderModelRow(model))}
+                        </tbody>
+                      </table>
+                    </div>`
+                  : html`<p class="detail" role="status">
+                      ${
+                        total
+                          ? this._l("no_match", {
+                              query: this._filter.trim(),
+                            })
+                          : this._l("no_models")
+                      }
+                    </p>`
+              }`
       }
     </section>`;
   }
@@ -1115,10 +1130,6 @@ class HaConfigOllama extends LitElement {
       }
       .split-end {
         padding-inline-start: var(--ha-space-2);
-      }
-      ha-input-search {
-        display: block;
-        margin-bottom: var(--ha-space-2);
       }
       table {
         width: 100%;

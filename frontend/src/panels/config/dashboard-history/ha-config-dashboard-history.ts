@@ -20,8 +20,6 @@ import type {
 import { RequestToken } from "../../../components/history/version-picker-logic";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type {
   DashboardCommit,
   DashboardArchive,
@@ -330,6 +328,12 @@ export class HaConfigDashboardHistory extends LitElement {
         }
         .header=${this._l("title")}
         .breadcrumb=${breadcrumb}
+        .searchable=${this._searchable(repository)}
+        .searchLabel=${this._searchLabel()}
+        .searchValue=${this._dashboard ? this._search : this._overviewSearch}
+        .searchCountText=${this._searchCount()}
+        .searchSamples=${this._searchSamples()}
+        @top-bar-search-input=${this._topBarSearchInput}
       >
         <div class="page">
           ${
@@ -363,45 +367,9 @@ export class HaConfigDashboardHistory extends LitElement {
       return nothing;
     }
     const visible = this._overviewMatches();
-    const totalTabs = status.dashboards.reduce(
-      (sum, item) => sum + item.views.length,
-      0
-    );
-    const shownTabs = visible.reduce((sum, row) => sum + row.views.length, 0);
-    const search = this._l("overview_search", {
-      dashboards: status.dashboards.length,
-      tabs: totalTabs,
-    });
     return html`
       <h1>${this._l("title")}</h1>
       <p class="secondary">${this._l("description")}</p>
-      ${
-        status.dashboards.length
-          ? html`<div class="toolbar">
-                <ha-input-search
-                  appearance="outlined"
-                  .value=${this._overviewSearch}
-                  .placeholder=${search}
-                  .accessibleLabel=${search}
-                  .patternSamples=${status.dashboards.flatMap((item) => [
-                    item.title,
-                    ...item.views.map((view) => view.title || view.key),
-                  ])}
-                  @input=${this._overviewSearchChanged}
-                ></ha-input-search>
-              </div>
-              ${
-                this._overviewSearch
-                  ? html`<p class="secondary" role="status">
-                      ${this._l("overview_matches", {
-                        dashboards: visible.length,
-                        tabs: shownTabs,
-                      })}
-                    </p>`
-                  : nothing
-              }`
-          : nothing
-      }
       ${
         status.dashboards.length && !visible.length
           ? html`<div class="empty">
@@ -610,20 +578,6 @@ export class HaConfigDashboardHistory extends LitElement {
       }
       <div class="columns">
         <div class="list-column">
-          <ha-input-search
-            appearance="outlined"
-            .value=${this._search}
-            .placeholder=${this._l("search_commits")}
-            .patternSamples=${this._commits.map((commit) => commit.message)}
-            @input=${this._searchChanged}
-          ></ha-input-search>
-          ${
-            filtering
-              ? html`<p class="secondary" role="status">
-                  ${this._l("commit_matches", { count: commits.length })}
-                </p>`
-              : nothing
-          }
           <ul class="commits">
             ${shown.map(
               (commit, index) =>
@@ -975,8 +929,56 @@ export class HaConfigDashboardHistory extends LitElement {
     navigate((ev.currentTarget as HTMLAnchorElement).getAttribute("href")!);
   }
 
-  private _searchChanged(ev: Event) {
-    this._search = (ev.target as HaInputSearch).value ?? "";
+  /** The one search in the top bar: the commits of a dashboard, or the dashboards. */
+  private _searchable(repository?: DashboardRepository): boolean {
+    if (this._loading || !this._status) {
+      return false;
+    }
+    return this._dashboard ? !!repository : this._status.dashboards.length > 0;
+  }
+
+  private _searchLabel(): string {
+    if (this._dashboard) {
+      return this._l("search_commits");
+    }
+    const dashboards = this._status?.dashboards ?? [];
+    return this._l("overview_search", {
+      dashboards: dashboards.length,
+      tabs: dashboards.reduce((sum, item) => sum + item.views.length, 0),
+    });
+  }
+
+  private _searchCount(): string | undefined {
+    const detail = !!this._dashboard;
+    if (!(detail ? this._search : this._overviewSearch).trim()) {
+      return undefined;
+    }
+    return this.hass.localize("ui.components.top_bar_search.count", {
+      current: detail
+        ? this._visibleCommits().length
+        : this._overviewMatches().length,
+      total: detail
+        ? this._commits.length
+        : (this._status?.dashboards.length ?? 0),
+    });
+  }
+
+  private _searchSamples(): string[] {
+    return this._dashboard
+      ? this._commits.map((commit) => commit.message)
+      : (this._status?.dashboards ?? []).flatMap((item) => [
+          item.title,
+          ...item.views.map((view) => view.title || view.key),
+        ]);
+  }
+
+  private _topBarSearchInput(ev: CustomEvent<{ value: string }>) {
+    const value = ev.detail.value ?? "";
+    if (this._dashboard) {
+      this._search = value;
+    } else {
+      this._overviewSearch = value;
+    }
   }
 
   private _showAllCommits() {
@@ -1025,10 +1027,6 @@ export class HaConfigDashboardHistory extends LitElement {
     this._compareDiff = undefined;
     // The button that cleared the choice is gone: focus goes to the picker.
     this.updateComplete.then(() => this._picker?.focusTrigger());
-  }
-
-  private _overviewSearchChanged(ev: Event) {
-    this._overviewSearch = (ev.target as HaInputSearch).value ?? "";
   }
 
   private _clearOverviewSearch() {
@@ -1647,16 +1645,6 @@ export class HaConfigDashboardHistory extends LitElement {
     }
     .compare-pick ha-version-picker {
       flex: 1 1 240px;
-      min-width: 0;
-    }
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: var(--ha-space-2);
-    }
-    .toolbar ha-input-search {
-      flex: 1 1 280px;
       min-width: 0;
     }
     .remote {

@@ -11,8 +11,6 @@ import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type {
   GuidedSetupCatalog,
   GuidedSetupEntry,
@@ -107,8 +105,18 @@ class HaConfigGuidedSetup extends LitElement {
     );
   }
 
-  private _filterChanged(ev: Event): void {
-    this._filter = (ev.target as HaInputSearch).value ?? "";
+  private _filterChanged(ev: CustomEvent<{ value: string }>): void {
+    this._filter = ev.detail.value ?? "";
+  }
+
+  private _searchCount(): string | undefined {
+    if (this._filter.trim() === "" || !this._catalog || this._active) {
+      return undefined;
+    }
+    return this.hass.localize("ui.components.top_bar_search.count", {
+      current: this._shown().length,
+      total: this._catalog.integrations.length,
+    });
   }
 
   private _showMore(): void {
@@ -192,6 +200,14 @@ class HaConfigGuidedSetup extends LitElement {
         .narrow=${this.narrow}
         back-path="/config/integrations"
         .header=${this._l("title")}
+        .searchable=${!this._active && !!this._catalog && !this._error}
+        .searchLabel=${this._l("search_n", {
+          count: this._catalog?.integrations.length ?? 0,
+        })}
+        .searchValue=${this._filter}
+        .searchCountText=${this._searchCount()}
+        .searchSamples=${this._catalog?.integrations.map((item) => item.name)}
+        @top-bar-search-input=${this._filterChanged}
       >
         ${
           this._active
@@ -220,11 +236,9 @@ class HaConfigGuidedSetup extends LitElement {
       </div>`;
     }
     const shown = this._shown();
-    const total = this._catalog.integrations.length;
     const searching = this._filter.trim() !== "";
     const visible = searching ? shown : shown.slice(0, this._limit);
     const hidden = shown.length - visible.length;
-    const search = this._l("search_n", { count: total });
     const entries = this._catalog.entries;
     return html`
       <div class=${classMap({ content: true, narrow: this.narrow })}>
@@ -241,21 +255,6 @@ class HaConfigGuidedSetup extends LitElement {
               </div>`
         }
         <h3>${this._l("can_set_up")}</h3>
-        <ha-input-search
-          appearance="outlined"
-          .placeholder=${search}
-          .accessibleLabel=${search}
-          .value=${this._filter}
-          .patternSamples=${this._catalog.integrations.map((item) => item.name)}
-          @input=${this._filterChanged}
-        ></ha-input-search>
-        ${
-          searching
-            ? html`<p class="note" role="status">
-                ${this._l("matches", { count: shown.length, total })}
-              </p>`
-            : nothing
-        }
         ${
           shown.length
             ? html`<ul class="rows grid">
@@ -411,10 +410,6 @@ class HaConfigGuidedSetup extends LitElement {
       .intro,
       .note {
         color: var(--secondary-text-color);
-      }
-      ha-input-search {
-        display: block;
-        margin: var(--ha-space-4) 0 var(--ha-space-2);
       }
       .rows {
         list-style: none;

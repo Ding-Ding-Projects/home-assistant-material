@@ -100,6 +100,7 @@ import {
   subjectWantsBackup,
 } from "./updates/backup-choice";
 import type { BackupMark } from "./updates/backup-choice";
+import type { ChangesSearchState } from "./updates/ha-update-changes";
 import { updateDisplayName } from "./updates/ha-update-queue-card";
 import type { ProgressView } from "./updates/update-progress-feed";
 import { UpdateProgressFeed } from "./updates/update-progress-feed";
@@ -138,6 +139,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @state() private _showSkipped = false;
+
+  /** The search of the changes list, kept here because it lives in the top bar. */
+  @state() private _changesQuery = "";
+
+  @state() private _changesSearch?: ChangesSearchState;
 
   @state() private _showAllCurrent = false;
 
@@ -218,6 +224,29 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       `ui.panel.config.updates.${key}`,
       values
     );
+  }
+
+  private _changesQueryInput(ev: CustomEvent<{ value: string }>): void {
+    this._changesQuery = ev.detail.value ?? "";
+  }
+
+  private _changesSearchState(ev: CustomEvent<ChangesSearchState>): void {
+    this._changesSearch = ev.detail;
+  }
+
+  private _changesQueryClear(): void {
+    this._changesQuery = "";
+  }
+
+  private _changesSearchCount(): string | undefined {
+    const search = this._changesSearch;
+    if (!search?.available || this._changesQuery.trim() === "") {
+      return undefined;
+    }
+    return this.hass.localize("ui.components.top_bar_search.count", {
+      current: search.shown,
+      total: search.total,
+    });
   }
 
   protected willUpdate(changedProps: PropertyValues<this>) {
@@ -392,6 +421,15 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         .hass=${this.hass}
         .narrow=${this.narrow}
         .header=${this._ui("caption")}
+        .searchable=${!!this._changesSearch?.available}
+        .searchLabel=${this._lang.text(
+          this.hass.localize,
+          "ui.panel.config.updates.compare.search"
+        )}
+        .searchValue=${this._changesQuery}
+        .searchCountText=${this._changesSearchCount()}
+        .searchSamples=${this._changesSearch?.samples}
+        @top-bar-search-input=${this._changesQueryInput}
       >
         ${
           this.narrow
@@ -521,6 +559,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                   <ha-update-changes
                     .hass=${this.hass}
                     .narrow=${this.narrow}
+                    .query=${this._changesQuery}
+                    @changes-search-state=${this._changesSearchState}
+                    @changes-query-clear=${this._changesQueryClear}
                   ></ha-update-changes>
                   <ha-update-history
                     .hass=${this.hass}
