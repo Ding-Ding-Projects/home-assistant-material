@@ -1614,7 +1614,13 @@
           "error_too_big_after": "圖片縮細之後仍然大過 {size} KB。請揀簡單啲嘅圖片。"
         },
         "backup": {
+          "type": {
+            "app_update": "應用程式更新",
+            "automatic": "自動",
+            "manual": "手動"
+          },
           "backups": {
+            "header": "我嘅備份",
             "bulk": {
               "already_gone": "已經喺其他地方刪除咗，所以呢度冇刪除：{names}",
               "entry": "{name}，{date}，{size}。",
@@ -1835,6 +1841,18 @@
             "sign_in_pending": "區域網絡地址已有回應。請登入以繼續驗證，呢個工作尚未完成。"
           },
           "overview": {
+            "header": "備份",
+            "new_backup": "立即備份",
+            "onboarding": {
+              "title": "設定備份",
+              "description": "備份對一個可靠嘅智能家居好重要。佢可以保護你喺設定智能家居時所做嘅工夫，萬一出事，你都可以好快回復正常。",
+              "setup": "設定備份"
+            },
+            "backups": {
+              "title": "我嘅備份",
+              "total_size": "合共 {size}",
+              "show_all": "顯示所有備份"
+            },
             "hero_eyebrow": "備份",
             "latest": {
               "backup": "備份",
@@ -4911,6 +4929,10 @@
       }
     },
     "components": {
+      "subpage-data-table": {
+        "filters": "篩選",
+        "more": "更多"
+      },
       "climate-control": {
         "humidity_down": "調低濕度",
         "humidity_up": "調高濕度",
@@ -7601,6 +7623,7 @@
         "back_to_live": "返回直播",
         "filter": "顯示事件",
         "hours": "{count} 小時",
+        "hours_short": "{count} h",
         "kinds": {
           "animal": "動物",
           "doorbell": "門鈴",

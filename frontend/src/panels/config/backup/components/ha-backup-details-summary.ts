@@ -11,6 +11,7 @@ import {
   computeBackupType,
   type BackupContentExtended,
 } from "../../../../data/backup";
+import { modeText } from "../../../../common/language-mode/language-mode";
 import type { HomeAssistant } from "../../../../types";
 import { bytesToString } from "../../../../util/bytes-to-string";
 
@@ -65,14 +66,16 @@ class HaBackupDetailsSummary extends LitElement {
                 ${this.hass.localize("ui.panel.config.backup.backup_type")}
               </span>
               <span slot="supporting-text">
-                ${this.hass.localize(
+                ${modeText(
+                  this.hass.localize,
                   `ui.panel.config.backup.type.${computeBackupType(this.backup, this.isHassio)}`
                 )}
               </span>
             </ha-list-item-base>
             <ha-list-item-base>
               <span slot="headline">
-                ${this.hass.localize(
+                ${modeText(
+                  this.hass.localize,
                   "ui.panel.config.backup.details.summary.size"
                 )}
               </span>
@@ -82,7 +85,8 @@ class HaBackupDetailsSummary extends LitElement {
             </ha-list-item-base>
             <ha-list-item-base>
               <span slot="headline">
-                ${this.hass.localize(
+                ${modeText(
+                  this.hass.localize,
                   "ui.panel.config.backup.details.summary.created"
                 )}
               </span>
@@ -98,7 +102,8 @@ class HaBackupDetailsSummary extends LitElement {
     return html`
       <ha-alert
         alert-type="error"
-        .title=${this.hass.localize(
+        .title=${modeText(
+          this.hass.localize,
           "ui.panel.config.backup.details.summary.error.title"
         )}
       >

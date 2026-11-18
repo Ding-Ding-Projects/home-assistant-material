@@ -408,7 +408,7 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
     ) =>
       activeGrouping === "formatted_type"
         ? getBackupTypes(isHassio).map((type) =>
-            localize(`ui.panel.config.backup.type.${type}`)
+            modeText(localize, `ui.panel.config.backup.type.${type}`)
           )
         : undefined
   );
@@ -484,7 +484,10 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
           ...backup,
           size: computeBackupSize(backup),
           agent_ids: agentIds.sort(compareAgents),
-          formatted_type: localize(`ui.panel.config.backup.type.${type}`),
+          formatted_type: modeText(
+            localize,
+            `ui.panel.config.backup.type.${type}`
+          ),
         };
       });
     }
@@ -534,7 +537,10 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
         has-fab
         .tabs=${[
           {
-            name: this.hass.localize("ui.panel.config.backup.backups.header"),
+            name: modeText(
+              this.hass.localize,
+              "ui.panel.config.backup.backups.header"
+            ),
             path: `/config/backup/list`,
           },
         ]}
@@ -712,7 +718,7 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
   private _states = memoizeOne((localize: LocalizeFunc, isHassio: boolean) =>
     getBackupTypes(isHassio).map((type) => ({
       value: type,
-      label: localize(`ui.panel.config.backup.type.${type}`),
+      label: modeText(localize, `ui.panel.config.backup.type.${type}`),
     }))
   );
 

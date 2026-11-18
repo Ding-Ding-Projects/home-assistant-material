@@ -16,6 +16,7 @@ import {
   getBackupTypes,
 } from "../../../../../data/backup";
 import { haStyle } from "../../../../../resources/styles";
+import { modeText } from "../../../../../common/language-mode/language-mode";
 import type { HomeAssistant } from "../../../../../types";
 import { bytesToString } from "../../../../../util/bytes-to-string";
 
@@ -44,6 +45,9 @@ const computeBackupStats = (backups: BackupContent[]): BackupStats =>
 class HaBackupOverviewBackups extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
+  private _t = (key: string, values?: Record<string, string | number>) =>
+    modeText(this.hass.localize, key, values);
+
   @property({ attribute: false }) public backups: BackupContent[] = [];
 
   private _stats = memoizeOne(
@@ -66,7 +70,7 @@ class HaBackupOverviewBackups extends LitElement {
     return html`
       <ha-card class="my-backups">
         <div class="card-header">
-          ${this.hass.localize("ui.panel.config.backup.overview.backups.title")}
+          ${this._t("ui.panel.config.backup.overview.backups.title")}
         </div>
         <div class="card-content">
           <ha-list-nav>
@@ -78,13 +82,13 @@ class HaBackupOverviewBackups extends LitElement {
                     .path=${TYPE_ICONS[type]}
                   ></ha-svg-icon>
                   <div slot="headline">
-                    ${this.hass.localize(
+                    ${this._t(
                       `ui.panel.config.backup.overview.backups.${type}`,
                       { count }
                     )}
                   </div>
                   <div slot="supporting-text">
-                    ${this.hass.localize(
+                    ${this._t(
                       "ui.panel.config.backup.overview.backups.total_size",
                       { size: bytesToString(size) }
                     )}
@@ -97,9 +101,7 @@ class HaBackupOverviewBackups extends LitElement {
         </div>
         <div class="card-actions">
           <ha-button appearance="filled" href="/config/backup/backups?type=all">
-            ${this.hass.localize(
-              "ui.panel.config.backup.overview.backups.show_all"
-            )}
+            ${this._t("ui.panel.config.backup.overview.backups.show_all")}
           </ha-button>
         </div>
       </ha-card>

@@ -1116,6 +1116,12 @@ export class HaDefenderPage extends LitElement {
   static styles: CSSResultGroup = [
     haStyle,
     css`
+      ha-button {
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+        text-wrap: balance;
+      }
+
       .content {
         display: flex;
         flex-direction: column;

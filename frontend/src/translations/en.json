@@ -713,6 +713,7 @@
         "previous_day": "Previous day",
         "next_day": "Next day",
         "hours": "{count, plural,\n  one {# hour}\n  other {# hours}\n}",
+        "hours_short": "{count} h",
         "live": "Live",
         "recorded": "Recorded",
         "not_recorded": "Not recorded",

@@ -461,9 +461,7 @@ async def test_self_check_announces_its_start_and_end(hass: HomeAssistant) -> No
     events: list[tuple[str, str]] = []
     hass.bus.async_listen(
         EVENT_SELF_CHECK,
-        lambda event: events.append(
-            (event.data["backup_id"], event.data["state"])
-        ),
+        lambda event: events.append((event.data["backup_id"], event.data["state"])),
     )
     runner = SelfCheckRunner(manager)
 

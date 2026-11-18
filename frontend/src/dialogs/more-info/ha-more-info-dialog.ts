@@ -123,6 +123,7 @@ import "./ha-more-info-info";
 import "./ha-more-info-settings";
 import "./more-info-content";
 import {
+  BILINGUAL_SEPARATOR,
   withLanguageMode,
   type Localize,
 } from "../../common/language-mode/language-mode";
@@ -695,6 +696,18 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
         );
   }
 
+  // In both-language mode the label is "English · Cantonese"; it is stacked in
+  // two lines so four tabs share one row on a phone.
+  private _tabLabelContent(view: MoreInfoView) {
+    const label = this._tabLabel(view);
+    const parts = label.split(BILINGUAL_SEPARATOR);
+    if (parts.length !== 2) {
+      return label;
+    }
+    return html`<span>${parts[0]}</span
+      ><span class="tab-sub">${parts[1]}</span>`;
+  }
+
   private _tabClick(ev: Event) {
     const view = (ev.currentTarget as HTMLElement).dataset.view as MoreInfoView;
     if (view === this._currView) {
@@ -781,7 +794,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
               @click=${this._tabClick}
               @keydown=${this._tabKeydown}
             >
-              ${this._tabLabel(view)}
+              ${this._tabLabelContent(view)}
             </button>
           `
         )}
@@ -1672,8 +1685,16 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
         .content-wrapper.tabs-at-foot .tabs {
           order: 2;
           border-top: 1px solid var(--divider-color);
-          padding: var(--ha-space-3) var(--ha-space-6)
-            max(var(--safe-area-inset-bottom), var(--ha-space-3));
+          flex-wrap: nowrap;
+          gap: var(--ha-space-1);
+          padding: var(--ha-space-2) var(--ha-space-3)
+            max(var(--safe-area-inset-bottom), var(--ha-space-2));
+        }
+
+        .content-wrapper.tabs-at-foot .tab {
+          flex: 1 1 0;
+          min-width: 0;
+          padding: 0 var(--ha-space-1);
         }
 
         .content-wrapper.tabs-at-foot .content {
@@ -1725,6 +1746,17 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           font: inherit;
           font-weight: var(--ha-font-weight-medium);
           cursor: pointer;
+          display: inline-flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          line-height: var(--ha-line-height-condensed);
+        }
+
+        .tab-sub {
+          font-size: var(--ha-font-size-xs);
+          font-weight: var(--ha-font-weight-normal);
+          opacity: 0.8;
         }
 
         .tab:hover {

@@ -1,6 +1,6 @@
 import "@home-assistant/webawesome/dist/components/button-group/button-group";
 import type { TemplateResult } from "lit";
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import { fireEvent } from "../common/dom/fire_event";
 import type { ToggleButton } from "../types";
@@ -58,7 +58,8 @@ export class HaButtonToggleGroup extends LitElement {
               .size=${this.size}
               .value=${button.value}
               @click=${this._handleClick}
-              .title=${button.label}
+              .title=${button.title ?? button.label}
+              aria-label=${button.title ?? nothing}
               .disabled=${this.disabled}
               .appearance=${this.active === button.value ? "accent" : "filled"}
             >
@@ -101,6 +102,12 @@ export class HaButtonToggleGroup extends LitElement {
 
     :host([full-width]) ha-button {
       flex: 1;
+    }
+
+    ha-button {
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+      text-wrap: balance;
     }
   `;
 }

@@ -630,6 +630,8 @@ class MoreInfoWeather extends LitElement {
         }
 
         .stat-label {
+          word-break: keep-all;
+          overflow-wrap: break-word;
           font-size: var(--ha-font-size-s);
           color: var(--secondary-text-color);
         }

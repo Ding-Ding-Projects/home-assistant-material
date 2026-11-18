@@ -453,7 +453,11 @@ export class HaCameraTimeline extends LitElement {
           size="s"
           .buttons=${(["1", "6", "24"] as Zoom[]).map((value) => ({
             value,
-            label: this._modeLocalize("ui.components.camera_timeline.hours", {
+            label: this._modeLocalize(
+              "ui.components.camera_timeline.hours_short",
+              { count: Number(value) }
+            ),
+            title: this._modeLocalize("ui.components.camera_timeline.hours", {
               count: Number(value),
             }),
           }))}

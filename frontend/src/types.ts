@@ -162,6 +162,8 @@ export type ThemeMode = (typeof THEME_MODES)[number];
 
 export interface ToggleButton {
   label: string;
+  /** Longer accessible name and tooltip, when the label is a short form. */
+  title?: string;
   iconPath?: string;
   value: string;
 }

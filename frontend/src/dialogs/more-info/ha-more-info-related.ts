@@ -264,7 +264,7 @@ class HaMoreInfoRelated extends LitElement {
 
     ha-list-item-button {
       --ha-row-item-padding-block: var(--ha-space-2);
-      --ha-row-item-min-height: 40px;
+      --ha-row-item-min-height: 44px;
       --ha-row-item-gap: var(--ha-space-3);
       --mdc-icon-size: 20px;
     }

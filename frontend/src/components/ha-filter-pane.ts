@@ -13,6 +13,7 @@ import "./ha-button";
 import "./ha-dialog-footer";
 import "./ha-filter-pane-chip";
 import "./ha-icon-button";
+import { modeText } from "../common/language-mode/language-mode";
 
 /**
  * Filter pane for a filtered page: a column next to the content on wide
@@ -52,7 +53,8 @@ export class HaFilterPane extends LitElement {
 
   protected render() {
     const label =
-      this.label ?? this._localize("ui.components.subpage-data-table.filters");
+      this.label ??
+      modeText(this._localize, "ui.components.subpage-data-table.filters");
 
     if (this.narrow) {
       return html`

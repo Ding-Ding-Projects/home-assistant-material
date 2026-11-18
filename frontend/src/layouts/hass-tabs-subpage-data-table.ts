@@ -83,6 +83,7 @@ import {
   internationalizationContext,
 } from "../data/context";
 import { KeyboardShortcutMixin } from "../mixins/keyboard-shortcut-mixin";
+import { withLanguageMode } from "../common/language-mode/language-mode";
 import type { HomeAssistant, Route } from "../types";
 import "./hass-tabs-subpage";
 import type { HassTabsSubpage, PageNavigation } from "./hass-tabs-subpage";
@@ -581,7 +582,8 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   }
 
   protected render(): TemplateResult {
-    const localize = this._i18n.localize;
+    const rawLocalize = this._i18n.localize;
+    const localize = withLanguageMode(rawLocalize);
     const showPane = this._showPaneController.value ?? !this.narrow;
     const filterButton = this.hasFilters
       ? html`<ha-filter-pane-chip
@@ -1067,7 +1069,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         .searchValue=${this.filter}
         .searchCountText=${
           this.filter && this._matchingRows !== undefined
-            ? searchCountText(localize, {
+            ? searchCountText(rawLocalize, {
                 current: this._matchingRows,
                 total: this.data.length,
               })

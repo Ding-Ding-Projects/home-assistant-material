@@ -7,6 +7,7 @@ import "../../../../../components/ha-button";
 import "../../../../../components/ha-card";
 import "../../../../../components/ha-svg-icon";
 import { haStyle } from "../../../../../resources/styles";
+import { modeText } from "../../../../../common/language-mode/language-mode";
 import type { HomeAssistant } from "../../../../../types";
 
 declare global {
@@ -20,6 +21,9 @@ declare global {
 class HaBackupOverviewBackups extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
+  private _t = (key: string, values?: Record<string, string | number>) =>
+    modeText(this.hass.localize, key, values);
+
   private async _setup() {
     fireEvent(this, "button-click");
   }
@@ -31,20 +35,16 @@ class HaBackupOverviewBackups extends LitElement {
           <div class="icon">
             <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
           </div>
-          ${this.hass.localize(
-            "ui.panel.config.backup.overview.onboarding.title"
-          )}
+          ${this._t("ui.panel.config.backup.overview.onboarding.title")}
         </div>
         <div class="card-content">
           <p>
-            ${this.hass.localize(
-              "ui.panel.config.backup.overview.onboarding.description"
-            )}
+            ${this._t("ui.panel.config.backup.overview.onboarding.description")}
           </p>
         </div>
         <div class="card-actions">
           <ha-button @click=${this._setup}
-            >${this.hass.localize(
+            >${this._t(
               "ui.panel.config.backup.overview.onboarding.setup"
             )}</ha-button
           >
