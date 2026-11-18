@@ -19,7 +19,6 @@ import {
 } from "../../../data/valve";
 import "../../../state-control/valve/ha-state-control-valve-buttons";
 import "../../../state-control/valve/ha-state-control-valve-position";
-import "../../../state-control/valve/ha-state-control-valve-toggle";
 import type { HomeAssistantFormatters } from "../../../types";
 import "../components/valves/ha-more-info-valve-favorite-positions";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
@@ -76,12 +75,6 @@ class MoreInfoValve extends LitElement {
       supportsFeature(this.stateObj, ValveEntityFeature.CLOSE) ||
       supportsFeature(this.stateObj, ValveEntityFeature.STOP);
 
-    const supportsOpenCloseOnly =
-      supportsFeature(this.stateObj, ValveEntityFeature.OPEN) &&
-      supportsFeature(this.stateObj, ValveEntityFeature.CLOSE) &&
-      !supportsFeature(this.stateObj, ValveEntityFeature.STOP) &&
-      !supportsPosition;
-
     return html`
       <div class="hero">
         ${
@@ -107,19 +100,13 @@ class MoreInfoValve extends LitElement {
             : nothing
         }
         ${
-          supportsOpenCloseOnly && !supportsPosition
+          supportsOpenClose
             ? html`
-                <ha-state-control-valve-toggle
+                <ha-state-control-valve-buttons
                   .stateObj=${this.stateObj}
-                ></ha-state-control-valve-toggle>
+                ></ha-state-control-valve-buttons>
               `
-            : supportsOpenClose
-              ? html`
-                  <ha-state-control-valve-buttons
-                    .stateObj=${this.stateObj}
-                  ></ha-state-control-valve-buttons>
-                `
-              : nothing
+            : nothing
         }
         ${
           showFavoriteControls

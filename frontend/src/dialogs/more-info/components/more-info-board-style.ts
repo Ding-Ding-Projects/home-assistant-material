@@ -52,7 +52,7 @@ export const moreInfoBoardStyle = css`
     font: inherit;
     font-weight: var(--ha-font-weight-medium);
     padding: var(--ha-space-2) var(--ha-space-4);
-    min-height: 40px;
+    min-height: 44px;
     border-radius: var(--ha-border-radius-3xl);
     cursor: pointer;
   }
@@ -79,7 +79,7 @@ export const moreInfoBoardStyle = css`
     display: inline-flex;
     align-items: center;
     gap: var(--ha-space-2);
-    min-height: 36px;
+    min-height: 44px;
     padding: 0 var(--ha-space-4);
     border-radius: var(--ha-border-radius-lg);
     border: 1px solid var(--outline-color, var(--divider-color));

@@ -65,7 +65,8 @@ export class StateCardButton extends LitElement {
       css`
         ha-control-button {
           width: auto;
-          min-width: 40px;
+          min-width: 44px;
+          height: 44px;
           --control-button-padding: 0 var(--ha-space-4);
           --control-button-focus-color: var(--primary-text-color);
           --control-button-icon-color: var(--feature-color);

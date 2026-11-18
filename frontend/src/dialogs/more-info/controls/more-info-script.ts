@@ -267,6 +267,7 @@ class MoreInfoScript extends LitElement {
       }
       ha-control-button-group {
         justify-content: center;
+        --control-button-group-thickness: 48px;
         --control-button-border-radius: var(--ha-border-radius-3xl);
       }
     `,

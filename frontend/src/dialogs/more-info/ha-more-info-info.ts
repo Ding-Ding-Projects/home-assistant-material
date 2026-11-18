@@ -15,6 +15,7 @@ import {
   DOMAINS_WITH_FRAME_CONTROL,
   DOMAINS_WITH_MORE_INFO,
 } from "./const";
+import { entityFirstControl } from "./entity-first-controls";
 import { domainMoreInfoType } from "./state_more_info_control";
 import "./ha-more-info-history";
 import "./ha-more-info-logbook";
@@ -97,7 +98,11 @@ export class MoreInfoInfo extends LitElement {
       isNewMoreInfo || DOMAINS_FULL_HEIGHT_MORE_INFO.includes(domain);
 
     return html`
-      <div class="container" data-domain=${domain}>
+      <div
+        class="container"
+        data-domain=${domain}
+        data-first-control=${entityFirstControl(domain) ?? ""}
+      >
         ${
           !stateObj
             ? html`<ha-alert alert-type="warning">
@@ -194,6 +199,11 @@ export class MoreInfoInfo extends LitElement {
       padding: 0;
       /* max height of the video is full screen, minus the height of the header of the dialog (79px) and the max height of the dialog (mdc-dialog-max-height: calc(100% - 72px)) and the actions bar 60px */
       --video-max-height: calc(100vh - 72px - 79px - 60px);
+    }
+
+    /* A map is the first control: it sits above the history and logbook. */
+    [data-first-control="map"] more-info-content {
+      order: -1;
     }
 
     more-info-content {

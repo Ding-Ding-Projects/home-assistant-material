@@ -2,7 +2,7 @@ import type { ContextType } from "@lit/context";
 import { mdiFlash, mdiFlashOff } from "@mdi/js";
 import type { HassEntity } from "home-assistant-js-websocket";
 import type { TemplateResult } from "lit";
-import { LitElement, html } from "lit";
+import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
@@ -31,6 +31,9 @@ export class HaStateControlToggle extends LitElement {
   @property({ attribute: false }) public iconPathOn?: string;
 
   @property({ attribute: false }) public iconPathOff?: string;
+
+  /** Render a single low row instead of the tall vertical control. */
+  @property({ type: Boolean, reflect: true }) public compact = false;
 
   private _valueChanged(ev) {
     const checked = ev.target.checked as boolean;
@@ -120,8 +123,8 @@ export class HaStateControlToggle extends LitElement {
         touch-action="none"
         .pathOn=${this.iconPathOn || mdiFlash}
         .pathOff=${this.iconPathOff || mdiFlashOff}
-        vertical
-        reversed
+        ?vertical=${!this.compact}
+        ?reversed=${!this.compact}
         .checked=${isOn}
         .showHandle=${stateActive(this.stateObj)}
         @change=${this._valueChanged}
@@ -136,7 +139,43 @@ export class HaStateControlToggle extends LitElement {
     `;
   }
 
-  static styles = [stateControlToggleStyle];
+  static styles = [
+    stateControlToggleStyle,
+    css`
+      :host([compact]) {
+        display: block;
+        width: 100%;
+        max-width: 342px;
+      }
+
+      :host([compact]) ha-control-switch {
+        width: 100%;
+        height: 56px;
+        min-height: 0;
+        max-height: 56px;
+        --control-switch-thickness: 56px;
+        --control-switch-border-radius: var(--ha-border-radius-3xl);
+      }
+
+      :host([compact]) .buttons {
+        flex-direction: row;
+        width: 100%;
+        height: 56px;
+        min-height: 0;
+        max-height: 56px;
+        padding: 0;
+        gap: 10px;
+      }
+
+      :host([compact]) ha-control-button:not(:last-child) {
+        margin-bottom: 0;
+      }
+
+      :host([compact]) ha-control-button {
+        --control-button-border-radius: var(--ha-border-radius-3xl);
+      }
+    `,
+  ];
 }
 
 declare global {

@@ -5,15 +5,17 @@ export const moreInfoControlStyle = css`
     display: flex;
     flex-direction: column;
     flex: 1;
-    justify-content: space-between;
+    justify-content: flex-start;
   }
 
   .controls {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    flex: 1;
+    /* Start under the header instead of floating in the middle of a tall sheet. */
+    justify-content: flex-start;
+    padding-top: var(--ha-space-4);
+    flex: none;
   }
 
   .controls:not(:last-child) {

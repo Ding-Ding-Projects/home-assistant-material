@@ -389,7 +389,7 @@ class MoreInfoSensor extends LitElement {
     }
 
     .chip {
-      min-height: 36px;
+      min-height: 44px;
       padding: 0 var(--ha-space-4);
       border-radius: var(--ha-border-radius-lg);
       border: 1px solid var(--divider-color);

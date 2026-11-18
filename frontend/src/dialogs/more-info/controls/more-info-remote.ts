@@ -48,6 +48,7 @@ class MoreInfoRemote extends LitElement {
       ></ha-more-info-state-header>
       <div class="controls">
         <ha-state-control-toggle
+          compact
           .stateObj=${stateObj}
           .iconPathOn=${mdiRemote}
           .iconPathOff=${mdiRemoteOff}

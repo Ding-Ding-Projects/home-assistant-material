@@ -1530,6 +1530,9 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
              otherwise width-dependent content can flicker at the overflow
              threshold (#53228). */
           scrollbar-gutter: stable;
+          /* Buttons inside a sheet keep a 44 px touch target. */
+          --ha-button-height: 44px;
+          --ha-favorite-color-button-size: 44px;
         }
 
         .content-wrapper.settings-view .fade-bottom {
@@ -1739,6 +1742,32 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           color: var(--primary-text-color);
           font-size: var(--ha-font-size-xl);
           line-height: var(--ha-line-height-condensed);
+          /* Wrap at spaces, at most two lines, then an ellipsis. A word is
+             only split when it alone is wider than the line. */
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
+          overflow-wrap: break-word;
+          word-break: normal;
+          hyphens: manual;
+        }
+
+        @media all and (max-width: 450px) {
+          .title {
+            gap: var(--ha-space-2);
+          }
+
+          .icon-tile {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--ha-border-radius-lg);
+            --mdc-icon-size: 20px;
+          }
+
+          .title .main {
+            font-size: var(--ha-font-size-l);
+          }
         }
 
         .title .breadcrumb {

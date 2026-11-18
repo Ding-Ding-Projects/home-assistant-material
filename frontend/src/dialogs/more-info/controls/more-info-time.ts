@@ -457,7 +457,7 @@ class MoreInfoTime extends LitElement {
         color: var(--disabled-text-color);
         font-size: 24px;
         min-width: 80px;
-        min-height: 40px;
+        min-height: 44px;
       }
       .column .current {
         display: flex;

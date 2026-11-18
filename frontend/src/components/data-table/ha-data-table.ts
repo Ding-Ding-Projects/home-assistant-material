@@ -2098,6 +2098,7 @@ export class HaDataTable extends LitElement {
           text-align: inherit;
           overflow: hidden;
           text-overflow: ellipsis;
+          white-space: nowrap;
           cursor: pointer;
         }
 

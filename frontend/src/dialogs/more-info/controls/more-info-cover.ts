@@ -18,7 +18,6 @@ import {
 import "../../../state-control/cover/ha-state-control-cover-buttons";
 import "../../../state-control/cover/ha-state-control-cover-position";
 import "../../../state-control/cover/ha-state-control-cover-tilt-position";
-import "../../../state-control/cover/ha-state-control-cover-toggle";
 import type { HomeAssistantFormatters } from "../../../types";
 import "../components/covers/ha-more-info-cover-favorite-positions";
 import "../../../components/ha-relative-time";
@@ -76,14 +75,6 @@ class MoreInfoCover extends LitElement {
       supportsFeature(this.stateObj, CoverEntityFeature.CLOSE_TILT) ||
       supportsFeature(this.stateObj, CoverEntityFeature.STOP_TILT);
 
-    const supportsOpenCloseOnly =
-      supportsFeature(this.stateObj, CoverEntityFeature.OPEN) &&
-      supportsFeature(this.stateObj, CoverEntityFeature.CLOSE) &&
-      !supportsFeature(this.stateObj, CoverEntityFeature.STOP) &&
-      !supportsTilt &&
-      !supportsPosition &&
-      !supportsTiltPosition;
-
     return html`
       <p class="subline">
         ${
@@ -114,19 +105,13 @@ class MoreInfoCover extends LitElement {
             : nothing
         }
         ${
-          supportsOpenCloseOnly
+          supportsOpenClose || supportsTilt
             ? html`
-                <ha-state-control-cover-toggle
+                <ha-state-control-cover-buttons
                   .stateObj=${this.stateObj}
-                ></ha-state-control-cover-toggle>
+                ></ha-state-control-cover-buttons>
               `
-            : supportsOpenClose || supportsTilt
-              ? html`
-                  <ha-state-control-cover-buttons
-                    .stateObj=${this.stateObj}
-                  ></ha-state-control-cover-buttons>
-                `
-              : nothing
+            : nothing
         }
         ${
           showFavoriteControls

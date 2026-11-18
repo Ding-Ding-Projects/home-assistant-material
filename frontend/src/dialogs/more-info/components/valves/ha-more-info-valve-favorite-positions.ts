@@ -242,7 +242,7 @@ export class HaMoreInfoValveFavoritePositions extends LitElement {
         style=${styleMap({
           "--control-button-border-radius": "var(--ha-border-radius-pill)",
           width: "72px",
-          height: "36px",
+          height: "44px",
         })}
         .label=${label}
         .disabled=${this.stateObj.state === UNAVAILABLE}

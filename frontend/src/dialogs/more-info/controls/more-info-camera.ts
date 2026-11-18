@@ -655,6 +655,14 @@ class MoreInfoCamera extends LitElement {
       margin-top: var(--ha-space-4);
     }
 
+    /* The video runs edge to edge; the rows under it keep a side margin. */
+    ha-camera-timeline,
+    .playback,
+    .media-head {
+      padding-inline: var(--ha-space-4);
+      box-sizing: border-box;
+    }
+
     .live-chip {
       background: var(--error-color);
       color: var(--text-primary-color, #fff);
