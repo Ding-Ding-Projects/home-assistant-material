@@ -57,3 +57,30 @@ def test_day_rollover_resets_today_but_not_the_month() -> None:
     tracker.update(TUE + timedelta(days=1), True)
     assert tracker.seconds_today == 0
     assert tracker.seconds_month == 600
+
+
+def test_finished_days_are_kept_for_the_chart() -> None:
+    """A day that ends moves into the history and today starts empty."""
+    tracker = CostTracker(PriceTable(), 2.0)
+    now = TUE
+    tracker.update(now, True)
+    now += timedelta(minutes=5)
+    tracker.update(now, True)
+    tomorrow = now + timedelta(days=1)
+    tracker.update(tomorrow, False)
+    days = tracker.days()
+    assert [row["day"] for row in days] == ["2026-07-14", "2026-07-15"]
+    assert days[0]["seconds"] == pytest.approx(600)
+    assert days[1]["seconds"] == 0
+
+
+def test_only_the_last_days_are_kept() -> None:
+    """The history is trimmed so the saved state stays small."""
+    tracker = CostTracker(PriceTable(), None)
+    now = TUE
+    for _ in range(20):
+        tracker.update(now, True)
+        tracker.update(now + timedelta(minutes=5), True)
+        now += timedelta(days=1)
+    assert len(tracker.history) == 14
+    assert all(row["cost"] is None for row in tracker.days())

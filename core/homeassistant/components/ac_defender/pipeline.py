@@ -1,5 +1,6 @@
 """The decision pipeline: one evaluation of every guard for one device."""
 
+from datetime import timedelta
 import math
 
 from .guards import NON_BYPASSABLE, TARGET_ORDER
@@ -13,6 +14,7 @@ APPROACH = 0.5
 TOLERANCE = 0.1
 FLOOR_STATE = "_floor"
 KEEP_OFF_GAP_SECONDS = 600
+KEEP_OFF_STATE = "_keep_off"
 
 
 def clamp_floor(value: float | None) -> float:
@@ -183,17 +185,22 @@ def decide(  # noqa: C901
                     )
                 return _finish(ctx, action)
 
-    if (
+    keep_off = (
         ctx.run_mode == "heat"
         and ctx.desired_mode == "off"
-        and ctx.hvac_mode not in (None, "off")
-    ):
-        gap = ctx.last_command_time
-        if gap and (ctx.now - gap).total_seconds() < KEEP_OFF_GAP_SECONDS:
+        and ctx.hvac_mode in ("heat", "heat_cool", "auto")
+    )
+    if not keep_off:
+        ctx.state.pop(KEEP_OFF_STATE, None)
+    else:
+        since = ctx.state.setdefault(KEEP_OFF_STATE, {}).setdefault("since", ctx.now)
+        wait_until = since + timedelta(seconds=KEEP_OFF_GAP_SECONDS)
+        if ctx.now < wait_until:
             return Decision(
                 state="waiting",
-                reason="the heating was just commanded, waiting before checking again",
+                reason="the heating was turned on, giving it a courtesy wait before turning it off",
                 target=target,
+                next_check=wait_until,
             )
         reason = "heating is kept off, the room is above its floor"
         return _finish(
@@ -210,9 +217,12 @@ def decide(  # noqa: C901
     if ctx.desired_mode == "off" or ctx.room is None or ctx.setpoint is None:
         return Decision(state="defending", reason="holding", target=target, guard=None)
     if ctx.off_owner or ctx.hvac_mode != ctx.desired_mode:
-        return Decision(
-            state="defending", reason="the unit is off on purpose", target=target
+        reason = (
+            "heating is off and the room is comfortable, nothing to do"
+            if ctx.run_mode == "heat"
+            else "the unit is off on purpose"
         )
+        return Decision(state="defending", reason=reason, target=target)
     if ctx.setpoint <= target + TOLERANCE:
         return Decision(
             state="defending", reason="at my temperature, nothing to do", target=target

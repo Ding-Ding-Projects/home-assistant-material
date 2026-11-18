@@ -202,10 +202,10 @@ async def test_heat_is_never_turned_off_below_the_floor(
     assert [c for c in calls["set_hvac_mode"] if c.data["hvac_mode"] == "off"] == []
 
 
-async def test_keep_off_turns_the_heating_off_when_the_room_is_warm(
-    hass: HomeAssistant,
+async def test_keep_off_turns_the_heating_off_after_a_courtesy_wait(
+    hass: HomeAssistant, freezer
 ) -> None:
-    """In Off mode a warm room with the heating on gets it turned off at once."""
+    """In Off mode a warm room with the heating on is turned off after ten minutes."""
     calls = await mock_climate(hass)
     set_climate(hass, room=20.0, setpoint=21.0, mode="heat")
     entry = make_entry()
@@ -214,6 +214,11 @@ async def test_keep_off_turns_the_heating_off_when_the_room_is_warm(
         entry, options={"guards": {"cool_mode_restore": {"enabled": False}}}
     )
     assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert calls["set_hvac_mode"] == []
+    freezer.tick(timedelta(minutes=11))
+    set_climate(hass, room=20.0, setpoint=21.0, mode="heat")
+    async_fire_time_changed(hass)
     await hass.async_block_till_done()
     assert [c.data["hvac_mode"] for c in calls["set_hvac_mode"]] == ["off"]
 
@@ -320,4 +325,7 @@ async def test_the_device_links_to_its_page(hass: HomeAssistant) -> None:
     device = dr.async_get(hass).async_get_device_by_identifier(
         (DOMAIN, entry.entry_id), entry.entry_id
     )
-    assert device.configuration_url == "homeassistant://config/heat-defender"
+    assert (
+        device.configuration_url
+        == f"homeassistant://config/heat-defender?entry={entry.entry_id}"
+    )

@@ -52,7 +52,7 @@ def _number(low: float, high: float) -> selector.NumberSelector:
             max=high,
             step=0.5,
             unit_of_measurement="°C",
-            mode=selector.NumberSelectorMode.BOX,
+            mode=selector.NumberSelectorMode.SLIDER,
         )
     )
 

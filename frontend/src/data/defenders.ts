@@ -36,16 +36,26 @@ export interface DefenderSibling {
   paused: boolean;
   my_temperature: number;
   floor: number | null;
+  safety_temperature?: number;
   heat_mode: string;
+}
+
+export interface DefenderDay {
+  day: string;
+  seconds: number;
+  cost: number | null;
 }
 
 export interface DefenderInfo {
   run_mode: DefenderDirection;
+  climate_entity_id: string;
+  paused_until: string | null;
   state: string;
   reason: string;
   next_check: string | null;
   my_temperature: number;
   floor: number | null;
+  safety_temperature?: number;
   heat_mode: string;
   effective_floor: number | null;
   holder: string;
@@ -60,6 +70,7 @@ export interface DefenderInfo {
     seconds_month: number;
     cost_today: number | null;
     cost_month: number | null;
+    days: DefenderDay[];
   };
 }
 
@@ -155,8 +166,20 @@ export const groupGuards = (
     }));
 };
 
+const HEAT_GUARD_TITLES: Record<string, string> = {
+  cool_mode_restore: "Mode restore",
+  cooler_intent_fast_lane: "Intent fast lane",
+  cooling_runway: "Warm-up runway",
+};
+
 /** The readable name of a guard id: `comfort_sync` becomes `Comfort sync`. */
-export const guardTitle = (id: string): string => {
+export const guardTitle = (
+  id: string,
+  direction: DefenderDirection = "cool"
+): string => {
+  if (direction === "heat" && HEAT_GUARD_TITLES[id]) {
+    return HEAT_GUARD_TITLES[id];
+  }
   const text = id.replace(/_/g, " ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
@@ -164,6 +187,34 @@ export const guardTitle = (id: string): string => {
 /** Hours with one decimal as a short text, such as `1.5 h`. */
 export const formatHours = (seconds: number): string =>
   `${(Math.round((seconds / 3600) * 10) / 10).toString()} h`;
+
+/** Whole hours and minutes of a duration in seconds. */
+export const splitDuration = (
+  seconds: number
+): { hours: number; minutes: number } => {
+  const total = Math.max(0, Math.round(seconds / 60));
+  return { hours: Math.floor(total / 60), minutes: total % 60 };
+};
+
+/** True while the defender stands down because of a pause or a stop. */
+export const isStandingDown = (state: string): boolean =>
+  state === "paused" || state === "stopped";
+
+/** The reason after the colon-free guard prefix of a logged command line. */
+export const commandReason = (message: string): string => {
+  const match = /\((.*)\)\s*$/.exec(message);
+  const text = match ? match[1] : message;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+/** The label of the logged action, such as `set hvac mode off`. */
+export const commandAction = (entry: DefenderLogEntry): string => {
+  const action = String(entry.values.action ?? "").replace(/_/g, " ");
+  const value = entry.values.value;
+  return value === undefined || value === null
+    ? action
+    : `${action} ${String(value)}`;
+};
 
 export interface DefenderLogLine {
   key: string;

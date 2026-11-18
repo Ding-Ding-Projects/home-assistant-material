@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { DefenderGuard, DefenderLogEntry } from "../../src/data/defenders";
 import {
+  commandReason,
   defenderLogLine,
   formatHours,
   groupGuards,
   guardTitle,
+  isStandingDown,
   needsConfirmationToDisable,
+  splitDuration,
 } from "../../src/data/defenders";
 
 const guard = (id: string, group: string, safety = false): DefenderGuard => ({
@@ -90,6 +93,12 @@ describe("small helpers", () => {
     expect(guardTitle("hot_room_override")).toBe("Hot room override");
   });
 
+  it("names guards without cooling words for the heat direction", () => {
+    expect(guardTitle("cool_mode_restore", "heat")).toBe("Mode restore");
+    expect(guardTitle("cool_mode_restore")).toBe("Cool mode restore");
+    expect(guardTitle("comfort_sync", "heat")).toBe("Comfort sync");
+  });
+
   it("formats hours with one decimal", () => {
     expect(formatHours(5400)).toBe("1.5 h");
     expect(formatHours(0)).toBe("0 h");
@@ -98,5 +107,24 @@ describe("small helpers", () => {
   it("asks for confirmation only when turning a safety guard off", () => {
     expect(needsConfirmationToDisable(guard("x", "safety", true))).toBe(true);
     expect(needsConfirmationToDisable(guard("x", "timing"))).toBe(false);
+  });
+});
+
+describe("duration and log helpers", () => {
+  it("splits a duration into whole hours and minutes", () => {
+    expect(splitDuration(11520)).toEqual({ hours: 3, minutes: 12 });
+    expect(splitDuration(-5)).toEqual({ hours: 0, minutes: 0 });
+  });
+
+  it("knows when a defender stands down", () => {
+    expect(isStandingDown("paused")).toBe(true);
+    expect(isStandingDown("stopped")).toBe(true);
+    expect(isStandingDown("defending")).toBe(false);
+  });
+
+  it("takes the reason out of a logged command", () => {
+    expect(
+      commandReason("keep_heating_off: set_hvac_mode off (heating is kept off)")
+    ).toBe("Heating is kept off");
   });
 });

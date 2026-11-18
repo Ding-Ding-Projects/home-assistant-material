@@ -19942,6 +19942,14 @@
           "severity_info": "Information",
           "severity_neutral": "Neutral"
         },
+        "ac_defender": {
+          "caption": "AC Defender",
+          "description": "Holds your temperature against schedules, phones and wall changes"
+        },
+        "heat_defender": {
+          "caption": "Heat Defender",
+          "description": "Keeps the heat off so you do not feel hot, and always allows heating when it is too cold"
+        },
         "ollama": {
           "caption": "Ollama",
           "description": "Manage your Ollama servers and models",
@@ -21088,10 +21096,30 @@
             "also_body": "Should the other defender do the same?",
             "also_yes": "Both",
             "also_no": "Only this one",
-            "heat_it": "Let it heat"
+            "heat_it": "Let it heat",
+            "headline_cool": "Holding {temp}°",
+            "headline_cap": "No warmer than {temp}°",
+            "headline_off": "Keeping the heating off",
+            "headline_heating": "Letting the heating run",
+            "room": "Room",
+            "heating": "Heating",
+            "on": "On",
+            "off": "Off",
+            "set_now": "Set now",
+            "my_temp": "My temp",
+            "pause_for_hours": "Pause for {hours, plural, one {# hour} other {# hours}}",
+            "hours": "{hours} h",
+            "what_happened": "What happened",
+            "floor_hint": "Below this the heating is allowed to run, whatever was chosen. It cannot be set under 10 degrees or switched off.",
+            "until": "Until {time}",
+            "band_label": "The shared comfort band with the floor and the safety temperature",
+            "band_floor": "floor",
+            "band_safety": "safety",
+            "band_text": "One comfort band for the room, {low} to {high} degrees. Heating stays off up to the lower edge, cooling starts above the upper edge, and neither moves inside it."
           },
           "guards": {
             "search": "Search guards",
+            "all": "All",
             "safety": "Safety",
             "people": "People",
             "timing": "Timing",
@@ -21101,7 +21129,19 @@
             "never_acted": "Has not acted yet",
             "confirm_title": "Turn off a safety guard?",
             "confirm_text": "{guard} protects the room. Turn it off only if you are sure.",
-            "confirm_second": "Turn off"
+            "confirm_second": "Turn off",
+            "filter": "Filter the guards",
+            "explain": "Each guard is a switch with its own entity that automations can read and turn. Safety guards cannot be turned off without a second confirmation.",
+            "sister_section": "The same guards as her brother, turned around",
+            "always_on": "Safety guards, always on",
+            "floor_title": "The floor",
+            "floor_note": "Room under {floor} degrees: heating may run",
+            "cannot_off": "Cannot be turned off",
+            "freeze_title": "Freezing outside",
+            "freeze_note": "Outdoors at or below 0 degrees: the floor rises",
+            "two_keys": "Two keys to turn off",
+            "silent_title": "No reading, no defending",
+            "silent_note": "Room sensor silent for 30 minutes: stands down"
           },
           "cost": {
             "today": "Today",
@@ -21109,7 +21149,17 @@
             "running": "Running time",
             "estimate": "Estimated cost",
             "no_power": "Add the power draw in the settings to see an estimated cost. Running time is shown without it.",
-            "note": "The cost is an estimate from running time and the power you entered."
+            "note": "The cost is an estimate from running time and the power you entered.",
+            "today_cool": "Cooling today",
+            "today_heat": "Heating today",
+            "about": "about {cost}",
+            "no_meter": "estimate, no power meter",
+            "estimate_short": "estimate",
+            "hours_minutes": "{hours} h {minutes} min",
+            "minutes": "{minutes} min",
+            "chart_title": "Running time per day",
+            "chart_empty": "No finished day yet.",
+            "chart_series": "Minutes"
           },
           "log": {
             "empty": "Nothing has happened yet.",
@@ -21119,6 +21169,11 @@
             "paused": "Paused",
             "stopped": "Stopped",
             "resumed": "Resumed",
+            "to": "to",
+            "role": {
+              "ac": "AC",
+              "heat": "Heat"
+            },
             "plain": {
               "heat_off_first": "AC to Heat: the room is {room}° and hot while heating is on. Turning it off first.",
               "ac_stops_falling": "AC to Heat: the room is {room}° and falling toward {low}°. AC is stopping, heating is next.",
@@ -21136,8 +21191,8 @@
               "inside_band": "Both: the room is {room}°, inside {low}° to {high}°. Nobody is needed.",
               "floor_reached": "Heat: the room is {room}°, at the floor. Heating is allowed.",
               "too_hot": "AC: the room is {room}°, too hot. Cooling now.",
-              "paused": "The other one was paused, so I stay within {low}° to {high}°.",
-              "resumed": "The other one is back on duty."
+              "paused": "I am paused, so you stay within {low}° to {high}°.",
+              "resumed": "I am back on duty."
             }
           }
         }

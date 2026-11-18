@@ -7,6 +7,7 @@ from freezegun.api import FrozenDateTimeFactory
 from pytest_homeassistant.common import MockConfigEntry, async_fire_time_changed
 
 from homeassistant.components.ac_defender.const import DOMAIN
+from homeassistant.const import EVENT_HOMEASSISTANT_FINAL_WRITE
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -216,3 +217,22 @@ async def test_removing_the_entry_deletes_the_saved_state(
     assert f"{DOMAIN}.{ENTRY_ID}" in hass_storage
     await hass.config_entries.async_remove(entry.entry_id)
     assert f"{DOMAIN}.{ENTRY_ID}" not in hass_storage
+
+
+async def test_a_pause_given_while_waiting_for_a_reading_is_saved(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    """A pause set during the wait for a fresh reading is written out, not lost."""
+    await mock_climate_services(hass)
+    set_climate(hass)
+    prepare(hass_storage)
+    entry = make_entry()
+    await setup_entry(hass, entry)
+    assert "fresh reading" in entry.runtime_data.decision.reason
+    await hass.services.async_call(
+        DOMAIN, "pause", {"entity_id": STATE_SENSOR, "hours": 2}, blocking=True
+    )
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_FINAL_WRITE)
+    await hass.async_block_till_done()
+    saved = hass_storage[f"{DOMAIN}.{ENTRY_ID}"]["data"]
+    assert saved["pause"]["kind"] == "paused"

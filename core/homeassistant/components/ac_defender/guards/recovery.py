@@ -92,15 +92,20 @@ class CoolModeRestore(Guard):
     def act(self, ctx: Ctx) -> Decision | None:
         """Apply this rule of the guard."""
         state = self.st(ctx)
-        modes_ok = (
-            ctx.hvac_mode in (None, ctx.desired_mode, "heat_cool") or ctx.off_owner
-        )
+        if ctx.run_mode == "heat":
+            modes_ok = self._heat_modes_ok(ctx)
+        else:
+            modes_ok = (
+                ctx.hvac_mode in (None, ctx.desired_mode, "heat_cool") or ctx.off_owner
+            )
         if modes_ok:
             state.clear()
             return None
         c = self.cfg(ctx)
         severe = self.st_other(ctx, "upstairs_comfort_guard").get("severe", False)
-        urgent = ctx.over_band(c.band) or ctx.hot() or severe
+        urgent = ctx.run_mode == "cool" and (
+            ctx.over_band(c.band) or ctx.hot() or severe
+        )
         if urgent:
             return self._restore(ctx, "the room is warm, restoring the mode now")
         started = state.setdefault("since", ctx.now)
@@ -114,6 +119,27 @@ class CoolModeRestore(Guard):
             holds=[self.hold_for(ctx, until, "waiting before restoring the mode")],
             guard=self.spec.key,
         )
+
+    @staticmethod
+    def _heat_modes_ok(ctx: Ctx) -> bool:
+        """Return True when the heat direction has nothing to put back.
+
+        The heat direction only ever restores what its owner chose. When the
+        choice is "off", the only violation is heating that was turned on.
+        When the choice is a cap, heating is only put back while the room is
+        under the cap. A mode that belongs to the other defender (cool) or a
+        room at or above the cap never makes it turn heating on; the floor
+        stage in the pipeline owns the below-floor case.
+        """
+        if ctx.hvac_mode in (None, "heat_cool") or ctx.off_owner:
+            return True
+        if ctx.desired_mode == "off":
+            return ctx.hvac_mode != "heat"
+        if ctx.hvac_mode == "heat":
+            return True
+        if ctx.hvac_mode != "off":
+            return True
+        return ctx.room is None or ctx.room >= ctx.my_temp
 
     def st_other(self, ctx: Ctx, key: str) -> dict:
         """Return another guard's state."""

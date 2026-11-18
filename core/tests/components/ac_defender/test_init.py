@@ -288,4 +288,7 @@ async def test_the_device_links_to_the_page(
     device = dr.async_get(hass).async_get_device_by_identifier(
         (DOMAIN, mock_entry.entry_id), mock_entry.entry_id
     )
-    assert device.configuration_url == "homeassistant://config/ac-defender"
+    assert (
+        device.configuration_url
+        == f"homeassistant://config/ac-defender?entry={mock_entry.entry_id}"
+    )

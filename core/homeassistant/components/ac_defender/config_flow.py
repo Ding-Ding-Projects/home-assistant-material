@@ -42,9 +42,10 @@ SENSOR_KEYS = (CONF_ROOM_SENSOR, CONF_DOOR_SENSOR, CONF_PRESENCE, CONF_OUTDOOR)
 
 
 def _entity(*domains: str, device_class: list[str] | None = None) -> Any:
-    return selector.EntitySelector(
-        selector.EntitySelectorConfig(domain=list(domains), device_class=device_class)
-    )
+    config = selector.EntitySelectorConfig(domain=list(domains))
+    if device_class:
+        config["device_class"] = device_class
+    return selector.EntitySelector(config)
 
 
 def sensors_schema(defaults: dict[str, Any]) -> probatio.Schema:
@@ -159,7 +160,7 @@ class ACDefenderConfigFlow(ConfigFlow, domain=DOMAIN):
                         max=35,
                         step=0.5,
                         unit_of_measurement="°C",
-                        mode=selector.NumberSelectorMode.BOX,
+                        mode=selector.NumberSelectorMode.SLIDER,
                     )
                 ),
                 probatio.Required(
@@ -173,7 +174,7 @@ class ACDefenderConfigFlow(ConfigFlow, domain=DOMAIN):
                         max=40,
                         step=0.5,
                         unit_of_measurement="°C",
-                        mode=selector.NumberSelectorMode.BOX,
+                        mode=selector.NumberSelectorMode.SLIDER,
                     )
                 ),
             }
@@ -334,7 +335,7 @@ class DefenderOptionsFlow(OptionsFlow):
                         max=35,
                         step=0.5,
                         unit_of_measurement="°C",
-                        mode=selector.NumberSelectorMode.BOX,
+                        mode=selector.NumberSelectorMode.SLIDER,
                     )
                 ),
                 probatio.Required(
@@ -348,7 +349,7 @@ class DefenderOptionsFlow(OptionsFlow):
                         max=40,
                         step=0.5,
                         unit_of_measurement="°C",
-                        mode=selector.NumberSelectorMode.BOX,
+                        mode=selector.NumberSelectorMode.SLIDER,
                     )
                 ),
             }

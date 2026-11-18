@@ -1,10 +1,11 @@
 """Cooling time and an estimated cost from a configurable time-of-use price table."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 PERIODS = ("off_peak", "mid_peak", "on_peak")
 MAX_SLICE_SECONDS = 300.0
+KEEP_DAYS = 14
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +62,7 @@ class CostTracker:
     cost_month: float = 0.0
     last: datetime | None = None
     last_cooling: bool = False
+    history: dict[str, tuple[float, float]] = field(default_factory=dict)
 
     def update(self, now: datetime, cooling: bool) -> None:
         """Account for the time since the last update."""
@@ -76,6 +78,10 @@ class CostTracker:
                 self.cost_today += cost
                 self.cost_month += cost
         if day != self.day:
+            if self.day is not None and self.seconds_today:
+                self.history[self.day] = (self.seconds_today, self.cost_today)
+                for old in sorted(self.history)[:-KEEP_DAYS]:
+                    del self.history[old]
             self.day, self.seconds_today, self.cost_today = day, 0.0, 0.0
         if month != self.month:
             self.month, self.seconds_month, self.cost_month = month, 0.0, 0.0
@@ -86,3 +92,19 @@ class CostTracker:
         if not self.power_kw:
             return None
         return round(self.cost_month if month else self.cost_today, 2)
+
+    def days(self) -> list[dict[str, float | str | None]]:
+        """Return the finished days and today, oldest first."""
+        rows = [
+            {"day": day, "seconds": seconds, "cost": cost if self.power_kw else None}
+            for day, (seconds, cost) in sorted(self.history.items())
+        ]
+        if self.day is not None:
+            rows.append(
+                {
+                    "day": self.day,
+                    "seconds": self.seconds_today,
+                    "cost": self.cost_today if self.power_kw else None,
+                }
+            )
+        return rows

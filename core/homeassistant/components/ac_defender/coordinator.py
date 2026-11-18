@@ -215,6 +215,7 @@ class DefenderCoordinator:
                 "seconds_month": cost.seconds_month,
                 "cost_today": cost.cost_today,
                 "cost_month": cost.cost_month,
+                "history": {day: list(item) for day, item in cost.history.items()},
             },
         }
 
@@ -240,6 +241,10 @@ class DefenderCoordinator:
         cost.seconds_month = saved_cost.get("seconds_month", 0.0)
         cost.cost_today = saved_cost.get("cost_today", 0.0)
         cost.cost_month = saved_cost.get("cost_month", 0.0)
+        cost.history = {
+            day: (float(item[0]), float(item[1]))
+            for day, item in saved_cost.get("history", {}).items()
+        }
         self.restored_holder = data.get("holder")
         return True
 
@@ -426,6 +431,7 @@ class DefenderCoordinator:
                 self.decision = Decision(
                     state=held.state, reason=held.reason, guard=held.guard
                 )
+            self._store.async_delay_save(self._data_to_save, SAVE_DELAY_SECONDS)
             async_dispatcher_send(self.hass, self.signal)
             return self.decision
         self._waiting_fresh = False
@@ -438,6 +444,10 @@ class DefenderCoordinator:
             self.gated = not sent
             if sent:
                 await self._send(decision, now)
+            else:
+                other = "AC Defender" if self.role == "heat" else "Heat Defender"
+                decision.reason = f"waiting, {other} has the room right now"
+                decision.state = "waiting"
         else:
             self.arbiter_update(ctx, decision, now)
             self.gated = False
@@ -590,6 +600,7 @@ class DefenderCoordinator:
         now = dt_util.utcnow()
         self.pause = Standdown("paused", now + timedelta(hours=hours), reason)
         self.add_log("paused", "defender", reason, now, hours=hours)
+        self._store.async_delay_save(self._data_to_save, 1)
         self._tell_sibling(True)
 
     def stop_everything(self) -> None:
@@ -599,12 +610,14 @@ class DefenderCoordinator:
             STATE_STOPPED, None, "everything is stopped by the owner", True
         )
         self.add_log("stopped", "defender", self.pause.reason, now)
+        self._store.async_delay_save(self._data_to_save, 1)
         self._tell_sibling(True)
 
     def defend_again(self) -> None:
         """Clear a pause or a stop."""
         self.pause = None
         self.add_log("resumed", "defender", "defending again", dt_util.utcnow())
+        self._store.async_delay_save(self._data_to_save, 1)
         self._tell_sibling(False)
 
     def _tell_sibling(self, paused: bool) -> None:
@@ -698,6 +711,7 @@ class DefenderCoordinator:
             "my_temperature": other.my_temp,
             "floor": other.floor,
             "heat_mode": other.heat_mode,
+            "safety_temperature": other.safety_temp,
         }
 
     def info(self) -> dict[str, Any]:
@@ -720,6 +734,10 @@ class DefenderCoordinator:
             )
         return {
             "run_mode": self.run_mode,
+            "climate_entity_id": self.climate_id,
+            "paused_until": self.pause.until.isoformat()
+            if self.pause and self.pause.until
+            else None,
             "state": self.decision.state,
             "reason": self.decision.reason,
             "next_check": self.decision.next_check.isoformat()
@@ -727,6 +745,7 @@ class DefenderCoordinator:
             else None,
             "my_temperature": self.my_temp,
             "floor": self.floor,
+            "safety_temperature": self.safety_temp if self.run_mode == "cool" else None,
             "heat_mode": self.heat_mode,
             "effective_floor": self.guard_state.get("_floor", {}).get("effective"),
             "holder": self.arbiter.holder if self.arbiter else "neither",
@@ -743,5 +762,6 @@ class DefenderCoordinator:
                 "seconds_month": self.cost.seconds_month,
                 "cost_today": self.cost.estimate(),
                 "cost_month": self.cost.estimate(month=True),
+                "days": self.cost.days(),
             },
         }

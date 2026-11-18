@@ -161,6 +161,79 @@ def test_cool_mode_restore_waits_then_restores() -> None:
     assert urgent.action == "set_hvac_mode"
 
 
+@pytest.mark.parametrize(
+    ("desired", "hvac_mode", "room", "expected"),
+    [
+        ("off", "cool", 24.0, None),
+        ("off", "heat", 22.0, "turn_off"),
+        ("heat", "cool", 19.0, None),
+        ("heat", "off", 24.0, None),
+        ("heat", "off", 19.0, "set_hvac_mode"),
+    ],
+)
+def test_heat_mode_restore_only_restores_her_own_choice(
+    desired: str, hvac_mode: str, room: float, expected: str | None
+) -> None:
+    """The heat direction never turns heating on above her cap or against a cool mode."""
+    first, ctx = run(
+        "heat",
+        keys=("cool_mode_restore",),
+        hvac_mode=hvac_mode,
+        desired_mode=desired,
+        room=room,
+        my_temp=21.0,
+    )
+    if expected is None:
+        assert first.action is None
+        assert first.state != "waiting"
+        return
+    later, _ = run(
+        "heat",
+        keys=("cool_mode_restore",),
+        hvac_mode=hvac_mode,
+        desired_mode=desired,
+        room=room,
+        my_temp=21.0,
+        now=first.next_check + timedelta(seconds=1),
+        state=ctx.state,
+    )
+    assert later.action == expected
+
+
+def test_manual_heating_is_turned_off_after_a_courtesy_wait_from_the_change() -> None:
+    """The wait counts from when heating was seen on, not from her last command."""
+    first, ctx = run(
+        "heat",
+        keys=(),
+        hvac_mode="heat",
+        desired_mode="off",
+        room=22.0,
+        floor=16.0,
+        last_command_time=NOW - timedelta(hours=3),
+    )
+    assert first.action is None
+    assert first.state == "waiting"
+    later, _ = run(
+        "heat",
+        keys=(),
+        hvac_mode="heat",
+        desired_mode="off",
+        room=22.0,
+        floor=16.0,
+        now=first.next_check + timedelta(seconds=1),
+        state=ctx.state,
+    )
+    assert (later.action, later.value) == ("set_hvac_mode", "off")
+
+
+def test_keeping_heat_off_never_touches_the_cool_mode() -> None:
+    """A mode that belongs to the air conditioner is left alone by the sister."""
+    decision, _ = run(
+        "heat", keys=(), hvac_mode="cool", desired_mode="off", room=24.0, floor=16.0
+    )
+    assert decision.action is None
+
+
 def test_repeat_quiet_and_echo_use_the_real_command_history() -> None:
     """The same number is not repeated at once, and an echo is awaited."""
     repeat, _ = run(
