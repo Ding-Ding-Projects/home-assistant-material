@@ -248,7 +248,7 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
           <div class="buttons">
             <ha-button
               .disabled=${this.disabled}
-              @click=${this._addConditionDialog}
+              @click=${this._onAddClick}
               .appearance=${this.root ? "accent" : "filled"}
               .size=${this.root ? "m" : "s"}
             >
@@ -272,6 +272,9 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
   protected override openAddDialogAt(index: number): void {
     this._addConditionDialog(index);
   }
+
+  /** The Add button must not pass its click event on as an index. */
+  private _onAddClick = () => this._addConditionDialog();
 
   private _addConditionDialog(index?: number) {
     if (this.narrow) {

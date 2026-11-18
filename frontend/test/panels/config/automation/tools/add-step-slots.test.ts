@@ -124,4 +124,12 @@ describe("keys that add a step", () => {
     // A latin key never falls back to its physical position.
     expect(press("x", { code: "KeyT" })).toBeUndefined();
   });
+
+  // The Add button once passed its click event as the index, which turned
+  // into NaN and put every new step at the top of the list.
+  it("adds at the end when the index is not a number", () => {
+    const click = new Event("click") as unknown as number;
+    expect(insertManyAt(["a", "b"], click, ["x"])).toEqual(["a", "b", "x"]);
+    expect(insertAt(["a", "b"], Number.NaN, "x")).toEqual(["a", "b", "x"]);
+  });
 });

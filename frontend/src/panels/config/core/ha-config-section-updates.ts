@@ -1744,6 +1744,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         gap: var(--ha-space-4);
         padding: var(--ha-space-2) 0;
       }
+      .auto-row .name {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+      }
       .auto-switch {
         flex: none;
         display: inline-flex;

@@ -514,7 +514,7 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
           <div class="buttons">
             <ha-button
               .disabled=${this.disabled}
-              @click=${this._addTriggerDialog}
+              @click=${this._onAddClick}
               .appearance=${this.root ? "accent" : "filled"}
               .size=${this.root ? "m" : "s"}
             >
@@ -553,6 +553,9 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
   protected override openAddDialogAt(index: number): void {
     this._addTriggerDialog(index);
   }
+
+  /** The Add button must not pass its click event on as an index. */
+  private _onAddClick = () => this._addTriggerDialog();
 
   private _addTriggerDialog(index?: number) {
     if (this.narrow) {

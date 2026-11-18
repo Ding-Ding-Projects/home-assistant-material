@@ -3,6 +3,16 @@ import { HELPER_EDITORS } from "./domains/helpers";
 import { HOUSE_EDITORS } from "./domains/house";
 import { LIGHTING_EDITORS } from "./domains/lighting";
 import { MEDIA_EDITORS } from "./domains/media";
+import { INTEGRATION_EDITORS_A } from "./domains/integrations/a";
+import { INTEGRATION_EDITORS_B } from "./domains/integrations/b";
+import { INTEGRATION_EDITORS_BAMBU } from "./domains/integrations/bambu";
+import { INTEGRATION_EDITORS_C } from "./domains/integrations/c";
+import {
+  INTEGRATION_EDITORS_D,
+  ONKYO_MEDIA_PLAYER_CONTROLS,
+} from "./domains/integrations/d";
+import { INTEGRATION_EDITORS_E } from "./domains/integrations/e";
+import { INTEGRATION_EDITORS_F } from "./domains/integrations/f";
 import { SYSTEM_EDITORS } from "./domains/system";
 import {
   compact,
@@ -17,7 +27,12 @@ import {
   tiles,
   toggle,
 } from "./quick-helpers";
-import type { DomainEditor, QuickContext, QuickControl } from "./quick-types";
+import type {
+  DomainEditor,
+  QuickContext,
+  QuickControl,
+  QuickFieldInfo,
+} from "./quick-types";
 
 /**
  * Pure description of the rich controls shown for one action. Nothing here
@@ -49,6 +64,46 @@ export const DOMAIN_EDITORS: Record<string, DomainEditor> = {
   ...HOUSE_EDITORS,
   ...SYSTEM_EDITORS,
 };
+
+/**
+ * Integration editors never replace a hand-written domain editor. A domain
+ * that already has one keeps it and gains only the services it lacks.
+ */
+[
+  INTEGRATION_EDITORS_A,
+  INTEGRATION_EDITORS_B,
+  INTEGRATION_EDITORS_C,
+  INTEGRATION_EDITORS_D,
+  INTEGRATION_EDITORS_E,
+  INTEGRATION_EDITORS_F,
+  INTEGRATION_EDITORS_BAMBU,
+].forEach((share) => {
+  Object.entries(share).forEach(([domain, editor]) => {
+    const existing = DOMAIN_EDITORS[domain];
+    if (!existing) {
+      DOMAIN_EDITORS[domain] = editor;
+      return;
+    }
+    Object.entries(editor.controls).forEach(([service, builder]) => {
+      existing.controls[service] ??= builder;
+    });
+    existing.cautions = { ...editor.cautions, ...existing.cautions };
+    existing.gates = { ...editor.gates, ...existing.gates };
+    existing.siblings = [
+      ...new Set([...(existing.siblings ?? []), ...(editor.siblings ?? [])]),
+    ];
+  });
+});
+
+const MEDIA_PLAYER = DOMAIN_EDITORS.media_player;
+if (MEDIA_PLAYER) {
+  Object.entries(ONKYO_MEDIA_PLAYER_CONTROLS).forEach(([service, builder]) => {
+    MEDIA_PLAYER.controls[service] ??= builder;
+    if (!(MEDIA_PLAYER.siblings ?? []).includes(service)) {
+      MEDIA_PLAYER.siblings = [...(MEDIA_PLAYER.siblings ?? []), service];
+    }
+  });
+}
 
 /** Domains whose `reload` service re-reads their YAML configuration. */
 const RELOAD_DOMAINS = [
@@ -192,6 +247,39 @@ const gateAllows = (
   return known.some((entity) => hasFeature(entity.attributes, bit));
 };
 
+/**
+ * Long dropdowns list plain code names (`out_sub`). A name made only of
+ * lowercase letters, digits, dashes and underscores gets a readable label;
+ * options that already carry a label keep it.
+ */
+const labelDropdown = (control: QuickControl): QuickControl => {
+  if (control.kind !== "selector") return control;
+  const config = control.selector?.select;
+  if (!config || !Array.isArray(config.options)) return control;
+  const options = config.options.map((option: unknown) => {
+    const value = typeof option === "string" ? option : undefined;
+    return value !== undefined && /^[a-z0-9_.-]+$/.test(value)
+      ? { value, label: humanizeOption(value.replace(/[-.]/g, " ")) }
+      : option;
+  });
+  return {
+    ...control,
+    selector: { ...control.selector, select: { ...config, options } },
+  };
+};
+
+/** Switches over a constant-true field remove the key when off. */
+const markConstants = (
+  ctx: QuickContext,
+  control: QuickControl
+): QuickControl => {
+  if (control.kind !== "switch") return control;
+  const selector = ctx.fields[control.key]?.selector;
+  return selector && "constant" in selector
+    ? { ...control, constant: true }
+    : control;
+};
+
 /** Every control for one action, tailored first and generic second. */
 export const buildQuickControls = (ctx: QuickContext): QuickControl[] => {
   const [domain, service] = splitAction(ctx.action);
@@ -233,7 +321,7 @@ export const buildQuickControls = (ctx: QuickContext): QuickControl[] => {
   );
   tailored.forEach((control) => claimed.add(control.key));
   controls.push(...genericControls(ctx, claimed));
-  return controls;
+  return controls.map((control) => labelDropdown(markConstants(ctx, control)));
 };
 
 /**
@@ -370,4 +458,52 @@ export const snapToStep = (
   const decimals = (String(step).split(".")[1] ?? "").length;
   const snapped = min + Math.round((clamped - min) / step) * step;
   return Number(Math.min(max, snapped).toFixed(decimals));
+};
+
+/** Controls shown before the rest fold into one advanced group. */
+export const ADVANCED_FOLD_THRESHOLD = 6;
+
+/** Controls that always stay visible, even when every field is optional. */
+const MIN_VISIBLE_CONTROLS = 4;
+
+/**
+ * Splits the controls of one action into the ones always shown and an
+ * advanced group. Only long forms fold. A control stays visible when its
+ * field is required or already holds a value, so nothing set is ever hidden.
+ */
+export const splitAdvancedControls = (
+  controls: QuickControl[],
+  fields: Record<string, QuickFieldInfo>,
+  values: Record<string, unknown>
+): { main: QuickControl[]; advanced: QuickControl[] } => {
+  const dataControls = controls.filter(
+    (control) => !control.key.startsWith("$")
+  );
+  if (dataControls.length <= ADVANCED_FOLD_THRESHOLD) {
+    return { main: controls, advanced: [] };
+  }
+  const main: QuickControl[] = [];
+  const advanced: QuickControl[] = [];
+  let shown = 0;
+  controls.forEach((control) => {
+    const data = !control.key.startsWith("$");
+    const folds =
+      data &&
+      control.kind !== "notice" &&
+      control.kind !== "run" &&
+      fields[control.key]?.required !== true &&
+      values[control.key] === undefined;
+    // The first few controls always stay visible, so a form whose fields are
+    // all optional still opens with something to fill in.
+    if (folds && shown >= MIN_VISIBLE_CONTROLS) {
+      advanced.push(control);
+      return;
+    }
+    if (data) shown += 1;
+    main.push(control);
+  });
+  // A single folded control is not worth a group.
+  return advanced.length > 1
+    ? { main, advanced }
+    : { main: controls, advanced: [] };
 };

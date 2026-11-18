@@ -184,7 +184,7 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
           <div class="buttons">
             <ha-button
               .disabled=${this.disabled}
-              @click=${this._addActionDialog}
+              @click=${this._onAddClick}
               .appearance=${this.root ? "accent" : "filled"}
               .size=${this.root ? "m" : "s"}
             >
@@ -324,6 +324,9 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
   protected override openAddDialogAt(index: number): void {
     this._addActionDialog(index);
   }
+
+  /** The Add button must not pass its click event on as an index. */
+  private _onAddClick = () => this._addActionDialog();
 
   private _addActionDialog(index?: number) {
     if (this.narrow) {

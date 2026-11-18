@@ -71,9 +71,37 @@ export class HaDropdown extends Dropdown {
     return super.getTrigger();
   }
 
+  /**
+   * Room kept free at the bottom of the screen for bars that float over the
+   * page: the phone bar, plus whatever a page declares with
+   * `--ha-dropdown-bottom-reserve` (an editor's Run / Save bar).
+   */
+  private _bottomReserve(): number {
+    const parse = (value: string) => Number.parseFloat(value) || 0;
+    return (
+      parse(
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "--ha-phone-bar-visible-height"
+        )
+      ) +
+      parse(
+        getComputedStyle(this).getPropertyValue("--ha-dropdown-bottom-reserve")
+      )
+    );
+  }
+
   // @ts-ignore
   // eslint-disable-next-line @typescript-eslint/naming-convention
   private override async showMenu() {
+    // The popup then flips upward, or shrinks, before it reaches the bars.
+    const reserve = this._bottomReserve();
+    const popup = (this as any).popup;
+    if (popup && reserve > 0) {
+      const padding = { top: 0, right: 0, bottom: reserve, left: 0 };
+      popup.flipPadding = padding;
+      popup.shiftPadding = padding;
+      popup.autoSizePadding = padding;
+    }
     // @ts-ignore
     await super.showMenu();
     const triggerElement = this.getTrigger();

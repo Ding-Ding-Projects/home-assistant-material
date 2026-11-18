@@ -6,6 +6,7 @@ import { consume } from "../../../../../common/decorators/consume";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import "../../../../../components/device/ha-device-action-picker";
 import "../../../../../components/device/ha-device-picker";
+import "../../../../../components/automation-editors/ha-device-extra-fields";
 import "../../../../../components/ha-form/ha-form";
 import { fullEntitiesContext } from "../../../../../data/context";
 import type {
@@ -155,8 +156,10 @@ export class HaDeviceAction extends LitElement {
       ${
         this._capabilities?.extra_fields?.length
           ? html`
-              <ha-form
+              <ha-device-extra-fields
                 .hass=${this.hass}
+                .kind=${"action"}
+                .config=${this.action}
                 .data=${this._extraFieldsData(this.action, this._capabilities)}
                 .schema=${this._capabilities.extra_fields}
                 .disabled=${this.disabled}
@@ -169,7 +172,7 @@ export class HaDeviceAction extends LitElement {
                   this.action
                 )}
                 @value-changed=${this._extraFieldsChanged}
-              ></ha-form>
+              ></ha-device-extra-fields>
             `
           : ""
       }

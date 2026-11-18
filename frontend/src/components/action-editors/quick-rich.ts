@@ -175,7 +175,7 @@ export const rgbToHs = (rgb: number[]): [number, number] => {
   return [h, s];
 };
 
-export type ColorSpace = "rgb" | "hs" | "xy" | "rgbw" | "rgbww";
+export type ColorSpace = "rgb" | "hs" | "xy" | "rgbw" | "rgbww" | "hex";
 
 /** The colour a stored value in any model shows, as red, green and blue. */
 export const colorToRgb = (
@@ -222,6 +222,8 @@ export const rgbToColor = (
         channel(previous?.[3] ?? 0),
         channel(previous?.[4] ?? 0),
       ];
+    case "hex":
+      return [r, g, b, channel(previous?.[3] ?? 255)];
     default:
       return [r, g, b];
   }
@@ -234,7 +236,30 @@ export const WHITE_CHANNELS: Record<ColorSpace, string[]> = {
   xy: [],
   rgbw: ["white"],
   rgbww: ["cold_white", "warm_white"],
+  hex: ["alpha"],
 };
+
+/** `RRGGBB` or `RRGGBBAA` text (a leading # is allowed) as [r, g, b, alpha]. */
+export const hexTextToColor = (text: unknown): number[] | undefined => {
+  if (typeof text !== "string") return undefined;
+  const match = /^#?([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(text.trim());
+  if (!match) return undefined;
+  const digits = match[1] + (match[2] ?? "FF");
+  return [0, 2, 4, 6].map((index) =>
+    parseInt(digits.slice(index, index + 2), 16)
+  );
+};
+
+/** [r, g, b, alpha] as the uppercase `RRGGBBAA` text the services store. */
+export const colorToHexText = (value: number[]): string =>
+  [0, 1, 2, 3]
+    .map((index) =>
+      Math.min(255, Math.max(0, Math.round(value[index] ?? 255)))
+        .toString(16)
+        .padStart(2, "0")
+    )
+    .join("")
+    .toUpperCase();
 
 export const hexToRgb = (hex: string): [number, number, number] | undefined => {
   const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());

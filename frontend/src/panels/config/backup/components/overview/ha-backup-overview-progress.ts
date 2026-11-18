@@ -12,6 +12,7 @@ import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
+import { modeText } from "../../../../../common/language-mode/language-mode";
 import { isComponentLoaded } from "../../../../../common/config/is_component_loaded";
 import { computeDomain } from "../../../../../common/entity/compute_domain";
 import "../../../../../components/ha-button";
@@ -358,7 +359,8 @@ export class HaBackupOverviewProgress extends LitElement {
     if (managerState === "idle" || managerState === "blocked") {
       return "";
     }
-    return this.hass.localize(
+    return modeText(
+      this.hass.localize as any,
       `ui.panel.config.backup.overview.progress.heading.${managerState}`
     );
   }

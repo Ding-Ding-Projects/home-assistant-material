@@ -1,3 +1,4 @@
+import { modeText } from "../../../../common/language-mode/language-mode";
 import type { HomeAssistant } from "../../../../types";
 
 const PREFIX = "ui.panel.config.backup.overview.progress_detail.";
@@ -98,6 +99,6 @@ export const progressText = (
   key: string,
   params?: Record<string, string | number>
 ): string => {
-  const localized = hass.localize((PREFIX + key) as any, params as any);
+  const localized = modeText(hass.localize as any, PREFIX + key, params);
   return localized || interpolate(PROGRESS_TEXT[key] ?? key, params);
 };

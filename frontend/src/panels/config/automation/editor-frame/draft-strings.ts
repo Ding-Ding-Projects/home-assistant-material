@@ -1,3 +1,4 @@
+import { modeText } from "../../../../common/language-mode/language-mode";
 import type { HomeAssistant } from "../../../../types";
 
 const PREFIX = "ui.panel.config.editor_drafts.";
@@ -88,6 +89,7 @@ export const draftText = (
     vars?: Record<string, string | number>
   ) => string;
   return (
-    localize(`${PREFIX}${key}`, vars) || fill(DRAFT_STRING_FALLBACK[key], vars)
+    modeText(localize, `${PREFIX}${key}`, vars) ||
+    fill(DRAFT_STRING_FALLBACK[key], vars)
   );
 };

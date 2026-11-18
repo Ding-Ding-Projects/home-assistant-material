@@ -1,6 +1,5 @@
 import { computeDomain } from "../../common/entity/compute_domain";
 import { navigate } from "../../common/navigate";
-import type { LocalizeKeys } from "../../common/translations/localize";
 import { createSearchParam } from "../../common/url/search-params";
 import type { EntityRegistryEntry } from "../../data/entity/entity_registry";
 import { SCENE_IGNORED_DOMAINS, type SceneEntities } from "../../data/scene";
@@ -22,7 +21,7 @@ export type AddToActionKey = Extract<keyof AddToActionOptions, string>;
 export type AddToAutomationScriptActionKey = Exclude<AddToActionKey, "scene">;
 
 /** Fully-qualified localize key for an add to action option label. */
-type AddToActionOptionLabelKey = LocalizeKeys &
+type AddToActionOptionLabelKey =
   `ui.dialogs.more_info_control.add_to.action_options.${AddToActionKey}`;
 
 interface BaseEntityAddToAction {

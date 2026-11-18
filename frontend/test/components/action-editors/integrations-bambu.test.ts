@@ -178,10 +178,16 @@ describe("Bambu Lab integration editors", () => {
     });
     const color = find(build("set_filament"), "tray_color") as Extract<
       QuickControl,
-      { kind: "text" }
+      { kind: "color" }
     >;
-    expect(color.chips?.length).toBe(BAMBU_COLOR_CHIPS.length);
-    expect(color.maxLength).toBe(9);
+    expect(color.kind).toBe("color");
+    expect(color.space).toBe("hex");
+    expect(color.value).toBeUndefined();
+    const stored = find(
+      build("set_filament", { tray_color: "00AE42FF" }),
+      "tray_color"
+    ) as Extract<QuickControl, { kind: "color" }>;
+    expect(stored.value).toEqual([0, 174, 66, 255]);
   });
 
   it("guards raw G-code and the other risky actions with a caution", () => {

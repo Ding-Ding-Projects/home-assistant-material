@@ -8,6 +8,7 @@ import { deepEqual } from "../../../../../common/util/deep-equal";
 import "../../../../../components/device/ha-device-picker";
 import "../../../../../components/device/ha-device-trigger-picker";
 import { computeInitialHaFormData } from "../../../../../components/ha-form/compute-initial-ha-form-data";
+import "../../../../../components/automation-editors/ha-device-extra-fields";
 import "../../../../../components/ha-form/ha-form";
 import { fullEntitiesContext } from "../../../../../data/context";
 import type {
@@ -160,8 +161,10 @@ export class HaDeviceTrigger extends LitElement {
       ${
         this._capabilities?.extra_fields
           ? html`
-              <ha-form
+              <ha-device-extra-fields
                 .hass=${this.hass}
+                .kind=${"trigger"}
+                .config=${this.trigger}
                 .data=${this._extraFieldsData(this.trigger, this._capabilities)}
                 .schema=${this._capabilities.extra_fields}
                 .disabled=${this.disabled}
@@ -174,7 +177,7 @@ export class HaDeviceTrigger extends LitElement {
                   this.trigger
                 )}
                 @value-changed=${this._extraFieldsChanged}
-              ></ha-form>
+              ></ha-device-extra-fields>
             `
           : ""
       }

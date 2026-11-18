@@ -36,6 +36,8 @@ interface BaseEditorConfig {
 export const automationScriptEditorStyles: CSSResult = css`
   :host {
     --ha-automation-editor-max-width: var(--ha-automation-editor-width, 1540px);
+    /* Menus opened in the editor stay above the Run / Save bar. */
+    --ha-dropdown-bottom-reserve: 76px;
   }
   ha-fade-in {
     display: flex;

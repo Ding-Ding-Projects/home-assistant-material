@@ -101,12 +101,23 @@ export type QuickControl =
     })
   | (ControlBase & {
       kind: "color";
-      /** Colour model the stored value uses. */
-      space: "rgb" | "hs" | "xy" | "rgbw" | "rgbww";
+      /**
+       * Colour model the stored value uses. `hex` is text such as
+       * `RRGGBBAA`; its value here is [r, g, b, alpha].
+       */
+      space: "rgb" | "hs" | "xy" | "rgbw" | "rgbww" | "hex";
       value?: number[];
       swatches: boolean;
     })
-  | (ControlBase & { kind: "switch"; value?: boolean })
+  | (ControlBase & {
+      kind: "switch";
+      value?: boolean;
+      /**
+       * The service only accepts `true` (a constant flag). Switching it off
+       * removes the key instead of writing `false`.
+       */
+      constant?: boolean;
+    })
   | (ControlBase & {
       kind: "text";
       multiline?: boolean;

@@ -2048,6 +2048,10 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
           padding-top: var(--ha-space-4);
           counter-reset: frame-block;
         }
+        :host {
+          /* Menus opened in the editor stay above the save bar. */
+          --ha-dropdown-bottom-reserve: 76px;
+        }
         :host([narrow]) #root {
           padding-inline: var(--ha-space-3);
         }

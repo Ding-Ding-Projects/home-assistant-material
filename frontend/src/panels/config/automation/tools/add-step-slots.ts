@@ -41,7 +41,9 @@ export const insertAt = <T>(
   index: number,
   item: T
 ): T[] => {
-  const at = Math.min(Math.max(Math.trunc(index), 0), items.length);
+  // A value that is not a number (such as a click event passed by mistake) adds at the end.
+  const wanted = Number.isFinite(index) ? Math.trunc(index) : items.length;
+  const at = Math.min(Math.max(wanted, 0), items.length);
   return [...items.slice(0, at), item, ...items.slice(at)];
 };
 
@@ -51,7 +53,9 @@ export const insertManyAt = <T>(
   index: number,
   added: readonly T[]
 ): T[] => {
-  const at = Math.min(Math.max(Math.trunc(index), 0), items.length);
+  // A value that is not a number (such as a click event passed by mistake) adds at the end.
+  const wanted = Number.isFinite(index) ? Math.trunc(index) : items.length;
+  const at = Math.min(Math.max(wanted, 0), items.length);
   return [...items.slice(0, at), ...added, ...items.slice(at)];
 };
 

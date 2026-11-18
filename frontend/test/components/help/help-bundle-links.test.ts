@@ -102,7 +102,9 @@ describe("rewriting over the real offline bundle", () => {
     }
     expect(offenders.slice(0, 20)).toEqual([]);
     expect(offenders.length).toBe(0);
-  });
+    // The walk reads every bundled page, which is slow when the whole suite
+    // runs at once, so it gets more than the default five seconds.
+  }, 60000);
 });
 
 describe("link forms that used to stay live", () => {

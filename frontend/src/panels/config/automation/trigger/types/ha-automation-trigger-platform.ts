@@ -11,6 +11,8 @@ import { getSelectorFallbackValue } from "../../../../../components/ha-form/get-
 import "../../../../../components/ha-selector/ha-selector";
 import "../../../../../components/ha-settings-row";
 import "../../../../../components/action-editors/ha-automation-options-editor";
+import type { QuickFieldInfo } from "../../../../../components/action-editors/quick-types";
+import { platformQuickKeys } from "../../../../../components/automation-editors/ha-automation-quick-fields";
 import type { PlatformTrigger } from "../../../../../data/automation";
 import { TRIGGER_ROW_CONFIG_KEYS } from "../../../../../data/automation";
 import type { IntegrationManifest } from "../../../../../data/integration";
@@ -240,17 +242,51 @@ export class HaPlatformTrigger extends LitElement {
               .draftKey=${"options"}
               @value-changed=${this._optionsChanged}
             ></ha-automation-options-editor>`
-          : Object.entries(triggerDesc.fields).map(([fieldName, dataField]) =>
-              this._renderField(
-                fieldName,
-                dataField,
-                hasOptional,
-                domain,
-                triggerName
-              )
-            )
+          : html`${this._renderQuickFields(triggerDesc)}${Object.entries(
+              triggerDesc.fields
+            ).map(([fieldName, dataField]) =>
+              this._quickKeys(triggerDesc).has(fieldName)
+                ? nothing
+                : this._renderField(
+                    fieldName,
+                    dataField,
+                    hasOptional,
+                    domain,
+                    triggerName
+                  )
+            )}`
       }
     `;
+  }
+
+  private _quickInput(desc: TriggerDescription) {
+    return {
+      hass: this.hass,
+      kind: "trigger" as const,
+      id: this.trigger.trigger,
+      fields: desc.fields as Record<string, QuickFieldInfo>,
+      data: this.trigger.options,
+      target: this.trigger.target as Record<string, unknown> | undefined,
+    };
+  }
+
+  private _quickKeys(desc: TriggerDescription) {
+    return platformQuickKeys(this._quickInput(desc));
+  }
+
+  private _renderQuickFields(desc: TriggerDescription) {
+    return this._quickKeys(desc).size
+      ? html`<ha-automation-quick-fields
+          .hass=${this.hass}
+          .kind=${"trigger"}
+          .automationId=${this.trigger.trigger}
+          .fields=${desc.fields}
+          .data=${this.trigger.options}
+          .target=${this.trigger.target}
+          .disabled=${this.disabled}
+          @value-changed=${this._optionsChanged}
+        ></ha-automation-quick-fields>`
+      : nothing;
   }
 
   private _targetSelector = memoizeOne(

@@ -9,6 +9,7 @@ import {
   tiles,
   toggle,
 } from "../../quick-helpers";
+import { hexTextToColor } from "../../quick-rich";
 import type {
   DomainEditor,
   QuickContext,
@@ -60,6 +61,25 @@ const text = (ctx: Ctx, key: string, extra: Extra = {}) =>
 
 const info = (name: string): QuickControl =>
   notice(name, lab(`note_${name}`), "info");
+
+/**
+ * The spool colour as the integration stores it, `RRGGBBAA` text, drawn with
+ * the colour control in its hex space. A stored value that is not that text
+ * (a template, for example) stays with the generic text field.
+ */
+const trayColor = (ctx: QuickContext): QuickControl | undefined => {
+  const stored = ctx.data.tray_color;
+  const value = stored === undefined ? undefined : hexTextToColor(stored);
+  if (stored !== undefined && !value) return undefined;
+  return {
+    kind: "color",
+    key: "tray_color",
+    labelKey: lab("tray_color"),
+    space: "hex",
+    swatches: true,
+    value,
+  };
+};
 
 /** Filament colours as the integration stores them: `RRGGBBAA`. */
 export const BAMBU_COLOR_CHIPS: { id: string; text: string }[] = [
@@ -295,10 +315,7 @@ export const INTEGRATION_EDITORS_BAMBU: Record<string, DomainEditor> = {
           tray(ctx),
           filamentId(ctx),
           filamentType(ctx),
-          text(ctx, "tray_color", {
-            chips: BAMBU_COLOR_CHIPS,
-            maxLength: 9,
-          }),
+          trayColor(ctx),
           slider(ctx, "nozzle_temp_min", lab("nozzle_temp_min"), 160, 300, 1, {
             unit: "°C",
           }),

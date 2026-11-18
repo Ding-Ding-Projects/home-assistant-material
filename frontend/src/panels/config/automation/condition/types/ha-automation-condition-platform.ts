@@ -14,6 +14,8 @@ import { getSelectorFallbackValue } from "../../../../../components/ha-form/get-
 import "../../../../../components/ha-selector/ha-selector";
 import "../../../../../components/ha-settings-row";
 import "../../../../../components/action-editors/ha-automation-options-editor";
+import type { QuickFieldInfo } from "../../../../../components/action-editors/quick-types";
+import { platformQuickKeys } from "../../../../../components/automation-editors/ha-automation-quick-fields";
 import "../../../../../components/ha-svg-icon";
 import "../../../../../components/ha-tooltip";
 import type {
@@ -248,17 +250,51 @@ export class HaPlatformCondition extends LitElement {
               .draftKey=${"options"}
               @value-changed=${this._optionsChanged}
             ></ha-automation-options-editor>`
-          : Object.entries(conditionDesc.fields).map(([fieldName, dataField]) =>
-              this._renderField(
-                fieldName,
-                dataField,
-                hasOptional,
-                domain,
-                conditionName
-              )
-            )
+          : html`${this._renderQuickFields(conditionDesc)}${Object.entries(
+              conditionDesc.fields
+            ).map(([fieldName, dataField]) =>
+              this._quickKeys(conditionDesc).has(fieldName)
+                ? nothing
+                : this._renderField(
+                    fieldName,
+                    dataField,
+                    hasOptional,
+                    domain,
+                    conditionName
+                  )
+            )}`
       }
     `;
+  }
+
+  private _quickInput(desc: ConditionDescription) {
+    return {
+      hass: this.hass,
+      kind: "condition" as const,
+      id: this.condition.condition,
+      fields: desc.fields as Record<string, QuickFieldInfo>,
+      data: this.condition.options,
+      target: this.condition.target as Record<string, unknown> | undefined,
+    };
+  }
+
+  private _quickKeys(desc: ConditionDescription) {
+    return platformQuickKeys(this._quickInput(desc));
+  }
+
+  private _renderQuickFields(desc: ConditionDescription) {
+    return this._quickKeys(desc).size
+      ? html`<ha-automation-quick-fields
+          .hass=${this.hass}
+          .kind=${"condition"}
+          .automationId=${this.condition.condition}
+          .fields=${desc.fields}
+          .data=${this.condition.options}
+          .target=${this.condition.target}
+          .disabled=${this.disabled}
+          @value-changed=${this._optionsChanged}
+        ></ha-automation-quick-fields>`
+      : nothing;
   }
 
   private _targetSelector = memoizeOne(

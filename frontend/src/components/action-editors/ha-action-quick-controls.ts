@@ -26,7 +26,9 @@ import {
 } from "./descriptors";
 import "./ha-automation-options-editor";
 import {
+  colorToHexText,
   colorToRgb,
+  hexTextToColor,
   durationSeconds,
   hexToRgb,
   partsToSeconds,
@@ -108,6 +110,18 @@ export class HaActionQuickControls extends LitElement {
 
   private _emit(key: string, value: unknown) {
     if (this.disabled) return;
+    const control = this._find(key);
+    if (
+      control?.kind === "color" &&
+      control.space === "hex" &&
+      Array.isArray(value)
+    ) {
+      fireEvent(this, "quick-control-changed", {
+        key,
+        value: colorToHexText(value as number[]),
+      });
+      return;
+    }
     fireEvent(this, "quick-control-changed", { key, value });
   }
 
@@ -211,6 +225,9 @@ export class HaActionQuickControls extends LitElement {
           control.value
         );
       case "selector":
+        if (this._isDictionary(control.selector, control.value)) {
+          return this._renderDictionary(control);
+        }
         return this._renderSelector(
           control,
           control.selector,
@@ -312,7 +329,13 @@ export class HaActionQuickControls extends LitElement {
 
   private _onSwitch(ev: Event) {
     const target = ev.currentTarget as HTMLInputElement;
-    this._emit(target.dataset.key!, target.checked);
+    const control = this._find(target.dataset.key!);
+    this._emit(
+      target.dataset.key!,
+      control?.kind === "switch" && control.constant && !target.checked
+        ? undefined
+        : target.checked
+    );
   }
 
   private _onRun() {
@@ -489,7 +512,13 @@ export class HaActionQuickControls extends LitElement {
             class="box"
             data-key=${control.key}
             .label=${this._t("ui.components.action-editors.hex")}
-            .value=${rgb ? rgbToHex(rgb) : ""}
+            .value=${
+              control.space === "hex" && control.value
+                ? colorToHexText(control.value)
+                : rgb
+                  ? rgbToHex(rgb)
+                  : ""
+            }
             .disabled=${this.disabled}
             @change=${this._onHex}
           ></ha-input>
@@ -517,7 +546,7 @@ export class HaActionQuickControls extends LitElement {
                   .min=${0}
                   .max=${255}
                   .step=${1}
-                  .value=${control.value?.[3 + index] ?? 0}
+                  .value=${control.value?.[3 + index] ?? (control.space === "hex" ? 255 : 0)}
                   .disabled=${this.disabled}
                   data-key=${control.key}
                   data-channel=${3 + index}
@@ -544,8 +573,14 @@ export class HaActionQuickControls extends LitElement {
     ev.stopPropagation();
     const target = ev.currentTarget as HTMLInputElement;
     const control = this._find(target.dataset.key!);
+    if (control?.kind !== "color") return;
+    if (control.space === "hex") {
+      const color = hexTextToColor(target.value);
+      if (color) this._emit(control.key, color);
+      return;
+    }
     const rgb = hexToRgb(target.value);
-    if (control?.kind !== "color" || !rgb) return;
+    if (!rgb) return;
     this._emit(control.key, rgbToColor(control.space, rgb, control.value));
   }
 
@@ -554,10 +589,47 @@ export class HaActionQuickControls extends LitElement {
     const target = ev.currentTarget as HTMLInputElement;
     const control = this._find(target.dataset.key!);
     if (control?.kind !== "color") return;
-    const next = [...(control.value ?? [0, 0, 0, 0, 0])];
+    const next = [
+      ...(control.value ??
+        (control.space === "hex" ? [0, 0, 0, 255] : [0, 0, 0, 0, 0])),
+    ];
     while (next.length < (control.space === "rgbww" ? 5 : 4)) next.push(0);
     next[Number(target.dataset.channel)] = Number(target.value);
     this._emit(control.key, next);
+  }
+
+  /** A free-form object with no declared fields, edited as name and value rows. */
+  private _isDictionary(selector: Record<string, any>, value: unknown) {
+    const config = selector.object;
+    return (
+      Object.keys(selector).length === 1 &&
+      config !== undefined &&
+      !config?.fields &&
+      !config?.multiple &&
+      (value === undefined ||
+        (value !== null && typeof value === "object" && !Array.isArray(value)))
+    );
+  }
+
+  private _renderDictionary(control: QuickControl) {
+    const value = (control as { value?: unknown }).value;
+    return html`<div class="control">
+      ${this._head(control, value !== undefined)}
+      <ha-automation-options-editor
+        .hass=${this.hass}
+        .value=${value as Record<string, unknown> | undefined}
+        .disabled=${this.disabled}
+        data-key=${control.key}
+        @value-changed=${this._onDictionary}
+      ></ha-automation-options-editor>
+    </div>`;
+  }
+
+  private _onDictionary(ev: CustomEvent<{ value: Record<string, unknown> }>) {
+    ev.stopPropagation();
+    const key = (ev.currentTarget as HTMLElement).dataset.key!;
+    const value = ev.detail.value;
+    this._emit(key, value && Object.keys(value).length ? value : undefined);
   }
 
   private _renderSelector(

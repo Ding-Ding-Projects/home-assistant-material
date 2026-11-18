@@ -54,6 +54,7 @@ import {
   applyQuickChange,
   buildQuickControls,
   claimedKeys,
+  splitAdvancedControls,
   unsupportedKeys,
   type QuickContext,
   type QuickControl,
@@ -611,6 +612,31 @@ export class HaServiceControl extends LitElement {
     // Even an action with no data fields gets its sibling tiles and cautions.
     const quickControls = this._quickControls(serviceData, targetEntities);
     const quickClaimed = claimedKeys(quickControls);
+    const quickFields =
+      this._quickContext(serviceData, targetEntities)?.fields ?? {};
+    const quickSplit = splitAdvancedControls(
+      quickControls,
+      quickFields,
+      this._value?.data &&
+        typeof this._value.data === "object" &&
+        !Array.isArray(this._value.data)
+        ? this._value.data
+        : {}
+    );
+    const quickNames = this._quickLabels(
+      serviceData,
+      domain,
+      serviceName,
+      descriptionPlaceholders,
+      "name"
+    );
+    const quickHelp = this._quickLabels(
+      serviceData,
+      domain,
+      serviceName,
+      descriptionPlaceholders,
+      "description"
+    );
     const quickHidden = wholeData
       ? new Set<string>()
       : this._quickUnsupported(serviceData, targetEntities, quickControls);
@@ -685,7 +711,7 @@ export class HaServiceControl extends LitElement {
               @value-changed=${this._targetChanged}
               .value=${this._value?.target}
             ></ha-selector>`
-        : entityId
+        : entityId && !quickClaimed.has("entity_id")
           ? html`<ha-entity-picker
               .disabled=${this.disabled}
               .value=${this._value?.data?.entity_id}
@@ -703,27 +729,37 @@ export class HaServiceControl extends LitElement {
     ${
       quickControls.length
         ? html`<ha-action-quick-controls
-            .hass=${this.hass}
-            .controls=${quickControls}
-            .fieldLabels=${this._quickLabels(
-              serviceData,
-              domain,
-              serviceName,
-              descriptionPlaceholders,
-              "name"
-            )}
-            .fieldDescriptions=${this._quickLabels(
-              serviceData,
-              domain,
-              serviceName,
-              descriptionPlaceholders,
-              "description"
-            )}
-            .disabled=${this.disabled}
-            @quick-control-changed=${this._quickChanged}
-            @quick-action-changed=${this._quickActionChanged}
-            @quick-run-action=${this._quickRun}
-          ></ha-action-quick-controls>`
+              .hass=${this.hass}
+              .controls=${quickSplit.main}
+              .fieldLabels=${quickNames}
+              .fieldDescriptions=${quickHelp}
+              .disabled=${this.disabled}
+              @quick-control-changed=${this._quickChanged}
+              @quick-action-changed=${this._quickActionChanged}
+              @quick-run-action=${this._quickRun}
+            ></ha-action-quick-controls>
+            ${
+              quickSplit.advanced.length
+                ? html`<ha-expansion-panel
+                    left-chevron
+                    .expanded=${false}
+                    .header=${this._lang.text(
+                      this.hass.localize,
+                      "ui.components.action-editors.advanced_count",
+                      { count: quickSplit.advanced.length }
+                    )}
+                  >
+                    <ha-action-quick-controls
+                      .hass=${this.hass}
+                      .controls=${quickSplit.advanced}
+                      .fieldLabels=${quickNames}
+                      .fieldDescriptions=${quickHelp}
+                      .disabled=${this.disabled}
+                      @quick-control-changed=${this._quickChanged}
+                    ></ha-action-quick-controls>
+                  </ha-expansion-panel>`
+                : nothing
+            }`
         : nothing
     }
     ${

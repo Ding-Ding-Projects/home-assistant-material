@@ -58,14 +58,20 @@ export class HaTimePatternTrigger extends LitElement implements TriggerElement {
     const schema: HaFormSchema[] = [
       {
         name: `${unit}_mode`,
-        type: "select",
         required: true,
-        options: [
-          ["any", this._label("mode_any")],
-          ["every", this._label("mode_every")],
-          ["at", this._label("mode_at")],
-          ["custom", this._label("mode_custom")],
-        ],
+        // A dropdown keeps every label whole on a phone, where four radio
+        // tiles in a row cut their text.
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "any", label: this._label("mode_any") },
+              { value: "every", label: this._label("mode_every") },
+              { value: "at", label: this._label("mode_at") },
+              { value: "custom", label: this._label("mode_custom") },
+            ],
+          },
+        },
       },
     ];
     if (mode === "every" || mode === "at") {
