@@ -8,7 +8,8 @@ import {
 } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
-import { customElement, property, query } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
+import { formatElapsed } from "../../../../common/app-jobs/app-job-logic";
 import { playRingFlash, playShake } from "../../../../common/motion/moments";
 import { LanguageModeController } from "../../../../common/language-mode/language-mode-controller";
 import "../../../../components/ha-button";
@@ -67,6 +68,32 @@ class HaUpdateQueueCard extends LitElement {
 
   private _wasFailed = false;
 
+  // The clock the elapsed times are measured against; it only ticks while a
+  // queue is running.
+  @state() private _now = Date.now();
+
+  private _clock?: number;
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._stopClock();
+  }
+
+  private _stopClock(): void {
+    if (this._clock !== undefined) {
+      window.clearInterval(this._clock);
+      this._clock = undefined;
+    }
+  }
+
+  private _progressText(key: string, elapsedMs: number): string {
+    return this._lang.text(
+      this.hass.localize,
+      `ui.panel.config.updates.progress.${key}`,
+      { elapsed: formatElapsed(Math.max(0, elapsedMs)) }
+    );
+  }
+
   private _t(key: string, values?: Record<string, string | number>): string {
     return this._lang.text(this.hass.localize, `${PREFIX}.${key}`, values);
   }
@@ -76,9 +103,17 @@ class HaUpdateQueueCard extends LitElement {
     if (!queue) {
       this._wasActive = false;
       this._wasFailed = false;
+      this._stopClock();
       return;
     }
     const active = queueIsActive(queue);
+    if (active && this._clock === undefined) {
+      this._clock = window.setInterval(() => {
+        this._now = Date.now();
+      }, 1000);
+    } else if (!active) {
+      this._stopClock();
+    }
     const failed = !!queue.failure && !this.controller.checking;
     if (this._wasActive && !active && !failed && !queue.stopRequested) {
       playRingFlash(this._ring);
@@ -144,6 +179,24 @@ class HaUpdateQueueCard extends LitElement {
       !queue.stopRequested &&
       done > 0;
 
+    // The whole queue is timed from the first step that really started. A
+    // queue with no recorded start shows no time at all, never a guess.
+    const starts = queue.steps
+      .map((step) => step.startedAt)
+      .filter((at): at is number => typeof at === "number");
+    const queueStart = starts.length ? Math.min(...starts) : undefined;
+    const totalText =
+      queueStart === undefined
+        ? undefined
+        : active
+          ? this._progressText("elapsed", this._now - queueStart)
+          : queue.finishedAt !== undefined
+            ? this._progressText(
+                "result_duration",
+                queue.finishedAt - queueStart
+              )
+            : undefined;
+
     const progressText = this._t("progress_text", {
       finished: progress.finished,
       total: progress.total,
@@ -195,7 +248,7 @@ class HaUpdateQueueCard extends LitElement {
             active && typeof stepPercent === "number"
               ? html` · ${currentName}: ${stepPercent}%`
               : nothing
-          }
+          }${totalText ? html` · ${totalText}` : nothing}
         </p>
         ${
           active && typeof stepPercent === "number"
@@ -264,7 +317,14 @@ class HaUpdateQueueCard extends LitElement {
         <span class="step-name"
           >${updateDisplayName(this.hass, step.entityId, step.title)}</span
         >
-        <span class="step-state">${this._t(`state_${shownState}`)}</span>
+        <span class="step-state"
+          >${this._t(`state_${shownState}`)}${
+            shownState === "updating" && typeof step.startedAt === "number"
+              ? html` ·
+                ${formatElapsed(Math.max(0, this._now - step.startedAt))}`
+              : nothing
+          }</span
+        >
         ${step.state === "done" ? this._renderDone(step) : nothing}
       </li>
     `;
