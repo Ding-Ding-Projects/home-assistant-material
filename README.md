@@ -7,7 +7,12 @@ Docker.
 **Status: early.** The build and update pipeline works and publishes real images. The redesigned
 interface exists as a complete design (265 boards on 20 canvases in [`design/`](design/)). A large
 part of it is now written: the shell, many settings and tools pages, passkey sign-in, Google setup,
-dashboard history, offline help, language modes and a converter and drawing board. Much of that is
+dashboard history, offline help, language modes and a converter and drawing board. Newer work
+includes tailored editors for every integration's actions, triggers and conditions, update and
+backup progress with a choice of which updates get a backup first, autosaved drafts for editors,
+shared camera live views with light recording, and the AC Defender and Heat Defender integrations
+(see [`docs/features/updates/`](docs/features/updates/README.md) and
+[`docs/features/defenders/`](docs/features/defenders/README.md)). Much of that is
 checked only by lint, the type check and unit tests and has **not yet been seen in a running
 build**; a few server parts were run on a running copy. Several features on the boards are not
 built at all. [`docs/feature-status.md`](docs/feature-status.md) says, row by row, which is which,

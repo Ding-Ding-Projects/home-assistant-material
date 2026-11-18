@@ -12,6 +12,140 @@ been seen working and where.
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
+## Editors, updates, backups, cameras, entity sheets and defenders, 17 and 18 November 2026
+
+Everything below is on main after build 521 (the build the hosted instance runs). A release for it
+was dispatched and is not yet verified or live. Feature documentation:
+[`docs/features/updates/`](docs/features/updates/README.md),
+[`docs/features/defenders/`](docs/features/defenders/README.md) and the files linked per item.
+
+### Editors
+
+- [~] Tailored editors for every integration action, trigger, condition and device automation
+      ([`integration-editors.md`](docs/features/automations/integration-editors.md)). Registered,
+      with one test over all 1,576 integration folders and a sample of ten actions seen in a local
+      build in English and Cantonese. Not seen: device automation fields, the hex colour on a real
+      printer action, the name and value editor writing values.
+- [ ] Bambu Lab printer editors beyond the first 15 actions: tray tiles with a colour swatch, a
+      colour picker for the printer's text colour format, and a file picker for the job. Not built.
+- [ ] Setup forms with rich controls for about 1,000 integrations
+      ([`setup-form-controls.md`](docs/features/setup/setup-form-controls.md)). Written and
+      tested; not walked form by form in a browser.
+- [ ] Time pattern, time offset and geolocation trigger editors. Written and tested; not seen in
+      a browser.
+- [ ] Autosaved drafts, draft recovery and history
+      ([`drafts-import-export.md`](docs/features/automations/drafts-import-export.md)). Written
+      and tested, including a byte-identical live files test; a crash was never simulated and
+      nothing was seen in a browser.
+- [ ] Export and import for automations, scripts and scenes, with a preview. Written and tested;
+      not seen in a browser.
+- [x] Editor menus as bottom sheets below 600 px, clicked at 390 and 360 px on the first, middle
+      and last step (real run of build 519, fix in `28e6e9e7d`).
+- [ ] Menus checked for the scenes menu at 360 px. Not seen.
+
+### Updates
+
+- [ ] Real stages, numbers and live output on every update row
+      ([`progress-and-queue.md`](docs/features/updates/progress-and-queue.md)). A running update
+      with progress and output was seen in a local build; the later start time sources and system
+      update output were not seen on a real update.
+- [ ] "Update everything" shows the whole run's time. Written; not seen in a browser.
+- [x] Update rows 66 px tall instead of 145 px at 390 px (measured in a local build with template
+      entities).
+- [ ] "Update coming soon" card ([`update-coming-soon.md`](docs/features/updates/update-coming-soon.md)).
+      Seen in a local build with a mocked response; not against a real build in progress.
+- [ ] Choose which updates get a backup first, down to single apps
+      ([`backup-before-updating.md`](docs/features/updates/backup-before-updating.md)). Server part
+      128 tests, frontend 398 tests; not seen in a browser or on a real update.
+- [ ] Notes on a system update and "What's new in build N" open the updates log page
+      ([`whats-new-and-notes.md`](docs/features/updates/whats-new-and-notes.md)). One rule is
+      tested; not seen in a browser.
+- [ ] Automatic system update switches save (the `systemPart` fix). Not seen saving on a real
+      build.
+- [ ] An automatic system update watched happening inside its window. Never seen.
+- [ ] "What's new" links on the Supervisor and operating system rows. Not done.
+
+### Backups
+
+- [~] Backup progress ([`backup-progress.md`](docs/features/backups/backup-progress.md)): a real
+      local backup with its stage list was seen; per-place upload rows were not seen with a real
+      cloud place.
+- [ ] Backup self-check with Light, Full and Off modes
+      ([`backup-self-check.md`](docs/features/backups/backup-self-check.md)). Written and tested;
+      the Backups page results and setting were built with a mocked backup and not run against a
+      real server.
+- [x] Backup self-check treats this system's own copy as local in full hosting mode (`c373e6a4c`):
+      proven on a throwaway full-hosting copy, a fresh backup reads "passed" and "verified in
+      full". Proof is the service's own answers, not a browser. The hosted 521 still has the
+      "0 of 4" fault until this is built.
+- [ ] Self-check against a real network mount and a real cloud place. Never run.
+
+### Cameras
+
+- [ ] One shared live view per camera and the calm "limited" state with backoff
+      ([`live-sharing-and-light-recording.md`](docs/features/camera-recording/live-sharing-and-light-recording.md)).
+      46 server tests and 27 browser tests; not seen in a browser and not proven against a real
+      provider camera.
+- [ ] Light recording and event clips for provider-only cameras. Tests only; not proven against a
+      real camera.
+- [ ] Round-the-clock recording for provider-only cameras. Not built, on purpose: the only route
+      would hand the provider's sign-in secrets to another program.
+
+### Entity sheets and the phone
+
+- [x] Every entity kind put on screen and used with a real pointer at phone size, eight faults
+      fixed ([`entity-sheets.md`](docs/features/interface/entity-sheets.md), `80af39d52`).
+- [~] Entity sheets, third pass: checked in a real browser at 390 px, 118 of 119 tiles open the
+      right sheet, 33 actions hold after reopen. Not run: the light theme and wide windows, tile
+      tap actions, the remaining actions' save and reopen.
+- [ ] Slide to unlock for locks, wide bars for lights and covers, level tiles, a map for trackers
+      and zones. Written and covered by a test; the third pass checked sheets open, but the lock
+      slide and the maps were not individually recorded as seen.
+- [x] One bottom bar and nothing wider than the screen at 390 and 360 px, light and dark, on eight
+      pages ([`phone-compact-pass.md`](docs/features/interface/phone-compact-pass.md)).
+- [ ] Touch targets of at least 44 px everywhere. Sheet buttons were addressed; others not
+      measured.
+- [~] Scrolling on long lists at 390 px: style cost halved and main-thread cost down 26% on
+      Entities and 16% on Automations, but about 16% of frames are still slow. Not measured:
+      Devices, dashboards, the Logbook, touch gestures, a real phone.
+
+### AC Defender and Heat Defender
+
+- [~] AC Defender integration ([`ac-defender.md`](docs/features/defenders/ac-defender.md)): first
+      run in a real instance showed setup pickers, sliders, pause across a restart and the page.
+      Never run on a real air conditioner.
+- [~] Heat Defender integration with its floor
+      ([`heat-defender.md`](docs/features/defenders/heat-defender.md)): engine tests cover the
+      floor; first run in a real instance. Never run on a real heater.
+- [~] Shared band, handovers and one log
+      ([`shared-band-and-handovers.md`](docs/features/defenders/shared-band-and-handovers.md)):
+      the quarrel was found and fixed in a real instance. Not seen with real devices.
+- [x] State kept across a restart, and a test for each number taken from the reference program
+      (three watched failing with the old values). Pause after a restart was seen saved in the
+      real instance run.
+- [ ] Bronze on the quality scale. Not reached.
+
+### Release and process
+
+- [ ] The release build merges this repository's English wording into every integration's text
+      ([`release-build-wording.md`](docs/features/hosting/release-build-wording.md)). The script
+      was proven against the real generator on the same input; the workflow step has not run and
+      no built image has been opened.
+- [~] Every commit carries a skip marker and one build is dispatched per batch (the working rule).
+      Most commits from `0e32f6ee9` onward carry the marker; `900ceccca`, `28e6e9e7d` and the
+      earlier commits in the range (for example `a7f6196c6`) do not, because they asked for builds.
+- [ ] Release for main after build 521 read back as a normal release, with a browser pass on its
+      image. Dispatched, not yet verified.
+- [ ] Cantonese strings reviewed by a native reader. Not done.
+
+### Deliberately not doing
+
+- Cancelling a running backup or update from the interface: the server has no cancel command, so
+  the button says so instead of pretending.
+- Per-layer download progress, update download speed, per-integration update logs and backup
+  archive-building numbers: the server does not report them, so they are not shown.
+- Round-the-clock recording of provider-only cameras (see above).
+
 ## Cameras, 15 November 2026
 
 - [~] Camera recording around the clock with guided setup (`design/canvases/32-modern-cameras`,

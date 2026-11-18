@@ -26,6 +26,8 @@ in [`../feature-status.md`](../feature-status.md); a file here never claims more
 | [`marketplace/`](marketplace/README.md) | Adding an item from a ZIP archive, detected without a history folder |
 | [`activity-record/`](activity-record/README.md) | Permanent record of the Activity page in a Git repository: what is kept, what can still be lost, size and the Permanent record page |
 | [`camera-recording/`](camera-recording/README.md) | Recording cameras around the clock to a disk, a folder, a Windows share or an SSH server with guided setup, and the event timeline under the camera player |
+| [`updates/`](updates/README.md) | Update progress and the queue, the "Update coming soon" card, which updates get a backup first, Notes and "What's new", automatic system updates |
+| [`defenders/`](defenders/README.md) | AC Defender and Heat Defender integrations: guards, shared comfort band, the heating floor, restart memory |
 
 Other documents: [`../automation-repositories.md`](../automation-repositories.md) for the Git
 repository of each automation, and [`../../deploy-assistant/FEATURES.md`](../../deploy-assistant/FEATURES.md)

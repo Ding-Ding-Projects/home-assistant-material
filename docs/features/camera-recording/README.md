@@ -97,3 +97,7 @@ speed, and a download of the file being played. Playback moves to the next file 
 - SMB uses the `smbprotocol` library with NTLM or Kerberos sign-in. SSH host keys are not checked,
   the same as the SFTP backup location.
 - Private keys protected by a passphrase are not supported.
+
+## See also
+
+[`live-sharing-and-light-recording.md`](live-sharing-and-light-recording.md): one shared live view per camera, the calm "limited" state when a provider refuses, light recording and event clips for provider-only cameras.

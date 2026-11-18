@@ -9,6 +9,7 @@ How the product is hosted from the published container images.
 | [`offline-update-pack.md`](offline-update-pack.md) | The offline update pack: one folder with a manifest and the update parts of a build, checked part by part and installed from a USB stick without internet. The format, the Supervisor route and install order, which parts install offline today (only the operating system), how the release builds packs, the Deploy Assistant stick maker, failure modes and what is verified. |
 | [`cloud-host.md`](cloud-host.md) | The cloud host: reach the instance from outside through a tunnel, without a router port. The risks, setup with `host.bat --cloud` and in the full mode, the Supervisor API, failure modes, and what is verified. |
 | [`release-recovery.md`](release-recovery.md) | Recover a release from the files preserved by its build. |
+| [`release-build-wording.md`](release-build-wording.md) | The project's own English wording merged into the release build, and the rule that every commit carries a skip marker with one build dispatched per batch | Script proven against the real generator; workflow step not yet seen running |
 
 The plain mode (core only, `compose.yaml`) is described in the main README.
 

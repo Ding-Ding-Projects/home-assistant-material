@@ -1,5 +1,140 @@
 # Handoff
 
+## Editors for every integration, progress, drafts, cameras, entity sheets and the defenders, 17 and 18 November 2026
+
+This section covers the commits from `a7f6196c6` to `b62a3e0ef` (17 November afternoon to 18
+November 06:25 Toronto time). Where this section and an older one disagree, this one is newer.
+Feature documentation for each item is under `docs/features/`, in the new
+[`updates/`](docs/features/updates/README.md) and [`defenders/`](docs/features/defenders/README.md)
+categories and the files linked below.
+
+### What is live and what is not
+
+- **Live (hosted instance):** build 2026.11.1.521.
+- **On main, not live:** everything after it, including the second backup self-check fix, the
+  entity sheet passes, the camera changes and the defenders. A release for that work was
+  dispatched and is **not yet verified or live**. Treat it as unbuilt until a release is read back
+  and a browser pass on its image is recorded.
+- The rule is that every commit carries a skip marker and one build is dispatched per batch, by
+  hand; a push alone never produces a build or offers one to installed instances. Most commits
+  from `0e32f6ee9` onward carry the marker; the earlier ones in this range and `900ceccca` and
+  `28e6e9e7d` do not, because they asked for builds. See
+  [`docs/features/hosting/release-build-wording.md`](docs/features/hosting/release-build-wording.md).
+
+### What changed
+
+| Area | What | Commits | Documentation |
+| --- | --- | --- | --- |
+| Integration editors | Tailored controls for the actions (286 integrations), triggers (51), conditions (43) and device automations (46) that integrations define; 1,576 integration folders checked by one test; Bambu Lab printer editors | `0e32f6ee9`, `a48fc170f`, `991e35fbc`, `900ceccca` | [`integration-editors.md`](docs/features/automations/integration-editors.md) |
+| Setup forms | Rich controls chosen by field name and kind; time pattern, offset and geolocation trigger editors | `c86deec24` | [`setup-form-controls.md`](docs/features/setup/setup-form-controls.md) |
+| Update progress | Stages, numbers, live output, honest start times and durations, "Update everything" clock, compact phone rows | `ff0eeea8e`, `3f969e067`, `28e6e9e7d`, `a5bbfa5da`, `11e60d596` | [`progress-and-queue.md`](docs/features/updates/progress-and-queue.md) |
+| Update coming soon | One card for a build that is not yet published | `11e60d596` | [`update-coming-soon.md`](docs/features/updates/update-coming-soon.md) |
+| Backup before updating | System updates only, every update, none, or chosen apps; one decision for the button, the queue and automatic updates | `4cb1fe589` | [`backup-before-updating.md`](docs/features/updates/backup-before-updating.md) |
+| Notes and What's new | Both open the build's page on the updates log | `5fc4fbe08`, `3cdb9adac` | [`whats-new-and-notes.md`](docs/features/updates/whats-new-and-notes.md) |
+| Automatic system updates | The switch that could not be switched is fixed (`systemPart`) | `a6886fe92` | [`updates/README.md`](docs/features/updates/README.md) |
+| Backup progress | Stage list, per-place upload rows, live output | `15f5ff0a6` | [`backup-progress.md`](docs/features/backups/backup-progress.md) |
+| Backup self-check | Light, full or off; three kinds of copy; two fixes for "0 of 4" in full hosting mode | `89f61a1cb`, `2e4885975`, `c373e6a4c`, `11e60d596` | [`backup-self-check.md`](docs/features/backups/backup-self-check.md) |
+| Drafts, import, export | Autosaved drafts in a scratch Git repository; export and import for automations, scripts and scenes | `9ad0a9d54`, `117f536c0` | [`drafts-import-export.md`](docs/features/automations/drafts-import-export.md) |
+| Cameras | One live view per camera; calm "limited" state with backoff 60 s, 2 min, 5 min; light recording; event clips for provider-only cameras | `327dbe009` | [`live-sharing-and-light-recording.md`](docs/features/camera-recording/live-sharing-and-light-recording.md) |
+| Entity sheets | Three passes over every entity kind: slide to unlock, bars, level tiles, maps, 44 px targets, coverage test | `80af39d52`, `218279a85`, `d94590113` | [`entity-sheets.md`](docs/features/interface/entity-sheets.md) |
+| Phone | One bottom bar, nothing wider than the screen, menus as bottom sheets, type caps, scrolling work | `a7f6196c6`, `6b6ac0e92`, `117f536c0`, `28e6e9e7d` | [`phone-compact-pass.md`](docs/features/interface/phone-compact-pass.md) |
+| Defenders | AC Defender and Heat Defender integrations: 51 guards, shared band and handovers, the heating floor, restart memory, pages | `a5bbfa5da`, `d78560d34`, `32949f117`, `b62a3e0ef` | [`defenders/`](docs/features/defenders/README.md) |
+| Release build | The project's own English wording is merged into every integration's text in the build | `7889b9ba1` | [`release-build-wording.md`](docs/features/hosting/release-build-wording.md) |
+| Design | Canvas 37 (integration editors), canvas 38 (progress, drafts, entity kinds, backup-first choice, camera states and recording amount), canvas 39 (AC Defender, Heat Defender, shared band) | `0e32f6ee9`, `fcca8da65`, `73f1081fd`, `2bbd3d4af`, `bc72ce681`, `7b87d3d84`, `aa92e0171`, `32d3a7134` | `design/canvases/37-...`, `38-...`, `39-ac-defender` |
+
+### Evidence
+
+- Local build at 390, 360 and 1440 px (`900ceccca`): nine pages with no sideways overflow and no
+  console errors, a real sign-in, ten integration actions in English and Cantonese, a running
+  update with progress and output, a real local backup with its stage list.
+- Local build at 390 and 360 px, light and dark (`117f536c0`): the single bottom bar and no
+  sideways overflow on eight pages.
+- Real run of build 519 on a phone (`28e6e9e7d`): menus clicked at 390 and 360 px.
+- Real run of build 509: found the automatic-update switch fault.
+- Entity sheets: one entity of each of 60 kinds used with a real pointer (`80af39d52`); third pass
+  checked in a real browser at 390 px, 118 of 119 tiles open the right sheet, 33 actions hold after
+  reopen, and the 37 triggers and conditions that would not save now do (`d94590113`).
+- Backup self-check fix proven on a throwaway full-hosting copy with checks of other places off
+  (`c373e6a4c`); 45 tests.
+- Defenders: first run in a real instance caught the siblings arguing, which was fixed
+  (`b62a3e0ef`); engine 76 tests.
+- Test counts at the end of the range: 9,274 frontend tests passing with three known build-script
+  failures (`28e6e9e7d`). Types at two known gallery errors.
+
+### Known faults
+
+- **Hosted build 521:** the backup self-check can wrongly read "0 of 4" in full hosting mode.
+  Fixed on main in `c373e6a4c`; not yet in a live build.
+- **Update row start time on a page opened mid-update:** the row says "Started before this page
+  opened" and shows no running time when nothing recorded the start.
+- **No live output during a Core update** in 521. Reading the Supervisor log for system updates is
+  on main (`a5bbfa5da`) and was not seen on a real Core update.
+- **Editor crash seen in a real run of 519:** not reproduced in five-minute idle runs, cause not
+  found. The draft changes remove three weak spots but are not a proven fix.
+- **Cantonese strings** added in this range were written by hand and not reviewed by a native
+  reader; many were not seen rendered.
+- **Entity sheets:** differences from the board recorded after the first pass (a media player shows
+  volume before transport, the humidifier ring and one numeral large) were not re-measured after
+  the second and third passes. Inferred: the second pass changed the bars, but this was not
+  re-measured.
+- **Quality scale:** the two defender integrations do not reach the Bronze level yet.
+- **Scrolling:** about 16% of frames on Entities and Automations lists at 390 px with the
+  processor slowed four times are still slow; the remaining cost is per-row icons and custom
+  elements.
+- **Update history** is kept per browser, not per instance (from the earlier section; not
+  re-examined).
+
+### What only the owner can prove
+
+- A real provider camera: shared live view, the countdown after a real "too many requests",
+  light recording clips from a real event, event clips for a provider-only camera.
+- A real air conditioner and a real heater: every command the defenders send, the heating floor
+  with real cold weather, the cost figures against real power use, and a real air conditioner and
+  heater sharing one unit.
+- USB sticks: install from USB storage, USB recovery, the offline update pack.
+- Provider sign-in round trips and cloud host sign-in, tunnel, DNS and reachability from outside.
+- A real cloud backup place and a real network mount for the self-check.
+- An automatic system update watched happening inside its window.
+
+### Remaining work
+
+- Backups page per-place check results and the setting were built with a mocked backup; run them
+  against a real server.
+- "What's new" links for Supervisor and operating system rows.
+- Tile tap actions and the light theme and wide windows for the entity sheets; touch targets
+  under 44 px outside the sheets (inferred from the pass 2 note).
+- Round-the-clock recording for provider-only cameras is deliberately not built (see the camera
+  file).
+- Bambu Lab editors: tray tiles with colour swatch, colour picker that stores the printer's text
+  colour format, file picker for the job.
+- Other languages for the integrations added in this repository fall back to English until their
+  files are written.
+- The update's own detail dialog backup switch applies to that one update only (by design, per
+  `a5bbfa5da`).
+
+### Next steps, in order
+
+1. Read back the release that was dispatched for main; confirm it is a normal release with the
+   expected files. Record the result here.
+2. Run the browser pass on that image: the Updates page (rows, queue, "Update coming soon", the
+   backup-first choice), the Backups page and the self-check in full hosting mode, the camera
+   sheet, a sample of entity sheets, the defenders' pages, at 390 and 1440 px.
+3. Use the features that save, create or call the server on a throwaway copy before moving the
+   hosted instance: drafts and recovery, import, the backup-first choice, the automatic update
+   switches, defender pause across a restart. A page-load pass alone has failed this check before.
+4. Only then move the hosted instance to the new build, and tell the owner the build number.
+5. Ask the owner to try the real camera, air conditioner and heater items above.
+6. Review the Cantonese strings with a native reader.
+
+### Working rules from this range
+
+- Commits carry a skip marker unless they ask for a build; one build is dispatched per batch.
+- A board is drawn before the feature is built, and where the build and a board differ, the board
+  is the target.
+- A fix is not recorded as proven until the exact failing case was run, not a guess: the first
+  self-check fix guessed a value and passed tests that used the same guess; the second read the
+  real value from a running Supervisor.
+
 ## Rich editors, phone sizing, automatic system updates and scrolling, 17 November 2026 (afternoon)
 
 - **On the home instance:** build 498 (`55c0ed5bd`), moved at 10:59 Toronto time. Proven by a page-load pass and a real run on the throwaway full copy (495 to 498 with no false red on the queue card).
