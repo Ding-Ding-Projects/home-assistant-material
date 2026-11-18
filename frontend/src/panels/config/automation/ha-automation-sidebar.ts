@@ -450,6 +450,8 @@ export default class HaAutomationSidebar extends LitElement {
       margin-top: var(--safe-area-inset-top);
 
       --ha-bottom-sheet-surface-background: var(--card-background-color);
+      /* The first field sits right under the handle: keep it tappable */
+      --ha-bottom-sheet-handle-padding: var(--ha-space-2);
     }
 
     @media all and (max-width: 870px) {

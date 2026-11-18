@@ -110,13 +110,22 @@ class CoolModeRestore(Guard):
         if urgent:
             return self._restore(ctx, Reason("restore_mode_room_warm"))
         started = state.setdefault("since", ctx.now)
-        delay = state.setdefault("delay", ctx.rng.uniform(c.min_seconds, c.max_seconds))
+        courtesy = ctx.run_mode == "heat" and ctx.desired_mode == "off"
+        if courtesy:
+            # Heating turned on by hand while it should stay off: the owner
+            # chose how long it is left on, so that is the only wait.
+            delay = ctx.courtesy_wait_seconds
+        else:
+            delay = state.setdefault(
+                "delay", ctx.rng.uniform(c.min_seconds, c.max_seconds)
+            )
         until = started + timedelta(seconds=delay)
         if ctx.now >= until:
             return self._restore(ctx, Reason("restore_mode_changed"))
+        reason = Reason("courtesy_wait") if courtesy else Reason("restore_mode_soon")
         return Decision(
             state="waiting",
-            reason=Reason("restore_mode_soon"),
+            reason=reason,
             holds=[self.hold_for(ctx, until, Reason("restore_mode_wait"))],
             guard=self.spec.key,
         )

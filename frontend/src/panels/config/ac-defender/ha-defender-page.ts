@@ -9,6 +9,7 @@ import { formatTime } from "../../../common/datetime/format_time";
 import { relativeTime } from "../../../common/datetime/relative_time";
 import {
   composeForMode,
+  currentLanguageMode,
   modeText,
 } from "../../../common/language-mode/language-mode";
 import { navigate } from "../../../common/navigate";
@@ -680,7 +681,15 @@ export class HaDefenderPage extends LitElement {
     return html`<div class=${classMap({ row: true, safety: guard.safety })}>
       <span class="grow">
         ${guardTitle(guard.id, this.direction)}<br />
-        <span class="detail desc" title=${description}>${description}</span>
+        <span
+          class=${classMap({
+            detail: true,
+            desc: true,
+            both: currentLanguageMode() === "bilingual",
+          })}
+          title=${description}
+          >${description}</span
+        >
         <span class="detail"
           >${
             guard.last_acted
@@ -1114,6 +1123,14 @@ export class HaDefenderPage extends LitElement {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+      /* Both languages: the Cantonese half gets its own line */
+      .desc.both {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        white-space: normal;
       }
       .status {
         display: flex;

@@ -99,6 +99,7 @@ import {
   duplicateAutomation,
   fetchAutomationFileConfig,
   getAutomationStateConfig,
+  migrateAutomationTrigger,
   showAutomationEditor,
   triggerAutomationActions,
 } from "../../../data/automation";
@@ -567,6 +568,9 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
   // What starts an automation, in words. One automation at a time, four at
   // once, and only those not asked for yet.
   private async _loadTriggerTexts() {
+    // Names of integration triggers come from these translations; without
+    // them a row says "Unknown trigger" for every new style trigger.
+    await this.hass.loadBackendTranslation("triggers");
     const pending = this.automations
       .map((automation) => automation.entity_id)
       .filter((entityId) => !this._requestedTexts.has(entityId));
@@ -608,8 +612,11 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         name,
       });
     }
+    // Older files say platform; read them the way the editor does, on a copy
     const triggers = ensureArray(
-      config.triggers ?? config.trigger
+      migrateAutomationTrigger(
+        structuredClone(config.triggers ?? config.trigger) as Trigger[]
+      )
     ) as Trigger[];
     if (!triggers.length) {
       return undefined;
@@ -1251,6 +1258,18 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
     }
     if (changedProps.has("automations") || changedProps.has("_entityReg")) {
       this._loadTriggerTexts();
+    }
+    // Wording that arrived late (backend translations): describe again
+    const oldHass = changedProps.get("hass") as HomeAssistant | undefined;
+    if (oldHass && oldHass.localize !== this.hass.localize) {
+      const rebuilt = { ...this._triggerTexts };
+      Object.entries(this._loadedConfigs).forEach(([entityId, config]) => {
+        const text = this._describeTriggers(config);
+        if (text) {
+          rebuilt[entityId] = text;
+        }
+      });
+      this._triggerTexts = rebuilt;
     }
   }
 

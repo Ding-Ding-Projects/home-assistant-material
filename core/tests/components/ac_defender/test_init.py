@@ -175,7 +175,7 @@ async def test_setup_is_not_ready_while_the_device_is_missing(
     assert mock_entry.state is ConfigEntryState.SETUP_RETRY
     set_climate(hass)
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=2))
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert mock_entry.state is ConfigEntryState.LOADED
 
 

@@ -223,15 +223,20 @@ async def test_keep_off_turns_the_heating_off_after_a_courtesy_wait(
     assert [c.data["hvac_mode"] for c in calls["set_hvac_mode"]] == ["off"]
 
 
-async def test_the_mode_guard_also_keeps_it_off_after_its_short_delay(
+async def test_the_mode_guard_waits_the_courtesy_wait_and_then_keeps_it_off(
     hass: HomeAssistant, freezer
 ) -> None:
-    """With the guards on, the heating is turned off after the short mode delay."""
+    """With the guards on, the heating is left on for the courtesy wait, then turned off."""
     calls = await mock_climate(hass)
     set_climate(hass, room=20.0, setpoint=21.0, mode="heat")
     await setup(hass, make_entry())
     assert calls["set_hvac_mode"] == []
     freezer.tick(timedelta(minutes=2))
+    set_climate(hass, room=20.0, setpoint=21.0, mode="heat")
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert calls["set_hvac_mode"] == []
+    freezer.tick(timedelta(minutes=9))
     set_climate(hass, room=20.0, setpoint=21.0, mode="heat")
     async_fire_time_changed(hass)
     await hass.async_block_till_done()

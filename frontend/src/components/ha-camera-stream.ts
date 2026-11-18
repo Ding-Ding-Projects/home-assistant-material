@@ -6,6 +6,7 @@ import { repeat } from "lit/directives/repeat";
 import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
 import { consume } from "../common/decorators/consume";
+import { consumeLocalize } from "../common/decorators/consume-context-entry";
 import { fireEvent } from "../common/dom/fire_event";
 import { supportsFeature } from "../common/entity/supports-feature";
 import {
@@ -25,6 +26,8 @@ import {
   connectionContext,
   formattersContext,
 } from "../data/context";
+import { formatLastSeen } from "../data/camera-live-session";
+import type { LocalizeFunc } from "../common/translations/localize";
 import "./ha-hls-player";
 import "./ha-web-rtc-player";
 import type { HaWebRtcPlayer } from "./ha-web-rtc-player";
@@ -51,6 +54,10 @@ export class HaCameraStream extends LitElement {
   @state()
   @consume({ context: connectionContext, subscribe: true })
   private _connection!: ContextType<typeof connectionContext>;
+
+  @state()
+  @consumeLocalize()
+  private _localize!: LocalizeFunc;
 
   @state()
   @consume({ context: formattersContext, subscribe: true })
@@ -168,11 +175,44 @@ export class HaCameraStream extends LitElement {
       return nothing;
     }
     const streams = this._currentStreams();
+    if (
+      this.stateObj.state === "unavailable" &&
+      !streams.some((stream) => stream.type === STREAM_TYPE_WEB_RTC)
+    ) {
+      return this._renderOffline();
+    }
     return html`${repeat(
       streams,
       (stream) => stream.type + this.stateObj!.entity_id,
       (stream) => this._renderStream(stream)
     )}`;
+  }
+
+  // Any camera that cannot report says so inside its picture area, not as
+  // a black rectangle
+  private _renderOffline() {
+    const l = (key: string, values?: Record<string, string | number>) =>
+      this._localize(
+        `ui.components.web-rtc-player.state.${key}` as "ui.components.web-rtc-player.state.offline_title",
+        values
+      );
+    const time = formatLastSeen(this.stateObj!.last_changed);
+    return html`<div
+      class="offline"
+      role="group"
+      style=${styleMap({ aspectRatio: this.aspectRatio ?? 16 / 9 })}
+    >
+      <div class="message">
+        <b>${l("offline_title")}</b>
+        <span
+          >${
+            time
+              ? `${l("offline_last_seen", { time })} ${l("offline_text")}`
+              : l("offline_text")
+          }</span
+        >
+      </div>
+    </div>`;
   }
 
   private _renderStream(stream: Stream) {
@@ -393,6 +433,47 @@ export class HaCameraStream extends LitElement {
 
     .hidden {
       display: none;
+    }
+
+    .offline {
+      box-sizing: border-box;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      text-align: center;
+      background-color: var(--ha-color-fill-neutral-quiet-resting, #1b1c20);
+      color: var(--primary-text-color);
+    }
+
+    .offline .message {
+      box-sizing: border-box;
+      min-width: 0;
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--ha-space-1);
+      padding: var(--ha-space-3);
+      border-radius: var(--ha-border-radius-lg);
+      background: color-mix(
+        in srgb,
+        var(--card-background-color) 82%,
+        transparent
+      );
+    }
+
+    .offline b {
+      font-size: var(--ha-font-size-m);
+      font-weight: var(--ha-font-weight-medium);
+      overflow-wrap: anywhere;
+    }
+
+    .offline span {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+      overflow-wrap: anywhere;
     }
   `;
 }

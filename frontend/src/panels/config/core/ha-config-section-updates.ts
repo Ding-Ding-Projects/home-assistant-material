@@ -1896,6 +1896,12 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         justify-self: start;
         min-width: 0;
       }
+      /* The title fills the column, so a long one ends with an ellipsis
+         before the button instead of running under it. */
+      :host([narrow]) .row-main .text {
+        justify-self: stretch;
+        max-width: 100%;
+      }
       :host([narrow]) .row-main .version {
         flex-wrap: wrap;
       }

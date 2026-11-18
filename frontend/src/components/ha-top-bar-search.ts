@@ -63,7 +63,11 @@ export class HaTopBarSearch extends LitElement {
   protected updated(changed: PropertyValues): void {
     if (changed.has("open") && this.open) {
       // The keyboard comes up with the field; the page stays where it is.
-      this._input?.focus({ preventScroll: true });
+      const input = this._input;
+      // The inner field exists only once the input has rendered
+      input?.updateComplete.then(() =>
+        requestAnimationFrame(() => input.focus({ preventScroll: true }))
+      );
     }
   }
 

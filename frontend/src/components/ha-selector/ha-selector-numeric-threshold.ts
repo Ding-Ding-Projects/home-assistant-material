@@ -42,16 +42,36 @@ export interface NumericThresholdValue {
   value_max?: ThresholdValueEntry;
 }
 
-// The server can list a null (no unit) first; use the first real unit so the
-// saved value always carries one when the list is not empty.
+// Units people usually mean when they do not choose one: the base unit of
+// the quantity, not the smallest one a server happens to list first.
+const PREFERRED_THRESHOLD_UNITS = [
+  "°C",
+  "W",
+  "kWh",
+  "%",
+  "V",
+  "A",
+  "Hz",
+  "hPa",
+  "L",
+  "m",
+  "s",
+];
+
+// The server can list a null (no unit) first; use the base unit when the list
+// has one, otherwise the first real unit, so the saved value always carries a
+// unit when the list is not empty.
 export const getDefaultThresholdUnit = (
   options?: readonly (string | null | undefined)[]
 ): string | undefined => {
   if (!options || options.length === 0) {
     return undefined;
   }
+  const units = options.filter(
+    (unit): unit is string => typeof unit === "string" && unit !== ""
+  );
   return (
-    options.find((unit) => typeof unit === "string" && unit !== "") ?? undefined
+    PREFERRED_THRESHOLD_UNITS.find((unit) => units.includes(unit)) ?? units[0]
   );
 };
 

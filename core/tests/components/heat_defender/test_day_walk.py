@@ -240,6 +240,40 @@ async def test_courtesy_wait_option_zero_turns_manual_heating_off_at_once(
     assert [c.data["hvac_mode"] for c in calls["set_hvac_mode"]] == ["off"]
 
 
+async def test_courtesy_wait_is_the_only_wait_with_the_restore_guard_on(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """The mode-restore guard does not add its own pause to the courtesy wait."""
+    calls = await mock_climate(hass)
+    set_climate(hass, room=20.0, setpoint=21.0, mode="heat")
+    entry = make_entry(courtesy_wait_minutes=5)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert not calls["set_hvac_mode"]
+
+    freezer.tick(timedelta(minutes=2))
+    await entry.runtime_data.async_evaluate()
+    assert not calls["set_hvac_mode"]
+
+    freezer.tick(timedelta(minutes=4))
+    await entry.runtime_data.async_evaluate()
+    assert [c.data["hvac_mode"] for c in calls["set_hvac_mode"]] == ["off"]
+
+
+async def test_courtesy_wait_zero_is_at_once_with_the_restore_guard_on(
+    hass: HomeAssistant,
+) -> None:
+    """Zero means the first look, whatever the restore guard would have waited."""
+    calls = await mock_climate(hass)
+    set_climate(hass, room=20.0, setpoint=21.0, mode="heat")
+    entry = make_entry(courtesy_wait_minutes=0)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert [c.data["hvac_mode"] for c in calls["set_hvac_mode"]] == ["off"]
+
+
 @pytest.mark.parametrize(
     ("stored", "minutes"),
     [(0, 0.0), (10, 10.0), (30, 30.0), (99, 30.0), (-5, 0.0), ("soon", 10.0)],
