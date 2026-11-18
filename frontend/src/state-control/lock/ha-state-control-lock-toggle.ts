@@ -230,6 +230,14 @@ export class HaStateControlLockToggle extends LitElement {
         --mdc-icon-size: 40px;
         -webkit-tap-highlight-color: transparent;
       }
+      @media (max-width: 600px) {
+        .tile {
+          width: 100%;
+          max-width: 320px;
+          height: 64px;
+          border-radius: var(--ha-border-radius-pill, 32px);
+        }
+      }
       .tile::before {
         content: "";
         position: absolute;

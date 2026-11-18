@@ -220,7 +220,7 @@ class MoreInfoHumidifier extends LitElement {
           margin-bottom: var(--ha-space-4);
         }
         .target {
-          font-size: 56px;
+          font-size: clamp(28px, 7vw, 56px);
           line-height: 64px;
           font-weight: var(--ha-font-weight-medium);
           color: var(--primary-color);

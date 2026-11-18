@@ -305,7 +305,7 @@ class MoreInfoSensor extends LitElement {
     }
 
     .value {
-      font-size: 56px;
+      font-size: clamp(28px, 7vw, 56px);
       line-height: 64px;
       font-weight: var(--ha-font-weight-medium);
       direction: ltr;

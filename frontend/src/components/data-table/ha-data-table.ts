@@ -1136,7 +1136,12 @@ export class HaDataTable extends LitElement {
   }
 
   private _hasCellValue = (value: unknown): boolean =>
-    value !== undefined && value !== null && value !== "" && value !== nothing;
+    value !== undefined &&
+    value !== null &&
+    value !== "" &&
+    // A lone dash is a placeholder for nothing: it only costs the second line width.
+    value !== "—" &&
+    value !== nothing;
 
   private _cellClasses = (column: DataTableColumnData) => ({
     "mdc-data-table__cell--flex": column.type === "flex",

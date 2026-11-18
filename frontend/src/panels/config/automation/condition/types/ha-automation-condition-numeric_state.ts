@@ -19,6 +19,11 @@ import type { SchemaUnion } from "../../../../../components/ha-form/types";
 import type { NumericStateCondition } from "../../../../../data/automation";
 import { NON_NUMERIC_ATTRIBUTES } from "../../../../../data/entity/entity_attributes";
 import type { HomeAssistant } from "../../../../../types";
+import type { NumericStateRange } from "../../numeric-state-range";
+import {
+  numericStateRange,
+  thresholdNumberSelector,
+} from "../../numeric-state-range";
 
 const numericStateConditionStruct = object({
   alias: optional(string()),
@@ -94,7 +99,8 @@ export default class HaNumericStateCondition extends LitElement {
     (
       localize: LocalizeFunc,
       inputAboveIsEntity?: boolean,
-      inputBelowIsEntity?: boolean
+      inputBelowIsEntity?: boolean,
+      range?: NumericStateRange
     ) =>
       [
         { name: "entity_id", required: true, selector: { entity: {} } },
@@ -140,14 +146,7 @@ export default class HaNumericStateCondition extends LitElement {
           : ([
               {
                 name: "above",
-                selector: {
-                  number: {
-                    mode: "box",
-                    min: Number.MIN_SAFE_INTEGER,
-                    max: Number.MAX_SAFE_INTEGER,
-                    step: 0.1,
-                  },
-                },
+                selector: thresholdNumberSelector(range),
               },
             ] as const)),
         {
@@ -181,14 +180,7 @@ export default class HaNumericStateCondition extends LitElement {
           : ([
               {
                 name: "below",
-                selector: {
-                  number: {
-                    mode: "box",
-                    min: Number.MIN_SAFE_INTEGER,
-                    max: Number.MAX_SAFE_INTEGER,
-                    step: 0.1,
-                  },
-                },
+                selector: thresholdNumberSelector(range),
               },
             ] as const)),
         {
@@ -217,7 +209,12 @@ export default class HaNumericStateCondition extends LitElement {
     const schema = this._schema(
       this.hass.localize,
       this._inputAboveIsEntity,
-      this._inputBelowIsEntity
+      this._inputBelowIsEntity,
+      numericStateRange(
+        this.hass,
+        this.condition.entity_id,
+        this.condition.attribute
+      )
     );
 
     const data = this._data(

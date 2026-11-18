@@ -171,7 +171,7 @@ class MoreInfoCounter extends LitElement {
       margin: 0 auto var(--ha-space-3);
       min-width: 64px;
       text-align: center;
-      font-size: 64px;
+      font-size: clamp(28px, 7vw, 64px);
       line-height: 72px;
       font-weight: var(--ha-font-weight-medium);
       direction: ltr;

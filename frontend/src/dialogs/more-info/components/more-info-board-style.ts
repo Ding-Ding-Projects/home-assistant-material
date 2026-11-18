@@ -8,7 +8,7 @@ export const moreInfoBoardStyle = css`
   .headline {
     margin: 0;
     text-align: center;
-    font-size: 48px;
+    font-size: clamp(28px, 7vw, 48px);
     line-height: var(--ha-line-height-condensed);
     font-weight: var(--ha-font-weight-normal);
     color: var(--primary-text-color);

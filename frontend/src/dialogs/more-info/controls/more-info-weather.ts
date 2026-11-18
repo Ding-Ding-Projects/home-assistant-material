@@ -542,7 +542,7 @@ class MoreInfoWeather extends LitElement {
         .temp {
           position: relative;
           direction: ltr;
-          font-size: 56px;
+          font-size: clamp(28px, 7vw, 56px);
           line-height: 64px;
           font-weight: var(--ha-font-weight-medium);
           color: var(--primary-text-color);

@@ -610,7 +610,7 @@ class MoreInfoUpdate extends LitElement {
     }
 
     .latest {
-      font-size: 48px;
+      font-size: clamp(28px, 7vw, 48px);
       line-height: 56px;
       font-weight: var(--ha-font-weight-medium);
       color: var(--primary-color);

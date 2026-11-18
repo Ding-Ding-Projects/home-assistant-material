@@ -466,7 +466,7 @@ class MoreInfoTime extends LitElement {
         box-sizing: border-box;
         min-width: 80px;
         cursor: pointer;
-        font-size: 48px;
+        font-size: clamp(28px, 7vw, 48px);
         line-height: 64px;
         min-height: 72px;
         border-radius: var(--ha-border-radius-xl);
@@ -481,7 +481,7 @@ class MoreInfoTime extends LitElement {
         color: var(--primary-color);
       }
       .colon {
-        font-size: 48px;
+        font-size: clamp(28px, 7vw, 48px);
       }
       .meridiem {
         flex-direction: column;

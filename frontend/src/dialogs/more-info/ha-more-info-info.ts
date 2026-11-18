@@ -12,6 +12,7 @@ import {
   computeShowNewMoreInfo,
   DOMAINS_FULL_HEIGHT_MORE_INFO,
   DOMAINS_NO_INFO,
+  DOMAINS_WITH_FRAME_CONTROL,
   DOMAINS_WITH_MORE_INFO,
 } from "./const";
 import { domainMoreInfoType } from "./state_more_info_control";
@@ -88,6 +89,7 @@ export class MoreInfoInfo extends LitElement {
     // state, so the state is never missing from the dialog.
     const hasOwnHeadline =
       !(stateObj && bodyDrawsNothing(domain, stateObj)) &&
+      !DOMAINS_WITH_FRAME_CONTROL.includes(domain) &&
       (DOMAINS_WITH_OWN_HEADLINE.includes(domain) ||
         domainMoreInfoType(domain) === "default");
     const hasOwnChart = DOMAINS_WITH_OWN_CHART.includes(domain);

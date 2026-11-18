@@ -309,7 +309,7 @@ class MoreInfoTimer extends LitElement {
         padding: var(--ha-space-8);
       }
       .remaining {
-        font-size: var(--ha-font-size-4xl, 40px);
+        font-size: clamp(28px, 7vw, var(--ha-font-size-4xl));
         line-height: var(--ha-line-height-condensed);
         font-weight: var(--ha-font-weight-medium);
         direction: ltr;

@@ -197,7 +197,7 @@ class MoreInfoGroup extends LitElement {
       moreInfoBoardStyle,
       css`
         .headline {
-          font-size: 40px;
+          font-size: clamp(28px, 7vw, 40px);
           margin-bottom: var(--ha-space-3);
         }
         .chips {

@@ -91,7 +91,7 @@ export class HaMoreInfoStateHeader extends LitElement {
     .state {
       font-style: normal;
       font-weight: var(--ha-font-weight-normal);
-      font-size: 36px;
+      font-size: clamp(28px, 7vw, 36px);
       line-height: var(--ha-line-height-condensed);
     }
     .time-row {

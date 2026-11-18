@@ -211,7 +211,7 @@ class MoreInfoPerson extends LitElement {
       border-radius: var(--ha-border-radius-circle);
       background: var(--ha-color-success-container, var(--primary-color));
       color: var(--ha-color-on-success-container, var(--text-primary-color));
-      font-size: 48px;
+      font-size: clamp(28px, 7vw, 48px);
       font-weight: var(--ha-font-weight-title, 700);
     }
 

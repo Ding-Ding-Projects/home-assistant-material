@@ -214,7 +214,7 @@ class MoreInfoValve extends LitElement {
           margin-bottom: var(--ha-space-4);
         }
         .hero .state {
-          font-size: 48px;
+          font-size: clamp(28px, 7vw, 48px);
           line-height: 56px;
           font-weight: var(--ha-font-weight-medium);
           overflow-wrap: anywhere;

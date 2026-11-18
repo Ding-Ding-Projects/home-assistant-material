@@ -825,6 +825,22 @@ class MoreInfoMediaPlayer extends LitElement {
       }
     }
 
+    @media (max-width: 600px) and (min-height: 751px) {
+      .cover-container {
+        height: 232px;
+      }
+
+      .cover-image {
+        width: 160px;
+        height: 160px;
+      }
+
+      .cover-image--playing {
+        width: 220px;
+        height: 220px;
+      }
+    }
+
     .empty-cover {
       background-color: var(--secondary-background-color);
       font-size: 1.5em;

@@ -418,7 +418,7 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
         }
         .stepper-value {
           min-width: 3ch;
-          font-size: 48px;
+          font-size: clamp(28px, 7vw, 48px);
           line-height: var(--ha-line-height-condensed);
           font-weight: var(--ha-font-weight-normal);
           font-variant-numeric: tabular-nums;

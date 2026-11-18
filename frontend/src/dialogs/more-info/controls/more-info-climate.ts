@@ -501,7 +501,7 @@ class MoreInfoClimate extends LitElement {
 
         .target-humidity {
           width: 90px;
-          font-size: var(--ha-font-size-3xl);
+          font-size: clamp(28px, 7vw, var(--ha-font-size-3xl));
           margin: auto;
           direction: ltr;
         }

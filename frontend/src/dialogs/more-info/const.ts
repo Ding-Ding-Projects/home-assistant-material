@@ -101,6 +101,13 @@ export const DOMAINS_HIDE_DEFAULT_MORE_INFO = [
   "update",
 ];
 
+/**
+ * Kinds whose only control is the one the frame's own state card draws (the
+ * press button), so the frame must keep that card even though the default
+ * body draws a headline.
+ */
+export const DOMAINS_WITH_FRAME_CONTROL = ["button", "input_button"];
+
 /** Domains that should have the history hidden in the more info dialog. */
 export const DOMAINS_MORE_INFO_NO_HISTORY = ["camera", "configurator"];
 

@@ -36,8 +36,12 @@ export class HaMoreInfoControlSelectContainer extends LitElement {
       margin: auto;
       overflow: auto;
       scrollbar-width: none; /* Firefox */
-      margin: -2px calc(var(--ha-space-6) * -1);
-      padding: 2px var(--ha-space-6);
+      margin: -2px 0;
+      padding: 2px 0;
+      /* Wrap instead of scrolling sideways so no select is cut off on a phone. */
+      flex-wrap: wrap;
+      justify-content: center;
+      overflow: visible;
     }
     .controls-scroll::-webkit-scrollbar {
       display: none;
@@ -46,7 +50,7 @@ export class HaMoreInfoControlSelectContainer extends LitElement {
     ::slotted(*) {
       min-width: 120px;
       max-width: 160px;
-      flex: none;
+      flex: 1 1 120px;
     }
 
     @media all and (hover: hover),

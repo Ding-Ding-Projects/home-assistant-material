@@ -1,3 +1,4 @@
+import { mdiRemote, mdiRemoteOff } from "@mdi/js";
 import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { consume } from "../../../common/decorators/consume";
@@ -8,6 +9,7 @@ import { UNAVAILABLE } from "../../../data/entity/entity";
 import { apiContext, formattersContext } from "../../../data/context";
 import type { RemoteEntity } from "../../../data/remote";
 import { RemoteEntityFeature } from "../../../data/remote";
+import "../../../state-control/ha-state-control-toggle";
 import "../components/ha-more-info-state-header";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
@@ -44,6 +46,13 @@ class MoreInfoRemote extends LitElement {
       <ha-more-info-state-header
         .stateObj=${stateObj}
       ></ha-more-info-state-header>
+      <div class="controls">
+        <ha-state-control-toggle
+          .stateObj=${stateObj}
+          .iconPathOn=${mdiRemote}
+          .iconPathOff=${mdiRemoteOff}
+        ></ha-state-control-toggle>
+      </div>
       ${
         activities?.length
           ? html`

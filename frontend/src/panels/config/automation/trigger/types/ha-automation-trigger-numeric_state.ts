@@ -7,6 +7,11 @@ import "../../../../../components/ha-form/ha-form";
 import type { SchemaUnion } from "../../../../../components/ha-form/types";
 import type { NumericStateTrigger } from "../../../../../data/automation";
 import type { HomeAssistant } from "../../../../../types";
+import type { NumericStateRange } from "../../numeric-state-range";
+import {
+  numericStateRange,
+  thresholdNumberSelector,
+} from "../../numeric-state-range";
 
 const SCHEMA = [
   {
@@ -225,14 +230,37 @@ export class HaNumericStateTrigger extends LitElement {
     entity_id: ensureArray(trigger.entity_id),
   }));
 
+  /** The schema, with a slider for the thresholds when the entity has a range. */
+  private _schema = memoizeOne((range?: NumericStateRange) =>
+    range
+      ? (SCHEMA.map((item) =>
+          item.name === "above" || item.name === "below"
+            ? {
+                ...item,
+                selector: {
+                  choose: {
+                    ...item.selector.choose,
+                    choices: {
+                      ...item.selector.choose.choices,
+                      value: { selector: thresholdNumberSelector(range) },
+                    },
+                  },
+                },
+              }
+            : item
+        ) as unknown as typeof SCHEMA)
+      : SCHEMA
+  );
+
   public render() {
     const data = this._data(this.trigger);
+    const range = numericStateRange(this.hass, data.entity_id, data.attribute);
 
     return html`
       <ha-form
         .hass=${this.hass}
         .data=${data}
-        .schema=${SCHEMA}
+        .schema=${this._schema(range)}
         .disabled=${this.disabled}
         .localizeValue=${this.hass.localize}
         @value-changed=${this._valueChanged}
