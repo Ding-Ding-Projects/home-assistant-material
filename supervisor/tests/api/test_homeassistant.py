@@ -860,7 +860,9 @@ async def test_update_skips_health_check_when_core_not_running(
         patch.object(ha_core, "verify_frontend", AsyncMock()) as mock_frontend,
         patch.object(DockerInterface, "cleanup") as mock_cleanup,
     ):
-        await coresys.homeassistant.core.update(AwesomeVersion("2026.4.4"))
+        await coresys.homeassistant.core.update(
+            AwesomeVersion("2026.4.4"), restoring_backup=True
+        )
 
     # Only one update call: no rollback fired.
     assert update_call_count == 1

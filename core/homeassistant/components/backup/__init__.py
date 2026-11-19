@@ -21,6 +21,7 @@ from .agent import (
 from .config import BackupConfig, CreateBackupParametersDict
 from .const import DATA_MANAGER, DOMAIN
 from .coordinator import BackupConfigEntry, BackupDataUpdateCoordinator
+from .delete_proof import BackupDeleteProof, DeleteProofMark, parse_delete_proof_marks
 from .http import async_register_http_views
 from .manager import (
     AddonErrorData,
@@ -64,6 +65,7 @@ __all__ = [
     "BackupAgentError",
     "BackupAgentPlatformProtocol",
     "BackupConfig",
+    "BackupDeleteProof",
     "BackupManagerError",
     "BackupNotFound",
     "BackupPlatformEvent",
@@ -74,6 +76,7 @@ __all__ = [
     "CreateBackupParametersDict",
     "CreateBackupStage",
     "CreateBackupState",
+    "DeleteProofMark",
     "Folder",
     "IdleEvent",
     "IncorrectPasswordError",
@@ -87,6 +90,7 @@ __all__ = [
     "UploadBackupEvent",
     "WrittenBackup",
     "async_get_manager",
+    "parse_delete_proof_marks",
     "suggested_filename",
     "suggested_filename_from_name_date",
 ]

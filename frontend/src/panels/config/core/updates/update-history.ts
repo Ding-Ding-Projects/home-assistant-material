@@ -1,5 +1,4 @@
 import { parseBuildNumber } from "../../../../data/build-progress";
-import type { HomeAssistant } from "../../../../types";
 
 /**
  * The rules behind the "Update history" card: which Core versions this browser
@@ -10,11 +9,21 @@ import type { HomeAssistant } from "../../../../types";
 /** How many installed versions are kept. */
 export const HISTORY_LIMIT = 20;
 
+/** Which backup came before a going back to this build. */
+export interface GoBackNote {
+  /** When the checked backup was made, in milliseconds. */
+  backupAt?: number;
+  /** Went back with no backup, by the super confirmation. */
+  noBackup?: boolean;
+}
+
 export interface HistoryEntry {
   /** The Core version. */
   version: string;
   /** When this version was first seen installed, in milliseconds. */
   firstSeen: number;
+  /** Set when this run started by going back from a newer build. */
+  goBack?: GoBackNote;
 }
 
 export interface HistoryRow {
@@ -24,6 +33,7 @@ export interface HistoryRow {
   /** How long it ran before the next version; absent for the current one. */
   ranFor?: number;
   isCurrent: boolean;
+  goBack?: GoBackNote;
 }
 
 /**
@@ -72,7 +82,38 @@ export const historyRows = (
     installedAt: entry.firstSeen,
     ranFor: runDuration(history, index),
     isCurrent: index === 0 && entry.version === currentVersion,
+    ...(entry.goBack ? { goBack: entry.goBack } : {}),
   }));
+
+/** Reads a stored note; anything unexpected is dropped. */
+export const parseGoBackNote = (value: unknown): GoBackNote | undefined => {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+  const data = value as Record<string, unknown>;
+  if (data.noBackup === true) {
+    return { noBackup: true };
+  }
+  if (typeof data.backupAt === "number" && Number.isFinite(data.backupAt)) {
+    return { backupAt: data.backupAt };
+  }
+  return undefined;
+};
+
+/**
+ * Writes which backup came before going back onto the newest run of
+ * `version`. Returns the same list when there is nothing to write.
+ */
+export const annotateGoBack = (
+  history: readonly HistoryEntry[],
+  version: string,
+  note: GoBackNote | undefined
+): HistoryEntry[] => {
+  if (!note || history[0]?.version !== version) {
+    return [...history];
+  }
+  return [{ ...history[0], goBack: note }, ...history.slice(1)];
+};
 
 /**
  * Versions that were really installed here and are older than the current
@@ -190,7 +231,12 @@ export const parseStoredHistory = (raw: string | null): HistoryEntry[] => {
       ) {
         continue;
       }
-      entries.push({ version: item.version, firstSeen: item.firstSeen });
+      const goBack = parseGoBackNote(item.goBack);
+      entries.push({
+        version: item.version,
+        firstSeen: item.firstSeen,
+        ...(goBack ? { goBack } : {}),
+      });
     }
     return entries.slice(0, HISTORY_LIMIT);
   } catch (_err) {
@@ -217,27 +263,6 @@ export const storeHistory = (history: readonly HistoryEntry[]): void => {
   }
 };
 
-/**
- * Installs a given Core version through the Supervisor's `POST /core/update`.
- * The Supervisor reads the keys `version`, `backup` and `background` (default
- * false) and does not compare the version with the installed one, so an older
- * version is accepted; only the installed version itself is refused. Without
- * `background` the call returns when the update has finished, and a failed
- * image pull comes back as the error, so the page shows the real reason.
- */
-export const installCoreVersion = (
-  hass: HomeAssistant,
-  version: string,
-  backup: boolean
-): Promise<void> =>
-  hass.callWS({
-    type: "supervisor/api",
-    endpoint: "/core/update",
-    method: "post",
-    timeout: null,
-    data: { version, backup },
-  });
-
 /** How long a started way back may take before it counts as not finished. */
 export const GO_BACK_LIMIT_MS = 15 * 60 * 1000;
 
@@ -252,6 +277,8 @@ export interface PendingGoBack {
   done?: boolean;
   /** When the target was seen installed. */
   finishedAt?: number;
+  /** Which backup came first, once that is known. */
+  note?: GoBackNote;
 }
 
 /** How long a record of a way back is kept when nothing settles it. */
@@ -282,6 +309,10 @@ export const parsePendingGoBack = (
     };
     if (typeof data.fromVersion === "string" && data.fromVersion.length <= 64) {
       pending.fromVersion = data.fromVersion;
+    }
+    const note = parseGoBackNote(data.note);
+    if (note) {
+      pending.note = note;
     }
     if (data.done === true) {
       pending.done = true;
@@ -377,6 +408,7 @@ export interface GoBackNotice {
   /** The build number, or the whole version when it has none. */
   build: string;
   time: number;
+  note?: GoBackNote;
 }
 
 /**
@@ -410,6 +442,9 @@ export const takeGoBackNotice = (
         kind: verdict.kind,
         build: build !== undefined ? String(build) : pending.version,
         time: verdict.kind === "done" ? verdict.time : now,
+        ...(verdict.kind === "done" && pending.note
+          ? { note: pending.note }
+          : {}),
       };
     }
   }
@@ -490,5 +525,6 @@ const derivedGoBackNotice = (
     kind: "done",
     build: build !== undefined ? String(build) : entry.version,
     time: entry.firstSeen,
+    ...(entry.goBack ? { note: entry.goBack } : {}),
   };
 };

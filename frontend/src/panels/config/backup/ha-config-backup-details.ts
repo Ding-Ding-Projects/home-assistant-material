@@ -10,7 +10,7 @@ import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
-import { fireEvent } from "../../../common/dom/fire_event";
+import { fireEvent, type HASSDomEvent } from "../../../common/dom/fire_event";
 import { computeDomain } from "../../../common/entity/compute_domain";
 import { navigate } from "../../../common/navigate";
 import "../../../components/animation/ha-fade-in";
@@ -40,12 +40,17 @@ import {
   isNetworkMountAgent,
   runBackupSelfCheckLocation,
 } from "../../../data/backup";
-import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
+import { isDeleteProofError } from "../../../data/backup_delete_proof";
+import {
+  showAlertDialog,
+  showConfirmationDialog,
+} from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
 import { bytesToString } from "../../../util/bytes-to-string";
 import { showToast } from "../../../util/toast";
+import "./components/ha-backup-delete-proof-card";
 import "./components/ha-backup-details-restore";
 import "./components/ha-backup-details-summary";
 import "./components/ha-backup-self-check";
@@ -139,7 +144,19 @@ class HaConfigBackupDetails extends LitElement {
             <ha-svg-icon slot="icon" .path=${mdiDownload}></ha-svg-icon>
             ${this.hass.localize("ui.common.download")}
           </ha-dropdown-item>
-          <ha-dropdown-item value="delete" variant="danger">
+          <ha-dropdown-item
+            value="delete"
+            variant="danger"
+            .disabled=${!!this._backup?.delete_proof}
+            title=${
+              this._backup?.delete_proof
+                ? modeText(
+                    this.hass.localize,
+                    "ui.panel.config.backup.delete_proof.turn_off_first"
+                  )
+                : nothing
+            }
+          >
             <ha-svg-icon slot="icon" .path=${mdiDelete}></ha-svg-icon>
             ${this.hass.localize("ui.common.delete")}
           </ha-dropdown-item>
@@ -174,6 +191,11 @@ class HaConfigBackupDetails extends LitElement {
                       .hass=${this.hass}
                       .isHassio=${isHassio}
                     ></ha-backup-details-summary>
+                    <ha-backup-delete-proof-card
+                      .hass=${this.hass}
+                      .backup=${this._backup}
+                      @backup-delete-proof-changed=${this._deleteProofChanged}
+                    ></ha-backup-delete-proof-card>
                     ${
                       this.hass.user?.is_admin
                         ? html`<div
@@ -350,6 +372,15 @@ class HaConfigBackupDetails extends LitElement {
     `;
   }
 
+  private _deleteProofChanged(
+    ev: HASSDomEvent<HASSDomEvents["backup-delete-proof-changed"]>
+  ) {
+    if (!this._backup) {
+      return;
+    }
+    this._backup = { ...this._backup, delete_proof: ev.detail.deleteProof };
+  }
+
   private _selfCheckUpdated(ev: CustomEvent) {
     if (!this._backup) {
       return;
@@ -509,6 +540,18 @@ class HaConfigBackupDetails extends LitElement {
   }
 
   private async _deleteBackup(): Promise<void> {
+    if (this._backup?.delete_proof) {
+      showAlertDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.config.backup.dialogs.delete.title"
+        ),
+        text: modeText(
+          this.hass.localize,
+          "ui.panel.config.backup.delete_proof.turn_off_first"
+        ),
+      });
+      return;
+    }
     const confirm = await showConfirmationDialog(this, {
       title: this.hass.localize("ui.panel.config.backup.dialogs.delete.title"),
       text: this.hass.localize("ui.panel.config.backup.dialogs.delete.text"),
@@ -520,7 +563,24 @@ class HaConfigBackupDetails extends LitElement {
       return;
     }
 
-    await deleteBackup(this.hass, this._backup!.backup_id);
+    try {
+      await deleteBackup(this.hass, this._backup!.backup_id);
+    } catch (err: unknown) {
+      // The backend refuses a backup marked delete proof since this page loaded
+      showAlertDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.config.backup.dialogs.delete.failed"
+        ),
+        text: isDeleteProofError(err)
+          ? modeText(
+              this.hass.localize,
+              "ui.panel.config.backup.delete_proof.turn_off_first"
+            )
+          : (err as { message?: string })?.message || String(err),
+      });
+      this._fetchBackup();
+      return;
+    }
     fireEvent(this, "ha-refresh-backup-info");
     navigate("/config/backup");
   }

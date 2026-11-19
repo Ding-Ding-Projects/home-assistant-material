@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   HISTORY_LIMIT,
+  annotateGoBack,
   anyUpdateInProgress,
   historyRows,
-  installCoreVersion,
+  parsePendingGoBack,
   parseStoredHistory,
   recordVersion,
   rollbackBlockReason,
@@ -225,26 +226,60 @@ describe("parseStoredHistory", () => {
   });
 });
 
-describe("installCoreVersion", () => {
-  // The Supervisor reads version, backup and background from this call and
-  // accepts an older version. A wrong key would be ignored silently and the
-  // latest version would be installed instead of the chosen one.
-  it("sends the chosen older version and the backup choice to the Core update call", async () => {
-    const calls: any[] = [];
-    const hass = {
-      callWS: async (msg: any) => {
-        calls.push(msg);
-      },
-    } as any;
-    await installCoreVersion(hass, "2026.11.1.450", true);
-    expect(calls).toEqual([
-      {
-        type: "supervisor/api",
-        endpoint: "/core/update",
-        method: "post",
-        timeout: null,
-        data: { version: "2026.11.1.450", backup: true },
-      },
-    ]);
+describe("going back notes", () => {
+  // The history line says which backup came before a going back, or that
+  // there was none. A note lost on the way to storage would make the history
+  // claim nothing about the backup, or the wrong backup.
+  it("writes the note on the newest run of the version gone back to", () => {
+    const history = [
+      entry("2026.11.1.525", 3000),
+      entry("2026.11.1.527", 1000),
+    ];
+    const noted = annotateGoBack(history, "2026.11.1.525", { backupAt: 2900 });
+    expect(noted[0]).toEqual({
+      version: "2026.11.1.525",
+      firstSeen: 3000,
+      goBack: { backupAt: 2900 },
+    });
+    expect(noted[1]).toEqual(history[1]);
+  });
+
+  it("leaves the history alone when the newest run is another version", () => {
+    const history = [entry("2026.11.1.527", 3000)];
+    expect(
+      annotateGoBack(history, "2026.11.1.525", { noBackup: true })
+    ).toEqual(history);
+  });
+
+  it("keeps the note through storage and shows it on the row", () => {
+    const raw = JSON.stringify({
+      version: 1,
+      entries: [
+        {
+          version: "2026.11.1.525",
+          firstSeen: 3000,
+          goBack: { noBackup: true },
+        },
+        { version: "2026.11.1.527", firstSeen: 1000, goBack: { bogus: 1 } },
+      ],
+    });
+    const parsed = parseStoredHistory(raw);
+    expect(parsed[0].goBack).toEqual({ noBackup: true });
+    expect(parsed[1].goBack).toBeUndefined();
+    expect(historyRows(parsed, "2026.11.1.525")[0].goBack).toEqual({
+      noBackup: true,
+    });
+  });
+
+  it("keeps the note of a stored way back", () => {
+    expect(
+      parsePendingGoBack(
+        JSON.stringify({
+          version: "2026.11.1.525",
+          startedAt: 1,
+          note: { backupAt: 5 },
+        })
+      )?.note
+    ).toEqual({ backupAt: 5 });
   });
 });

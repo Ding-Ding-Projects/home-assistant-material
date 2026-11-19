@@ -1036,7 +1036,10 @@ class Backup(JobGroup):
                     f"Invalid Home Assistant Core version {self.homeassistant_version}",
                     _LOGGER.error,
                 ) from err
-            await self.sys_homeassistant.core.update(self.homeassistant_version)
+            # A restore installs the version the backup was made with.
+            await self.sys_homeassistant.core.update(
+                self.homeassistant_version, restoring_backup=True
+            )
 
         return self.sys_create_task(_core_update())
 

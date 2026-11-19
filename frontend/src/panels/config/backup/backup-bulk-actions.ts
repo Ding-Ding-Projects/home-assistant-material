@@ -12,7 +12,8 @@ import { computeBackupSize } from "../../../data/backup";
  * date, size and the locations of a backup are used.
  */
 
-export type BackupSkipReason = "locked" | "creating" | "missing";
+export type BackupSkipReason =
+  "locked" | "creating" | "missing" | "delete_proof";
 
 /** What the page knows about backups that must not be deleted right now. */
 export interface BackupBulkState {
@@ -102,6 +103,11 @@ export const planBackupDelete = (
     }
     if (state.lockedIds?.has(id)) {
       skipped.push({ backupId: id, name: backup.name, reason: "locked" });
+      return;
+    }
+    // The backend refuses it too; skipping here keeps it out of the preview
+    if (backup.delete_proof) {
+      skipped.push({ backupId: id, name: backup.name, reason: "delete_proof" });
       return;
     }
     deletable.push({

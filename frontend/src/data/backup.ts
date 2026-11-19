@@ -125,6 +125,17 @@ export interface BackupContent {
   with_automatic_settings: boolean | null;
   // Missing when the backup was never checked or Core is older
   self_check?: BackupSelfCheck;
+  // Present only while the backup is delete proof
+  delete_proof?: BackupDeleteProofMark;
+}
+
+/** Who marked a backup delete proof, and when. */
+export interface BackupDeleteProofMark {
+  /** ISO 8601 time in UTC. */
+  marked_at: string;
+  /** The user id, empty when the mark was not set by a person. */
+  marked_by: string;
+  marked_by_name: string | null;
 }
 
 export type BackupSelfCheckStatus =

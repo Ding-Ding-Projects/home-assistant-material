@@ -1,5 +1,6 @@
 import {
   mdiEyeSettingsOutline,
+  mdiLock,
   mdiTextBoxEditOutline,
   mdiTranslate,
 } from "@mdi/js";
@@ -150,7 +151,10 @@ export const spaceTogglesRow = (options: {
 // #region places
 
 export type QuickBarPlaceId =
-  "personal_wording" | "accessibility_tools" | "language_mode";
+  | "personal_wording"
+  | "accessibility_tools"
+  | "language_mode"
+  | "backup_delete_proof";
 
 export interface PlaceComboBoxItem extends PickerComboBoxItem {
   placeId: QuickBarPlaceId;
@@ -166,6 +170,7 @@ const PLACE_ICONS: Record<QuickBarPlaceId, string> = {
   personal_wording: mdiTextBoxEditOutline,
   accessibility_tools: mdiEyeSettingsOutline,
   language_mode: mdiTranslate,
+  backup_delete_proof: mdiLock,
 };
 
 /**
@@ -199,7 +204,10 @@ export const generatePlaceItems = (
     place("personal_wording", "/profile/localization#personal_wording"),
     place("accessibility_tools", undefined),
     ...(isAdmin
-      ? [place("language_mode", "/config/personal#language_mode")]
+      ? [
+          place("language_mode", "/config/personal#language_mode"),
+          place("backup_delete_proof", "/config/backup/backups#delete_proof"),
+        ]
       : []),
   ];
 };

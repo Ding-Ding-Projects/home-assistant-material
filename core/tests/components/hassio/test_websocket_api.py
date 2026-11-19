@@ -1319,3 +1319,74 @@ async def test_update_config_keeps_other_options(
 
     assert config_entry.options["core_auto_update"] is True
     assert config_entry.options["core_backup_before_update"] is True
+
+
+@pytest.mark.usefixtures("hassio_env")
+@pytest.mark.parametrize(
+    "endpoint",
+    ["/core/update", "/homeassistant/update", "/core/downgrade_pass"],
+)
+async def test_websocket_core_update_holder_is_signed_in_user(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    hass_admin_user: MockUser,
+    aioclient_mock: AiohttpClientMocker,
+    endpoint: str,
+) -> None:
+    """Test the holder of a pass to go back without a backup is the signed-in user.
+
+    A page cannot claim another user's pass: the holder it sends is replaced.
+    """
+    assert await async_setup_component(hass, DOMAIN, {})
+    websocket_client = await hass_ws_client(hass)
+    aioclient_mock.post(
+        f"http://127.0.0.1{endpoint}", json={"result": "ok", "data": {}}
+    )
+
+    await websocket_client.send_json(
+        {
+            WS_ID: 1,
+            WS_TYPE: WS_TYPE_API,
+            ATTR_ENDPOINT: endpoint,
+            ATTR_METHOD: "post",
+            ATTR_DATA: {
+                "version": "2026.11.1.525",
+                "skip_backup_pass": "abc",
+                "skip_backup_holder": "someone-else",
+            },
+        }
+    )
+    msg = await websocket_client.receive_json()
+    assert msg["success"]
+
+    assert aioclient_mock.mock_calls[-1][2] == {
+        "version": "2026.11.1.525",
+        "skip_backup_pass": "abc",
+        "skip_backup_holder": hass_admin_user.id,
+    }
+
+
+@pytest.mark.usefixtures("hassio_env")
+async def test_websocket_other_endpoint_has_no_holder(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Test the holder is only added to Core update requests."""
+    assert await async_setup_component(hass, DOMAIN, {})
+    websocket_client = await hass_ws_client(hass)
+    aioclient_mock.post(
+        "http://127.0.0.1/core/restart", json={"result": "ok", "data": {}}
+    )
+
+    await websocket_client.send_json(
+        {
+            WS_ID: 1,
+            WS_TYPE: WS_TYPE_API,
+            ATTR_ENDPOINT: "/core/restart",
+            ATTR_METHOD: "post",
+            ATTR_DATA: {"safe_mode": False},
+        }
+    )
+    assert (await websocket_client.receive_json())["success"]
+    assert aioclient_mock.mock_calls[-1][2] == {"safe_mode": False}

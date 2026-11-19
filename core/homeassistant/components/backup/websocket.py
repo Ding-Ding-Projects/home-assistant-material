@@ -12,6 +12,11 @@ from homeassistant.helpers import config_validation as cv
 
 from .config import Day, ScheduleRecurrence
 from .const import DATA_MANAGER, LOGGER
+from .delete_proof import (
+    BackupDeleteProof,
+    DeleteProofConfirmationRequired,
+    DeleteProofRecordsUnreadable,
+)
 from .manager import (
     BackupManager,
     BackupManagerState,
@@ -22,7 +27,7 @@ from .manager import (
     ManagerBackup,
     ManagerStateEvent,
 )
-from .models import BackupNotFound, Folder
+from .models import BackupManagerError, BackupNotFound, Folder
 from .self_check import (
     COPY_COULD_NOT_CHECK,
     METHOD_NONE,
@@ -43,9 +48,15 @@ def _with_self_check(
     if backup is None:
         return None
     known = manager.known_backups.get(backup.backup_id)
-    if known is None or known.self_check is None:
+    mark = manager.delete_proof.get(backup.backup_id)
+    if (known is None or known.self_check is None) and mark is None:
         return backup
-    return {**asdict(backup), "self_check": known.self_check}
+    result = asdict(backup)
+    if known is not None and known.self_check is not None:
+        result["self_check"] = known.self_check
+    if mark is not None:
+        result["delete_proof"] = mark.to_dict()
+    return result
 
 
 def _agent_error_translations(
@@ -85,6 +96,8 @@ def async_register_websocket_handlers(hass: HomeAssistant, with_hassio: bool) ->
     websocket_api.async_register_command(hass, handle_create)
     websocket_api.async_register_command(hass, handle_create_with_automatic_settings)
     websocket_api.async_register_command(hass, handle_delete)
+    websocket_api.async_register_command(hass, handle_delete_proof_info)
+    websocket_api.async_register_command(hass, handle_delete_proof_set)
     websocket_api.async_register_command(hass, handle_self_check)
     websocket_api.async_register_command(hass, handle_self_check_location)
     websocket_api.async_register_command(hass, handle_self_check_config_info)
@@ -340,7 +353,13 @@ async def handle_delete(
     msg: dict[str, Any],
 ) -> None:
     """Delete a backup."""
-    agent_errors = await hass.data[DATA_MANAGER].async_delete_backup(msg["backup_id"])
+    try:
+        agent_errors = await hass.data[DATA_MANAGER].async_delete_backup(
+            msg["backup_id"]
+        )
+    except (BackupDeleteProof, DeleteProofRecordsUnreadable) as err:
+        connection.send_error(msg["id"], err.error_code, str(err))
+        return
     connection.send_result(
         msg["id"],
         {
@@ -350,6 +369,76 @@ async def handle_delete(
             "agent_error_translations": _agent_error_translations(agent_errors),
         },
     )
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {probatio.Required("type"): "backup/delete_proof/info"}
+)
+@callback
+def handle_delete_proof_info(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return every delete proof mark, including those whose backup is missing."""
+    marks = hass.data[DATA_MANAGER].delete_proof
+    connection.send_result(
+        msg["id"],
+        {
+            "readable": marks.readable,
+            "marks": {
+                backup_id: mark.to_dict() for backup_id, mark in marks.all().items()
+            },
+        },
+    )
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "backup/delete_proof/set",
+        probatio.Required("backup_id"): str,
+        probatio.Required("delete_proof"): bool,
+        probatio.Optional("confirmed", default=False): bool,
+    }
+)
+@websocket_api.async_response
+async def handle_delete_proof_set(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Turn delete proof on or off; turning it off needs the confirmation."""
+    manager = hass.data[DATA_MANAGER]
+    backup_id = msg["backup_id"]
+    try:
+        if msg["delete_proof"]:
+            backup, _ = await manager.async_get_backup(backup_id)
+            if backup is None:
+                connection.send_error(msg["id"], "not_found", "Backup not found")
+                return
+            user = connection.user
+            mark = await manager.delete_proof.async_set(
+                backup_id,
+                marked_by=user.id if user else "",
+                marked_by_name=user.name if user else None,
+            )
+            connection.send_result(
+                msg["id"], {"backup_id": backup_id, "delete_proof": mark.to_dict()}
+            )
+            return
+        await manager.delete_proof.async_clear(backup_id, confirmed=msg["confirmed"])
+    except (
+        DeleteProofConfirmationRequired,
+        DeleteProofRecordsUnreadable,
+    ) as err:
+        connection.send_error(msg["id"], err.error_code, str(err))
+        return
+    except BackupManagerError as err:
+        connection.send_error(msg["id"], "home_assistant_error", str(err))
+        return
+    connection.send_result(msg["id"], {"backup_id": backup_id, "delete_proof": None})
 
 
 @websocket_api.require_admin

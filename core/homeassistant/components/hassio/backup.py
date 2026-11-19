@@ -36,6 +36,7 @@ from homeassistant.components.backup import (
     CreateBackupParametersDict,
     CreateBackupStage,
     CreateBackupState,
+    DeleteProofMark,
     Folder,
     IdleEvent,
     IncorrectPasswordError,
@@ -47,6 +48,7 @@ from homeassistant.components.backup import (
     RestoreBackupState,
     WrittenBackup,
     async_get_manager as async_get_backup_manager,
+    parse_delete_proof_marks,
     suggested_filename_from_name_date,
 )
 from homeassistant.const import __version__ as HAVERSION
@@ -743,6 +745,46 @@ class SupervisorBackupReaderWriter(BackupReaderWriter):
         config.update(
             create_backup=CreateBackupParametersDict(agent_ids=automatic_agents)
         )
+
+    @override
+    async def async_load_delete_proof(self) -> dict[str, DeleteProofMark] | None:
+        """Return the delete proof marks the Supervisor holds."""
+        try:
+            # The client library has no method for this endpoint yet
+            result = await self._client._client.get(  # noqa: SLF001
+                "backups/delete_proof"
+            )
+            return parse_delete_proof_marks(result.data["delete_proof"])
+        # Any failure falls back to the local copy, which still protects backups
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning(
+                "Could not read delete proof marks from the Supervisor, using the "
+                "copy kept by Home Assistant: %s",
+                err,
+            )
+            return None
+
+    @override
+    async def async_save_delete_proof(
+        self, backup_id: str, mark: DeleteProofMark | None, *, confirmed: bool
+    ) -> None:
+        """Store a delete proof change with the Supervisor."""
+        payload: dict[str, Any] = {
+            "backup_id": backup_id,
+            "delete_proof": mark is not None,
+            "confirmed": confirmed,
+        }
+        if mark is not None:
+            payload["marked_by"] = mark.marked_by
+            payload["marked_by_name"] = mark.marked_by_name
+        try:
+            await self._client._client.post(  # noqa: SLF001
+                "backups/delete_proof", json=payload
+            )
+        except SupervisorError as err:
+            raise BackupManagerError(
+                f"The Supervisor did not store the delete proof change: {err}"
+            ) from err
 
     @callback
     def _async_listen_job_events(

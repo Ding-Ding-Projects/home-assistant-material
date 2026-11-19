@@ -9,6 +9,7 @@ in `core/homeassistant/components/auto_update/`.
 | [`progress-and-queue.md`](progress-and-queue.md) | Real stages, numbers and output on every update row; the "Update everything" queue; honest start times and durations; compact rows on a phone | Seen in a local build for part of it; the rest built and tested only, see the file |
 | [`update-coming-soon.md`](update-coming-soon.md) | The one "Update coming soon" card for a build that is being made but not yet published | Seen in a local build with a mocked response; not seen against a real build in progress |
 | [`backup-before-updating.md`](backup-before-updating.md) | Choosing which updates get a backup first: system updates only, every update, none, or chosen apps | Written and tested; not yet seen in a browser or on a real update |
+| [`going-back.md`](going-back.md) | Going back to an earlier build: a backup is always made and checked first, held by the Supervisor; the super confirmation with four games is the only way past it | Built and unit tested; not yet seen in a browser, no real going back run |
 | [`whats-new-and-notes.md`](whats-new-and-notes.md) | The Notes button and "What's new in build N", both opening the build's page on the public updates log | Written and tested; not yet seen in a browser |
 
 On the Updates page the search of the "What changed" list also lives in the top bar; see

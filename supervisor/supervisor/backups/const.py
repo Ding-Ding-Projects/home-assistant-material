@@ -21,6 +21,13 @@ LOCATION_CLOUD_BACKUP = ".cloud_backup"
 
 LOCATION_TYPE = Mount | Literal[".cloud_backup"] | None
 
+ATTR_BACKUP_ID = "backup_id"
+ATTR_CONFIRMED = "confirmed"
+ATTR_DELETE_PROOF = "delete_proof"
+ATTR_MARKED_AT = "marked_at"
+ATTR_MARKED_BY = "marked_by"
+ATTR_MARKED_BY_NAME = "marked_by_name"
+
 
 class BackupType(StrEnum):
     """Backup type enum."""

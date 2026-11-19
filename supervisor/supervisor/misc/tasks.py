@@ -385,6 +385,7 @@ class Tasks(CoreSysAttributes):
             for backup in self.sys_backups.list_backups
             if LOCATION_CLOUD_BACKUP in backup.all_locations
             and datetime.fromisoformat(backup.date) < utcnow() - OLD_BACKUP_THRESHOLD
+            and not self.sys_backups.is_delete_proof(backup.slug)
         ]
         for backup in old_backups:
             try:

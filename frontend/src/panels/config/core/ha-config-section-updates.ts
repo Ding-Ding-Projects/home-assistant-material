@@ -577,7 +577,6 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                     .hass=${this.hass}
                     .supervisorAvailable=${!!this._supervisorInfo}
                     .busy=${this._queue.active || this._usbRunning}
-                    .backup=${this._autoInfo?.backup ?? false}
                   ></ha-update-history>
                   ${this._renderFootnote()}
                 </div>

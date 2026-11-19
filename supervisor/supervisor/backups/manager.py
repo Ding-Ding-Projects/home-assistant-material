@@ -17,6 +17,8 @@ from ..coresys import CoreSys
 from ..dbus.const import UnitActiveState
 from ..exceptions import (
     BackupDataDiskBadMessageError,
+    BackupDeleteProofConfirmationError,
+    BackupDeleteProofError,
     BackupError,
     BackupFileExistError,
     BackupFileNotFoundError,
@@ -38,6 +40,10 @@ from ..utils.sentinel import DEFAULT
 from ..utils.sentry import async_capture_exception
 from .backup import Backup, BackupLocation
 from .const import (
+    ATTR_DELETE_PROOF,
+    ATTR_MARKED_AT,
+    ATTR_MARKED_BY,
+    ATTR_MARKED_BY_NAME,
     DEFAULT_FREEZE_TIMEOUT,
     LOCATION_CLOUD_BACKUP,
     LOCATION_TYPE,
@@ -79,6 +85,39 @@ class BackupManager(FileConfiguration, JobGroup):
     def days_until_stale(self, value: int) -> None:
         """Set days until backup is considered stale."""
         self._data[ATTR_DAYS_UNTIL_STALE] = value
+
+    @property
+    def delete_proof(self) -> dict[str, dict[str, str | None]]:
+        """Return the delete proof marks, keyed by backup slug."""
+        return dict(self._data[ATTR_DELETE_PROOF])
+
+    def is_delete_proof(self, slug: str) -> bool:
+        """Return True if a backup is delete proof."""
+        return slug in self._data[ATTR_DELETE_PROOF]
+
+    async def set_delete_proof(
+        self, slug: str, *, marked_by: str, marked_by_name: str | None
+    ) -> dict[str, str | None]:
+        """Mark a backup delete proof; keeps an existing mark unchanged."""
+        marks: dict[str, dict[str, str | None]] = self._data[ATTR_DELETE_PROOF]
+        if slug not in marks:
+            marks[slug] = {
+                ATTR_MARKED_AT: utcnow().isoformat(),
+                ATTR_MARKED_BY: marked_by,
+                ATTR_MARKED_BY_NAME: marked_by_name,
+            }
+            await self.save_data()
+        return marks[slug]
+
+    async def clear_delete_proof(self, slug: str, *, confirmed: bool) -> None:
+        """Remove the delete proof mark of a backup; needs confirmation."""
+        marks: dict[str, dict[str, str | None]] = self._data[ATTR_DELETE_PROOF]
+        if slug not in marks:
+            return
+        if not confirmed:
+            raise BackupDeleteProofConfirmationError(_LOGGER.warning, slug=slug)
+        del marks[slug]
+        await self.save_data()
 
     @property
     def backup_locations(self) -> dict[str | None, Path]:
@@ -343,6 +382,8 @@ class BackupManager(FileConfiguration, JobGroup):
         locations: list[LOCATION_TYPE] | None = None,
     ):
         """Remove a backup."""
+        if self.is_delete_proof(backup.slug):
+            raise BackupDeleteProofError(_LOGGER.warning, slug=backup.slug)
         targets = (
             [
                 location_name

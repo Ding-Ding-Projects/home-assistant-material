@@ -64,6 +64,12 @@ WS_NO_ADMIN_ENDPOINTS = re.compile(
     r")$"
 )
 
+# Requests that update Core or issue a pass to go back without a backup.
+WS_CORE_UPDATE_ENDPOINTS = re.compile(
+    r"^/(?:core|homeassistant)/(?:update|downgrade_pass)/?$"
+)
+ATTR_SKIP_BACKUP_HOLDER = "skip_backup_holder"
+
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
 
@@ -146,6 +152,11 @@ async def websocket_supervisor_api(
         # correlate session tokens with users for every request that
         # is authenticated with the given ingress session token.
         payload[ATTR_SESSION_DATA_USER_ID] = connection.user.id
+
+    if WS_CORE_UPDATE_ENDPOINTS.match(command):
+        # A pass to go back without a backup is bound to the signed-in user.
+        # Whatever the page sent, the Supervisor sees who is asking.
+        payload = {**payload, ATTR_SKIP_BACKUP_HOLDER: connection.user.id}
 
     try:
         result = await supervisor.send_command(

@@ -22,8 +22,12 @@ class FixupSystemClearFullBackup(FixupBase):
 
     async def process_fixup(self, suggestion: Suggestion) -> None:
         """Initialize the fixup class."""
+        # Delete proof backups are kept besides the minimum and never cleared
         full_backups = [
-            x for x in self.sys_backups.list_backups if x.sys_type == BackupType.FULL
+            x
+            for x in self.sys_backups.list_backups
+            if x.sys_type == BackupType.FULL
+            and not self.sys_backups.is_delete_proof(x.slug)
         ]
 
         if len(full_backups) <= MINIMUM_FULL_BACKUPS:

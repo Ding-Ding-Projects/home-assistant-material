@@ -269,6 +269,50 @@ class HomeAssistantUpdateAlreadyInstalledError(HomeAssistantUpdateError):
         super().__init__(None, logger)
 
 
+class HomeAssistantDowngradeBackupError(HomeAssistantUpdateError):
+    """Raise when the backup that must come before going back did not finish.
+
+    Nothing has been installed when this is raised: the installed version of
+    Home Assistant is unchanged. ``reason`` is one of ``failed``,
+    ``timed_out``, ``check_failed`` or ``stopped``.
+    """
+
+    error_key = "homeassistant_downgrade_backup_error"
+    message_template = (
+        "Did not go back to Home Assistant {version}: the backup that must "
+        "come first did not finish ({reason}). Nothing was changed. {detail}"
+    )
+
+    def __init__(
+        self,
+        logger: Callable[..., None] | None = None,
+        *,
+        version: str,
+        reason: str,
+        detail: str = "",
+    ) -> None:
+        """Initialize exception."""
+        self.extra_fields = {"version": version, "reason": reason, "detail": detail}
+        super().__init__(None, logger)
+
+
+class HomeAssistantDowngradeSkipPassError(HomeAssistantUpdateError):
+    """Raise when going back without a backup is asked without a valid pass."""
+
+    error_key = "homeassistant_downgrade_skip_pass_error"
+    message_template = (
+        "Going back to Home Assistant {version} without a backup needs a valid "
+        "single-use pass for that version and that user. Nothing was changed."
+    )
+
+    def __init__(
+        self, logger: Callable[..., None] | None = None, *, version: str
+    ) -> None:
+        """Initialize exception."""
+        self.extra_fields = {"version": version}
+        super().__init__(None, logger)
+
+
 class HomeAssistantSocketDirsError(HomeAssistantError, APIUnknownSupervisorError):
     """Raise when the folders for Home Assistant's socket mounts cannot be created."""
 
@@ -2057,6 +2101,36 @@ class BackupJobError(BackupError, JobException):
 
 class BackupFileNotFoundError(BackupError, APINotFound):
     """Raise if the backup file hasn't been found."""
+
+
+class BackupDeleteProofError(BackupError, APIForbidden):
+    """Raise when a delete proof backup is asked to be removed."""
+
+    error_key = "backup_delete_proof_error"
+    message_template = (
+        "Backup {slug} is delete proof and cannot be removed. "
+        "Turn off delete proof first."
+    )
+
+    def __init__(self, logger: Callable[..., None] | None = None, *, slug: str) -> None:
+        """Initialize exception."""
+        self.extra_fields = {"slug": slug}
+        super().__init__(None, logger)
+
+
+class BackupDeleteProofConfirmationError(BackupError, APIError):
+    """Raise when turning delete proof off is asked without confirmation."""
+
+    error_key = "backup_delete_proof_confirmation_error"
+    message_template = (
+        "Turning off delete proof for backup {slug} needs confirmation. "
+        "Nothing was changed."
+    )
+
+    def __init__(self, logger: Callable[..., None] | None = None, *, slug: str) -> None:
+        """Initialize exception."""
+        self.extra_fields = {"slug": slug}
+        super().__init__(None, logger)
 
 
 class BackupPermissionError(BackupError):

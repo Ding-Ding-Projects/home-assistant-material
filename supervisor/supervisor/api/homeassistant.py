@@ -31,8 +31,15 @@ from ..const import (
 )
 from ..coresys import CoreSysAttributes
 from ..exceptions import APIDBMigrationInProgress, APIError
+from ..homeassistant.downgrade import SKIP_PASS_LIFETIME_SECONDS
 from ..validate import docker_image, network_port, version_tag
-from .const import ATTR_BACKGROUND, ATTR_FORCE, ATTR_SAFE_MODE
+from .const import (
+    ATTR_BACKGROUND,
+    ATTR_FORCE,
+    ATTR_SAFE_MODE,
+    ATTR_SKIP_BACKUP_HOLDER,
+    ATTR_SKIP_BACKUP_PASS,
+)
 from .utils import (
     api_process,
     api_return_stats,
@@ -64,6 +71,15 @@ SCHEMA_UPDATE = vol.Schema(
         vol.Optional(ATTR_VERSION): version_tag,
         vol.Optional(ATTR_BACKUP): bool,
         vol.Optional(ATTR_BACKGROUND, default=False): bool,
+        vol.Optional(ATTR_SKIP_BACKUP_PASS): vol.All(str, vol.Length(min=1, max=256)),
+        vol.Optional(ATTR_SKIP_BACKUP_HOLDER): vol.All(str, vol.Length(max=256)),
+    }
+)
+
+SCHEMA_DOWNGRADE_PASS = vol.Schema(
+    {
+        vol.Required(ATTR_VERSION): version_tag,
+        vol.Required(ATTR_SKIP_BACKUP_HOLDER): vol.All(str, vol.Length(min=1, max=256)),
     }
 )
 
@@ -185,12 +201,38 @@ class APIHomeAssistant(CoreSysAttributes):
             self.sys_homeassistant.core.update,
             version=body.get(ATTR_VERSION, self.sys_homeassistant.latest_version),
             backup=body.get(ATTR_BACKUP),
+            skip_backup_pass=body.get(ATTR_SKIP_BACKUP_PASS),
+            skip_backup_holder=body.get(ATTR_SKIP_BACKUP_HOLDER),
         )
 
         if background and not update_task.done():
             return {ATTR_JOB_ID: job_id}
 
         return await update_task
+
+    @api_process
+    async def downgrade_pass(self, request: web.Request) -> dict[str, Any]:
+        """Issue a single-use pass to go back to an older version without a backup."""
+        body = await api_validate(SCHEMA_DOWNGRADE_PASS, request)
+        token = self.sys_homeassistant.core.issue_downgrade_skip_pass(
+            body[ATTR_VERSION], body[ATTR_SKIP_BACKUP_HOLDER]
+        )
+        return {
+            ATTR_SKIP_BACKUP_PASS: token,
+            ATTR_VERSION: str(body[ATTR_VERSION]),
+            "expires_in": SKIP_PASS_LIFETIME_SECONDS,
+        }
+
+    @api_process
+    async def downgrade_status(self, request: web.Request) -> dict[str, Any]:
+        """Return the state of the latest going back to an older version."""
+        return {"downgrade": self.sys_homeassistant.core.downgrade_state}
+
+    @api_process
+    async def downgrade_stop(self, request: web.Request) -> None:
+        """Stop a running going back before anything is installed."""
+        if not self.sys_homeassistant.core.request_downgrade_stop():
+            raise APIError("Home Assistant is not going back to an older version")
 
     @api_process
     async def stop(self, request: web.Request) -> None:

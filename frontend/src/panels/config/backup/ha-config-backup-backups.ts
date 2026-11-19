@@ -8,6 +8,7 @@ import {
   mdiDotsVertical,
   mdiDownload,
   mdiHarddisk,
+  mdiLock,
   mdiNas,
   mdiPlus,
   mdiUpload,
@@ -54,6 +55,8 @@ import {
   invertTableRows,
   selectAllTableRows,
 } from "../../../components/bulk/table-selection";
+import "../../../components/chips/ha-chip-set";
+import "../../../components/chips/ha-filter-chip";
 import "../../../components/ha-button";
 import "../../../components/ha-dropdown";
 import type {
@@ -84,6 +87,13 @@ import {
   isLocalAgent,
   isNetworkMountAgent,
 } from "../../../data/backup";
+import type { BackupDeleteProofInfo } from "../../../data/backup_delete_proof";
+import {
+  bulkDeleteResultCounts,
+  fetchBackupDeleteProofInfo,
+  isDeleteProofError,
+  summarizeDeleteProof,
+} from "../../../data/backup_delete_proof";
 import type { ManagerStateEvent } from "../../../data/backup_manager";
 import type { CloudStatus } from "../../../data/cloud";
 import type {
@@ -144,6 +154,12 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
 
   @state() private _hostingBackups = new Set<string>();
 
+  // Only delete proof backups are listed while this is on
+  @state() private _onlyDeleteProof = false;
+
+  // Every mark, also of backups no location reports any more
+  @state() private _deleteProofInfo?: BackupDeleteProofInfo;
+
   @state()
   private _filters: DataTableFiltersValues = {};
 
@@ -193,6 +209,20 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
     if (!this.hasUpdated) {
       this._filters = this._storageFilters;
       this._applyLink();
+      // The search of everything opens this page with the delete proof filter
+      this._onlyDeleteProof = window.location.hash === "#delete_proof";
+    }
+    if (changedProps.has("backups") && this.hass?.user?.is_admin) {
+      this._loadDeleteProofInfo();
+    }
+  }
+
+  private async _loadDeleteProofInfo() {
+    try {
+      this._deleteProofInfo = await fetchBackupDeleteProofInfo(this.hass);
+    } catch (_err) {
+      // An older Core has no delete proof; the page shows none
+      this._deleteProofInfo = undefined;
     }
   }
 
@@ -209,6 +239,24 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
         sortable: true,
         filterable: true,
         flex: 3,
+        template: (backup) =>
+          backup.delete_proof
+            ? html`<span
+                style="display: inline-flex; flex-wrap: wrap; align-items: center; column-gap: var(--ha-space-2); min-width: 0;"
+                ><span>${backup.name}</span
+                ><span
+                  style="display: inline-flex; align-items: center; gap: var(--ha-space-1); color: var(--warning-color); font-size: var(--ha-font-size-s); white-space: nowrap;"
+                  ><ha-svg-icon
+                    style="--mdc-icon-size: 14px;"
+                    .path=${mdiLock}
+                  ></ha-svg-icon
+                  >${modeText(
+                    localize,
+                    "ui.panel.config.backup.delete_proof.label"
+                  )}</span
+                ></span
+              >`
+            : backup.name,
       },
       size: {
         title: localize("ui.panel.config.backup.size"),
@@ -456,12 +504,15 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
       backups: BackupContent[],
       filters: DataTableFiltersValues,
       localize: LocalizeFunc,
-      isHassio: boolean
+      isHassio: boolean,
+      onlyDeleteProof = false
     ): BackupRow[] => {
       const typeFilter = filters[BACKUP_TYPE_FILTER];
       const locationFilter = filters[BACKUP_LOCATIONS_FILTER];
 
-      let filteredBackups = backups;
+      let filteredBackups = onlyDeleteProof
+        ? backups.filter((backup) => !!backup.delete_proof)
+        : backups;
 
       if (Array.isArray(typeFilter) && typeFilter.length) {
         filteredBackups = filteredBackups.filter((backup) => {
@@ -521,11 +572,17 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
     const backupInProgress =
       "state" in this.manager && this.manager.state === "in_progress";
     const isHassio = isComponentLoaded(this.hass.config, "hassio");
+    const deleteProof = summarizeDeleteProof(
+      this.backups,
+      this._deleteProofInfo?.marks
+    );
+    const onlyDeleteProof = this._onlyDeleteProof && deleteProof.count > 0;
     const data = this._data(
       this.backups,
       this._filters,
       this.hass.localize,
-      isHassio
+      isHassio,
+      onlyDeleteProof
     );
     const maxDisplayedAgents = Math.min(
       this._maxAgents(data),
@@ -592,6 +649,7 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
           "ui.panel.config.backup.picker.search"
         )}
       >
+        ${this._renderDeleteProof(deleteProof, onlyDeleteProof)}
         <div slot="toolbar-icon">
           <ha-dropdown
             @wa-select=${this._handleDropdownSelect}
@@ -714,6 +772,85 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
       </ha-dropdown>
     `;
   }
+
+  private _dpText(key: string, values?: Record<string, string | number>) {
+    return modeText(
+      this.hass.localize,
+      `ui.panel.config.backup.delete_proof.${key}`,
+      values
+    );
+  }
+
+  // The filter chips, the space the delete proof backups use, and the marks
+  // whose backup no location reports. Nothing is shown without any mark.
+  private _renderDeleteProof(
+    summary: ReturnType<typeof summarizeDeleteProof>,
+    onlyDeleteProof: boolean
+  ) {
+    const unreadable = this._deleteProofInfo?.readable === false;
+    if (!summary.count && !summary.missingIds.length && !unreadable) {
+      return nothing;
+    }
+    const copies = this.config?.retention?.copies;
+    return html`<div slot="top-header" class="delete-proof">
+      ${
+        summary.count
+          ? html`<ha-chip-set
+              role="group"
+              aria-label=${this._dpText("filter_label")}
+            >
+              <ha-filter-chip
+                .label=${this._dpText("filter_all")}
+                .selected=${!onlyDeleteProof}
+                @click=${this._showAll}
+              ></ha-filter-chip>
+              <ha-filter-chip
+                .label=${this._dpText("filter_count", { count: summary.count })}
+                .selected=${onlyDeleteProof}
+                @click=${this._showDeleteProof}
+              ></ha-filter-chip>
+            </ha-chip-set>`
+          : nothing
+      }
+      ${
+        unreadable
+          ? html`<p class="dp-line warning" role="alert">
+              ${this._dpText("unreadable")}
+            </p>`
+          : nothing
+      }
+      ${
+        summary.count
+          ? html`<p class="dp-line">
+              ${this._dpText("space_text", {
+                count: summary.count,
+                size: bytesToString(summary.size),
+              })}
+              ${
+                copies
+                  ? this._dpText("space_keep", { copies })
+                  : this._dpText("space_never")
+              }
+            </p>`
+          : nothing
+      }
+      ${
+        summary.missingIds.length
+          ? html`<p class="dp-line warning">
+              ${this._dpText("missing", { count: summary.missingIds.length })}
+            </p>`
+          : nothing
+      }
+    </div>`;
+  }
+
+  private _showAll = () => {
+    this._onlyDeleteProof = false;
+  };
+
+  private _showDeleteProof = () => {
+    this._onlyDeleteProof = true;
+  };
 
   private _states = memoizeOne((localize: LocalizeFunc, isHassio: boolean) =>
     getBackupTypes(isHassio).map((type) => ({
@@ -869,6 +1006,16 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
       return;
     }
 
+    if (backup.delete_proof) {
+      showAlertDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.config.backup.dialogs.delete.title"
+        ),
+        text: this._dpText("turn_off_first"),
+      });
+      return;
+    }
+
     const confirm = await showConfirmationDialog(this, {
       title: this.hass.localize("ui.panel.config.backup.dialogs.delete.title"),
       text: this.hass.localize("ui.panel.config.backup.dialogs.delete.text"),
@@ -890,8 +1037,11 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
         title: this.hass.localize(
           "ui.panel.config.backup.dialogs.delete.failed"
         ),
-        text: extractApiErrorMessage(err),
+        text: isDeleteProofError(err)
+          ? this._dpText("refused", { name: backup.name })
+          : extractApiErrorMessage(err),
       });
+      fireEvent(this, "ha-refresh-backup-info");
       return;
     }
     fireEvent(this, "ha-refresh-backup-info");
@@ -974,10 +1124,13 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
     plan.skipped.forEach((entry) => {
       items.push({
         kind: "skip",
-        text: modeLocalize(
-          `ui.panel.config.backup.backups.bulk.skipped_${entry.reason}`,
-          { name: entry.name }
-        ),
+        text:
+          entry.reason === "delete_proof"
+            ? this._dpText("bulk_skipped", { name: entry.name })
+            : modeLocalize(
+                `ui.panel.config.backup.backups.bulk.skipped_${entry.reason}`,
+                { name: entry.name }
+              ),
       });
     });
 
@@ -1002,7 +1155,13 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
   private _deleteSelected = async () => {
     const plan = this._deletePlan();
     const planned = plan.deletable.map((entry) => entry.backupId);
+    const skippedDeleteProof = plan.skipped.filter(
+      (entry) => entry.reason === "delete_proof"
+    ).length;
     if (!planned.length) {
+      if (skippedDeleteProof) {
+        this._showBulkResult(0, skippedDeleteProof);
+      }
       return;
     }
 
@@ -1051,6 +1210,23 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
       this._selected.filter((id) => !deleted.has(id))
     );
 
+    // A backup marked delete proof after the list was loaded is refused by
+    // the backend; it is reported as kept, not as a failure
+    const counts = bulkDeleteResultCounts(
+      outcome.deleted.length,
+      skippedDeleteProof,
+      outcome.failed.map((failure) => failure.error)
+    );
+    if (counts.keptDeleteProof) {
+      this._showBulkResult(counts.deleted, counts.keptDeleteProof);
+      if (counts.keptDeleteProof > skippedDeleteProof) {
+        fireEvent(this, "ha-refresh-backup-info");
+      }
+    }
+    outcome.failed = outcome.failed.filter(
+      (failure) => !isDeleteProofError(failure.error)
+    );
+
     if (outcome.failed.length) {
       showAlertDialog(this, {
         title: this.hass.localize(
@@ -1070,6 +1246,15 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
     }
   };
 
+  // "2 deleted. 1 kept because it is delete proof."
+  private _showBulkResult(deleted: number, kept: number) {
+    showToast(this, {
+      message: this._dpText("bulk_result", { deleted, kept }),
+      duration: 8000,
+      dismissable: true,
+    });
+  }
+
   private _handleDropdownSelect(ev: HaDropdownSelectEvent) {
     const action = ev.detail?.item.value;
 
@@ -1084,6 +1269,21 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
       css`
         .loading {
           display: flex;
+        }
+        .delete-proof {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-2);
+          padding: var(--ha-space-2) var(--ha-space-4);
+        }
+        .dp-line {
+          margin: 0;
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+          overflow-wrap: anywhere;
+        }
+        .dp-line.warning {
+          color: var(--warning-color);
         }
         .bulk {
           position: fixed;

@@ -9,7 +9,7 @@ import logging
 import re
 import secrets
 import shutil
-from typing import Final
+from typing import Any, Final
 
 from awesomeversion import AwesomeVersion
 from dbus_fast import Variant
@@ -26,6 +26,8 @@ from ..docker.homeassistant import HASS_DOCKER_NAME, DockerHomeAssistant
 from ..docker.monitor import DockerContainerStateEvent
 from ..docker.stats import DockerStats
 from ..exceptions import (
+    BackupError,
+    BackupJobError,
     DBusObjectError,
     DBusSystemdNoSuchUnit,
     DockerContainerNotFoundError,
@@ -35,6 +37,8 @@ from ..exceptions import (
     DockerStatsTimeoutError,
     HassioError,
     HomeAssistantCrashError,
+    HomeAssistantDowngradeBackupError,
+    HomeAssistantDowngradeSkipPassError,
     HomeAssistantError,
     HomeAssistantJobError,
     HomeAssistantNotRunningError,
@@ -46,6 +50,7 @@ from ..exceptions import (
     HomeAssistantUpdateError,
     HomeAssistantUpdateImageError,
     JobException,
+    JobGroupExecutionLimitExceeded,
     SupervisorUpdateError,
 )
 from ..jobs import ChildJobSyncFilter
@@ -53,6 +58,7 @@ from ..jobs.const import JOB_GROUP_HOME_ASSISTANT_CORE, JobConcurrency, JobThrot
 from ..jobs.decorator import Job, JobCondition
 from ..jobs.job_group import JobGroup
 from ..resolution.const import ContextType, IssueType
+from ..utils.dt import utcnow
 from ..utils.sentry import async_capture_exception
 from .const import (
     LANDINGPAGE,
@@ -61,6 +67,24 @@ from .const import (
     WATCHDOG_RETRY_SECONDS,
     WATCHDOG_THROTTLE_MAX_CALLS,
     WATCHDOG_THROTTLE_PERIOD,
+)
+from .downgrade import (
+    BACKUP_START_ATTEMPTS,
+    REASON_CHECK_FAILED,
+    REASON_FAILED,
+    REASON_STOPPED,
+    REASON_TIMED_OUT,
+    STAGE_BACKING_UP,
+    STAGE_CHECKING,
+    STAGE_DONE,
+    STAGE_FAILED,
+    STAGE_INSTALLING,
+    STAGE_SKIPPED,
+    STAGE_WAITING,
+    WAIT_FOR_RUNNING_BACKUP_SECONDS,
+    WAIT_POLL_SECONDS,
+    DowngradeSkipPasses,
+    is_downgrade,
 )
 from .frontend_check import verify_frontend
 
@@ -116,6 +140,9 @@ class HomeAssistantCore(JobGroup):
         self._watchdog_listener: EventListener | None = None
         self._port_reserved: bool = False
         self._port_lock = asyncio.Lock()
+        self._skip_passes = DowngradeSkipPasses()
+        self._downgrade_stop: asyncio.Event | None = None
+        self._downgrade_state: dict[str, Any] | None = None
 
     @property
     def error_state(self) -> bool:
@@ -394,8 +421,18 @@ class HomeAssistantCore(JobGroup):
         version: AwesomeVersion | None = None,
         backup: bool | None = False,
         validation_complete: asyncio.Event | None = None,
+        *,
+        skip_backup_pass: str | None = None,
+        skip_backup_holder: str | None = None,
+        restoring_backup: bool = False,
     ) -> None:
-        """Update HomeAssistant version."""
+        """Update HomeAssistant version.
+
+        Moving to an older version always makes and checks a backup first,
+        whatever ``backup`` says, unless a valid pass from
+        ``issue_downgrade_skip_pass`` is given. ``restoring_backup`` is only
+        set by a backup restore, which installs the version of the backup.
+        """
         to_version = version or self.sys_homeassistant.latest_version
         if not to_version:
             raise HomeAssistantUpdateError(
@@ -416,11 +453,55 @@ class HomeAssistantCore(JobGroup):
                 _LOGGER.warning, version=str(to_version)
             )
 
+        from_version = self.sys_homeassistant.version
+        going_back = not restoring_backup and is_downgrade(from_version, to_version)
+        skip_downgrade_backup = False
+        if skip_backup_pass is not None:
+            if not going_back or not self._skip_passes.consume(
+                skip_backup_pass,
+                str(to_version),
+                skip_backup_holder or "",
+                self.sys_loop.time(),
+            ):
+                raise HomeAssistantDowngradeSkipPassError(
+                    _LOGGER.warning, version=str(to_version)
+                )
+            skip_downgrade_backup = True
+
         # If being run in the background, notify caller that validation has completed
         if validation_complete:
             validation_complete.set()
 
-        if backup:
+        if going_back:
+            self._downgrade_stop = asyncio.Event()
+            self._downgrade_state = {
+                "from_version": str(from_version),
+                "to_version": str(to_version),
+                "started": utcnow().isoformat(),
+                "stage": STAGE_WAITING,
+                "backup": None,
+                "skipped_by_pass": skip_downgrade_backup,
+                "reason": None,
+                "detail": None,
+            }
+            try:
+                await self._downgrade_backup(
+                    from_version, to_version, skip=skip_downgrade_backup
+                )
+            except HomeAssistantDowngradeBackupError as err:
+                self._set_downgrade_state(
+                    stage=STAGE_FAILED,
+                    reason=(err.extra_fields or {}).get("reason"),
+                    detail=(err.extra_fields or {}).get("detail") or None,
+                )
+                raise
+            except Exception:
+                self._set_downgrade_state(stage=STAGE_FAILED, reason=REASON_FAILED)
+                raise
+            finally:
+                self._downgrade_stop = None
+            self._set_downgrade_state(stage=STAGE_INSTALLING)
+        elif backup:
             await self.sys_backups.do_backup_partial(
                 name=f"core_{self.instance.version}",
                 homeassistant=True,
@@ -521,6 +602,139 @@ class HomeAssistantCore(JobGroup):
                 IssueType.UPDATE_FAILED, ContextType.CORE, reference=str(to_version)
             )
             raise HomeAssistantUpdateError
+
+    def issue_downgrade_skip_pass(self, version: AwesomeVersion, holder: str) -> str:
+        """Issue a single-use pass to go back to ``version`` without a backup."""
+        if not is_downgrade(self.sys_homeassistant.version, version):
+            raise HomeAssistantDowngradeSkipPassError(
+                _LOGGER.warning, version=str(version)
+            )
+        _LOGGER.warning(
+            "Issued a pass to go back to Home Assistant %s without a backup", version
+        )
+        return self._skip_passes.issue(str(version), holder, self.sys_loop.time())
+
+    @property
+    def downgrade_state(self) -> dict[str, Any] | None:
+        """Return the state of the latest going back since the Supervisor started."""
+        return dict(self._downgrade_state) if self._downgrade_state else None
+
+    def _set_downgrade_state(self, **changes: Any) -> None:
+        if self._downgrade_state is not None:
+            self._downgrade_state.update(changes)
+
+    def request_downgrade_stop(self) -> bool:
+        """Ask a running going back to stop before anything is installed."""
+        if self._downgrade_stop is None:
+            return False
+        self._downgrade_stop.set()
+        return True
+
+    def _check_downgrade_stop(self, to_version: AwesomeVersion) -> None:
+        if self._downgrade_stop is not None and self._downgrade_stop.is_set():
+            raise HomeAssistantDowngradeBackupError(
+                _LOGGER.warning, version=str(to_version), reason=REASON_STOPPED
+            )
+
+    @Job(
+        name="home_assistant_core_downgrade_backup", on_condition=HomeAssistantJobError
+    )
+    async def _downgrade_backup(
+        self,
+        from_version: AwesomeVersion | None,
+        to_version: AwesomeVersion,
+        *,
+        skip: bool,
+    ) -> None:
+        """Make and check the backup that must come before going back.
+
+        Returns only when the backup finished and its check passed; every
+        other outcome raises, so nothing is installed.
+        """
+        job = self.sys_jobs.current
+        facts: dict[str, str | int | None] = {
+            "from_version": str(from_version) if from_version else None,
+            "to_version": str(to_version),
+        }
+        if skip:
+            _LOGGER.warning(
+                "Going back to Home Assistant %s without a backup, by single-use pass",
+                to_version,
+            )
+            job.update(stage=STAGE_SKIPPED, extra={**facts, "backup": None})
+            self._set_downgrade_state(stage=STAGE_SKIPPED)
+            return
+
+        job.update(stage=STAGE_WAITING, extra=facts)
+        deadline = self.sys_loop.time() + WAIT_FOR_RUNNING_BACKUP_SECONDS
+        backup = None
+        for attempt in range(1, BACKUP_START_ATTEMPTS + 1):
+            while self.sys_backups.active_job is not None:
+                self._check_downgrade_stop(to_version)
+                if self.sys_loop.time() > deadline:
+                    raise HomeAssistantDowngradeBackupError(
+                        _LOGGER.error,
+                        version=str(to_version),
+                        reason=REASON_TIMED_OUT,
+                    )
+                await asyncio.sleep(WAIT_POLL_SECONDS)
+            self._check_downgrade_stop(to_version)
+            job.update(stage=STAGE_BACKING_UP)
+            self._set_downgrade_state(stage=STAGE_BACKING_UP)
+            try:
+                backup = await self.sys_backups.do_backup_partial(
+                    name=f"core_{from_version}",
+                    homeassistant=True,
+                    extra={"reason": "before_going_back", "to": str(to_version)},
+                )
+            except (BackupJobError, JobGroupExecutionLimitExceeded) as err:
+                # Another backup may have started between the wait and this one.
+                if (
+                    self.sys_backups.active_job is not None
+                    and attempt < BACKUP_START_ATTEMPTS
+                ):
+                    job.update(stage=STAGE_WAITING)
+                    self._set_downgrade_state(stage=STAGE_WAITING)
+                    continue
+                raise HomeAssistantDowngradeBackupError(
+                    _LOGGER.error,
+                    version=str(to_version),
+                    reason=REASON_FAILED,
+                    detail=str(err),
+                ) from err
+            break
+
+        if backup is None:
+            raise HomeAssistantDowngradeBackupError(
+                _LOGGER.error, version=str(to_version), reason=REASON_FAILED
+            )
+        self._check_downgrade_stop(to_version)
+
+        job.update(stage=STAGE_CHECKING)
+        self._set_downgrade_state(stage=STAGE_CHECKING)
+        try:
+            await backup.validate_backup(backup.location)
+            loaded = await backup.load()
+        except BackupError as err:
+            raise HomeAssistantDowngradeBackupError(
+                _LOGGER.error,
+                version=str(to_version),
+                reason=REASON_CHECK_FAILED,
+                detail=str(err),
+            ) from err
+        if not loaded or backup.size_bytes <= 0:
+            raise HomeAssistantDowngradeBackupError(
+                _LOGGER.error, version=str(to_version), reason=REASON_CHECK_FAILED
+            )
+        self._check_downgrade_stop(to_version)
+
+        backup_facts = {
+            "slug": backup.slug,
+            "date": backup.date,
+            "size_bytes": backup.size_bytes,
+        }
+        job.update(stage=STAGE_DONE, extra={**facts, "backup": backup_facts})
+        self._set_downgrade_state(stage=STAGE_DONE, backup=backup_facts)
 
     @Job(
         name="home_assistant_core_start",

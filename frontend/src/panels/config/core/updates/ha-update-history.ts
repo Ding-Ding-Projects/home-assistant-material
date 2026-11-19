@@ -13,23 +13,21 @@ import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
 import "../../../../components/ha-spinner";
 import "../../../../components/ha-svg-icon";
-import { isConnectionLostError } from "../../../../components/update-progress/update-progress-logic";
 import { fetchChangeList, findRelease } from "../../../../data/build-changes";
 import { parseBuildNumber } from "../../../../data/build-progress";
-import { extractApiErrorMessage } from "../../../../data/hassio/common";
 import type { UpdateEntity } from "../../../../data/update";
-import { showConfirmationDialog } from "../../../../dialogs/generic/show-dialog-box";
 import { haMotionKeyframes } from "../../../../resources/motion-styles";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
 import { TimeFormat } from "../../../../data/translation";
-import type { HistoryEntry, RollbackBlock } from "./update-history";
+import "./going-back/ha-going-back-panel";
+import type { GoBackNote, HistoryEntry, RollbackBlock } from "./update-history";
 import {
+  annotateGoBack,
   anyUpdateInProgress,
   historyRows,
   loadPendingGoBack,
   markGoBackShown,
-  installCoreVersion,
   loadHistory,
   recordVersion,
   rollbackBlockReason,
@@ -57,6 +55,8 @@ interface RollbackJob {
   callPending: boolean;
   outcome: "running" | "done" | "failed";
   error?: string;
+  /** Which backup came first. */
+  note?: GoBackNote;
 }
 
 /**
@@ -75,20 +75,24 @@ export class HaUpdateHistory extends LitElement {
   /** The update queue, or an update from USB storage, is running. */
   @property({ type: Boolean, attribute: false }) public busy = false;
 
-  /** The "make a backup first" choice of the page. */
-  @property({ type: Boolean, attribute: false }) public backup = false;
-
   @state() private _history: HistoryEntry[] = [];
 
   @state() private _changeCount?: number;
 
   @state() private _job?: RollbackJob;
 
+  /** The version the going back panel is open for. */
+  @state() private _target?: string;
+
+  /** The going back panel is making its backup. */
+  @state() private _goingBackActive = false;
+
   /** The one-time line about a way back that finished or did not. */
   @state() private _notice?: {
     kind: "done" | "failed";
     build: string;
     time: number;
+    note?: GoBackNote;
   };
 
   private _lang = new LanguageModeController(this);
@@ -139,6 +143,17 @@ export class HaUpdateHistory extends LitElement {
     );
     if (notice) {
       this._notice = notice;
+      if (notice.kind === "done" && notice.note && !this._history[0]?.goBack) {
+        const noted = annotateGoBack(
+          this._history,
+          this.hass.config.version,
+          notice.note
+        );
+        if (noted[0]?.goBack) {
+          this._history = noted;
+          storeHistory(noted);
+        }
+      }
     }
   }
 
@@ -249,7 +264,8 @@ export class HaUpdateHistory extends LitElement {
       supervisorAvailable: this.supervisorAvailable,
       queueActive: this.busy,
       updateRunning: anyUpdateInProgress(this.hass.states),
-      rollbackRunning: this._job?.outcome === "running",
+      rollbackRunning:
+        this._job?.outcome === "running" || this._goingBackActive,
     });
   }
 
@@ -270,7 +286,7 @@ export class HaUpdateHistory extends LitElement {
           <h2 id="history-title">${this._t("title")}</h2>
         </div>
         <p class="quiet">${this._t("intro")}</p>
-        ${this._renderJob()} ${this._renderNotice()}
+        ${this._renderPanel()} ${this._renderJob()} ${this._renderNotice()}
         ${
           current
             ? html`<div class="hero">
@@ -288,6 +304,16 @@ export class HaUpdateHistory extends LitElement {
                       time: this._date(current.installedAt),
                     })}</span
                   >
+                  ${
+                    current.goBack
+                      ? html`<span
+                          >${this._noteText(current.goBack).replace(
+                            /^ · /,
+                            ""
+                          )}</span
+                        >`
+                      : nothing
+                  }
                   ${
                     this._changeCount !== undefined
                       ? html`<span
@@ -336,7 +362,7 @@ export class HaUpdateHistory extends LitElement {
             row.ranFor !== undefined
               ? ` · ${this._t("ran_for", { duration: this._duration(row.ranFor) })}`
               : ""
-          }</span
+          }${this._noteText(row.goBack)}</span
         >
       </div>
       ${
@@ -355,6 +381,78 @@ export class HaUpdateHistory extends LitElement {
       }
     </li>`;
   }
+
+  // Which backup came before a going back, for the history line.
+  private _noteText(note: GoBackNote | undefined): string {
+    if (note?.noBackup) {
+      return ` · ${this._t("row_no_backup")}`;
+    }
+    if (note?.backupAt !== undefined) {
+      return ` · ${this._t("row_backup", { time: this._time(note.backupAt) })}`;
+    }
+    return "";
+  }
+
+  private _renderPanel(): TemplateResult | typeof nothing {
+    const target = this._target;
+    // Once the older build is installed or failed, the result line takes over.
+    if (!target || (this._job && this._job.outcome !== "running")) {
+      return nothing;
+    }
+    const build = parseBuildNumber(target);
+    const current = parseBuildNumber(this.hass.config.version);
+    return html`<ha-going-back-panel
+      .hass=${this.hass}
+      .version=${target}
+      .build=${build !== undefined ? String(build) : target}
+      .currentBuild=${
+        current !== undefined ? String(current) : this.hass.config.version
+      }
+      .timeText=${this._timeText}
+      @going-back-close=${this._closePanel}
+      @going-back-active=${this._panelActive}
+      @going-back-install=${this._panelInstall}
+    ></ha-going-back-panel>`;
+  }
+
+  private _timeText = (ms: number): string => this._time(ms);
+
+  private _closePanel = () => {
+    this._target = undefined;
+    this._goingBackActive = false;
+  };
+
+  private _panelActive = (ev: CustomEvent<{ active: boolean }>) => {
+    this._goingBackActive = ev.detail.active;
+  };
+
+  // The backup step is over: the Supervisor is installing the older build.
+  // From here the page watches the Core update as before.
+  private _panelInstall = (
+    ev: CustomEvent<{ version: string; note: GoBackNote }>
+  ) => {
+    const { version, note } = ev.detail;
+    const job: RollbackJob = {
+      version,
+      startedAt: Date.now(),
+      seenInProgress: false,
+      idleSince: null,
+      callPending: false,
+      outcome: "running",
+      note,
+    };
+    this._job = job;
+    this._goingBackActive = false;
+    this._notice = undefined;
+    storePendingGoBack({
+      version,
+      startedAt: job.startedAt,
+      fromVersion: this.hass.config.version,
+      note,
+    });
+    this._startTimer();
+    this._tick();
+  };
 
   private _blockText(block: RollbackBlock): string {
     return this._t(`block_${block}`);
@@ -386,6 +484,9 @@ export class HaUpdateHistory extends LitElement {
     const build = parseBuildNumber(job.version);
     const name = build !== undefined ? String(build) : job.version;
     if (job.outcome === "running") {
+      if (this._target === job.version) {
+        return nothing;
+      }
       return html`<div class="job" role="status" aria-live="polite">
         <ha-spinner size="small"></ha-spinner>
         <span>${this._t("job_running", { build: name })}</span>
@@ -421,16 +522,31 @@ export class HaUpdateHistory extends LitElement {
     >
       ${
         notice.kind === "done"
-          ? this._t("went_back", {
-              build: notice.build,
-              time: this._time(notice.time),
-            })
+          ? this._wentBackText(notice.build, notice.time, notice.note)
           : this._t("go_back_unfinished", { build: notice.build })
       }
       <ha-button slot="action" appearance="plain" @click=${this._dismissNotice}>
         ${this._t("dismiss")}
       </ha-button>
     </ha-alert>`;
+  }
+
+  private _wentBackText(
+    build: string,
+    time: number,
+    note: GoBackNote | undefined
+  ): string {
+    if (note?.noBackup) {
+      return this._t("went_back_no_backup", { build, time: this._time(time) });
+    }
+    if (note?.backupAt !== undefined) {
+      return this._t("went_back_backup", {
+        build,
+        time: this._time(time),
+        backup: this._time(note.backupAt),
+      });
+    }
+    return this._t("went_back", { build, time: this._time(time) });
   }
 
   private _dismissNotice = () => {
@@ -445,7 +561,7 @@ export class HaUpdateHistory extends LitElement {
     }
   };
 
-  private async _goBack(ev: Event): Promise<void> {
+  private _goBack(ev: Event): void {
     const version = (ev.currentTarget as HTMLElement & { version: string })
       .version;
     // Only a version that was really installed here and is older is offered.
@@ -455,67 +571,11 @@ export class HaUpdateHistory extends LitElement {
     ) {
       return;
     }
-    const build = parseBuildNumber(version);
-    const name = build !== undefined ? String(build) : version;
-    const confirmed = await showConfirmationDialog(this, {
-      title: this._t("confirm_title", { build: name }),
-      text: html`<p>${this._t("confirm_intro", { build: name })}</p>
-        <p>
-          ${
-            this.backup
-              ? this._t("confirm_backup_on")
-              : this._t("confirm_backup_off")
-          }
-        </p>`,
-      confirmText: this._t("confirm_action", { build: name }),
-      dismissText: this._lang.text(this.hass.localize, "ui.common.cancel"),
-      destructive: true,
-    });
-    // The page may have started something else while the dialog was open.
-    if (!confirmed || this._blockReason()) {
-      return;
-    }
-    // What this page can later show as evidence of the way back, even when the
-    // older interface that loads next cannot record anything itself.
-    const job: RollbackJob = {
-      version,
-      startedAt: Date.now(),
-      seenInProgress: false,
-      idleSince: null,
-      callPending: true,
-      outcome: "running",
-    };
-    this._job = job;
+    // The panel asks for confirmation, makes the backup first and only then
+    // lets the Supervisor install the older build.
     this._notice = undefined;
-    storePendingGoBack({
-      version,
-      startedAt: job.startedAt,
-      fromVersion: this.hass.config.version,
-    });
-    this._startTimer();
-    try {
-      await installCoreVersion(this.hass, version, this.backup);
-    } catch (err: any) {
-      // A lost connection is what a Core restart looks like from here.
-      // Any other rejection while Core restarts is judged by the result.
-      const core = this.hass.states[CORE_UPDATE_ENTITY] as
-        UpdateEntity | undefined;
-      if (
-        !isConnectionLostError(err) &&
-        this.hass.connected !== false &&
-        !core?.attributes.in_progress &&
-        this.hass.config.version !== version
-      ) {
-        this._finishJob(
-          job,
-          "failed",
-          extractApiErrorMessage(err) || undefined
-        );
-        return;
-      }
-    }
-    job.callPending = false;
-    this._tick();
+    this._job = undefined;
+    this._target = version;
   }
 
   private _startTimer(): void {
@@ -540,12 +600,13 @@ export class HaUpdateHistory extends LitElement {
       // The target was seen installed: keep that in the history, which
       // outlives the stored way back and is what the line is derived from.
       const next = recordVersion(this._history, job.version, Date.now());
+      const noted = annotateGoBack(next, job.version, job.note);
       if (
-        next !== this._history &&
-        next[0]?.version !== this._history[0]?.version
+        noted[0]?.version !== this._history[0]?.version ||
+        noted[0]?.goBack !== this._history[0]?.goBack
       ) {
-        this._history = next;
-        storeHistory(next);
+        this._history = noted;
+        storeHistory(noted);
       }
       // This page reports the result itself; the line is not said again.
       markGoBackShown(this._history, job.version);
@@ -557,11 +618,13 @@ export class HaUpdateHistory extends LitElement {
         fromVersion: loadPendingGoBack()?.fromVersion,
         done: true,
         finishedAt: Date.now(),
+        note: job.note,
       });
     } else {
       storePendingGoBack(undefined);
     }
     this._job = { ...job, outcome, error };
+    this._target = undefined;
   }
 
   // Looks at the Core update and decides how the way back is going.

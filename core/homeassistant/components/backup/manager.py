@@ -68,6 +68,7 @@ from .const import (
     LOGGER,
     SECURETAR_CREATE_VERSION,
 )
+from .delete_proof import BackupDeleteProof, DeleteProofMark, DeleteProofMarks
 from .models import (
     AddonInfo,
     AgentBackup,
@@ -347,6 +348,22 @@ class BackupReaderWriter(abc.ABC):
     async def async_validate_config(self, *, config: BackupConfig) -> None:
         """Validate backup config."""
 
+    async def async_load_delete_proof(self) -> dict[str, DeleteProofMark] | None:
+        """Return delete proof marks held outside Home Assistant.
+
+        Return None when they are not held elsewhere, or cannot be reached.
+        """
+        return None
+
+    async def async_save_delete_proof(
+        self, backup_id: str, mark: DeleteProofMark | None, *, confirmed: bool
+    ) -> None:
+        """Store a delete proof change where marks are held outside Home Assistant.
+
+        Raise BackupManagerError if it cannot be stored.
+        """
+        return
+
 
 class IncorrectPasswordError(BackupReaderWriterError):
     """Raised when the password is incorrect."""
@@ -405,6 +422,7 @@ class BackupManager:
         self.config = BackupConfig(hass, self)
         self._reader_writer = reader_writer
         self.known_backups = KnownBackups(self)
+        self.delete_proof = DeleteProofMarks(hass)
         self.self_checks = SelfCheckRunner(self)
         self.store = BackupStore(hass, self)
 
@@ -433,6 +451,8 @@ class BackupManager:
             self.known_backups.load(stored["backups"])
 
         await self._reader_writer.async_validate_config(config=self.config)
+
+        await self.delete_proof.async_load(self._reader_writer)
 
         await self._reader_writer.async_resume_restore_progress_after_restart(
             on_progress=self.async_on_backup_event
@@ -925,7 +945,11 @@ class BackupManager:
     async def async_delete_backup(
         self, backup_id: str, *, agent_ids: list[str] | None = None
     ) -> dict[str, Exception]:
-        """Delete a backup."""
+        """Delete a backup.
+
+        Raise BackupDeleteProof if the backup is delete proof.
+        """
+        self.delete_proof.check_delete(backup_id)
         agent_errors: dict[str, Exception] = {}
         if agent_ids is None:
             agent_ids = list(self.backup_agents)
@@ -970,13 +994,26 @@ class BackupManager:
         deletion. Note: The newest of the backups returned by include_filter will
         unconditionally be kept, even if delete_filter returns all backups.
         :param delete_filter: A filter that should return the backups to delete.
+
+        Delete proof backups are left out before either filter runs, so they are
+        never deleted and do not count toward a number of copies to keep.
         """
+        if not self.delete_proof.readable:
+            LOGGER.warning(
+                "Not deleting old backups: the delete proof marks cannot be read"
+            )
+            return
         backups, get_agent_errors = await self.async_get_backups()
         if get_agent_errors:
             LOGGER.debug(
                 "Error getting backups; continuing anyway: %s",
                 get_agent_errors,
             )
+        backups = {
+            backup_id: backup
+            for backup_id, backup in backups.items()
+            if not self.delete_proof.is_marked(backup_id)
+        }
 
         # Run the include filter first to ensure we only consider backups that
         # should be included in the deletion process.
@@ -1040,10 +1077,20 @@ class BackupManager:
         if not backup_ids_to_delete:
             return
 
+        async def delete_unless_marked(
+            backup_id: str, agent_ids: list[str]
+        ) -> dict[str, Exception]:
+            """Delete a backup, skipping one marked delete proof meanwhile."""
+            try:
+                return await self.async_delete_backup(backup_id, agent_ids=agent_ids)
+            except BackupDeleteProof:
+                LOGGER.debug("Keeping delete proof backup %s", backup_id)
+                return {}
+
         backup_ids = list(backup_ids_to_delete)
         delete_results = await asyncio.gather(
             *(
-                self.async_delete_backup(backup_id, agent_ids=list(agent_ids))
+                delete_unless_marked(backup_id, list(agent_ids))
                 for backup_id, agent_ids in backup_ids_to_delete.items()
             )
         )

@@ -7,7 +7,13 @@ from typing import Any
 from awesomeversion import AwesomeVersion
 import voluptuous as vol
 
-from ..backups.const import BackupType
+from ..backups.const import (
+    ATTR_DELETE_PROOF,
+    ATTR_MARKED_AT,
+    ATTR_MARKED_BY,
+    ATTR_MARKED_BY_NAME,
+    BackupType,
+)
 from ..const import (
     ATTR_ADDONS,
     ATTR_COMPRESSED,
@@ -137,9 +143,19 @@ SCHEMA_BACKUP = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
+SCHEMA_DELETE_PROOF_MARK = vol.Schema(
+    {
+        vol.Required(ATTR_MARKED_AT): str,
+        vol.Required(ATTR_MARKED_BY): str,
+        vol.Optional(ATTR_MARKED_BY_NAME, default=None): vol.Maybe(str),
+    },
+    extra=vol.REMOVE_EXTRA,
+)
+
 SCHEMA_BACKUPS_CONFIG = vol.Schema(
     {
         vol.Optional(ATTR_DAYS_UNTIL_STALE, default=30): days_until_stale,
+        vol.Optional(ATTR_DELETE_PROOF, default=dict): {str: SCHEMA_DELETE_PROOF_MARK},
     },
     extra=vol.REMOVE_EXTRA,
 )

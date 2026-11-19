@@ -17,7 +17,15 @@ import voluptuous as vol
 from voluptuous.humanize import humanize_error
 
 from ..backups.backup import Backup
-from ..backups.const import LOCATION_CLOUD_BACKUP, LOCATION_TYPE
+from ..backups.const import (
+    ATTR_BACKUP_ID,
+    ATTR_CONFIRMED,
+    ATTR_DELETE_PROOF,
+    ATTR_MARKED_BY,
+    ATTR_MARKED_BY_NAME,
+    LOCATION_CLOUD_BACKUP,
+    LOCATION_TYPE,
+)
 from ..backups.validate import ALL_FOLDERS, days_until_stale, replace_folder
 from ..const import (
     ATTR_ADDONS,
@@ -183,6 +191,16 @@ SCHEMA_BACKUP_PARTIAL = SCHEMA_BACKUP_FULL.extend(
 SCHEMA_OPTIONS = vol.Schema({vol.Optional(ATTR_DAYS_UNTIL_STALE): days_until_stale})
 SCHEMA_FREEZE = vol.Schema({vol.Optional(ATTR_TIMEOUT): vol.All(int, vol.Range(min=1))})
 SCHEMA_REMOVE = vol.Schema({vol.Optional(ATTR_LOCATION): SCHEMA_LOCATION_LIST})
+
+SCHEMA_DELETE_PROOF_SET = vol.Schema(
+    {
+        vol.Required(ATTR_BACKUP_ID): vol.All(str, vol.Length(min=1, max=255)),
+        vol.Required(ATTR_DELETE_PROOF): vol.Boolean(),
+        vol.Optional(ATTR_CONFIRMED, default=False): vol.Boolean(),
+        vol.Optional(ATTR_MARKED_BY, default=""): str,
+        vol.Optional(ATTR_MARKED_BY_NAME): vol.Maybe(str),
+    }
+)
 
 
 class APIBackups(CoreSysAttributes):
@@ -561,6 +579,33 @@ class APIBackups(CoreSysAttributes):
             self._validate_cloud_backup_location(request, backup.location)
 
         await self.sys_backups.remove(backup, locations=locations)
+
+    @api_process
+    async def delete_proof_info(self, request: web.Request) -> dict[str, Any]:
+        """Return the delete proof marks, keyed by backup slug."""
+        return {ATTR_DELETE_PROOF: self.sys_backups.delete_proof}
+
+    @api_process
+    async def delete_proof_set(self, request: web.Request) -> dict[str, Any]:
+        """Turn delete proof on or off for a backup.
+
+        Only Home Assistant may change it, so an app with backup access cannot
+        lift the mark. Marks are kept by slug even when no copy is present, so
+        a missing copy can be reported instead of forgotten.
+        """
+        if request.get(REQUEST_FROM) != self.sys_homeassistant:
+            raise APIForbidden("Delete proof can only be changed by Home Assistant")
+        body = await api_validate(SCHEMA_DELETE_PROOF_SET, request)
+        slug: str = body[ATTR_BACKUP_ID]
+        if body[ATTR_DELETE_PROOF]:
+            mark = await self.sys_backups.set_delete_proof(
+                slug,
+                marked_by=body[ATTR_MARKED_BY],
+                marked_by_name=body.get(ATTR_MARKED_BY_NAME),
+            )
+            return {ATTR_BACKUP_ID: slug, ATTR_DELETE_PROOF: mark}
+        await self.sys_backups.clear_delete_proof(slug, confirmed=body[ATTR_CONFIRMED])
+        return {ATTR_BACKUP_ID: slug, ATTR_DELETE_PROOF: None}
 
     @api_process
     async def download(self, request: web.Request) -> web.StreamResponse:
