@@ -1,4 +1,4 @@
-import { mdiCheck, mdiShieldCheckOutline } from "@mdi/js";
+import { mdiCheck, mdiLock, mdiShieldCheckOutline } from "@mdi/js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -11,6 +11,7 @@ import "../../../../../components/ha-alert";
 import "../../../../../components/ha-button";
 import "../../../../../components/ha-svg-icon";
 import "../../../../../components/ha-two-key-confirm";
+import { markBackupDeleteProof } from "../../../../../data/backup_delete_proof";
 import { extractApiErrorMessage } from "../../../../../data/hassio/common";
 import type { HomeAssistant } from "../../../../../types";
 import { bytesToString } from "../../../../../util/bytes-to-string";
@@ -84,6 +85,9 @@ export class HaGoingBackPanel extends LitElement {
 
   @state() private _attempt = 0;
 
+  /** The one-tap delete proof mark for the backup made first. */
+  @state() private _proof?: "working" | "done" | { error: string };
+
   private _lang = new LanguageModeController(this);
 
   private _before?: DowngradeState | null;
@@ -116,6 +120,7 @@ export class HaGoingBackPanel extends LitElement {
     this._stopping = false;
     this._view = { backup: "waiting", install: "waiting" };
     this._attempt += 1;
+    this._proof = undefined;
   }
 
   protected render(): TemplateResult {
@@ -265,6 +270,7 @@ export class HaGoingBackPanel extends LitElement {
           </div>
         </li>
       </ol>
+      ${view.backup === "done" && view.backupId ? this._renderProof() : nothing}
       ${
         this._error
           ? html`<ha-alert alert-type="warning">${this._error}</ha-alert>`
@@ -283,6 +289,53 @@ export class HaGoingBackPanel extends LitElement {
       }
     </section>`;
   }
+
+  private _renderProof(): TemplateResult {
+    const proof = this._proof;
+    if (proof === "done") {
+      return html`<p class="proof" role="status">
+        <ha-svg-icon .path=${mdiLock}></ha-svg-icon>
+        <span>${this._t("delete_proof_done")}</span>
+      </p>`;
+    }
+    return html`<div class="proof-action">
+      <ha-button
+        appearance="outlined"
+        .disabled=${proof === "working"}
+        @click=${this._markDeleteProof}
+      >
+        <ha-svg-icon slot="start" .path=${mdiLock}></ha-svg-icon>
+        ${
+          proof === "working"
+            ? this._t("delete_proof_working")
+            : this._t("delete_proof_button")
+        }
+      </ha-button>
+      ${
+        typeof proof === "object"
+          ? html`<p class="proof failed" role="alert">
+              ${this._t("delete_proof_failed", { error: proof.error })}
+            </p>`
+          : nothing
+      }
+    </div>`;
+  }
+
+  private _markDeleteProof = async () => {
+    const backupId = this._view.backupId;
+    if (!backupId || this._proof === "working") {
+      return;
+    }
+    this._proof = "working";
+    try {
+      await markBackupDeleteProof(this.hass, backupId);
+      this._proof = "done";
+    } catch (err: any) {
+      this._proof = {
+        error: extractApiErrorMessage(err) || String(err?.message ?? err),
+      };
+    }
+  };
 
   private _renderFailed(): TemplateResult {
     const reason = this._view.reason ?? "unknown";
@@ -511,6 +564,27 @@ export class HaGoingBackPanel extends LitElement {
     }
     .strong {
       font-weight: var(--ha-font-weight-medium, 500);
+    }
+    .proof-action {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--ha-space-2);
+    }
+    .proof {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--ha-space-2);
+      font-size: var(--ha-font-size-s);
+      overflow-wrap: anywhere;
+    }
+    .proof ha-svg-icon {
+      flex: none;
+      --mdc-icon-size: 20px;
+      color: var(--warning-color);
+    }
+    .proof.failed {
+      color: var(--error-color);
     }
     .facts {
       display: flex;

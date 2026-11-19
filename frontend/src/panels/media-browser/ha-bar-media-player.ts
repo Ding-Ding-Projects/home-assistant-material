@@ -779,6 +779,8 @@ export class BarMediaPlayer extends SubscribeMixin(LitElement) {
       left: var(--ha-space-3);
       right: var(--ha-space-3);
       width: auto;
+      /* The wide rule's min-width: 100% would push it past the right edge. */
+      min-width: 0;
     }
   `;
 }

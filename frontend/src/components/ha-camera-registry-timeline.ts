@@ -1,4 +1,4 @@
-import { mdiDocker } from "@mdi/js";
+import { mdiArchiveLock } from "@mdi/js";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -203,7 +203,7 @@ export class HaCameraRegistryPlaybackMark extends LitElement {
     const played = Math.round(Math.min(1, Math.max(0, playback.played)) * 100);
     return html`
       <div class="mark">
-        <ha-svg-icon .path=${mdiDocker}></ha-svg-icon>
+        <ha-svg-icon .path=${mdiArchiveLock}></ha-svg-icon>
         <span>${this._l("mark")}</span>
       </div>
       <div

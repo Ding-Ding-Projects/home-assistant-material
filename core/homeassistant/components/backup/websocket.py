@@ -28,6 +28,7 @@ from .manager import (
     ManagerStateEvent,
 )
 from .models import BackupManagerError, BackupNotFound, Folder
+from .pointer_websocket import async_register_pointer_websocket_handlers
 from .self_check import (
     COPY_COULD_NOT_CHECK,
     METHOD_NONE,
@@ -98,6 +99,7 @@ def async_register_websocket_handlers(hass: HomeAssistant, with_hassio: bool) ->
     websocket_api.async_register_command(hass, handle_delete)
     websocket_api.async_register_command(hass, handle_delete_proof_info)
     websocket_api.async_register_command(hass, handle_delete_proof_set)
+    async_register_pointer_websocket_handlers(hass)
     websocket_api.async_register_command(hass, handle_self_check)
     websocket_api.async_register_command(hass, handle_self_check_location)
     websocket_api.async_register_command(hass, handle_self_check_config_info)

@@ -205,6 +205,7 @@ class HaConfigBackupOverview extends LitElement {
   private async _setupAutomaticBackup(skipWelcome = false) {
     const success = await showBackupOnboardingDialog(this, {
       config: this.config!,
+      agents: this.agents,
       cloudStatus: this.cloudStatus,
       skipWelcome,
     });

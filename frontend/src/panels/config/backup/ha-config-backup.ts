@@ -205,6 +205,10 @@ class HaConfigBackup extends SubscribeMixin(HassRouterPage) {
         tag: "ha-config-backup-location",
         load: () => import("./ha-config-backup-location"),
       },
+      pointers: {
+        tag: "ha-config-backup-pointers",
+        load: () => import("./ha-config-backup-pointers"),
+      },
     },
   };
 

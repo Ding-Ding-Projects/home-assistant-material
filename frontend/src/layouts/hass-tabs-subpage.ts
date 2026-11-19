@@ -513,7 +513,8 @@ export class HassTabsSubpage extends LitElement {
 
   /** The title shown in the header: the open tab, or the only page. */
   private _title(): string | undefined {
-    const localize = this._i18n.localize;
+    // The same language mode as the tabs, so the announced title matches them.
+    const localize = this._modeLocalize;
     const shown = this._getTabs(
       this.tabs,
       this._hassConfig.config.components,

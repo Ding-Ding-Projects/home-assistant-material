@@ -1,5 +1,6 @@
 import {
   mdiEyeSettingsOutline,
+  mdiLinkVariant,
   mdiLock,
   mdiTextBoxEditOutline,
   mdiTranslate,
@@ -154,7 +155,8 @@ export type QuickBarPlaceId =
   | "personal_wording"
   | "accessibility_tools"
   | "language_mode"
-  | "backup_delete_proof";
+  | "backup_delete_proof"
+  | "backup_pointers";
 
 export interface PlaceComboBoxItem extends PickerComboBoxItem {
   placeId: QuickBarPlaceId;
@@ -171,6 +173,7 @@ const PLACE_ICONS: Record<QuickBarPlaceId, string> = {
   accessibility_tools: mdiEyeSettingsOutline,
   language_mode: mdiTranslate,
   backup_delete_proof: mdiLock,
+  backup_pointers: mdiLinkVariant,
 };
 
 /**
@@ -207,6 +210,7 @@ export const generatePlaceItems = (
       ? [
           place("language_mode", "/config/personal#language_mode"),
           place("backup_delete_proof", "/config/backup/backups#delete_proof"),
+          place("backup_pointers", "/config/backup/pointers"),
         ]
       : []),
   ];

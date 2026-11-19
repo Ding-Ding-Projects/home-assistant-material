@@ -93,6 +93,14 @@ describe("going back view", () => {
     expect(view.install).toBe("running");
     expect(view.backupAt).toBe(Date.parse("2026-11-19T21:54:00+00:00"));
     expect(view.backupSize).toBe(412_000_000);
+    // The one-tap delete proof action is offered only with this id.
+    expect(view.backupId).toBe("abc");
+  });
+
+  it("has no backup id when the Supervisor reports none", () => {
+    expect(goingBackView(state({ stage: "backup_checked" })).backupId).toBe(
+      undefined
+    );
   });
 
   it("shows no backup when the pass skipped it", () => {

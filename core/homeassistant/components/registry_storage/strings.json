@@ -71,6 +71,7 @@
       "read_only_token": "This token can only read. Make one that can read and write.",
       "cannot_connect": "The registry could not be reached or answered something unexpected.",
       "rate_limited": "The registry is asking for fewer requests. Try again in a few minutes.",
+      "timeout": "The registry did not answer within 30 seconds. Check that this system can reach the address; a name without dots must be known to this system's network.",
       "rejected": "The registry refused the request.",
       "insecure_address": "Plain http is accepted only for a registry on your own network.",
       "invalid_address": "That is not a registry address.",
@@ -137,6 +138,7 @@
       "invalid_auth": "The registry did not accept the saved token.",
       "cannot_connect": "The registry could not be reached or answered something unexpected.",
       "rate_limited": "The registry is asking for fewer requests. Try again in a few minutes.",
+      "timeout": "The registry did not answer within 30 seconds. Check that this system can reach the address; a name without dots must be known to this system's network.",
       "rejected": "The registry refused the request.",
       "unknown": "Something unexpected went wrong.",
       "not_locked": "That repository holds something that is not locked by this integration."

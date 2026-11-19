@@ -18,7 +18,11 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.loader import async_get_custom_components
+from homeassistant.loader import (
+    IntegrationNotFound,
+    async_get_custom_components,
+    async_get_integration,
+)
 
 from .const import (
     ALLOWED_IMAGES,
@@ -156,6 +160,28 @@ class _BrandsBaseView(HomeAssistantView):
 
         return None
 
+    async def _serve_from_built_in_integration(
+        self,
+        domain: str,
+        image: str,
+    ) -> web.Response | None:
+        """Try to serve a brand image that a built-in integration ships itself.
+
+        For integrations added in this distribution, which have no images on the brands CDN.
+        """
+        try:
+            integration = await async_get_integration(self._hass, domain)
+        except IntegrationNotFound:
+            return None
+        if not integration.is_built_in or not integration.has_branding:
+            return None
+        data = await self._hass.async_add_executor_job(
+            _read_brand_file, Path(integration.file_path) / "brand", image
+        )
+        if data is not None:
+            return self._build_response(data)
+        return None
+
     async def _get_image_data(
         self,
         cdn_path: str,
@@ -264,6 +290,11 @@ class BrandsIntegrationView(_BrandsBaseView):
         # 1. Try custom integration local files
         if (
             response := await self._serve_from_custom_integration(domain, image)
+        ) is not None:
+            return response
+
+        if (
+            response := await self._serve_from_built_in_integration(domain, image)
         ) is not None:
             return response
 

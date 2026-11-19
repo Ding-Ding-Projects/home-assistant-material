@@ -1,4 +1,10 @@
-import { mdiCalendar, mdiDatabase, mdiPuzzle, mdiUpload } from "@mdi/js";
+import {
+  mdiCalendar,
+  mdiDatabase,
+  mdiLinkVariant,
+  mdiPuzzle,
+  mdiUpload,
+} from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -276,6 +282,20 @@ class HaBackupBackupsSummary extends LitElement {
               <div slot="supporting-text">
                 ${this.hass.localize(
                   "ui.panel.config.backup.overview.settings.locations"
+                )}
+              </div>
+              <ha-icon-next slot="end"></ha-icon-next>
+            </ha-list-item-button>
+            <ha-list-item-button href="/config/backup/pointers">
+              <ha-svg-icon slot="start" .path=${mdiLinkVariant}></ha-svg-icon>
+              <div slot="headline">
+                ${this.hass.localize(
+                  "ui.panel.config.backup.pointers.nav_label"
+                )}
+              </div>
+              <div slot="supporting-text">
+                ${this.hass.localize(
+                  "ui.panel.config.backup.pointers.nav_description"
                 )}
               </div>
               <ha-icon-next slot="end"></ha-icon-next>

@@ -5,6 +5,7 @@ import {
   mdiHelpCircleOutline,
   mdiServerNetwork,
   mdiMonitor,
+  mdiArchiveLock,
   mdiDotsVertical,
   mdiDownload,
   mdiHarddisk,
@@ -87,6 +88,7 @@ import {
   isLocalAgent,
   isNetworkMountAgent,
 } from "../../../data/backup";
+import { isRegistryAgent } from "../../../data/registry_storage";
 import type { BackupDeleteProofInfo } from "../../../data/backup_delete_proof";
 import {
   bulkDeleteResultCounts,
@@ -315,6 +317,15 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
                   return html`
                     <ha-svg-icon
                       .path=${mdiNas}
+                      title=${name}
+                      style="flex-shrink: 0;"
+                    ></ha-svg-icon>
+                  `;
+                }
+                if (isRegistryAgent(agentId)) {
+                  return html`
+                    <ha-svg-icon
+                      .path=${mdiArchiveLock}
                       title=${name}
                       style="flex-shrink: 0;"
                     ></ha-svg-icon>

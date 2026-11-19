@@ -440,6 +440,18 @@ class HaUpdateProgressBlock extends LitElement {
       }
       .actions ha-button {
         --ha-button-height: 40px;
+        max-width: 100%;
+      }
+      /* A long label (both languages at once) wraps inside the row instead of leaving it. */
+      .actions ha-button::part(base) {
+        height: auto;
+        min-height: 40px;
+      }
+      .actions ha-button::part(label) {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: start;
+        line-height: var(--ha-line-height-condensed);
       }
       .visually-hidden {
         position: absolute;

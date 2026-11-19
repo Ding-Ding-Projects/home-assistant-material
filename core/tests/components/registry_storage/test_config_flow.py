@@ -1,11 +1,14 @@
 """Tests for the guided setup, reconfigure, reauth and options flows."""
 
+import asyncio
 import json
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from pytest_homeassistant.common import MockConfigEntry
 
+from homeassistant.components.registry_storage import config_flow
 from homeassistant.components.registry_storage.client import RegistryClient
 from homeassistant.components.registry_storage.const import (
     CONF_ADDRESS,
@@ -170,6 +173,22 @@ async def test_other_registry_not_a_registry(
     registry.fail("GET", 404)
     result = await _start(hass, "other", address="registry.example.com")
     assert result["errors"] == {CONF_ADDRESS: "cannot_connect"}
+
+
+@pytest.mark.usefixtures("patch_session")
+async def test_other_registry_that_never_answers(hass: HomeAssistant) -> None:
+    """A registry that never answers ends in a plain error instead of a form that waits forever."""
+
+    async def never_answers(self: RegistryClient) -> None:
+        await asyncio.Event().wait()
+
+    with (
+        patch.object(config_flow, "FLOW_STEP_TIMEOUT", 0.01),
+        patch.object(RegistryClient, "async_check_version", never_answers),
+    ):
+        result = await _start(hass, "other", address="http://some-registry:5000")
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {CONF_ADDRESS: "timeout"}
 
 
 @pytest.mark.parametrize(

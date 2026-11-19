@@ -115,6 +115,8 @@ export interface GoingBackView {
   /** When the checked backup was made, in milliseconds. */
   backupAt?: number;
   backupSize?: number;
+  /** The checked backup's id, when the Supervisor reports it. */
+  backupId?: string;
   /** When going back started, in milliseconds. */
   startedAt?: number;
 }
@@ -134,6 +136,7 @@ export const goingBackView = (
   const startedAt = parseTime(state.started);
   const backupAt = parseTime(state.backup?.date);
   const backupSize = state.backup?.size_bytes;
+  const backupId = state.backup?.slug || undefined;
   switch (state.stage) {
     case "waiting_for_backup":
       return { backup: "waiting", install: "waiting", startedAt };
@@ -148,6 +151,7 @@ export const goingBackView = (
         startedAt,
         backupAt,
         backupSize,
+        backupId,
       };
     case "backup_skipped":
       return { backup: "skipped", install: "running", startedAt };
@@ -160,6 +164,7 @@ export const goingBackView = (
             startedAt,
             backupAt,
             backupSize,
+            backupId,
           };
     case "failed": {
       const reason = (FAILURE_REASONS as readonly string[]).includes(

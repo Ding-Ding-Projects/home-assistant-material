@@ -1,7 +1,10 @@
 """Guided setup, reconfigure and options for the Container registry storage integration."""
 
+import asyncio
+from collections.abc import Awaitable
+import logging
 import secrets
-from typing import Any
+from typing import Any, Final
 from urllib.parse import urlsplit
 
 import probatio
@@ -47,9 +50,15 @@ from .const import (
     RegistryKind,
 )
 from .crypto import new_vault_key, unwrap_vault_key, wrap_vault_key
-from .errors import LockError, Reason, RegistryStorageError
+from .errors import LockError, Reason, RegistryError, RegistryStorageError
 from .passwords import check_password, require_password
 from .store import KeyStore, async_publish_lock, async_read_lock
+
+_LOGGER = logging.getLogger(__name__)
+
+# A person is waiting on every network step of the setup, so each one is bounded.
+FLOW_STEP_TIMEOUT: Final = 30.0
+FLOW_REQUEST_TIMEOUT: Final = 10.0
 
 _PASSWORD = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
 _TEXT = TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
@@ -60,7 +69,7 @@ _ERROR_KEYS = {
     Reason.NOT_FOUND: "cannot_connect",
     Reason.RATE_LIMITED: "rate_limited",
     Reason.UNAVAILABLE: "cannot_connect",
-    Reason.TIMEOUT: "cannot_connect",
+    Reason.TIMEOUT: "timeout",
     Reason.INVALID_RESPONSE: "cannot_connect",
     Reason.REJECTED: "rejected",
     Reason.INSECURE_ADDRESS: "insecure_address",
@@ -77,6 +86,31 @@ _ERROR_KEYS = {
 def error_key(reason: Reason) -> str:
     """Return the form error for a reason code."""
     return _ERROR_KEYS.get(reason, "unknown")
+
+
+async def _bounded[T](step: str, awaitable: Awaitable[T]) -> T:
+    """Wait for one network step for at most FLOW_STEP_TIMEOUT; every failure is a reason code."""
+    try:
+        async with asyncio.timeout(FLOW_STEP_TIMEOUT):
+            return await awaitable
+    except TimeoutError:
+        _LOGGER.warning("Setup step %s got no answer in time", step)
+        raise RegistryError(Reason.TIMEOUT) from None
+    except RegistryStorageError as err:
+        _LOGGER.info("Setup step %s failed: %s", step, err.reason)
+        raise
+
+
+def _flow_client(
+    hass: HomeAssistant, address: str, username: str | None, token: str | None
+) -> RegistryClient:
+    return RegistryClient(
+        async_get_clientsession(hass),
+        address,
+        username,
+        token,
+        timeout=FLOW_REQUEST_TIMEOUT,
+    )
 
 
 def _password_schema(*, old: bool = False) -> probatio.Schema:
@@ -113,12 +147,7 @@ class RegistryStorageConfigFlow(ConfigFlow, domain=DOMAIN):
         self._reconfigure_entry: ConfigEntry | None = None
 
     def _client(self) -> RegistryClient:
-        return RegistryClient(
-            async_get_clientsession(self.hass),
-            self._address,
-            self._username,
-            self._token,
-        )
+        return _flow_client(self.hass, self._address, self._username, self._token)
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -130,9 +159,12 @@ class RegistryStorageConfigFlow(ConfigFlow, domain=DOMAIN):
             if self._registry is RegistryKind.OTHER:
                 try:
                     self._address = normalize_address(user_input.get(CONF_ADDRESS, ""))
-                    await RegistryClient(
-                        async_get_clientsession(self.hass), self._address, None, None
-                    ).async_check_version()
+                    await _bounded(
+                        "user",
+                        _flow_client(
+                            self.hass, self._address, None, None
+                        ).async_check_version(),
+                    )
                 except RegistryStorageError as err:
                     errors[CONF_ADDRESS] = error_key(err.reason)
             else:
@@ -169,7 +201,9 @@ class RegistryStorageConfigFlow(ConfigFlow, domain=DOMAIN):
             try:
                 # The repository is not chosen yet; the sign-in is checked against the account's own space.
                 probe = f"{self._username.lower()}/registry-storage-check"
-                check = await self._client().async_check_credentials(probe)
+                check = await _bounded(
+                    "sign_in", self._client().async_check_credentials(probe)
+                )
             except RegistryStorageError as err:
                 errors["base"] = error_key(err.reason)
             else:
@@ -258,7 +292,7 @@ class RegistryStorageConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def _prepare_repository(self, repository: str) -> None:
         client = self._client()
-        existing = await async_read_lock(client, repository)
+        existing = await _bounded("repository", async_read_lock(client, repository))
         if existing is not None:
             self._vault_key = await self.hass.async_add_executor_job(
                 unwrap_vault_key, existing, self._password
@@ -269,8 +303,10 @@ class RegistryStorageConfigFlow(ConfigFlow, domain=DOMAIN):
             self._header = await self.hass.async_add_executor_job(
                 wrap_vault_key, self._vault_key, self._password
             )
-            await async_publish_lock(client, repository, self._header)
-        public = await client.async_is_public(repository)
+            await _bounded(
+                "repository", async_publish_lock(client, repository, self._header)
+            )
+        public = await _bounded("repository", client.async_is_public(repository))
         self._repository = repository
         self._visibility = (
             "public: anyone can copy the locked files"
@@ -338,14 +374,16 @@ class RegistryStorageConfigFlow(ConfigFlow, domain=DOMAIN):
         entry = self._get_reauth_entry()
         errors: dict[str, str] = {}
         if user_input is not None:
-            client = RegistryClient(
-                async_get_clientsession(self.hass),
+            client = _flow_client(
+                self.hass,
                 entry.data[CONF_ADDRESS],
                 entry.data[CONF_USERNAME],
                 entry.data[CONF_TOKEN],
             )
             try:
-                header = await async_read_lock(client, entry.data[CONF_REPOSITORY])
+                header = await _bounded(
+                    "restore_key", async_read_lock(client, entry.data[CONF_REPOSITORY])
+                )
                 if header is None:
                     raise LockError(Reason.NOT_LOCKED)
                 vault_key = await self.hass.async_add_executor_job(
@@ -414,7 +452,7 @@ class RegistryStorageOptionsFlow(OptionsFlow):
             if not errors:
                 try:
                     for value in wanted:
-                        await store.async_ensure_lock(value)
+                        await _bounded("repositories", store.async_ensure_lock(value))
                 except RegistryStorageError as err:
                     errors["base"] = error_key(err.reason)
             if not errors:

@@ -426,6 +426,22 @@ async def test_custom_integration_brand_served(
     assert aioclient_mock.call_count == 0
 
 
+@pytest.mark.parametrize("image", ["icon.png", "dark_icon.png", "logo.png"])
+async def test_built_in_integration_brand_served(
+    hass: HomeAssistant,
+    hass_client: ClientSessionGenerator,
+    aioclient_mock: AiohttpClientMocker,
+    image: str,
+) -> None:
+    """A built-in integration that ships its own brand folder is served without the CDN."""
+    client = await hass_client()
+    resp = await client.get(f"/api/brands/integration/registry_storage/{image}")
+
+    assert resp.status == HTTPStatus.OK
+    assert (await resp.read()).startswith(b"\x89PNG")
+    assert aioclient_mock.call_count == 0
+
+
 async def test_custom_integration_no_brand_falls_through(
     hass: HomeAssistant,
     hass_client: ClientSessionGenerator,

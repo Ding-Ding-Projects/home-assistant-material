@@ -3,6 +3,7 @@ import {
   mdiCheckCircle,
   mdiCircleOutline,
   mdiClose,
+  mdiArchiveLock,
   mdiHarddisk,
   mdiMinusCircleOutline,
   mdiNas,
@@ -28,6 +29,7 @@ import {
   isNetworkMountAgent,
 } from "../../../../../data/backup";
 import type { ManagerStateEvent } from "../../../../../data/backup_manager";
+import { isRegistryAgent } from "../../../../../data/registry_storage";
 import { TimeFormat } from "../../../../../data/translation";
 import type { HomeAssistant } from "../../../../../types";
 import { brandsUrl } from "../../../../../util/brands-url";
@@ -188,6 +190,9 @@ export class HaBackupOverviewProgress extends LitElement {
     }
     if (isNetworkMountAgent(agentId)) {
       return html`<ha-svg-icon .path=${mdiNas}></ha-svg-icon>`;
+    }
+    if (isRegistryAgent(agentId)) {
+      return html`<ha-svg-icon .path=${mdiArchiveLock}></ha-svg-icon>`;
     }
     return html`<img
       .src=${brandsUrl({

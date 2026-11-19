@@ -13,6 +13,7 @@ import asyncio
 from collections import OrderedDict
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
+import hashlib
 import json
 import logging
 import os
@@ -116,6 +117,17 @@ class SelfTestResult:
     ok: bool
     reason: Reason | None
     seconds: float
+
+
+@dataclass(frozen=True, slots=True)
+class ReadBack:
+    """What a full read of a stored object found."""
+
+    object_id: str
+    repository: str
+    size: int
+    sha256: str
+    parts: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -913,6 +925,66 @@ class RegistryStore:
         async for chunk in self.async_stream(object_id):
             count += len(chunk)
         return count == item.plain_size
+
+    async def async_read_back(
+        self,
+        object_id: str,
+        *,
+        progress: Callable[[int, int, int, int], None] | None = None,
+    ) -> ReadBack:
+        """Read every part of an object again from the registry and hash the plain bytes.
+
+        Nothing cached is used: the manifest, the sealed header and every part are
+        fetched and opened with the vault key, so a part the registry lost or changed
+        raises. Progress is (bytes done, bytes total, parts done, parts total).
+        """
+        item = await self.async_get_object(object_id)
+        self._open.pop((item.repository, item.id), None)
+        manifest, header, _ = await self._open_object(
+            item.repository, item.id, cache=False
+        )
+        digest = hashlib.sha256()
+        done = 0
+        for index in range(header.parts):
+            sealed = await self._get_layer(
+                item.repository, manifest["layers"][1 + index]
+            )
+            plain = await self._hass.async_add_executor_job(
+                open_part, header, index, sealed
+            )
+            plain = plain[: max(0, header.plain_length - index * PART_SIZE)]
+            await self._hass.async_add_executor_job(digest.update, plain)
+            done += len(plain)
+            if progress is not None:
+                progress(done, header.plain_length, index + 1, header.parts)
+        if done != header.plain_length or done != item.plain_size:
+            raise LockError(Reason.TRUNCATED)
+        return ReadBack(
+            object_id=item.id,
+            repository=item.repository,
+            size=done,
+            sha256=digest.hexdigest(),
+            parts=header.parts,
+        )
+
+    async def async_check_present(self, object_id: str) -> bool:
+        """Light check: the object is in a freshly read index and its manifest is there.
+
+        The parts themselves are not fetched, so a part the registry lost or changed
+        is only noticed by a full read.
+        """
+        item = next(
+            (
+                found
+                for found in await self.async_list(refresh=True)
+                if found.id == object_id
+            ),
+            None,
+        )
+        if item is None:
+            return False
+        digest = await self.client.async_head_manifest(item.repository, item.id)
+        return digest is not None and digest == item.digest
 
     async def async_self_test(self, repository: str | None = None) -> SelfTestResult:
         """Upload a small two-part object, read it back and compare it."""

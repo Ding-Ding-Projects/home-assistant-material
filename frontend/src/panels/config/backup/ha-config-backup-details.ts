@@ -2,6 +2,7 @@ import {
   mdiCheckAll,
   mdiDelete,
   mdiDotsVertical,
+  mdiArchiveLock,
   mdiDownload,
   mdiHarddisk,
   mdiNas,
@@ -41,6 +42,7 @@ import {
   runBackupSelfCheckLocation,
 } from "../../../data/backup";
 import { isDeleteProofError } from "../../../data/backup_delete_proof";
+import { isRegistryAgent } from "../../../data/registry_storage";
 import {
   showAlertDialog,
   showConfirmationDialog,
@@ -262,23 +264,30 @@ class HaConfigBackupDetails extends LitElement {
                                           slot="start"
                                         ></ha-svg-icon>
                                       `
-                                    : html`
-                                        <img
-                                          .src=${brandsUrl(
-                                            {
-                                              domain,
-                                              type: "icon",
-                                              darkOptimized:
-                                                this.hass.themes?.darkMode,
-                                            },
-                                            this.hass.auth.data.hassUrl
-                                          )}
-                                          crossorigin="anonymous"
-                                          referrerpolicy="no-referrer"
-                                          alt=${`${domain} logo`}
-                                          slot="start"
-                                        />
-                                      `
+                                    : isRegistryAgent(agentId)
+                                      ? html`
+                                          <ha-svg-icon
+                                            .path=${mdiArchiveLock}
+                                            slot="start"
+                                          ></ha-svg-icon>
+                                        `
+                                      : html`
+                                          <img
+                                            .src=${brandsUrl(
+                                              {
+                                                domain,
+                                                type: "icon",
+                                                darkOptimized:
+                                                  this.hass.themes?.darkMode,
+                                              },
+                                              this.hass.auth.data.hassUrl
+                                            )}
+                                            crossorigin="anonymous"
+                                            referrerpolicy="no-referrer"
+                                            alt=${`${domain} logo`}
+                                            slot="start"
+                                          />
+                                        `
                               }
                               <div slot="headline">${name}</div>
                                 <div slot="supporting-text">

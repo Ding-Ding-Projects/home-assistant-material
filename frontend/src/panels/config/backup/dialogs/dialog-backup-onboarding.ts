@@ -557,6 +557,7 @@ class DialogBackupOnboarding
           <ha-backup-config-agents
             .hass=${this.hass}
             .value=${this._config.create_backup.agent_ids}
+            .agents=${this._params!.agents ?? []}
             .cloudStatus=${this._params!.cloudStatus}
             .hasEncryptionKey=${!!this._config.create_backup.password}
             @value-changed=${this._agentsConfigChanged}

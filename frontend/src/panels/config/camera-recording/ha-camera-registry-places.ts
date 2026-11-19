@@ -1,4 +1,4 @@
-import { mdiAlertCircleOutline, mdiDocker } from "@mdi/js";
+import { mdiAlertCircleOutline, mdiArchiveLock } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -15,7 +15,7 @@ import "../../../components/ha-slider";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
 import "../../../components/input/ha-input";
-import { getConfigEntry } from "../../../data/config_entries";
+import { getConfigEntries, getConfigEntry } from "../../../data/config_entries";
 import {
   fetchRegistryGetBack,
   fetchRegistryRecordings,
@@ -94,6 +94,9 @@ export class HaCameraRegistryPlaces extends LitElement {
 
   @state() private _restoring?: string;
 
+  /** The place is set up but camera recording is not, so there is no status yet. */
+  @state() private _setUpWithoutCamera = false;
+
   private _timer?: number;
 
   public connectedCallback() {
@@ -114,11 +117,18 @@ export class HaCameraRegistryPlaces extends LitElement {
     try {
       this._places = (await fetchRegistryStatus(this.hass)).places;
       this._error = undefined;
+      this._setUpWithoutCamera = false;
     } catch (err: unknown) {
-      // Before the place is added the server has no such command.
+      // The command exists only once camera recording runs; the place itself
+      // may already be set up.
       if ((err as { code?: string } | undefined)?.code === "unknown_command") {
         this._places = [];
         this._error = undefined;
+        this._setUpWithoutCamera = await getConfigEntries(this.hass, {
+          domain: REGISTRY_DOMAIN,
+        })
+          .then((entries) => entries.length > 0)
+          .catch(() => false);
         return;
       }
       this._error = (err as Error | undefined)?.message ?? String(err);
@@ -167,16 +177,24 @@ export class HaCameraRegistryPlaces extends LitElement {
       ${
         places?.length
           ? places.map((place) => this._renderPlace(place))
-          : html`<div class="row">
-              <ha-svg-icon class="icon" .path=${mdiDocker}></ha-svg-icon>
-              <div class="text">
-                <span class="name">${this._l("title")}</span>
-                <span class="secondary">${this._l("not_set_up")}</span>
-              </div>
-              <ha-button appearance="plain" size="small" @click=${this._setUp}
-                >${this._l("set_up")}</ha-button
-              >
-            </div>`
+          : this._setUpWithoutCamera
+            ? html`<div class="row">
+                <ha-svg-icon class="icon" .path=${mdiArchiveLock}></ha-svg-icon>
+                <div class="text">
+                  <span class="name">${this._l("title")}</span>
+                  <span class="secondary">${this._l("set_up_no_camera")}</span>
+                </div>
+              </div>`
+            : html`<div class="row">
+                <ha-svg-icon class="icon" .path=${mdiArchiveLock}></ha-svg-icon>
+                <div class="text">
+                  <span class="name">${this._l("title")}</span>
+                  <span class="secondary">${this._l("not_set_up")}</span>
+                </div>
+                <ha-button appearance="plain" size="small" @click=${this._setUp}
+                  >${this._l("set_up")}</ha-button
+                >
+              </div>`
       }
     `;
     if (this.embedded) {
@@ -223,7 +241,7 @@ export class HaCameraRegistryPlaces extends LitElement {
     const name = this._placeName(place);
     return html`
       <div class="row">
-        <ha-svg-icon class="icon" .path=${mdiDocker}></ha-svg-icon>
+        <ha-svg-icon class="icon" .path=${mdiArchiveLock}></ha-svg-icon>
         <div class="text">
           <span class="name">${name}</span>
           <span class="secondary">${this._visibility(place)}</span>

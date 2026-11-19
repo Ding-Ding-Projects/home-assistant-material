@@ -9,4 +9,5 @@
 | [`appliance-bootstrap.md`](appliance-bootstrap.md) | Fresh appliance media and destination identity | Helper built; synthetic checks passed; real media and first boot pending |
 | [`backup-progress.md`](backup-progress.md) | Stages, per-place upload rows, live output and results for a running backup | Local backup stage list seen; real cloud places not seen |
 | [`backup-self-check.md`](backup-self-check.md) | Light, full or off self-check, three kinds of copy, the full hosting fix | Fix proven on a throwaway full-hosting copy and seen passing 4 of 4 in a real run of build 523; the card refresh is on main only |
+| [`pointers.md`](pointers.md) | Keep only a pointer on this disk for backups verified in the container registry, bring back and restore | Built in Core and the interface with tests against the in-memory registry; not seen in a browser or on a running instance |
 | [`delete-proof.md`](delete-proof.md) | Delete proof mark: a backup that nothing in Home Assistant can delete until the mark is removed | Built in Core, Supervisor and the interface with tests; not seen in a browser or on a running instance |

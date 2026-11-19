@@ -81,6 +81,7 @@ from .models import (
     Folder,
     InvalidBackupFilename,
 )
+from .pointer import BackupPointers
 from .self_check import SelfCheckRunner, decode_stored
 from .store import BackupStore
 from .util import (
@@ -364,6 +365,14 @@ class BackupReaderWriter(abc.ABC):
         """
         return
 
+    async def async_going_back_finished(self) -> bool | None:
+        """Return whether no going back to an earlier build is under way.
+
+        None means it could not be found out; the backup made before going back
+        then stays whole on this disk.
+        """
+        return True
+
 
 class IncorrectPasswordError(BackupReaderWriterError):
     """Raised when the password is incorrect."""
@@ -423,6 +432,7 @@ class BackupManager:
         self._reader_writer = reader_writer
         self.known_backups = KnownBackups(self)
         self.delete_proof = DeleteProofMarks(hass)
+        self.pointers = BackupPointers(self)
         self.self_checks = SelfCheckRunner(self)
         self.store = BackupStore(hass, self)
 
@@ -453,6 +463,8 @@ class BackupManager:
         await self._reader_writer.async_validate_config(config=self.config)
 
         await self.delete_proof.async_load(self._reader_writer)
+        await self.pointers.async_load()
+        self.pointers.async_start()
 
         await self._reader_writer.async_resume_restore_progress_after_restart(
             on_progress=self.async_on_backup_event
@@ -979,6 +991,10 @@ class BackupManager:
 
         if not agent_errors:
             self.known_backups.remove(backup_id)
+        self.pointers.async_forget_deleted(
+            backup_id,
+            [agent_id for agent_id in agent_ids if agent_id not in agent_errors],
+        )
 
         return agent_errors
 
@@ -1460,6 +1476,7 @@ class BackupManager:
             )
             await delete_backups_exceeding_configured_count(self)
             self.self_checks.schedule(written_backup.backup.backup_id)
+            self.pointers.async_schedule_pass()
 
         finally:
             self._backup_task = None

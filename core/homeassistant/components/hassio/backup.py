@@ -765,6 +765,30 @@ class SupervisorBackupReaderWriter(BackupReaderWriter):
             return None
 
     @override
+    async def async_going_back_finished(self) -> bool | None:
+        """Return whether no going back to an earlier build is under way.
+
+        Going back is finished when the Supervisor holds no record of it, when it
+        failed, or when this Home Assistant already runs the version it went to.
+        """
+        try:
+            # The client library has no method for this endpoint yet
+            result = await self._client._client.get(  # noqa: SLF001
+                "core/downgrade_status"
+            )
+            state = result.data["downgrade"]
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not read the going back state: %s", err)
+            return None
+        if state is None:
+            return True
+        if not isinstance(state, dict):
+            return None
+        if state.get("stage") == "failed":
+            return True
+        return state.get("to_version") == HAVERSION
+
+    @override
     async def async_save_delete_proof(
         self, backup_id: str, mark: DeleteProofMark | None, *, confirmed: bool
     ) -> None:

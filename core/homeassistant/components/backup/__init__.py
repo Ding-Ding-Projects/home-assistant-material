@@ -52,11 +52,27 @@ from .models import (
     BackupReaderWriterError,
     Folder,
 )
+from .pointer import (
+    CHECK_FAILED,
+    CHECK_MISSING,
+    CHECK_NO_ANSWER,
+    CHECK_OK,
+    CHECK_TIMED_OUT,
+    CHECK_UNKNOWN,
+    PointerCapableAgent,
+    RemoteCopyCheck,
+)
 from .services import async_setup_services
 from .util import suggested_filename, suggested_filename_from_name_date
 from .websocket import async_register_websocket_handlers
 
 __all__ = [
+    "CHECK_FAILED",
+    "CHECK_MISSING",
+    "CHECK_NO_ANSWER",
+    "CHECK_OK",
+    "CHECK_TIMED_OUT",
+    "CHECK_UNKNOWN",
     "DOMAIN",
     "AddonErrorData",
     "AddonInfo",
@@ -84,6 +100,8 @@ __all__ = [
     "ManagerBackup",
     "NewBackup",
     "OnProgressCallback",
+    "PointerCapableAgent",
+    "RemoteCopyCheck",
     "RestoreBackupEvent",
     "RestoreBackupStage",
     "RestoreBackupState",

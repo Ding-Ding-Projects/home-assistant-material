@@ -1,4 +1,4 @@
-import { mdiHarddisk, mdiNas } from "@mdi/js";
+import { mdiArchiveLock, mdiHarddisk, mdiNas } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
@@ -17,6 +17,7 @@ import {
   isLocalAgent,
   isNetworkMountAgent,
 } from "../../../../../data/backup";
+import { isRegistryAgent } from "../../../../../data/registry_storage";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
 import { brandsUrl } from "../../../../../util/brands-url";
@@ -80,6 +81,9 @@ class HaBackupOverviewLocations extends LitElement {
     }
     if (isNetworkMountAgent(agentId)) {
       return html`<ha-svg-icon .path=${mdiNas}></ha-svg-icon>`;
+    }
+    if (isRegistryAgent(agentId)) {
+      return html`<ha-svg-icon .path=${mdiArchiveLock}></ha-svg-icon>`;
     }
     return html`
       <img

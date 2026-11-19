@@ -11,12 +11,19 @@ import logging
 from typing import Any, Concatenate, Final, override
 
 from homeassistant.components.backup import (
+    CHECK_FAILED,
+    CHECK_MISSING,
+    CHECK_NO_ANSWER,
+    CHECK_OK,
+    CHECK_TIMED_OUT,
+    CHECK_UNKNOWN,
     DOMAIN as BACKUP_DOMAIN,
     AgentBackup,
     BackupAgent,
     BackupAgentError,
     BackupNotFound,
     OnProgressCallback,
+    RemoteCopyCheck,
     suggested_filename,
 )
 from homeassistant.core import HomeAssistant, callback
@@ -25,6 +32,7 @@ from homeassistant.util.json import json_loads_object
 
 from . import RegistryStorageConfigEntry
 from .const import DATA_BACKUP_AGENT_LISTENERS, DOMAIN
+from .crypto import PART_SIZE
 from .errors import Reason, RegistryStorageError
 from .store import RegistryStore, StoredObject
 
@@ -74,6 +82,19 @@ def _translation_key(reason: Reason) -> str:
     if reason in _DAMAGED:
         return "backup_damaged"
     return "backup_failed"
+
+
+def _check_state(reason: Reason) -> str:
+    """Return the state of a read back that failed for this reason."""
+    if reason == Reason.TIMEOUT:
+        return CHECK_TIMED_OUT
+    if reason in _BUSY:
+        return CHECK_NO_ANSWER
+    if reason in _DAMAGED:
+        return CHECK_FAILED
+    if reason == Reason.OBJECT_NOT_FOUND:
+        return CHECK_MISSING
+    return CHECK_UNKNOWN
 
 
 def _agent_error(err: RegistryStorageError) -> BackupAgentError:
@@ -236,6 +257,53 @@ class RegistryBackupAgent(BackupAgent):
         if (details_id := item.meta.get("m")) is not None:
             await self._async_forget(details_id)
         self._details.pop(item.id, None)
+
+    async def async_read_back_backup(
+        self,
+        backup_id: str,
+        *,
+        on_progress: Callable[[int, int, int, int], None] | None = None,
+    ) -> RemoteCopyCheck:
+        """Read every part of the stored backup again, unlock it and hash it.
+
+        Used before a copy on this disk is replaced by a pointer. Nothing cached is
+        trusted; any failure is returned as a state, never as a pass.
+        """
+        try:
+            item, _ = await self._async_find(backup_id)
+            read = await self._store.async_read_back(item.id, progress=on_progress)
+        except BackupNotFound:
+            return RemoteCopyCheck(state=CHECK_MISSING)
+        except RegistryStorageError as err:
+            return RemoteCopyCheck(
+                state=_check_state(err.reason), detail=str(err.reason)
+            )
+        return RemoteCopyCheck(
+            state=CHECK_OK,
+            repository=read.repository,
+            size=read.size,
+            sha256=read.sha256,
+            parts=read.parts,
+            part_size=PART_SIZE,
+        )
+
+    async def async_check_backup_present(self, backup_id: str) -> RemoteCopyCheck:
+        """Check that the backup is in a freshly read index and its manifest is there."""
+        try:
+            self._details.clear()
+            item, _ = await self._async_find(backup_id)
+            present = await self._store.async_check_present(item.id)
+        except BackupNotFound:
+            return RemoteCopyCheck(state=CHECK_MISSING)
+        except RegistryStorageError as err:
+            if err.reason == Reason.OBJECT_NOT_FOUND:
+                return RemoteCopyCheck(state=CHECK_MISSING)
+            return RemoteCopyCheck(
+                state=_check_state(err.reason), detail=str(err.reason)
+            )
+        if not present:
+            return RemoteCopyCheck(state=CHECK_MISSING)
+        return RemoteCopyCheck(state=CHECK_OK, repository=item.repository)
 
     @handle_backup_errors
     @override

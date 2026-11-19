@@ -1,4 +1,4 @@
-import { mdiCog, mdiDelete, mdiHarddisk, mdiNas } from "@mdi/js";
+import { mdiCog, mdiDelete, mdiArchiveLock, mdiHarddisk, mdiNas } from "@mdi/js";
 import { css, html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { join } from "lit/directives/join";
@@ -166,6 +166,10 @@ class HaBackupConfigAgents extends LitElement {
 
     if (isNetworkMountAgent(agentId)) {
       return html`<ha-svg-icon .path=${mdiNas} slot="start"></ha-svg-icon>`;
+    }
+
+    if (isRegistryAgent(agentId)) {
+      return html`<ha-svg-icon .path=${mdiArchiveLock} slot="start"></ha-svg-icon>`;
     }
 
     const domain = computeDomain(agentId);

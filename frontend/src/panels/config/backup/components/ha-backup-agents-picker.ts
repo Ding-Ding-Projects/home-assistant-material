@@ -1,4 +1,4 @@
-import { mdiHarddisk, mdiNas } from "@mdi/js";
+import { mdiArchiveLock, mdiHarddisk, mdiNas } from "@mdi/js";
 import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
@@ -12,6 +12,7 @@ import {
   isLocalAgent,
   isNetworkMountAgent,
 } from "../../../../data/backup";
+import { isRegistryAgent } from "../../../../data/registry_storage";
 import type { HomeAssistant } from "../../../../types";
 import { brandsUrl } from "../../../../util/brands-url";
 
@@ -64,21 +65,23 @@ class HaBackupAgentsPicker extends LitElement {
               ? html` <ha-svg-icon .path=${mdiHarddisk}> </ha-svg-icon> `
               : isNetworkMountAgent(agent.agent_id)
                 ? html` <ha-svg-icon .path=${mdiNas}></ha-svg-icon> `
-                : html`
-                    <img
-                      .src=${brandsUrl(
-                        {
-                          domain,
-                          type: "icon",
-                          darkOptimized: this.hass.themes?.darkMode,
-                        },
-                        this.hass.auth.data.hassUrl
-                      )}
-                      crossorigin="anonymous"
-                      referrerpolicy="no-referrer"
-                      alt=""
-                    />
-                  `
+                : isRegistryAgent(agent.agent_id)
+                  ? html` <ha-svg-icon .path=${mdiArchiveLock}></ha-svg-icon> `
+                  : html`
+                      <img
+                        .src=${brandsUrl(
+                          {
+                            domain,
+                            type: "icon",
+                            darkOptimized: this.hass.themes?.darkMode,
+                          },
+                          this.hass.auth.data.hassUrl
+                        )}
+                        crossorigin="anonymous"
+                        referrerpolicy="no-referrer"
+                        alt=""
+                      />
+                    `
           }
           ${name}
         </span>
