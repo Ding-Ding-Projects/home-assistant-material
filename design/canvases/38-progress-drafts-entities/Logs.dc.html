@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Send the problem log to a private repository</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 1040px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Asked for by the owner: let the problem log be sent to a repository, so whoever helps with this home can read what went wrong without being given a way into the home itself.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Problem log with sharing on" style="width: 100%; max-width: 390px; border-radius: 28px; background: #14161B; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2A2D36">
+<div style="height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px"><span style="width: 44px; height: 44px; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></span><span style="flex: 1; font-size: 20px; font-weight: 700">Problem log</span><span style="width: 44px; height: 44px; display: grid; place-items: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></span></div>
+<div style="padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #1F4A44; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7FD6C8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Sent to a repository</div><div style="font-size: 12px; color: #7FD6C8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Private · last sent 18:41 · next 19:41</div></div><span style="color: #B4C5FF; font-weight: 700; font-size: 13px; min-height: 44px; display: flex; align-items: center">Settings</span></div>
+</div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap"><span style="height: 36px; padding: 0 12px; border-radius: 18px; background: #262933; display: flex; align-items: center; font-weight: 600">All</span><span style="height: 36px; padding: 0 12px; border-radius: 18px; box-shadow: inset 0 0 0 1px #2A2D36; display: flex; align-items: center">Not sent yet <span style="margin-left: 6px; font-family: 'Roboto Mono', monospace; font-size: 12px; color: #FFDF9E">3</span></span><span style="height: 36px; padding: 0 12px; border-radius: 18px; box-shadow: inset 0 0 0 1px #2A2D36; display: flex; align-items: center">Held back <span style="margin-left: 6px; font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0">1</span></span></div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFB4AB; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Camera recording could not save a clip</div><div style="font-size: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">18:52</span> · camera_recording · seen 4 times</div></div><span style="font-size: 11px; color: #FFDF9E">Not sent</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFDF9E; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">An update was refused</div><div style="font-size: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">18:31</span> · updates · seen once</div></div><span style="font-size: 11px; color: #7FD6C8">Sent</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #8E9099; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">A page reported an error</div><div style="font-size: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">17:04</span> · interface · held back by you</div></div><span style="font-size: 11px; color: #C4C6D0">Held</span></div>
+</div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 44px; border-radius: 22px; background: #262933; color: #8E9099; display: grid; place-items: center; font-weight: 700">Send 3 at 19:41</span><span style="flex: 1; height: 44px; border-radius: 22px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: grid; place-items: center; font-weight: 700">See what is sent</span></div>
+</div>
+</section>
+
+<section aria-label="Setup and what is sent" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">SET UP · GUIDED</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; color: #C4C6D0">Repository address</div>
+<div style="height: 44px; border-radius: 12px; background: #14161B; display: flex; align-items: center; padding: 0 12px; font-family: 'Roboto Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">https://github.com/your-account/home-problem-log</div>
+<div style="font-size: 12px; color: #C4C6D0">Sign in with GitHub: open the page, type this code, approve</div>
+<div style="border-radius: 12px; background: #14161B; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="flex: 1; font-family: 'Roboto Mono', monospace; font-size: 22px; font-weight: 700; letter-spacing: .12em">WDJB-MJHT</span><span style="height: 36px; padding: 0 12px; border-radius: 18px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: grid; place-items: center; font-weight: 700; font-size: 13px">Copy</span></div>
+<div style="display: flex; align-items: center; gap: 10px"><span style="flex: 1; height: 44px; border-radius: 22px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Open github.com/login/device</span></div>
+<div style="font-size: 12px; color: #C4C6D0">Waiting for you to approve · the code lasts 14 min · <span style="color: #B4C5FF; font-weight: 700">Use a token instead</span></div>
+</div>
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7FD6C8; flex: none"></span><span style="flex: 1; font-size: 13px">Signed in. The repository is private. This token can write.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="display: flex; align-items: center; gap: 10px"><span style="flex: 1">Send</span><div style="height: 36px; border-radius: 10px; background: #14161B; padding: 3px; box-sizing: border-box; display: grid; grid-template-columns: repeat(2, auto); gap: 3px"><div style="padding: 0 10px; border-radius: 7px; display: grid; place-items: center; font-size: 13px">By hand</div><div style="padding: 0 10px; border-radius: 7px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-size: 13px; font-weight: 700">Hourly</div></div></div>
+<div style="font-size: 12px; color: #C4C6D0">Never more than one send an hour, by hand or by itself, however many problems arrive. The rest wait for the next one.</div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 44px; border-radius: 22px; box-shadow: inset 0 0 0 1px #44474F; display: grid; place-items: center; font-weight: 700; color: #B4C5FF">Test it</span><span style="flex: 1; height: 44px; border-radius: 22px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Turn on</span></div>
+</div>
+<div style="border-radius: 16px; background: #3B1512; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="font-weight: 700; color: #FFDAD6">This repository is public</div>
+<div style="font-size: 13px; color: #FFB4AB">The problem log is sent as readable text, so it is only sent to a private repository. Make it private, or choose another.</div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">SEE WHAT IS SENT</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-family: 'Roboto Mono', monospace; font-size: 11px; line-height: 16px; color: #C4C6D0; background: #0C0D10; border-radius: 10px; padding: 8px 10px">2026-11-18 18:52 camera_recording<br>No clip kept for an event: rate_limited<br>camera: <span style="color: #FFDF9E">[camera 2]</span> &nbsp;address: <span style="color: #FFDF9E">[hidden]</span><br>seen 4 times, first 18:40<br>build 2026.11.1.525</div>
+<div style="font-size: 12px; color: #C4C6D0">Hidden before it is sent: passwords, tokens and keys, web addresses with sign-ins, network addresses, places and coordinates, people's names, and the names you gave your things (shown as "camera 2", "person 1").</div>
+<div style="min-height: 44px; display: flex; align-items: center; gap: 12px"><span style="flex: 1">Keep the names of my things readable</span><span style="width: 52px; height: 32px; border-radius: 16px; background: #262933; box-shadow: inset 0 0 0 2px #44474F; position: relative; flex: none"><span style="position: absolute; left: 8px; top: 8px; width: 16px; height: 16px; border-radius: 50%; background: #8E9099"></span></span></div>
+</div>
+</section>
+
+<section aria-label="In the repository, and rules" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">WHAT ARRIVES IN THE REPOSITORY</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; font-family: 'Roboto Mono', monospace; font-size: 12px; line-height: 20px; color: #C4C6D0">README.md<br>latest.md<br>problems/2026-11-18.md<br>problems/2026-11-17.md<br>problems/index.json<br>system.md</div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 4px">One commit each time it sends. <span style="font-family: 'Roboto Mono', monospace">latest.md</span> is the newest problems first; <span style="font-family: 'Roboto Mono', monospace">system.md</span> is the build, the versions and what is set up, with nothing private.</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">WHEN SENDING FAILS</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFDF9E; flex: none; margin-top: 6px"></span><div><div style="font-weight: 600">Could not send at 19:00</div><div style="font-size: 13px; color: #C4C6D0">The token was refused. Nothing was lost: 3 problems are waiting. Change the token in Settings.</div></div></div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">RULES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>Off until the owner turns it on. Only the owner can.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>Private repositories only. Whether it is private is read from the host each time before sending; if it has become public, nothing is sent and the page says why.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>Secrets and private details are hidden before anything leaves, and "See what is sent" shows the exact text first.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>Any problem can be held back, and stays held.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">5</span><span>It only ever sends. Nothing in the repository is read back as an instruction or changes the home.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">6</span><span>Sign-in is guided with a code the owner approves on GitHub; the sign-in is kept hidden and used only to send there. At most one send an hour.</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
