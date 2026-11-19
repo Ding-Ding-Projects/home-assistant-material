@@ -32,7 +32,6 @@ import {
   ttcStatusTone,
   ttcUpcoming,
 } from "../../../data/ttc";
-import type { LovelaceCardConfig } from "../../../data/lovelace/config/card";
 import { saveConfig } from "../../../data/lovelace/config/types";
 import { createDashboard } from "../../../data/lovelace/dashboard";
 import "../../../layouts/hass-subpage";
@@ -78,31 +77,6 @@ class HaConfigTtc extends LitElement {
       return;
     }
     this._dashboardState = "adding";
-    const cards: LovelaceCardConfig[] = [];
-    if (overview.watch.alerts) {
-      cards.push({ type: "ttc-alert-banner" });
-      if (overview.routes.some((route) => route.subway)) {
-        cards.push({ type: "ttc-subway" });
-      }
-    }
-    if (overview.watch.departures) {
-      for (const stop of overview.stops) {
-        cards.push({ type: "ttc-departures", stop: stop.stop });
-      }
-      if (overview.stops.length) {
-        cards.push({
-          type: "ttc-leave-by",
-          stop: overview.stops[0].stop,
-          walk_minutes: 6,
-        });
-      }
-    }
-    if (overview.watch.alerts) {
-      cards.push({ type: "ttc-route-alerts" });
-    }
-    if (overview.watch.lifts) {
-      cards.push({ type: "ttc-step-free" });
-    }
     try {
       const urlPath = `transit-${Date.now().toString(36)}`;
       await createDashboard(this.hass, {
@@ -114,7 +88,8 @@ class HaConfigTtc extends LitElement {
         show_in_sidebar: true,
       });
       await saveConfig(this.hass, urlPath, {
-        views: [{ title: this._l("dashboard_title"), path: "transit", cards }],
+        // The strategy rebuilds the cards whenever the chosen routes change.
+        strategy: { type: "transit" },
       });
       this._dashboardState = "added";
       navigate(`/${urlPath}`);

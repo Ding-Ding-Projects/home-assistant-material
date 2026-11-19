@@ -11,7 +11,7 @@ import type { HomeAssistant } from "../../../../types";
 import type { TtcCardConfig } from "../../cards/types";
 import type { LovelaceCardEditor } from "../../types";
 
-const STOP_TYPES = ["ttc-departures", "ttc-leave-by"];
+const STOP_TYPES = ["ttc-departures", "ttc-leave-by", "ttc-vehicles"];
 const ROUTES_TYPES = ["ttc-alert-banner", "ttc-route-alerts"];
 
 @customElement("hui-ttc-card-editor")
@@ -76,6 +76,21 @@ export class HuiTtcCardEditor extends LitElement implements LovelaceCardEditor {
               step: 1,
               mode: "slider",
               unit_of_measurement: "min",
+            },
+          },
+        });
+      }
+      if (type === "ttc-line-history") {
+        schema.push({
+          name: "route",
+          selector: {
+            select: {
+              mode: "dropdown",
+              custom_value: true,
+              options: (overview?.routes ?? []).map((route) => ({
+                value: route.route,
+                label: route.name,
+              })),
             },
           },
         });

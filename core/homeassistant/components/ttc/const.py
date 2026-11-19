@@ -27,6 +27,7 @@ REQUEST_TIMEOUT: Final = 20
 ALERTS_INTERVAL: Final = timedelta(seconds=60)
 LIFTS_INTERVAL: Final = timedelta(minutes=3)
 PREDICTIONS_INTERVAL: Final = timedelta(seconds=45)
+VEHICLES_INTERVAL: Final = timedelta(seconds=25)
 STATIC_INTERVAL: Final = timedelta(days=1)
 MAX_BACKOFF: Final = timedelta(minutes=15)
 
@@ -34,10 +35,12 @@ MAX_BACKOFF: Final = timedelta(minutes=15)
 ALERTS_STALE_AFTER: Final = timedelta(minutes=10)
 LIFTS_STALE_AFTER: Final = timedelta(minutes=20)
 PREDICTIONS_STALE_AFTER: Final = timedelta(minutes=3)
+VEHICLES_STALE_AFTER: Final = timedelta(minutes=2)
 
 FEED_ALERTS: Final = "alerts"
 FEED_LIFTS: Final = "lifts"
 FEED_DEPARTURES: Final = "departures"
+FEED_VEHICLES: Final = "vehicles"
 
 STATUS_REGULAR: Final = "regular"
 STATUS_SLOW: Final = "slow"

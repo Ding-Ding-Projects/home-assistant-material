@@ -1,20 +1,33 @@
 import { mdiAlert } from "@mdi/js";
-import type { PropertyValues, TemplateResult } from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { resolveTimeZone } from "../../../common/datetime/resolve-time-zone";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import "../../../components/ha-card";
 import "../../../components/ha-svg-icon";
-import type { TtcOverview, TtcRoute, TtcStop } from "../../../data/ttc";
+import "../../../components/map/ha-map";
+import { subscribeHistoryStatesTimeWindow } from "../../../data/history";
+import type {
+  TtcOverview,
+  TtcRoute,
+  TtcRouteStatus,
+  TtcStatusSegment,
+  TtcStop,
+  TtcVehiclePositions,
+} from "../../../data/ttc";
 import {
   fetchTtcOverview,
+  subscribeTtcVehicles,
   TTC_STATUS_ORDER,
   ttcClock,
+  ttcDistance,
   ttcMinutesUntil,
   ttcRouteColor,
+  ttcStatusSegments,
   ttcStatusTone,
   ttcUpcoming,
 } from "../../../data/ttc";
@@ -29,6 +42,8 @@ export const TTC_CARD_TYPES = [
   "ttc-leave-by",
   "ttc-route-alerts",
   "ttc-step-free",
+  "ttc-vehicles",
+  "ttc-line-history",
 ] as const;
 
 export type TtcCardType = (typeof TTC_CARD_TYPES)[number];
@@ -182,7 +197,7 @@ abstract class HuiTtcCardBase extends LitElement implements LovelaceCard {
       : overview.routes;
   }
 
-  static styles = css`
+  static styles: CSSResultGroup = css`
     ha-card {
       padding: var(--ha-space-3);
       display: flex;
@@ -557,8 +572,22 @@ class HuiTtcStepFreeCard extends HuiTtcCardBase {
             ${
               station.elevators.length
                 ? html`<div class="bars" aria-hidden="true">
-                    ${station.elevators.map(() => html`<span class="bar out"></span>`)}
-                  </div>`
+                      ${station.elevators.map(
+                        () => html`<span class="bar out"></span>`
+                      )}
+                    </div>
+                    ${station.elevators.map(
+                      (alert) =>
+                        html`<div class="secondary">
+                          ${
+                            alert.destination
+                              ? this._l("not_step_free_to", {
+                                  place: alert.destination,
+                                })
+                              : this._l("not_step_free")
+                          }
+                        </div>`
+                    )}`
                 : nothing
             }
           </div>
@@ -582,6 +611,366 @@ class HuiTtcStepFreeCard extends HuiTtcCardBase {
   }
 }
 
+// Vehicles further than this from the stop are left off the strip.
+const NEAR_METRES = 2500;
+
+class HuiTtcVehiclesCard extends HuiTtcCardBase {
+  public static getStubConfig(): TtcCardConfig {
+    return { type: "ttc-vehicles" };
+  }
+
+  protected _titleKey = "vehicles";
+
+  @state() private _positions?: TtcVehiclePositions;
+
+  @state() private _expanded = false;
+
+  private _unsubscribe?: Promise<UnsubscribeFunc>;
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this._subscribe();
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    // Closing the subscription is what stops the integration asking the agency.
+    this._unsubscribe
+      ?.then((unsubscribe) => unsubscribe())
+      .catch(() => undefined);
+    this._unsubscribe = undefined;
+  }
+
+  protected updated(changed: PropertyValues): void {
+    super.updated(changed);
+    if (changed.has("hass") && !changed.get("hass")) {
+      this._subscribe();
+    }
+  }
+
+  private _subscribe(): void {
+    if (this._unsubscribe || !this.hass || !this.isConnected) {
+      return;
+    }
+    this._unsubscribe = subscribeTtcVehicles(this.hass, (positions) => {
+      this._positions = positions;
+      this._now = Date.now();
+    });
+    this._unsubscribe.catch(() => {
+      this._unsubscribe = undefined;
+    });
+  }
+
+  protected _fresh(): boolean {
+    return this._positions?.fresh ?? false;
+  }
+
+  private _toggle(): void {
+    this._expanded = !this._expanded;
+  }
+
+  protected _renderContent(overview: TtcOverview): TemplateResult {
+    const positions = this._positions;
+    const stop = this._stop(overview);
+    const place = stop ? positions?.stops[stop.stop] : undefined;
+    if (!positions || !stop) {
+      return html`<div class="empty">
+        ${stop ? this._l("loading") : this._l("no_stop")}
+      </div>`;
+    }
+    if (!place || place.latitude === null || place.longitude === null) {
+      return html`<div class="empty">${this._l("no_stop_place")}</div>`;
+    }
+    const lat = place.latitude;
+    const lon = place.longitude;
+    const near = positions.vehicles.filter(
+      (vehicle) =>
+        (!this._config?.route || vehicle.route === this._config.route) &&
+        ttcDistance(lat, lon, vehicle.latitude, vehicle.longitude) <=
+          NEAR_METRES
+    );
+    const age =
+      Math.min(...near.map((vehicle) => vehicle.seconds_since_report), 9999) +
+      Math.round(
+        (this._now - new Date(positions.read_at ?? this._now).getTime()) / 1000
+      );
+    const x = (vehicleLon: number) =>
+      50 +
+      (((vehicleLon - lon) * Math.cos((lat * Math.PI) / 180) * 111320) /
+        NEAR_METRES) *
+        46;
+    const y = (vehicleLat: number) =>
+      50 - (((vehicleLat - lat) * 110540) / NEAR_METRES) * 40;
+    return html`<button
+        class="strip"
+        aria-expanded=${this._expanded ? "true" : "false"}
+        aria-label=${this._l("open_map")}
+        @click=${this._toggle}
+      >
+        <span class="road h"></span><span class="road v"></span>
+        <span
+          class="here"
+          style=${styleMap({ left: "50%", top: "50%" })}
+        ></span>
+        ${near.map((vehicle) => {
+          const color = ttcRouteColor(vehicle.route);
+          return html`<span
+            class="vehicle"
+            style=${styleMap({
+              left: `${Math.min(96, Math.max(4, x(vehicle.longitude)))}%`,
+              top: `${Math.min(92, Math.max(8, y(vehicle.latitude)))}%`,
+              background: color.bg,
+              color: color.fg,
+            })}
+            >${vehicle.route}</span
+          >`;
+        })}
+      </button>
+      ${
+        this._expanded
+          ? html`<ha-map
+              class="map"
+              .hass=${this.hass}
+              .paths=${[
+                {
+                  name: place.title,
+                  points: [{ point: [lat, lon], timestamp: new Date() }],
+                },
+                ...near.map((vehicle) => ({
+                  name: `${vehicle.route} · ${vehicle.vehicle}`,
+                  color: ttcRouteColor(vehicle.route).bg,
+                  points: [
+                    {
+                      point: [vehicle.latitude, vehicle.longitude],
+                      timestamp: new Date(
+                        Date.now() - vehicle.seconds_since_report * 1000
+                      ),
+                    },
+                  ],
+                })),
+              ]}
+              auto-fit
+            ></ha-map>`
+          : nothing
+      }
+      <div class="secondary">
+        ${
+          near.length
+            ? this._l("positions_age", { seconds: age })
+            : this._l("no_vehicles")
+        }
+        · ${this._l(this._expanded ? "close_map" : "tap_for_map")}
+      </div>`;
+  }
+
+  static styles = [
+    HuiTtcCardBase.styles,
+    css`
+      .strip {
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 110px;
+        border: none;
+        padding: 0;
+        border-radius: var(--ha-border-radius-lg, 12px);
+        background: var(--secondary-background-color);
+        overflow: hidden;
+        cursor: pointer;
+      }
+      .road {
+        position: absolute;
+        background: var(--divider-color);
+      }
+      .road.h {
+        left: 0;
+        right: 0;
+        top: calc(50% - 1px);
+        height: 3px;
+      }
+      .road.v {
+        top: 0;
+        bottom: 0;
+        left: calc(50% - 1px);
+        width: 3px;
+      }
+      .here {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        margin: -9px 0 0 -9px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        box-shadow: 0 0 0 4px
+          color-mix(in srgb, var(--primary-color) 25%, transparent);
+      }
+      .vehicle {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        height: 22px;
+        padding: 0 6px;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        font-size: var(--ha-font-size-xs);
+        font-weight: var(--ha-font-weight-bold);
+      }
+      .map {
+        height: 260px;
+        border-radius: var(--ha-border-radius-lg, 12px);
+        overflow: hidden;
+      }
+    `,
+  ];
+}
+
+const HISTORY_HOURS = 24;
+
+class HuiTtcLineHistoryCard extends HuiTtcCardBase {
+  public static getStubConfig(): TtcCardConfig {
+    return { type: "ttc-line-history", route: "1" };
+  }
+
+  protected _titleKey = "line_history";
+
+  @state() private _segments?: TtcStatusSegment[];
+
+  private _historyEntity?: string;
+
+  private _unsubscribeHistory?: Promise<() => Promise<void>>;
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._stopHistory();
+  }
+
+  private _stopHistory(): void {
+    this._unsubscribeHistory
+      ?.then((unsubscribe) => unsubscribe())
+      .catch(() => undefined);
+    this._unsubscribeHistory = undefined;
+    this._historyEntity = undefined;
+  }
+
+  protected updated(changed: PropertyValues): void {
+    super.updated(changed);
+    const route = this._overview?.routes.find(
+      (item) => item.route === (this._config?.route ?? "1")
+    );
+    const entity = route?.status_entity ?? undefined;
+    if (!this.hass || !entity || entity === this._historyEntity) {
+      return;
+    }
+    this._stopHistory();
+    this._historyEntity = entity;
+    this._unsubscribeHistory = subscribeHistoryStatesTimeWindow(
+      this.hass,
+      (history) => {
+        const end = Date.now();
+        this._segments = ttcStatusSegments(
+          history[entity] ?? [],
+          end - HISTORY_HOURS * 3600000,
+          end
+        );
+      },
+      HISTORY_HOURS,
+      [entity],
+      true
+    );
+  }
+
+  protected _renderContent(overview: TtcOverview): TemplateResult {
+    const route = overview.routes.find(
+      (item) => item.route === (this._config?.route ?? "1")
+    );
+    if (!route?.status_entity) {
+      return html`<div class="empty">${this._l("no_history_route")}</div>`;
+    }
+    const segments = this._segments;
+    if (!segments) {
+      return html`<div class="empty">${this._l("loading")}</div>`;
+    }
+    if (!segments.length) {
+      return html`<div class="empty">${this._l("no_history")}</div>`;
+    }
+    const totals = new Map<string, number>();
+    for (const segment of segments) {
+      totals.set(
+        segment.status,
+        (totals.get(segment.status) ?? 0) + segment.end - segment.start
+      );
+    }
+    const end = Date.now();
+    const start = end - HISTORY_HOURS * 3600000;
+    const ticks = [0, 6, 12, 18, 24].map((hour) =>
+      new Date(start + hour * 3600000).toISOString()
+    );
+    return html`<div class="secondary">${route.name}</div>
+      <div class="history" role="img" aria-label=${this._l("line_history")}>
+        ${segments.map(
+          (segment) =>
+            html`<span
+              class="segment tone-bg-${ttcStatusTone(segment.status as TtcRouteStatus)}"
+              style=${styleMap({ flex: String(segment.end - segment.start) })}
+              title=${this._l(`status_${segment.status}`)}
+            ></span>`
+        )}
+      </div>
+      <div class="ticks">
+        ${ticks.map((tick) => html`<span>${this._clock(tick)}</span>`)}
+      </div>
+      <div class="secondary">
+        ${[...totals.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(
+            ([status, ms]) =>
+              `${this._l(`status_${status}`)} ${this._l("duration", {
+                hours: Math.floor(ms / 3600000),
+                minutes: Math.round((ms % 3600000) / 60000),
+              })}`
+          )
+          .join(" · ")}
+      </div>`;
+  }
+
+  static styles = [
+    HuiTtcCardBase.styles,
+    css`
+      .history {
+        display: flex;
+        gap: 2px;
+        height: 20px;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .segment {
+        min-width: 1px;
+      }
+      .tone-bg-good {
+        background: var(--success-color);
+      }
+      .tone-bg-warn {
+        background: var(--warning-color);
+      }
+      .tone-bg-bad {
+        background: var(--error-color);
+      }
+      .tone-bg-unknown {
+        background: var(--disabled-color);
+      }
+      .ticks {
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--ha-font-family-code);
+        font-size: var(--ha-font-size-xs);
+        color: var(--secondary-text-color);
+      }
+    `,
+  ];
+}
+
+customElements.define("hui-ttc-vehicles-card", HuiTtcVehiclesCard);
+customElements.define("hui-ttc-line-history-card", HuiTtcLineHistoryCard);
 customElements.define("hui-ttc-alert-banner-card", HuiTtcAlertBannerCard);
 customElements.define("hui-ttc-subway-card", HuiTtcSubwayCard);
 customElements.define("hui-ttc-departures-card", HuiTtcDeparturesCard);
@@ -597,5 +986,7 @@ declare global {
     "hui-ttc-leave-by-card": HuiTtcLeaveByCard;
     "hui-ttc-route-alerts-card": HuiTtcRouteAlertsCard;
     "hui-ttc-step-free-card": HuiTtcStepFreeCard;
+    "hui-ttc-vehicles-card": HuiTtcVehiclesCard;
+    "hui-ttc-line-history-card": HuiTtcLineHistoryCard;
   }
 }

@@ -12,6 +12,7 @@ from homeassistant.util import dt as dt_util
 
 from .api import (
     LiveAlerts,
+    RouteStop,
     StopPredictions,
     TTCClient,
     TTCConnectionError,
@@ -19,6 +20,7 @@ from .api import (
     TTCError,
     TTCInvalidStopError,
     TTCRefusedError,
+    Vehicle,
 )
 from .const import (
     ALERTS_INTERVAL,
@@ -33,12 +35,16 @@ from .const import (
     FEED_ALERTS,
     FEED_DEPARTURES,
     FEED_LIFTS,
+    FEED_VEHICLES,
     LIFTS_INTERVAL,
     LIFTS_STALE_AFTER,
     LOGGER,
     MAX_BACKOFF,
     PREDICTIONS_INTERVAL,
     PREDICTIONS_STALE_AFTER,
+    SUBWAY_LINES,
+    VEHICLES_INTERVAL,
+    VEHICLES_STALE_AFTER,
 )
 
 # Sent after every update of any feed, so automation triggers keep working
@@ -234,6 +240,67 @@ class TTCPredictionsCoordinator(TTCFeedCoordinator[dict[str, StopPredictions]]):
         return dt_util.utcnow() - self.data[stop].read_at <= self.stale_after
 
 
+@dataclass(frozen=True, slots=True)
+class VehiclePositions:
+    """Vehicle positions of the routes serving the chosen stops."""
+
+    read_at: datetime
+    vehicles: tuple[Vehicle, ...]
+    stops: dict[str, RouteStop]
+
+
+class TTCVehiclesCoordinator(TTCFeedCoordinator[VehiclePositions]):
+    """Reads vehicle positions, only while a page or card is showing them.
+
+    No entity listens to this coordinator, so it polls only while a websocket
+    subscription holds a listener, and stops as soon as the last one leaves.
+    """
+
+    feed = FEED_VEHICLES
+    stale_after = VEHICLES_STALE_AFTER
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: TTCConfigEntry,
+        client: TTCClient,
+        stops: list[str],
+        predictions: TTCPredictionsCoordinator,
+    ) -> None:
+        """Initialize the coordinator."""
+        super().__init__(hass, entry, client, VEHICLES_INTERVAL)
+        self.stops = stops
+        self.predictions = predictions
+        self._places: dict[str, RouteStop] = {}
+        self._routes_with_places: set[str] = set()
+
+    def routes(self) -> list[str]:
+        """Return the surface routes predicted at the chosen stops."""
+        found = {
+            item.route
+            for stop in (self.predictions.data or {}).values()
+            for item in stop.predictions
+        }
+        return sorted(route for route in found if route not in SUBWAY_LINES)
+
+    @override
+    async def _async_fetch(self) -> VehiclePositions:
+        vehicles: list[Vehicle] = []
+        for route in self.routes():
+            if route not in self._routes_with_places:
+                # Stop positions change rarely; read them once per route.
+                self._routes_with_places.add(route)
+                for place in await self.client.async_get_route_stops(route):
+                    if place.stop in self.stops:
+                        self._places[place.stop] = place
+            vehicles.extend(await self.client.async_get_vehicles(route))
+        return VehiclePositions(
+            read_at=dt_util.utcnow(),
+            vehicles=tuple(vehicles),
+            stops=dict(self._places),
+        )
+
+
 @dataclass
 class TTCRuntimeData:
     """Runtime data of a TTC config entry."""
@@ -246,6 +313,8 @@ class TTCRuntimeData:
     alerts: TTCAlertsCoordinator | None = None
     lifts: TTCLiftsCoordinator | None = None
     predictions: TTCPredictionsCoordinator | None = None
+    # Kept out of `coordinators`: entities must never keep it polling.
+    vehicles: TTCVehiclesCoordinator | None = None
 
     @property
     def coordinators(self) -> list[TTCFeedCoordinator[Any]]:
@@ -279,4 +348,7 @@ def build_runtime_data(
         data.lifts = TTCLiftsCoordinator(hass, entry, client)
     if settings.get(CONF_WATCH_DEPARTURES) and stops:
         data.predictions = TTCPredictionsCoordinator(hass, entry, client, stops)
+        data.vehicles = TTCVehiclesCoordinator(
+            hass, entry, client, stops, data.predictions
+        )
     return data

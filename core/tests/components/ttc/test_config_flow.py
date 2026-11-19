@@ -155,6 +155,9 @@ async def test_route_list_unavailable(
             None, ["King and Dufferin"], {CONF_STOPS: "invalid_stop"}, id="not_a_number"
         ),
         pytest.param(None, [], {CONF_STOPS: "no_stops"}, id="none"),
+        pytest.param(
+            None, ["St George"], {CONF_STOPS: "subway_not_offered"}, id="subway"
+        ),
     ],
 )
 @pytest.mark.usefixtures("mock_setup_entry")

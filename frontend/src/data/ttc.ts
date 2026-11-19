@@ -9,6 +9,8 @@ export type TtcAlertKind = "route" | "elevator" | "escalator" | "general";
 /** One alert, with the agency's own text in `text`, as written. */
 export interface TtcAlert {
   id: string;
+  /** For an elevator, the place it cuts off, when the agency's text names one. */
+  destination: string | null;
   kind: TtcAlertKind;
   routes: string[];
   route_type: string | null;
@@ -54,6 +56,8 @@ export interface TtcRoute {
   route: string;
   name: string;
   subway: boolean;
+  /** The recorded route status sensor, when it exists. */
+  status_entity: string | null;
   status: TtcRouteStatus | null;
   alerts: TtcAlert[];
 }
@@ -164,4 +168,125 @@ export const ttcClock = (
     hourCycle: "h23",
     timeZone,
   });
+};
+
+/** A vehicle position as the vehicle last reported it. */
+export interface TtcVehicle {
+  vehicle: string;
+  route: string;
+  latitude: number;
+  longitude: number;
+  heading: number | null;
+  seconds_since_report: number;
+  direction: string | null;
+  predictable: boolean;
+}
+
+export interface TtcVehiclePositions {
+  read_at: string | null;
+  fresh: boolean;
+  last_error: TtcFeedState["last_error"];
+  routes: string[];
+  vehicles: TtcVehicle[];
+  stops: Record<
+    string,
+    { title: string; latitude: number | null; longitude: number | null }
+  >;
+}
+
+/**
+ * Vehicle positions while subscribed. The integration only asks the agency
+ * while at least one subscription is open, so close it when not showing them.
+ */
+export const subscribeTtcVehicles = (
+  hass: HomeAssistant,
+  callback: (positions: TtcVehiclePositions) => void
+) =>
+  hass.connection.subscribeMessage<TtcVehiclePositions>(callback, {
+    type: "ttc/vehicles/subscribe",
+  });
+
+/** Metres between two points, close enough for a few kilometres. */
+export const ttcDistance = (
+  aLat: number,
+  aLon: number,
+  bLat: number,
+  bLon: number
+): number => {
+  const x =
+    (bLon - aLon) * Math.cos((((aLat + bLat) / 2) * Math.PI) / 180) * 111320;
+  const y = (bLat - aLat) * 110540;
+  return Math.sqrt(x * x + y * y);
+};
+
+/** One stretch of a route status over time. */
+export interface TtcStatusSegment {
+  status: string;
+  start: number;
+  end: number;
+}
+
+/** Turn recorded states into stretches between `start` and `end` (ms). */
+export const ttcStatusSegments = (
+  states: { s: string; lu?: number; lc?: number }[],
+  start: number,
+  end: number
+): TtcStatusSegment[] => {
+  const segments: TtcStatusSegment[] = [];
+  const points = states
+    .map((item) => ({ status: item.s, at: ((item.lc ?? item.lu) || 0) * 1000 }))
+    .sort((a, b) => a.at - b.at);
+  points.forEach((point, index) => {
+    const from = Math.max(point.at, start);
+    const to = Math.min(points[index + 1]?.at ?? end, end);
+    if (to <= from) {
+      return;
+    }
+    const last = segments[segments.length - 1];
+    if (last && last.status === point.status && last.end === from) {
+      last.end = to;
+    } else {
+      segments.push({ status: point.status, start: from, end: to });
+    }
+  });
+  return segments;
+};
+
+/** The cards of the transit dashboard, built from what the integration watches. */
+export const ttcDashboardCards = (
+  overview: TtcOverview
+): Record<string, unknown>[] => {
+  const cards: Record<string, unknown>[] = [];
+  if (overview.watch.alerts) {
+    cards.push({ type: "ttc-alert-banner" });
+    if (overview.routes.some((route) => route.subway)) {
+      cards.push({ type: "ttc-subway" });
+    }
+  }
+  if (overview.watch.departures) {
+    for (const stop of overview.stops) {
+      cards.push({ type: "ttc-departures", stop: stop.stop });
+    }
+    if (overview.stops.length) {
+      cards.push({
+        type: "ttc-leave-by",
+        stop: overview.stops[0].stop,
+        walk_minutes: 6,
+      });
+      cards.push({ type: "ttc-vehicles", stop: overview.stops[0].stop });
+    }
+  }
+  if (overview.watch.alerts) {
+    cards.push({ type: "ttc-route-alerts" });
+  }
+  if (overview.watch.lifts) {
+    cards.push({ type: "ttc-step-free" });
+  }
+  if (overview.watch.alerts) {
+    const line = overview.routes.find((route) => route.subway);
+    if (line) {
+      cards.push({ type: "ttc-line-history", route: line.route });
+    }
+  }
+  return cards;
 };

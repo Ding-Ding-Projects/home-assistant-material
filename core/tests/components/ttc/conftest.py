@@ -34,6 +34,7 @@ STOPS = ["8126"]
 PREDICTIONS_URL = f"{NEXTBUS_URL}?command=predictions"
 ROUTE_LIST_URL = f"{NEXTBUS_URL}?command=routeList"
 ROUTE_CONFIG_URL = f"{NEXTBUS_URL}?command=routeConfig"
+VEHICLES_URL = f"{NEXTBUS_URL}?command=vehicleLocations"
 
 
 def live_alerts() -> dict[str, Any]:
@@ -61,6 +62,10 @@ def mock_feeds(
     aioclient_mock.get(
         ROUTE_CONFIG_URL,
         json=load_json_object_fixture("route_config_504.json", DOMAIN),
+    )
+    aioclient_mock.get(
+        VEHICLES_URL,
+        json=load_json_object_fixture("vehicle_locations_504.json", DOMAIN),
     )
 
 

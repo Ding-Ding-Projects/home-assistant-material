@@ -25,6 +25,7 @@
     "error": {
       "cannot_connect": "The TTC did not answer. Try again in a minute.",
       "invalid_stop": "One of the stop numbers is not known to the TTC. Stop numbers are printed on the stop sign.",
+      "subway_not_offered": "Next train times for subway stations are not offered by the TTC's public information. Choose a bus or streetcar stop number instead.",
       "no_stations": "Choose at least one station, or turn off elevators and escalators in the first step.",
       "no_stops": "Choose at least one stop, or turn off next departures in the first step.",
       "nothing_chosen": "Choose at least one thing to watch.",
@@ -50,7 +51,7 @@
         "data_description": {
           "stops": "Stops on your routes, or type the stop number from the stop sign."
         },
-        "description": "Choose stops for next departures. Each is checked every 45 seconds.",
+        "description": "Choose bus and streetcar stops for next departures. Each is checked every 45 seconds. Next train times for subway stations are not offered by the TTC's public information.",
         "title": "Stops for next departures"
       },
       "user": {
@@ -161,7 +162,8 @@
       "invalid_stop": "[%key:component::ttc::config::error::invalid_stop%]",
       "no_stations": "[%key:component::ttc::config::error::no_stations%]",
       "no_stops": "[%key:component::ttc::config::error::no_stops%]",
-      "routes_unavailable": "[%key:component::ttc::config::error::routes_unavailable%]"
+      "routes_unavailable": "[%key:component::ttc::config::error::routes_unavailable%]",
+      "subway_not_offered": "[%key:component::ttc::config::error::subway_not_offered%]"
     },
     "step": {
       "routes": {

@@ -15,7 +15,7 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: TTCConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    page = overview(entry)
+    page = overview(hass, entry)
     return {
         "settings": entry_settings(entry),
         "feeds": page["feeds"],

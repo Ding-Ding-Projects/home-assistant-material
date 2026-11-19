@@ -1,0 +1,52 @@
+{
+  "lastTime": {
+    "time": "1795047449644"
+  },
+  "copyright": "All data copyright Toronto Transit Commission 2026.",
+  "vehicle": [
+    {
+      "routeTag": "504",
+      "predictable": "true",
+      "heading": "258",
+      "speedKmHr": "14",
+      "lon": "-79.401904",
+      "id": "8374",
+      "dirTag": "504_1_504Cbus",
+      "lat": "43.6441393",
+      "secsSinceReport": "5"
+    },
+    {
+      "routeTag": "504",
+      "predictable": "true",
+      "heading": "254",
+      "speedKmHr": "14",
+      "lon": "-79.4012578",
+      "id": "8496",
+      "dirTag": "504_1_504Cbus",
+      "lat": "43.64424",
+      "secsSinceReport": "6"
+    },
+    {
+      "routeTag": "504",
+      "predictable": "true",
+      "heading": "254",
+      "speedKmHr": "34",
+      "lon": "-79.369521",
+      "id": "8199",
+      "dirTag": "504_1_504Cbus",
+      "lat": "43.6509916",
+      "secsSinceReport": "6"
+    },
+    {
+      "routeTag": "504",
+      "predictable": "true",
+      "heading": "241",
+      "speedKmHr": "0",
+      "lon": "-79.3583374",
+      "id": "4496",
+      "dirTag": "504_1_504Acon",
+      "lat": "43.6556587",
+      "secsSinceReport": "7"
+    }
+  ]
+}

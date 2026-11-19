@@ -21,7 +21,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .api import TTCClient, TTCError, TTCInvalidStopError, route_name
+from .api import TTCClient, TTCError, TTCInvalidStopError, normalize_station, route_name
 from .const import (
     CONF_ROUTES,
     CONF_STATIONS,
@@ -37,6 +37,7 @@ from .const import (
 
 TITLE = "TTC transit"
 MAX_ROUTES_FOR_STOP_LIST = 8
+SUBWAY_STATIONS = {normalize_station(name) for name in STATIONS}
 
 WATCH_SCHEMA = probatio.Schema(
     {
@@ -161,6 +162,8 @@ class _TTCSteps:
         client = self._client()
         for stop in stops:
             if not stop.isdigit():
+                if normalize_station(stop) in SUBWAY_STATIONS:
+                    return {CONF_STOPS: "subway_not_offered"}
                 return {CONF_STOPS: "invalid_stop"}
             try:
                 await client.async_get_predictions(stop)

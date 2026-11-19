@@ -3,6 +3,7 @@
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+import re
 from typing import Any
 
 from aiohttp import ClientError, ClientSession
@@ -27,6 +28,12 @@ from .const import (
     STATUS_SLOW,
     SUBWAY_LINES,
     USER_AGENT,
+)
+
+# "out of service between concourse and Line 2 westbound platform due to ..."
+_DESTINATION = re.compile(
+    r"\b(?:between .+? and|to) (.+?)(?=\s+(?:due|while|for|because)\b|[.,;]|$)",
+    re.IGNORECASE,
 )
 
 
@@ -97,10 +104,20 @@ class ServiceAlert:
             return STATUS_DELAY
         return STATUS_DELAY
 
+    @property
+    def destination(self) -> str | None:
+        """Return the place an elevator outage cuts off, when the text names one."""
+        if self.kind != KIND_ELEVATOR:
+            return None
+        if match := _DESTINATION.search(self.header_text):
+            return match.group(1).strip()
+        return None
+
     def as_dict(self) -> dict[str, Any]:
         """Return the alert as plain data, with the agency's text as written."""
         return {
             "id": self.alert_id,
+            "destination": self.destination,
             "kind": self.kind,
             "routes": list(self.routes),
             "route_type": self.route_type,
@@ -214,6 +231,57 @@ class RouteStop:
 
     stop: str
     title: str
+    latitude: float | None = None
+    longitude: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Vehicle:
+    """A vehicle position as reported by the vehicle itself."""
+
+    vehicle: str
+    route: str
+    latitude: float
+    longitude: float
+    heading: int | None
+    seconds_since_report: int
+    direction: str | None
+    predictable: bool
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return the position as plain data."""
+        return {
+            "vehicle": self.vehicle,
+            "route": self.route,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "heading": self.heading,
+            "seconds_since_report": self.seconds_since_report,
+            "direction": self.direction,
+            "predictable": self.predictable,
+        }
+
+
+def parse_vehicles(payload: Any, route: str) -> list[Vehicle]:
+    """Parse the vehicle locations of one route."""
+    if not isinstance(payload, dict) or "Error" in payload:
+        raise TTCDataError("The vehicle locations did not have the expected shape")
+    try:
+        return [
+            Vehicle(
+                vehicle=str(item["id"]),
+                route=str(item.get("routeTag") or route),
+                latitude=float(item["lat"]),
+                longitude=float(item["lon"]),
+                heading=int(item["heading"]) if item.get("heading") else None,
+                seconds_since_report=int(item.get("secsSinceReport") or 0),
+                direction=item.get("dirTag"),
+                predictable=item.get("predictable") == "true",
+            )
+            for item in _as_list(payload.get("vehicle"))
+        ]
+    except (KeyError, TypeError, ValueError) as err:
+        raise TTCDataError("A vehicle could not be read") from err
 
 
 def normalize_station(name: str) -> str:
@@ -434,6 +502,14 @@ class TTCClient:
         except (KeyError, TypeError) as err:
             raise TTCDataError("A route could not be read") from err
 
+    async def async_get_vehicles(self, route: str) -> list[Vehicle]:
+        """Return the reported positions of one surface route's vehicles."""
+        payload = await self._get_json(
+            NEXTBUS_URL,
+            {"command": "vehicleLocations", "a": NEXTBUS_AGENCY, "r": route, "t": "0"},
+        )
+        return parse_vehicles(payload, route)
+
     async def async_get_route_stops(self, route: str) -> list[RouteStop]:
         """Return the stops a surface route serves."""
         payload = await self._get_json(
@@ -444,7 +520,12 @@ class TTCClient:
             return []
         try:
             return [
-                RouteStop(stop=str(item["stopId"]), title=str(item["title"]))
+                RouteStop(
+                    stop=str(item["stopId"]),
+                    title=str(item["title"]),
+                    latitude=float(item["lat"]) if item.get("lat") else None,
+                    longitude=float(item["lon"]) if item.get("lon") else None,
+                )
                 for item in _as_list(payload["route"].get("stop"))
                 if item.get("stopId")
             ]
