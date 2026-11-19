@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A pointer on the disk instead of the whole backup</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 980px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Asked for by the owner: once a backup is safely in the container registry, keep only a pointer on the disk, to save space.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Setting and list" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">BACKUPS · SAVING SPACE</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Keep only a pointer here</div><div style="font-size: 12px; color: #C4C6D0">After a backup is in the registry and checked, the copy on this disk is replaced by a small pointer.</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; position: relative; flex: none"><span style="position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="flex: 1">Always keep whole on this disk</span><div style="height: 36px; border-radius: 10px; background: #14161B; padding: 3px; box-sizing: border-box; display: grid; grid-template-columns: repeat(3, auto); gap: 3px"><div style="padding: 0 10px; border-radius: 7px; display: grid; place-items: center; font-size: 13px">None</div><div style="padding: 0 10px; border-radius: 7px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-size: 13px; font-weight: 700">Newest 1</div><div style="padding: 0 10px; border-radius: 7px; display: grid; place-items: center; font-size: 13px">Newest 3</div></div></div>
+</div>
+<div style="border-radius: 16px; background: #1F3A34; padding: 12px; display: flex; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7FD6C8; flex: none; margin-top: 6px"></span><div><div style="font-weight: 600; color: #C8F2EA">1.9 GB saved on this disk</div><div style="font-size: 13px; color: #A8DCD2">5 backups are pointers. The newest one is kept whole so a restore works with no network.</div></div></div>
+
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #262933; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v12H4z"/><path d="M4 7l2-3h12l2 3"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Automatic backup</div><div style="font-size: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">19 Nov 04:45</span> · 402 MB · whole here · in the registry</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #1B2A4A; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B4C5FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Automatic backup</div><div style="font-size: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">18 Nov 04:45</span> · <span style="color: #B4C5FF">Pointer</span> · 398 MB in the registry · 2 KB here</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #3B1512; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFB4AB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l1-1"/><path d="M14 10a4 4 0 0 0-5.7 0l-1 1"/><path d="M4 4l16 16"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Automatic backup</div><div style="font-size: 12px; color: #FFB4AB"><span style="font-family: 'Roboto Mono', monospace">11 Nov 04:45</span> · Pointer · the registry copy is missing</div></div></div>
+</div>
+</section>
+
+<section aria-label="One pointer" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">ONE POINTER</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="flex: 1; color: #C4C6D0">On this disk</span><span style="font-weight: 600">Pointer · 2 KB</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="flex: 1; color: #C4C6D0">In the registry</span><span style="font-weight: 600">398 MB · locked</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="flex: 1; color: #C4C6D0">Last checked there</span><span style="font-family: 'Roboto Mono', monospace; font-size: 13px">19 Nov 05:10 · all parts present</span></div>
+</div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 44px; border-radius: 22px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Restore</span><span style="flex: 1; height: 44px; border-radius: 22px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: grid; place-items: center; font-weight: 700">Bring back here</span></div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 4px">Restore brings it back first, checks it, then restores. Both need the registry to answer.</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">BRINGING IT BACK</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-weight: 600">Bringing back the backup of 18 Nov</div>
+<div style="font-size: 12px; color: #C4C6D0">Started <span style="font-family: 'Roboto Mono', monospace">09:12</span> · <span style="font-family: 'Roboto Mono', monospace">146 of 398 MB</span> · part 147 of 399</div>
+<div style="height: 4px; border-radius: 2px; background: #2A2D36; overflow: hidden"><div style="width: 37%; height: 100%; background: #B4C5FF; border-radius: 2px"></div></div>
+</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">WHEN IT IS NOT MADE A POINTER</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFDF9E; flex: none; margin-top: 6px"></span><div><div style="font-weight: 600">Kept whole: the registry copy could not be checked</div><div style="font-size: 13px; color: #C4C6D0">The registry did not answer at 05:10. The copy here stays until a check passes.</div></div></div>
+</section>
+
+<section aria-label="Rules" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">RULES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>Off until the owner turns it on, and only where the registry place is set up with its password.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>The copy on this disk is replaced only after the registry copy was read back and every part checked. Failed, unknown or "did not answer" keeps the whole copy.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>The newest backup is always kept whole by default, so one restore works with no network. The owner may choose none or three.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>A pointer holds no key and no password: only which backup it is, where it is, its size and its check value.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">5</span><span>Pointers are checked against the registry each day. A missing copy turns the row red; it is never shown as a backup that can be restored.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">6</span><span>Counts are honest: "whole here" and "pointer" are counted apart, and a pointer is never called a local backup.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">7</span><span>A delete proof backup keeps its mark as a pointer: neither the pointer nor the registry copy can be deleted. The backup made before going back is kept whole until that going back has finished.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">8</span><span>Said plainly on the page: with only pointers, losing the registry account or the password means losing those backups.</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
