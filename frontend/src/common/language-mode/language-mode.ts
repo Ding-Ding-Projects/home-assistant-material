@@ -34,6 +34,8 @@ export const YUE_PREFIXES = [
   "ui.panel.config.automation.editor.triggers.type.time_pattern.expression",
   "ui.panel.config.backup.hosting.",
   "ui.panel.config.backup.self_check.",
+  "ui.panel.config.backup.pointers.",
+  "ui.panel.config.backup.delete_proof.",
   // Page captions: the settings home tiles, page titles and tab labels.
   "ui.panel.config.backup.caption",
   "ui.panel.config.integrations.caption",

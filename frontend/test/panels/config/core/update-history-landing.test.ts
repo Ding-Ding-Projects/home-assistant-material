@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  annotateGoBack,
   loadPendingGoBack,
   storeHistory,
   storePendingGoBack,
@@ -30,6 +31,34 @@ describe("landing on the build that was gone back to", () => {
     expect(first).toEqual({ kind: "done", build: "490", time: 5000 });
     expect(loadPendingGoBack()).toBeUndefined();
     expect(takeGoBackNotice(history, target, 7000)).toBeUndefined();
+  });
+
+  // The record is written when the backup is checked, before the install
+  // starts, because Core can stop before the page sees the install. The
+  // backup time must survive to the result line and the history row.
+  it("keeps the backup time written when the backup was checked", () => {
+    storePendingGoBack({
+      version: target,
+      startedAt: 1000,
+      fromVersion: from,
+      note: { backupAt: 900 },
+    });
+    const history = [
+      { version: target, firstSeen: 5000 },
+      { version: from, firstSeen: 100 },
+    ];
+    storeHistory(history);
+
+    const notice = takeGoBackNotice(history, target, 6000);
+    expect(notice).toEqual({
+      kind: "done",
+      build: "490",
+      time: 5000,
+      note: { backupAt: 900 },
+    });
+    expect(annotateGoBack(history, target, notice!.note)[0].goBack).toEqual({
+      backupAt: 900,
+    });
   });
 
   it("reports it when the target is simply the installed version", () => {

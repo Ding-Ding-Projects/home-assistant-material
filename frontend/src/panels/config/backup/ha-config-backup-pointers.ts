@@ -11,8 +11,10 @@ import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import { resolveTimeZone } from "../../../common/datetime/resolve-time-zone";
+import { fireEvent } from "../../../common/dom/fire_event";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { PartText } from "../../../common/language-mode/language-mode";
 import { navigate } from "../../../common/navigate";
-import type { LocalizeKeys } from "../../../common/translations/localize";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-button-toggle-group";
@@ -24,6 +26,8 @@ import { formatMarkedTime } from "../../../data/backup_delete_proof";
 import type {
   BackupPointerInfo,
   KeepWhole,
+  PointerEvent,
+  PointerPass,
   PointerRow,
   PointerTransfer,
 } from "../../../data/backup_pointer";
@@ -35,6 +39,7 @@ import {
   isCheckProblem,
   KEEP_WHOLE_CHOICES,
   keptReason,
+  passResult,
   pointerErrorReason,
   pointerRisk,
   pointerRows,
@@ -51,6 +56,16 @@ import { bytesToString } from "../../../util/bytes-to-string";
 import { showToast } from "../../../util/toast";
 
 const RULES = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+
+const PREFIX = "ui.panel.config.backup.pointers";
+
+/** Several changes in a row (one per backup a pass makes a pointer) read once. */
+const REFRESH_DELAY_MS = 400;
+
+/** The result line of the last pass: counts, or why it did not finish. */
+type RunResult =
+  | { kind: "done"; at: number; outcomes: Record<string, number | string> }
+  | { kind: "error"; at: number; error: string };
 
 @customElement("ha-config-backup-pointers")
 class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
@@ -74,12 +89,36 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
 
   @state() private _transferError?: string;
 
+  /** The backup whose bring back was asked for, until the first progress arrives. */
+  @state() private _starting?: string;
+
+  @state() private _pass?: PointerPass;
+
+  /** "Save space now" is waiting for its answer. */
+  @state() private _running = false;
+
+  @state() private _runResult?: RunResult;
+
+  private _revision?: number;
+
+  private _refreshTimer?: ReturnType<typeof setTimeout>;
+
+  private _lang = new LanguageModeController(this);
+
   public hassSubscribe(): Promise<UnsubscribeFunc>[] {
     return [
-      subscribeBackupPointerTransfer(this.hass, (transfer) => {
-        this._transfer = transfer;
-      }),
+      subscribeBackupPointerTransfer(this.hass, (event) =>
+        this._onPointerEvent(event)
+      ),
     ];
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._refreshTimer) {
+      clearTimeout(this._refreshTimer);
+      this._refreshTimer = undefined;
+    }
   }
 
   protected firstUpdated(changedProps: PropertyValues<this>): void {
@@ -94,10 +133,74 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
     }
   }
 
+  // The page follows the backend: a pass that starts, makes pointers or ends,
+  // and a bring back that moves on, are shown without a reload.
+  private _onPointerEvent(event: PointerEvent): void {
+    const before = this._transfer;
+    this._transfer = event.transfer;
+    if (event.transfer?.state === "in_progress") {
+      this._starting = undefined;
+    }
+    const passBefore = this._pass;
+    if (event.pass) {
+      this._pass = event.pass;
+      // A pass that ended while the page was open says what it did, also when
+      // it started by itself after the setting was turned on.
+      if (passBefore?.running && !event.pass.running && !this._running) {
+        this._runResult = {
+          kind: "done",
+          at: Date.now(),
+          outcomes: event.pass.outcomes,
+        };
+      }
+    }
+    const transferEnded =
+      before?.state === "in_progress" &&
+      event.transfer?.state !== "in_progress";
+    const revisionChanged =
+      event.revision !== undefined &&
+      this._revision !== undefined &&
+      event.revision !== this._revision;
+    if (event.revision !== undefined) {
+      this._revision = event.revision;
+    }
+    if (transferEnded || revisionChanged) {
+      this._scheduleRefresh();
+    }
+  }
+
+  // Reads the pointers again and asks the backups page to read the backups
+  // again, so the rows and the saved figure follow a change.
+  private _scheduleRefresh(): void {
+    if (this._refreshTimer) {
+      clearTimeout(this._refreshTimer);
+    }
+    this._refreshTimer = setTimeout(() => {
+      this._refreshTimer = undefined;
+      fireEvent(this, "ha-refresh-backup-info");
+      this._fetch();
+    }, REFRESH_DELAY_MS);
+  }
+
   private _t(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
-      `ui.panel.config.backup.pointers.${key}` as LocalizeKeys,
-      values
+    return this._lang.text(this.hass.localize, `${PREFIX}.${key}`, values);
+  }
+
+  // A sentence with another string inside it, built once per language.
+  private _compose(build: (part: PartText) => string): string {
+    return this._lang.compose(this.hass.localize, build);
+  }
+
+  private _reasonText(
+    key: string,
+    reasonKey: string,
+    values?: Record<string, string | number>
+  ): string {
+    return this._compose((part) =>
+      part(`${PREFIX}.${key}`, {
+        ...values,
+        reason: part(`${PREFIX}.${reasonKey}`),
+      })
     );
   }
 
@@ -111,7 +214,14 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
 
   private async _fetch(): Promise<void> {
     try {
-      this._info = await fetchBackupPointerInfo(this.hass);
+      const info = await fetchBackupPointerInfo(this.hass);
+      this._info = info;
+      if (info.pass) {
+        this._pass = info.pass;
+      }
+      if (info.revision !== undefined && this._revision === undefined) {
+        this._revision = info.revision;
+      }
       this._error = undefined;
     } catch (err: any) {
       this._error = this._t("load_error", { error: err?.message || err });
@@ -192,7 +302,7 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
             <span class="sub">${this._t("setting_description")}</span>
           </div>
           <ha-switch
-            aria-labelledby="setting-title"
+            .accessibleLabel=${this._t("setting_title")}
             .checked=${info.settings.enabled}
             .disabled=${this._busy || !info.readable || (!info.available && !info.settings.enabled)}
             @change=${this._toggle}
@@ -231,15 +341,14 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
             ? html`<div class="actions">
                 <ha-button
                   appearance="plain"
-                  size="small"
                   .disabled=${this._busy}
                   @click=${this._checkNow}
                   >${this._t("check_now")}</ha-button
                 >
                 <ha-button
                   appearance="filled"
-                  size="small"
-                  .disabled=${this._busy}
+                  .disabled=${this._busy || !!this._pass?.running}
+                  .loading=${this._running}
                   @click=${this._runNow}
                   >${this._t("run_now")}</ha-button
                 >
@@ -273,6 +382,7 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
           </div>
         </div>
       </div>
+      ${this._renderPass(info)}
       ${
         risk === "none"
           ? nothing
@@ -281,6 +391,87 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
             >`
       }
     `;
+  }
+
+  // While a pass runs, or waits to start, the page says so; once it ends, one
+  // plain line says what it did, or why nothing changed.
+  private _renderPass(info: BackupPointerInfo) {
+    const pass = this._pass;
+    if (pass?.running || this._running) {
+      return html`<div class="card progress" role="status" aria-live="polite">
+        <div class="title">${this._t("working_title")}</div>
+        <div class="sub">
+          ${
+            pass?.started
+              ? this._t("working_since", { time: this._time(pass.started) })
+              : this._t("working_text")
+          }
+        </div>
+        <div
+          class="bar indeterminate"
+          role="progressbar"
+          aria-label=${this._t("working_title")}
+        >
+          <div class="fill"></div>
+        </div>
+      </div>`;
+    }
+    const result = this._runResult;
+    if (result) {
+      return html`<div
+        class=${classMap({
+          card: true,
+          note: true,
+          warn: result.kind === "error",
+        })}
+        role="status"
+        aria-live="polite"
+      >
+        <span class="dot" aria-hidden="true"></span>
+        <div>
+          <div class="title">
+            ${this._t("result_title", {
+              time: this._time(new Date(result.at).toISOString()),
+            })}
+          </div>
+          <div class="sub">${this._resultText(result)}</div>
+        </div>
+      </div>`;
+    }
+    if (info.settings.enabled && pass?.due) {
+      return html`<div class="card empty" role="status">
+        ${this._t("due_text", { time: this._time(pass.due) })}
+      </div>`;
+    }
+    return nothing;
+  }
+
+  private _resultText(result: RunResult): string {
+    if (result.kind === "error") {
+      return this._t("result_failed", { error: result.error });
+    }
+    const { made, kept } = passResult(result.outcomes);
+    if (!made && !kept.length) {
+      return this._t("result_nothing");
+    }
+    return this._compose((part) => {
+      const lines = [part(`${PREFIX}.run_done`, { pointers: made })];
+      if (kept.length) {
+        lines.push(
+          part(`${PREFIX}.result_kept`, {
+            reasons: kept
+              .map((item) =>
+                part(`${PREFIX}.result_kept_part`, {
+                  reason: part(`${PREFIX}.reasons.${item.reason}`),
+                  count: item.count,
+                })
+              )
+              .join(part(`${PREFIX}.result_kept_separator`)),
+          })
+        );
+      }
+      return lines.join(" ");
+    });
   }
 
   private _renderList(rows: PointerRow[], selected?: PointerRow) {
@@ -353,7 +544,8 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
           time: this._time(pointer.checked_at),
         })
       : this._t("detail_checked_never");
-    const busy = this._busy || this._transfer?.state === "in_progress";
+    const busy =
+      this._busy || !!this._starting || this._transfer?.state === "in_progress";
     return html`
       <div class="card">
         <div class="row line">
@@ -424,6 +616,28 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
 
   private _renderTransfer() {
     const transfer = this._transfer;
+    if (this._starting && transfer?.state !== "in_progress") {
+      const backup = this._info?.pointers[this._starting];
+      const date = backup ? this._time(backup.date) : this._starting;
+      return html`<div class="card progress" role="status" aria-live="polite">
+        <div class="title">
+          ${this._t(
+            this._restoring === this._starting
+              ? "restoring_title"
+              : "bringing_back_title",
+            { date }
+          )}
+        </div>
+        <div class="sub">${this._t("bring_back_starting")}</div>
+        <div
+          class="bar indeterminate"
+          role="progressbar"
+          aria-label=${this._t("bringing_back_title", { date })}
+        >
+          <div class="fill"></div>
+        </div>
+      </div>`;
+    }
     if (!transfer && !this._transferError) {
       return nothing;
     }
@@ -486,9 +700,7 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
                 <span class="dot" aria-hidden="true"></span>
                 <div>
                   <div class="title">
-                    ${this._t("kept_heading", {
-                      reason: this._t(`reasons.${reason}`),
-                    })}
+                    ${this._reasonText("kept_heading", `reasons.${reason}`)}
                   </div>
                   <div class="sub">
                     ${row.name} ·
@@ -521,9 +733,10 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
       await setBackupPointerSettings(this.hass, settings);
     } catch (err: unknown) {
       showToast(this, {
-        message: this._t("save_error", {
-          reason: this._t(`transfer_reasons.${pointerErrorReason(err)}`),
-        }),
+        message: this._reasonText(
+          "save_error",
+          `transfer_reasons.${pointerErrorReason(err)}`
+        ),
       });
     } finally {
       this._busy = false;
@@ -539,19 +752,24 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
     this._save({ keep_whole: Number(ev.detail.value) as KeepWhole });
   }
 
+  // Always ends with a result line: how many became pointers, or why none did.
   private async _runNow(): Promise<void> {
     this._busy = true;
+    this._running = true;
+    this._runResult = undefined;
     try {
       const { outcomes } = await runBackupPointerPass(this.hass);
-      showToast(this, {
-        message: this._t("run_done", {
-          pointers: Object.values(outcomes).filter(
-            (outcome) => outcome === "pointer"
-          ).length,
-        }),
-      });
+      this._runResult = { kind: "done", at: Date.now(), outcomes };
+    } catch (err: any) {
+      this._runResult = {
+        kind: "error",
+        at: Date.now(),
+        error: err?.message || String(err),
+      };
     } finally {
       this._busy = false;
+      this._running = false;
+      fireEvent(this, "ha-refresh-backup-info");
       await this._fetch();
     }
   }
@@ -574,17 +792,21 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
   private async _transferTo(backupId: string, restore: boolean): Promise<void> {
     this._transferError = undefined;
     this._restoring = restore ? backupId : undefined;
+    this._starting = backupId;
     try {
       await bringBackBackup(this.hass, backupId);
     } catch (err: unknown) {
-      this._transferError = this._t("transfer_failed", {
-        reason: this._t(`transfer_reasons.${pointerErrorReason(err)}`),
-      });
+      this._transferError = this._reasonText(
+        "transfer_failed",
+        `transfer_reasons.${pointerErrorReason(err)}`
+      );
       await this._fetch();
       return;
     } finally {
       this._restoring = undefined;
+      this._starting = undefined;
     }
+    fireEvent(this, "ha-refresh-backup-info");
     showToast(this, {
       message: this._t(restore ? "brought_back_restore" : "brought_back"),
     });
@@ -747,6 +969,15 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
     .buttons ha-button {
       flex: 1;
     }
+    .actions ha-button,
+    .buttons ha-button {
+      --ha-button-height: 48px;
+      max-width: 100%;
+    }
+    ha-switch {
+      flex: none;
+      --ha-switch-min-touch-size: 48px;
+    }
     .note {
       display: flex;
       gap: var(--ha-space-3);
@@ -797,6 +1028,31 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
       height: 100%;
       border-radius: 2px;
       background: var(--primary-color);
+    }
+    /* No percentage is known: a short bar sweeps across. */
+    .bar.indeterminate {
+      position: relative;
+    }
+    .bar.indeterminate .fill {
+      position: absolute;
+      width: 34%;
+      animation: pointer-sweep 1.6s ease-in-out infinite;
+    }
+    @keyframes pointer-sweep {
+      from {
+        left: -34%;
+      }
+      to {
+        left: 100%;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .bar.indeterminate .fill {
+        animation: none;
+        left: 0;
+        width: 100%;
+        opacity: 0.5;
+      }
     }
     ha-alert {
       display: block;

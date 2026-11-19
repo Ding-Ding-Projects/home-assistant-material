@@ -143,6 +143,12 @@ export class HaUpdateHistory extends LitElement {
     );
     if (notice) {
       this._notice = notice;
+      // The going back finished while its panel was still open: the page did
+      // not see the install start (Core stopped first), so close it here.
+      if (notice.kind === "done" && this._target) {
+        this._target = undefined;
+        this._goingBackActive = false;
+      }
       if (notice.kind === "done" && notice.note && !this._history[0]?.goBack) {
         const noted = annotateGoBack(
           this._history,
@@ -412,8 +418,27 @@ export class HaUpdateHistory extends LitElement {
       @going-back-close=${this._closePanel}
       @going-back-active=${this._panelActive}
       @going-back-install=${this._panelInstall}
+      @going-back-backup-ready=${this._panelBackupReady}
     ></ha-going-back-panel>`;
   }
+
+  // The backup is checked, so the older build is about to be installed. Core
+  // can stop before the page sees the install start, and the page that loads
+  // afterwards may be another build; keeping the record from here means the
+  // result line and the history row still carry the backup time.
+  private _panelBackupReady = (
+    ev: CustomEvent<{ version: string; note: GoBackNote; startedAt: number }>
+  ) => {
+    const { version, note } = ev.detail;
+    // The time limit for the install counts from here, not from the start of
+    // a backup that may have taken a long time.
+    storePendingGoBack({
+      version,
+      startedAt: Date.now(),
+      fromVersion: this.hass.config.version,
+      note,
+    });
+  };
 
   private _timeText = (ms: number): string => this._time(ms);
 
@@ -429,7 +454,7 @@ export class HaUpdateHistory extends LitElement {
   // The backup step is over: the Supervisor is installing the older build.
   // From here the page watches the Core update as before.
   private _panelInstall = (
-    ev: CustomEvent<{ version: string; note: GoBackNote }>
+    ev: CustomEvent<{ version: string; note: GoBackNote; startedAt: number }>
   ) => {
     const { version, note } = ev.detail;
     const job: RollbackJob = {

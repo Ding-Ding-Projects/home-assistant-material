@@ -56,6 +56,29 @@ export interface PointerTransfer {
   parts_done: number;
   parts_total: number;
   reason: string | null;
+  /** A short technical name of a failure, such as "EACCES". */
+  detail?: string | null;
+}
+
+/** A pass that turns backups into pointers: due, running, or the last one. */
+export interface PointerPass {
+  running: boolean;
+  /** When a pass that is waiting will start, as an ISO time. */
+  due: string | null;
+  started: string | null;
+  finished: string | null;
+  /** How many backups the last pass made pointers. */
+  made: number;
+  /** How many backups ended with each outcome at the last pass. */
+  outcomes: Record<string, number>;
+}
+
+/** What the subscription sends whenever a bring back or a pass changes. */
+export interface PointerEvent {
+  transfer: PointerTransfer | null;
+  pass?: PointerPass;
+  /** Goes up whenever the pointers or the setting change. */
+  revision?: number;
 }
 
 export type KeepWhole = 0 | 1 | 3;
@@ -83,6 +106,8 @@ export interface BackupPointerInfo {
   pointers: Record<string, BackupPointer>;
   kept: Record<string, PointerKept>;
   transfer: PointerTransfer | null;
+  pass?: PointerPass;
+  revision?: number;
   places: { agent_id: string; name: string }[];
   local_agent_ids: string[];
 }
@@ -115,14 +140,48 @@ export const bringBackBackup = (
 ): Promise<{ agent_id: string }> =>
   hass.callWS({ type: "backup/pointer/bring_back", backup_id: backupId });
 
+/** Hears every change of a bring back, of a pass and of the pointers. */
 export const subscribeBackupPointerTransfer = (
   hass: HomeAssistant,
-  callback: (transfer: PointerTransfer | null) => void
+  callback: (event: PointerEvent) => void
 ): Promise<UnsubscribeFunc> =>
-  hass.connection.subscribeMessage<{ transfer: PointerTransfer | null }>(
-    (event) => callback(event.transfer),
-    { type: "backup/pointer/subscribe" }
-  );
+  hass.connection.subscribeMessage<PointerEvent>(callback, {
+    type: "backup/pointer/subscribe",
+  });
+
+/** One part of the result of a pass: an outcome and how many backups had it. */
+export interface PassResultPart {
+  reason: KeptReason;
+  count: number;
+}
+
+/**
+ * The result of a pass for the page's result line: how many backups became
+ * pointers, and for the rest, why, most common first. Outcomes the page has
+ * no words for are counted as "unknown".
+ */
+export const passResult = (
+  outcomes: Record<string, number | string>
+): { made: number; kept: PassResultPart[] } => {
+  const counts = new Map<KeptReason, number>();
+  let made = 0;
+  for (const [key, value] of Object.entries(outcomes)) {
+    // A pass run from the page returns one outcome per backup; the
+    // subscription sends counts per outcome.
+    const [outcome, count] =
+      typeof value === "number" ? [key, value] : [value, 1];
+    if (outcome === "pointer") {
+      made += count;
+      continue;
+    }
+    const reason = keptReason(outcome);
+    counts.set(reason, (counts.get(reason) ?? 0) + count);
+  }
+  const kept = [...counts.entries()]
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason));
+  return { made, kept };
+};
 
 /** Whole here, a pointer, a pointer whose registry copy is missing, or not checked. */
 export type PointerRowState = "whole" | "pointer" | "missing" | "elsewhere";
@@ -236,12 +295,16 @@ export const isCheckProblem = (reason: KeptReason): boolean =>
 export const TRANSFER_REASONS = [
   "registry_copy_missing",
   "place_not_loaded",
+  "registry_refused",
   "check_failed",
   "no_answer",
   "timed_out",
   "failed",
+  "disk_full",
+  "disk_refused",
   "disk_error",
   "not_a_pointer",
+  "not_local",
   "unknown",
 ] as const;
 

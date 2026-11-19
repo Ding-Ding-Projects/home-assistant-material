@@ -43,6 +43,8 @@ async def _info(hass: HomeAssistant) -> dict[str, Any]:
             backup_id: asdict(kept) for backup_id, kept in pointers.kept().items()
         },
         "transfer": asdict(pointers.transfer) if pointers.transfer else None,
+        "pass": asdict(pointers.pass_state),
+        "revision": pointers.revision,
         "places": [
             {"agent_id": agent.agent_id, "name": agent.name}
             for agent in pointers.pointer_agents()
@@ -195,7 +197,11 @@ async def handle_pointer_subscribe(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Send the progress of a bring back whenever it changes."""
+    """Send the progress of a bring back and of a pass whenever either changes.
+
+    The revision goes up whenever the pointers or the setting change, so the
+    page knows when to read them again.
+    """
     pointers = hass.data[DATA_MANAGER].pointers
 
     @callback
@@ -203,7 +209,13 @@ async def handle_pointer_subscribe(
         connection.send_message(
             websocket_api.event_message(
                 msg["id"],
-                {"transfer": asdict(pointers.transfer) if pointers.transfer else None},
+                {
+                    "transfer": asdict(pointers.transfer)
+                    if pointers.transfer
+                    else None,
+                    "pass": asdict(pointers.pass_state),
+                    "revision": pointers.revision,
+                },
             )
         )
 

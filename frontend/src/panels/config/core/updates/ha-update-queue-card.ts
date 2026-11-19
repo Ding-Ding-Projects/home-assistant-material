@@ -610,8 +610,13 @@ class HaUpdateQueueCard extends LitElement {
           flex-wrap: wrap;
           padding-block: var(--ha-space-2);
         }
+        /* Border-box: with the start padding added to a 100% basis, a long
+           line (the Core versions and "What's new") ran past the row. */
         .step-detail {
+          box-sizing: border-box;
           flex: 1 0 100%;
+          min-width: 0;
+          max-width: 100%;
           display: flex;
           flex-wrap: wrap;
           align-items: center;
@@ -622,9 +627,15 @@ class HaUpdateQueueCard extends LitElement {
         }
         .step-detail .versions {
           display: inline-flex;
+          flex-wrap: wrap;
           align-items: center;
           gap: var(--ha-space-1);
+          min-width: 0;
+          max-width: 100%;
           overflow-wrap: anywhere;
+        }
+        .step-detail .versions > * {
+          min-width: 0;
         }
         .step-detail ha-svg-icon {
           --mdc-icon-size: 16px;
@@ -635,7 +646,9 @@ class HaUpdateQueueCard extends LitElement {
           display: inline-flex;
           align-items: center;
           gap: var(--ha-space-1);
-          min-height: 32px;
+          min-height: 48px;
+          max-width: 100%;
+          overflow-wrap: anywhere;
           color: var(--primary-color);
           text-decoration: none;
         }

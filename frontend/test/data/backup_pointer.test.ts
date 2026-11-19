@@ -4,6 +4,7 @@ import {
   canRestore,
   isCheckProblem,
   keptReason,
+  passResult,
   pointerErrorReason,
   pointerRisk,
   pointerRows,
@@ -156,6 +157,52 @@ describe("reasons", () => {
       "registry_copy_missing"
     );
     expect(pointerErrorReason(new Error("x"))).toBe("unknown");
+  });
+
+  it("knows the disk and registry reasons a bring back can end with", () => {
+    for (const code of [
+      "disk_full",
+      "disk_refused",
+      "disk_error",
+      "registry_refused",
+      "not_local",
+    ]) {
+      expect(pointerErrorReason({ code })).toBe(code);
+    }
+  });
+});
+
+// The result line after "Save space now" must say why nothing changed, so the
+// counts per reason have to add up whichever form the result arrives in.
+describe("passResult", () => {
+  it("counts one outcome per backup from a pass run from the page", () => {
+    expect(
+      passResult({
+        a: "pointer",
+        b: "newest_kept_whole",
+        c: "no_registry_copy",
+        d: "no_registry_copy",
+        e: "something_new",
+      })
+    ).toEqual({
+      made: 1,
+      kept: [
+        { reason: "no_registry_copy", count: 2 },
+        { reason: "newest_kept_whole", count: 1 },
+        { reason: "unknown", count: 1 },
+      ],
+    });
+  });
+
+  it("reads the counts the subscription sends", () => {
+    expect(passResult({ pointer: 2, timed_out: 1 })).toEqual({
+      made: 2,
+      kept: [{ reason: "timed_out", count: 1 }],
+    });
+  });
+
+  it("is empty when there was nothing to try", () => {
+    expect(passResult({})).toEqual({ made: 0, kept: [] });
   });
 });
 

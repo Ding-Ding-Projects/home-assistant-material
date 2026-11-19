@@ -36,7 +36,21 @@ declare global {
     /** A going back is running (the backup step) or has ended. */
     "going-back-active": { active: boolean };
     /** The backup step is over and the older build is being installed. */
-    "going-back-install": { version: string; note: GoBackNote };
+    "going-back-install": {
+      version: string;
+      note: GoBackNote;
+      startedAt: number;
+    };
+    /**
+     * The backup is checked (or skipped by the super confirmation), so the
+     * older build is about to be installed. Core may stop before this page
+     * sees the install start, so the record is kept from here.
+     */
+    "going-back-backup-ready": {
+      version: string;
+      note: GoBackNote;
+      startedAt: number;
+    };
   }
 }
 
@@ -94,6 +108,15 @@ export class HaGoingBackPanel extends LitElement {
 
   private _clickedAt = 0;
 
+  /** When this page first saw the backup checked, after seeing it unchecked. */
+  private _checkedSeenAt?: number;
+
+  /** This page saw the backup step before it was checked. */
+  private _sawUnchecked = false;
+
+  /** The backup-ready record was sent for this run. */
+  private _readySent = false;
+
   private _timer?: ReturnType<typeof setInterval>;
 
   public disconnectedCallback(): void {
@@ -121,6 +144,25 @@ export class HaGoingBackPanel extends LitElement {
     this._view = { backup: "waiting", install: "waiting" };
     this._attempt += 1;
     this._proof = undefined;
+    this._resetTiming();
+  }
+
+  private _resetTiming(): void {
+    this._checkedSeenAt = undefined;
+    this._sawUnchecked = false;
+    this._readySent = false;
+  }
+
+  /**
+   * How long the backup took: from the moment going back was asked for until
+   * this page saw the backup checked. Undefined when either moment is not
+   * known, for example when the backup was already checked at the first look.
+   */
+  private _backupDuration(): number | undefined {
+    if (!this._clickedAt || this._checkedSeenAt === undefined) {
+      return undefined;
+    }
+    return Math.max(0, this._checkedSeenAt - this._clickedAt);
   }
 
   protected render(): TemplateResult {
@@ -208,11 +250,18 @@ export class HaGoingBackPanel extends LitElement {
       backupText = "";
     } else if (view.backup === "done") {
       backupTitle = this._t("step_backup_done");
-      backupText = this._t("step_backup_done_text", {
+      const took = this._backupDuration();
+      const values = {
         time: view.backupAt ? this.timeText(view.backupAt) : "",
-        elapsed: formatElapsed((view.backupAt ?? this._now) - started),
         size: bytesToString(view.backupSize ?? 0),
-      });
+      };
+      backupText =
+        took === undefined
+          ? this._t("step_backup_done_text_no_duration", values)
+          : this._t("step_backup_done_text", {
+              ...values,
+              elapsed: formatElapsed(took),
+            });
     }
     const installing = view.install === "running";
     return html`<section class="card" aria-labelledby="run-title">
@@ -437,8 +486,13 @@ export class HaGoingBackPanel extends LitElement {
   private async _start(pass?: string): Promise<void> {
     this._phase = "starting";
     this._error = undefined;
-    this._clickedAt = Date.now();
-    this._now = this._clickedAt;
+    // Without a pass the clock starts at the request; with one, it already
+    // started when the pass was asked for.
+    if (!pass) {
+      this._clickedAt = Date.now();
+    }
+    this._now = Date.now();
+    this._resetTiming();
     this._view = { backup: pass ? "skipped" : "waiting", install: "waiting" };
     fireEvent(this, "going-back-active", { active: true });
     try {
@@ -510,17 +564,38 @@ export class HaGoingBackPanel extends LitElement {
       this._fail();
       return;
     }
-    if (installStarted(view)) {
-      this._phase = "install";
-      this._stopPolling();
-      fireEvent(this, "going-back-install", {
-        version: this.version,
-        note:
-          view.backup === "skipped"
-            ? { noBackup: true }
-            : { backupAt: view.backupAt },
-      });
+    if (view.backup === "done" || view.backup === "skipped") {
+      if (
+        view.backup === "done" &&
+        this._sawUnchecked &&
+        this._checkedSeenAt === undefined
+      ) {
+        this._checkedSeenAt = this._now;
+      }
+      const note: GoBackNote =
+        view.backup === "skipped"
+          ? { noBackup: true }
+          : { backupAt: view.backupAt };
+      if (!this._readySent) {
+        this._readySent = true;
+        fireEvent(this, "going-back-backup-ready", {
+          version: this.version,
+          note,
+          startedAt: this._clickedAt,
+        });
+      }
+      if (installStarted(view)) {
+        this._phase = "install";
+        this._stopPolling();
+        fireEvent(this, "going-back-install", {
+          version: this.version,
+          note,
+          startedAt: this._clickedAt,
+        });
+      }
+      return;
     }
+    this._sawUnchecked = true;
   }
 
   private _stop = async () => {

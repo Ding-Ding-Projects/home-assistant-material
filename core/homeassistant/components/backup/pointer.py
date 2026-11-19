@@ -27,11 +27,15 @@ Rules kept here:
 """
 
 import asyncio
+from collections import Counter
 from collections.abc import AsyncIterator, Callable
 from dataclasses import asdict, dataclass, field
 from datetime import timedelta
+import errno
 import hashlib
 from pathlib import Path
+import shutil
+import time
 from typing import TYPE_CHECKING, Any, Final, Protocol, runtime_checkable
 
 import orjson
@@ -44,7 +48,8 @@ from homeassistant.util import dt as dt_util
 
 from .agent import BackupAgent, LocalBackupAgent
 from .const import LOGGER
-from .models import BackupManagerError
+from .models import BackupManagerError, BackupNotFound
+from .util import read_backup, receive_file
 
 if TYPE_CHECKING:
     from .manager import BackupManager, ManagerBackup
@@ -79,6 +84,22 @@ KEPT_REMOVE_REFUSED: Final = "local_copy_not_removed"
 STATE_PRESENT: Final = "present"
 STATE_MISSING: Final = "missing"
 STATE_UNKNOWN: Final = "unknown"
+
+# Why a bring back failed, beyond the states of a remote copy check.
+BRING_BACK_DISK_FULL: Final = "disk_full"
+BRING_BACK_DISK_REFUSED: Final = "disk_refused"
+BRING_BACK_DISK_ERROR: Final = "disk_error"
+BRING_BACK_REGISTRY_REFUSED: Final = "registry_refused"
+BRING_BACK_REGISTRY_MISSING: Final = "registry_copy_missing"
+
+_DISK_FULL_ERRNOS: Final = frozenset({errno.ENOSPC, errno.EDQUOT})
+_DISK_REFUSED_ERRNOS: Final = frozenset(
+    {errno.EACCES, errno.EPERM, errno.EROFS, errno.EBUSY, errno.ETXTBSY}
+)
+# A file another program briefly holds open (a virus scanner or a sync tool on
+# the host of a mounted folder) refuses a move for a moment; try a few times.
+_MOVE_ATTEMPTS: Final = 4
+_MOVE_WAIT_SECONDS: Final = 0.5
 
 _SECRET_WORDS: Final = ("key", "password", "token", "secret")
 
@@ -197,6 +218,20 @@ class Transfer:
     parts_done: int = 0
     parts_total: int = 0
     reason: str | None = None
+    # A short technical detail of a failure, such as an errno name. Never a secret.
+    detail: str | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class PassState:
+    """A pass that turns backups into pointers: due, running, or the last one."""
+
+    running: bool = False
+    due: str | None = None
+    started: str | None = None
+    finished: str | None = None
+    made: int = 0
+    outcomes: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -237,6 +272,23 @@ def _now() -> str:
     return dt_util.utcnow().isoformat()
 
 
+def _move_into_place(source: Path, target: Path) -> None:
+    """Move a received backup into the backup folder, waiting out a brief lock."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    for attempt in range(_MOVE_ATTEMPTS):
+        try:
+            shutil.move(source, target)
+        except OSError as err:
+            if err.errno not in _DISK_REFUSED_ERRNOS or attempt + 1 == _MOVE_ATTEMPTS:
+                # A move across devices copies first; never leave half a copy.
+                if source.exists():
+                    target.unlink(missing_ok=True)
+                raise
+            time.sleep(_MOVE_WAIT_SECONDS)
+        else:
+            return
+
+
 class BackupPointers:
     """Hold the pointers and turn verified backups into pointers."""
 
@@ -248,6 +300,10 @@ class BackupPointers:
         self._state = _State()
         self._lock = asyncio.Lock()
         self.transfer: Transfer | None = None
+        self.pass_state = PassState()
+        # Goes up whenever the pointers, the kept reasons or the setting change,
+        # so a page knows when to read them again.
+        self.revision = 0
         self._listeners: list[Callable[[], None]] = []
         self._unsub_daily: CALLBACK_TYPE | None = None
         self._unsub_pass: CALLBACK_TYPE | None = None
@@ -334,6 +390,7 @@ class BackupPointers:
 
     async def _async_save(self) -> None:
         await self._hass.async_add_executor_job(self._write_file)
+        self.revision += 1
         self._notify()
 
     async def async_load(self) -> None:
@@ -447,6 +504,8 @@ class BackupPointers:
             )
 
         self._unsub_pass = async_call_later(self._hass, delay, _run)
+        self.pass_state.due = (dt_util.utcnow() + timedelta(seconds=delay)).isoformat()
+        self._notify()
 
     async def _async_daily(self, _: Any = None) -> None:
         if not self.readable:
@@ -457,9 +516,28 @@ class BackupPointers:
 
     async def async_run_pass(self) -> dict[str, str]:
         """Try to make every eligible backup a pointer; return each outcome."""
-        outcomes: dict[str, str] = {}
+        state = self.pass_state
+        state.due = None
         if not self._state.settings.enabled or not self.readable:
-            return outcomes
+            self._notify()
+            return {}
+        state.running = True
+        state.started = _now()
+        state.finished = None
+        self._notify()
+        outcomes: dict[str, str] = {}
+        try:
+            outcomes = await self._async_run_pass()
+        finally:
+            state.running = False
+            state.finished = _now()
+            state.made = sum(1 for outcome in outcomes.values() if outcome == "pointer")
+            state.outcomes = dict(Counter(outcomes.values()))
+            self._notify()
+        return outcomes
+
+    async def _async_run_pass(self) -> dict[str, str]:
+        outcomes: dict[str, str] = {}
         backups, _ = await self._manager.async_get_backups()
         local_ids = self.local_agent_ids()
         newest = sorted(backups.values(), key=lambda backup: backup.date, reverse=True)
@@ -738,26 +816,48 @@ class BackupPointers:
                 self._notify()
                 yield chunk
 
+        step = "asking the registry for the copy"
         try:
             stream = await agent.async_download_backup(backup_id)
-            written = await self._manager._reader_writer.async_receive_backup(  # noqa: SLF001
-                agent_ids=[local_id],
-                stream=counted(stream),
-                suggested_filename=pointer.filename,
-            )
-            try:
-                await local_agent.async_upload_backup(
-                    open_stream=written.open_stream,
-                    backup=written.backup,
-                    on_progress=lambda **kwargs: None,
+            step = "receiving the copy into the temporary folder"
+            if isinstance(local_agent, LocalBackupAgent):
+                await self._async_receive_here(local_agent, pointer, counted(stream))
+            else:
+                written = await self._manager._reader_writer.async_receive_backup(  # noqa: SLF001
+                    agent_ids=[local_id],
+                    stream=counted(stream),
+                    suggested_filename=pointer.filename,
                 )
-            finally:
-                await written.release_stream()
+                step = "registering the copy with the local backup location"
+                try:
+                    await local_agent.async_upload_backup(
+                        open_stream=written.open_stream,
+                        backup=written.backup,
+                        on_progress=lambda **kwargs: None,
+                    )
+                finally:
+                    await written.release_stream()
         except Exception as err:
+            if isinstance(err, _StepFailed):
+                step, err = err.step, err.cause
             transfer.state = "failed"
             transfer.reason = _failure_reason(err)
+            transfer.detail = _failure_detail(err)
+            LOGGER.warning(
+                "Bringing back backup %s from %s failed while %s after %s of %s "
+                "bytes (reason %s): %s: %s",
+                backup_id,
+                agent.agent_id,
+                step,
+                transfer.bytes_done,
+                pointer.size,
+                transfer.reason,
+                type(err).__name__,
+                err,
+                exc_info=err,
+            )
             self._notify()
-            raise PointerError(transfer.reason) from err
+            raise PointerError(transfer.reason, transfer.detail) from err
 
         received = f"sha256:{digest.hexdigest()}"
         try:
@@ -771,6 +871,16 @@ class BackupPointers:
             or size != pointer.size
             or f"sha256:{sha}" != pointer.check_value
         ):
+            LOGGER.warning(
+                "Backup %s came back from %s but failed its check: received %s of "
+                "%s bytes, the copy here has %s bytes, check value %s",
+                backup_id,
+                agent.agent_id,
+                transfer.bytes_done,
+                pointer.size,
+                size,
+                "matched" if received == pointer.check_value else "differed",
+            )
             transfer.state = "failed"
             transfer.reason = "check_failed"
             self._notify()
@@ -784,6 +894,51 @@ class BackupPointers:
         transfer.state = "done"
         await self._async_save()
         return local_id
+
+    async def _async_receive_here(
+        self,
+        local_agent: LocalBackupAgent,
+        pointer: BackupPointer,
+        stream: AsyncIterator[bytes],
+    ) -> None:
+        """Write the copy into the backup folder, then put it in place and list it.
+
+        The copy is written beside its final name in the same folder, so the last
+        step is a rename within one folder rather than a move between folders.
+        """
+        partial = self._path.parent / f".{pointer.filename}.part"
+        run = self._hass.async_add_executor_job
+        step = "writing the copy into the backup folder"
+        try:
+            await run(partial.parent.mkdir, 0o777, True, True)
+            await receive_file(self._hass, stream, partial)
+            step = "reading the copy that came back"
+            try:
+                backup = await run(read_backup, partial)
+            except OSError:
+                raise
+            except Exception as err:
+                raise PointerError("check_failed", "unreadable archive") from err
+            if backup.backup_id != pointer.backup_id:
+                raise PointerError("check_failed", "different backup")
+            target = local_agent.get_new_backup_path(backup)
+            step = "moving the copy into place"
+            await run(_move_into_place, partial, target)
+            step = "listing the copy in the local backup location"
+
+            async def open_target() -> AsyncIterator[bytes]:
+                return _read_chunks(self._hass, target)
+
+            await local_agent.async_upload_backup(
+                open_stream=open_target,
+                backup=backup,
+                on_progress=lambda **kwargs: None,
+            )
+        except BaseException as err:
+            await run(partial.unlink, True)
+            if isinstance(err, Exception):
+                raise _StepFailed(step, err) from err
+            raise
 
     async def async_restore(self, backup_id: str, **restore: Any) -> None:
         """Bring the copy back, check it, then restore it the normal way."""
@@ -823,19 +978,60 @@ class BackupPointers:
         }
 
 
+class _StepFailed(Exception):
+    """A step of writing a copy here failed; carries which step and why."""
+
+    def __init__(self, step: str, cause: Exception) -> None:
+        """Keep the step and the cause."""
+        super().__init__(step)
+        self.step = step
+        self.cause = cause
+
+
+async def _read_chunks(hass: HomeAssistant, path: Path) -> AsyncIterator[bytes]:
+    handle = await hass.async_add_executor_job(path.open, "rb")
+    try:
+        while chunk := await hass.async_add_executor_job(handle.read, _READ_SIZE):
+            yield chunk
+    finally:
+        await hass.async_add_executor_job(handle.close)
+
+
 def _failure_reason(err: BaseException) -> str:
     """Return a plain reason code for a failed bring back."""
     if isinstance(err, PointerError):
         return err.reason
+    if isinstance(err, BackupNotFound):
+        return BRING_BACK_REGISTRY_MISSING
     if isinstance(err, TimeoutError):
         return CHECK_TIMED_OUT
     if isinstance(err, OSError):
-        return "disk_error"
-    if (key := getattr(err, "translation_key", None)) == "backup_registry_busy":
+        if err.errno in _DISK_FULL_ERRNOS:
+            return BRING_BACK_DISK_FULL
+        if err.errno in _DISK_REFUSED_ERRNOS:
+            return BRING_BACK_DISK_REFUSED
+        return BRING_BACK_DISK_ERROR
+    key = getattr(err, "translation_key", None)
+    if key == "backup_registry_busy":
         return CHECK_NO_ANSWER
+    if key == "backup_registry_refused":
+        return BRING_BACK_REGISTRY_REFUSED
     if key == "backup_damaged":
         return CHECK_FAILED
     return CHECK_UNKNOWN
+
+
+def _failure_detail(err: BaseException) -> str:
+    """Return a short technical name for a failure: an errno name or a class name."""
+    if isinstance(err, PointerError):
+        return str(err) if str(err) != err.reason else err.reason
+    if isinstance(err, OSError) and err.errno is not None:
+        return errno.errorcode.get(err.errno, str(err.errno))
+    if (placeholders := getattr(err, "translation_placeholders", None)) and (
+        reason := placeholders.get("reason")
+    ):
+        return str(reason)
+    return type(err).__name__
 
 
 def agent_backup_for(pointer: BackupPointer) -> dict[str, Any]:

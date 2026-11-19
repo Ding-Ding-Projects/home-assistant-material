@@ -69,7 +69,7 @@ class HaBackupDeleteProofCard extends LitElement {
             </div>
           </div>
           <ha-switch
-            aria-labelledby="delete-proof-label"
+            .accessibleLabel=${this._t("label")}
             .checked=${!!mark}
             .disabled=${!isAdmin || this._busy}
             @change=${this._toggle}
@@ -226,8 +226,11 @@ class HaBackupDeleteProofCard extends LitElement {
     .note {
       padding: var(--ha-space-2) 0;
     }
+    /* The name comes from accessibleLabel: a label id in this shadow root
+       cannot reach the input inside the switch's own shadow root. */
     ha-switch {
       flex: none;
+      --ha-switch-min-touch-size: 48px;
     }
   `;
 }

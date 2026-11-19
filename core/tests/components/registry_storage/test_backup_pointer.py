@@ -1,8 +1,11 @@
 """Tests for keeping only a pointer on this disk for backups in the registry."""
 
+import errno
 import hashlib
 import json
+import logging
 from pathlib import Path
+import tarfile
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -10,7 +13,7 @@ import pytest
 from pytest_homeassistant.common import MockConfigEntry
 from pytest_homeassistant.typing import WebSocketGenerator
 
-from homeassistant.components.backup import BackupDeleteProof
+from homeassistant.components.backup import BackupDeleteProof, BackupNotFound
 from homeassistant.components.backup.config import (
     delete_backups_exceeding_configured_count,
 )
@@ -522,3 +525,256 @@ async def test_settings_and_info_over_websocket(
     assert info["summary"]["whole_here"] == 0
     assert info["pointers"][OLD_ID]["restorable"] is True
     assert info["places"] == [{"agent_id": agent.agent_id, "name": agent.name}]
+
+
+async def _pointer_ready(hass: HomeAssistant) -> tuple[BackupManager, bytes]:
+    """Set up a place, make one backup a pointer and return the manager and its bytes."""
+    manager, entry = await _setup_all(hass)
+    agent = _registry_agent(manager, entry)
+    data = await _add_backup(hass, manager, agent, OLD_ID)
+    await _enable(manager)
+    assert await manager.pointers.async_run_pass() == {OLD_ID: "pointer"}
+    return manager, data
+
+
+def _leftovers(hass: HomeAssistant) -> list[str]:
+    """Partial files the bring back may have left in the backup folder."""
+    return sorted(p.name for p in Path(hass.config.path("backups")).glob(".*.part"))
+
+
+@pytest.mark.usefixtures("patch_session")
+async def test_bring_back_over_websocket_end_to_end(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """The page's bring back call writes the same bytes here, lists them and drops the pointer."""
+    manager, data = await _pointer_ready(hass)
+    client = await hass_ws_client(hass)
+
+    await client.send_json_auto_id(
+        {"type": "backup/pointer/bring_back", "backup_id": OLD_ID}
+    )
+    result = await client.receive_json()
+
+    assert result["success"], result
+    assert result["result"] == {"agent_id": LOCAL_AGENT_ID}
+    (name,) = _local_files(hass)
+    path = Path(hass.config.path("backups", name))
+    assert await hass.async_add_executor_job(path.read_bytes) == data
+    assert _leftovers(hass) == []
+    assert manager.pointers.get(OLD_ID) is None
+    assert manager.pointers.transfer is not None
+    assert manager.pointers.transfer.state == "done"
+    local = manager.local_backup_agents[LOCAL_AGENT_ID]
+    assert local.get_backup_path(OLD_ID) == path
+    await client.send_json_auto_id({"type": "backup/pointer/info"})
+    info = (await client.receive_json())["result"]
+    assert info["pointers"] == {}
+    assert info["summary"]["whole_here"] == 1
+    assert info["transfer"]["state"] == "done"
+
+
+@pytest.mark.parametrize(
+    ("target", "fault", "reason", "detail"),
+    [
+        pytest.param(
+            "receive_file",
+            OSError(errno.ENOSPC, "No space left on device"),
+            "disk_full",
+            "ENOSPC",
+            id="disk_full",
+        ),
+        pytest.param(
+            "receive_file",
+            OSError(errno.EIO, "Input/output error"),
+            "disk_error",
+            "EIO",
+            id="disk_error",
+        ),
+        pytest.param(
+            "move",
+            PermissionError(errno.EACCES, "Permission denied"),
+            "disk_refused",
+            "EACCES",
+            id="disk_refused",
+        ),
+        pytest.param(
+            "read_backup",
+            tarfile.ReadError("not a tar file"),
+            "check_failed",
+            "unreadable archive",
+            id="unreadable_copy",
+        ),
+    ],
+)
+@pytest.mark.usefixtures("patch_session")
+async def test_bring_back_disk_failures(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+    target: str,
+    fault: Exception,
+    reason: str,
+    detail: str,
+) -> None:
+    """A copy this disk cannot take keeps the pointer, leaves nothing behind and logs why."""
+    manager, _ = await _pointer_ready(hass)
+    targets = {
+        "receive_file": "homeassistant.components.backup.pointer.receive_file",
+        "move": "homeassistant.components.backup.pointer.shutil.move",
+        "read_backup": "homeassistant.components.backup.pointer.read_backup",
+    }
+    caplog.set_level(logging.WARNING)
+
+    with (
+        patch(targets[target], side_effect=fault),
+        patch("homeassistant.components.backup.pointer.time.sleep"),
+        pytest.raises(PointerError) as err,
+    ):
+        await manager.pointers.async_bring_back(OLD_ID)
+
+    assert err.value.reason == reason
+    assert str(err.value) == detail
+    transfer = manager.pointers.transfer
+    assert transfer is not None
+    assert (transfer.state, transfer.reason, transfer.detail) == (
+        "failed",
+        reason,
+        detail,
+    )
+    assert manager.pointers.get(OLD_ID) is not None
+    assert _local_files(hass) == []
+    assert _leftovers(hass) == []
+    # Logged at warning level with the reason and the exception, never a secret.
+    assert f"Bringing back backup {OLD_ID}" in caplog.text
+    assert f"(reason {reason})" in caplog.text
+    assert any(
+        record.levelno == logging.WARNING and record.exc_info
+        for record in caplog.records
+    )
+    assert PASSWORD not in caplog.text
+    assert TOKEN not in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("fault", "reason"),
+    [
+        pytest.param(
+            RegistryError(Reason.AUTH_FAILED), "registry_refused", id="refused"
+        ),
+        pytest.param(RegistryError(Reason.UNAVAILABLE), "no_answer", id="no_answer"),
+    ],
+)
+@pytest.mark.usefixtures("patch_session")
+async def test_bring_back_registry_failures(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture, fault: Any, reason: str
+) -> None:
+    """A registry that refuses or does not answer is named as such, not as this disk."""
+    manager, _ = await _pointer_ready(hass)
+    agent = manager.backup_agents[manager.pointers.get(OLD_ID).agent_id]
+    caplog.set_level(logging.WARNING)
+
+    with (
+        patch.object(agent._store.client, "async_get_blob", side_effect=fault),
+        pytest.raises(PointerError) as err,
+    ):
+        await manager.pointers.async_bring_back(OLD_ID)
+
+    assert err.value.reason == reason
+    assert manager.pointers.get(OLD_ID) is not None
+    assert _local_files(hass) == []
+    assert _leftovers(hass) == []
+    assert f"(reason {reason})" in caplog.text
+
+
+@pytest.mark.usefixtures("patch_session")
+async def test_bring_back_registry_copy_gone(hass: HomeAssistant) -> None:
+    """A registry that no longer has the backup says the copy is missing."""
+    manager, _ = await _pointer_ready(hass)
+    agent = manager.backup_agents[manager.pointers.get(OLD_ID).agent_id]
+
+    with (
+        patch.object(
+            agent, "async_download_backup", side_effect=BackupNotFound("gone")
+        ),
+        pytest.raises(PointerError) as err,
+    ):
+        await manager.pointers.async_bring_back(OLD_ID)
+
+    assert err.value.reason == "registry_copy_missing"
+    assert manager.pointers.get(OLD_ID) is not None
+
+
+@pytest.mark.usefixtures("patch_session")
+async def test_bring_back_waits_out_a_brief_lock(hass: HomeAssistant) -> None:
+    """A file another program holds for a moment is moved once it lets go."""
+    manager, data = await _pointer_ready(hass)
+    real_move = __import__("shutil").move
+    calls: list[int] = []
+
+    def flaky_move(source: Any, target: Any) -> Any:
+        calls.append(1)
+        if len(calls) == 1:
+            raise OSError(errno.EBUSY, "Device or resource busy")
+        return real_move(source, target)
+
+    with (
+        patch(
+            "homeassistant.components.backup.pointer.shutil.move",
+            side_effect=flaky_move,
+        ),
+        patch("homeassistant.components.backup.pointer.time.sleep"),
+    ):
+        assert await manager.pointers.async_bring_back(OLD_ID) == LOCAL_AGENT_ID
+
+    assert len(calls) == 2
+    (name,) = _local_files(hass)
+    path = Path(hass.config.path("backups", name))
+    assert await hass.async_add_executor_job(path.read_bytes) == data
+    assert _leftovers(hass) == []
+
+
+@pytest.mark.usefixtures("patch_session")
+async def test_pass_progress_is_sent_to_the_page(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A page subscribed to the pointers hears a pass start and end, with its result."""
+    manager, entry = await _setup_all(hass)
+    agent = _registry_agent(manager, entry)
+    await _add_backup(hass, manager, agent, OLD_ID)
+    await _enable(manager)
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "backup/pointer/subscribe"})
+    assert (await client.receive_json())["success"]
+    first = (await client.receive_json())["event"]
+    assert first["pass"]["running"] is False
+    # Turning it on schedules a pass a little later; the page is told when.
+    assert first["pass"]["due"] is not None
+
+    await client.send_json_auto_id({"type": "backup/pointer/run"})
+    events: list[dict[str, Any]] = []
+    while True:
+        message = await client.receive_json()
+        if message.get("type") == "result":
+            assert message["result"] == {"outcomes": {OLD_ID: "pointer"}}
+            break
+        events.append(message["event"])
+
+    assert any(event["pass"]["running"] for event in events)
+    last = events[-1]
+    assert last["pass"]["running"] is False
+    assert last["pass"]["made"] == 1
+    assert last["pass"]["outcomes"] == {"pointer": 1}
+    assert last["revision"] > first["revision"]
+
+
+@pytest.mark.usefixtures("patch_session")
+async def test_pass_with_nothing_to_do_reports_it(hass: HomeAssistant) -> None:
+    """A pass with no backup here ends with an empty result the page can explain."""
+    manager, _ = await _setup_all(hass)
+    await _enable(manager)
+
+    assert await manager.pointers.async_run_pass() == {}
+
+    state = manager.pointers.pass_state
+    assert state.running is False
+    assert state.finished is not None
+    assert (state.made, state.outcomes) == (0, {})
