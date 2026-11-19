@@ -150,6 +150,15 @@ observer images are unchanged upstream images.
 | `core/homeassistant/helpers/config_validation.py` | `editor_group` is accepted and dropped on triggers, so a trigger placed in a group in the editor still validates and runs. |
 | `core/homeassistant/components/frontend/helpers.py` (web app manifest) | Four shortcuts are listed in the web app manifest. |
 
+## Notes from the move to core 2026.11.2 and frontend 20261028.6 (19 November 2026)
+
+| File | Change |
+| --- | --- |
+| `frontend/src/components/data-table/ha-data-table.ts` | Upstream replaced the per-group action slots with a `renderGroupActions` function. The sticky group header keeps this project's `_modeLocalize` and passes the new function. |
+| `frontend/src/layouts/hass-tabs-subpage-data-table.ts` | The slot pass-through and its observer are gone, as upstream; this project's empty-action slot, tool-row fitting and phone chip row fade are kept. `disconnectedCallback` keeps only this project's clean-up. |
+| `frontend/src/panels/config/automation/ha-automation-picker.ts` | Category group actions are passed as `renderGroupActions`, as upstream; the filter chip menus stay. |
+| `frontend/src/panels/config/scene/ha-scene-dashboard.ts` | Unchanged: this page is drawn by this project without the grouped table, so the upstream category group actions do not apply to it. |
+
 ## Build-time stamping (not committed)
 
 `scripts/ci/set-versions.py` writes the build number into `core/homeassistant/const.py`,

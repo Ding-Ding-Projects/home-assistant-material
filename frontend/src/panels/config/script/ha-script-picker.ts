@@ -128,7 +128,7 @@ import { draftText } from "../automation/editor-frame/draft-strings";
 import { exportConfigs } from "../automation/editor-frame/transfer-actions";
 import type { ExportMode } from "../automation/editor-frame/transfer-actions";
 import { showAssignCategoryDialog } from "../category/show-dialog-assign-category";
-import { renderCategoryGroupActions } from "../category/render-category-group-actions";
+import { categoryGroupActions } from "../category/category-group-actions";
 import { showCategoryRegistryDetailDialog } from "../category/show-dialog-category-registry-detail";
 import {
   getAreaTableColumn,
@@ -549,6 +549,12 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
         @empty-action=${this._createNew}
         has-filters
         .initialGroupColumn=${this._tableSettings.grouping}
+        .renderGroupActions=${this._groupActions(
+          "script",
+          this._categories,
+          this._tableSettings.grouping,
+          this._categoryDeleted
+        )}
         .initialCollapsedGroups=${this._activeCollapsed}
         .initialSorting=${this._tableSettings.sorting}
         .columnOrder=${this._activeColumnOrder}
@@ -596,12 +602,6 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
           .path=${mdiHelpCircleOutline}
           @click=${this._showHelp}
         ></ha-icon-button>
-        ${renderCategoryGroupActions(
-          "script",
-          this._categories,
-          this._tableSettings.grouping,
-          this._categoryDeleted
-        )}
         <ha-filter-floor-areas
           .type=${"script"}
           .value=${this._filters["ha-filter-floor-areas"]?.value}
@@ -794,6 +794,8 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
       items: undefined,
     });
   };
+
+  private _groupActions = memoizeOne(categoryGroupActions);
 
   private _categoryDeleted = (categoryId: string) => {
     const value = this._filters["ha-filter-categories"]?.value;
