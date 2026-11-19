@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Going back to an earlier build always makes a backup first</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 900px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Asked for by the owner: going back to an earlier build must have a backup run before it proceeds. No switch turns this off, and a backup that did not finish stops the going back.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Confirm" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">1 · CONFIRM</div>
+<div style="border-radius: 28px; background: #1D1F26; padding: 20px 16px 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 0 0 1px #2A2D36">
+<div style="font-size: 20px; line-height: 26px; font-weight: 700">Go back to build 525?</div>
+<div style="color: #C4C6D0">Home Assistant Core is replaced by build 525 and restarts. Settings and data made by newer builds may not work in the older one.</div>
+<div style="border-radius: 16px; background: #14161B; padding: 0 12px">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #1F4A44; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7FD6C8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">A backup is made first, always</div><div style="font-size: 12px; color: #C4C6D0">Going back starts only after the backup has finished and been checked.</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="flex: 1; color: #C4C6D0">Backup goes to</span><span style="font-weight: 600">This system + 1 place</span></div>
+</div>
+<div style="font-size: 12px; color: #C4C6D0">Confirm with the two keys and the slider, as for every change of this size.</div>
+<div style="min-height: 44px; display: flex; align-items: center; color: #FFB4AB; font-weight: 700; font-size: 13px">Go back without a backup…</div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 44px; border-radius: 22px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: grid; place-items: center; font-weight: 700">Cancel</span><span style="flex: 1; height: 44px; border-radius: 22px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Back up, then go back</span></div>
+</div>
+</section>
+
+<section aria-label="Running" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">2 · RUNNING · TWO STEPS, IN ORDER</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-weight: 700">Going back to build 525</div>
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px"><span style="width: 24px; height: 24px; border-radius: 50%; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700; font-size: 12px; flex: none">1</span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Backing up</div><div style="font-size: 12px; color: #C4C6D0">Started <span style="font-family: 'Roboto Mono', monospace">21:52</span> · running for 0:48 · no percentage is reported</div><div style="height: 4px; border-radius: 2px; background: #2A2D36; margin-top: 6px; overflow: hidden"><div style="width: 34%; height: 100%; background: #B4C5FF; border-radius: 2px; margin-left: 22%"></div></div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; opacity: .6"><span style="width: 24px; height: 24px; border-radius: 50%; box-shadow: inset 0 0 0 2px #44474F; display: grid; place-items: center; font-weight: 700; font-size: 12px; flex: none">2</span><div style="flex: 1"><div style="font-weight: 600">Go back to build 525</div><div style="font-size: 12px; color: #C4C6D0">Waits for the backup. Nothing has been changed yet.</div></div></div>
+<span style="height: 44px; border-radius: 22px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: grid; place-items: center; font-weight: 700">Stop before going back</span>
+</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 44px"><span style="width: 24px; height: 24px; border-radius: 50%; background: #1F4A44; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7FD6C8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><div style="flex: 1"><div style="font-weight: 600">Backup finished and checked</div><div style="font-size: 12px; color: #C4C6D0"><span style="font-family: 'Roboto Mono', monospace">21:54</span> · took 1:52 · 412 MB</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px"><span style="width: 24px; height: 24px; border-radius: 50%; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700; font-size: 12px; flex: none">2</span><div style="flex: 1"><div style="font-weight: 600">Going back to build 525</div><div style="font-size: 12px; color: #C4C6D0">Home Assistant restarts during this.</div></div></div>
+</div>
+</section>
+
+<section aria-label="Stopped, and rules" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">3 · WHEN THE BACKUP DOES NOT FINISH</div>
+<div style="border-radius: 16px; background: #3B1512; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="font-weight: 700; color: #FFDAD6">Did not go back to build 525</div>
+<div style="font-size: 13px; color: #FFB4AB">The backup did not finish (not enough space), so nothing was changed. Build 526 is still the one installed.</div>
+<div style="display: flex; gap: 8px; margin-top: 4px"><span style="flex: 1; height: 44px; border-radius: 22px; box-shadow: inset 0 0 0 1px #8C4A44; color: #FFDAD6; display: grid; place-items: center; font-weight: 700">Open Backups</span><span style="flex: 1; height: 44px; border-radius: 22px; background: #FFB4AB; color: #3B1512; display: grid; place-items: center; font-weight: 700">Try again</span></div>
+</div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">RULES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>Going back makes a backup first. The "backup before updating" choice does not turn this off; only the super confirmation does, once, for that one going back.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>The older build is installed only after the backup is reported finished and its check passed. Failed, stopped, timed out or unknown all mean: do not go back.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>The rule is held by the system, not only by the page: asking to go back any other way gets the same backup first.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>If another backup is already running, going back waits for it and then makes its own.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">5</span><span>The history line says which backup was made: "Went back to build 525 at 21:56 · backup 21:54".</span></div>
+</div>
+</section>
+
+<section aria-label="Super confirmation" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #FFB4AB; padding: 0 4px">4 · WITHOUT A BACKUP · SUPER CONFIRMATION</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-weight: 700">Go back to build 525 with no backup</div>
+<div style="font-size: 13px; color: #C4C6D0">If going back goes wrong there will be nothing to restore. To be sure this is meant, finish all five steps in order, in one sitting. Leaving the page starts again from step 1.</div>
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px"><span style="width: 24px; height: 24px; border-radius: 50%; background: #1F4A44; display: grid; place-items: center; flex: none"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7FD6C8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><div style="flex: 1"><div style="font-weight: 600">Two keys and the slider</div><div style="font-size: 12px; color: #7FD6C8">Done</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; align-items: center; gap: 12px; min-height: 44px"><span style="width: 24px; height: 24px; border-radius: 50%; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700; font-size: 12px; flex: none">2</span><div style="flex: 1"><div style="font-weight: 600">Win at whack-a-mole</div><div style="font-size: 12px; color: #C4C6D0">Hit 10 moles in 30 seconds · <span style="font-family: 'Roboto Mono', monospace">6 / 10 · 0:14</span></div></div></div>
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding-left: 36px"><span style="height: 52px; border-radius: 14px; background: #14161B"></span><span style="height: 52px; border-radius: 14px; background: #14161B; display: grid; place-items: center"><span style="width: 30px; height: 30px; border-radius: 50%; background: #B08968; box-shadow: inset 0 -6px 0 #7F5F45"></span></span><span style="height: 52px; border-radius: 14px; background: #14161B"></span><span style="height: 52px; border-radius: 14px; background: #14161B"></span><span style="height: 52px; border-radius: 14px; background: #14161B"></span><span style="height: 52px; border-radius: 14px; background: #14161B"></span></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; opacity: .6"><span style="width: 24px; height: 24px; border-radius: 50%; box-shadow: inset 0 0 0 2px #44474F; display: grid; place-items: center; font-weight: 700; font-size: 12px; flex: none">3</span><div style="flex: 1"><div style="font-weight: 600">Win a game of four in a row</div><div style="font-size: 12px; color: #C4C6D0">Against the home. A draw or a loss means play again.</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; opacity: .6"><span style="width: 24px; height: 24px; border-radius: 50%; box-shadow: inset 0 0 0 2px #44474F; display: grid; place-items: center; font-weight: 700; font-size: 12px; flex: none">4</span><div style="flex: 1"><div style="font-weight: 600">Spin the coin until it lands heads</div><div style="font-size: 12px; color: #C4C6D0">A fair coin. Tails means spin again.</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; opacity: .6"><span style="width: 24px; height: 24px; border-radius: 50%; box-shadow: inset 0 0 0 2px #44474F; display: grid; place-items: center; font-weight: 700; font-size: 12px; flex: none">5</span><div style="flex: 1"><div style="font-weight: 600">Click the cookie to 100</div><div style="font-size: 12px; color: #C4C6D0">One cookie a click. No helpers.</div></div></div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 44px; border-radius: 22px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Make a backup instead</span><span style="flex: 1; height: 44px; border-radius: 22px; background: #262933; color: #8E9099; display: grid; place-items: center; font-weight: 700">Go back, no backup</span></div>
+</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">6</span><span>Every game works with the keyboard and a screen reader, has a mode with no time limit, and obeys reduced motion. Hard on purpose, never impossible.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">7</span><span>The pass is made by the system, works once, for this one build, for a few minutes, and the history line says "no backup, by super confirmation".</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
