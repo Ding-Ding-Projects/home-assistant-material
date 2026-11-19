@@ -26,8 +26,10 @@ from .backoff import wait_for_attempt
 from .cloud import (
     REASON_FILE_GONE,
     REASON_GAVE_UP,
+    REASON_LOCKED,
     REASON_NOT_LOADED,
     REASON_NOT_SET_UP,
+    REASON_RATE_LIMITED,
     REASON_SIGN_IN,
     CloudDrive,
     DriveError,
@@ -69,7 +71,15 @@ RETRY_SCHEDULE = (60.0, 300.0, 900.0, 1800.0, 3600.0, 3 * 3600.0, 6 * 3600.0)
 WAIT_SECONDS = 600.0
 MAX_SENT_KEPT_FOREVER = 200_000
 # These wait for the owner, so they do not count towards giving up.
-WAITING_REASONS = frozenset({REASON_NOT_SET_UP, REASON_NOT_LOADED, REASON_SIGN_IN})
+WAITING_REASONS = frozenset(
+    {
+        REASON_NOT_SET_UP,
+        REASON_NOT_LOADED,
+        REASON_SIGN_IN,
+        REASON_LOCKED,
+        REASON_RATE_LIMITED,
+    }
+)
 
 
 @dataclass(slots=True)

@@ -7,6 +7,8 @@ from freezegun.api import FrozenDateTimeFactory
 from pytest_homeassistant.common import MockConfigEntry, async_fire_time_changed
 
 from homeassistant.components.ac_defender.const import DOMAIN
+from homeassistant.components.ac_defender.model import Command, Touch
+from homeassistant.components.ac_defender.reasons import Reason
 from homeassistant.const import EVENT_HOMEASSISTANT_FINAL_WRITE
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
@@ -236,3 +238,104 @@ async def test_a_pause_given_while_waiting_for_a_reading_is_saved(
     await hass.async_block_till_done()
     saved = hass_storage[f"{DOMAIN}.{ENTRY_ID}"]["data"]
     assert saved["pause"]["kind"] == "paused"
+
+
+async def test_touches_commands_and_the_off_time_survive_a_restart(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    """The original keeps its touch and command history across a restart."""
+    await mock_climate_services(hass)
+    set_climate(hass)
+    entry = make_entry()
+    await setup_entry(hass, entry)
+    now = dt_util.utcnow()
+    coordinator = entry.runtime_data
+    coordinator.touches = [Touch(now - timedelta(minutes=5), 23.0, 25.0, "wall")]
+    coordinator.commands = [Command(now - timedelta(minutes=4), 23.5)]
+    coordinator.off_command_at = now - timedelta(minutes=3)
+    coordinator.last_off_at = now - timedelta(minutes=2)
+    await restart(hass, entry)
+    restored = entry.runtime_data
+    assert [(t.old, t.new, t.source) for t in restored.touches] == [
+        (23.0, 25.0, "wall")
+    ]
+    assert [c.setpoint for c in restored.commands] == [23.5]
+    assert restored.off_command_at == now - timedelta(minutes=3)
+    assert restored.last_off_at == now - timedelta(minutes=2)
+
+
+async def test_old_touches_are_pruned_when_restored(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    """A touch older than a day is not brought back."""
+    await mock_climate_services(hass)
+    set_climate(hass)
+    old = (dt_util.utcnow() - timedelta(hours=30)).isoformat()
+    fresh = (dt_util.utcnow() - timedelta(minutes=5)).isoformat()
+    prepare(
+        hass_storage,
+        touches=[[old, 23.0, 25.0, "wall", None], [fresh, 23.0, 24.0, "user", "u1"]],
+        commands=[[old, 23.0], ["not a time", 23.0]],
+    )
+    entry = make_entry()
+    await setup_entry(hass, entry)
+    restored = entry.runtime_data
+    assert [(t.new, t.user_id) for t in restored.touches] == [(24.0, "u1")]
+    assert restored.commands == []
+
+
+async def test_a_restored_reason_keeps_its_code_and_nested_values(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    """A reason with values, nested or not, can still be worded in any language."""
+    await mock_climate_services(hass)
+    set_climate(hass)
+    because = Reason("softened_step", step=0.5)
+    holding = Reason("holding_target_because", target=23.0, because=because)
+    prepare(
+        hass_storage,
+        last_acted={
+            "human_nudge": {
+                "time": dt_util.utcnow().isoformat(),
+                "reason": str(holding),
+                "parts": holding.to_dict(),
+            }
+        },
+    )
+    entry = make_entry()
+    await setup_entry(hass, entry)
+    guard = next(
+        g for g in entry.runtime_data.info()["guards"] if g["id"] == "human_nudge"
+    )
+    assert guard["reason_parts"] == {
+        "code": "holding_target_because",
+        "params": {
+            "target": 23.0,
+            "because": {"code": "softened_step", "params": {"step": 0.5}},
+        },
+    }
+    assert guard["reason"] == str(holding)
+
+
+async def test_a_restored_reason_with_an_unknown_code_keeps_its_wording(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    """Parts from another version fall back to the saved English text."""
+    await mock_climate_services(hass)
+    set_climate(hass)
+    prepare(
+        hass_storage,
+        last_acted={
+            "human_nudge": {
+                "time": dt_util.utcnow().isoformat(),
+                "reason": "an older wording",
+                "parts": {"code": "no_longer_known", "params": {}},
+            }
+        },
+    )
+    entry = make_entry()
+    await setup_entry(hass, entry)
+    guard = next(
+        g for g in entry.runtime_data.info()["guards"] if g["id"] == "human_nudge"
+    )
+    assert (guard["reason"], guard["reason_parts"]) == ("an older wording", None)

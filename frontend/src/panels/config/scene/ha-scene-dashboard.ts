@@ -132,6 +132,8 @@ import {
 } from "./scene-bulk-actions";
 import { showSceneSaveDialog } from "./scene-save-dialog/show-dialog-scene-save";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
 // The card colours, taken from the theme's colour scales
 const TINT_COUNT = 6;
 
@@ -172,6 +174,14 @@ const tintOf = (entityId: string): number => {
 
 @customElement("ha-scene-dashboard")
 class HaSceneDashboard extends SubscribeMixin(LitElement) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
@@ -411,7 +421,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
 
     const filterCount = this._filterCount;
     const narrowedDown = Boolean(this._tableSettings.search) || filterCount > 0;
-    const searchLabel = this.hass.localize(
+    const searchLabel = this._modeLocalize(
       "ui.panel.config.scene.picker.search",
       { number: scenes.length }
     );
@@ -431,7 +441,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         .searchValue=${this._tableSettings.search}
         .searchCountText=${
           this._tableSettings.search
-            ? searchCountText(this.hass.localize, {
+            ? searchCountText(this._modeLocalize, {
                 current: scenes.length,
                 total: allScenes.length,
               })
@@ -449,17 +459,17 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         <ha-icon-button
           slot="toolbar-icon"
           @click=${this._showHelp}
-          .label=${this.hass.localize("ui.common.help")}
+          .label=${this._modeLocalize("ui.common.help")}
           .path=${mdiHelpCircleOutline}
         ></ha-icon-button>
         <div class="page">
           <div class="page-heading">
-            <h1>${this.hass.localize("ui.panel.config.scene.caption")}</h1>
+            <h1>${this._modeLocalize("ui.panel.config.scene.caption")}</h1>
             <p>
-              ${this.hass.localize("ui.panel.config.scene.picker.summary", {
+              ${this._modeLocalize("ui.panel.config.scene.picker.summary", {
                 number: this.scenes.length,
               })}.
-              ${this.hass.localize("ui.panel.config.scene.picker.description")}
+              ${this._modeLocalize("ui.panel.config.scene.picker.description")}
             </p>
           </div>
           ${
@@ -480,7 +490,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
                 ? this._renderScenes(scenes)
                 : html`<div class="no-match">
                     <p>
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         "ui.panel.config.scene.picker.no_match"
                       )}
                     </p>
@@ -491,7 +501,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
                             size="s"
                             @click=${this._clearAll}
                           >
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               "ui.panel.config.scene.picker.clear_filters"
                             )}
                           </ha-button>`
@@ -503,7 +513,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         </div>
         <ha-button href="/config/scene/edit/new" size="l" slot="fab">
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.scene.picker.add_scene")}
+          ${this._modeLocalize("ui.panel.config.scene.picker.add_scene")}
         </ha-button>
       </hass-tabs-subpage>
     `;
@@ -576,7 +586,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           <h2 class="group-title">
             ${
               key ||
-              this.hass.localize(
+              this._modeLocalize(
                 `ui.panel.config.scene.picker.group_no_${grouping}`
               )
             }
@@ -591,7 +601,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
   }
 
   private _renderSortGroup() {
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const sortKey = `${this._sorting.column}_${this._sorting.direction}`;
     const grouping = this._grouping;
     return html`
@@ -675,7 +685,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         <ha-assist-chip
           slot="trigger"
           .label=${this._chipLabel(
-            this.hass.localize("ui.panel.config.scene.picker.filter_area"),
+            this._modeLocalize("ui.panel.config.scene.picker.filter_area"),
             this._selectedAreas.length > 1
               ? undefined
               : areaId
@@ -687,7 +697,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
         </ha-assist-chip>
         <ha-dropdown-item value="area_any" .selected=${!areaId}>
-          ${this.hass.localize("ui.panel.config.scene.picker.filter_any_item")}
+          ${this._modeLocalize("ui.panel.config.scene.picker.filter_any_item")}
         </ha-dropdown-item>
         ${Object.values(this.hass.areas).map(
           (area) =>
@@ -703,7 +713,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         <ha-assist-chip
           slot="trigger"
           .label=${this._chipLabel(
-            this.hass.localize("ui.panel.config.scene.picker.filter_category"),
+            this._modeLocalize("ui.panel.config.scene.picker.filter_category"),
             categoryIds.length === 1
               ? this._categories?.find(
                   (cat) => cat.category_id === categoryIds[0]
@@ -715,7 +725,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
         </ha-assist-chip>
         <ha-dropdown-item value="category_any" .selected=${!categoryIds.length}>
-          ${this.hass.localize("ui.panel.config.scene.picker.filter_any_item")}
+          ${this._modeLocalize("ui.panel.config.scene.picker.filter_any_item")}
         </ha-dropdown-item>
         ${this._categories?.map(
           (category) =>
@@ -731,7 +741,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         <ha-assist-chip
           slot="trigger"
           .label=${this._chipLabel(
-            this.hass.localize("ui.panel.config.scene.picker.filter_label"),
+            this._modeLocalize("ui.panel.config.scene.picker.filter_label"),
             labelIds.length === 1
               ? this._labels?.find((lbl) => lbl.label_id === labelIds[0])?.name
               : undefined,
@@ -741,7 +751,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
         </ha-assist-chip>
         <ha-dropdown-item value="label_any" .selected=${!labelIds.length}>
-          ${this.hass.localize("ui.panel.config.scene.picker.filter_any_item")}
+          ${this._modeLocalize("ui.panel.config.scene.picker.filter_any_item")}
         </ha-dropdown-item>
         ${this._labels?.map(
           (label) =>
@@ -754,7 +764,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         )}
       </ha-dropdown>
       <ha-assist-chip
-        .label=${this.hass.localize(
+        .label=${this._modeLocalize(
           "ui.panel.config.scene.picker.more_filters"
         )}
         .active=${this._showMoreFilters}
@@ -766,7 +776,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         filterCount
           ? html`<ha-icon-button
               .path=${mdiFilterVariantRemove}
-              .label=${this.hass.localize(
+              .label=${this._modeLocalize(
                 "ui.panel.config.scene.picker.clear_filters"
               )}
               @click=${this._clearFilter}
@@ -777,7 +787,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
       ${this._renderSortGroup()}
       <ha-icon-button
         .path=${mdiFormatListChecks}
-        .label=${this.hass.localize(
+        .label=${this._modeLocalize(
           "ui.panel.config.scene.picker.select_scenes"
         )}
         aria-pressed=${this._selectMode ? "true" : "false"}
@@ -792,15 +802,15 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     count: number
   ): string {
     if (!count) {
-      return this.hass.localize("ui.panel.config.scene.picker.filter_any", {
+      return this._modeLocalize("ui.panel.config.scene.picker.filter_any", {
         name,
       });
     }
-    return this.hass.localize("ui.panel.config.scene.picker.filter_value", {
+    return this._modeLocalize("ui.panel.config.scene.picker.filter_value", {
       name,
       value:
         value ??
-        this.hass.localize("ui.panel.config.scene.picker.filter_count", {
+        this._modeLocalize("ui.panel.config.scene.picker.filter_count", {
           count,
         }),
     });
@@ -825,7 +835,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     return html`<div class="selection-bar">
       <ha-icon-button
         .path=${mdiClose}
-        .label=${this.hass.localize(
+        .label=${this._modeLocalize(
           "ui.components.subpage-data-table.exit_selection_mode"
         )}
         @click=${this._toggleSelectMode}
@@ -833,20 +843,20 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
       <ha-dropdown @wa-select=${this._handleSelect}>
         <ha-assist-chip
           slot="trigger"
-          .label=${this.hass.localize("ui.components.subpage-data-table.select")}
+          .label=${this._modeLocalize("ui.components.subpage-data-table.select")}
         >
           <ha-svg-icon slot="icon" .path=${mdiFormatListChecks}></ha-svg-icon>
           <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
         </ha-assist-chip>
         <ha-dropdown-item value="all">
-          ${this.hass.localize("ui.components.subpage-data-table.select_all")}
+          ${this._modeLocalize("ui.components.subpage-data-table.select_all")}
         </ha-dropdown-item>
         <ha-dropdown-item value="none">
-          ${this.hass.localize("ui.components.subpage-data-table.select_none")}
+          ${this._modeLocalize("ui.components.subpage-data-table.select_none")}
         </ha-dropdown-item>
       </ha-dropdown>
       <p>
-        ${this.hass.localize("ui.components.subpage-data-table.selected", {
+        ${this._modeLocalize("ui.components.subpage-data-table.selected", {
           selected: this._selected.length || "0",
         })}
       </p>
@@ -856,7 +866,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
   private _bulkLocalize = (
     key: string,
     values?: Record<string, string | number>
-  ): string => this.hass.localize(key as any, values);
+  ): string => this._modeLocalize(key as any, values);
 
   private _bulkScenes(): BulkScene[] {
     return this.scenes.map((scene) => ({
@@ -891,13 +901,13 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     return [
       {
         id: "apply",
-        label: this.hass.localize("ui.panel.config.scene.picker.bulk.apply"),
+        label: this._modeLocalize("ui.panel.config.scene.picker.bulk.apply"),
         path: mdiPlay,
         preview: true,
       },
       {
         id: "delete",
-        label: this.hass.localize("ui.panel.config.scene.picker.bulk.delete"),
+        label: this._modeLocalize("ui.panel.config.scene.picker.bulk.delete"),
         path: mdiDelete,
         preview: true,
         destructive: true,
@@ -956,7 +966,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
             appearance="outlined"
             variant="brand"
           >
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.automation.picker.bulk_actions.move_category"
             )}
             <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
@@ -970,7 +980,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
             appearance="outlined"
             variant="brand"
           >
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.automation.picker.bulk_actions.add_label"
             )}
             <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
@@ -984,7 +994,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
             appearance="outlined"
             variant="brand"
           >
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.scene.picker.bulk.remove_label"
             )}
             <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
@@ -998,7 +1008,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
             appearance="outlined"
             variant="brand"
           >
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.devices.picker.bulk_actions.move_area"
             )}
             <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
@@ -1063,13 +1073,13 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     if (outcome.failed.length) {
       const lines = failureLines(outcome.failed, this._bulkLocalize);
       showAlertDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.scene.picker.bulk.failed_title",
           { count: outcome.failed.length }
         ),
         text: html`<pre>${lines.join("\r\n")}</pre>
           <p>
-            ${this.hass.localize("ui.panel.config.scene.picker.bulk.failed_note")}
+            ${this._modeLocalize("ui.panel.config.scene.picker.bulk.failed_note")}
           </p>`,
       });
     }
@@ -1090,7 +1100,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     );
     if (outcome.succeeded.length) {
       showToast(this, {
-        message: this.hass.localize(
+        message: this._modeLocalize(
           "ui.panel.config.scene.picker.bulk.applied",
           { count: outcome.succeeded.length }
         ),
@@ -1120,7 +1130,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     );
     if (outcome.succeeded.length) {
       showToast(this, {
-        message: this.hass.localize(
+        message: this._modeLocalize(
           "ui.panel.config.scene.picker.bulk.deleted",
           { count: outcome.succeeded.length }
         ),
@@ -1183,9 +1193,9 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     return html`<div class="empty">
       <ha-svg-icon .path=${mdiPalette}></ha-svg-icon>
       <h2>
-        ${this.hass.localize("ui.panel.config.scene.picker.empty_header")}
+        ${this._modeLocalize("ui.panel.config.scene.picker.empty_header")}
       </h2>
-      <p>${this.hass.localize("ui.panel.config.scene.picker.empty_text")}</p>
+      <p>${this._modeLocalize("ui.panel.config.scene.picker.empty_text")}</p>
       <ha-button
         appearance="plain"
         href=${documentationUrl(this.hass, "/docs/scene/editor/")}
@@ -1193,7 +1203,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         rel="noreferrer"
         size="s"
       >
-        ${this.hass.localize("ui.panel.config.common.learn_more")}
+        ${this._modeLocalize("ui.panel.config.common.learn_more")}
         <ha-svg-icon slot="end" .path=${mdiOpenInNew}></ha-svg-icon>
       </ha-button>
     </div>`;
@@ -1202,7 +1212,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
   private _renderCard(scene: SceneItem) {
     const selected = this._selected.includes(scene.entity_id);
     const subtitle = [
-      this.hass.localize("ui.panel.config.scene.picker.entity_count", {
+      this._modeLocalize("ui.panel.config.scene.picker.entity_count", {
         count: scene.entity_count,
       }),
       scene.area,
@@ -1216,7 +1226,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         title=${
           scene.editable
             ? ""
-            : this.hass.localize("ui.panel.config.scene.picker.only_editable")
+            : this._modeLocalize("ui.panel.config.scene.picker.only_editable")
         }
       >
         <button
@@ -1260,7 +1270,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           @click=${this._turnOnClicked}
         >
           <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.scene.picker.turn_on")}
+          ${this._modeLocalize("ui.panel.config.scene.picker.turn_on")}
         </ha-button>
       </div>
     `;
@@ -1270,31 +1280,31 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     return [
       {
         path: mdiPlay,
-        label: this.hass.localize("ui.panel.config.scene.picker.apply"),
+        label: this._modeLocalize("ui.panel.config.scene.picker.apply"),
         action: () => this._activateScene(scene),
       },
       {
         path: mdiInformationOutline,
-        label: this.hass.localize("ui.panel.config.scene.picker.show_info"),
+        label: this._modeLocalize("ui.panel.config.scene.picker.show_info"),
         action: () => this._showInfo(scene),
       },
       {
         path: mdiCog,
-        label: this.hass.localize(
+        label: this._modeLocalize(
           "ui.panel.config.automation.picker.show_settings"
         ),
         action: () => this._openSettings(scene),
       },
       {
         path: mdiTag,
-        label: this.hass.localize(
+        label: this._modeLocalize(
           `ui.panel.config.scene.picker.${scene.category ? "edit_category" : "assign_category"}`
         ),
         action: () => this._editCategory(scene),
       },
       {
         path: mdiPencil,
-        label: this.hass.localize("ui.panel.config.scene.editor.rename"),
+        label: this._modeLocalize("ui.panel.config.scene.editor.rename"),
         action: () => this._rename(scene),
         disabled: !scene.editable,
       },
@@ -1303,7 +1313,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
       },
       {
         path: mdiContentDuplicate,
-        label: this.hass.localize("ui.panel.config.scene.picker.duplicate"),
+        label: this._modeLocalize("ui.panel.config.scene.picker.duplicate"),
         action: () => this._duplicate(scene),
         disabled: !scene.editable,
       },
@@ -1320,7 +1330,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         disabled: !scene.editable,
       },
       {
-        label: this.hass.localize("ui.panel.config.scene.picker.delete"),
+        label: this._modeLocalize("ui.panel.config.scene.picker.delete"),
         path: mdiDelete,
         action: () => this._deleteConfirm(scene),
         warning: scene.editable,
@@ -1684,10 +1694,10 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     );
     if (!entityReg) {
       showAlertDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.scene.picker.no_category_support"
         ),
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.scene.picker.no_category_entity_reg"
         ),
       });
@@ -1713,7 +1723,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
   private _activateScene = async (scene: SceneEntity) => {
     await activateScene(this.hass.callService, scene.entity_id);
     showToast(this, {
-      message: this.hass.localize("ui.panel.config.scene.activated", {
+      message: this._modeLocalize("ui.panel.config.scene.activated", {
         name: this.hass.formatEntityName(scene),
       }),
     });
@@ -1722,15 +1732,15 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
 
   private _deleteConfirm(scene: SceneEntity): void {
     showConfirmationDialog(this, {
-      title: this.hass!.localize(
+      title: this._modeLocalize(
         "ui.panel.config.scene.picker.delete_confirm_title"
       ),
-      text: this.hass!.localize(
+      text: this._modeLocalize(
         "ui.panel.config.scene.picker.delete_confirm_text",
         { name: this.hass.formatEntityName(scene) }
       ),
-      confirmText: this.hass!.localize("ui.common.delete"),
-      dismissText: this.hass!.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.delete"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       confirm: () => this._delete(scene),
       destructive: true,
     });
@@ -1755,7 +1765,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         {
           ...config,
           id: undefined,
-          name: `${config?.name} (${this.hass.localize(
+          name: `${config?.name} (${this._modeLocalize(
             "ui.panel.config.scene.picker.duplicate"
           )})`,
         },
@@ -1791,16 +1801,16 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
 
   private _showHelp() {
     showAlertDialog(this, {
-      title: this.hass.localize("ui.panel.config.scene.picker.header"),
+      title: this._modeLocalize("ui.panel.config.scene.picker.header"),
       text: html`
-        ${this.hass.localize("ui.panel.config.scene.picker.introduction")}
+        ${this._modeLocalize("ui.panel.config.scene.picker.introduction")}
         <p>
           <a
             href=${documentationUrl(this.hass, "/docs/scene/editor/")}
             target="_blank"
             rel="noreferrer"
           >
-            ${this.hass.localize("ui.panel.config.scene.picker.learn_more")}
+            ${this._modeLocalize("ui.panel.config.scene.picker.learn_more")}
           </a>
         </p>
       `,
@@ -1844,13 +1854,13 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           </ha-dropdown-item>`
       )}
       <ha-dropdown-item value="category_none">
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.automation.picker.bulk_actions.no_category"
         )}
       </ha-dropdown-item>
       <wa-divider></wa-divider>
       <ha-dropdown-item value="category_create">
-        ${this.hass.localize("ui.panel.config.category.editor.add")}
+        ${this._modeLocalize("ui.panel.config.category.editor.add")}
       </ha-dropdown-item>`;
 
   private _renderLabelItems = (action: "add" | "remove") => {
@@ -1880,7 +1890,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
       action === "add"
         ? html`<wa-divider></wa-divider>
             <ha-dropdown-item value="label_create">
-              ${this.hass.localize("ui.panel.config.labels.add_label")}
+              ${this._modeLocalize("ui.panel.config.labels.add_label")}
             </ha-dropdown-item>`
         : nothing
     }`;
@@ -1902,13 +1912,13 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           </ha-dropdown-item>`
       )}
       <ha-dropdown-item value="area_none">
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.devices.picker.bulk_actions.no_area"
         )}
       </ha-dropdown-item>
       <wa-divider></wa-divider>
       <ha-dropdown-item value="area_create">
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.devices.picker.bulk_actions.add_area"
         )}
       </ha-dropdown-item>`;

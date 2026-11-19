@@ -52,6 +52,19 @@ commit calls this the riskiest edit in the batch.
   without marking or stepping.
 - A stray dark box in the developer tools state header is gone.
 
+## Later changes (`6db767de3`, on main, not built)
+
+- **Short words are matched as written.** A list search used to fall back to a typo-forgiving
+  match when nothing matched exactly, so typing "light" found "midnight", which has no "light" in
+  it to mark. The forgiving match now waits for every word typed to have six letters or more
+  (`FUZZY_MIN_TERM_LENGTH` in `frontend/src/components/data-table/sort-filter-worker.ts`).
+- **Developer tools remember the search per tab.** Each developer tools tab keeps its own search
+  text (`frontend/src/panels/config/tools/ha-panel-tools.ts`).
+- **Settings home shows a count** in the top bar search: how many settings the search shows out of
+  how many there are (`frontend/src/panels/config/dashboard/ha-config-dashboard.ts`).
+
+These are unit-tested only and not seen in a browser.
+
 ## Pages that keep their own field
 
 Search fields inside dialogs, pickers, filter panes, editors, the log terminal, the network
@@ -73,6 +86,9 @@ as still having its search in the content until you have checked.
 - Seen in a real run of build 523: the top bar search on Personal settings.
 - Seen in a browser at phone width for most of the pages added in `02dd3f9b4`; every moved page
   was looked at in a browser before `c9e3a5e67` (the build used for that look is not recorded).
-- Not seen: stepping with Enter read back, the apps pages with a Supervisor, and the pages that
-  moved in `92fb942bc` and `28cd39810` on a built, released image. Those two commits and
-  `c9e3a5e67` are not in build 523.
+- Seen working in a real run of build 2026.11.1.524 (built from `c9e3a5e67`, so it contains
+  `92fb942bc` and `28cd39810` too): release notes search marking the words it finds and stepping
+  through them, and the developer tools tabs after their page shell was replaced.
+- Not seen: stepping with Enter read back, the apps pages with a Supervisor, and each page moved
+  in `92fb942bc` and `28cd39810` one by one on a released image (the 524 run does not record them
+  page by page).

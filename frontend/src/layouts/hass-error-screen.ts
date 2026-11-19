@@ -5,6 +5,7 @@ import { customElement, property, state } from "lit/decorators";
 import { getHistoryState, goBack } from "../common/navigate";
 import { consumeLocalize } from "../common/decorators/consume-context-entry";
 import type { LocalizeFunc } from "../common/translations/localize";
+import { withLanguageMode } from "../common/language-mode/language-mode";
 import "../components/ha-button";
 import "../components/ha-top-app-bar-fixed";
 import type { HomeAssistant } from "../types";
@@ -49,7 +50,8 @@ class HassErrorScreen extends LitElement {
 
   private _renderContent(): TemplateResult {
     // Inline as this._localize once the custom panel iframe provides contexts
-    const localize = this._localize ?? this.hass?.localize;
+    const source = this._localize ?? this.hass?.localize;
+    const localize = source ? withLanguageMode(source) : undefined;
     const title = localize?.("ui.status_screens.error_title") || "";
     return html`
       <div class="content">

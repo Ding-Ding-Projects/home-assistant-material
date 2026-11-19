@@ -30,8 +30,19 @@ import type { HomeAssistant, Route } from "../../../types";
 // Import app-view components
 import "./app-view/supervisor-app-router";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 @customElement("ha-config-app-dashboard")
 class HaConfigAppDashboard extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public route!: Route;
@@ -195,18 +206,18 @@ class HaConfigAppDashboard extends LitElement {
 
     if (
       !(await showConfirmationDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.apps.my.add_repository_title"
         ),
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.apps.my.add_repository_description",
           { repository: repositoryUrl }
         ),
-        confirmText: this.hass.localize("ui.common.add"),
-        dismissText: this.hass.localize("ui.common.cancel"),
+        confirmText: this._modeLocalize("ui.common.add"),
+        dismissText: this._modeLocalize("ui.common.cancel"),
       }))
     ) {
-      this._error = this.hass.localize(
+      this._error = this._modeLocalize(
         "ui.panel.config.apps.my.error_repository_not_found"
       );
       return;

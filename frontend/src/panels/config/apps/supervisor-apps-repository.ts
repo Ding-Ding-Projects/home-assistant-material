@@ -23,8 +23,19 @@ import "./components/supervisor-apps-tag";
 import type { AppTag } from "./components/supervisor-apps-card-content";
 import { filterAndSort } from "./components/supervisor-apps-filter";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 @customElement("supervisor-apps-repository")
 export class SupervisorAppsRepositoryEl extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public repo!: HassioAddonRepository;
@@ -50,7 +61,7 @@ export class SupervisorAppsRepositoryEl extends LitElement {
       return html`
         <div class="no-results">
           <p>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.apps.store.no_results_found",
               {
                 repository: repo.name,
@@ -109,7 +120,7 @@ export class SupervisorAppsRepositoryEl extends LitElement {
                           ? html`<supervisor-apps-tag
                               variant="success"
                               .iconPath=${mdiCheckCircle}
-                              .label=${this.hass.localize(
+                              .label=${this._modeLocalize(
                                 "ui.panel.config.apps.state.installed"
                               )}
                             ></supervisor-apps-tag>`
@@ -120,7 +131,7 @@ export class SupervisorAppsRepositoryEl extends LitElement {
                           ? nothing
                           : html`<supervisor-apps-tag
                               variant="neutral"
-                              .label=${this.hass.localize(
+                              .label=${this._modeLocalize(
                                 "ui.panel.config.apps.state.not_available"
                               )}
                             ></supervisor-apps-tag>`
@@ -137,7 +148,7 @@ export class SupervisorAppsRepositoryEl extends LitElement {
                     ${
                       addon.available
                         ? html`<span class="action"
-                            >${this.hass.localize(
+                            >${this._modeLocalize(
                               addon.installed
                                 ? "ui.panel.config.apps.store.open"
                                 : "ui.panel.config.apps.dashboard.install"
@@ -171,7 +182,7 @@ export class SupervisorAppsRepositoryEl extends LitElement {
 
     if (addon.installed && addon.update_available) {
       labels.push({
-        label: this.hass.localize(
+        label: this._modeLocalize(
           `ui.panel.config.apps.state.update_available`
         ),
         variant: "brand",
@@ -180,7 +191,7 @@ export class SupervisorAppsRepositoryEl extends LitElement {
     }
     if (addon.stage !== "stable") {
       labels.push({
-        label: this.hass.localize(
+        label: this._modeLocalize(
           `ui.panel.config.apps.dashboard.capability.stages.${addon.stage}`
         ),
         variant: addon.stage === "experimental" ? "warning" : "danger",

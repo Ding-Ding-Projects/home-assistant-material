@@ -9,8 +9,19 @@ import { documentationUrl } from "../util/documentation-url";
 import type { HomeAssistant } from "../types";
 import "./hass-subpage";
 
+import { LanguageModeController } from "../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../common/translations/localize";
+
 @customElement("supervisor-error-screen")
 class SupervisorErrorScreen extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   protected firstUpdated(changedProps: PropertyValues<this>) {
@@ -34,12 +45,12 @@ class SupervisorErrorScreen extends LitElement {
     return html`
       <hass-subpage
         .hass=${this.hass}
-        .header=${this.hass.localize("ui.errors.supervisor.title")}
+        .header=${this._modeLocalize("ui.errors.supervisor.title")}
       >
         <ha-card header="Troubleshooting">
           <div class="card-content">
             <ol>
-              <li>${this.hass.localize("ui.errors.supervisor.wait")}</li>
+              <li>${this._modeLocalize("ui.errors.supervisor.wait")}</li>
               <li>
                 <a
                   class="supervisor_error-link"
@@ -47,13 +58,13 @@ class SupervisorErrorScreen extends LitElement {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  ${this.hass.localize("ui.errors.supervisor.observer")}
+                  ${this._modeLocalize("ui.errors.supervisor.observer")}
                 </a>
               </li>
-              <li>${this.hass.localize("ui.errors.supervisor.reboot")}</li>
+              <li>${this._modeLocalize("ui.errors.supervisor.reboot")}</li>
               <li>
                 <a href="/config/info" target="_parent">
-                  ${this.hass.localize("ui.errors.supervisor.system_health")}
+                  ${this._modeLocalize("ui.errors.supervisor.system_health")}
                 </a>
               </li>
               <li>
@@ -62,7 +73,7 @@ class SupervisorErrorScreen extends LitElement {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  ${this.hass.localize("ui.errors.supervisor.ask")}
+                  ${this._modeLocalize("ui.errors.supervisor.ask")}
                 </a>
               </li>
             </ol>

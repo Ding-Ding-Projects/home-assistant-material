@@ -2,7 +2,7 @@
 
 Two integrations that look after a climate unit so a home does not get hot or cold by accident.
 
-| File | Feature | State (see `../../feature-status.md`) |
+| File | Feature | State (current state: `../../../ROADMAP.md`) |
 | --- | --- | --- |
 | [`ac-defender.md`](ac-defender.md) | AC Defender: keeps cooling running the way it was set | Seen in a real instance (not against a real unit) |
 | [`heat-defender.md`](heat-defender.md) | Heat Defender: keeps heating off, or no warmer than a chosen number, with a safety floor | Seen in a real instance (not against a real unit) |

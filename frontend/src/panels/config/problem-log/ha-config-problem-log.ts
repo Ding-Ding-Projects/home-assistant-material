@@ -6,17 +6,37 @@ import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-spinner";
+import "../../../components/chips/ha-filter-chip";
 import type {
   ProblemLogOverview,
   RecordedProblem,
 } from "../../../data/problem_log";
 import { fetchProblemLog } from "../../../data/problem_log";
+import type { ProblemSendState } from "../../../data/problem_log_send";
+import {
+  fetchProblemSendState,
+  holdProblem,
+} from "../../../data/problem_log_send";
+import "./ha-problem-log-send";
+import type { ProblemChip } from "./problem-log-send-logic";
+import { chipCounts, matchesChip, statusOf } from "./problem-log-send-logic";
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 @customElement("ha-config-problem-log")
 class HaConfigProblemLog extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
@@ -27,7 +47,15 @@ class HaConfigProblemLog extends LitElement {
 
   @state() private _filter = "";
 
+  @state() private _send?: ProblemSendState;
+
+  @state() private _chip: ProblemChip = "all";
+
+  // Opened from the search as /config/problem-log#send.
+  @state() private _openSend = false;
+
   protected firstUpdated(): void {
+    this._openSend = window.location.hash === "#send";
     this._load();
   }
 
@@ -37,11 +65,18 @@ class HaConfigProblemLog extends LitElement {
       this._error = undefined;
     } catch (err: any) {
       this._error = err?.message ?? String(err);
+      return;
+    }
+    try {
+      this._send = await fetchProblemSendState(this.hass);
+    } catch (_err) {
+      // Without sending, the page still lists what was recorded.
+      this._send = undefined;
     }
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
+    return this._modeLocalize(
       `ui.panel.config.problem_log.${key}` as any,
       values
     );
@@ -53,8 +88,11 @@ class HaConfigProblemLog extends LitElement {
 
   private _shown(): RecordedProblem[] {
     const matches = searchMatcher(this._filter);
-    return (this._overview?.problems ?? []).filter((problem) =>
-      matches(problem.title, problem.logger, problem.level, problem.detail)
+    const statuses = this._send?.statuses;
+    return (this._overview?.problems ?? []).filter(
+      (problem) =>
+        matchesChip(problem.file, statuses, this._chip) &&
+        matches(problem.title, problem.logger, problem.level, problem.detail)
     );
   }
 
@@ -72,7 +110,7 @@ class HaConfigProblemLog extends LitElement {
         .searchValue=${this._filter}
         .searchCountText=${
           this._filter.trim() !== ""
-            ? searchCountText(this.hass.localize, {
+            ? searchCountText(this._modeLocalize, {
                 current: this._shown().length,
                 total,
               })
@@ -100,7 +138,12 @@ class HaConfigProblemLog extends LitElement {
     const total = overview.problems.length;
     const searching = this._filter.trim() !== "";
     return html`
-      <ha-alert alert-type="info">${this._l("nothing_sent")}</ha-alert>
+      <ha-alert alert-type="info"
+        >${
+          this._send?.enabled ? this._l("sending_on") : this._l("nothing_sent")
+        }</ha-alert
+      >
+      ${this._renderSend("status")}
       <p class="note">
         ${this._l("location", { path: overview.path })}
         ${
@@ -116,6 +159,7 @@ class HaConfigProblemLog extends LitElement {
           >${this._l("refresh")}</ha-button
         >
       </div>
+      ${this._send ? this._renderChips(overview.problems) : nothing}
       ${
         searching
           ? html`<p class="note" role="status">
@@ -132,19 +176,120 @@ class HaConfigProblemLog extends LitElement {
               ${total ? this._l("empty_search") : this._l("empty")}
             </p>`
       }
+      ${this._renderSend("actions")}
     `;
   }
 
+  private _renderSend(section: "status" | "actions") {
+    if (!this._send) {
+      return nothing;
+    }
+    return html`<ha-problem-log-send
+      .section=${section}
+      .openSettings=${section === "status" && this._openSend}
+      .hass=${this.hass}
+      .localize=${this._modeLocalize}
+      .sendState=${this._send}
+      @problem-send-state=${this._sendStateChanged}
+    ></ha-problem-log-send>`;
+  }
+
+  private _sendStateChanged(ev: CustomEvent<ProblemSendState>): void {
+    this._send = ev.detail;
+  }
+
+  private _renderChips(problems: RecordedProblem[]): TemplateResult {
+    const counts = chipCounts(
+      problems.map((problem) => problem.file),
+      this._send?.statuses
+    );
+    const chips: { chip: ProblemChip; label: string }[] = [
+      { chip: "all", label: this._l("send.chip_all") },
+      {
+        chip: "not_sent",
+        label: this._l("send.chip_count", {
+          label: this._l("send.chip_not_sent"),
+          count: counts.not_sent,
+        }),
+      },
+      {
+        chip: "held",
+        label: this._l("send.chip_count", {
+          label: this._l("send.chip_held"),
+          count: counts.held,
+        }),
+      },
+    ];
+    return html`<div
+      class="chips"
+      role="group"
+      aria-label=${this._l("send.chips_label")}
+    >
+      ${chips.map(
+        (item) =>
+          html`<ha-filter-chip
+            .selected=${this._chip === item.chip}
+            .label=${item.label}
+            data-chip=${item.chip}
+            @click=${this._chipClicked}
+          ></ha-filter-chip>`
+      )}
+    </div>`;
+  }
+
+  private _chipClicked(ev: Event): void {
+    const chip = (ev.currentTarget as HTMLElement).dataset.chip as ProblemChip;
+    this._chip = chip;
+  }
+
+  private async _toggleHold(ev: Event): Promise<void> {
+    const button = ev.currentTarget as HTMLElement;
+    const file = button.dataset.file!;
+    const held = button.dataset.held !== "true";
+    try {
+      this._send = await holdProblem(this.hass, file, held);
+    } catch (err: any) {
+      this._error = err?.message ?? String(err);
+    }
+  }
+
+  private _renderSendStatus(problem: RecordedProblem): TemplateResult {
+    const status = statusOf(problem.file, this._send?.statuses);
+    return html`<span class="pill ${status}"
+      >${this._l(`send.status_${status}`)}</span
+    >`;
+  }
+
   private _renderProblem(problem: RecordedProblem): TemplateResult {
+    const held =
+      this._send && statusOf(problem.file, this._send.statuses) === "held";
     return html`<li>
       <details>
         <summary>
-          <span class="title">${problem.title}</span>
+          <span class="row">
+            <span class="title">${problem.title}</span>
+            ${this._send ? this._renderSendStatus(problem) : nothing}
+          </span>
           <span class="meta"
             >${this._l("count", { count: problem.count })} ·
-            ${this._l("last_seen")} ${problem.last_seen}</span
+            ${this._l("last_seen")}
+            ${problem.last_seen}${
+              held ? html` · ${this._l("send.held_by_you")}` : nothing
+            }</span
           >
         </summary>
+        ${
+          this._send
+            ? html`<ha-button
+                appearance="plain"
+                size="small"
+                data-file=${problem.file}
+                data-held=${held ? "true" : "false"}
+                @click=${this._toggleHold}
+                >${held ? this._l("send.release") : this._l("send.hold")}</ha-button
+              >`
+            : nothing
+        }
         <dl>
           <dt>${this._l("first_seen")}</dt>
           <dd>${problem.first_seen}</dd>
@@ -204,6 +349,39 @@ class HaConfigProblemLog extends LitElement {
         .title {
           font-weight: var(--ha-font-weight-medium);
           overflow-wrap: anywhere;
+        }
+        ha-problem-log-send {
+          margin: var(--ha-space-3) 0;
+        }
+        .chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+          margin-top: var(--ha-space-3);
+        }
+        .row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ha-space-2);
+          min-height: 28px;
+        }
+        .pill {
+          flex: none;
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
+          padding: 2px var(--ha-space-2);
+          border-radius: var(--ha-border-radius-pill, 999px);
+          background: var(--secondary-background-color);
+          color: var(--secondary-text-color);
+        }
+        .pill.not_sent {
+          background: rgba(var(--rgb-warning-color, 255, 166, 0), 0.18);
+          color: var(--primary-text-color);
+        }
+        .pill.sent {
+          background: rgba(var(--rgb-success-color, 67, 160, 71), 0.18);
+          color: var(--primary-text-color);
         }
         .meta {
           color: var(--secondary-text-color);

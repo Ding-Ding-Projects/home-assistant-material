@@ -144,6 +144,8 @@ import {
 } from "../voice-assistants/expose/assistants-table-column";
 import { getAvailableAssistants } from "../voice-assistants/expose/available-assistants";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 const EXPOSE_TOAST_ID = "entities-expose";
 
 export interface StateEntity extends Omit<
@@ -187,6 +189,14 @@ const getVoiceAssistantIds = (
 
 @customElement("ha-config-entities")
 export class HaConfigEntities extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
@@ -453,7 +463,7 @@ export class HaConfigEntities extends LitElement {
         template: (entry) =>
           entry.disabled_by === null
             ? ""
-            : this.hass.localize(
+            : this._modeLocalize(
                 `config_entry.disabled_by.${entry.disabled_by}`
               ),
       },
@@ -793,7 +803,7 @@ export class HaConfigEntities extends LitElement {
       })}
       <wa-divider .slot=${slot}></wa-divider>
       <ha-dropdown-item .slot=${slot} value="label_create">
-        ${this.hass.localize("ui.panel.config.labels.add_label")}
+        ${this._modeLocalize("ui.panel.config.labels.add_label")}
       </ha-dropdown-item>`;
 
   private _areaOptions = memoize((areas: HomeAssistant["areas"]) =>
@@ -836,7 +846,7 @@ export class HaConfigEntities extends LitElement {
   }
 
   private _renderChipMenu(chip: "domain" | "area") {
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const options =
       chip === "area"
         ? this._areaOptions(this.hass.areas)
@@ -929,7 +939,7 @@ export class HaConfigEntities extends LitElement {
   }
 
   private _footerFor = (shown: number): string =>
-    this.hass.localize("ui.panel.config.entities.picker.footer", {
+    this._modeLocalize("ui.panel.config.entities.picker.footer", {
       shown,
       total: this._entities.length + this._entitiesWithoutUniqueId.length,
     });
@@ -941,7 +951,7 @@ export class HaConfigEntities extends LitElement {
 
     const { filteredEntities, filteredDomains } =
       this._filteredEntitiesAndDomains(
-        this.hass.localize,
+        this._modeLocalize,
         this._entities,
         this.hass.devices,
         this.hass.areas,
@@ -972,18 +982,18 @@ export class HaConfigEntities extends LitElement {
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.devices}
-        .columns=${this._columns(this.hass.localize, filteredEntities)}
+        .columns=${this._columns(this._modeLocalize, filteredEntities)}
         .data=${filteredEntities}
-        .searchLabel=${this.hass.localize(
+        .searchLabel=${this._modeLocalize(
           "ui.panel.config.entities.picker.search",
           { number: filteredEntities.length }
         )}
-        .summary=${`${this.hass.localize(
+        .summary=${`${this._modeLocalize(
           "ui.panel.config.entities.picker.summary",
           { number: filteredEntities.length }
-        )}. ${this.hass.localize("ui.panel.config.entities.picker.tagline")}`}
+        )}. ${this._modeLocalize("ui.panel.config.entities.picker.tagline")}`}
         .statistics=${withFilterKeys(
-          buildListStatistics(this.hass.localize, {
+          buildListStatistics(this._modeLocalize, {
             total: this._entities.length + this._entitiesWithoutUniqueId.length,
             shown: filteredEntities.length,
             selected: this._selected.length,
@@ -1008,7 +1018,7 @@ export class HaConfigEntities extends LitElement {
         @statistic-selected=${this._statisticSelected}
         .emptyActionLabel=${
           includeAddDeviceFab
-            ? this.hass.localize("ui.panel.config.devices.add_device")
+            ? this._modeLocalize("ui.panel.config.devices.add_device")
             : undefined
         }
         @empty-action=${this._addDevice}
@@ -1062,7 +1072,7 @@ export class HaConfigEntities extends LitElement {
               >
                 <ha-assist-chip
                   slot="trigger"
-                  .label=${this.hass.localize(
+                  .label=${this._modeLocalize(
                     "ui.panel.config.automation.picker.bulk_actions.add_label"
                   )}
                 >
@@ -1079,7 +1089,7 @@ export class HaConfigEntities extends LitElement {
           ${
             this.narrow
               ? html`<ha-assist-chip
-                  .label=${this.hass.localize(
+                  .label=${this._modeLocalize(
                     "ui.panel.config.automation.picker.bulk_action"
                   )}
                   slot="trigger"
@@ -1091,7 +1101,7 @@ export class HaConfigEntities extends LitElement {
                 </ha-assist-chip>`
               : html`<ha-icon-button
                   .path=${mdiDotsVertical}
-                  .label=${this.hass.localize(
+                  .label=${this._modeLocalize(
                     "ui.panel.config.automation.picker.bulk_action"
                   )}
                   slot="trigger"
@@ -1100,7 +1110,7 @@ export class HaConfigEntities extends LitElement {
           ${
             this.narrow
               ? html`<ha-dropdown-item>
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.automation.picker.bulk_actions.add_label"
                     )}
                     <ha-icon-next slot="end"></ha-icon-next>
@@ -1112,7 +1122,7 @@ export class HaConfigEntities extends LitElement {
 
           <ha-dropdown-item value="enable_selected">
             <ha-svg-icon slot="icon" .path=${mdiToggleSwitch}></ha-svg-icon>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.entities.picker.enable_selected.button"
             )}
           </ha-dropdown-item>
@@ -1121,7 +1131,7 @@ export class HaConfigEntities extends LitElement {
               slot="icon"
               .path=${mdiToggleSwitchOffOutline}
             ></ha-svg-icon>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.entities.picker.disable_selected.button"
             )}
           </ha-dropdown-item>
@@ -1129,13 +1139,13 @@ export class HaConfigEntities extends LitElement {
 
           <ha-dropdown-item value="unhide_selected">
             <ha-svg-icon slot="icon" .path=${mdiEye}></ha-svg-icon>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.entities.picker.unhide_selected.button"
             )}
           </ha-dropdown-item>
           <ha-dropdown-item value="hide_selected">
             <ha-svg-icon slot="icon" .path=${mdiEyeOff}></ha-svg-icon>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.entities.picker.hide_selected.button"
             )}
           </ha-dropdown-item>
@@ -1149,7 +1159,7 @@ export class HaConfigEntities extends LitElement {
                       slot="icon"
                       .path=${mdiMicrophoneMessage}
                     ></ha-svg-icon>
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.entities.picker.expose_selected.button"
                     )}
                     ${this._renderVoiceAssistantItems(
@@ -1162,7 +1172,7 @@ export class HaConfigEntities extends LitElement {
                       slot="icon"
                       .path=${mdiMicrophoneMessageOff}
                     ></ha-svg-icon>
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.entities.picker.unexpose_selected.button"
                     )}
                     ${this._renderVoiceAssistantItems(
@@ -1177,7 +1187,7 @@ export class HaConfigEntities extends LitElement {
 
           <ha-dropdown-item value="restore_entity_id_selected">
             <ha-svg-icon slot="icon" .path=${mdiRestore}></ha-svg-icon>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.entities.picker.restore_entity_id_selected.button"
             )}
           </ha-dropdown-item>
@@ -1186,7 +1196,7 @@ export class HaConfigEntities extends LitElement {
 
           <ha-dropdown-item value="delete_selected" variant="danger">
             <ha-svg-icon slot="icon" .path=${mdiDelete}></ha-svg-icon>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.entities.picker.delete_selected.button"
             )}
           </ha-dropdown-item>
@@ -1195,7 +1205,7 @@ export class HaConfigEntities extends LitElement {
           Array.isArray(this._filters.config_entry) &&
           this._filters.config_entry.length
             ? html`<ha-alert slot="filter-pane">
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.entities.picker.filtering_by_config_entry"
                 )}
                 ${
@@ -1254,11 +1264,11 @@ export class HaConfigEntities extends LitElement {
           @expanded-changed=${this._filterExpanded}
         ></ha-filter-integrations>
         <ha-filter-states
-          .label=${this.hass.localize(
+          .label=${this._modeLocalize(
             "ui.panel.config.entities.picker.headers.status"
           )}
           .value=${this._filters["ha-filter-states"]}
-          .states=${this._states(this.hass.localize)}
+          .states=${this._states(this._modeLocalize)}
           @data-table-filter-changed=${this._filterChanged}
           slot="filter-pane"
           .expanded=${this._expandedFilter === "ha-filter-states"}
@@ -1285,7 +1295,7 @@ export class HaConfigEntities extends LitElement {
           includeAddDeviceFab
             ? html`<ha-button size="l" @click=${this._addDevice} slot="fab">
                 <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-                ${this.hass.localize("ui.panel.config.devices.add_device")}
+                ${this._modeLocalize("ui.panel.config.devices.add_device")}
               </ha-button>`
             : nothing
         }
@@ -1533,15 +1543,15 @@ export class HaConfigEntities extends LitElement {
 
   private _enableSelected = async () => {
     showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.entities.picker.enable_selected.confirm_title",
         { number: this._selected.length }
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.entities.picker.enable_selected.confirm_text"
       ),
-      confirmText: this.hass.localize("ui.common.enable"),
-      dismissText: this.hass.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.enable"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       confirm: async () => {
         let require_restart = false;
         let reload_delay = 0;
@@ -1566,7 +1576,7 @@ export class HaConfigEntities extends LitElement {
         if (hasRejectedItems(result)) {
           const rejected = rejectedItems(result);
           showAlertDialog(this, {
-            title: this.hass.localize(
+            title: this._modeLocalize(
               "ui.panel.config.common.multiselect.failed",
               {
                 number: rejected.length,
@@ -1584,13 +1594,13 @@ export class HaConfigEntities extends LitElement {
         // Otherwise, show a dialog explaining that some patience is needed
         if (require_restart) {
           showAlertDialog(this, {
-            text: this.hass.localize(
+            text: this._modeLocalize(
               "ui.dialogs.entity_registry.editor.enabled_restart_confirm"
             ),
           });
         } else if (reload_delay) {
           showAlertDialog(this, {
-            text: this.hass.localize(
+            text: this._modeLocalize(
               "ui.dialogs.entity_registry.editor.enabled_delay_confirm",
               { delay: reload_delay }
             ),
@@ -1602,15 +1612,15 @@ export class HaConfigEntities extends LitElement {
 
   private _disableSelected = () => {
     showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.entities.picker.disable_selected.confirm_title",
         { number: this._selected.length }
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.entities.picker.disable_selected.confirm_text"
       ),
-      confirmText: this.hass.localize("ui.common.disable"),
-      dismissText: this.hass.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.disable"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       confirm: () => {
         this._selected.forEach((entity) =>
           updateEntityRegistryEntry(this.hass, entity, {
@@ -1624,15 +1634,15 @@ export class HaConfigEntities extends LitElement {
 
   private _hideSelected = () => {
     showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.entities.picker.hide_selected.confirm_title",
         { number: this._selected.length }
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.entities.picker.hide_selected.confirm"
       ),
-      confirmText: this.hass.localize("ui.common.hide"),
-      dismissText: this.hass.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.hide"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       confirm: () => {
         this._selected.forEach((entity) =>
           updateEntityRegistryEntry(this.hass, entity, {
@@ -1695,7 +1705,7 @@ export class HaConfigEntities extends LitElement {
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1762,23 +1772,23 @@ ${rejected
       )
     );
     showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         `ui.panel.config.entities.picker.delete_selected.confirm_title`
       ),
       text:
         removeableEntities.length === this._selected.length
-          ? this.hass.localize(
+          ? this._modeLocalize(
               "ui.panel.config.entities.picker.delete_selected.confirm_text"
             )
-          : this.hass.localize(
+          : this._modeLocalize(
               "ui.panel.config.entities.picker.delete_selected.confirm_partly_text",
               {
                 deletable: removeableEntities.length,
                 selected: this._selected.length,
               }
             ),
-      confirmText: this.hass.localize("ui.common.delete"),
-      dismissText: this.hass.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.delete"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       destructive: true,
       confirm: () => {
         removeableEntities.forEach((entity_id) =>
@@ -1816,7 +1826,7 @@ ${rejected
   private _addDevice() {
     const { filteredConfigEntry, filteredDomains } =
       this._filteredEntitiesAndDomains(
-        this.hass.localize,
+        this._modeLocalize,
         this._entities!,
         this.hass.devices,
         this.hass.areas,
@@ -1935,7 +1945,7 @@ ${rejected
     ${
       assistants.length > 1
         ? html`<ha-dropdown-item slot="submenu" .value=${`${action}_all`}>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.entities.picker.expose_selected.all_assistants"
             )}
           </ha-dropdown-item>`
@@ -1951,7 +1961,7 @@ ${rejected
 
     if (!entityIds.length) {
       showAlertDialog(this, {
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.entities.picker.expose_selected.no_entities"
         ),
       });
@@ -1984,7 +1994,7 @@ ${rejected
 
     showToast(this, {
       id: EXPOSE_TOAST_ID,
-      message: this.hass.localize(
+      message: this._modeLocalize(
         shouldExpose
           ? "ui.panel.config.entities.picker.expose_selected.toast"
           : "ui.panel.config.entities.picker.unexpose_selected.toast",
@@ -1999,7 +2009,7 @@ ${rejected
       ),
       duration: 8000,
       action: {
-        text: this.hass.localize("ui.common.undo"),
+        text: this._modeLocalize("ui.common.undo"),
         action: () => this._undoExpose(changedEntities, shouldExpose),
       },
     });

@@ -28,6 +28,8 @@ CONF_BUFFER_HOURS: Final = "buffer_hours"
 CONF_SEGMENT_MINUTES: Final = "segment_minutes"
 
 DEFAULT_KEEP_DAYS: Final = 14
+MIN_KEEP_DAYS: Final = 1
+MAX_KEEP_DAYS: Final = 90
 DEFAULT_MAX_GB: Final = 0  # 0 means no space limit, only the age limit.
 DEFAULT_BUFFER_HOURS: Final = 6
 DEFAULT_SEGMENT_MINUTES: Final = 5
@@ -95,3 +97,11 @@ MIN_CLIPS_PER_HOUR: Final = 1
 MAX_CLIPS_PER_HOUR: Final = 30
 ORIGIN_SERVICE: Final = "service"
 ORIGIN_HOME: Final = "home"
+# A live view already open, as in a browser, is waited for this long before giving up.
+LIVE_BUSY_WAIT_SECONDS: Final = 30
+LIVE_BUSY_POLL_SECONDS: Final = 2
+# An event heard while a clip runs is recorded next only if it is not older than this.
+LIVE_QUEUE_STALE_SECONDS: Final = 120
+# A clip this much shorter than asked was cut short by the camera.
+LIVE_CUT_TOLERANCE_SECONDS: Final = 2.0
+TEST_CLIP_SECONDS: Final = 10

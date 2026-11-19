@@ -5,6 +5,7 @@ import { CONDITION_EDITORS_MEDIA } from "./conditions/media";
 import { CONDITION_EDITORS_OPENINGS } from "./conditions/openings";
 import { CONDITION_EDITORS_PRESENCE } from "./conditions/presence";
 import { CONDITION_EDITORS_SYSTEM } from "./conditions/system";
+import { CONDITION_EDITORS_TRANSIT } from "./conditions/transit";
 import { DEVICE_ACTION_EDITORS } from "./devices/actions";
 import { DEVICE_CONDITION_EDITORS } from "./devices/conditions";
 import { deviceControls } from "./devices/shared";
@@ -16,6 +17,7 @@ import { TRIGGER_EDITORS_MEDIA } from "./triggers/media";
 import { TRIGGER_EDITORS_OPENINGS } from "./triggers/openings";
 import { TRIGGER_EDITORS_PRESENCE } from "./triggers/presence";
 import { TRIGGER_EDITORS_SYSTEM } from "./triggers/system";
+import { TRIGGER_EDITORS_TRANSIT } from "./triggers/transit";
 import type {
   AutomationEditorContext,
   AutomationEditorEntry,
@@ -39,6 +41,7 @@ export const TRIGGER_EDITORS: AutomationEditorMap = {
   ...TRIGGER_EDITORS_MEDIA,
   ...TRIGGER_EDITORS_HOME,
   ...TRIGGER_EDITORS_SYSTEM,
+  ...TRIGGER_EDITORS_TRANSIT,
 };
 
 export const CONDITION_EDITORS: AutomationEditorMap = {
@@ -49,6 +52,7 @@ export const CONDITION_EDITORS: AutomationEditorMap = {
   ...CONDITION_EDITORS_MEDIA,
   ...CONDITION_EDITORS_HOME,
   ...CONDITION_EDITORS_SYSTEM,
+  ...CONDITION_EDITORS_TRANSIT,
 };
 
 export const DEVICE_EDITORS: DeviceEditorMap = {

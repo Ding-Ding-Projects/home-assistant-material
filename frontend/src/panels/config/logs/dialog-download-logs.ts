@@ -13,10 +13,21 @@ import type { HomeAssistant, ValueChangedEvent } from "../../../types";
 import { fileDownload } from "../../../util/file_download";
 import type { DownloadLogsDialogParams } from "./show-dialog-download-logs";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 const DEFAULT_LINE_COUNT = 500;
 
 @customElement("dialog-download-logs")
 class DownloadLogsDialog extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _dialogParams?: DownloadLogsDialogParams;
@@ -58,8 +69,8 @@ class DownloadLogsDialog extends LitElement {
         ? ""
         : ` · ${
             this._dialogParams.boot === -1
-              ? this.hass.localize("ui.panel.config.logs.previous")
-              : this.hass.localize("ui.panel.config.logs.startups_ago", {
+              ? this._modeLocalize("ui.panel.config.logs.previous")
+              : this._modeLocalize("ui.panel.config.logs.startups_ago", {
                   boot: this._dialogParams.boot * -1,
                 })
           }`
@@ -68,19 +79,19 @@ class DownloadLogsDialog extends LitElement {
     return html`
       <ha-dialog
         .open=${this._open}
-        header-title=${this.hass.localize("ui.panel.config.logs.download_logs")}
+        header-title=${this._modeLocalize("ui.panel.config.logs.download_logs")}
         header-subtitle=${headerSubtitle}
         width="small"
         @closed=${this._dialogClosed}
       >
         <div class="content">
           <div>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.logs.select_number_of_lines"
             )}:
           </div>
           <ha-select
-            .label=${this.hass.localize("ui.panel.config.logs.lines")}
+            .label=${this._modeLocalize("ui.panel.config.logs.lines")}
             @selected=${this._setNumberOfLogs}
             .value=${String(this._lineCount)}
             .options=${numberOfLinesOptions.map((option) => String(option))}
@@ -92,10 +103,10 @@ class DownloadLogsDialog extends LitElement {
             appearance="plain"
             @click=${this.closeDialog}
           >
-            ${this.hass.localize("ui.common.cancel")}
+            ${this._modeLocalize("ui.common.cancel")}
           </ha-button>
           <ha-button slot="primaryAction" @click=${this._downloadLogs}>
-            ${this.hass.localize("ui.common.download")}
+            ${this._modeLocalize("ui.common.download")}
           </ha-button>
         </ha-dialog-footer>
       </ha-dialog>

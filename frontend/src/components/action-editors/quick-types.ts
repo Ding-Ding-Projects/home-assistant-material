@@ -194,6 +194,8 @@ export interface QuickContext {
   entities: QuickEntity[];
   /** Engine facts the owner loaded from the backend, by entity id. */
   engines?: Record<string, QuickEngineInfo>;
+  /** The owner's linked media files by name, never with their address. */
+  linkedFiles?: { id: string; name: string }[];
 }
 
 export type ServiceBuilders = Record<

@@ -58,6 +58,7 @@ from .const import (
     DEST_USB,
     DESTINATIONS,
     DOMAIN,
+    MAX_KEEP_DAYS,
     MODE_ALL_DAY,
     MODE_LIGHT,
     MODE_OFF,
@@ -135,7 +136,7 @@ def keep_schema(hass: HomeAssistant, defaults: dict[str, Any]) -> probatio.Schem
             ): NumberSelector(
                 NumberSelectorConfig(
                     min=1,
-                    max=365,
+                    max=MAX_KEEP_DAYS,
                     unit_of_measurement="days",
                     mode=NumberSelectorMode.BOX,
                 )

@@ -73,6 +73,9 @@ import "./error-log-card";
 import "./system-log-card";
 import type { SystemLogCard } from "./system-log-card";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 const NO_INTEGRATIONS: string[] = [];
 
 const logProviders: LogProvider[] = [
@@ -111,6 +114,14 @@ interface LogProviderPickerItem extends PickerComboBoxItem {
 
 @customElement("ha-config-logs")
 export class HaConfigLogs extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
@@ -209,7 +220,7 @@ export class HaConfigLogs extends LitElement {
     const core = this._selectedLogProvider === DEFAULT_LOG_PROVIDER;
     const integrations = core ? this._integrations : NO_INTEGRATIONS;
     const filtersShown = core && this._showFilters;
-    const filtersLabel = this.hass.localize(
+    const filtersLabel = this._modeLocalize(
       "ui.components.subpage-data-table.filters"
     );
 
@@ -219,14 +230,14 @@ export class HaConfigLogs extends LitElement {
       <hass-subpage
         .hass=${this.hass}
         .narrow=${this.narrow}
-        .header=${this.hass.localize("ui.panel.config.logs.caption")}
+        .header=${this._modeLocalize("ui.panel.config.logs.caption")}
         back-path="/config/system"
         searchable
-        .searchLabel=${this.hass.localize("ui.panel.config.logs.search")}
+        .searchLabel=${this._modeLocalize("ui.panel.config.logs.search")}
         .searchValue=${this._filter}
         .searchCountText=${
           this._filter && this._logCount && core && !this._detail
-            ? searchCountText(this.hass.localize, {
+            ? searchCountText(this._modeLocalize, {
                 current: this._logCount.current,
                 total: this._logCount.total,
               })
@@ -257,8 +268,8 @@ export class HaConfigLogs extends LitElement {
           <div class="content-column">
             <div class="head">
               <div class="titles">
-                <h2>${this.hass.localize("ui.panel.config.logs.caption")}</h2>
-                <p>${this.hass.localize("ui.panel.config.logs.summary")}</p>
+                <h2>${this._modeLocalize("ui.panel.config.logs.caption")}</h2>
+                <p>${this._modeLocalize("ui.panel.config.logs.summary")}</p>
               </div>
               ${
                 isComponentLoaded(this.hass.config, "hassio") &&
@@ -277,7 +288,7 @@ export class HaConfigLogs extends LitElement {
                           @click=${this._openPicker}
                         >
                           <span class="source-label"
-                            >${this.hass.localize(
+                            >${this._modeLocalize(
                               "ui.panel.config.logs.source"
                             )}</span
                           >
@@ -313,14 +324,14 @@ export class HaConfigLogs extends LitElement {
                 core && !this._detail
                   ? html`<div class="level-chips">
                       <ha-filter-chip
-                        .label=${this.hass.localize(
+                        .label=${this._modeLocalize(
                           "ui.panel.config.logs.errors"
                         )}
                         .selected=${this._showErrors}
                         @click=${this._toggleErrors}
                       ></ha-filter-chip>
                       <ha-filter-chip
-                        .label=${this.hass.localize(
+                        .label=${this._modeLocalize(
                           "ui.panel.config.logs.warnings"
                         )}
                         .selected=${this._showWarnings}
@@ -332,7 +343,7 @@ export class HaConfigLogs extends LitElement {
               ${
                 core
                   ? html`<ha-button-toggle-group
-                      .buttons=${this._getViewButtons(this.hass.localize)}
+                      .buttons=${this._getViewButtons(this._modeLocalize)}
                       .active=${this._detail ? "raw" : "summary"}
                       size="s"
                       no-wrap
@@ -450,14 +461,14 @@ export class HaConfigLogs extends LitElement {
     for (const entry of entries) {
       const domain = getLoggedErrorIntegration(entry);
       const source = domain
-        ? domainToName(this.hass.localize, domain)
+        ? domainToName(this._modeLocalize, domain)
         : entry.source[0];
       counts.set(source, (counts.get(source) ?? 0) + 1);
     }
     const [top, topCount] = [...counts.entries()].sort(
       (a, b) => b[1] - a[1]
     )[0];
-    return this.hass.localize(
+    return this._modeLocalize(
       topCount === entries.length
         ? "ui.panel.config.logs.all_from"
         : "ui.panel.config.logs.most_from",
@@ -469,7 +480,7 @@ export class HaConfigLogs extends LitElement {
     if (!this._loggedErrors) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     // Entries are kept with the time they last happened
     const dayAgo = Date.now() / 1000 - 24 * 60 * 60;
     const recent = this._loggedErrors.filter(
@@ -630,9 +641,9 @@ export class HaConfigLogs extends LitElement {
     if (missingProvider) {
       showAlertDialog(this, {
         title:
-          this.hass.localize("ui.panel.config.logs.provider_not_found") ||
+          this._modeLocalize("ui.panel.config.logs.provider_not_found") ||
           "Log provider not found",
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.logs.provider_not_available",
           { provider: missingProvider }
         ),

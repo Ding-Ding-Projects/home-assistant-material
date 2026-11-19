@@ -229,6 +229,24 @@ async def test_dual_setpoint_device_is_held_to_the_band(hass: HomeAssistant) -> 
     assert paired[-1].data["target_temp_high"] == 24.0
 
 
+async def test_the_band_command_carries_its_reason_parts(hass: HomeAssistant) -> None:
+    """The shared band line of the log can be worded in either language."""
+    await mock_climate(hass)
+    set_climate(
+        hass,
+        room=23.0,
+        mode="heat_cool",
+        target_temp_low=18.0,
+        target_temp_high=28.0,
+    )
+    brother, _ = await both(hass)
+    line = next(e for e in brother.log if e["guard"] == "band")
+    assert line["values"]["reason_parts"] == {
+        "code": "shared_band",
+        "params": {"low": 22.0, "high": 24.0},
+    }
+
+
 async def test_unloading_one_leaves_the_other_alone(hass: HomeAssistant) -> None:
     """Removing a sibling makes the other behave exactly as alone."""
     await mock_climate(hass)

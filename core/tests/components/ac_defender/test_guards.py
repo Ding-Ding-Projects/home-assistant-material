@@ -285,6 +285,7 @@ def test_cool_outdoor_shutdown_turns_off_once_and_restores() -> None:
         options=options, outdoor=15.0, forecast_peak=17.0, room=22.0, setpoint=23.0
     )
     assert decide(ctx, guards).action == "turn_off"
+    ctx.off_command_at = NOW
     ctx.hvac_mode = "off"
     assert decide(ctx, guards).action is None
     ctx.outdoor = 25.0

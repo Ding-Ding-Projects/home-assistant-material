@@ -29,6 +29,9 @@ import { documentationUrl } from "../../../util/documentation-url";
 import { showToast } from "../../../util/toast";
 import type { TagDetailDialogParams } from "./show-dialog-tag-detail";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 interface TagFormState {
   name: string;
   id: string | undefined;
@@ -40,6 +43,14 @@ class DialogTagDetail
   extends DirtyStateProviderMixin<TagFormState>()(LitElement)
   implements HassDialog<TagDetailDialogParams>
 {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _id?: string;
@@ -170,14 +181,14 @@ class DialogTagDetail
       <div class="scan">
         <ha-button appearance="filled" @click=${this._toggleScan}>
           <ha-svg-icon slot="start" .path=${mdiNfc}></ha-svg-icon>
-          ${this.hass!.localize(
+          ${this._modeLocalize(
             this._nfc
               ? "ui.panel.config.tag.detail.scan_stop"
               : "ui.panel.config.tag.detail.scan"
           )}
         </ha-button>
         <p class="scan-text" role="status">
-          ${this.hass!.localize(`ui.panel.config.tag.detail.${text}`)}
+          ${this._modeLocalize(`ui.panel.config.tag.detail.${text}`)}
         </p>
       </div>
     `;
@@ -199,8 +210,8 @@ class DialogTagDetail
         .open=${this._open}
         header-title=${
           this._params.entry
-            ? this.hass!.localize("ui.panel.config.tag.detail.tag_details")
-            : this.hass!.localize("ui.panel.config.tag.detail.new_tag")
+            ? this._modeLocalize("ui.panel.config.tag.detail.tag_details")
+            : this._modeLocalize("ui.panel.config.tag.detail.new_tag")
         }
         .preventScrimClose=${this.isDirtyState}
         @closed=${this._dialogClosed}
@@ -217,8 +228,8 @@ class DialogTagDetail
               .value=${this._name}
               .configValue=${"name"}
               @input=${this._valueChanged}
-              .label=${this.hass!.localize("ui.panel.config.tag.detail.name")}
-              .validationMessage=${this.hass!.localize(
+              .label=${this._modeLocalize("ui.panel.config.tag.detail.name")}
+              .validationMessage=${this._modeLocalize(
                 "ui.panel.config.tag.detail.required_error_msg"
               )}
               required
@@ -230,7 +241,7 @@ class DialogTagDetail
                     ${this._renderScan()}
                     <ha-expansion-panel
                       outlined
-                      .header=${this.hass!.localize(
+                      .header=${this._modeLocalize(
                         "ui.panel.config.tag.detail.use_custom_id"
                       )}
                       .expanded=${this._useCustomId}
@@ -240,15 +251,15 @@ class DialogTagDetail
                         .value=${this._id || ""}
                         .configValue=${"id"}
                         @input=${this._valueChanged}
-                        .label=${this.hass!.localize(
+                        .label=${this._modeLocalize(
                           "ui.panel.config.tag.detail.tag_id"
                         )}
-                        .placeholder=${this.hass!.localize(
+                        .placeholder=${this._modeLocalize(
                           "ui.panel.config.tag.detail.tag_id_placeholder"
                         )}
                       ></ha-input>
                       <ha-alert alert-type="info">
-                        ${this.hass!.localize(
+                        ${this._modeLocalize(
                           "ui.panel.config.tag.detail.custom_id_warning"
                         )}
                       </ha-alert>
@@ -261,14 +272,11 @@ class DialogTagDetail
               ? html`
                   <div>
                     <p>
-                      ${this.hass!.localize(
-                        "ui.panel.config.tag.detail.usage",
-                        {
-                          companion_link: this.hass!.localize(
-                            "ui.panel.config.tag.detail.companion_apps"
-                          ),
-                        }
-                      )}
+                      ${this._modeLocalize("ui.panel.config.tag.detail.usage", {
+                        companion_link: this._modeLocalize(
+                          "ui.panel.config.tag.detail.companion_apps"
+                        ),
+                      })}
                     </p>
                   </div>
                   <div id="qr">
@@ -288,12 +296,12 @@ class DialogTagDetail
                   </div>
                   <div class="tag-id">
                     <span class="tag-id-label">
-                      ${this.hass!.localize("ui.panel.config.tag.detail.tag_id")}:
+                      ${this._modeLocalize("ui.panel.config.tag.detail.tag_id")}:
                     </span>
                     <span class="tag-id-value">${this._params.entry.id}</span>
                     <ha-icon-button
                       .path=${mdiContentCopy}
-                      .label=${this.hass!.localize("ui.common.copy")}
+                      .label=${this._modeLocalize("ui.common.copy")}
                       @click=${this._copyId}
                     ></ha-icon-button>
                   </div>
@@ -312,7 +320,7 @@ class DialogTagDetail
                     @click=${this._deleteEntry}
                     .disabled=${this._submitting}
                   >
-                    ${this.hass!.localize("ui.panel.config.tag.detail.delete")}
+                    ${this._modeLocalize("ui.panel.config.tag.detail.delete")}
                   </ha-button>
                 `
               : nothing
@@ -328,8 +336,8 @@ class DialogTagDetail
           >
             ${
               this._params.entry
-                ? this.hass!.localize("ui.panel.config.tag.detail.update")
-                : this.hass!.localize("ui.panel.config.tag.detail.create")
+                ? this._modeLocalize("ui.panel.config.tag.detail.update")
+                : this._modeLocalize("ui.panel.config.tag.detail.create")
             }
           </ha-button>
           ${
@@ -339,7 +347,7 @@ class DialogTagDetail
                   @click=${this._updateWriteEntry}
                   .disabled=${this._submitting || !this._name}
                 >
-                  ${this.hass!.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.tag.detail.create_and_write"
                   )}
                 </ha-button>`
@@ -377,7 +385,7 @@ class DialogTagDetail
     }
     await copyToClipboard(this._params.entry.id);
     showToast(this, {
-      message: this.hass.localize("ui.common.copied_clipboard"),
+      message: this._modeLocalize("ui.common.copied_clipboard"),
     });
   }
 

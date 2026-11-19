@@ -4,7 +4,7 @@ What the Updates page shows and does while updates are available, running or fin
 is Settings, System, Updates. The server side of the backup choice and of automatic updates lives
 in `core/homeassistant/components/auto_update/`.
 
-| File | Feature | State (see `../../feature-status.md`) |
+| File | Feature | State (current state: `../../../ROADMAP.md`) |
 | --- | --- | --- |
 | [`progress-and-queue.md`](progress-and-queue.md) | Real stages, numbers and output on every update row; the "Update everything" queue; honest start times and durations; compact rows on a phone | Seen in a local build for part of it; the rest built and tested only, see the file |
 | [`update-coming-soon.md`](update-coming-soon.md) | The one "Update coming soon" card for a build that is being made but not yet published | Seen in a local build with a mocked response; not seen against a real build in progress |

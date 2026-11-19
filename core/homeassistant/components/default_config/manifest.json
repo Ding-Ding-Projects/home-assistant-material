@@ -19,6 +19,7 @@
     "go2rtc",
     "history",
     "homeassistant_alerts",
+    "linked_media",
     "logbook",
     "media_source",
     "mobile_app",

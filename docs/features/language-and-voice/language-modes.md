@@ -15,9 +15,14 @@ dialogs that provide one show a fitting emoji (`frontend/src/dialogs/generic/dia
 
 ## Limits
 
-The Cantonese copy covers this project's own surfaces only. Pages that upstream wrote have no
-Cantonese text. A native review of the Cantonese copy is still to do (`../../ROADMAP.md`).
+The Cantonese copy covers this project's own surfaces, plus the parts of upstream pages listed in
+[`entity-words-and-stacked-labels.md`](entity-words-and-stacked-labels.md): entity sheets, the
+Backups pages, the camera timeline, relative times, entity state words, attribute names and
+weekdays. Other pages that upstream wrote have no Cantonese text. A native review of the Cantonese
+copy is still to do (`../../../ROADMAP.md`).
 
 ## Verification
 
-Checked by unit tests only. Nothing here has been seen in a running build.
+The three modes were seen in published build 131 on 12 November 2026 at 1440, 390 and 320 px
+(recorded in `../../../ROADMAP.md`). The later additions are verified only as stated in
+[`entity-words-and-stacked-labels.md`](entity-words-and-stacked-labels.md).

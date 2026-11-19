@@ -131,6 +131,12 @@ describe("getFieldHint", () => {
       autocomplete: "current-password",
     });
     expect(getFieldHint("new_password")?.autocomplete).toBe("new-password");
+    expect(getFieldHint("password_confirmation")).toMatchObject({
+      kind: "password",
+      autocomplete: "new-password",
+    });
+    expect(getFieldHint("old_password")?.autocomplete).toBe("current-password");
+    expect(getStringFieldProps({ name: "token" }).passwordToggle).toBe(true);
     expect(getFieldHint("api_key")?.sensitive).toBe(true);
     expect(getFieldHint("username")?.autocomplete).toBe("username");
   });

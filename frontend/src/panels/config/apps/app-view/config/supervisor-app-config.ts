@@ -38,6 +38,9 @@ import { supervisorAppsStyle } from "../../resources/supervisor-apps-style";
 import { suggestSupervisorAppRestart } from "../dialogs/suggestSupervisorAppRestart";
 import { KeyboardShortcutMixin } from "../../../../../mixins/keyboard-shortcut-mixin";
 
+import { LanguageModeController } from "../../../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../../../common/translations/localize";
+
 const SUPPORTED_UI_TYPES = [
   "string",
   "select",
@@ -60,6 +63,14 @@ const MASKED_FIELDS = ["password", "secret", "token"];
 class SupervisorAppConfig extends DirtyStateProviderMixin<
   Record<string, unknown>
 >()(KeyboardShortcutMixin(LitElement)) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public addon!: HassioAddonDetails;
 
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -260,14 +271,14 @@ class SupervisorAppConfig extends DirtyStateProviderMixin<
       <ha-card outlined>
         <div class="header">
           <h3>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.apps.configuration.options.header"
             )}
           </h3>
           <div class="card-menu">
             <ha-dropdown @wa-select=${this._handleAction}>
               <ha-icon-button
-                .label=${this.hass.localize("ui.common.menu")}
+                .label=${this._modeLocalize("ui.common.menu")}
                 .path=${mdiDotsVertical}
                 slot="trigger"
               ></ha-icon-button>
@@ -277,10 +288,10 @@ class SupervisorAppConfig extends DirtyStateProviderMixin<
               >
                 ${
                   this._yamlMode
-                    ? this.hass.localize(
+                    ? this._modeLocalize(
                         "ui.panel.config.apps.configuration.options.edit_in_ui"
                       )
-                    : this.hass.localize(
+                    : this._modeLocalize(
                         "ui.panel.config.apps.configuration.options.edit_in_yaml"
                       )
                 }
@@ -290,7 +301,7 @@ class SupervisorAppConfig extends DirtyStateProviderMixin<
                 .variant=${!this.disabled ? "danger" : "default"}
                 .disabled=${this.disabled}
               >
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.apps.configuration.reset_defaults"
                 )}
               </ha-dropdown-item>
@@ -336,7 +347,7 @@ class SupervisorAppConfig extends DirtyStateProviderMixin<
               ? ""
               : html`
                   <ha-alert alert-type="error">
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.apps.configuration.options.invalid_yaml"
                     )}
                   </ha-alert>
@@ -349,7 +360,7 @@ class SupervisorAppConfig extends DirtyStateProviderMixin<
                 @change=${this._toggleOptional}
                 .checked=${this._showOptional}
                 class="show-additional"
-                >${this.hass.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.apps.configuration.options.show_unused_optional"
                 )}</ha-switch
               >`
@@ -360,7 +371,7 @@ class SupervisorAppConfig extends DirtyStateProviderMixin<
             @click=${this._saveTapped}
             .disabled=${this.disabled || !this.isDirtyState || !this._valid}
           >
-            ${this.hass.localize("ui.common.save")}
+            ${this._modeLocalize("ui.common.save")}
           </ha-progress-button>
         </div>
       </ha-card>
@@ -450,14 +461,14 @@ class SupervisorAppConfig extends DirtyStateProviderMixin<
     button.progress = true;
 
     const confirmed = await showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.apps.configuration.confirm.reset_options.title"
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.apps.configuration.confirm.reset_options.text"
       ),
-      confirmText: this.hass.localize("ui.common.reset"),
-      dismissText: this.hass.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.reset"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       destructive: true,
     });
 
@@ -480,7 +491,7 @@ class SupervisorAppConfig extends DirtyStateProviderMixin<
       };
       fireEvent(this, "hass-api-called", eventdata);
     } catch (err: any) {
-      this._error = this.hass.localize(
+      this._error = this._modeLocalize(
         "ui.panel.config.apps.dashboard.failed_to_reset",
         {
           error: extractApiErrorMessage(err),
@@ -526,7 +537,7 @@ class SupervisorAppConfig extends DirtyStateProviderMixin<
         await suggestSupervisorAppRestart(this, this.hass, this.addon);
       }
     } catch (err: any) {
-      this._error = this.hass.localize(
+      this._error = this._modeLocalize(
         "ui.panel.config.apps.dashboard.failed_to_save",
         {
           error: extractApiErrorMessage(err),

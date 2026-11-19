@@ -40,10 +40,21 @@ import {
   showPersonDetailDialog,
 } from "./show-dialog-person-detail";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 const AVATAR_TONES = 4;
 
 @customElement("ha-config-person")
 export class HaConfigPerson extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass!.localize);
+  }
+
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
@@ -90,7 +101,7 @@ export class HaConfigPerson extends LitElement {
         .route=${this.route}
         back-path="/config"
         .tabs=${configSections.persons}
-        .summary=${hass.localize("ui.panel.config.person.summary")}
+        .summary=${this._modeLocalize("ui.panel.config.person.summary")}
       >
         <div class="page">
           <header>
@@ -101,26 +112,26 @@ export class HaConfigPerson extends LitElement {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  ${hass.localize("ui.panel.config.person.learn_more")}
+                  ${this._modeLocalize("ui.panel.config.person.learn_more")}
                 </a>
               </p>
             </div>
             <ha-button size="l" @click=${this._createPerson}>
               <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-              ${hass.localize("ui.panel.config.person.add_person")}
+              ${this._modeLocalize("ui.panel.config.person.add_person")}
             </ha-button>
           </header>
           ${
             this._storageItems.length === 0
               ? html`<div class="empty">
                   <p>
-                    ${hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.person.no_persons_created_yet"
                     )}
                   </p>
                   <ha-button appearance="filled" @click=${this._createPerson}>
                     <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-                    ${hass.localize("ui.panel.config.person.create_person")}
+                    ${this._modeLocalize("ui.panel.config.person.create_person")}
                   </ha-button>
                 </div>`
               : html`<div class="cards">
@@ -133,10 +144,10 @@ export class HaConfigPerson extends LitElement {
             this._configItems.length > 0
               ? html`<section class="yaml">
                   <h2>
-                    ${hass.localize("ui.panel.config.person.yaml_persons")}
+                    ${this._modeLocalize("ui.panel.config.person.yaml_persons")}
                   </h2>
                   <p>
-                    ${hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.person.note_about_persons_configured_in_yaml"
                     )}
                   </p>
@@ -163,7 +174,7 @@ export class HaConfigPerson extends LitElement {
               ? html`<div class="note">
                   <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
                   <span
-                    >${hass.localize(
+                    >${this._modeLocalize(
                       "ui.panel.config.person.note_no_sign_in"
                     )}</span
                   >
@@ -204,7 +215,7 @@ export class HaConfigPerson extends LitElement {
           </div>
           <ha-icon-button
             .path=${mdiPencil}
-            .label=${hass.localize("ui.panel.config.person.edit_person", {
+            .label=${this._modeLocalize("ui.panel.config.person.edit_person", {
               name: person.name,
             })}
             .entry=${person}
@@ -213,7 +224,7 @@ export class HaConfigPerson extends LitElement {
         </div>
         <div class="chips">
           <span class="chip ${classMap({ "can-sign-in": !!person.user_id })}">
-            ${hass.localize(
+            ${this._modeLocalize(
               person.user_id
                 ? "ui.panel.config.person.can_sign_in"
                 : "ui.panel.config.person.no_sign_in"
@@ -230,11 +241,11 @@ export class HaConfigPerson extends LitElement {
     const hass = this.hass!;
     const stateObj = this._personEntities(hass.states).get(person.id);
     if (!stateObj || stateObj.state === "unavailable") {
-      return hass.localize("ui.panel.config.person.state_unknown");
+      return this._modeLocalize("ui.panel.config.person.state_unknown");
     }
     const since = new Date(stateObj.last_changed);
     const sameDay = since.toDateString() === new Date().toDateString();
-    return hass.localize("ui.panel.config.person.state_since", {
+    return this._modeLocalize("ui.panel.config.person.state_since", {
       state: hass.formatEntityState(stateObj),
       time: sameDay
         ? formatTime(since, hass.locale, hass.config)
@@ -277,10 +288,10 @@ export class HaConfigPerson extends LitElement {
       this._openDialog(personToEdit);
     } else {
       showAlertDialog(this, {
-        title: this.hass?.localize(
+        title: this._modeLocalize(
           "ui.panel.config.person.person_not_found_title"
         ),
-        text: this.hass?.localize("ui.panel.config.person.person_not_found"),
+        text: this._modeLocalize("ui.panel.config.person.person_not_found"),
       });
     }
   }
@@ -332,15 +343,15 @@ export class HaConfigPerson extends LitElement {
       removeEntry: async () => {
         if (
           !(await showConfirmationDialog(this, {
-            title: this.hass!.localize(
+            title: this._modeLocalize(
               "ui.panel.config.person.confirm_delete_title",
               { name: entry!.name }
             ),
-            text: this.hass!.localize(
+            text: this._modeLocalize(
               "ui.panel.config.person.confirm_delete_text"
             ),
-            dismissText: this.hass!.localize("ui.common.cancel"),
-            confirmText: this.hass!.localize("ui.common.delete"),
+            dismissText: this._modeLocalize("ui.common.cancel"),
+            confirmText: this._modeLocalize("ui.common.delete"),
             destructive: true,
           }))
         ) {

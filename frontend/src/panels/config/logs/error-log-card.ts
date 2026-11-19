@@ -84,6 +84,8 @@ import type {
 import { fileDownload } from "../../../util/file_download";
 import { showDownloadLogsDialog } from "./show-dialog-download-logs";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 const NUMBER_OF_LINES = 100;
 // Matches the live log dialog on the integration page
 const INTEGRATION_LOG_LINE_LIMIT = 5000;
@@ -113,6 +115,14 @@ class ErrorLogCard extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  // Draws again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this._localize);
+  }
 
   @consume({ context: internationalizationContext, subscribe: true })
   private _i18n!: ContextType<typeof internationalizationContext>;
@@ -196,7 +206,7 @@ class ErrorLogCard extends LitElement {
     const hasBoots =
       !integrationLog && this._streamSupported && Array.isArray(this._boots);
 
-    const localize = this._localize;
+    const localize = this._modeLocalize;
     const logFileDownloadUnavailableReason =
       !integrationLog && (!this.provider || this.provider === "core")
         ? getCoreLogFileDownloadUnavailableReason(this._config)
@@ -319,7 +329,7 @@ class ErrorLogCard extends LitElement {
                                   slot="icon"
                                   .path=${mdiFolderTextOutline}
                                 ></ha-svg-icon>
-                                ${this._localize(
+                                ${this._modeLocalize(
                                   "ui.panel.config.logs.show_condensed_logs"
                                 )}
                               </ha-dropdown-item>`
@@ -378,7 +388,7 @@ class ErrorLogCard extends LitElement {
                                   integration: formatListWithAnds(
                                     this._i18n.locale,
                                     this.integrations!.map((domain) =>
-                                      domainToName(this._localize, domain)
+                                      domainToName(this._modeLocalize, domain)
                                     )
                                   ),
                                 }
@@ -746,7 +756,7 @@ class ErrorLogCard extends LitElement {
         return;
       }
 
-      this._error = this._localize("ui.panel.config.logs.failed_get_logs", {
+      this._error = this._modeLocalize("ui.panel.config.logs.failed_get_logs", {
         provider: this.provider,
         error: extractApiErrorMessage(err),
       });
@@ -830,7 +840,7 @@ class ErrorLogCard extends LitElement {
         }
         this._unsubscribeIntegrationLog();
         this._loadingState = "loaded";
-        this._error = this._localize(
+        this._error = this._modeLocalize(
           "ui.panel.config.logs.integration_log_unsupported"
         );
       }
@@ -883,7 +893,7 @@ class ErrorLogCard extends LitElement {
   }, 150);
 
   private _expandLabel = (count: number) =>
-    this._localize("ui.panel.config.logs.show_hidden_lines", { count });
+    this._modeLocalize("ui.panel.config.logs.show_hidden_lines", { count });
 
   private _debounceScrollToBottom = debounce(() => {
     this._logElement!.scrollTop = this._logElement!.scrollHeight;

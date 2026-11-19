@@ -11,6 +11,9 @@ import { getAppDisplayName } from "../common/app";
 import "./supervisor-apps-state";
 import "./supervisor-apps-tag";
 
+import { LanguageModeController } from "../../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../../common/translations/localize";
+
 export interface AppTag {
   label: string;
   variant: "brand" | "success" | "warning" | "danger" | "neutral";
@@ -19,6 +22,14 @@ export interface AppTag {
 
 @customElement("supervisor-apps-card-content")
 class SupervisorAppsCardContent extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   // eslint-disable-next-line lit/no-native-attributes
@@ -102,7 +113,7 @@ class SupervisorAppsCardContent extends LitElement {
                       ? html`<div class="installed">
                           <ha-svg-icon .path=${mdiCheckCircle}></ha-svg-icon>
                           <span
-                            >${this.hass.localize(
+                            >${this._modeLocalize(
                               "ui.panel.config.apps.state.installed"
                             )}</span
                           >

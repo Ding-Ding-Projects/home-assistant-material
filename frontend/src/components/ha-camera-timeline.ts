@@ -60,6 +60,7 @@ import { fetchDateWS } from "../data/history";
 import "./chips/ha-filter-chip";
 import "./ha-button";
 import "./ha-button-toggle-group";
+import "./ha-camera-registry-timeline";
 import "./ha-icon-button";
 import "./ha-svg-icon";
 
@@ -310,6 +311,7 @@ export class HaCameraTimeline extends LitElement {
           ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
           : "",
         clip.size ? formatBytes(clip.size) : "",
+        clip.cutShort ? t("ui.components.camera_timeline.clip.cut_short") : "",
       ].filter(Boolean);
       return parts.join(" · ");
     }
@@ -323,6 +325,13 @@ export class HaCameraTimeline extends LitElement {
   }
 
   private _reasonLine(reason: string): string {
+    const days = this._summary?.keep_days;
+    if (reason === "removed" && days) {
+      return this._modeLocalize(
+        "ui.components.camera_timeline.clip.reason.removed_days",
+        { days }
+      );
+    }
     return this._modeLocalize(
       `ui.components.camera_timeline.clip.reason.${reason}`
     );
@@ -529,6 +538,13 @@ export class HaCameraTimeline extends LitElement {
                 })}
               ></div>`
           )}
+          <ha-camera-registry-strip
+            .api=${this._api}
+            .localize=${this._localize}
+            entity-id=${this.entityId}
+            .start=${start}
+            .end=${end}
+          ></ha-camera-registry-strip>
           ${
             isToday
               ? html`<div
@@ -606,6 +622,13 @@ export class HaCameraTimeline extends LitElement {
                 ></span
               >`
         }
+        <ha-camera-registry-legend
+          .api=${this._api}
+          .localize=${this._localize}
+          entity-id=${this.entityId}
+          .start=${start}
+          .end=${end}
+        ></ha-camera-registry-legend>
         <span class="grow"></span>
         ${
           this.playhead !== undefined

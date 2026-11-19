@@ -1,6 +1,6 @@
 # Help and privacy
 
-| File | Feature | State (see `../../feature-status.md`) |
+| File | Feature | State (current state: `../../../ROADMAP.md`) |
 | --- | --- | --- |
 | [`offline-help.md`](offline-help.md) | Help articles that open inside the interface | Built, not yet seen in a running build |
 | [`problem-log.md`](problem-log.md) | Nothing sent out, and a local problem log instead | Built, exercised on a running copy |

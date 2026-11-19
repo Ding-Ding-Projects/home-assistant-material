@@ -28,6 +28,17 @@ import {
   type LiveListener,
   type LiveViewKind,
 } from "../data/camera-live-session";
+import {
+  keptFor,
+  toOfferEvent,
+  waitsForTap,
+  watchCandidate,
+  watchedSummaryCached,
+  watchOffer,
+  watchSubscribe,
+  type WatchedSummary,
+  type WatchEvent,
+} from "../data/camera_watched";
 import { apiContext, connectionContext } from "../data/context";
 import "./ha-button";
 import "./ha-spinner";
@@ -109,6 +120,20 @@ export class HaWebRtcPlayer extends LitElement {
   @state() private _tick = 0;
 
   @state() private _reconnectPoster?: string;
+
+  /** The camera's keeping settings and whether its live video goes through the home */
+  @state() private _watch?: WatchedSummary;
+
+  /** When the home started keeping what is shown, in seconds since the epoch */
+  @state() private _keepingSince?: number | null;
+
+  private _throughHome = false;
+
+  private _homeUnavailable = false;
+
+  private _watchUnsub?: Promise<UnsubscribeFunc>;
+
+  private _keepTimer?: number;
 
   @query("#remote-stream") private _videoEl!: HTMLVideoElement;
 
@@ -289,7 +314,7 @@ export class HaWebRtcPlayer extends LitElement {
 
   private get _waitingForTap(): boolean {
     return (
-      this.tapToStart &&
+      waitsForTap(this.tapToStart, this._watch?.settings) &&
       !this._tapped &&
       !(this.entityid && cameraLive.hasStream(this.entityid))
     );
@@ -329,6 +354,15 @@ export class HaWebRtcPlayer extends LitElement {
         this._reconnectPoster
           ? html`<div class="reconnecting">
               <ha-spinner size="medium"></ha-spinner>
+            </div>`
+          : nothing
+      }
+      ${
+        showVideo && this._keepingSince
+          ? html`<div class="keeping" role="status">
+              ${this._localize("ui.components.web-rtc-player.state.keeping", {
+                time: keptFor(this._keepingSince),
+              })}
             </div>`
           : nothing
       }
@@ -449,6 +483,10 @@ export class HaWebRtcPlayer extends LitElement {
 
   protected override updated(changed: PropertyValues<this>) {
     super.updated(changed);
+    const keys = changed as Map<PropertyKey, unknown>;
+    if (keys.has("_playing") || keys.has("_keepingSince")) {
+      this._followKeeping();
+    }
     const kind = this._viewKind();
     if (kind !== this._lastKind) {
       this._lastKind = kind;
@@ -666,13 +704,22 @@ export class HaWebRtcPlayer extends LitElement {
 
     this._clientConfig = clientConfig;
 
+    // A camera that streams only through its service is watched through the
+    // home, so the one live view the home pulls is both shown and kept.
+    const watch = await watchedSummaryCached(this._api, this.entityid);
+    if (cleanUpCountAtStart !== this._cleanUpCount) {
+      return;
+    }
+    this._watch = watch;
+    this._throughHome = watch?.live?.route === "home" && !this._homeUnavailable;
+
     this._logEvent("end clientConfig", this._clientConfig);
 
     this._peerConnection = new RTCPeerConnection(
       this._clientConfig.configuration
     );
 
-    if (this._clientConfig.dataChannel) {
+    if (this._clientConfig.dataChannel && !this._throughHome) {
       // Some cameras (such as nest) require a data channel to establish a stream
       // however, not used by any integrations.
       this._peerConnection.createDataChannel(this._clientConfig.dataChannel);
@@ -758,12 +805,13 @@ export class HaWebRtcPlayer extends LitElement {
 
     this._logEvent("start webRtcOffer", offer_sdp);
 
-    this._unsub = webRtcOffer(
-      this._connection,
-      this.entityid,
-      offer_sdp,
-      (event) => this._handleOfferEvent(peerConnection, event)
-    );
+    this._unsub = this._throughHome
+      ? watchOffer(this._connection, this.entityid, offer_sdp, (event) =>
+          this._handleWatchEvent(peerConnection, event)
+        )
+      : webRtcOffer(this._connection, this.entityid, offer_sdp, (event) =>
+          this._handleOfferEvent(peerConnection, event)
+        );
     this._unsub.catch((err) => {
       if (this._peerConnection !== peerConnection) {
         return;
@@ -790,6 +838,89 @@ export class HaWebRtcPlayer extends LitElement {
     }
   };
 
+  private _handleWatchEvent(
+    peerConnection: RTCPeerConnection,
+    event: WatchEvent
+  ) {
+    if (this._peerConnection !== peerConnection) {
+      return;
+    }
+    if (event.type === "state") {
+      this._keepingSince = event.keeping_since;
+      return;
+    }
+    if (event.type === "ended") {
+      this._keepingSince = undefined;
+      return;
+    }
+    if (
+      event.type === "error" &&
+      ["no_go2rtc", "not_through_home", "not_found"].includes(event.code)
+    ) {
+      // The home cannot pull this camera: watch it straight from its service.
+      this._homeUnavailable = true;
+      this._startWebRtc();
+      return;
+    }
+    const offerEvent = toOfferEvent(event);
+    if (offerEvent) {
+      this._handleOfferEvent(peerConnection, offerEvent);
+    }
+  }
+
+  private _sendCandidate(sessionId: string, candidate: RTCIceCandidate) {
+    if (!this.entityid) {
+      return;
+    }
+    if (this._throughHome) {
+      watchCandidate(
+        this._api,
+        this.entityid,
+        sessionId,
+        candidate.candidate
+      ).catch(() => undefined);
+      return;
+    }
+    // toJSON returns RTCIceCandidateInit
+    addWebRtcCandidate(this._api, this.entityid, sessionId, candidate.toJSON());
+  }
+
+  /** While a camera with its own stream address plays, the home keeps it. */
+  private _followKeeping() {
+    const keep =
+      this._playing &&
+      !this._throughHome &&
+      Boolean(this._watch?.settings?.keep_live) &&
+      Boolean(this.entityid);
+    if (keep && !this._watchUnsub && this.entityid) {
+      this._watchUnsub = watchSubscribe(
+        this._connection,
+        this.entityid,
+        (event) => {
+          if (event.type === "state") {
+            this._keepingSince = event.keeping_since;
+          }
+        }
+      );
+      this._watchUnsub.catch(() => {
+        this._watchUnsub = undefined;
+      });
+    } else if (!keep && this._watchUnsub) {
+      this._stopFollowingKeeping();
+    }
+    window.clearInterval(this._keepTimer);
+    this._keepTimer = undefined;
+    if (this._playing && this._keepingSince) {
+      this._keepTimer = window.setInterval(() => this.requestUpdate(), 1000);
+    }
+  }
+
+  private _stopFollowingKeeping() {
+    const unsub = this._watchUnsub;
+    this._watchUnsub = undefined;
+    unsub?.then((stop) => stop()).catch(() => undefined);
+  }
+
   private async _handleOfferEvent(
     peerConnection: RTCPeerConnection,
     event: WebRtcOfferEvent
@@ -801,13 +932,7 @@ export class HaWebRtcPlayer extends LitElement {
     if (event.type === "session") {
       this._sessionId = event.session_id;
       this._candidatesList.forEach((candidate) =>
-        addWebRtcCandidate(
-          this._api,
-          this.entityid!,
-          event.session_id,
-          // toJSON returns RTCIceCandidateInit
-          candidate.toJSON()
-        )
+        this._sendCandidate(event.session_id, candidate)
       );
       this._candidatesList = [];
     }
@@ -853,13 +978,7 @@ export class HaWebRtcPlayer extends LitElement {
     );
 
     if (this._sessionId) {
-      addWebRtcCandidate(
-        this._api,
-        this.entityid,
-        this._sessionId,
-        // toJSON returns RTCIceCandidateInit
-        event.candidate.toJSON()
-      );
+      this._sendCandidate(this._sessionId, event.candidate);
     } else {
       this._candidatesList.push(event.candidate);
     }
@@ -969,6 +1088,10 @@ export class HaWebRtcPlayer extends LitElement {
     }
     this._cleanUpCount++;
     this._microphoneRequest++;
+    this._stopFollowingKeeping();
+    this._keepingSince = undefined;
+    window.clearInterval(this._keepTimer);
+    this._keepTimer = undefined;
     if (this._remoteStream) {
       this._remoteStream.getTracks().forEach((track) => {
         track.stop();
@@ -1111,6 +1234,27 @@ export class HaWebRtcPlayer extends LitElement {
       background-size: cover;
       background-position: center;
       color: var(--primary-text-color);
+    }
+
+    .keeping {
+      position: absolute;
+      inset-block-start: var(--ha-space-2);
+      inset-inline-start: var(--ha-space-2);
+      max-width: calc(100% - var(--ha-space-4));
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      padding: var(--ha-space-1) var(--ha-space-2);
+      border-radius: var(--ha-border-radius-pill, 999px);
+      font-size: var(--ha-font-size-s);
+      line-height: var(--ha-line-height-condensed);
+      color: var(--primary-text-color);
+      background: color-mix(
+        in srgb,
+        var(--card-background-color) 82%,
+        transparent
+      );
+      pointer-events: none;
     }
 
     .state .message {

@@ -81,6 +81,26 @@ export class LanguageModeController implements ReactiveController {
     return (key, values) => modeText(localize, key, values, this._mode);
   }
 
+  private _cached?: { source: Localize; mode: LanguageMode; fn: Localize };
+
+  /**
+   * Like `localizer`, but gives back the same function until the source or
+   * the mode changes. Memoized helpers that take a localize function then
+   * run again only when the mode really changes.
+   */
+  public cachedLocalizer<T extends Localize>(localize: T): T {
+    let cached = this._cached;
+    if (!cached || cached.source !== localize || cached.mode !== this._mode) {
+      cached = {
+        source: localize,
+        mode: this._mode,
+        fn: this.localizer(localize),
+      };
+      this._cached = cached;
+    }
+    return cached.fn as T;
+  }
+
   /** The two texts apart, for layouts that put them on separate lines. */
   public parts(
     localize: Localize,

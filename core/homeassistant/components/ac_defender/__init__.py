@@ -2,12 +2,12 @@
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 
 from .const import CONF_CLIMATE, DOMAIN, PLATFORMS, STORAGE_VERSION
-from .coordinator import DefenderCoordinator
+from .coordinator import MISSING_KEYS, DefenderCoordinator
 from .siblings import async_attach_sibling, async_detach_sibling, async_update_band
 from .types import DefenderConfigEntry
 from .websocket_api import async_register_websocket
@@ -26,12 +26,23 @@ async def async_setup_defender(
 ) -> None:
     """Set up a defender of either direction; the Heat Defender calls this too."""
     climate_id = entry.data[CONF_CLIMATE]
+    issue_id = f"climate_missing_{entry.entry_id}"
     if hass.states.get(climate_id) is None:
+        ir.async_create_issue(
+            hass,
+            entry.domain,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.ERROR,
+            translation_key="climate_missing",
+            translation_placeholders={"entity_id": climate_id, "title": entry.title},
+        )
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN,
             translation_key="climate_not_found",
             translation_placeholders={"entity_id": climate_id},
         )
+    ir.async_delete_issue(hass, entry.domain, issue_id)
     coordinator = DefenderCoordinator(hass, entry, run_mode)
     entry.runtime_data = coordinator
     async_attach_sibling(hass, coordinator)
@@ -71,7 +82,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: DefenderConfigEntry) ->
 async def async_remove_defender(
     hass: HomeAssistant, entry: DefenderConfigEntry
 ) -> None:
-    """Delete the saved state of a removed defender."""
+    """Delete the saved state and the repair issues of a removed defender."""
+    for prefix in ("climate_missing", *(f"missing_{key}" for key in MISSING_KEYS)):
+        ir.async_delete_issue(hass, entry.domain, f"{prefix}_{entry.entry_id}")
     await Store(
         hass, STORAGE_VERSION, f"{entry.domain}.{entry.entry_id}"
     ).async_remove()

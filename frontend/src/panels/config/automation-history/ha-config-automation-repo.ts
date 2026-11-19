@@ -79,6 +79,9 @@ import {
   suggestCommitMessage,
 } from "./automation-config-diff";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 declare global {
   interface HASSDomEvents {
     "automation-repo-commit-selected": { sha: string };
@@ -107,6 +110,14 @@ interface Detail {
  */
 @customElement("ha-config-automation-repo")
 export class HaConfigAutomationRepo extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -161,7 +172,7 @@ export class HaConfigAutomationRepo extends LitElement {
   @query("ha-version-picker") private _picker?: HaVersionPicker;
 
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
+    return this._modeLocalize(
       `ui.panel.config.automation_history.${key}` as any,
       values
     );
@@ -391,8 +402,8 @@ export class HaConfigAutomationRepo extends LitElement {
   protected render(): TemplateResult {
     const alias = this._info?.alias ?? this.automationId;
     const breadcrumb = [
-      this.hass.localize("panel.config"),
-      this.hass.localize("ui.panel.config.automation.caption"),
+      this._modeLocalize("panel.config"),
+      this._modeLocalize("ui.panel.config.automation.caption"),
       alias,
     ].join(", ");
     return html`
@@ -869,7 +880,7 @@ export class HaConfigAutomationRepo extends LitElement {
     if (this._search.trim() === "") {
       return undefined;
     }
-    return searchCountText(this.hass.localize, {
+    return searchCountText(this._modeLocalize, {
       current: this._visibleCommits().length,
       total: this._commits.length,
     });

@@ -47,6 +47,7 @@ const STRATEGIES: Record<LovelaceStrategyConfigType, Record<string, any>> = {
     areas: () => import("./areas/areas-dashboard-strategy"),
     home: () => import("./home/home-dashboard-strategy"),
     energy: () => import("../../energy/strategies/energy-dashboard-strategy"),
+    transit: () => import("./transit/transit-dashboard-strategy"),
   },
   view: {
     "original-states": () =>

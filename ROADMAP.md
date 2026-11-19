@@ -1,9 +1,10 @@
 # Roadmap
 
-The goal is fixed: **every board in `design/canvases/` built into the product, 237 boards on 18
-canvases (canvases 01 to 15 and 16 to 18 for the Deploy Assistant), and the running product
-matching its board.** This file lists all of it. `docs/feature-status.md` says exactly what has
-been seen working and where.
+The goal is fixed: **every board in `design/canvases/` built into the product, 616 boards on 40
+canvases (counted from the board files ending `.dc.html` and the canvas folders on 18 November
+2026; canvases 16 to 20 are the Deploy Assistant), and the running product matching its board.**
+This file lists all of it and is the authoritative state. `HANDOFF.md` says what is live and what
+is being verified; `docs/feature-status.md` is the older row-by-row record up to 13 November 2026.
 
 - `[x]` finished and seen working in a running build
 - `[~]` partly built; the line says what is missing
@@ -11,6 +12,76 @@ been seen working and where.
   says which)
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
+
+## Build 524 live, build 525 being verified, Cantonese reaching entity words, 18 November 2026
+
+Build 2026.11.1.524 (built from `c9e3a5e67`) is what the hosted instance runs. It was verified
+before it went live by a page-load pass (0 page errors in four modes) and a real update run on a
+throwaway full hosting copy. Build 2026.11.1.525 (built from `44d5a60e5`, so it carries
+`6e399887e` and `44d5a60e5`) is published and being verified; it is not live. `6db767de3` is on
+main and in no build. Feature documentation:
+[`entity-words-and-stacked-labels.md`](docs/features/language-and-voice/entity-words-and-stacked-labels.md)
+and the verification sections of the files linked below.
+
+### Seen working in a real run of 524
+
+- [x] The hosted instance runs build 524, verified by a page-load pass and a real update run on a
+      throwaway full hosting copy first.
+- [x] Core updated from its row twice (2:08 and 1:52).
+- [x] A backup passed its self-check 4 of 4 and the card refreshed without a reload.
+- [x] The quiet build card: the "Update coming soon" card goes quiet once its build is installed.
+- [x] "Custom" stays selected on the backup choice.
+- [x] Release notes search marks the words it finds and steps through them.
+- [x] The developer tools tabs work after their page shell was replaced.
+
+### Not proven on 524 (need a newer build on offer; a verification of build 525 is running)
+
+- [ ] A page that did not start an update shows the update's real start time. Being verified.
+- [ ] The Core row says "Update the Supervisor first". Being verified.
+- [ ] The release link in an update sheet points at the build on offer. Being verified.
+
+### Cantonese and both languages (build 525, published, being verified)
+
+- [ ] About 240 control labels on entity sheets in Cantonese (lights, covers, locks, fans, climate,
+      media players, alarms, vacuums, timers, weather, the details table, the related list), and
+      relative times such as "5 minutes ago" in the browser's Hong Kong wording (`6e399887e`). Not
+      seen in a browser.
+- [ ] The camera timeline, the Backups overview and its dialogs, and a few Updates page lines in
+      Cantonese (`6e399887e`). Not seen in a browser.
+- [~] Both-language mode on a phone (`44d5a60e5`): the entity sheet tabs stack English over
+      smaller Cantonese in one 61 px bar with 44 px targets; segmented buttons keep whole words; the
+      camera timeline range chips sit on one row; related list rows reach 44 px. Seen in a browser
+      at 390 and 320 px; not yet seen in a released build. The fan speed buttons and sensor range
+      chips still wrapped (fixed in `6db767de3`, below).
+- [ ] The Backups pages in Cantonese: title, "Set up backups", "Back up now", "My backups", backup
+      types, and the Filters and More labels of every list page (`44d5a60e5`). Not recorded as seen
+      rendered (inferred from the commit, which names only the tab bar sizes as seen).
+
+### State words and ten small fixes (`6db767de3`, on main, not built, unit-tested only)
+
+- [ ] Entity state words, attribute names and weather weekday names follow the language mode,
+      through one wrapper on the lookup and a table of 463 entries checked against the server's
+      word lists ([`entity-words-and-stacked-labels.md`](docs/features/language-and-voice/entity-words-and-stacked-labels.md)).
+      English mode unchanged; 5,000 states took 2.3 ms in English and 3.2 ms in Cantonese.
+- [ ] The History tab of an entity sheet no longer jumps a second time when its content arrives.
+- [ ] Fan speed buttons and sensor range chips stack the two languages on one row.
+- [ ] The Updates page keeps one "What's new" button, not two.
+- [ ] Settings home shows a count in the top bar search.
+- [ ] A list search no longer finds "midnight" for "light": the typo-forgiving match waits for
+      words of six letters or more.
+- [ ] Developer tools remember the search per tab.
+- [ ] Small buttons get a 44 px hit area.
+- [ ] Backup counts read properly in Cantonese.
+- [ ] The defender log words its actions as readable phrases.
+
+### Release and process
+
+- [ ] Build 525 read back as a normal release and verified on a throwaway copy, then moved to the
+      hosted instance. Published; being verified.
+- [ ] A build containing `6db767de3`, with a browser pass in all three language modes. Not built.
+- The stray one-off helper script `frontend/fix-tmp.cjs` was removed from the repository in
+  `44d5a60e5` (a repository change with nothing to see running, so it carries no box).
+- [ ] Cantonese from these three commits read by a native reader. Not done.
 
 ## Camera events, search from the top bar, defenders and the real run of build 523, 18 November 2026
 
@@ -59,26 +130,33 @@ Designs: canvas 38 (the Events board) and canvas 40 (search from the top bar).
 
 - [~] The search of a page lives in the top bar on about thirty pages
       ([`top-bar-search.md`](docs/features/interface/top-bar-search.md)). Most pages were looked at in
-      a browser at phone width; the pages moved in `92fb942bc` and `28cd39810` are in no released build.
-- [~] The developer tools tabs sit on the standard page shell with a small event route. The commit
+      a browser at phone width; the pages moved in `92fb942bc` and `28cd39810` are in build 524
+      (inferred from its source commit), but the 524 run does not record them page by page.
+- [x] The developer tools tabs sit on the standard page shell with a small event route. The commit
       calls it the riskiest edit; every moved page was looked at in a browser before `c9e3a5e67`,
-      but no per-tab drive was recorded.
+      and the tabs were seen working in a real run of build 524.
 - [ ] Stepping with Enter read back, and the apps pages with a Supervisor. Not seen.
-- [ ] Release notes search marks the words it finds and steps through them. Fix on main; not seen.
+- [x] Release notes search marks the words it finds and steps through them. Seen working in a real
+      run of build 524.
 - [ ] The count, "no matches" and "found in" in Cantonese mode, and the wrapping "found in" line.
       On main; not seen rendered after the change.
 - [ ] Pages that still keep their own search field in the content (dialogs, pickers, filter panes,
       editors and similar, inferred). No list of them exists in the records; not audited.
 
-### Updates and backups (faults of 523, fixed on main in `c9e3a5e67`, not yet seen in a real update)
+### Updates and backups (faults of 523, fixed in `c9e3a5e67`, which build 524 contains)
 
-- [ ] The automatic updates card rests as one summary row. Written; not seen.
+- [ ] The automatic updates card rests as one summary row. Written; not recorded as seen.
 - [ ] A page opened in the middle of an update reads the job list, finds the real start time and no
-      longer says the backup was skipped by the reader's choice.
-- [ ] The Core row says "Update the Supervisor first" instead of trying and being refused.
-- [ ] The release link in an update sheet points at the build on offer, not the installed one.
-- [ ] "Custom" on the backup choice stays selected (and no longer does nothing without a Supervisor).
-- [ ] The backup self-check card refreshes by itself when a new backup is checked.
+      longer says the backup was skipped by the reader's choice. Not proven on 524; a verification
+      of build 525 is running.
+- [ ] The Core row says "Update the Supervisor first" instead of trying and being refused. Not
+      proven on 524; being verified on 525.
+- [ ] The release link in an update sheet points at the build on offer, not the installed one. Not
+      proven on 524; being verified on 525.
+- [x] "Custom" on the backup choice stays selected (and no longer does nothing without a Supervisor).
+      Seen in a real run of 524.
+- [x] The backup self-check card refreshes by itself when a new backup is checked. Seen in a real
+      run of 524.
 
 ### Entity sheets
 
@@ -86,7 +164,8 @@ Designs: canvas 38 (the Events board) and canvas 40 (search from the top bar).
       speak Cantonese for this project's wording, tabs and headings
       ([`entity-sheets.md`](docs/features/interface/entity-sheets.md)). Unit-tested; the first browser
       look found and fixed a blank Run button and a sheet that shrank off the Details tab.
-- [ ] The sheet height glides between tabs instead of jumping. Fix on main; not seen.
+- [ ] The sheet height glides between tabs instead of jumping. In build 524; not recorded as seen
+      in its run. The History tab's second jump is fixed in `6db767de3` (not built).
 
 ### Defenders
 
@@ -152,25 +231,28 @@ was dispatched and is not yet verified or live. Feature documentation:
 - [~] Real stages, numbers and live output on every update row
       ([`progress-and-queue.md`](docs/features/updates/progress-and-queue.md)). A running update
       with progress and output was seen in a local build, and Supervisor and Core updates ran from
-      their rows in a real run of 523. That run found a missing start time on a second page opened
-      mid-update (fixed on main in `c9e3a5e67`, not yet seen). System update output was not recorded
-      as seen.
+      their rows in a real run of 523, and Core updated from its row twice (2:08 and 1:52) in a real
+      run of 524. The 523 run found a missing start time on a second page opened mid-update (fixed in
+      `c9e3a5e67`, in build 524, not proven there; being verified on 525). System update output was
+      not recorded as seen.
 - [ ] "Update everything" shows the whole run's time. Written; not seen in a browser.
 - [x] Update rows 66 px tall instead of 145 px at 390 px (measured in a local build with template
       entities).
-- [ ] "Update coming soon" card ([`update-coming-soon.md`](docs/features/updates/update-coming-soon.md)).
+- [~] "Update coming soon" card ([`update-coming-soon.md`](docs/features/updates/update-coming-soon.md)).
       Seen in a local build with a mocked response; not against a real build in progress. The build
-      card kept showing progress after its build was installed (a fault of 523); on main it goes
-      quiet (`c9e3a5e67`), not yet seen.
+      card kept showing progress after its build was installed (a fault of 523); it goes quiet in
+      `c9e3a5e67`, and the quiet card was seen in a real run of 524.
 - [~] Choose which updates get a backup first, down to single apps
       ([`backup-before-updating.md`](docs/features/updates/backup-before-updating.md)). Server part
-      128 tests, frontend 398 tests. The per-app row was seen in a real run of 523. Not seen: Custom
-      staying selected (a fault of 523, fixed on main) and a real update that makes a backup of a
-      chosen app.
+      128 tests, frontend 398 tests. The per-app row was seen in a real run of 523, and Custom
+      staying selected (a fault of 523) was seen in a real run of 524. Not seen: a real update that
+      makes a backup of a chosen app.
 - [ ] Notes on a system update and "What's new in build N" open the updates log page
       ([`whats-new-and-notes.md`](docs/features/updates/whats-new-and-notes.md)). One rule is
       tested; not seen in a browser. The release link in an update sheet pointed at the installed
-      build in 523; on main it points at the build on offer.
+      build in 523; from `c9e3a5e67` it points at the build on offer (in build 524, not proven
+      there; being verified on 525). `6db767de3` (not built) leaves one "What's new" button where the
+      Updates page showed two.
 - [ ] Automatic system update switches save (the `systemPart` fix). Not seen saving on a real
       build.
 - [ ] An automatic system update watched happening inside its window. Never seen.
@@ -184,9 +266,9 @@ was dispatched and is not yet verified or live. Feature documentation:
 - [~] Backup self-check with Light, Full and Off modes
       ([`backup-self-check.md`](docs/features/backups/backup-self-check.md)). Written and tested;
       a backup over 1 GiB passed the check 4 of 4 in a real run of 523. The Backups page results and
-      setting were built with a mocked backup; the Off and Full modes and the page were not
-      recorded as run against a real server. The page's check card stayed stale until a reload (a
-      fault of 523, fixed on main).
+      setting were built with a mocked backup; the Off and Full modes were not recorded as run
+      against a real server. The page's check card stayed stale until a reload (a fault of 523); in a
+      real run of 524 a backup passed 4 of 4 and the card refreshed without a reload.
 - [x] Backup self-check treats this system's own copy as local in full hosting mode (`c373e6a4c`):
       proven on a throwaway full-hosting copy, a fresh backup reads "passed" and "verified in
       full". Proof is the service's own answers, not a browser. The hosted 521 had the
@@ -218,8 +300,9 @@ was dispatched and is not yet verified or live. Feature documentation:
       slide and the maps were not individually recorded as seen.
 - [x] One bottom bar and nothing wider than the screen at 390 and 360 px, light and dark, on eight
       pages ([`phone-compact-pass.md`](docs/features/interface/phone-compact-pass.md)).
-- [ ] Touch targets of at least 44 px everywhere. Sheet buttons were addressed; others not
-      measured.
+- [ ] Touch targets of at least 44 px everywhere. Sheet buttons were addressed; the both-language
+      tab bar and related list rows reach 44 px (`44d5a60e5`, seen in a browser at 390 and 320 px);
+      small buttons get a 44 px hit area in `6db767de3` (not built). Others not measured.
 - [~] Scrolling on long lists at 390 px: style cost halved and main-thread cost down 26% on
       Entities and 16% on Automations, but about 16% of frames are still slow. Not measured:
       Devices, dashboards, the Logbook, touch gestures, a real phone.
@@ -251,9 +334,10 @@ was dispatched and is not yet verified or live. Feature documentation:
 - [~] Every commit carries a skip marker and one build is dispatched per batch (the working rule).
       Most commits from `0e32f6ee9` onward carry the marker; `900ceccca`, `28e6e9e7d` and the
       earlier commits in the range (for example `a7f6196c6`) do not, because they asked for builds.
-- [ ] Release for main after build 523 (the latest main is `c9e3a5e67`) read back as a normal
-      release, with a browser pass on its image. Dispatched, not yet verified. (The earlier
-      release for main after 521 is inferred to be build 523, which is live.)
+- [~] Release for main after build 523 (`c9e3a5e67`): this became build 2026.11.1.524, verified
+      by a page-load pass and a real update run on a throwaway full hosting copy, and now live. A
+      read-back of it as a normal release is not in the records read for this update. (The earlier
+      release for main after 521 is inferred to be build 523.)
 - [ ] Cantonese strings reviewed by a native reader. Not done.
 
 ### Deliberately not doing
@@ -494,7 +578,9 @@ was dispatched and is not yet verified or live. Feature documentation:
 ## Language and voice
 
 - [x] Language modes: English, Cantonese, both. Built for this project's own surfaces. Seen in published build 131 on 12 November
-      at 1440, 390 and 320 px. Cantonese for other pages is not written
+      at 1440, 390 and 320 px. Cantonese for other pages is not written, except entity sheets,
+      Backups, the camera timeline, relative times and entity state words (see the section of 18
+      November 2026 at the top)
 - [ ] Playfulness sliders that change real messages and the dialog emoji switch. Built; not yet
       seen in a running build
 - [ ] Spoken narrator (on-device voices only) and action sounds. Built; not yet seen or heard

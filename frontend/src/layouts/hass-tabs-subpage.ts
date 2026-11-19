@@ -19,6 +19,7 @@ import { pageHeaderStyles, playPageEntry } from "../common/motion/page-entry";
 import type { HASSDomTargetEvent } from "../common/dom/fire_event";
 import { fireEvent } from "../common/dom/fire_event";
 import { ShortcutManager } from "../common/keyboard/shortcuts";
+import { LanguageModeController } from "../common/language-mode/language-mode-controller";
 import { PageLockController } from "../common/locks/page-lock-controller";
 import { getHistoryState } from "../common/navigate";
 import type {
@@ -158,6 +159,13 @@ export class HassTabsSubpage extends LitElement {
   @state()
   @consume({ context: internationalizationContext, subscribe: true })
   private _i18n!: ContextType<typeof internationalizationContext>;
+
+  // Page titles and tab labels follow the language mode.
+  private _lang = new LanguageModeController(this);
+
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this._i18n.localize);
+  }
 
   @property({ type: Boolean, reflect: true, attribute: "is-wide" })
   public isWide = false;
@@ -307,7 +315,7 @@ export class HassTabsSubpage extends LitElement {
   }
 
   protected render(): TemplateResult {
-    const localize = this._i18n.localize;
+    const localize = this._modeLocalize;
     const shown = this._getTabs(
       this.tabs,
       this._hassConfig.config.components,
@@ -476,7 +484,7 @@ export class HassTabsSubpage extends LitElement {
     if (this.mainPage || !this.route?.prefix?.startsWith("/config")) {
       return undefined;
     }
-    const localize = this._i18n.localize;
+    const localize = this._modeLocalize;
     const sectionKey = sectionResolver?.(this.tabs);
     const parts = [
       localize("panel.config"),

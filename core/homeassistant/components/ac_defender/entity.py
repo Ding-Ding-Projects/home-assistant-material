@@ -32,9 +32,22 @@ from .coordinator import (
     SIGNAL_GUARD_ACTED,
     SIGNAL_HANDOVER,
     DefenderCoordinator,
+    InvalidValue,
     _number,
 )
 from .descriptions import GUARD_DESCRIPTIONS, HEAT_GUARD_DESCRIPTIONS
+
+
+def _refused(
+    coordinator: DefenderCoordinator, err: InvalidValue
+) -> ServiceValidationError:
+    """Return the translated error of a refused value."""
+    return ServiceValidationError(
+        str(err),
+        translation_domain=coordinator.entry.domain,
+        translation_key=err.key,
+        translation_placeholders=err.placeholders,
+    )
 
 
 class DefenderEntity(Entity):
@@ -86,7 +99,8 @@ class GuardSwitch(DefenderEntity, SwitchEntity):
         self.guard_key = guard_key
         spec = next(g.spec for g in coordinator.guards if g.spec.key == guard_key)
         self._spec = spec
-        self._attr_translation_key = "guard"
+        # The name starts with the family so the switches group when sorted.
+        self._attr_translation_key = f"guard_{spec.group}"
         self._attr_translation_placeholders = {
             "guard": guard_key.replace("_", " ").capitalize()
         }
@@ -96,6 +110,11 @@ class GuardSwitch(DefenderEntity, SwitchEntity):
             if coordinator.run_mode == "heat"
             else None
         ) or GUARD_DESCRIPTIONS[guard_key]
+
+    @property
+    def suggested_object_id(self) -> str | None:
+        """Keep the entity id the guard had before its name gained the family."""
+        return self._attr_translation_placeholders["guard"]
 
     @property
     def is_on(self) -> bool:
@@ -224,8 +243,8 @@ class MyTemperatureNumber(DefenderEntity, NumberEntity):
         """Store the value after the device limits and the shared band are checked."""
         try:
             self.coordinator.validate_temperature(value)
-        except ValueError as err:
-            raise ServiceValidationError(str(err)) from err
+        except InvalidValue as err:
+            raise _refused(self.coordinator, err) from err
         self.coordinator.set_my_temperature(value)
 
 
@@ -281,6 +300,7 @@ class NextCheckSensor(DefenderEntity, SensorEntity):
     """When the defender will look again."""
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: DefenderCoordinator) -> None:
         """Set up the sensor."""
@@ -297,6 +317,7 @@ class HolderSensor(DefenderEntity, SensorEntity):
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = ["ac", "heat", "neither", "safety"]
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: DefenderCoordinator) -> None:
         """Set up the sensor."""
@@ -393,8 +414,8 @@ class FloorNumber(DefenderEntity, NumberEntity):
         """Store the floor; the coordinator clamps and validates it again."""
         try:
             self.coordinator.set_floor(value)
-        except ValueError as err:
-            raise ServiceValidationError(str(err)) from err
+        except InvalidValue as err:
+            raise _refused(self.coordinator, err) from err
 
 
 class HeatModeSelect(DefenderEntity, SelectEntity):

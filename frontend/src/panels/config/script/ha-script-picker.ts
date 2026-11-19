@@ -146,6 +146,8 @@ import {
 } from "../voice-assistants/expose/assistants-table-column";
 import { getAvailableAssistants } from "../voice-assistants/expose/available-assistants";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 type ScriptItem = ScriptEntity & {
   name: string;
   area: string | undefined;
@@ -159,6 +161,14 @@ type ScriptItem = ScriptEntity & {
 
 @customElement("ha-script-picker")
 class HaScriptPicker extends SubscribeMixin(LitElement) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public scripts!: ScriptEntity[];
@@ -392,7 +402,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
         actions: {
           lastFixed: true,
           title: "",
-          label: this.hass.localize("ui.panel.config.generic.headers.actions"),
+          label: this._modeLocalize("ui.panel.config.generic.headers.actions"),
           type: "overflow-menu",
           showNarrow: true,
           template: (script) => html`
@@ -401,35 +411,35 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
               .items=${[
                 {
                   path: mdiInformationOutline,
-                  label: this.hass.localize(
+                  label: this._modeLocalize(
                     "ui.panel.config.script.picker.show_info"
                   ),
                   action: () => this._showInfo(script),
                 },
                 {
                   path: mdiCog,
-                  label: this.hass.localize(
+                  label: this._modeLocalize(
                     "ui.panel.config.automation.picker.show_settings"
                   ),
                   action: () => this._openSettings(script),
                 },
                 {
                   path: mdiTag,
-                  label: this.hass.localize(
+                  label: this._modeLocalize(
                     `ui.panel.config.script.picker.${script.category ? "edit_category" : "assign_category"}`
                   ),
                   action: () => this._editCategory(script),
                 },
                 {
                   path: mdiPlay,
-                  label: this.hass.localize(
+                  label: this._modeLocalize(
                     "ui.panel.config.script.picker.run"
                   ),
                   action: () => this._runScript(script),
                 },
                 {
                   path: mdiTransitConnection,
-                  label: this.hass.localize(
+                  label: this._modeLocalize(
                     "ui.panel.config.script.picker.show_trace"
                   ),
                   action: () => this._showTrace(script),
@@ -439,7 +449,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
                 },
                 {
                   path: mdiContentDuplicate,
-                  label: this.hass.localize(
+                  label: this._modeLocalize(
                     "ui.panel.config.script.picker.duplicate"
                   ),
                   action: () => this._duplicate(script),
@@ -455,7 +465,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
                   action: () => this._exportScripts([script], "copy"),
                 },
                 {
-                  label: this.hass.localize(
+                  label: this._modeLocalize(
                     "ui.panel.config.script.picker.delete"
                   ),
                   path: mdiDelete,
@@ -507,16 +517,16 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.automations}
-        .searchLabel=${this.hass.localize(
+        .searchLabel=${this._modeLocalize(
           "ui.panel.config.script.picker.search",
           { number: scripts.length }
         )}
-        .summary=${`${this.hass.localize(
+        .summary=${`${this._modeLocalize(
           "ui.panel.config.script.picker.summary",
           { number: scripts.length }
-        )}. ${this.hass.localize("ui.panel.config.script.picker.description")}`}
+        )}. ${this._modeLocalize("ui.panel.config.script.picker.description")}`}
         .statistics=${withFilterKeys(
-          buildListStatistics(this.hass.localize, {
+          buildListStatistics(this._modeLocalize, {
             total: this.scripts.length,
             shown: scripts.length,
             selected: this._selected.length,
@@ -533,7 +543,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
           []
         )}
         @statistic-selected=${this._clearFilter}
-        .emptyActionLabel=${this.hass.localize(
+        .emptyActionLabel=${this._modeLocalize(
           "ui.panel.config.script.picker.add_script"
         )}
         @empty-action=${this._createNew}
@@ -563,12 +573,12 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
                 )
           ).length
         }
-        .columns=${this._columns(this.hass.localize, scripts)}
+        .columns=${this._columns(this._modeLocalize, scripts)}
         .data=${scripts}
         .empty=${!this.scripts.length}
         .activeFilters=${this._activeFilters}
         id="entity_id"
-        .noDataText=${this.hass.localize(
+        .noDataText=${this._modeLocalize(
           "ui.panel.config.script.picker.no_scripts"
         )}
         @clear-filter=${this._clearFilter}
@@ -582,7 +592,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
       >
         <ha-icon-button
           slot="toolbar-icon"
-          .label=${this.hass.localize("ui.common.help")}
+          .label=${this._modeLocalize("ui.common.help")}
           .path=${mdiHelpCircleOutline}
           @click=${this._showHelp}
         ></ha-icon-button>
@@ -659,12 +669,12 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
             ? html` <div class="empty" slot="empty">
                 <ha-svg-icon .path=${mdiScriptText}></ha-svg-icon>
                 <h2>
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.script.picker.empty_header"
                   )}
                 </h2>
                 <p>
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.script.picker.empty_text"
                   )}
                 </p>
@@ -675,7 +685,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
                   rel="noreferrer"
                   size="s"
                 >
-                  ${this.hass.localize("ui.panel.config.common.learn_more")}
+                  ${this._modeLocalize("ui.panel.config.common.learn_more")}
                   <ha-svg-icon slot="end" .path=${mdiOpenInNew}></ha-svg-icon>
                 </ha-button>
               </div>`
@@ -683,7 +693,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
         }
         <ha-button slot="fab" size="l" @click=${this._createNew}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.script.picker.add_script")}
+          ${this._modeLocalize("ui.panel.config.script.picker.add_script")}
         </ha-button>
       </hass-tabs-subpage-data-table>
       ${
@@ -727,7 +737,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
                     appearance="outlined"
                     variant="brand"
                   >
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.automation.picker.bulk_actions.move_category"
                     )}
                     <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
@@ -741,7 +751,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
                     appearance="outlined"
                     variant="brand"
                   >
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.automation.picker.bulk_actions.add_label"
                     )}
                     <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
@@ -755,7 +765,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
                     appearance="outlined"
                     variant="brand"
                   >
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.devices.picker.bulk_actions.move_area"
                     )}
                     <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
@@ -942,10 +952,10 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
     );
     if (!entityReg) {
       showAlertDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.script.picker.no_category_support"
         ),
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.script.picker.no_category_entity_reg"
         ),
       });
@@ -991,7 +1001,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1033,7 +1043,7 @@ ${rejected
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1102,7 +1112,7 @@ ${rejected
     } else {
       await triggerScript(this.hass, entry.unique_id);
       showToast(this, {
-        message: this.hass.localize("ui.notification_toast.triggered", {
+        message: this._modeLocalize("ui.notification_toast.triggered", {
           name: this.hass.formatEntityName(script),
         }),
       });
@@ -1134,7 +1144,7 @@ ${rejected
       entity_id: script.entity_id,
     });
     showToast(this, {
-      message: this.hass.localize("ui.panel.config.script.picker.stopped", {
+      message: this._modeLocalize("ui.panel.config.script.picker.stopped", {
         name: this.hass.formatEntityName(script),
       }),
     });
@@ -1160,16 +1170,16 @@ ${rejected
 
   private _showHelp() {
     showAlertDialog(this, {
-      title: this.hass.localize("ui.panel.config.script.caption"),
+      title: this._modeLocalize("ui.panel.config.script.caption"),
       text: html`
-        ${this.hass.localize("ui.panel.config.script.picker.introduction")}
+        ${this._modeLocalize("ui.panel.config.script.picker.introduction")}
         <p>
           <a
             href=${documentationUrl(this.hass, "/docs/scripts/")}
             target="_blank"
             rel="noreferrer"
           >
-            ${this.hass.localize("ui.panel.config.script.picker.learn_more")}
+            ${this._modeLocalize("ui.panel.config.script.picker.learn_more")}
           </a>
         </p>
       `,
@@ -1196,7 +1206,7 @@ ${rejected
         return;
       }
       await showAlertDialog(this, {
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.script.editor.load_error_unknown",
           { err_no: err.status_code }
         ),
@@ -1206,15 +1216,15 @@ ${rejected
 
   private async _deleteConfirm(script: any) {
     showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.script.editor.delete_confirm_title"
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.script.editor.delete_confirm_text",
         { name: script.name }
       ),
-      confirmText: this.hass!.localize("ui.common.delete"),
-      dismissText: this.hass!.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.delete"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       confirm: () => this._delete(script),
       destructive: true,
     });
@@ -1235,10 +1245,10 @@ ${rejected
       await showAlertDialog(this, {
         text:
           err.status_code === 400
-            ? this.hass.localize(
+            ? this._modeLocalize(
                 "ui.panel.config.script.editor.load_error_not_deletable"
               )
-            : this.hass.localize(
+            : this._modeLocalize(
                 "ui.panel.config.script.editor.load_error_unknown",
                 { err_no: err.status_code }
               ),
@@ -1298,7 +1308,7 @@ ${rejected
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1335,13 +1345,13 @@ ${rejected
           </ha-dropdown-item>`
       )}
       <ha-dropdown-item .slot=${slot} value="category_none">
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.automation.picker.bulk_actions.no_category"
         )}
       </ha-dropdown-item>
       <wa-divider .slot=${slot}></wa-divider>
       <ha-dropdown-item .slot=${slot} value="category_create">
-        ${this.hass.localize("ui.panel.config.category.editor.add")}
+        ${this._modeLocalize("ui.panel.config.category.editor.add")}
       </ha-dropdown-item>`;
 
   private _renderLabelItems = (slot = "") =>
@@ -1376,7 +1386,7 @@ ${rejected
       })}
       <wa-divider .slot=${slot}></wa-divider>
       <ha-dropdown-item .slot=${slot} value="label_create">
-        ${this.hass.localize("ui.panel.config.labels.add_label")}
+        ${this._modeLocalize("ui.panel.config.labels.add_label")}
       </ha-dropdown-item>`;
 
   private _renderAreaItems = (slot = "") =>
@@ -1395,13 +1405,13 @@ ${rejected
           </ha-dropdown-item>`
       )}
       <ha-dropdown-item .slot=${slot} value="area_none">
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.devices.picker.bulk_actions.no_area"
         )}
       </ha-dropdown-item>
       <wa-divider .slot=${slot}></wa-divider>
       <ha-dropdown-item .slot=${slot} value="area_create">
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.devices.picker.bulk_actions.add_area"
         )}
       </ha-dropdown-item>`;
@@ -1409,7 +1419,7 @@ ${rejected
   private _bulkLocalize = (
     key: string,
     values?: Record<string, string | number>
-  ): string => this.hass.localize(key as any, values);
+  ): string => this._modeLocalize(key as any, values);
 
   private _filteredRowsChanged = () => {
     if (this._selected.length) {

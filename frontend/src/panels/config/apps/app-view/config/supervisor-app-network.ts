@@ -20,10 +20,21 @@ import type { HomeAssistant } from "../../../../../types";
 import { supervisorAppsStyle } from "../../resources/supervisor-apps-style";
 import { suggestSupervisorAppRestart } from "../dialogs/suggestSupervisorAppRestart";
 
+import { LanguageModeController } from "../../../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../../../common/translations/localize";
+
 @customElement("supervisor-app-network")
 class SupervisorAppNetwork extends DirtyStateProviderMixin<
   Record<string, number | null>
 >()(LitElement) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public addon!: HassioAddonDetails;
@@ -50,13 +61,13 @@ class SupervisorAppNetwork extends DirtyStateProviderMixin<
     return html`
       <ha-card
         outlined
-        .header=${this.hass.localize(
+        .header=${this._modeLocalize(
           "ui.panel.config.apps.configuration.network.header"
         )}
       >
         <div class="card-content">
           <p>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.apps.configuration.network.introduction"
             )}
           </p>
@@ -81,7 +92,7 @@ class SupervisorAppNetwork extends DirtyStateProviderMixin<
                 @change=${this._toggleOptional}
                 .checked=${this._showOptional}
                 class="show-optional"
-                >${this.hass.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.apps.configuration.network.show_disabled"
                 )}</ha-switch
               >`
@@ -94,7 +105,7 @@ class SupervisorAppNetwork extends DirtyStateProviderMixin<
             .disabled=${this.disabled}
             @click=${this._resetTapped}
           >
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.apps.configuration.network.reset_defaults"
             )}
           </ha-progress-button>
@@ -102,7 +113,7 @@ class SupervisorAppNetwork extends DirtyStateProviderMixin<
             @click=${this._saveTapped}
             .disabled=${!this.isDirtyState || this.disabled}
           >
-            ${this.hass.localize("ui.common.save")}
+            ${this._modeLocalize("ui.common.save")}
           </ha-progress-button>
         </div>
       </ha-card>
@@ -180,7 +191,7 @@ class SupervisorAppNetwork extends DirtyStateProviderMixin<
         await suggestSupervisorAppRestart(this, this.hass, this.addon);
       }
     } catch (err: any) {
-      this._error = this.hass.localize(
+      this._error = this._modeLocalize(
         "ui.panel.config.apps.dashboard.failed_to_reset",
         {
           error: extractApiErrorMessage(err),
@@ -225,7 +236,7 @@ class SupervisorAppNetwork extends DirtyStateProviderMixin<
         await suggestSupervisorAppRestart(this, this.hass, this.addon);
       }
     } catch (err: any) {
-      this._error = this.hass.localize(
+      this._error = this._modeLocalize(
         "ui.panel.config.apps.dashboard.failed_to_save",
         {
           error: extractApiErrorMessage(err),

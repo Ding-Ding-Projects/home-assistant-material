@@ -843,6 +843,18 @@ export interface RepairsCardConfig extends LovelaceCardConfig {
   double_tap_action?: ActionConfig;
 }
 
+/** Shared by the TTC transit cards; each card reads only the fields it uses. */
+export interface TtcCardConfig extends LovelaceCardConfig {
+  title?: string;
+  /** Stop number for the departures and leave-by cards. */
+  stop?: string;
+  /** Only this route at the stop. */
+  route?: string;
+  /** Routes to show; all chosen routes when empty. */
+  routes?: string[];
+  walk_minutes?: number;
+}
+
 export interface UpdatesCardConfig extends LovelaceCardConfig {
   hide_empty?: boolean;
   vertical?: boolean;

@@ -9,7 +9,9 @@ records from it, and the clip is checked. Skipped when go2rtc or ffmpeg is absen
 import asyncio
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from datetime import timedelta
 import logging
+import os
 from pathlib import Path
 import shutil
 import socket
@@ -32,12 +34,17 @@ from homeassistant.components.camera import (
     WebRTCSendMessage,
 )
 from homeassistant.components.camera_recording.events import ClipReason, ClipState
-from homeassistant.components.camera_recording.live import LiveOfferView, broker_for
+from homeassistant.components.camera_recording.live import (
+    LIVE_BROKER,
+    LiveOfferView,
+    broker_for,
+)
 from homeassistant.components.camera_recording.manager import RecordingManager
 from homeassistant.components.http import KEY_HASS
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.setup import async_setup_component
+from homeassistant.util import dt as dt_util
 
 from .conftest import CAMERA
 
@@ -47,6 +54,10 @@ pytestmark = pytest.mark.skipif(
 )
 
 BUNDLED_RTSP = 18554
+LONG = pytest.mark.skipif(
+    not os.environ.get("CAMERA_RECORDING_E2E_LONG"),
+    reason="long clips run only when CAMERA_RECORDING_E2E_LONG is set",
+)
 CLIP_SECONDS = 10
 
 
@@ -103,6 +114,8 @@ webrtc:
   ice_servers: []
 streams:
   pretend: 'exec:ffmpeg -re -f lavfi -i testsrc=size=640x360:rate=15 -c:v libx264 -preset ultrafast -tune zerolatency -g 30 -f rtsp {{output}}'
+  drops15: 'exec:ffmpeg -re -f lavfi -i testsrc=size=640x360:rate=15 -t 15 -c:v libx264 -preset ultrafast -tune zerolatency -g 30 -f rtsp {{output}}'
+  drops2: 'exec:ffmpeg -re -f lavfi -i testsrc=size=640x360:rate=15 -t 2 -c:v libx264 -preset ultrafast -tune zerolatency -g 30 -f rtsp {{output}}'
 """
     )
     bundled = tmp_path / "bundled.yaml"
@@ -138,12 +151,14 @@ class PretendCamera(Camera):
     _attr_name = "Front door"
     _attr_supported_features = CameraEntityFeature.STREAM
 
-    def __init__(self, service_api: int) -> None:
-        """Remember where the pretend service is."""
+    def __init__(self, service_api: int, stream: str = "pretend") -> None:
+        """Remember where the pretend service is and which of its streams to show."""
         super().__init__()
         self.service_api = service_api
+        self.source_name = stream
         self.refuse = False
         self.offers = 0
+        self._webrtc_sessions: dict[str, object] = {}
 
     async def async_handle_async_webrtc_offer(
         self, offer_sdp: str, session_id: str, send_message: WebRTCSendMessage
@@ -155,7 +170,7 @@ class PretendCamera(Camera):
         async with (
             ClientSession() as session,
             session.post(
-                f"http://127.0.0.1:{self.service_api}/api/webrtc?src=pretend",
+                f"http://127.0.0.1:{self.service_api}/api/webrtc?src={self.source_name}",
                 data=offer_sdp,
                 headers={"Content-Type": "application/sdp"},
             ) as response,
@@ -190,12 +205,14 @@ async def run_event(
     rig: Rig,
     view_port: int,
     camera: PretendCamera,
+    clip_seconds: int = CLIP_SECONDS,
+    fire: bool = True,
 ) -> tuple[RecordingManager, list[str]]:
     """Start a manager for the pretend camera and fire one event."""
     manager = RecordingManager(hass, entry)
     await manager.async_start()
     manager.recorders[CAMERA].no_source = True
-    await manager.async_set_live_options(CAMERA, clip_seconds=CLIP_SECONDS)
+    await manager.async_set_live_options(CAMERA, clip_seconds=clip_seconds)
     tokens: list[str] = []
 
     def source(_hass: HomeAssistant, token: str) -> str:
@@ -218,17 +235,39 @@ async def run_event(
     ):
         patcher.start()
         manager._unsubs.append(patcher.stop)
-    hass.bus.async_fire("nest_event", {"device_id": "d", "timestamp": None})
-    await hass.async_block_till_done()
+    if fire:
+        fire_event(hass)
+        await hass.async_block_till_done()
     return manager, tokens
 
 
+def fire_event(hass: HomeAssistant, seconds_ago: float = 0) -> None:
+    """An event from the provider integration, in the shape it fires."""
+    hass.bus.async_fire(
+        "nest_event",
+        {
+            "device_id": "d",
+            "type": "camera_motion",
+            "timestamp": dt_util.utcnow() - timedelta(seconds=seconds_ago),
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    "seconds",
+    [
+        pytest.param(CLIP_SECONDS, id="10s"),
+        pytest.param(40, id="40s-default", marks=LONG),
+        pytest.param(120, id="120s-longest", marks=LONG),
+    ],
+)
 async def test_live_clip_end_to_end(
     hass: HomeAssistant,
     local_entry: MockConfigEntry,
     rig: Rig,
     view_server: int,
     caplog: pytest.LogCaptureFixture,
+    seconds: int,
 ) -> None:
     """An event becomes a real clip of the chosen length, and nothing is left running."""
     assert await async_setup_component(hass, "ffmpeg", {})
@@ -242,15 +281,18 @@ async def test_live_clip_end_to_end(
     with patch(
         "homeassistant.components.camera_recording.recorder.CameraRecorder.start"
     ):
-        manager, tokens = await run_event(hass, local_entry, rig, view_server, camera)
+        manager, tokens = await run_event(
+            hass, local_entry, rig, view_server, camera, seconds
+        )
         assert manager.live_active.get(CAMERA) is not None
         assert manager.events_between(CAMERA, 0, 4_000_000_000)[0]["state"] == "saving"
-        await asyncio.wait_for(asyncio.gather(*manager._live_tasks), 120)
+        await asyncio.wait_for(asyncio.gather(*manager._live_tasks), seconds + 120)
     elapsed = time.monotonic() - started
 
     (row,) = manager.events_between(CAMERA, 0, 4_000_000_000)
     assert (row["state"], row["origin"], row["kind"]) == ("saved", "home", "clip")
-    assert abs(row["duration"] - CLIP_SECONDS) <= 3
+    assert abs(row["duration"] - seconds) <= 3
+    assert row["cut_short"] is False
     assert row["size"] > 20_000
     clip = manager.folder(CAMERA) / row["name"]
     assert clip.stat().st_size == row["size"]
@@ -316,3 +358,174 @@ async def test_refusing_service_gives_reason_and_waits(
     assert "slow down" not in caplog.text
     print(f"E2E refusal: reason after {elapsed:.1f}s")  # noqa: T201
     await manager.async_stop()
+
+
+async def setup_camera(
+    hass: HomeAssistant, entry: MockConfigEntry, rig: Rig, stream: str = "pretend"
+) -> PretendCamera:
+    """Set up ffmpeg, the camera component and the pretend camera."""
+    assert await async_setup_component(hass, "ffmpeg", {})
+    assert await async_setup_component(hass, "camera", {})
+    camera = PretendCamera(rig.service_api, stream)
+    await hass.data[DATA_COMPONENT].async_add_entities([camera])
+    entry.add_to_hass(hass)
+    return camera
+
+
+@pytest.mark.parametrize(
+    ("stream", "expected"),
+    [
+        pytest.param("drops15", "cut_short", id="drops-after-15s"),
+        pytest.param("drops2", "no_clip", id="drops-after-2s"),
+    ],
+)
+async def test_service_dropping_the_stream(
+    hass: HomeAssistant,
+    local_entry: MockConfigEntry,
+    rig: Rig,
+    view_server: int,
+    caplog: pytest.LogCaptureFixture,
+    stream: str,
+    expected: str,
+) -> None:
+    """Video that stops early is kept when long enough and marked cut short; otherwise the reason is plain."""
+    camera = await setup_camera(hass, local_entry, rig, stream)
+    started = time.monotonic()
+    with patch(
+        "homeassistant.components.camera_recording.recorder.CameraRecorder.start"
+    ):
+        manager, _tokens = await run_event(
+            hass, local_entry, rig, view_server, camera, 40
+        )
+        await asyncio.wait_for(asyncio.gather(*manager._live_tasks), 160)
+    elapsed = time.monotonic() - started
+    (row,) = manager.events_between(CAMERA, 0, 4_000_000_000)
+    print(  # noqa: T201
+        f"E2E {stream}: {elapsed:.1f}s, state {row['state']}, reason {row['reason']},"
+        f" clip {row['duration']:.2f}s, {row['size']} bytes, cut short {row['cut_short']}"
+    )
+    if expected == "cut_short":
+        assert (row["state"], row["cut_short"]) == ("saved", True)
+        assert 10 <= row["duration"] <= 20
+        assert (manager.folder(CAMERA) / row["name"]).stat().st_size == row["size"]
+    else:
+        assert row["state"] == "none"
+        assert row["reason"] in (
+            ClipReason.STREAM_ENDED.value,
+            ClipReason.TIMED_OUT.value,
+        )
+    assert camera.offers == 1
+    streams = await rig.rest.streams.list()
+    assert not [name for name in streams if name.startswith("camera_recording_")]
+    assert not list(manager.folder(CAMERA).glob(".*.part"))
+    for secret_word in ("v=0", "a=candidate", "ice-ufrag", "a=fingerprint"):
+        assert secret_word not in caplog.text
+    await manager.async_stop()
+
+
+async def test_two_events_five_seconds_apart(
+    hass: HomeAssistant,
+    local_entry: MockConfigEntry,
+    rig: Rig,
+    view_server: int,
+) -> None:
+    """Two events of one camera 5 seconds apart use one provider session and one clip."""
+    camera = await setup_camera(hass, local_entry, rig)
+    with patch(
+        "homeassistant.components.camera_recording.recorder.CameraRecorder.start"
+    ):
+        manager, tokens = await run_event(hass, local_entry, rig, view_server, camera)
+        await asyncio.sleep(5)
+        fire_event(hass)
+        await hass.async_block_till_done()
+        await asyncio.wait_for(asyncio.gather(*manager._live_tasks), 120)
+    rows = manager.events_between(CAMERA, 0, 4_000_000_000)
+    assert len(rows) == 1
+    assert rows[0]["state"] == "saved"
+    assert camera.offers == 1
+    assert len(tokens) == 1
+    await manager.async_stop()
+
+
+async def test_event_while_a_browser_watches(
+    hass: HomeAssistant,
+    local_entry: MockConfigEntry,
+    rig: Rig,
+    view_server: int,
+) -> None:
+    """While a live view is open from a browser, no second provider session is opened."""
+    camera = await setup_camera(hass, local_entry, rig)
+    camera._webrtc_sessions["browser"] = object()
+    with (
+        patch(
+            "homeassistant.components.camera_recording.recorder.CameraRecorder.start"
+        ),
+        patch(
+            "homeassistant.components.camera_recording.manager.LIVE_BUSY_WAIT_SECONDS",
+            2,
+        ),
+        patch(
+            "homeassistant.components.camera_recording.manager.LIVE_BUSY_POLL_SECONDS",
+            1,
+        ),
+    ):
+        manager, tokens = await run_event(hass, local_entry, rig, view_server, camera)
+        await asyncio.wait_for(asyncio.gather(*manager._live_tasks), 30)
+    (row,) = manager.events_between(CAMERA, 0, 4_000_000_000)
+    assert (row["state"], row["reason"]) == ("none", ClipReason.CAMERA_BUSY.value)
+    assert camera.offers == 0
+    assert tokens == []
+    assert manager.live_budget_left(CAMERA, time.time()) == 12
+    await manager.async_stop()
+
+
+async def test_hourly_budget_reached_end_to_end(
+    hass: HomeAssistant,
+    local_entry: MockConfigEntry,
+    rig: Rig,
+    view_server: int,
+) -> None:
+    """With the hourly budget spent, the next event opens no session and says why."""
+    camera = await setup_camera(hass, local_entry, rig)
+    with patch(
+        "homeassistant.components.camera_recording.recorder.CameraRecorder.start"
+    ):
+        manager, _tokens = await run_event(
+            hass, local_entry, rig, view_server, camera, fire=False
+        )
+        await manager.async_set_live_options(CAMERA, clips_per_hour=1)
+        fire_event(hass, 60)
+        await hass.async_block_till_done()
+        await asyncio.wait_for(asyncio.gather(*manager._live_tasks), 120)
+        fire_event(hass)
+        await hass.async_block_till_done()
+    first, second = manager.events_between(CAMERA, 0, 4_000_000_000)
+    assert first["state"] == "saved"
+    assert (second["state"], second["reason"]) == (
+        "none",
+        ClipReason.HOURLY_LIMIT.value,
+    )
+    assert camera.offers == 1
+    await manager.async_stop()
+
+
+async def test_one_time_address_dead_after_restart(
+    hass: HomeAssistant,
+    local_entry: MockConfigEntry,
+    rig: Rig,
+    view_server: int,
+) -> None:
+    """An address minted before a restart answers nothing afterwards, over a real socket."""
+    camera = await setup_camera(hass, local_entry, rig)
+    token = broker_for(hass).mint(CAMERA).token
+    hass.data.pop(LIVE_BROKER)
+    async with (
+        ClientSession() as session,
+        session.post(
+            f"http://127.0.0.1:{view_server}/api/camera_recording/whep/{token}",
+            data=b"v=0\r\n",
+            headers={"Content-Type": "application/sdp"},
+        ) as response,
+    ):
+        assert response.status == 404
+    assert camera.offers == 0

@@ -21,6 +21,16 @@ import {
   isNetworkMountAgent,
 } from "../../../../../data/backup";
 import type { CloudStatus } from "../../../../../data/cloud";
+import {
+  fetchRegistryStatus,
+  isRegistryAgent,
+  markRegistryPublicWarningSeen,
+  registryPlaceForAgent,
+  registryPublicWarningSeen,
+  registryVisibilityKey,
+  type RegistryPlace,
+} from "../../../../../data/registry_storage";
+import { showConfirmationDialog } from "../../../../../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../../../../../types";
 import { brandsUrl } from "../../../../../util/brands-url";
 import { isAgentSelectable } from "../../helper/backup-encryption";
@@ -48,6 +58,29 @@ class HaBackupConfigAgents extends LitElement {
 
   @state() private value?: string[];
 
+  @state() private _registryPlaces?: RegistryPlace[];
+
+  private _registryAsked = false;
+
+  protected willUpdate(): void {
+    // The registry says for itself whether it is public; ask once, only when it is listed.
+    if (
+      !this._registryAsked &&
+      this.hass &&
+      this.agents.some((agent) => isRegistryAgent(agent.agent_id))
+    ) {
+      this._registryAsked = true;
+      fetchRegistryStatus(this.hass).then(
+        (status) => {
+          this._registryPlaces = status.places;
+        },
+        () => {
+          this._registryPlaces = undefined;
+        }
+      );
+    }
+  }
+
   private get _value() {
     return this.value ?? DEFAULT_AGENTS;
   }
@@ -63,7 +96,22 @@ class HaBackupConfigAgents extends LitElement {
       );
     }
 
+    if (isRegistryAgent(agentId)) {
+      // Public, and locked with the owner's password: not a generic unencrypted warning.
+      const place = registryPlaceForAgent(this._registryPlaces, agentId);
+      texts.push(
+        this.hass.localize(
+          `ui.panel.config.backup.agents.registry_${
+            place && registryVisibilityKey(place) === "private"
+              ? "private"
+              : "public"
+          }_locked`
+        )
+      );
+    }
+
     const encryptionTurnedOff =
+      !isRegistryAgent(agentId) &&
       this.agentsConfig?.[agentId]?.protected === false;
 
     if (encryptionTurnedOff) {
@@ -251,10 +299,34 @@ class HaBackupConfigAgents extends LitElement {
     fireEvent(this, "value-changed", { value: this.value });
   }
 
-  private _agentToggled(ev) {
+  private async _agentToggled(ev) {
     ev.stopPropagation();
-    const value = ev.currentTarget.checked;
-    const agentId = ev.currentTarget.id;
+    const target = ev.currentTarget;
+    const value = target.checked;
+    const agentId = target.id;
+
+    // What public means is said once, the first time the registry is turned on.
+    if (value && isRegistryAgent(agentId) && !registryPublicWarningSeen()) {
+      const confirmed = await showConfirmationDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.config.camera_recording.registry.confirm_title"
+        ),
+        text: this.hass.localize(
+          "ui.panel.config.camera_recording.registry.public_warning"
+        ),
+        confirmText: this.hass.localize(
+          "ui.panel.config.camera_recording.registry.confirm_ok"
+        ),
+        dismissText: this.hass.localize(
+          "ui.panel.config.camera_recording.registry.confirm_cancel"
+        ),
+      });
+      if (!confirmed) {
+        target.checked = false;
+        return;
+      }
+      markRegistryPublicWarningSeen();
+    }
 
     if (value) {
       this.value = [...this._value, agentId];

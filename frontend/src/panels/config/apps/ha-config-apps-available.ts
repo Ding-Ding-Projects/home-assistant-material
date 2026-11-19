@@ -39,6 +39,9 @@ import { checkForAppUpdates } from "./common/check-for-updates";
 
 import "./supervisor-apps-repository";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 type StoreFilter = "official" | "community" | "not_installed" | "available";
 
 const STORE_FILTERS: StoreFilter[] = [
@@ -66,6 +69,14 @@ const sortRepos = (a: HassioAddonRepository, b: HassioAddonRepository) => {
 
 @customElement("ha-config-apps-available")
 export class HaConfigAppsAvailable extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -150,15 +161,15 @@ export class HaConfigAppsAvailable extends LitElement {
         .narrow=${this.narrow}
         .route=${this.route}
         back-path="/config/apps"
-        .header=${this.hass.localize("ui.panel.config.apps.store.title")}
+        .header=${this._modeLocalize("ui.panel.config.apps.store.title")}
         searchable
-        .searchLabel=${this.hass.localize("ui.panel.config.apps.store.search")}
+        .searchLabel=${this._modeLocalize("ui.panel.config.apps.store.search")}
         .searchValue=${this._filter ?? ""}
         @top-bar-search-input=${this._filterChanged}
       >
         <ha-dropdown slot="toolbar-icon" @wa-select=${this._handleAction}>
           <ha-icon-button
-            .label=${this.hass.localize("ui.common.menu")}
+            .label=${this._modeLocalize("ui.common.menu")}
             .path=${mdiDotsVertical}
             slot="trigger"
           ></ha-icon-button>
@@ -166,13 +177,13 @@ export class HaConfigAppsAvailable extends LitElement {
             value="check_updates"
             .disabled=${this._checkingUpdates}
           >
-            ${this.hass.localize("ui.panel.config.apps.store.check_updates")}
+            ${this._modeLocalize("ui.panel.config.apps.store.check_updates")}
           </ha-dropdown-item>
           <ha-dropdown-item value="repositories">
-            ${this.hass.localize("ui.panel.config.apps.store.repositories")}
+            ${this._modeLocalize("ui.panel.config.apps.store.repositories")}
           </ha-dropdown-item>
           <ha-dropdown-item value="registries">
-            ${this.hass.localize("ui.panel.config.apps.store.registries")}
+            ${this._modeLocalize("ui.panel.config.apps.store.registries")}
           </ha-dropdown-item>
         </ha-dropdown>
         ${
@@ -183,10 +194,10 @@ export class HaConfigAppsAvailable extends LitElement {
                   <header class="heading">
                     <div class="heading-text">
                       <h2>
-                        ${this.hass.localize("ui.panel.config.apps.store.title")}
+                        ${this._modeLocalize("ui.panel.config.apps.store.title")}
                       </h2>
                       <p>
-                        ${this.hass.localize(
+                        ${this._modeLocalize(
                           "ui.panel.config.apps.store.page_summary",
                           {
                             apps: this._store.addons.length,
@@ -204,7 +215,7 @@ export class HaConfigAppsAvailable extends LitElement {
                           slot="start"
                           .path=${mdiSourceRepository}
                         ></ha-svg-icon>
-                        ${this.hass.localize(
+                        ${this._modeLocalize(
                           "ui.panel.config.apps.store.repositories"
                         )}
                       </ha-button>
@@ -217,7 +228,7 @@ export class HaConfigAppsAvailable extends LitElement {
                           slot="start"
                           .path=${mdiRefresh}
                         ></ha-svg-icon>
-                        ${this.hass.localize(
+                        ${this._modeLocalize(
                           "ui.panel.config.apps.store.check_new_apps"
                         )}
                       </ha-button>
@@ -227,7 +238,7 @@ export class HaConfigAppsAvailable extends LitElement {
                     <div
                       class="chips"
                       role="group"
-                      aria-label=${this.hass.localize(
+                      aria-label=${this._modeLocalize(
                         "ui.panel.config.apps.store.filters"
                       )}
                     >
@@ -235,7 +246,7 @@ export class HaConfigAppsAvailable extends LitElement {
                         (name) => html`
                           <ha-filter-chip
                             .selected=${this._storeFilters.includes(name)}
-                            .label=${this.hass.localize(
+                            .label=${this._modeLocalize(
                               `ui.panel.config.apps.store.filter_${name}`
                             )}
                             .storeFilter=${name}
@@ -248,7 +259,7 @@ export class HaConfigAppsAvailable extends LitElement {
                   ${
                     repos.every((repo) => repo === nothing)
                       ? html`<p class="no-matches">
-                          ${this.hass.localize(
+                          ${this._modeLocalize(
                             "ui.panel.config.apps.store.no_matches"
                           )}
                         </p>`
@@ -352,15 +363,15 @@ export class HaConfigAppsAvailable extends LitElement {
 
     if (
       !(await showConfirmationDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.apps.my.add_repository_title"
         ),
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.apps.my.add_repository_store_description",
           { repository: repositoryUrl }
         ),
-        confirmText: this.hass.localize("ui.common.add"),
-        dismissText: this.hass.localize("ui.common.cancel"),
+        confirmText: this._modeLocalize("ui.common.add"),
+        dismissText: this._modeLocalize("ui.common.cancel"),
       }))
     ) {
       return;
@@ -387,9 +398,9 @@ export class HaConfigAppsAvailable extends LitElement {
       this._store = store;
     } catch (err: any) {
       this._error =
-        err.message || this.hass.localize("ui.panel.config.apps.error_loading");
+        err.message || this._modeLocalize("ui.panel.config.apps.error_loading");
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.apps.error_loading"),
+        title: this._modeLocalize("ui.panel.config.apps.error_loading"),
         text: this._error,
       });
     }

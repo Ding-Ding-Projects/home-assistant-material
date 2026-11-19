@@ -162,9 +162,6 @@ class HeatDefenderConfigFlow(ACDefenderConfigFlow, domain=DOMAIN):
     VERSION = 1
     run_mode = "heat"
 
-    def _needs(self) -> HVACMode:
-        return HVACMode.HEAT
-
     def _unit_schema(self, defaults: dict[str, Any]) -> probatio.Schema:
         return heat_schema(defaults, with_unit=True)
 

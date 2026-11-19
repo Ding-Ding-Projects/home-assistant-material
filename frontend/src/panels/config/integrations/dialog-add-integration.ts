@@ -68,6 +68,8 @@ import type { AddIntegrationDialogParams } from "./show-add-integration-dialog";
 import { showYamlIntegrationDialog } from "./show-add-integration-dialog";
 import { showSingleConfigEntryWarning } from "./show-single-config-entry-warning";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 export interface IntegrationListItem extends HaListVirtualizedItem {
   name: string;
   domain: string;
@@ -87,6 +89,14 @@ export interface IntegrationListItem extends HaListVirtualizedItem {
 
 @customElement("dialog-add-integration")
 class AddIntegrationDialog extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   public hass!: HomeAssistant;
 
   @state() private _integrations?: Brands;
@@ -394,7 +404,7 @@ class AddIntegrationDialog extends LitElement {
       this._integrations!,
       this._helpers!,
       this.hass.config.components,
-      this.hass.localize,
+      this._modeLocalize,
       this._flowsInProgress?.length ?? 0,
       this._filter,
       this._integrationFilter
@@ -424,7 +434,7 @@ class AddIntegrationDialog extends LitElement {
 
     const headerTitle = showingBrandView
       ? this._getBrandHeading(pickedIntegration, flowsInProgress)
-      : this.hass.localize("ui.panel.config.integrations.new");
+      : this._modeLocalize("ui.panel.config.integrations.new");
 
     return html`<ha-dialog
       .open=${this._open}
@@ -484,7 +494,7 @@ class AddIntegrationDialog extends LitElement {
       !("integrations" in integration) &&
       !flowsInProgress.length
     ) {
-      return this.hass.localize(
+      return this._modeLocalize(
         "ui.panel.config.integrations.what_device_type"
       );
     }
@@ -495,12 +505,12 @@ class AddIntegrationDialog extends LitElement {
       !("integrations" in integration) &&
       flowsInProgress.length
     ) {
-      return this.hass.localize(
+      return this._modeLocalize(
         "ui.panel.config.integrations.confirm_add_discovered"
       );
     }
 
-    return this.hass.localize("ui.panel.config.integrations.what_to_add");
+    return this._modeLocalize("ui.panel.config.integrations.what_to_add");
   }
 
   private _renderBrandView(
@@ -539,15 +549,15 @@ class AddIntegrationDialog extends LitElement {
       integration.supported_by
     );
     showConfirmationDialog(this, {
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.integrations.config_flow.supported_brand_flow",
         {
           supported_brand:
             integration.name ||
-            domainToName(this.hass.localize, integration.domain),
+            domainToName(this._modeLocalize, integration.domain),
           flow_domain_name:
             supportIntegration?.name ||
-            domainToName(this.hass.localize, integration.supported_by),
+            domainToName(this._modeLocalize, integration.supported_by),
         }
       ),
       confirm: () => {
@@ -562,7 +572,7 @@ class AddIntegrationDialog extends LitElement {
             domain: integration.supported_by,
             name:
               supportIntegration.name ||
-              domainToName(this.hass.localize, integration.supported_by),
+              domainToName(this._modeLocalize, integration.supported_by),
             config_flow: supportIntegration.config_flow,
             iot_standards: supportIntegration.iot_standards,
           });
@@ -584,11 +594,11 @@ class AddIntegrationDialog extends LitElement {
         @input=${this._filterChanged}
         .placeholder=${
           this._integrations && !this._integrationFilter
-            ? this.hass.localize(
+            ? this._modeLocalize(
                 "ui.panel.config.integrations.search_brands_count",
                 { count: Object.keys(this._integrations).length }
               )
-            : this.hass.localize("ui.panel.config.integrations.search_brand")
+            : this._modeLocalize("ui.panel.config.integrations.search_brand")
         }
         @keydown=${this._maybeSubmit}
       ></ha-input-search>
@@ -613,7 +623,7 @@ class AddIntegrationDialog extends LitElement {
       }
       <p class="guided">
         <button type="button" class="link" @click=${this._openGuidedSetup}>
-          ${this.hass.localize(
+          ${this._modeLocalize(
             "ui.panel.config.integrations.config_flow.guided_setup_link"
           )}
         </button>

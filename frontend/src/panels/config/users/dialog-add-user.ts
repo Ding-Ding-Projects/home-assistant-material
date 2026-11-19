@@ -25,6 +25,9 @@ import { haStyleDialog } from "../../../resources/styles";
 import type { HomeAssistant, ValueChangedEvent } from "../../../types";
 import type { AddUserDialogParams } from "./show-dialog-add-user";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 interface AddUserFormState {
   name?: string;
   username?: string;
@@ -38,6 +41,14 @@ interface AddUserFormState {
 export class DialogAddUser extends DirtyStateProviderMixin<AddUserFormState>()(
   LitElement
 ) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _loading = false;
@@ -114,7 +125,7 @@ export class DialogAddUser extends DirtyStateProviderMixin<AddUserFormState>()(
       <ha-dialog
         .open=${this._open}
         .preventScrimClose=${this.isDirtyState}
-        header-title=${this.hass.localize(
+        header-title=${this._modeLocalize(
           "ui.panel.config.users.add_user.caption"
         )}
         @closed=${this._dialogClosed}
@@ -126,12 +137,12 @@ export class DialogAddUser extends DirtyStateProviderMixin<AddUserFormState>()(
               ? html`<ha-input
                   class="name"
                   name="name"
-                  .label=${this.hass.localize(
+                  .label=${this._modeLocalize(
                     "ui.panel.config.users.editor.name"
                   )}
                   .value=${this._name}
                   required
-                  .validationMessage=${this.hass.localize(
+                  .validationMessage=${this._modeLocalize(
                     "ui.common.error_required"
                   )}
                   @input=${this._handleValueChanged}
@@ -143,33 +154,33 @@ export class DialogAddUser extends DirtyStateProviderMixin<AddUserFormState>()(
           <ha-input
             class="username"
             name="username"
-            .label=${this.hass.localize(
+            .label=${this._modeLocalize(
               "ui.panel.config.users.editor.username"
             )}
             .value=${this._username}
             required
             @input=${this._handleValueChanged}
-            .validationMessage=${this.hass.localize("ui.common.error_required")}
+            .validationMessage=${this._modeLocalize("ui.common.error_required")}
             ?autofocus=${!this._allowChangeName}
           ></ha-input>
 
           <ha-input
             type="password"
             password-toggle
-            .label=${this.hass.localize(
+            .label=${this._modeLocalize(
               "ui.panel.config.users.add_user.password"
             )}
             name="password"
             .value=${this._password}
             required
             @input=${this._handleValueChanged}
-            .validationMessage=${this.hass.localize("ui.common.error_required")}
+            .validationMessage=${this._modeLocalize("ui.common.error_required")}
           ></ha-input>
 
           <ha-input
             type="password"
             password-toggle
-            .label=${this.hass.localize(
+            .label=${this._modeLocalize(
               "ui.panel.config.users.add_user.password_confirm"
             )}
             name="passwordConfirm"
@@ -181,18 +192,18 @@ export class DialogAddUser extends DirtyStateProviderMixin<AddUserFormState>()(
               this._passwordConfirm !== "" &&
               this._passwordConfirm !== this._password
             }
-            .errorMessage=${this.hass.localize(
+            .errorMessage=${this._modeLocalize(
               "ui.panel.config.users.add_user.password_not_match"
             )}
           ></ha-input>
           <ha-row-item>
             <span slot="headline"
-              >${this.hass.localize(
+              >${this._modeLocalize(
                 "ui.panel.config.users.editor.local_access_only"
               )}</span
             >
             <span slot="supporting-text"
-              >${this.hass.localize(
+              >${this._modeLocalize(
                 "ui.panel.config.users.editor.local_access_only_description"
               )}</span
             >
@@ -204,10 +215,10 @@ export class DialogAddUser extends DirtyStateProviderMixin<AddUserFormState>()(
           </ha-row-item>
           <ha-row-item>
             <span slot="headline"
-              >${this.hass.localize("ui.panel.config.users.editor.admin")}</span
+              >${this._modeLocalize("ui.panel.config.users.editor.admin")}</span
             >
             <span slot="supporting-text"
-              >${this.hass.localize(
+              >${this._modeLocalize(
                 "ui.panel.config.users.editor.admin_description"
               )}</span
             >
@@ -221,7 +232,7 @@ export class DialogAddUser extends DirtyStateProviderMixin<AddUserFormState>()(
             !this._isAdmin
               ? html`
                   <ha-alert alert-type="info">
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.users.users_privileges_note"
                     )}
                   </ha-alert>
@@ -236,7 +247,7 @@ export class DialogAddUser extends DirtyStateProviderMixin<AddUserFormState>()(
             appearance="plain"
             @click=${this._close}
           >
-            ${this.hass!.localize("ui.common.cancel")}
+            ${this._modeLocalize("ui.common.cancel")}
           </ha-button>
           <ha-button
             slot="primaryAction"
@@ -249,7 +260,7 @@ export class DialogAddUser extends DirtyStateProviderMixin<AddUserFormState>()(
             @click=${this._createUser}
             .loading=${this._loading}
           >
-            ${this.hass.localize("ui.panel.config.users.add_user.create")}
+            ${this._modeLocalize("ui.panel.config.users.add_user.create")}
           </ha-button>
         </ha-dialog-footer>
       </ha-dialog>

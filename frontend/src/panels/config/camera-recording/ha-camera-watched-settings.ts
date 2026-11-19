@@ -215,6 +215,8 @@ export class HaCameraWatchedSettings extends LitElement {
     .row.number ha-slider {
       flex: 1 1 160px;
       min-width: 0;
+      /* The touch area reaches past the slider's box; keep it off the label. */
+      margin-block: var(--ha-space-3);
     }
     .text {
       display: flex;

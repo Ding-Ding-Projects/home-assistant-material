@@ -30,8 +30,19 @@ import {
 import "./ha-config-entry-device-row";
 import type { SubEntryData } from "./ha-config-integration-page";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 @customElement("ha-config-sub-entry-row")
 class HaConfigSubEntryRow extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -75,7 +86,7 @@ class HaConfigSubEntryRow extends LitElement {
         }
         <span slot="headline">${subEntry.title}</span>
         <span slot="supporting-text"
-          >${this.hass.localize(
+          >${this._modeLocalize(
             `component.${configEntry.domain}.config_subentries.${subEntry.subentry_type}.entry_type`
           )}</span
         >
@@ -88,10 +99,10 @@ class HaConfigSubEntryRow extends LitElement {
                   @click=${this._handleReconfigureSub}
                   .path=${mdiCogOutline}
                   .label=${
-                    this.hass.localize(
+                    this._modeLocalize(
                       `component.${configEntry.domain}.config_subentries.${subEntry.subentry_type}.initiate_flow.reconfigure`
                     ) ||
-                    this.hass.localize(
+                    this._modeLocalize(
                       "ui.panel.config.integrations.config_entry.configure"
                     )
                   }
@@ -103,7 +114,7 @@ class HaConfigSubEntryRow extends LitElement {
         <ha-dropdown slot="end" @wa-select=${this._handleMenuAction}>
           <ha-icon-button
             slot="trigger"
-            .label=${this.hass.localize("ui.common.menu")}
+            .label=${this._modeLocalize("ui.common.menu")}
             .path=${mdiDotsVertical}
           ></ha-icon-button>
           ${
@@ -121,7 +132,7 @@ class HaConfigSubEntryRow extends LitElement {
                         .path=${mdiDevices}
                         slot="icon"
                       ></ha-svg-icon>
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         `ui.panel.config.integrations.config_entry.devices`,
                         { count: devices.length }
                       )}
@@ -146,7 +157,7 @@ class HaConfigSubEntryRow extends LitElement {
                         .path=${mdiHandExtendedOutline}
                         slot="icon"
                       ></ha-svg-icon>
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         `ui.panel.config.integrations.config_entry.services`,
                         { count: services.length }
                       )}
@@ -167,7 +178,7 @@ class HaConfigSubEntryRow extends LitElement {
                         .path=${mdiShapeOutline}
                         slot="icon"
                       ></ha-svg-icon>
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         `ui.panel.config.integrations.config_entry.entities`,
                         { count: entities.length }
                       )}
@@ -179,13 +190,13 @@ class HaConfigSubEntryRow extends LitElement {
           }
           <ha-dropdown-item value="rename">
             <ha-svg-icon slot="icon" .path=${mdiRenameBox}></ha-svg-icon>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.integrations.config_entry.rename"
             )}
           </ha-dropdown-item>
           <ha-dropdown-item variant="danger" value="delete">
             <ha-svg-icon slot="icon" .path=${mdiDelete}></ha-svg-icon>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.integrations.config_entry.delete"
             )}
           </ha-dropdown-item>
@@ -258,9 +269,9 @@ class HaConfigSubEntryRow extends LitElement {
 
   private _handleRenameSub = async (): Promise<void> => {
     const newName = await showPromptDialog(this, {
-      title: this.hass.localize("ui.common.rename"),
+      title: this._modeLocalize("ui.common.rename"),
       defaultValue: this.data.subEntry.title,
-      inputLabel: this.hass.localize(
+      inputLabel: this._modeLocalize(
         "ui.panel.config.integrations.rename_input_label"
       ),
     });
@@ -277,15 +288,15 @@ class HaConfigSubEntryRow extends LitElement {
 
   private _handleDeleteSub = async (): Promise<void> => {
     const confirmed = await showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.integrations.config_entry.delete_confirm_title",
         { title: this.data.subEntry.title }
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.integrations.config_entry.delete_confirm_text"
       ),
-      confirmText: this.hass!.localize("ui.common.delete"),
-      dismissText: this.hass!.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.delete"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       destructive: true,
     });
 

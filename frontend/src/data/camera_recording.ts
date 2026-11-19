@@ -18,6 +18,50 @@ export interface RecordedSegment {
 
 export type RecordingAmount = "all_day" | "light" | "off";
 
+/** Why live clips are off for a camera */
+export type LiveReason =
+  | "not_needed"
+  | "no_go2rtc"
+  | "external_go2rtc"
+  | "core_https"
+  | "switched_off";
+
+/** The outcome of one test clip */
+export interface TestClipResult {
+  ok: boolean;
+  /** A reason code: a clip reason, a live reason, or "busy" */
+  reason: string | null;
+  /** UNIX seconds */
+  at: number;
+  name?: string | null;
+  duration?: number;
+  size?: number;
+  cut_short?: boolean;
+}
+
+/** One camera's recording check */
+export interface RecordingCheck {
+  /** Why the bundled streaming program cannot be used, or null when it can */
+  go2rtc_problem: "no_go2rtc" | "external_go2rtc" | null;
+  /** Why Home Assistant's own web server cannot take the handshake, or null */
+  core_problem: "no_http" | "core_https" | null;
+  provider_only: boolean;
+  /** Whether the camera's integration keeps its own event clips */
+  event_media: boolean;
+  last_event: { at: number; kind: string | null } | null;
+  last_clip: {
+    at: number;
+    origin: "service" | "home" | null;
+    duration: number;
+    kind: "clip" | "image" | null;
+    cut_short: boolean;
+  } | null;
+  last_problem: { at: number; reason: EventClipReason } | null;
+  clips_left: number;
+  recording_now: boolean;
+  last_test: TestClipResult | null;
+}
+
 export interface CameraAmountPeriod {
   /** UNIX seconds */
   since: number;
@@ -34,6 +78,9 @@ export type EventClipReason =
   | "removed"
   | "no_media"
   | "failed"
+  | "stream_ended"
+  | "camera_busy"
+  | "hourly_limit"
   | "not_recorded";
 
 /** What the home knows about the clip of one event, from the backend */
@@ -48,6 +95,8 @@ export interface CameraEventRecord {
   size: number;
   /** Who made the clip: the camera service, or the home recording live video */
   origin: "service" | "home" | null;
+  /** The live video stopped before the chosen length; what came was kept */
+  cut_short?: boolean;
   /** Seconds since the event, while the clip is being saved */
   progress: number | null;
   entry_id: string;
@@ -72,9 +121,11 @@ export interface CameraRecordingSummary {
   event_clips: number;
   /** Whether the home records live video around events for this camera */
   live_enabled: boolean;
-  live_reason: "not_needed" | "no_go2rtc" | "switched_off" | null;
+  live_reason: LiveReason | null;
   clip_seconds: number;
   clips_per_hour: number;
+  /** How many days recordings and event clips are kept */
+  keep_days?: number;
 }
 
 export interface CameraRecordingSegments {
@@ -340,13 +391,15 @@ export interface RecordingCameraStatus {
   /** Event clips and pictures kept */
   event_clips: number;
   live_enabled: boolean;
-  live_reason: "not_needed" | "no_go2rtc" | "switched_off" | null;
+  live_reason: LiveReason | null;
   /** The owner's choice: true, false, or null for automatic */
   live_choice: boolean | null;
   clip_seconds: number;
   clips_per_hour: number;
   /** Live clips this camera may still start this hour */
   live_left: number;
+  /** What the recording check shows, read without the log */
+  check?: RecordingCheck;
   waiting: number;
   segments: number;
   bytes: number;
@@ -430,6 +483,8 @@ export interface EventClip {
   origin?: "service" | "home" | null;
   duration?: number;
   size?: number;
+  /** The live video stopped before the chosen length */
+  cutShort?: boolean;
 }
 
 /**
@@ -462,6 +517,7 @@ export const clipForEvent = (
         duration: record.duration,
         size: record.size,
         origin: record.origin,
+        cutShort: record.cut_short === true,
       };
     }
     return { state: "none", reason: "removed" };
@@ -515,4 +571,30 @@ export const setLiveOptions = (
     entry_id: entryId,
     entity_id: entityId,
     ...options,
+  });
+
+/** Record a short live clip of one camera now, to check the whole route. */
+export const recordTestClip = (
+  hass: Pick<HomeAssistant, "callWS">,
+  entryId: string,
+  entityId: string
+) =>
+  hass.callWS<TestClipResult>({
+    type: "camera_recording/test_clip",
+    entry_id: entryId,
+    entity_id: entityId,
+  });
+
+export const KEEP_DAYS_RANGE = { min: 1, max: 90 } as const;
+
+/** Choose how many days recordings and event clips are kept. */
+export const setKeepDays = (
+  hass: Pick<HomeAssistant, "callWS">,
+  entryId: string,
+  keepDays: number
+) =>
+  hass.callWS<RecordingDestinationStatus>({
+    type: "camera_recording/set_keep_days",
+    entry_id: entryId,
+    keep_days: keepDays,
   });

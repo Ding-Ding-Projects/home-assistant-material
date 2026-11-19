@@ -82,6 +82,8 @@ import {
 } from "./tag-bulk-actions";
 import "./tag-image";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 export interface TagRowData extends Tag {
   display_name: string;
   last_scanned_datetime: Date | null;
@@ -99,6 +101,14 @@ const readStoredView = (): "cards" | "list" => {
 
 @customElement("ha-config-tags")
 export class HaConfigTags extends SubscribeMixin(LitElement) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
@@ -171,7 +181,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
         flex: 2,
         template: (tag) => {
           if (!tag.last_scanned_datetime) {
-            return html`${this.hass.localize(
+            return html`${this._modeLocalize(
               "ui.panel.config.tag.never_scanned"
             )}`;
           }
@@ -186,7 +196,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
             >${
               deviceName
                 ? html`,
-                  ${this.hass.localize("ui.panel.config.tag.scanned_by", {
+                  ${this._modeLocalize("ui.panel.config.tag.scanned_by", {
                     device: deviceName,
                   })}`
                 : nothing
@@ -235,7 +245,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
           html`<ha-icon-button
             .tag=${tag}
             @click=${this._handleWriteClick}
-            .label=${this.hass.localize("ui.panel.config.tag.write")}
+            .label=${this._modeLocalize("ui.panel.config.tag.write")}
             .path=${mdiMemoryArrowDown}
           ></ha-icon-button>`,
       };
@@ -252,14 +262,14 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
           narrow
           .items=${[
             {
-              label: this.hass.localize(
+              label: this._modeLocalize(
                 "ui.panel.config.tag.create_automation"
               ),
               path: mdiRobot,
               action: () => this._createAutomation(tag),
             },
             {
-              label: this.hass.localize("ui.common.delete"),
+              label: this._modeLocalize("ui.common.delete"),
               path: mdiDelete,
               action: () => this._removeTag(tag),
               warning: true,
@@ -321,7 +331,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
   };
 
   private _renderCards() {
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const matches = searchMatcher(this._cardSearch);
     const tags = this._data(this._tags).filter((tag) =>
       matches(tag.display_name, tag.id)
@@ -409,7 +419,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
   }
 
   private _renderTagCard(tag: TagRowData) {
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const device = tag.device_id ? this.hass.devices[tag.device_id] : undefined;
     const deviceName = device?.name_by_user || device?.name;
     return html`
@@ -480,20 +490,20 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
         back-path="/config/connectivity"
         .route=${this.route}
         .tabs=${configSections.tags}
-        .columns=${this._columns(this.hass.localize)}
+        .columns=${this._columns(this._modeLocalize)}
         .loading=${this._loading}
         .data=${this._data(this._tags)}
-        .noDataText=${this.hass.localize("ui.panel.config.tag.no_tags")}
+        .noDataText=${this._modeLocalize("ui.panel.config.tag.no_tags")}
         .loadError=${
           this._loadFailed
-            ? this.hass.localize("ui.panel.config.tag.load_failed")
+            ? this._modeLocalize("ui.panel.config.tag.load_failed")
             : undefined
         }
-        .summary=${this.hass.localize("ui.panel.config.tag.summary")}
+        .summary=${this._modeLocalize("ui.panel.config.tag.summary")}
         .statistics=${
           this._loading
             ? undefined
-            : buildListStatistics(this.hass.localize, {
+            : buildListStatistics(this._modeLocalize, {
                 total: this._tags.length,
                 shown: this._tableSettings.search
                   ? filteredTableCount(this._dataTable)
@@ -501,7 +511,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
                 selected: this._selected.length,
               })
         }
-        .appendRow=${this._waitingCard(this.hass.localize)}
+        .appendRow=${this._waitingCard(this._modeLocalize)}
         @retry-load=${this._retryFetchTags}
         .filter=${this._tableSettings.search}
         @search-changed=${this._tableSettings.searchChanged}
@@ -520,12 +530,12 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
         <ha-icon-button
           slot="toolbar-icon"
           @click=${this._toggleView}
-          .label=${this.hass.localize("ui.panel.config.tag.show_cards")}
+          .label=${this._modeLocalize("ui.panel.config.tag.show_cards")}
           .path=${mdiViewGridOutline}
         ></ha-icon-button>
         <ha-button slot="fab" size="l" @click=${this._addTag}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.tag.add_tag")}
+          ${this._modeLocalize("ui.panel.config.tag.add_tag")}
         </ha-button>
       </hass-tabs-subpage-data-table>
       ${
@@ -603,11 +613,11 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
 
   private _showHelp() {
     showAlertDialog(this, {
-      title: this.hass.localize("ui.panel.config.tag.caption"),
+      title: this._modeLocalize("ui.panel.config.tag.caption"),
       text: html`
         <p>
-          ${this.hass.localize("ui.panel.config.tag.detail.usage", {
-            companion_link: this.hass!.localize(
+          ${this._modeLocalize("ui.panel.config.tag.detail.usage", {
+            companion_link: this._modeLocalize(
               "ui.panel.config.tag.detail.companion_apps"
             ),
           })}
@@ -618,7 +628,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
             target="_blank"
             rel="noreferrer"
           >
-            ${this.hass.localize("ui.panel.config.tag.learn_more")}
+            ${this._modeLocalize("ui.panel.config.tag.learn_more")}
           </a>
         </p>
       `,
@@ -687,12 +697,12 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
   private async _removeTag(selectedTag: Tag) {
     if (
       !(await showConfirmationDialog(this, {
-        title: this.hass!.localize("ui.panel.config.tag.confirm_delete_title"),
-        text: this.hass.localize("ui.panel.config.tag.confirm_delete", {
+        title: this._modeLocalize("ui.panel.config.tag.confirm_delete_title"),
+        text: this._modeLocalize("ui.panel.config.tag.confirm_delete", {
           tag: selectedTag.name || selectedTag.id,
         }),
-        dismissText: this.hass!.localize("ui.common.cancel"),
-        confirmText: this.hass!.localize("ui.common.delete"),
+        dismissText: this._modeLocalize("ui.common.cancel"),
+        confirmText: this._modeLocalize("ui.common.delete"),
         destructive: true,
       }))
     ) {
@@ -719,13 +729,13 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
   private _bulkLocalize = (
     key: string,
     values?: Record<string, string | number>
-  ): string => this.hass.localize(key as any, values);
+  ): string => this._modeLocalize(key as any, values);
 
   private _bulkActions(): BulkAction[] {
     return [
       {
         id: "delete",
-        label: this.hass.localize("ui.common.delete"),
+        label: this._modeLocalize("ui.common.delete"),
         path: mdiDelete,
         destructive: true,
       },
@@ -789,7 +799,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
     if (id !== "delete") {
       return undefined;
     }
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const preview = buildTagDeletePreview(
       this._tags,
       this._selected,
@@ -909,7 +919,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
           failedIds = present;
           failedNames = failedNames.filter((name) => !goneNames.includes(name));
           showToast(this, {
-            message: this.hass.localize("ui.panel.config.tag.already_gone", {
+            message: this._modeLocalize("ui.panel.config.tag.already_gone", {
               names: goneNames.join(", "),
             }),
             duration: 8000,
@@ -922,12 +932,12 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
     this._dataTable?.setCheckedRowIds(failedIds);
     if (failedIds.length) {
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.tag.delete_failed_title"),
+        title: this._modeLocalize("ui.panel.config.tag.delete_failed_title"),
         text: failedNames.length
-          ? this.hass.localize("ui.panel.config.tag.delete_failed_named", {
+          ? this._modeLocalize("ui.panel.config.tag.delete_failed_named", {
               names: failedNames.join(", "),
             })
-          : this.hass.localize("ui.panel.config.tag.delete_failed"),
+          : this._modeLocalize("ui.panel.config.tag.delete_failed"),
       });
     }
   };

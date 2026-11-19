@@ -7,10 +7,15 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 
+from .cloud_websocket import async_register_cloud_websocket
 from .const import DOMAIN
 from .live import LiveOfferView
 from .manager import RecordingManager, remove_entry_files
+from .registry_api import async_register_registry
+from .uploader import async_get_uploader
 from .views import SegmentView
+from .watched import async_start_watched
+from .watched_api import async_register_watched
 from .websocket import async_register_websocket
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR, Platform.SWITCH]
@@ -24,6 +29,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.http.register_view(SegmentView())
     hass.http.register_view(LiveOfferView())
     async_register_websocket(hass)
+    async_register_cloud_websocket(hass)
+    async_register_watched(hass)
+    async_register_registry(hass)
     return True
 
 
@@ -37,12 +45,18 @@ async def async_setup_entry(
 
     async def _start(_hass: HomeAssistant) -> None:
         await manager.async_start()
+        await async_start_watched(hass, manager)
 
     entry.async_on_unload(async_at_started(hass, _start))
     entry.async_on_unload(entry.add_update_listener(_async_reload))
+    # Finished files the cloud drives want are queued as the index grows.
+    entry.async_on_unload((await async_get_uploader(hass)).async_attach(manager))
 
 
 async def _async_reload(hass: HomeAssistant, entry: CameraRecordingConfigEntry) -> None:
+    # A new keeping time is applied in place, so recording does not stop for it.
+    if await entry.runtime_data.async_apply_options(entry.options):
+        return
     await hass.config_entries.async_reload(entry.entry_id)
 
 

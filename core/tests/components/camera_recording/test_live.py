@@ -38,7 +38,7 @@ from homeassistant.components.camera_recording.live import (
     LiveSession,
     broker_for,
     merge_candidates,
-    peer_is_loopback,
+    peer_is_local,
 )
 from homeassistant.components.camera_recording.manager import RecordingManager
 from homeassistant.core import HomeAssistant
@@ -149,7 +149,7 @@ async def test_refuses_other_callers_without_spending_the_id(
     client = await hass_client_no_auth()
     session = broker_for(hass).mint(CAMERA)
 
-    with patch.object(live, "peer_is_loopback", return_value=False):
+    with patch.object(live, "peer_is_local", return_value=False):
         assert (await post(client, session.token)).status == 403
     proxied = await client.post(
         f"/api/camera_recording/whep/{session.token}",
@@ -252,26 +252,124 @@ def test_merge_candidates_goes_into_the_right_section() -> None:
     assert lines.index("a=candidate:a") > lines.index("m=video 9 RTP/AVP 96")
 
 
+LAN = ("192.0.2.10", 8123)
+
+
 @pytest.mark.parametrize(
-    ("peer", "headers", "result"),
+    ("peer", "local", "headers", "result"),
     [
-        (("127.0.0.1", 1), {}, True),
-        (("::1", 1, 0, 0), {}, True),
-        (("::ffff:127.0.0.1", 1, 0, 0), {}, True),
-        (("203.0.113.5", 1), {}, False),
-        (("127.0.0.1", 1), {"X-Real-IP": "1.2.3.4"}, False),
-        (None, {}, False),
+        pytest.param(("127.0.0.1", 1), ("127.0.0.1", 8123), {}, True, id="loopback"),
+        pytest.param(("::1", 1, 0, 0), ("::1", 8123, 0, 0), {}, True, id="ipv6"),
+        pytest.param(
+            ("::ffff:127.0.0.1", 1, 0, 0), ("::", 8123, 0, 0), {}, True, id="mapped"
+        ),
+        pytest.param(("192.0.2.10", 1), LAN, {}, True, id="same-chosen-address"),
+        pytest.param(("192.0.2.77", 1), LAN, {}, False, id="other-computer"),
+        pytest.param(("203.0.113.5", 1), LAN, {}, False, id="internet"),
+        pytest.param(
+            ("172.17.0.1", 1), ("172.17.0.2", 8123), {}, False, id="container-gateway"
+        ),
+        pytest.param(
+            ("127.0.0.1", 1), LAN, {"X-Real-IP": "1.2.3.4"}, False, id="real-ip"
+        ),
+        pytest.param(
+            ("127.0.0.1", 1),
+            LAN,
+            {"X-Forwarded-For": "127.0.0.1"},
+            False,
+            id="forwarded-for",
+        ),
+        pytest.param(
+            ("192.0.2.10", 1),
+            LAN,
+            {"Forwarded": "for=127.0.0.1"},
+            False,
+            id="forwarded",
+        ),
+        pytest.param(
+            ("127.0.0.1", 1),
+            LAN,
+            {"X-Forwarded-Proto": "https"},
+            False,
+            id="forwarded-proto",
+        ),
+        pytest.param(None, LAN, {}, False, id="no-peer"),
+        pytest.param(("0.0.0.0", 1), ("0.0.0.0", 8123), {}, False, id="unspecified"),
     ],
 )
-def test_peer_is_loopback(
-    peer: tuple | None, headers: dict[str, str], result: bool
+def test_peer_is_local(
+    peer: tuple | None,
+    local: tuple,
+    headers: dict[str, str],
+    result: bool,
 ) -> None:
-    """Only a direct caller on this computer passes."""
+    """Only a direct caller on this computer passes, never one behind a proxy."""
+    info = {"peername": peer, "sockname": local}
     request = SimpleNamespace(
         headers=headers,
-        transport=SimpleNamespace(get_extra_info=lambda _name: peer),
+        transport=SimpleNamespace(get_extra_info=info.get),
     )
-    assert peer_is_loopback(request) is result  # type: ignore[arg-type]
+    assert peer_is_local(request) is result  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("server_host", "expected"),
+    [
+        pytest.param(None, "127.0.0.1", id="default"),
+        pytest.param(["0.0.0.0", "::"], "127.0.0.1", id="every-address"),
+        pytest.param(["::"], "::1", id="every-ipv6-address"),
+        pytest.param(["192.0.2.10"], "192.0.2.10", id="one-address"),
+        pytest.param(["192.0.2.10", "127.0.0.1"], "127.0.0.1", id="prefers-loopback"),
+    ],
+)
+def test_handshake_address_follows_the_bound_address(
+    hass: HomeAssistant, server_host: list[str] | None, expected: str
+) -> None:
+    """The one-time address goes where Home Assistant really listens."""
+    hass.http = SimpleNamespace(server_host=server_host, server_port=8123)  # type: ignore[assignment]
+    hass.config.api = SimpleNamespace(use_ssl=False)  # type: ignore[assignment]
+    assert live.handshake_host(hass) == expected
+    source = live.whep_source(hass, "tok")
+    host = f"[{expected}]" if ":" in expected else expected
+    assert source == (
+        f"webrtc:http://{host}:8123/api/camera_recording/whep/tok#format=whep"
+    )
+
+
+def test_https_core_is_reported_not_bypassed(hass: HomeAssistant) -> None:
+    """With HTTPS on Home Assistant the route is reported unsupported, never weakened."""
+    hass.http = SimpleNamespace(server_host=None, server_port=8123)  # type: ignore[assignment]
+    hass.config.api = SimpleNamespace(use_ssl=True)  # type: ignore[assignment]
+    assert live.whep_source(hass, "tok") is None
+    assert live.async_core_problem(hass) == "core_https"
+
+
+async def test_one_time_address_is_dead_after_restart(
+    hass: HomeAssistant, hass_client_no_auth: ClientSessionGenerator
+) -> None:
+    """Ids live only in memory: after a restart an old address answers nothing."""
+    camera = await add_camera(hass, answer_with_candidate)
+    client = await hass_client_no_auth()
+    old = broker_for(hass).mint(CAMERA)
+    # A restart starts with an empty broker.
+    hass.data.pop(live.LIVE_BROKER)
+    assert (await post(client, old.token)).status == 404
+    assert camera.offers == []
+
+
+def test_external_go2rtc_is_not_used(hass: HomeAssistant) -> None:
+    """A go2rtc the owner runs elsewhere cannot reach this computer, so it is not used."""
+    provider = SimpleNamespace(_rest_client=object(), _url="http://192.0.2.20:1984/")
+    with patch.object(
+        hass.config_entries,
+        "async_loaded_entries",
+        return_value=[SimpleNamespace(runtime_data=provider)],
+    ):
+        assert live.async_go2rtc_problem(hass) == "external_go2rtc"
+        assert live.async_go2rtc_access(hass) is None
+        provider._url = "http://localhost:11984/"
+        assert live.async_go2rtc_problem(hass) is None
+        assert live.async_go2rtc_access(hass) is not None
 
 
 class FakeGo2rtc:
@@ -381,7 +479,9 @@ async def test_one_session_per_camera_and_hourly_limit(
     release = asyncio.Event()
     started: list[float] = []
 
-    async def hold(self: RecordingManager, cam: str, record: EventRecord) -> None:
+    async def hold(
+        self: RecordingManager, cam: str, record: EventRecord, seconds: int
+    ) -> None:
         started.append(record.start)
         try:
             await release.wait()
@@ -429,7 +529,9 @@ async def test_no_live_clip_after_refusal_or_when_service_clip_is_saved(
     manager = await live_manager(hass, local_entry, go2rtc)
     calls: list[str] = []
 
-    async def count(self: RecordingManager, cam: str, record: EventRecord) -> None:
+    async def count(
+        self: RecordingManager, cam: str, record: EventRecord, seconds: int
+    ) -> None:
         calls.append(cam)
         self.live_active.pop(cam, None)
 

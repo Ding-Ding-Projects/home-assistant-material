@@ -1,6 +1,6 @@
 # Interface
 
-| File | Feature | State (see `../../feature-status.md`) |
+| File | Feature | State (current state: `../../../ROADMAP.md`) |
 | --- | --- | --- |
 | [`notifications-export-selection.md`](notifications-export-selection.md) | Notifications, export, the selection bar | Partly built |
 | [`entity-dialogs.md`](entity-dialogs.md) | Entity dialogs, the dialog frame, shared state controls | Partly built |

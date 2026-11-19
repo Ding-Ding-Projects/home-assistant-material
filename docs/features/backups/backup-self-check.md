@@ -65,8 +65,12 @@ The hosted build 2026.11.1.521 could still read "0 of 4" in full hosting mode. T
 ## The card refreshes itself
 
 The self-check card on the Backups page used to stay stale until the page was reloaded. On main
-(`c9e3a5e67`) it refreshes by itself when a new backup is checked. Build 523 has the stale card;
-the fix is not yet seen in a real run.
+(`c9e3a5e67`) it refreshes by itself when a new backup is checked. Build 523 has the stale card.
+In a real run of build 2026.11.1.524 a backup passed its self-check 4 of 4 and the card refreshed
+without a reload.
+
+Backup counts on this card and on the Backups setup card read properly in Cantonese (`6db767de3`, on main, not built,
+unit-tested only).
 
 ## Honest limits
 
@@ -84,6 +88,8 @@ the fix is not yet seen in a real run.
   was seen in a browser.
 - A real run of build 523: a backup over 1 GiB passed the self-check, 4 of 4. That confirms the
   fix on a real build; what was read (the service's answers or the page) was not recorded.
+- A real run of build 524: a backup passed the self-check 4 of 4 and the card on the page
+  refreshed without a reload.
 - 45 tests pass in the self-check file, with the pretend Supervisor now carrying the real values.
 - Not exercised: network mounts and cloud places on a real Supervisor.
 - The Backups page's per-place results and the setting were added in `11e60d596` using a mocked

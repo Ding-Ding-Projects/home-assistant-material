@@ -34,6 +34,9 @@ import "../../../layouts/hass-subpage";
 import type { HomeAssistant, Route } from "../../../types";
 import { groupRepositories } from "./repository-groups";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 interface RepositoryRowData {
   slug: string;
   name: string;
@@ -43,6 +46,14 @@ interface RepositoryRowData {
 
 @customElement("ha-config-apps-repositories")
 export class HaConfigAppsRepositories extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
@@ -170,7 +181,7 @@ export class HaConfigAppsRepositories extends LitElement {
         .narrow=${this.narrow}
         .route=${this.route}
         back-path="/config/apps/available"
-        .header=${this.hass.localize("ui.panel.config.apps.store.repositories")}
+        .header=${this._modeLocalize("ui.panel.config.apps.store.repositories")}
       >
         <div class="content">
           ${
@@ -180,12 +191,12 @@ export class HaConfigAppsRepositories extends LitElement {
                   aria-labelledby="built-in-heading"
                 >
                   <h2 id="built-in-heading">
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.apps.repositories.built_in_title"
                     )}
                   </h2>
                   <p>
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.apps.repositories.built_in_description"
                     )}
                   </p>
@@ -195,7 +206,7 @@ export class HaConfigAppsRepositories extends LitElement {
                         html`<li>
                           <span class="name">${repo.name}</span>
                           <span class="badge"
-                            >${this.hass.localize(
+                            >${this._modeLocalize(
                               "ui.panel.config.apps.repositories.built_in"
                             )}</span
                           >
@@ -208,7 +219,7 @@ export class HaConfigAppsRepositories extends LitElement {
                     )}
                   </ul>
                   <h2>
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.apps.repositories.own_title"
                     )}
                   </h2>
@@ -216,9 +227,9 @@ export class HaConfigAppsRepositories extends LitElement {
               : nothing
           }
           <ha-data-table
-            .columns=${this._columns(this.hass.localize, usedRepositories)}
+            .columns=${this._columns(this._modeLocalize, usedRepositories)}
             .data=${this._data(repositories)}
-            .noDataText=${this.hass.localize(
+            .noDataText=${this._modeLocalize(
               "ui.panel.config.apps.repositories.no_repositories"
             )}
             id="slug"
@@ -227,7 +238,7 @@ export class HaConfigAppsRepositories extends LitElement {
         </div>
         <ha-button size="l" @click=${this._showAddRepositoryDialog}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.apps.repositories.add")}
+          ${this._modeLocalize("ui.panel.config.apps.repositories.add")}
         </ha-button>
       </hass-subpage>
     `;
@@ -235,10 +246,10 @@ export class HaConfigAppsRepositories extends LitElement {
 
   private async _showAddRepositoryDialog() {
     showPromptDialog(this, {
-      title: this.hass.localize("ui.panel.config.apps.repositories.add_title"),
-      inputLabel: this.hass.localize("ui.panel.config.apps.repositories.url"),
+      title: this._modeLocalize("ui.panel.config.apps.repositories.add_title"),
+      inputLabel: this._modeLocalize("ui.panel.config.apps.repositories.url"),
       inputType: "url",
-      confirmText: this.hass.localize("ui.panel.config.apps.repositories.add"),
+      confirmText: this._modeLocalize("ui.panel.config.apps.repositories.add"),
       action: async (url) => {
         try {
           await addStoreRepository(this.hass, url!);
@@ -259,13 +270,13 @@ export class HaConfigAppsRepositories extends LitElement {
     const repo = this._repositories?.find((r) => r.slug === slug);
 
     showConfirmationDialog(this, {
-      title: this.hass.localize("ui.panel.config.apps.repositories.remove"),
-      text: this.hass.localize(
+      title: this._modeLocalize("ui.panel.config.apps.repositories.remove"),
+      text: this._modeLocalize(
         "ui.panel.config.apps.repositories.confirm_remove",
         { name: repo?.name || slug }
       ),
       destructive: true,
-      confirmText: this.hass.localize(
+      confirmText: this._modeLocalize(
         "ui.panel.config.apps.repositories.remove"
       ),
       action: async () => {

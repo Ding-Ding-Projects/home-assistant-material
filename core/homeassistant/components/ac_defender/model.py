@@ -135,6 +135,10 @@ class Ctx:
     last_weather_update: datetime | None = None
     last_power_update: datetime | None = None
     last_command_time: datetime | None = None
+    # When this defender's own off command was sent.
+    off_command_at: datetime | None = None
+    # The later of the own off command and the device last seen turning off.
+    last_off_at: datetime | None = None
     price_period_started: datetime | None = None
     # Filled in during the decision.
     target: float = 0.0

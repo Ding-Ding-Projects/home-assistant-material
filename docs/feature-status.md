@@ -1,7 +1,30 @@
-# Feature status
+# Feature status (record to 13 November 2026)
 
-What exists today, stated plainly. Every row starts with one of these words, followed by one
-sentence of evidence and where the code lives.
+**This file is no longer the current state.** It was last brought up to date on 13 November 2026
+(through batch 54) and is kept as the row-by-row record of that time, because many rows name the
+evidence and the code in more detail than anywhere else. For the current state read:
+
+- [`../ROADMAP.md`](../ROADMAP.md): the checklist of every item, with `[x]` only for what was seen
+  working in a real build or a real run. This is the authoritative state.
+- [`../HANDOFF.md`](../HANDOFF.md): what is live, what is published and being verified, what is on
+  main and not built, known faults and next steps. Its newest section is at the top.
+- [`features/`](features/README.md): one file per feature, each with its own verification section.
+
+Where a row below and those files disagree, those files are newer.
+
+## Current state at a glance, 18 November 2026
+
+- The hosted instance runs build 2026.11.1.524, built from `c9e3a5e67`. It was verified before it
+  went live by a page-load pass (0 page errors in four modes) and a real update run on a
+  throwaway full hosting copy.
+- Build 2026.11.1.525, built from `44d5a60e5`, is published and being verified; it is not live.
+- `6db767de3` (state words following the language mode, and ten small fixes) is on main and in no
+  build.
+- The design is 616 boards on 40 canvases in `../design/canvases/` (counted from the folders on
+  18 November 2026).
+
+**How the rows below are worded.** Every row starts with one of these words, followed by one sentence of evidence and where the code
+lives.
 
 | State | Meaning |
 | --- | --- |
@@ -261,7 +284,7 @@ Not checked:
 | Operating system images: Raspberry Pi 3, 4, 5 and VirtualBox | Built and seen in a running build | `haos_ova-18.5.33.ova` started on VMware Workstation on Windows 11: it took a network address, finished its first start and showed first-run setup on port 80, reached from a second device (`ovftool` needs `--skipManifestCheck`, see the README). It has not been booted in VirtualBox or on a Raspberry Pi. |
 | Plain `git clone` on Windows | Built and seen in a running build | Two systemd mount units whose names contain a backslash are stored as `__x2d__` and the operating system post-build script renames them back, so a clone checks out on Windows 11 (seen). The rename was seen in the operating system build of build 109 (generic virtual machine image and Raspberry Pi 3): the build log shows both mount units enabled under their real names. That image was booted in a virtual machine on 11 November 2026 (first start finished, the supervisor reported healthy, and the journal shows both mounts made) (`operating-system/buildroot-external/scripts/post-build.sh`, `README.md`). |
 | Local frontend build on a machine with many processors | Built and seen in a running build | The frontend container compile is held to four processors (two on a retry) and the minifier worker count follows it; the build context no longer carries the host's `node_modules`. On Windows 11 with 32 processors the build crashed before this and produced the wheel after it; the production container build completes. Seen on one computer only (`build/frontend.Dockerfile`, `frontend/build-scripts/rspack.cjs`). |
-| Hosted instance on the owner's network | Built and seen in a running build | Runs build 2026.11.1.106. Builds 88 and 91 were skipped on purpose: they contained a defect where settings saved on the instance could cross between two accounts on one browser, fixed in batch 18 (see the row on appearance and wording saved on the instance). Builds 102 and 105 were skipped on purpose too: 102 lacked the media folder safety fix and 105 had the first version of the activity record. |
+| Hosted instance on the owner's network | Built and seen in a running build | On 18 November 2026 it runs build 2026.11.1.524 (see `HANDOFF.md`). On 13 November it ran build 2026.11.1.106. Builds 88 and 91 were skipped on purpose: they contained a defect where settings saved on the instance could cross between two accounts on one browser, fixed in batch 18 (see the row on appearance and wording saved on the instance). Builds 102 and 105 were skipped on purpose too: 102 lacked the media folder safety fix and 105 had the first version of the activity record. |
 | Operating system updates over the air | Built, not yet seen in a running build | Wired; the two signing secrets are set since 10 November 2026. No build has finished its operating system images since, and no update between two such builds has been watched. |
 | `build.sh`, `build.bat`, `build-installer.bat`, dependency installers | Built, not yet seen in a running build | Written at the repository root; not run end to end. `deploy-assistant\build.bat` (builds the Deploy Assistant installer on Windows) was added by another lane and has not been run. |
 | Deploy Assistant (`deploy-assistant/`, version 1.3.0) | Partly built | Docker on this computer was run end to end in a test on 10 November 2026: two instances side by side, a backup, a restore and a removal; the card writer wrote and read back a test image through the packaged app. Versions 1.1 to 1.3 add the two-pane deploy wizard, extensions, offline project pages, QR scanning, an update self-test, ADHD modes, a narrator, schedule rules, two-key confirmation, logo upload, exports in eleven formats, record history and a live chart; they were checked in the browser demo and in Electron on Linux. Not seen on Windows or macOS hardware, auto-update has not been seen applying a real release, and SSH hosts, VirtualBox, VMware and a real card are not seen working. `deploy-assistant/FEATURES.md` lists every contract feature, including those not started (virtual disks, game servers, local models, drawing). Open review findings are in `HANDOFF.md`. Later commits by another lane (not run or seen by this work) add a Convert tab (PDF, images, ZIP, data and text), a Base64 toolkit, a QR maker, a ZIP of every export, a drawing tab, shared School mode with an unlock ladder, Windows Snap layouts and an extension manager. |

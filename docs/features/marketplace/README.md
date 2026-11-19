@@ -1,6 +1,6 @@
 # Marketplace
 
-| File | Feature | State (see `../../feature-status.md`) |
+| File | Feature | State (current state: `../../../ROADMAP.md`) |
 | --- | --- | --- |
 | [`add-from-a-file.md`](add-from-a-file.md) | Add an item from a ZIP archive, detected without a history folder | Server endpoint run on a throwaway instance; dialog not yet seen |
 

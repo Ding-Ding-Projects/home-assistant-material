@@ -34,6 +34,8 @@ import { generateDefaultView } from "../../lovelace/views/default-view";
 import "./dashboard-card";
 import type { NewDashboardDialogParams } from "./show-dialog-new-dashboard";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 type DashboardCardSelectionTarget = EventTarget & {
   config?: LovelaceRawConfig;
   strategy?: string;
@@ -79,10 +81,28 @@ const STRATEGIES = [
     description:
       "ui.panel.config.lovelace.dashboards.dialog_new.strategy.iframe.description",
   },
+  {
+    type: "transit",
+    images: {
+      light: "/static/images/dashboard-options/light/icon-dashboard-map.svg",
+      dark: "/static/images/dashboard-options/dark/icon-dashboard-map.svg",
+    },
+    name: "ui.panel.config.lovelace.dashboards.dialog_new.strategy.transit.title",
+    description:
+      "ui.panel.config.lovelace.dashboards.dialog_new.strategy.transit.description",
+  },
 ] as const satisfies Strategy[];
 
 @customElement("ha-dialog-new-dashboard")
 class DialogNewDashboard extends LitElement implements HassDialog {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _open = false;
@@ -103,8 +123,8 @@ class DialogNewDashboard extends LitElement implements HassDialog {
     this._params = params;
     this._localizedStrategies = STRATEGIES.map((strategy) => ({
       ...strategy,
-      localizedName: this.hass.localize(strategy.name as LocalizeKeys),
-      localizedDescription: this.hass.localize(
+      localizedName: this._modeLocalize(strategy.name as LocalizeKeys),
+      localizedDescription: this._modeLocalize(
         strategy.description as LocalizeKeys
       ),
     }));
@@ -133,14 +153,14 @@ class DialogNewDashboard extends LitElement implements HassDialog {
       return nothing;
     }
 
-    const defaultConfig = this._generateDefaultConfig(this.hass.localize);
+    const defaultConfig = this._generateDefaultConfig(this._modeLocalize);
 
     return html`
       <ha-dialog
         .open=${this._open}
         flexcontent
         width="large"
-        header-title=${this.hass.localize(
+        header-title=${this._modeLocalize(
           `ui.panel.config.lovelace.dashboards.dialog_new.header`
         )}
         @closed=${this._dialogClosed}
@@ -149,7 +169,7 @@ class DialogNewDashboard extends LitElement implements HassDialog {
           <ha-input-search
             appearance="outlined"
             autofocus
-            .placeholder=${this.hass.localize(
+            .placeholder=${this._modeLocalize(
               `ui.panel.config.lovelace.dashboards.dialog_new.search_dashboards`
             )}
             .value=${this._filter}
@@ -197,10 +217,10 @@ class DialogNewDashboard extends LitElement implements HassDialog {
                 : html`
                     <div class="cards-container">
                       <dashboard-card
-                        .name=${this.hass.localize(
+                        .name=${this._modeLocalize(
                           `ui.panel.config.lovelace.dashboards.dialog_new.create_empty`
                         )}
-                        .description=${this.hass.localize(
+                        .description=${this._modeLocalize(
                           `ui.panel.config.lovelace.dashboards.dialog_new.create_empty_description`
                         )}
                         .img=${
@@ -208,7 +228,7 @@ class DialogNewDashboard extends LitElement implements HassDialog {
                             ? "/static/images/dashboard-options/dark/icon-dashboard-new.svg"
                             : "/static/images/dashboard-options/light/icon-dashboard-new.svg"
                         }
-                        .alt=${this.hass.localize(
+                        .alt=${this._modeLocalize(
                           `ui.panel.config.lovelace.dashboards.dialog_new.create_empty`
                         )}
                         @click=${this._selected}
@@ -217,7 +237,7 @@ class DialogNewDashboard extends LitElement implements HassDialog {
                     </div>
                     <div class="cards-container">
                       <div class="cards-container-header">
-                        ${this.hass.localize(
+                        ${this._modeLocalize(
                           `ui.panel.config.lovelace.dashboards.dialog_new.heading.default`
                         )}
                       </div>
@@ -243,7 +263,7 @@ class DialogNewDashboard extends LitElement implements HassDialog {
                         ? html`
                             <div class="cards-container">
                               <div class="cards-container-header">
-                                ${this.hass.localize(
+                                ${this._modeLocalize(
                                   `ui.panel.config.lovelace.dashboards.dialog_new.heading.custom`
                                 )}
                               </div>

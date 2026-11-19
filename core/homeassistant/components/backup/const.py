@@ -15,6 +15,7 @@ LOGGER = getLogger(__package__)
 
 EXCLUDE_FROM_BACKUP = [
     ".storage/backup.hosting",
+    ".storage/registry_storage.*",
     "**/__pycache__/*",
     "**/.DS_Store",
     ".HA_RESTORE",

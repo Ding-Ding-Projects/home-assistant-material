@@ -40,8 +40,19 @@ import type { DataEntryFlowProgressExtended } from "./ha-config-integrations";
 import "./ha-integration-action-card";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 @customElement("ha-config-flow-card")
 export class HaConfigFlowCard extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public flow!: DataEntryFlowProgressExtended;
@@ -73,7 +84,7 @@ export class HaConfigFlowCard extends LitElement {
           DISCOVERY_SOURCES.includes(this.flow.context.source) &&
           this.flow.context.unique_id
             ? html`<ha-button appearance="plain" @click=${this._ignoreFlow}
-                >${this.hass.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.integrations.ignore.ignore"
                 )}</ha-button
               >`
@@ -84,7 +95,7 @@ export class HaConfigFlowCard extends LitElement {
           variant=${attention ? "danger" : "brand"}
           appearance="filled"
         >
-          ${this.hass.localize(
+          ${this._modeLocalize(
             attention
               ? "ui.panel.config.integrations.reconfigure"
               : "ui.common.add"
@@ -99,7 +110,7 @@ export class HaConfigFlowCard extends LitElement {
               >
                 <ha-icon-button
                   slot="trigger"
-                  .label=${this.hass.localize("ui.common.menu")}
+                  .label=${this._modeLocalize("ui.common.menu")}
                   .path=${mdiDotsVertical}
                 ></ha-icon-button>
                 ${
@@ -112,7 +123,7 @@ export class HaConfigFlowCard extends LitElement {
                         }
                       >
                         <ha-dropdown-item>
-                          ${this.hass.localize(
+                          ${this._modeLocalize(
                             "ui.panel.config.integrations.config_entry.open_configuration_url"
                           )}
                           <ha-svg-icon
@@ -135,7 +146,7 @@ export class HaConfigFlowCard extends LitElement {
                         target="_blank"
                       >
                         <ha-dropdown-item>
-                          ${this.hass.localize(
+                          ${this._modeLocalize(
                             "ui.panel.config.integrations.config_entry.documentation"
                           )}
                           <ha-svg-icon
@@ -157,7 +168,7 @@ export class HaConfigFlowCard extends LitElement {
                           slot="icon"
                           .path=${mdiDelete}
                         ></ha-svg-icon>
-                        ${this.hass.localize(
+                        ${this._modeLocalize(
                           "ui.panel.config.integrations.config_entry.delete"
                         )}
                       </ha-dropdown-item>`
@@ -194,14 +205,14 @@ export class HaConfigFlowCard extends LitElement {
 
   private async _ignoreFlow() {
     const confirmed = await showConfirmationDialog(this, {
-      title: this.hass!.localize(
+      title: this._modeLocalize(
         "ui.panel.config.integrations.ignore.confirm_ignore_title",
-        { name: localizeConfigFlowTitle(this.hass.localize, this.flow) }
+        { name: localizeConfigFlowTitle(this._modeLocalize, this.flow) }
       ),
-      text: this.hass!.localize(
+      text: this._modeLocalize(
         "ui.panel.config.integrations.ignore.confirm_ignore"
       ),
-      confirmText: this.hass!.localize(
+      confirmText: this._modeLocalize(
         "ui.panel.config.integrations.ignore.ignore"
       ),
     });
@@ -211,7 +222,7 @@ export class HaConfigFlowCard extends LitElement {
     await ignoreConfigFlow(
       this.hass,
       this.flow.flow_id,
-      localizeConfigFlowTitle(this.hass.localize, this.flow)
+      localizeConfigFlowTitle(this._modeLocalize, this.flow)
     );
     this._handleFlowUpdated();
   }
@@ -237,15 +248,15 @@ export class HaConfigFlowCard extends LitElement {
 
   private async _removeApplicationCredential(applicationCredentialsId: string) {
     const confirmed = await showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.integrations.config_entry.application_credentials.delete_title"
       ),
-      text: html`${this.hass.localize(
+      text: html`${this._modeLocalize(
           "ui.panel.config.integrations.config_entry.application_credentials.delete_prompt"
         )},
         <br />
         <br />
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.integrations.config_entry.application_credentials.delete_detail"
         )}
         <br />
@@ -253,12 +264,12 @@ export class HaConfigFlowCard extends LitElement {
         <a
           href=${documentationUrl(this.hass, "/integrations/application_credentials")}
         >
-          ${this.hass.localize(
+          ${this._modeLocalize(
             "ui.panel.config.integrations.config_entry.application_credentials.learn_more"
           )}
         </a>`,
-      confirmText: this.hass.localize("ui.common.delete"),
-      dismissText: this.hass.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.delete"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       destructive: true,
     });
 
@@ -270,7 +281,7 @@ export class HaConfigFlowCard extends LitElement {
       await deleteApplicationCredential(this.hass, applicationCredentialsId);
     } catch (err: any) {
       showAlertDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.integrations.config_entry.application_credentials.delete_error_title"
         ),
         text: err.message,
@@ -290,15 +301,15 @@ export class HaConfigFlowCard extends LitElement {
       await this._fetchApplicationCredentials(entryId);
 
     const confirmed = await showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.integrations.config_entry.delete_confirm_title",
-        { title: localizeConfigFlowTitle(this.hass.localize, this.flow) }
+        { title: localizeConfigFlowTitle(this._modeLocalize, this.flow) }
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.integrations.config_entry.delete_confirm_text"
       ),
-      confirmText: this.hass!.localize("ui.common.delete"),
-      dismissText: this.hass!.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.delete"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       destructive: true,
     });
 
@@ -310,7 +321,7 @@ export class HaConfigFlowCard extends LitElement {
 
     if (result.require_restart) {
       showAlertDialog(this, {
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.integrations.config_entry.restart_confirm"
         ),
       });

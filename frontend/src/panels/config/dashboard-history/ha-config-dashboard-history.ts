@@ -54,6 +54,8 @@ import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
 import "../automation-history/ha-automation-diff";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
 /** Commits listed before Show all. */
 const COMMITS_SHOWN = 8;
 
@@ -74,6 +76,14 @@ interface Detail {
  */
 @customElement("ha-config-dashboard-history")
 export class HaConfigDashboardHistory extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -131,7 +141,7 @@ export class HaConfigDashboardHistory extends LitElement {
   );
 
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
+    return this._modeLocalize(
       `ui.panel.config.dashboard_history.${key}` as any,
       values
     );
@@ -316,7 +326,7 @@ export class HaConfigDashboardHistory extends LitElement {
   protected render(): TemplateResult {
     const repository = this._repository;
     const breadcrumb = [
-      this.hass.localize("panel.config"),
+      this._modeLocalize("panel.config"),
       this._l("caption"),
       ...(repository ? [repository.title] : []),
     ].join(", ");
@@ -954,7 +964,7 @@ export class HaConfigDashboardHistory extends LitElement {
     if (!(detail ? this._search : this._overviewSearch).trim()) {
       return undefined;
     }
-    return searchCountText(this.hass.localize, {
+    return searchCountText(this._modeLocalize, {
       current: detail
         ? this._visibleCommits().length
         : this._overviewMatches().length,

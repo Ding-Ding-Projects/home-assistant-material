@@ -1,5 +1,101 @@
 # Handoff
 
+## Build 524 live, build 525 being verified, Cantonese reaching entity words, 18 November 2026
+
+This section covers the commits from `6e399887e` to `6db767de3` (3 commits, after the
+documentation commit `c96301804`) and the real run of build 524. Where this section and an older
+one disagree, this one is newer. New feature documentation:
+[`entity-words-and-stacked-labels.md`](docs/features/language-and-voice/entity-words-and-stacked-labels.md);
+edits to the entity sheet, top bar search, updates, backup self-check and defender files.
+
+### What is live and what is not
+
+- **Live (hosted instance):** build 2026.11.1.524, built from `c9e3a5e67`. Verified before it went
+  live by a page-load pass (0 page errors in four modes) and a real update run on a throwaway full
+  hosting copy.
+- **Published, being verified, not live:** build 2026.11.1.525, built from `44d5a60e5` (it carries
+  `6e399887e` and `44d5a60e5`: Cantonese on sheets and the Backups pages, the both-language tab
+  bar).
+- **On main, not built:** `6db767de3` (state words following the language mode, and ten small
+  fixes).
+- Every commit in this range carries a skip marker; a push alone does not build or offer a build.
+
+### Seen working on 524, and what is not proven there
+
+Seen working in the real update run of 524:
+
+- Core updated from its row twice (2:08 and 1:52).
+- A backup passed its self-check 4 of 4, and the card refreshed without a reload.
+- The quiet build card: the "Update coming soon" card goes quiet once its build is installed.
+- "Custom" stays selected on the backup choice.
+- Release notes search marks the words it finds and steps through them.
+- The developer tools tabs work after their page shell was replaced.
+
+Not proven on 524, because each needs a newer build on offer: a page that did not start an update
+showing the start time, "Update the Supervisor first" on the Core row, and the release link
+pointing at the build on offer. A verification of build 525 is running to settle them; there is no
+result yet.
+
+Of the eight faults of 523 listed in the next section, four are now seen fixed (the build card,
+release notes search, Custom, the self-check card), three are being verified (the three above),
+and the entity sheet height glide is in 524 but was not recorded as seen in its run.
+
+### What changed
+
+| Area | What | Commit | Documentation |
+| --- | --- | --- | --- |
+| Entity sheets in Cantonese | About 240 control labels (lights, covers, locks, fans, climate, media players, alarms, vacuums, timers, weather, the details table, the related list); relative times such as "5 minutes ago" in the browser's Hong Kong wording | `6e399887e` | [`entity-words-and-stacked-labels.md`](docs/features/language-and-voice/entity-words-and-stacked-labels.md), [`entity-sheets.md`](docs/features/interface/entity-sheets.md) |
+| Other pages in Cantonese | The camera timeline, the Backups overview and its dialogs, a few Updates page lines; later the Backups pages: title, "Set up backups", "Back up now", "My backups", backup types, and the Filters and More labels of every list page | `6e399887e`, `44d5a60e5` | [`entity-words-and-stacked-labels.md`](docs/features/language-and-voice/entity-words-and-stacked-labels.md) |
+| Both languages on a phone | Entity sheet tabs stack English over smaller Cantonese: one row, 44 px targets, a 61 px bar in every mode (was two rows taking a third of a 320 px screen); segmented buttons keep whole words; camera timeline range chips 1 h, 6 h and 24 h on one row; related list rows 44 px | `44d5a60e5` | [`entity-words-and-stacked-labels.md`](docs/features/language-and-voice/entity-words-and-stacked-labels.md) |
+| State words | On, Off, Open, Closed, Home, Heating and attribute names follow the language mode through one wrapper on the lookup (`createEntityModeLocalize`), with a table of 463 entries (the commit says about 460) checked by a test against the server's own word lists; weather weekday names follow too; English mode unchanged | `6db767de3` | [`entity-words-and-stacked-labels.md`](docs/features/language-and-voice/entity-words-and-stacked-labels.md) |
+| Ten small fixes | History tab no longer jumps a second time; fan speed buttons and sensor range chips stack the two languages on one row; one "What's new" button on the Updates page; a count in the Settings home search; a list search no longer typo-matches short words ("light" no longer finds "midnight": the forgiving match waits for six letters or more); developer tools remember the search per tab; small buttons get a 44 px hit area; backup counts read properly in Cantonese; the defender log words its actions | `6db767de3` | [`top-bar-search.md`](docs/features/interface/top-bar-search.md), [`whats-new-and-notes.md`](docs/features/updates/whats-new-and-notes.md), [`backup-self-check.md`](docs/features/backups/backup-self-check.md), [`guard-descriptions-and-reasons.md`](docs/features/defenders/guard-descriptions-and-reasons.md), [`entity-sheets.md`](docs/features/interface/entity-sheets.md) |
+| Repository | A one-off helper script that should never have been committed (`frontend/fix-tmp.cjs`) removed | `44d5a60e5` | none |
+
+### Evidence
+
+- **Real run of 524:** as listed above.
+- **Browser:** `44d5a60e5` was seen in a browser at 390 and 320 px (the tab bar, segmented buttons,
+  the range chips, related list rows). `6e399887e` and `6db767de3` were not seen in a browser.
+- **Tests (`6db767de3`):** `entity-language-mode.test.ts` reads the server's `strings.json` word
+  lists and fails on a missing, extra or untranslated entry (seven abbreviations such as RGB and
+  GPS kept on purpose; scenes and buttons listed as having no words); it is skipped when the
+  server sources are not in the checkout. A speed test formats 5,000 states in each mode. The
+  commit records 2.3 ms in English and 3.2 ms in Cantonese. Tests for stacked labels, the list
+  search and the defender wording were added or extended.
+
+### What stays English
+
+State words and attribute names the table lacks, including integration-specific text; lookups that
+carry arguments; numbers, units, dates and durations; a handful of sentences whose blanks are
+filled with links or buttons; upstream pages this work does not reach.
+
+### Known faults and gaps
+
+- **Not seen in a browser:** `6e399887e` (sheets, Backups overview, camera timeline in Cantonese)
+  and all of `6db767de3`. The Backups pages in Cantonese from `44d5a60e5` are not recorded as seen
+  rendered (inferred: the commit names only the tab bar sizes as seen).
+- **Cantonese** from these three commits has not been read by a native reader.
+- **Build 525** is published and being verified; nothing about it is recorded as seen yet.
+- The other gaps of the next section (stepping with Enter, apps pages with a Supervisor, the zone
+  map, the offline camera line, pages that keep their own search field) are unchanged.
+
+### What only the owner can prove
+
+- The real doorbell camera, a real air conditioner or heater, USB sticks, provider sign-in round
+  trips, and cloud host sign-in.
+
+### Next steps, in order
+
+1. Finish the verification of build 525 and record its result here: the three items not proven on
+   524, and a browser pass at 390 and 320 px in English, Cantonese and both modes on entity sheets,
+   the Backups pages and the camera timeline.
+2. Only then move the hosted instance to 525, and tell the owner the build number.
+3. Dispatch a build containing `6db767de3`; browser pass on lists, tiles and sheets in all three
+   modes (state words, attribute names, weekdays), the list search, developer tools search per tab,
+   the Settings home count, the Updates page "What's new" button, and the defender log.
+4. Review the Cantonese strings with a native reader.
+5. Ask the owner to try the real camera, air conditioner and heater items.
+
 ## Camera events, search from the top bar, defenders polish and the real run of build 523, 18 November 2026
 
 This section covers the commits from `17fce491f` to `c9e3a5e67` (14 commits, after the earlier
@@ -1404,7 +1500,8 @@ published build.
 ## Where things stand
 
 Work stopped at a checkpoint, not at the end. Everything written so far is on `main`; nothing is
-left only on one machine. The goal is fixed: all 237 boards on 18 canvases built and matching.
+left only on one machine. The goal is fixed: every board built and matching (616 boards on 40
+canvases on 18 November 2026, counted from the folders; 237 on 18 canvases when this was written).
 `ROADMAP.md` is the full list. `docs/feature-status.md` states, row by row, what is built and
 what has really been seen in a running build. Read both before trusting any summary.
 

@@ -5,6 +5,7 @@ import { getHistoryState } from "../common/navigate";
 import "../components/animation/ha-fade-in";
 import "../components/ha-top-app-bar-fixed";
 import "../components/skeleton/ha-skeleton";
+import { modeText } from "../common/language-mode/language-mode";
 import type { HomeAssistant } from "../types";
 
 @customElement("hass-loading-screen")
@@ -43,7 +44,9 @@ class HassLoadingScreen extends LitElement {
         role="status"
         aria-live="polite"
         aria-label=${
-          this.hass?.localize("ui.status_screens.loading_title") ?? nothing
+          (this.hass
+            ? modeText(this.hass.localize, "ui.status_screens.loading_title")
+            : undefined) ?? nothing
         }
       >
         <ha-fade-in .delay=${500}>

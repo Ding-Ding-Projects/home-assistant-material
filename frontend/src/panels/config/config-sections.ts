@@ -1,5 +1,6 @@
 import {
   mdiBrain,
+  mdiBusClock,
   mdiShieldHome,
   mdiThermometerLow,
   mdiBug,
@@ -716,6 +717,13 @@ export const configSections: Record<string, PageNavigation[]> = {
       iconPath: mdiThermometerLow,
       iconColor: "#C0562B",
       adminOnly: true,
+    },
+    {
+      component: "ttc",
+      path: "/config/ttc",
+      translationKey: "ttc",
+      iconPath: mdiBusClock,
+      iconColor: "#D5281E",
     },
     {
       component: "ollama_suite",

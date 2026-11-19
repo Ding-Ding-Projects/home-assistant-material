@@ -23,6 +23,9 @@ import "../../../layouts/hass-subpage";
 import type { HomeAssistant, Route } from "../../../types";
 import { showAddRegistryDialog } from "./dialogs/registries/show-dialog-registries";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 interface RegistryRowData {
   registry: string;
   username: string;
@@ -30,6 +33,14 @@ interface RegistryRowData {
 
 @customElement("ha-config-apps-registries")
 export class HaConfigAppsRegistries extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
@@ -105,12 +116,12 @@ export class HaConfigAppsRegistries extends LitElement {
         .narrow=${this.narrow}
         .route=${this.route}
         back-path="/config/apps/available"
-        .header=${this.hass.localize("ui.panel.config.apps.store.registries")}
+        .header=${this._modeLocalize("ui.panel.config.apps.store.registries")}
       >
         <ha-data-table
-          .columns=${this._columns(this.hass.localize)}
+          .columns=${this._columns(this._modeLocalize)}
           .data=${this._registries}
-          .noDataText=${this.hass.localize(
+          .noDataText=${this._modeLocalize(
             "ui.panel.config.apps.registries.no_registries"
           )}
           id="registry"
@@ -118,7 +129,7 @@ export class HaConfigAppsRegistries extends LitElement {
         ></ha-data-table>
         <ha-button size="l" @click=${this._showAddRegistryDialog}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.apps.registries.add")}
+          ${this._modeLocalize("ui.panel.config.apps.registries.add")}
         </ha-button>
       </hass-subpage>
     `;
@@ -134,20 +145,20 @@ export class HaConfigAppsRegistries extends LitElement {
     const registry = (ev.currentTarget as any).registry;
 
     showConfirmationDialog(this, {
-      title: this.hass.localize("ui.panel.config.apps.registries.remove"),
-      text: this.hass.localize(
+      title: this._modeLocalize("ui.panel.config.apps.registries.remove"),
+      text: this._modeLocalize(
         "ui.panel.config.apps.registries.confirm_remove",
         { name: registry }
       ),
       destructive: true,
-      confirmText: this.hass.localize("ui.panel.config.apps.registries.remove"),
+      confirmText: this._modeLocalize("ui.panel.config.apps.registries.remove"),
       action: async () => {
         try {
           await removeHassioDockerRegistry(this.hass, registry);
           await this._loadData();
         } catch (err: any) {
           showAlertDialog(this, {
-            title: this.hass.localize(
+            title: this._modeLocalize(
               "ui.panel.config.apps.registries.failed_to_remove"
             ),
             text: extractApiErrorMessage(err),

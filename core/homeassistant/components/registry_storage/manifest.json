@@ -1,0 +1,12 @@
+{
+  "domain": "registry_storage",
+  "name": "Container registry storage",
+  "after_dependencies": ["backup"],
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://www.home-assistant.io/integrations/registry_storage",
+  "integration_type": "service",
+  "iot_class": "cloud_push",
+  "requirements": []
+}

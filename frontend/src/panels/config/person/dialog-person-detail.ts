@@ -40,6 +40,9 @@ import type { PersonDetailDialogParams } from "./show-dialog-person-detail";
 import { showListItemsDialog } from "../../../dialogs/dialog-list-items/show-list-items-dialog";
 import { computeDomain } from "../../../common/entity/compute_domain";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 const includeDomains = ["device_tracker"];
 
 const cropOptions: CropOptions = {
@@ -62,6 +65,14 @@ class DialogPersonDetail
   extends DirtyStateProviderMixin<PersonFormState>()(LitElement)
   implements HassDialog
 {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _name!: string;
@@ -168,7 +179,7 @@ class DialogPersonDetail
         header-title=${
           this._params.entry
             ? this._params.entry.name
-            : this.hass!.localize("ui.panel.config.person.detail.new_person")
+            : this._modeLocalize("ui.panel.config.person.detail.new_person")
         }
         @closed=${this._dialogClosed}
       >
@@ -179,8 +190,8 @@ class DialogPersonDetail
               autofocus
               .value=${this._name}
               @input=${this._nameChanged}
-              label=${this.hass!.localize("ui.panel.config.person.detail.name")}
-              .validationMessage=${this.hass!.localize(
+              label=${this._modeLocalize("ui.panel.config.person.detail.name")}
+              .validationMessage=${this._modeLocalize(
                 "ui.panel.config.person.detail.name_error_msg"
               )}
               required
@@ -196,12 +207,12 @@ class DialogPersonDetail
 
             <ha-row-item>
               <span slot="headline"
-                >${this.hass!.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.person.detail.allow_login"
                 )}</span
               >
               <span slot="supporting-text"
-                >${this.hass!.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.person.detail.allow_login_description"
                 )}</span
               >
@@ -223,17 +234,17 @@ class DialogPersonDetail
               this._deviceTrackersAvailable(this.hass)
                 ? html`
                     <p>
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         "ui.panel.config.person.detail.device_tracker_intro"
                       )}
                     </p>
                     <ha-entities-picker
                       .value=${this._deviceTrackers}
                       .includeDomains=${includeDomains}
-                      .pickedEntityLabel=${this.hass.localize(
+                      .pickedEntityLabel=${this._modeLocalize(
                         "ui.panel.config.person.detail.device_tracker_picked"
                       )}
-                      .pickEntityLabel=${this.hass.localize(
+                      .pickEntityLabel=${this._modeLocalize(
                         "ui.panel.config.person.detail.device_tracker_pick"
                       )}
                       @value-changed=${this._deviceTrackersChanged}
@@ -242,7 +253,7 @@ class DialogPersonDetail
                   `
                 : html`
                     <p>
-                      ${this.hass!.localize(
+                      ${this._modeLocalize(
                         "ui.panel.config.person.detail.no_device_tracker_available_intro"
                       )}
                     </p>
@@ -255,7 +266,7 @@ class DialogPersonDetail
                           )}
                           target="_blank"
                           rel="noreferrer"
-                          >${this.hass!.localize(
+                          >${this._modeLocalize(
                             "ui.panel.config.person.detail.link_presence_detection_integrations"
                           )}</a
                         >
@@ -265,7 +276,7 @@ class DialogPersonDetail
                           @click=${this.closeDialog}
                           href="/config/integrations"
                         >
-                          ${this.hass!.localize(
+                          ${this._modeLocalize(
                             "ui.panel.config.person.detail.link_integrations_page"
                           )}</a
                         >
@@ -288,7 +299,7 @@ class DialogPersonDetail
                       (this._user && this._user.is_owner) || this._submitting
                     }
                   >
-                    ${this.hass!.localize("ui.panel.config.person.detail.delete")}
+                    ${this._modeLocalize("ui.panel.config.person.detail.delete")}
                   </ha-button>
                 `
               : html`<ha-button
@@ -296,7 +307,7 @@ class DialogPersonDetail
                   appearance="plain"
                   @click=${this.closeDialog}
                 >
-                  ${this.hass!.localize("ui.common.cancel")}
+                  ${this._modeLocalize("ui.common.cancel")}
                 </ha-button>`
           }
           <ha-button
@@ -306,8 +317,8 @@ class DialogPersonDetail
           >
             ${
               this._params.entry
-                ? this.hass!.localize("ui.common.save")
-                : this.hass!.localize("ui.common.add")
+                ? this._modeLocalize("ui.common.save")
+                : this._modeLocalize("ui.common.add")
             }
           </ha-button>
         </ha-dialog-footer>
@@ -327,7 +338,7 @@ class DialogPersonDetail
           ? html`
               <ha-row-item>
                 <span slot="headline"
-                  >${this.hass.localize(
+                  >${this._modeLocalize(
                     "ui.panel.config.person.detail.username"
                   )}</span
                 >
@@ -339,7 +350,7 @@ class DialogPersonDetail
                           slot="end"
                           .path=${mdiPencil}
                           @click=${this._changeUsername}
-                          .label=${this.hass.localize(
+                          .label=${this._modeLocalize(
                             "ui.panel.config.person.detail.change_username"
                           )}
                         >
@@ -358,7 +369,7 @@ class DialogPersonDetail
           ? html`
               <ha-row-item>
                 <span slot="headline"
-                  >${this.hass.localize(
+                  >${this._modeLocalize(
                     "ui.panel.config.person.detail.password"
                   )}</span
                 >
@@ -370,7 +381,7 @@ class DialogPersonDetail
                           slot="end"
                           .path=${mdiPencil}
                           @click=${this._changePassword}
-                          .label=${this.hass.localize(
+                          .label=${this._modeLocalize(
                             "ui.panel.config.person.detail.change_password"
                           )}
                         >
@@ -384,12 +395,12 @@ class DialogPersonDetail
       }
       <ha-row-item>
         <span slot="headline"
-          >${this.hass.localize(
+          >${this._modeLocalize(
             "ui.panel.config.person.detail.local_access_only"
           )}</span
         >
         <span slot="supporting-text"
-          >${this.hass.localize(
+          >${this._modeLocalize(
             "ui.panel.config.person.detail.local_access_only_description"
           )}</span
         >
@@ -402,10 +413,10 @@ class DialogPersonDetail
       </ha-row-item>
       <ha-row-item>
         <span slot="headline"
-          >${this.hass.localize("ui.panel.config.person.detail.admin")}</span
+          >${this._modeLocalize("ui.panel.config.person.detail.admin")}</span
         >
         <span slot="supporting-text"
-          >${this.hass.localize(
+          >${this._modeLocalize(
             "ui.panel.config.person.detail.admin_description"
           )}</span
         >
@@ -487,11 +498,11 @@ class DialogPersonDetail
       }
 
       showListItemsDialog(this, {
-        title: this.hass.localize("ui.panel.config.person.detail.select_user"),
+        title: this._modeLocalize("ui.panel.config.person.detail.select_user"),
         items: [
           {
             iconPath: mdiAccountPlus,
-            label: this.hass.localize(
+            label: this._modeLocalize(
               "ui.panel.config.person.detail.create_new_user"
             ),
             action: addUserDialog,
@@ -508,15 +519,15 @@ class DialogPersonDetail
     } else if (this._userId) {
       if (
         !(await showConfirmationDialog(this, {
-          title: this.hass!.localize(
+          title: this._modeLocalize(
             "ui.panel.config.person.detail.confirm_delete_user_title"
           ),
-          text: this.hass!.localize(
+          text: this._modeLocalize(
             "ui.panel.config.person.detail.confirm_delete_user_text",
             { name: this._name }
           ),
-          confirmText: this.hass!.localize("ui.common.delete"),
-          dismissText: this.hass!.localize("ui.common.cancel"),
+          confirmText: this._modeLocalize("ui.common.delete"),
+          dismissText: this._modeLocalize("ui.common.cancel"),
           destructive: true,
         }))
       ) {
@@ -576,13 +587,13 @@ class DialogPersonDetail
     }
 
     const newUsername = await showPromptDialog(this, {
-      inputLabel: this.hass.localize(
+      inputLabel: this._modeLocalize(
         "ui.panel.config.users.change_username.new_username"
       ),
-      confirmText: this.hass.localize(
+      confirmText: this._modeLocalize(
         "ui.panel.config.users.change_username.change"
       ),
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.users.change_username.caption"
       ),
       defaultValue: this._user.username!,
@@ -593,13 +604,13 @@ class DialogPersonDetail
         this._params?.refreshUsers?.();
         this._user = { ...this._user, username: newUsername };
         showAlertDialog(this, {
-          text: this.hass.localize(
+          text: this._modeLocalize(
             "ui.panel.config.users.change_username.username_changed"
           ),
         });
       } catch (err: any) {
         showAlertDialog(this, {
-          title: this.hass.localize(
+          title: this._modeLocalize(
             "ui.panel.config.users.change_username.failed"
           ),
           text: err.message,

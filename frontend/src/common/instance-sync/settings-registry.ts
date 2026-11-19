@@ -110,6 +110,11 @@ export const SYNCED_KEY_RULES: SyncedKeyRule[] = [
   },
   { exact: "pageTabsEdge", kind: "json", holds: "Tab strip edge" },
   {
+    exact: "mediaBrowserTab",
+    kind: "json",
+    holds: "Media page tab: my media or linked media",
+  },
+  {
     exact: "pageTabsFloat",
     kind: "json",
     holds: "Floating tab strip position",

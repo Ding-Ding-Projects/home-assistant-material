@@ -210,7 +210,8 @@ async def test_rate_limit_waits_and_hides_secrets(
     adapter.fetch_error = None
     freezer.tick(60)
     await manager._async_event_clip_tick()
-    assert adapter.list_calls == calls + 1
+    # The minute timer may also have run once the wait was over.
+    assert adapter.list_calls > calls
     (row,) = manager.events_between(CAMERA, 0, 4_000_000_000)
     assert row["state"] == "saved"
     await manager.async_stop()

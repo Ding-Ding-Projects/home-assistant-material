@@ -68,6 +68,9 @@ import {
   validateAll,
 } from "./guided-setup-logic";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 const STEPS = GUIDED_STEPS;
 const CHECK_DELAY = 600;
 const DRAFT_DELAY = 500;
@@ -89,6 +92,14 @@ const browserStorage = (): DraftStorage | undefined => {
 
 @customElement("ha-guided-setup-wizard")
 export class HaGuidedSetupWizard extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
@@ -245,7 +256,7 @@ export class HaGuidedSetupWizard extends LitElement {
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
+    return this._modeLocalize(
       `ui.panel.config.guided_setup.${key}` as any,
       values
     );
@@ -268,7 +279,7 @@ export class HaGuidedSetupWizard extends LitElement {
     return target === null
       ? this._l("target_domain")
       : this._l("target_platform", {
-          domain: this.hass.localize(`component.${target}.title`) || target,
+          domain: this._modeLocalize(`component.${target}.title`) || target,
         });
   }
 

@@ -30,8 +30,18 @@ import { showAddUserDialog } from "./show-dialog-add-user";
 import { showUserDetailDialog } from "./show-dialog-user-detail";
 import { storage } from "../../../common/decorators/storage";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 @customElement("ha-config-users")
 export class HaConfigUsers extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
@@ -113,7 +123,7 @@ export class HaConfigUsers extends LitElement {
           template: (user) => html`<ha-label dense>${user.group}</ha-label>`,
         },
         is_active: {
-          title: this.hass.localize(
+          title: this._modeLocalize(
             "ui.panel.config.users.picker.headers.is_active"
           ),
           type: "icon",
@@ -127,7 +137,7 @@ export class HaConfigUsers extends LitElement {
               : "",
         },
         system_generated: {
-          title: this.hass.localize(
+          title: this._modeLocalize(
             "ui.panel.config.users.picker.headers.system"
           ),
           type: "icon",
@@ -156,7 +166,7 @@ export class HaConfigUsers extends LitElement {
         },
         icons: {
           title: "",
-          label: this.hass.localize(
+          label: this._modeLocalize(
             "ui.panel.config.users.picker.headers.icon"
           ),
           type: "icon",
@@ -198,12 +208,12 @@ export class HaConfigUsers extends LitElement {
         .route=${this.route}
         back-path="/config"
         .tabs=${configSections.persons}
-        .columns=${this._columns(this.narrow, this.hass.localize)}
+        .columns=${this._columns(this.narrow, this._modeLocalize)}
         .loading=${this._loading}
-        .data=${this._userData(this._users, this.hass.localize)}
+        .data=${this._userData(this._users, this._modeLocalize)}
         .loadError=${
           this._loadFailed
-            ? this.hass.localize("ui.panel.config.users.picker.load_failed")
+            ? this._modeLocalize("ui.panel.config.users.picker.load_failed")
             : undefined
         }
         @retry-load=${this._retryFetchUsers}
@@ -213,8 +223,8 @@ export class HaConfigUsers extends LitElement {
         .initialGroupColumn=${this._tableSettings.grouping}
         .initialCollapsedGroups=${this._activeCollapsed}
         .initialSorting=${this._tableSettings.sorting}
-        .summary=${this.hass.localize("ui.panel.config.users.summary")}
-        .appendRow=${this._footnote(this.hass.localize)}
+        .summary=${this._modeLocalize("ui.panel.config.users.summary")}
+        .appendRow=${this._footnote(this._modeLocalize)}
         @sorting-changed=${this._tableSettings.sortingChanged}
         @grouping-changed=${this._tableSettings.groupingChanged}
         @collapsed-changed=${this._handleCollapseChanged}
@@ -227,7 +237,7 @@ export class HaConfigUsers extends LitElement {
       >
         <ha-button slot="fab" size="l" @click=${this._addUser}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.users.picker.add_user")}
+          ${this._modeLocalize("ui.panel.config.users.picker.add_user")}
         </ha-button>
       </hass-tabs-subpage-data-table>
     `;
@@ -317,15 +327,15 @@ export class HaConfigUsers extends LitElement {
       removeEntry: async () => {
         if (
           !(await showConfirmationDialog(this, {
-            title: this.hass!.localize(
+            title: this._modeLocalize(
               "ui.panel.config.users.editor.confirm_user_deletion_title",
               { name: entry.name }
             ),
-            text: this.hass!.localize(
+            text: this._modeLocalize(
               "ui.panel.config.users.editor.confirm_user_deletion_text"
             ),
-            dismissText: this.hass!.localize("ui.common.cancel"),
-            confirmText: this.hass!.localize("ui.common.delete"),
+            dismissText: this._modeLocalize("ui.common.cancel"),
+            confirmText: this._modeLocalize("ui.common.delete"),
             destructive: true,
           }))
         ) {

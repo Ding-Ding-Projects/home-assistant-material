@@ -1,0 +1,181 @@
+{
+  "config": {
+    "flow_title": "Container registry storage",
+    "step": {
+      "user": {
+        "title": "Which registry",
+        "description": "Recordings and backups are locked here at home with your password and then stored in a container image registry. A free public registry is fine for this, because nothing in it can be read without your password.",
+        "data": {
+          "registry": "Registry",
+          "address": "Registry address"
+        },
+        "data_description": {
+          "registry": "Docker Hub and GitHub are known by name. Choose Other for a registry of your own.",
+          "address": "Only for Other. For example registry.example.com. Plain http is accepted only for a registry on your own network."
+        }
+      },
+      "sign_in": {
+        "title": "Sign in",
+        "description": "Make an access token that can read and write, then paste it here.\n\n1. Open the registry's access token page: {token_page}\n2. Make a token that can read and write.\n3. Paste your account name and the token below.\n\nThe token is kept hidden on this system and used only to talk to {registry}. Your account password is never asked for.",
+        "data": {
+          "username": "Account name",
+          "token": "Access token"
+        },
+        "data_description": {
+          "username": "The name of your account on the registry.",
+          "token": "The access token you just made. It is not your account password."
+        }
+      },
+      "password": {
+        "title": "Your password locks everything",
+        "description": "This is required. It cannot be skipped or turned off. Everything is locked here at home before it is sent: the video, the backups, and the names, dates and sizes that would say what they are.\n\nThe repository is public, so anyone can copy the locked files and try passwords for as long as they like. A long password is the only lock. Use at least 14 characters; a few unrelated words work well. The password is never stored or sent. Only the key made from it stays on this system, and a forgotten password cannot be recovered.\n\nLast try: {strength}",
+        "data": {
+          "password": "Password",
+          "password_confirmation": "Type it again",
+          "understand": "I know that if I forget this password, nothing stored there can be opened by anyone"
+        },
+        "data_description": {
+          "password": "At least 14 characters. Not a common password.",
+          "password_confirmation": "The same password again.",
+          "understand": "Required to continue."
+        }
+      },
+      "repository": {
+        "title": "Repository",
+        "description": "One repository holds everything by default. Any camera, and backups, can have their own later. A repository that does not exist yet is made for you.",
+        "data": {
+          "repository": "Repository"
+        },
+        "data_description": {
+          "repository": "In the form account/name, lower case. For example your-account/home-vault."
+        }
+      },
+      "restore_key": {
+        "title": "Type your password again",
+        "description": "The key made from your password is not kept in backups, so that a copy of a backup can never open what is stored. It is missing here, for example after a restore. Type your password to make it again.",
+        "data": {
+          "password": "Password"
+        },
+        "data_description": {
+          "password": "The password you chose when you added this place."
+        }
+      },
+      "finish": {
+        "title": "Ready",
+        "description": "The repository {repository} is {visibility}.\n\nEverything put there is locked first. Select Submit to add this place."
+      }
+    },
+    "error": {
+      "invalid_auth": "The registry did not accept this account name and token.",
+      "denied": "This token is not allowed to do that.",
+      "read_only_token": "This token can only read. Make one that can read and write.",
+      "cannot_connect": "The registry could not be reached or answered something unexpected.",
+      "rate_limited": "The registry is asking for fewer requests. Try again in a few minutes.",
+      "rejected": "The registry refused the request.",
+      "insecure_address": "Plain http is accepted only for a registry on your own network.",
+      "invalid_address": "That is not a registry address.",
+      "invalid_repository": "The repository must look like account/name, in lower case.",
+      "wrong_password": "This password does not open what is already stored in that repository.",
+      "not_locked": "That repository holds something that is not locked by this integration.",
+      "password_mismatch": "The two passwords do not match.",
+      "password_too_weak": "That password is too short or too easy to guess. Use at least 14 characters, such as a few unrelated words.",
+      "understand_required": "Tick the box to continue.",
+      "unknown": "Something unexpected went wrong."
+    },
+    "abort": {
+      "already_configured": "This repository is already added.",
+      "reconfigure_successful": "The token was changed.",
+      "reauth_successful": "The key was made again from your password."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Container registry storage",
+        "menu_options": {
+          "repositories": "Repositories",
+          "password": "Change the password"
+        }
+      },
+      "repositories": {
+        "title": "Repositories",
+        "description": "Everything goes to {default} unless a camera or the backups have their own repository. {count} cameras have their own now. A repository that does not exist yet is made for you.",
+        "data": {
+          "camera": "Camera",
+          "repository": "Repository for this camera",
+          "backups_repository": "Repository for backups"
+        },
+        "data_description": {
+          "camera": "Choose a camera to give it its own repository. Leave empty to change only the backups.",
+          "repository": "In the form account/name. Leave empty to send this camera back to the default.",
+          "backups_repository": "Leave empty to use the default repository."
+        }
+      },
+      "password": {
+        "title": "Change the password",
+        "description": "The old password is required. The new password locks what is stored from now on; stored recordings are not sent again. Anyone who already copied the locked files can still open them with the old password.\n\nLast try: {strength}",
+        "data": {
+          "old_password": "Old password",
+          "password": "New password",
+          "password_confirmation": "Type the new one again",
+          "understand": "I know that if I forget this password, nothing stored there can be opened by anyone"
+        },
+        "data_description": {
+          "old_password": "The password used now.",
+          "password": "At least 14 characters. Not a common password.",
+          "password_confirmation": "The same new password again.",
+          "understand": "Required to continue."
+        }
+      }
+    },
+    "error": {
+      "invalid_repository": "The repository must look like account/name, in lower case.",
+      "wrong_password": "The old password is not right.",
+      "password_mismatch": "The two new passwords do not match.",
+      "password_too_weak": "That password is too short or too easy to guess. Use at least 14 characters, such as a few unrelated words.",
+      "understand_required": "Tick the box to continue.",
+      "denied": "This token is not allowed to make that repository.",
+      "invalid_auth": "The registry did not accept the saved token.",
+      "cannot_connect": "The registry could not be reached or answered something unexpected.",
+      "rate_limited": "The registry is asking for fewer requests. Try again in a few minutes.",
+      "rejected": "The registry refused the request.",
+      "unknown": "Something unexpected went wrong.",
+      "not_locked": "That repository holds something that is not locked by this integration."
+    },
+    "abort": {
+      "not_loaded": "Start this place first. It is not running now."
+    }
+  },
+  "selector": {
+    "registry": {
+      "options": {
+        "docker_hub": "Docker Hub",
+        "github": "GitHub",
+        "other": "Other"
+      }
+    }
+  },
+  "exceptions": {
+    "key_missing": {
+      "message": "The key for this place is missing from storage. Remove the place and add it again; the stored files can still be opened with the same password."
+    },
+    "sign_in_failed": {
+      "message": "The registry no longer accepts the saved token. Make a new token and change it."
+    },
+    "registry_not_ready": {
+      "message": "The registry could not be reached ({reason}). It will be tried again."
+    },
+    "backup_failed": {
+      "message": "The backup could not be stored in or read from the container registry ({reason})."
+    },
+    "backup_registry_busy": {
+      "message": "The container registry is busy or not reachable right now ({reason}). Try again later."
+    },
+    "backup_registry_refused": {
+      "message": "The container registry no longer accepts the saved token ({reason}). Change the token."
+    },
+    "backup_damaged": {
+      "message": "The stored backup could not be unlocked or is damaged ({reason}). Check the password."
+    }
+  }
+}

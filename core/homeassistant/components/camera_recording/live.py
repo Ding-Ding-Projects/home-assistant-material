@@ -44,9 +44,20 @@ from .events import ClipReason
 
 MAX_OFFER_BYTES = 65536
 CANDIDATE_GRACE_SECONDS = 0.3
-PROXY_HEADERS = ("X-Forwarded-For", "X-Real-IP", "Forwarded")
+PROXY_HEADERS = (
+    "X-Forwarded-For",
+    "X-Forwarded-Host",
+    "X-Forwarded-Proto",
+    "X-Real-IP",
+    "Forwarded",
+)
+WILDCARD_HOSTS = ("0.0.0.0", "::", "")
 STREAM_PREFIX = "camera_recording_"
 GO2RTC_RTSP = "rtsp://127.0.0.1:18554"
+STALL_SECONDS = 8
+STOP_GRACE_SECONDS = 5
+# A cut-off clip shorter than this is not worth keeping.
+MIN_KEEP_SECONDS = 3.0
 
 
 @dataclass(slots=True)
@@ -108,21 +119,83 @@ def broker_for(hass: HomeAssistant) -> LiveBroker:
     return hass.data[LIVE_BROKER]
 
 
-def peer_is_loopback(request: web.Request) -> bool:
-    """Whether the TCP peer is this computer and no proxy stands in front of it."""
+def _address(value: Any) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    """An IP address from a socket address, with IPv4-mapped IPv6 unwrapped."""
+    if not value:
+        return None
+    try:
+        address = ipaddress.ip_address(str(value[0]).split("%")[0])
+    except ValueError:
+        return None
+    if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
+        return address.ipv4_mapped
+    return address
+
+
+def peer_is_local(request: web.Request) -> bool:
+    """Whether the caller is a program on this computer talking directly, with no proxy.
+
+    The caller passes when it connects from a loopback address, or from the very
+    address it connected to: that only happens when both ends are on this
+    computer, as when Home Assistant listens on one chosen address. A request
+    that carries forwarding headers came through a proxy and is refused, even
+    when the proxy itself runs here.
+    """
     if any(name in request.headers for name in PROXY_HEADERS):
         return False
     transport = request.transport
-    peer = transport.get_extra_info("peername") if transport else None
-    if not peer:
+    if transport is None:
         return False
+    peer = _address(transport.get_extra_info("peername"))
+    if peer is None:
+        return False
+    if peer.is_loopback:
+        return True
+    local = _address(transport.get_extra_info("sockname"))
+    return local is not None and peer == local and not peer.is_unspecified
+
+
+def handshake_host(hass: HomeAssistant) -> str:
+    """The address go2rtc uses to reach Home Assistant from the same computer.
+
+    Loopback when Home Assistant listens on every address, otherwise the first
+    address it listens on, preferring a loopback one.
+    """
+    http = getattr(hass, "http", None)
+    hosts = list(getattr(http, "server_host", None) or [])
+    if not hosts or any(host in WILDCARD_HOSTS for host in hosts):
+        if hosts and "0.0.0.0" not in hosts and "::" in hosts:
+            return "::1"
+        return "127.0.0.1"
+    for host in hosts:
+        try:
+            if ipaddress.ip_address(host).is_loopback:
+                return host
+        except ValueError:
+            continue
+    return hosts[0]
+
+
+def _url_host(host: str) -> str:
+    """A host as written in a URL, with brackets around an IPv6 address."""
     try:
-        address = ipaddress.ip_address(str(peer[0]).split("%")[0])
+        if isinstance(ipaddress.ip_address(host), ipaddress.IPv6Address):
+            return f"[{host}]"
     except ValueError:
+        pass
+    return host
+
+
+def camera_has_other_view(camera: Any, own: set[str]) -> bool:
+    """Whether a camera has a live view open that is not one of ours, like one in a browser.
+
+    Integrations that keep a session per viewer hold them in a dictionary keyed
+    by session id. A camera that does not is treated as free.
+    """
+    sessions = getattr(camera, "_webrtc_sessions", None)
+    if not isinstance(sessions, dict):
         return False
-    if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
-        address = address.ipv4_mapped
-    return address.is_loopback
+    return any(session_id not in own for session_id in sessions)
 
 
 def classify_offer_failure(text: str) -> ClipReason:
@@ -171,7 +244,7 @@ class LiveOfferView(HomeAssistantView):
     async def post(self, request: web.Request, token: str) -> web.Response:
         """Pass the SDP offer to the camera and return its SDP answer."""
         hass = request.app[KEY_HASS]
-        if not peer_is_loopback(request):
+        if not peer_is_local(request):
             return web.Response(status=403)
         session = broker_for(hass).claim(token)
         if session is None:
@@ -240,13 +313,13 @@ class LiveOfferView(HomeAssistantView):
 
     async def patch(self, request: web.Request, token: str) -> web.Response:
         """Trickled candidates from go2rtc are not needed: the service answers directly."""
-        if not peer_is_loopback(request):
+        if not peer_is_local(request):
             return web.Response(status=403)
         return web.Response(status=204)
 
     async def delete(self, request: web.Request, token: str) -> web.Response:
         """go2rtc ending its session."""
-        if not peer_is_loopback(request):
+        if not peer_is_local(request):
             return web.Response(status=403)
         return web.Response(status=200)
 
@@ -271,15 +344,48 @@ class Go2RtcAccess:
 
 
 @callback
-def async_go2rtc_access(hass: HomeAssistant) -> Go2RtcAccess | None:
-    """The bundled go2rtc program's client, or None when its integration is not set up."""
+def async_go2rtc_problem(hass: HomeAssistant) -> str | None:
+    """Why the bundled go2rtc program cannot record live clips, or None when it can.
+
+    A go2rtc server the owner runs elsewhere cannot reach this computer's
+    loopback address or its RTSP port, so only the bundled one is used.
+    """
     entries = hass.config_entries.async_loaded_entries("go2rtc")
     if not entries:
-        return None
+        return "no_go2rtc"
     provider = entries[0].runtime_data
-    rest = getattr(provider, "_rest_client", None)
-    if rest is None:
+    if getattr(provider, "_rest_client", None) is None:
+        return "no_go2rtc"
+    from homeassistant.components.go2rtc.const import HA_MANAGED_URL  # noqa: PLC0415
+
+    url = getattr(provider, "_url", HA_MANAGED_URL)
+    if url != HA_MANAGED_URL:
+        return "external_go2rtc"
+    return None
+
+
+@callback
+def async_core_problem(hass: HomeAssistant) -> str | None:
+    """Why Home Assistant's own web server cannot take the handshake, or None when it can.
+
+    go2rtc checks certificates and would not trust Home Assistant's certificate
+    for a loopback address, and turning those checks off is not done, so live
+    clips need Home Assistant to serve plain HTTP on this computer.
+    """
+    if getattr(hass, "http", None) is None or hass.config.api is None:
+        return "no_http"
+    if hass.config.api.use_ssl:
+        return "core_https"
+    return None
+
+
+@callback
+def async_go2rtc_access(hass: HomeAssistant) -> Go2RtcAccess | None:
+    """The bundled go2rtc program's client, or None when it is not set up or is not bundled."""
+    if async_go2rtc_problem(hass) is not None:
         return None
+    provider = hass.config_entries.async_loaded_entries("go2rtc")[0].runtime_data
+    rest = provider._rest_client  # noqa: SLF001
 
     async def add(name: str, source: str) -> None:
         await rest.streams.add(name, source)
@@ -292,12 +398,11 @@ def async_go2rtc_access(hass: HomeAssistant) -> Go2RtcAccess | None:
 
 def whep_source(hass: HomeAssistant, token: str) -> str | None:
     """The go2rtc source that pulls through the one-time address, or None when not possible."""
-    http = getattr(hass, "http", None)
-    if http is None or hass.config.api is None or hass.config.api.use_ssl:
+    if async_core_problem(hass) is not None:
         return None
-    return (
-        f"webrtc:http://127.0.0.1:{http.server_port}{LIVE_URL_PATH}/{token}#format=whep"
-    )
+    host = _url_host(handshake_host(hass))
+    port = hass.http.server_port
+    return f"webrtc:http://{host}:{port}{LIVE_URL_PATH}/{token}#format=whep"
 
 
 def clip_command(binary: str, source: str, output: Path, seconds: int) -> list[str]:
@@ -311,6 +416,9 @@ def clip_command(binary: str, source: str, output: Path, seconds: int) -> list[s
         "-y",
         "-rtsp_transport",
         "tcp",
+        # When the video stops arriving, finish the file instead of waiting.
+        "-timeout",
+        str(STALL_SECONDS * 1_000_000),
         "-i",
         source,
         "-t",
@@ -345,7 +453,11 @@ def probe_duration(path: Path) -> float | None:
 async def async_record_clip(
     binary: str, source: str, output: Path, seconds: int
 ) -> bool:
-    """Run ffmpeg for one clip. True when it ended cleanly with a file."""
+    """Run ffmpeg for one clip. True when it ended by itself, False when it had to be stopped.
+
+    Either way the file may hold a usable part: ffmpeg is asked to stop with a
+    signal it answers by finishing the file, and is killed only if it ignores it.
+    """
     process = await asyncio.create_subprocess_exec(
         *clip_command(binary, source, output, seconds),
         stdin=asyncio.subprocess.DEVNULL,
@@ -353,9 +465,18 @@ async def async_record_clip(
         stderr=asyncio.subprocess.DEVNULL,
     )
     try:
-        code = await asyncio.wait_for(process.wait(), seconds + LIVE_EXTRA_WAIT_SECONDS)
+        await asyncio.wait_for(process.wait(), seconds + LIVE_EXTRA_WAIT_SECONDS)
     except TimeoutError:
-        process.kill()
-        await process.wait()
+        process.terminate()
+        try:
+            await asyncio.wait_for(process.wait(), STOP_GRACE_SECONDS)
+        except TimeoutError:
+            process.kill()
+            await process.wait()
         return False
-    return code == 0
+    except asyncio.CancelledError:
+        if process.returncode is None:
+            process.kill()
+            await process.wait()
+        raise
+    return True

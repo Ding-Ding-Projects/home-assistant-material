@@ -61,10 +61,21 @@ import type { HomeAssistant } from "../../../types";
 import { bytesToString } from "../../../util/bytes-to-string";
 import { showToast } from "../../../util/toast";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 type SortKey = "name" | "size" | "modified_at";
 
 @customElement("ha-config-ollama")
 class HaConfigOllama extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
@@ -152,7 +163,7 @@ class HaConfigOllama extends LitElement {
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(`ui.panel.config.ollama.${key}` as any, values);
+    return this._modeLocalize(`ui.panel.config.ollama.${key}` as any, values);
   }
 
   private async _loadServers(): Promise<void> {
@@ -207,7 +218,7 @@ class HaConfigOllama extends LitElement {
   private _errorText(err: any): string {
     const code = typeof err?.code === "string" ? err.code : "unknown";
     return (
-      this.hass.localize(`ui.panel.config.ollama.errors.${code}` as any) ||
+      this._modeLocalize(`ui.panel.config.ollama.errors.${code}` as any) ||
       this._l("errors.unknown")
     );
   }
@@ -244,7 +255,7 @@ class HaConfigOllama extends LitElement {
     if (this._filter.trim() === "" || !this._modelsSearchable()) {
       return undefined;
     }
-    return searchCountText(this.hass.localize, {
+    return searchCountText(this._modeLocalize, {
       current: this._shownModels().length,
       total: this._models?.length ?? 0,
     });

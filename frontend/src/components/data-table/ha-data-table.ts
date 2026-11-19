@@ -56,6 +56,7 @@ import { emptyTone } from "../empty-state-logic";
 import "../input/ha-input-search";
 import { tablePatternSamples } from "./pattern-samples";
 import { filterData, sortData } from "./sort-filter";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 
 export interface RowClickedEvent {
   id: string;
@@ -186,6 +187,15 @@ export class HaDataTable extends LitElement {
   @state()
   @consume({ context: internationalizationContext, subscribe: true })
   private _i18n?: ContextType<typeof internationalizationContext>;
+
+  // Draws the table again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The table's own strings in the chosen language mode.
+  private get _modeLocalize(): LocalizeFunc | undefined {
+    const localize = this._i18n?.localize;
+    return localize ? this._lang.cachedLocalizer(localize) : undefined;
+  }
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
 
@@ -647,7 +657,7 @@ export class HaDataTable extends LitElement {
     const items = this._filteredData
       ? this._groupData(
           this._filteredData,
-          this._i18n?.localize,
+          this._modeLocalize,
           this._i18n?.locale,
           this.appendRow,
           this.groupColumn,
@@ -797,7 +807,7 @@ export class HaDataTable extends LitElement {
                       ${
                         typeof this.loadError === "string"
                           ? this.loadError
-                          : this._i18n?.localize?.(
+                          : this._modeLocalize?.(
                               "ui.components.data-table.load_error"
                             ) || "Failed to load data"
                       }
@@ -808,7 +818,7 @@ export class HaDataTable extends LitElement {
                         @click=${this._retryLoad}
                       >
                         ${
-                          this._i18n?.localize?.(
+                          this._modeLocalize?.(
                             "ui.components.data-table.retry"
                           ) || "Retry"
                         }
@@ -830,7 +840,7 @@ export class HaDataTable extends LitElement {
                           <div
                             role="progressbar"
                             aria-label=${
-                              this._i18n?.localize?.("ui.common.loading") ||
+                              this._modeLocalize?.("ui.common.loading") ||
                               "Loading"
                             }
                           >
@@ -922,7 +932,7 @@ export class HaDataTable extends LitElement {
                           ${this._renderGroupHeader(
                             this._stickyGroup,
                             this._collapsedGroups.includes(this._stickyGroup),
-                            this._i18n?.localize,
+                            this._modeLocalize,
                             true
                           )}
                         </div>`
@@ -1312,7 +1322,7 @@ export class HaDataTable extends LitElement {
   );
 
   private _renderEmptyState(): TemplateResult {
-    const localize = this._i18n?.localize;
+    const localize = this._modeLocalize;
     const tone = emptyTone({
       dataCount: this.data.length,
       searchActive: this._filter.trim() !== "",
@@ -1498,7 +1508,7 @@ export class HaDataTable extends LitElement {
 
     const groupedData = this._groupData(
       this._filteredData || [],
-      this._i18n?.localize,
+      this._modeLocalize,
       this._i18n?.locale,
       this.appendRow,
       this.groupColumn,

@@ -88,6 +88,9 @@ import type { DataEntryFlowProgressExtended } from "./ha-config-integrations";
 import { showAddIntegrationDialog } from "./show-add-integration-dialog";
 import { showPickConfigEntryDialog } from "./show-pick-config-entry-dialog";
 
+import { modeText } from "../../../common/language-mode/language-mode";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 export interface SubEntryData {
   subEntry: SubEntry;
   devices: DeviceRegistryEntry[];
@@ -137,7 +140,8 @@ export const renderConfigEntryError = (
   return html`
     <br />
     <a href=${`/config/logs?search=${encodeURIComponent(entry.domain)}`}>
-      ${hass.localize(
+      ${modeText(
+        hass.localize,
         "ui.panel.config.integrations.config_entry.check_the_logs"
       )}
     </a>
@@ -146,6 +150,14 @@ export const renderConfigEntryError = (
 
 @customElement("ha-config-integration-page")
 class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property() public domain!: string;
@@ -342,14 +354,14 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
       this.hass.devices,
       this._subEntries,
       this.hass.locale.language,
-      this.hass.localize
+      this._modeLocalize
     );
     const attentionData = this._buildAttentionEntryData(
       attentionEntries,
       this.hass.devices,
       this._subEntries,
       this.hass.locale.language,
-      this.hass.localize
+      this._modeLocalize
     );
     const filteredNormalData = this._filterNormalTree(
       normalData,
@@ -424,7 +436,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                   target="_blank"
                 >
                   <ha-icon-button
-                    .label=${this.hass.localize(
+                    .label=${this._modeLocalize(
                       "ui.panel.config.integrations.config_entry.documentation"
                     )}
                     .path=${mdiHelpCircleOutline}
@@ -438,7 +450,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
             ? html`<ha-dropdown slot="toolbar-icon">
                 <ha-icon-button
                   slot="trigger"
-                  .label=${this.hass.localize("ui.common.menu")}
+                  .label=${this._modeLocalize("ui.common.menu")}
                   .path=${mdiDotsVertical}
                 ></ha-icon-button>
                 ${
@@ -451,7 +463,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                               slot="icon"
                               .path=${mdiTextBoxOutline}
                             ></ha-svg-icon>
-                            ${this.hass.localize("ui.panel.config.logs.caption")}
+                            ${this._modeLocalize("ui.panel.config.logs.caption")}
                             <ha-icon-next slot="details"></ha-icon-next>
                           </ha-dropdown-item>
                         </a>
@@ -477,10 +489,10 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                           ></ha-svg-icon>
                           ${
                             this._logInfo.level === LogSeverity.DEBUG
-                              ? this.hass.localize(
+                              ? this._modeLocalize(
                                   "ui.panel.config.integrations.config_entry.disable_debug_logging"
                                 )
-                              : this.hass.localize(
+                              : this._modeLocalize(
                                   "ui.panel.config.integrations.config_entry.enable_debug_logging"
                                 )
                           }
@@ -496,7 +508,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
             <div class="title-container">
               <div class="logo-container">
                 <img
-                  alt=${domainToName(this.hass.localize, this.domain)}
+                  alt=${domainToName(this._modeLocalize, this.domain)}
                   src=${brandsUrl(
                     {
                       domain: this.domain,
@@ -512,12 +524,12 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                 />
               </div>
               <div class="title">
-                <h1>${domainToName(this.hass.localize, this.domain)}</h1>
+                <h1>${domainToName(this._modeLocalize, this.domain)}</h1>
                 <div class="sub">
                   ${
                     this._manifest?.version != null
                       ? html`<span class="version"
-                          >${this.hass.localize(
+                          >${this._modeLocalize(
                             "ui.panel.config.integrations.config_entry.version",
                             { version: this._manifest.version }
                           )}</span
@@ -542,7 +554,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                             rel="noopener noreferrer"
                             target="_blank"
                           >
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               this._manifest.overwrites_built_in
                                 ? "ui.panel.config.integrations.config_entry.custom_overwrites_core"
                                 : "ui.panel.config.integrations.config_entry.custom_integration"
@@ -555,7 +567,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                     this._manifest?.iot_class?.startsWith("cloud_")
                       ? html`<div class="integration-info">
                           <ha-svg-icon .path=${mdiWeb}></ha-svg-icon>
-                          ${this.hass.localize(
+                          ${this._modeLocalize(
                             "ui.panel.config.integrations.config_entry.depends_on_cloud"
                           )}
                         </div>`
@@ -570,7 +582,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                     )
                       ? html`<div class="integration-info info">
                           <ha-svg-icon path=${mdiFileCodeOutline}></ha-svg-icon
-                          >${this.hass.localize(
+                          >${this._modeLocalize(
                             "ui.panel.config.integrations.config_entry.no_config_flow"
                           )}
                         </div>`
@@ -588,7 +600,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                                 : `/config/devices/dashboard?historyBack=1&domain=${this.domain}&status=disabled`
                             }
                           >
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               `ui.panel.config.integrations.config_entry.devices`,
                               { count: devices.length }
                             )}
@@ -606,7 +618,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                               : `/config/devices/dashboard?historyBack=1&domain=${this.domain}&status=disabled`
                           }
                         >
-                          ${this.hass.localize(
+                          ${this._modeLocalize(
                             `ui.panel.config.integrations.config_entry.services`,
                             { count: services.length }
                           )}
@@ -624,7 +636,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                           <a
                             href=${`/config/entities?historyBack=1&domain=${this.domain}`}
                           >
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               `ui.panel.config.integrations.config_entry.entities`,
                               { count: numberOfEntities }
                             )}
@@ -645,7 +657,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                         __DEMO__ ? "/config/ai" : "/config/ai#mcp"
                       }
                     >
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         "ui.panel.config.integrations.integration_page.open_config_panel",
                         {
                           name: this.hass.localize(
@@ -660,7 +672,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                 canAddDevice
                   ? html`
                       <ha-button @click=${this._addDevice}>
-                        ${this.hass.localize(
+                        ${this._modeLocalize(
                           "ui.panel.config.integrations.integration_page.add_device"
                         )}
                       </ha-button>
@@ -674,14 +686,14 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                       @click=${this._addIntegration}
                     >
                       ${
-                        this.hass.localize(
+                        this._modeLocalize(
                           `component.${this.domain}.config.initiate_flow.user`
                         ) ||
                         (this._manifest?.integration_type
-                          ? this.hass.localize(
+                          ? this._modeLocalize(
                               `ui.panel.config.integrations.integration_page.add_${this._manifest.integration_type}`
                             )
-                          : this.hass.localize(
+                          : this._modeLocalize(
                               `ui.panel.config.integrations.integration_page.add_entry`
                             ))
                       }
@@ -697,7 +709,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                     .disabled=${!normalEntries.length}
                   >
                     <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       `component.${this.domain}.config_subentries.${flowType}.initiate_flow.user`
                     )}</ha-button
                   >`
@@ -714,10 +726,10 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                       .value=${this._filter}
                       @input=${this._handleSearchChange}
                       @blur=${this._flushUrl}
-                      .placeholder=${this.hass.localize(
+                      .placeholder=${this._modeLocalize(
                         "ui.panel.config.integrations.search"
                       )}
-                      .accessibleLabel=${this.hass.localize(
+                      .accessibleLabel=${this._modeLocalize(
                         "ui.panel.config.integrations.search"
                       )}
                     ></ha-input-search>`
@@ -729,7 +741,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                       <ha-alert
                         alert-type="warning"
                         .narrow=${this.narrow}
-                        .title=${this.hass.localize(
+                        .title=${this._modeLocalize(
                           "ui.panel.config.integrations.config_entry.debug_logging_enabled"
                         )}
                       >
@@ -737,7 +749,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                           slot="icon"
                           .path=${mdiBugPlay}
                         ></ha-svg-icon>
-                        ${this.hass.localize(
+                        ${this._modeLocalize(
                           "ui.panel.config.integrations.config_entry.debug_logging_enabled_description"
                         )}
                         <div slot="action" class="debug-actions">
@@ -747,7 +759,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                             appearance="plain"
                             @click=${this._showLiveLog}
                           >
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               "ui.panel.config.integrations.config_entry.show_logs"
                             )}
                           </ha-button>
@@ -757,7 +769,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                             appearance="filled"
                             @click=${this._handleDisableDebugLogging}
                           >
-                            ${this.hass.localize("ui.common.disable")}
+                            ${this._modeLocalize("ui.common.disable")}
                           </ha-button>
                         </div>
                       </ha-alert>
@@ -769,7 +781,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                   ? html`
                       <div class="section">
                         <h3 class="section-header">
-                          ${this.hass.localize(
+                          ${this._modeLocalize(
                             "ui.panel.config.integrations.discovered"
                           )}
                         </h3>
@@ -787,7 +799,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                                   .flow=${flow}
                                   @click=${this._continueFlow}
                                 >
-                                  ${this.hass.localize("ui.common.add")}
+                                  ${this._modeLocalize("ui.common.add")}
                                 </ha-button>
                               </ha-list-item-base>`
                           )}
@@ -801,7 +813,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                   ? html`
                       <div class="section">
                         <h3 class="section-header">
-                          ${this.hass.localize(
+                          ${this._modeLocalize(
                             `ui.panel.config.integrations.integration_page.attention_entries`
                           )}
                         </h3>
@@ -819,7 +831,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                                       >${flow.localized_title}</span
                                     >
                                     <span slot="supporting-text"
-                                      >${this.hass.localize(
+                                      >${this._modeLocalize(
                                         `ui.panel.config.integrations.${
                                           attention ? "attention" : "discovered"
                                         }`
@@ -830,7 +842,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                                       .flow=${flow}
                                       @click=${this._continueFlow}
                                       variant="warning"
-                                      >${this.hass.localize(
+                                      >${this._modeLocalize(
                                         `ui.panel.config.integrations.${
                                           attention
                                             ? "reconfigure"
@@ -865,10 +877,10 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                 <h3 class="section-header">
                   ${
                     this._manifest?.integration_type
-                      ? this.hass.localize(
+                      ? this._modeLocalize(
                           `ui.panel.config.integrations.integration_page.entries_${this._manifest.integration_type}`
                         )
-                      : this.hass.localize(
+                      : this._modeLocalize(
                           `ui.panel.config.integrations.integration_page.entries`
                         )
                   }
@@ -878,7 +890,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                     ? html`<div class="card-content no-entries">
                         ${
                           this._filter
-                            ? this.hass.localize(
+                            ? this._modeLocalize(
                                 "ui.panel.config.integrations.none_found"
                               )
                             : this._manifest &&
@@ -886,10 +898,10 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                                 this.hass.config.components.find(
                                   (comp) => comp.split(".")[0] === this.domain
                                 )
-                              ? this.hass.localize(
+                              ? this._modeLocalize(
                                   "ui.panel.config.integrations.integration_page.yaml_entry"
                                 )
-                              : this.hass.localize(
+                              : this._modeLocalize(
                                   "ui.panel.config.integrations.integration_page.no_entries"
                                 )
                         }
@@ -947,12 +959,12 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                       <ha-svg-icon .path=${mdiBookOpenVariant}></ha-svg-icon>
                       <span class="tool-text">
                         <span class="tool-title"
-                          >${this.hass.localize(
+                          >${this._modeLocalize(
                             "ui.panel.config.integrations.config_entry.documentation"
                           )}</span
                         >
                         <span class="tool-sub"
-                          >${this.hass.localize(
+                          >${this._modeLocalize(
                             "ui.panel.config.integrations.integration_page.documentation_description"
                           )}</span
                         >
@@ -967,12 +979,12 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                       <ha-svg-icon .path=${mdiBugPlay}></ha-svg-icon>
                       <span class="tool-text">
                         <span class="tool-title" id="debug-logging-label"
-                          >${this.hass.localize(
+                          >${this._modeLocalize(
                             "ui.panel.config.integrations.integration_page.debug_logging"
                           )}</span
                         >
                         <span class="tool-sub"
-                          >${this.hass.localize(
+                          >${this._modeLocalize(
                             debugOn
                               ? "ui.panel.config.integrations.integration_page.debug_logging_on"
                               : "ui.panel.config.integrations.integration_page.debug_logging_off"
@@ -1006,7 +1018,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
               target="_blank"
             >
               <ha-svg-icon .path=${qualityScale.icon}></ha-svg-icon>
-              <span>${this.hass.localize(qualityScale.translationKey)}</span>
+              <span>${this._modeLocalize(qualityScale.translationKey)}</span>
               <ha-svg-icon
                 class="open-external"
                 .path=${mdiOpenInNew}
@@ -1401,7 +1413,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
   private _showLiveLog() {
     showLiveLogDialog(this, {
       domain: this.domain,
-      name: domainToName(this.hass.localize, this.domain, this._manifest),
+      name: domainToName(this._modeLocalize, this.domain, this._manifest),
     });
   }
 
@@ -1420,10 +1432,10 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
       getCoreLogFileDownloadUnavailableReason(this.hass);
     if (logFileDownloadUnavailableReason) {
       showAlertDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.logs.log_file_disabled_title"
         ),
-        text: this.hass.localize(
+        text: this._modeLocalize(
           `ui.panel.config.logs.log_file_disabled_debug_download.${logFileDownloadUnavailableReason}`
         ),
       });
@@ -1477,10 +1489,10 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
   private async _addIntegration() {
     if (!this._manifest?.config_flow) {
       showAlertDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.integrations.config_flow.yaml_only_title"
         ),
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.integrations.config_flow.yaml_only"
         ),
       });

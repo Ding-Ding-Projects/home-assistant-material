@@ -43,8 +43,19 @@ import {
 } from "../../lovelace/custom-card-helpers";
 import { showDeviceRegistryDetailDialog } from "../devices/device-registry-detail/show-dialog-device-registry-detail";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 @customElement("ha-config-entry-device-row")
 class HaConfigEntryDeviceRow extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -79,7 +90,7 @@ class HaConfigEntryDeviceRow extends LitElement {
       device.model || device.sw_version || device.manufacturer,
       entities.length
         ? bidiIsolate(
-            this.hass.localize(
+            this._modeLocalize(
               "ui.panel.config.integrations.config_entry.entities",
               { count: entities.length }
             )
@@ -119,7 +130,7 @@ class HaConfigEntryDeviceRow extends LitElement {
         slot="start"
       ></ha-svg-icon>
       <div slot="headline">
-        ${computeDeviceNameDisplay(device, this.hass.localize)}
+        ${computeDeviceNameDisplay(device, this._modeLocalize)}
       </div>
       <span slot="supporting-text"
         >${supportingText.map(
@@ -135,7 +146,7 @@ class HaConfigEntryDeviceRow extends LitElement {
               @click=${this._handleEditDeviceButton}
               @keydown=${stopKeydownEnterSpacePropagation}
               .path=${mdiPencil}
-              .label=${this.hass.localize(
+              .label=${this._modeLocalize(
                 "ui.panel.config.integrations.config_entry.device.edit"
               )}
             ></ha-icon-button>`
@@ -150,14 +161,14 @@ class HaConfigEntryDeviceRow extends LitElement {
       >
         <ha-icon-button
           slot="trigger"
-          .label=${this.hass.localize("ui.common.menu")}
+          .label=${this._modeLocalize("ui.common.menu")}
           .path=${mdiDotsVertical}
         ></ha-icon-button>
         ${
           this.narrow
             ? html`<ha-dropdown-item value="edit">
                 <ha-svg-icon .path=${mdiPencil} slot="icon"></ha-svg-icon>
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.integrations.config_entry.device.edit"
                 )}
               </ha-dropdown-item>`
@@ -171,7 +182,7 @@ class HaConfigEntryDeviceRow extends LitElement {
                     .path=${mdiShapeOutline}
                     slot="icon"
                   ></ha-svg-icon>
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     `ui.panel.config.integrations.config_entry.entities`,
                     { count: entities.length }
                   )}
@@ -189,24 +200,24 @@ class HaConfigEntryDeviceRow extends LitElement {
 
           ${
             device.disabled_by && device.disabled_by !== "user"
-              ? this.hass.localize(
+              ? this._modeLocalize(
                   "ui.dialogs.device-registry-detail.enabled_cause",
                   {
-                    type: this.hass.localize(
+                    type: this._modeLocalize(
                       `ui.dialogs.device-registry-detail.type.${
                         device.entry_type || "device"
                       }`
                     ),
-                    cause: this.hass.localize(
+                    cause: this._modeLocalize(
                       `config_entry.disabled_by.${device.disabled_by}`
                     ),
                   }
                 )
               : device.disabled_by
-                ? this.hass.localize(
+                ? this._modeLocalize(
                     "ui.panel.config.integrations.config_entry.device.enable"
                   )
-                : this.hass.localize(
+                : this._modeLocalize(
                     "ui.panel.config.integrations.config_entry.device.disable"
                   )
           }
@@ -215,7 +226,7 @@ class HaConfigEntryDeviceRow extends LitElement {
           this.entry.supports_remove_device
             ? html`<ha-dropdown-item variant="danger" value="delete">
                 <ha-svg-icon .path=${mdiDelete} slot="icon"></ha-svg-icon>
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.integrations.config_entry.device.delete"
                 )}
               </ha-dropdown-item>`
@@ -278,16 +289,16 @@ class HaConfigEntryDeviceRow extends LitElement {
         const config_entry = this.entry;
         if (config_entry && !config_entry.disabled_by) {
           const confirm = await showConfirmationDialog(this, {
-            title: this.hass.localize(
+            title: this._modeLocalize(
               "ui.panel.config.devices.confirm_disable_config_entry_title"
             ),
-            text: this.hass.localize(
+            text: this._modeLocalize(
               "ui.panel.config.devices.confirm_disable_config_entry_message",
               { name: config_entry.title }
             ),
             destructive: true,
-            confirmText: this.hass.localize("ui.common.yes"),
-            dismissText: this.hass.localize("ui.common.no"),
+            confirmText: this._modeLocalize("ui.common.yes"),
+            dismissText: this._modeLocalize("ui.common.no"),
           });
 
           if (!confirm) {
@@ -299,7 +310,7 @@ class HaConfigEntryDeviceRow extends LitElement {
             result = await disableConfigEntry(this.hass, this.entry.entry_id);
           } catch (err: any) {
             showAlertDialog(this, {
-              title: this.hass.localize(
+              title: this._modeLocalize(
                 "ui.panel.config.integrations.config_entry.disable_error"
               ),
               text: err.message,
@@ -308,7 +319,7 @@ class HaConfigEntryDeviceRow extends LitElement {
           }
           if (result.require_restart) {
             showAlertDialog(this, {
-              text: this.hass.localize(
+              text: this._modeLocalize(
                 "ui.panel.config.integrations.config_entry.disable_restart_confirm"
               ),
             });
@@ -320,18 +331,18 @@ class HaConfigEntryDeviceRow extends LitElement {
 
     if (disable) {
       const confirm = await showConfirmationDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.integrations.config_entry.device.confirm_disable_title"
         ),
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.integrations.config_entry.device.confirm_disable_message",
           {
-            name: computeDeviceNameDisplay(this.device, this.hass.localize),
+            name: computeDeviceNameDisplay(this.device, this._modeLocalize),
           }
         ),
         destructive: true,
-        confirmText: this.hass.localize("ui.common.yes"),
-        dismissText: this.hass.localize("ui.common.no"),
+        confirmText: this._modeLocalize("ui.common.yes"),
+        dismissText: this._modeLocalize("ui.common.no"),
       });
 
       if (!confirm) {
@@ -346,9 +357,9 @@ class HaConfigEntryDeviceRow extends LitElement {
 
   private _handleDeleteDevice = async () => {
     const confirmed = await showConfirmationDialog(this, {
-      text: this.hass.localize("ui.panel.config.devices.confirm_delete"),
-      confirmText: this.hass.localize("ui.common.delete"),
-      dismissText: this.hass.localize("ui.common.cancel"),
+      text: this._modeLocalize("ui.panel.config.devices.confirm_delete"),
+      confirmText: this._modeLocalize("ui.common.delete"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       destructive: true,
     });
 
@@ -360,7 +371,7 @@ class HaConfigEntryDeviceRow extends LitElement {
       await removeDeviceFromRegistry(this.hass!, this.device.id);
     } catch (err: any) {
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.devices.error_delete"),
+        title: this._modeLocalize("ui.panel.config.devices.error_delete"),
         text: err.message,
       });
     }

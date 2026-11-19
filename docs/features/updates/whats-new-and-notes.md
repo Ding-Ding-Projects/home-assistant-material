@@ -26,6 +26,16 @@ It now points at the build on offer (`c9e3a5e67`); build 523 still has the old b
 updates log page itself marks the words a release notes search finds and steps through them (also
 `c9e3a5e67`; see [`../interface/top-bar-search.md`](../interface/top-bar-search.md)).
 
+The release link fix is in build 2026.11.1.524 but was not proven there: proving it needs a newer
+build on offer. A verification of build 525 is running to settle it; no result is recorded yet.
+Release notes search marking and stepping through the words it finds was seen working in a real
+run of 524.
+
+## One "What's new" button
+
+The Updates page showed two "What's new" buttons; it keeps one (`6db767de3`, on main, not built,
+unit-tested only).
+
 ## Verification
 
 Only the version-to-page rule is tested. Neither button has been seen in a browser on a real

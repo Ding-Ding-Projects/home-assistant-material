@@ -6,11 +6,21 @@ import type { LocalizeFunc } from "../common/translations/localize";
 
 import "./ha-svg-icon";
 
+import { LanguageModeController } from "../common/language-mode/language-mode-controller";
+
 @customElement("ha-tip")
 class HaTip extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  // Draws again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this._localize);
+  }
 
   public render() {
     if (!this._localize) {
@@ -19,7 +29,9 @@ class HaTip extends LitElement {
 
     return html`
       <ha-svg-icon .path=${mdiLightbulbOutline}></ha-svg-icon>
-      <span class="prefix">${this._localize("ui.panel.config.tips.tip")}</span>
+      <span class="prefix"
+        >${this._modeLocalize("ui.panel.config.tips.tip")}</span
+      >
       <span class="text"><slot></slot></span>
     `;
   }

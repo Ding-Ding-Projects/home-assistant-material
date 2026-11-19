@@ -8,8 +8,8 @@ rules:
   brands: todo
   common-modules: done
   config-flow-test-coverage:
-    status: todo
-    comment: The flows are tested, but the coverage percentage has not been measured.
+    status: done
+    comment: Every step, abort and error of the config, reconfigure and options flows is tested, including the shared band errors between the two defenders. Measured line coverage of both config flow modules is 100 percent.
   config-flow: done
   dependency-transparency:
     status: exempt
@@ -44,7 +44,7 @@ rules:
     comment: Every entity is unavailable while the defended climate entity is unavailable.
   integration-owner:
     status: todo
-    comment: No code owner has been assigned.
+    comment: A code owner needs the maintainer's account name, which has to be added by the maintainer.
   log-when-unavailable: todo
   parallel-updates:
     status: exempt
@@ -54,7 +54,7 @@ rules:
     comment: No authentication.
   test-coverage:
     status: todo
-    comment: Coverage has not been measured.
+    comment: Measured line coverage of both integrations together is 91 percent; the guard modules are below 95 percent.
   devices: done
   diagnostics: done
   discovery:
@@ -76,15 +76,15 @@ rules:
   entity-category: done
   entity-device-class: done
   entity-disabled-by-default:
-    status: todo
-    comment: All guard switches are enabled by default.
+    status: done
+    comment: The next check and room holder sensors start disabled. The guard switches stay enabled because they are the controls.
   entity-translations: done
-  exception-translations:
-    status: todo
-    comment: The messages of the validation errors are not translated yet.
+  exception-translations: done
   icon-translations: done
   reconfiguration-flow: done
-  repair-issues: todo
+  repair-issues:
+    status: done
+    comment: A missing climate entity and a missing chosen sensor each raise a repair issue that clears when the entity returns.
   stale-devices:
     status: exempt
     comment: Each entry has exactly one device that is removed with it.

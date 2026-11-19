@@ -67,6 +67,9 @@ import {
   showRoomWizardDialog,
 } from "./room-wizard/show-dialog-room-wizard";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 const UNASSIGNED_FLOOR = "__unassigned__";
 
 const SORT_OPTIONS: HaSortableOptions = {
@@ -84,6 +87,14 @@ interface AreaStats {
 
 @customElement("ha-config-areas-dashboard")
 export class HaConfigAreasDashboard extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
@@ -189,16 +200,16 @@ export class HaConfigAreasDashboard extends LitElement {
       >
         <ha-icon-button
           slot="toolbar-icon"
-          .label=${this.hass.localize("ui.common.help")}
+          .label=${this._modeLocalize("ui.common.help")}
           .path=${mdiHelpCircleOutline}
           @click=${this._showHelp}
         ></ha-icon-button>
         <div class="container">
           <div class="page-header">
             <div class="page-heading">
-              <h1>${this.hass.localize("ui.panel.config.areas.caption")}</h1>
+              <h1>${this._modeLocalize("ui.panel.config.areas.caption")}</h1>
               <p>
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   floorCount
                     ? "ui.panel.config.areas.picker.summary"
                     : "ui.panel.config.areas.picker.summary_no_floors",
@@ -209,22 +220,22 @@ export class HaConfigAreasDashboard extends LitElement {
             <div class="page-actions">
               <ha-button appearance="outlined" @click=${this._setUpRoom}>
                 <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-                ${this.hass.localize("ui.panel.config.areas.room_wizard.title")}
+                ${this._modeLocalize("ui.panel.config.areas.room_wizard.title")}
               </ha-button>
               <ha-button appearance="outlined" @click=${this._createFloor}>
                 <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-                ${this.hass.localize("ui.panel.config.areas.picker.add_floor")}
+                ${this._modeLocalize("ui.panel.config.areas.picker.add_floor")}
               </ha-button>
               <ha-button @click=${this._createArea}>
                 <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-                ${this.hass.localize("ui.panel.config.areas.picker.add_area")}
+                ${this._modeLocalize("ui.panel.config.areas.picker.add_area")}
               </ha-button>
             </div>
           </div>
           ${
             !floorCount && !this._hierarchy.areas.length
               ? html`<div class="empty">
-                  ${this.hass.localize("ui.panel.config.areas.picker.no_areas")}
+                  ${this._modeLocalize("ui.panel.config.areas.picker.no_areas")}
                 </div>`
               : nothing
           }
@@ -245,7 +256,7 @@ export class HaConfigAreasDashboard extends LitElement {
                       <ha-icon-button
                         .floor=${floor}
                         .path=${mdiPencil}
-                        .label=${this.hass.localize(
+                        .label=${this._modeLocalize(
                           "ui.panel.config.areas.picker.floor.edit_floor"
                         )}
                         @click=${this._editFloorClicked}
@@ -257,14 +268,14 @@ export class HaConfigAreasDashboard extends LitElement {
                         <ha-icon-button
                           slot="trigger"
                           .path=${mdiDotsVertical}
-                          .label=${this.hass.localize("ui.common.menu")}
+                          .label=${this._modeLocalize("ui.common.menu")}
                         ></ha-icon-button>
                         <ha-dropdown-item value="reorder"
                           ><ha-svg-icon
                             .path=${mdiSort}
                             slot="icon"
                           ></ha-svg-icon
-                          >${this.hass.localize(
+                          >${this._modeLocalize(
                             "ui.panel.config.areas.picker.reorder"
                           )}</ha-dropdown-item
                         >
@@ -274,7 +285,7 @@ export class HaConfigAreasDashboard extends LitElement {
                             .path=${mdiPencil}
                             slot="icon"
                           ></ha-svg-icon
-                          >${this.hass.localize(
+                          >${this._modeLocalize(
                             "ui.panel.config.areas.picker.floor.edit_floor"
                           )}</ha-dropdown-item
                         >
@@ -283,7 +294,7 @@ export class HaConfigAreasDashboard extends LitElement {
                             .path=${mdiDelete}
                             slot="icon"
                           ></ha-svg-icon
-                          >${this.hass.localize(
+                          >${this._modeLocalize(
                             "ui.panel.config.areas.picker.floor.delete_floor"
                           )}</ha-dropdown-item
                         >
@@ -321,7 +332,7 @@ export class HaConfigAreasDashboard extends LitElement {
                   <div class="floor">
                     <div class="header">
                       <h2>
-                        ${this.hass.localize(
+                        ${this._modeLocalize(
                           this._hierarchy.floors.length
                             ? "ui.panel.config.areas.picker.no_floor"
                             : "ui.panel.config.areas.picker.header"
@@ -334,14 +345,14 @@ export class HaConfigAreasDashboard extends LitElement {
                           <ha-icon-button
                             slot="trigger"
                             .path=${mdiDotsVertical}
-                            .label=${this.hass.localize("ui.common.menu")}
+                            .label=${this._modeLocalize("ui.common.menu")}
                           ></ha-icon-button>
                           <ha-dropdown-item value="reorder"
                             ><ha-svg-icon
                               .path=${mdiSort}
                               slot="icon"
                             ></ha-svg-icon
-                            >${this.hass.localize(
+                            >${this._modeLocalize(
                               "ui.panel.config.areas.picker.reorder"
                             )}</ha-dropdown-item
                           >
@@ -394,17 +405,17 @@ export class HaConfigAreasDashboard extends LitElement {
       this.hass.locale,
       [
         stats?.devices &&
-          this.hass.localize(
+          this._modeLocalize(
             "ui.panel.config.integrations.config_entry.devices",
             { count: stats.devices }
           ),
         stats?.services &&
-          this.hass.localize(
+          this._modeLocalize(
             "ui.panel.config.integrations.config_entry.services",
             { count: stats.services }
           ),
         stats?.automations &&
-          this.hass.localize("ui.panel.config.areas.picker.automations_count", {
+          this._modeLocalize("ui.panel.config.areas.picker.automations_count", {
             count: stats.automations,
           }),
       ].filter((v): v is string => Boolean(v))
@@ -439,7 +450,7 @@ export class HaConfigAreasDashboard extends LitElement {
             <ha-icon-button
               .area=${area}
               .path=${mdiPencil}
-              .label=${this.hass.localize("ui.panel.config.areas.edit_settings")}
+              .label=${this._modeLocalize("ui.panel.config.areas.edit_settings")}
               @click=${this._openAreaDetails}
             ></ha-icon-button>
           </div>
@@ -510,7 +521,7 @@ export class HaConfigAreasDashboard extends LitElement {
       await reorderAreaRegistryEntries(this.hass, areaOrder);
     } catch {
       showToast(this, {
-        message: this.hass.localize(
+        message: this._modeLocalize(
           "ui.panel.config.areas.picker.area_move_failed"
         ),
       });
@@ -570,7 +581,7 @@ export class HaConfigAreasDashboard extends LitElement {
       });
     } catch {
       showToast(this, {
-        message: this.hass.localize(
+        message: this._modeLocalize(
           "ui.panel.config.areas.picker.area_move_failed"
         ),
       });
@@ -627,13 +638,13 @@ export class HaConfigAreasDashboard extends LitElement {
 
   private async _deleteFloor(floor) {
     const confirm = await showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.areas.picker.floor.confirm_delete"
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.areas.picker.floor.confirm_delete_text"
       ),
-      confirmText: this.hass.localize("ui.common.delete"),
+      confirmText: this._modeLocalize("ui.common.delete"),
       destructive: true,
     });
     if (!confirm) {
@@ -652,14 +663,14 @@ export class HaConfigAreasDashboard extends LitElement {
 
   private _showHelp() {
     showAlertDialog(this, {
-      title: this.hass.localize("ui.panel.config.areas.caption"),
+      title: this._modeLocalize("ui.panel.config.areas.caption"),
       text: html`
-        ${this.hass.localize("ui.panel.config.areas.picker.introduction")}
+        ${this._modeLocalize("ui.panel.config.areas.picker.introduction")}
         <p>
-          ${this.hass.localize("ui.panel.config.areas.picker.introduction2")}
+          ${this._modeLocalize("ui.panel.config.areas.picker.introduction2")}
         </p>
         <a href="/config/integrations/dashboard">
-          ${this.hass.localize(
+          ${this._modeLocalize(
             "ui.panel.config.areas.picker.integrations_page"
           )}
         </a>

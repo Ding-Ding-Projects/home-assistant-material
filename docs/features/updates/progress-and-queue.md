@@ -53,7 +53,9 @@ the newest lines again once things are back (`a5bbfa5da`).
 
 A real run of build 523 showed that Core's update is refused until the Supervisor is updated. The
 Core row used to try and be refused. On main (`c9e3a5e67`) it says "Update the Supervisor first"
-instead. This was tested but not yet watched in a real update run.
+instead. This was tested but not yet watched in a real update run. The fix is in build
+2026.11.1.524, but proving it needs a newer build on offer; a verification of build 525 is
+running to settle it, and no result is recorded yet.
 
 ## The automatic updates card and long names
 
@@ -91,8 +93,9 @@ These are not shown, because showing them would mean inventing them:
 
 - **Row start time on a page opened mid-update.** Still missing in build 523, where a second page
   opened mid-update shows no start time. The cause (a job list shape the page did not
-  understand) is fixed on main in `c9e3a5e67`, with tests, and has not been seen in a real update
-  run.
+  understand) is fixed in `c9e3a5e67`, with tests, and is in build 2026.11.1.524. It was not
+  proven in the real run of 524 (that needs a page that did not start the update, while a newer
+  build is on offer); a verification of build 525 is running to settle it.
 - **No live output during a Core update** was a gap in `4cb1fe589`. `a5bbfa5da` reads the
   Supervisor log; this was not seen on a real Core update.
 - **A queue started by an older build** was not checked with the new rows.
@@ -106,6 +109,8 @@ Core, Supervisor or operating system updates without the owner's two-key confirm
 
 ## How it was verified
 
+- Real run of build 2026.11.1.524 (a throwaway full hosting copy before it went live): Core
+  updated from its row twice, taking 2:08 and 1:52.
 - Real run of build 523 (a throwaway full hosting copy before it went live): Supervisor and Core
   updates from their rows. The run found the faults listed above; what exactly was read from the output
   lines was not recorded.

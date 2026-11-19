@@ -12,14 +12,19 @@ includes tailored editors for every integration's actions, triggers and conditio
 backup progress with a choice of which updates get a backup first, autosaved drafts for editors,
 shared camera live views with light recording, camera event clips and live video recorded around
 events (proven only against a pretend camera service), a search button in the top bar of most pages,
+Cantonese on entity sheets and the Backups pages with entity state words following the language
+mode ([`docs/features/language-and-voice/`](docs/features/language-and-voice/README.md)),
 and the AC Defender and Heat Defender integrations
 (see [`docs/features/updates/`](docs/features/updates/README.md) and
 [`docs/features/defenders/`](docs/features/defenders/README.md)). Much of that is
 checked only by lint, the type check and unit tests and has **not yet been seen in a running
-build**; a few server parts were run on a running copy. The hosted build is 2026.11.1.523, which a
-real update run exercised; later work on main is in no released build yet. Several features on the boards are not
-built at all. [`docs/feature-status.md`](docs/feature-status.md) says, row by row, which is which,
-and [`docs/features/`](docs/features/README.md) documents each feature. The Deploy Assistant
+build**; a few server parts were run on a running copy. The hosted build is 2026.11.1.524, which a
+page-load pass and a real update run exercised before it went live. Build 2026.11.1.525 is
+published and being verified, and the newest work on main is in no build yet. Several features on
+the boards are not built at all. [`ROADMAP.md`](ROADMAP.md) says, item by item, which is which,
+[`HANDOFF.md`](HANDOFF.md) says what is live, and [`docs/features/`](docs/features/README.md)
+documents each feature. [`docs/feature-status.md`](docs/feature-status.md) is the older
+row-by-row record up to 13 November 2026. The Deploy Assistant
 desktop app has its own [folder](deploy-assistant/README.md).
 
 | I want to | Go to |

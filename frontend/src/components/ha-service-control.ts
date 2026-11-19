@@ -63,6 +63,7 @@ import {
   type QuickFieldInfo,
 } from "./action-editors/descriptors";
 import { getTTSEngine, getTTSEngineOptions } from "../data/tts";
+import { fetchLinkedFiles } from "../data/linked_media";
 import { getSelectorFallbackValue } from "./ha-form/get-selector-fallback-value";
 import "./ha-action-field-adapter";
 import "./ha-icon-button";
@@ -192,6 +193,11 @@ export class HaServiceControl extends LitElement {
 
   private _engineRequests = new Set<string>();
 
+  /** The linked media files, for the linked media actions, by name only. */
+  @state() private _linkedFiles?: { id: string; name: string }[];
+
+  private _linkedFilesRequested = false;
+
   @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
 
   private _stickySelector: Record<string, Selector> = {};
@@ -318,6 +324,27 @@ export class HaServiceControl extends LitElement {
   protected updated(changedProperties: PropertyValues<this>) {
     super.updated(changedProperties);
     this._loadEngines();
+    this._loadLinkedFiles();
+  }
+
+  /** Reads the names of the linked media files once, for their actions. */
+  private _loadLinkedFiles() {
+    const action = this._value?.action;
+    if (
+      this._linkedFilesRequested ||
+      !action ||
+      computeDomain(action) !== "linked_media"
+    ) {
+      return;
+    }
+    this._linkedFilesRequested = true;
+    fetchLinkedFiles(this.hass)
+      .then(({ files }) => {
+        this._linkedFiles = files.map(({ id, name }) => ({ id, name }));
+      })
+      .catch(() => {
+        // The field stays a text box when the list cannot be read.
+      });
   }
 
   /** Reads what each targeted speech engine supports, once per language. */
@@ -886,6 +913,7 @@ export class HaServiceControl extends LitElement {
       domainServices: Object.keys(this.hass.services[domain] ?? {}),
       entities,
       engines: this._engines,
+      linkedFiles: this._linkedFiles,
     };
   }
 

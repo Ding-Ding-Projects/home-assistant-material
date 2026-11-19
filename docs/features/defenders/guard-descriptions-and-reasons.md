@@ -45,6 +45,14 @@ The courtesy wait setting was ignored whenever the heating's mode guard was on: 
 the heating off after its own short pause, so "ten minutes" meant about half a minute. The
 courtesy wait is now the only wait, and zero means at once.
 
+## The log words its actions (`6db767de3`, on main, not built)
+
+The defender log used to show raw engine names with underscores replaced by spaces. Action names
+are now tidy sentence-case phrases (`comfort_sync`, `comfort-sync` and `comfortSync` all read
+"Comfort sync"), and the value a logged command set reads as a number when it is one and as a
+tidied word otherwise (`readableName` and `commandValueText` in `frontend/src/data/defenders.ts`).
+Unit-tested in `frontend/test/data/defenders.test.ts`; not seen in a browser.
+
 ## Failure modes
 
 - A reason code with no wording fails a test and, until fixed, would show as a readable sentence,

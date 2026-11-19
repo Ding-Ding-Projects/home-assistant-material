@@ -44,6 +44,8 @@ import {
   computeIntegrationCardSummary,
 } from "./integration-card-summary";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 interface IntegrationCardStatus {
   level: IntegrationCardStatusLevel;
   message: string;
@@ -74,6 +76,14 @@ export class HaIntegrationCard extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  // Draws again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this._localize);
+  }
 
   @state()
   @consume({ context: devicesContext, subscribe: true })
@@ -111,7 +121,7 @@ export class HaIntegrationCard extends LitElement {
 
     const domainName =
       this.items[0].localized_domain_name ||
-      domainToName(this._localize, this.domain, this.manifest);
+      domainToName(this._modeLocalize, this.domain, this.manifest);
 
     return html`
       <ha-card
@@ -167,7 +177,7 @@ export class HaIntegrationCard extends LitElement {
     if (level) {
       return {
         level,
-        message: this._localize(
+        message: this._modeLocalize(
           `ui.panel.config.integrations.config_entry.state.${entryState}`
         ),
       };
@@ -175,7 +185,7 @@ export class HaIntegrationCard extends LitElement {
     if (debugLoggingEnabled) {
       return {
         level: "warning",
-        message: this._localize(
+        message: this._modeLocalize(
           "ui.panel.config.integrations.config_entry.debug_logging_enabled"
         ),
       };
@@ -185,24 +195,24 @@ export class HaIntegrationCard extends LitElement {
 
   private _computeSupportingText(summary?: IntegrationCardSummary): string {
     if (!summary) {
-      return this._localize(
+      return this._modeLocalize(
         "ui.panel.config.integrations.config_entry.no_devices_or_entities"
       );
     }
     if (!summary.attention) {
-      return this._localize(
+      return this._modeLocalize(
         `ui.panel.config.integrations.config_entry.${summary.unit}`,
         { count: summary.count }
       );
     }
     const attentionState = summary.attentionState ?? "other";
     if (summary.attention >= summary.count) {
-      return this._localize(
+      return this._modeLocalize(
         "ui.panel.config.integrations.config_entry.attention.all",
         { count: summary.count, state: attentionState }
       );
     }
-    return this._localize(
+    return this._modeLocalize(
       "ui.panel.config.integrations.config_entry.attention.some",
       {
         count: summary.count,
@@ -223,7 +233,9 @@ export class HaIntegrationCard extends LitElement {
       ${
         status
           ? status.message
-          : this._localize("ui.panel.config.integrations.config_entry.working")
+          : this._modeLocalize(
+              "ui.panel.config.integrations.config_entry.working"
+            )
       }
     </span>`;
   }
@@ -262,7 +274,7 @@ export class HaIntegrationCard extends LitElement {
       icons.push({
         id: "icon-custom",
         path: mdiPackageVariant,
-        label: this._localize(
+        label: this._modeLocalize(
           manifest.overwrites_built_in
             ? "ui.panel.config.integrations.config_entry.custom_overwrites_core"
             : "ui.panel.config.integrations.config_entry.custom_integration"
@@ -274,7 +286,7 @@ export class HaIntegrationCard extends LitElement {
       icons.push({
         id: "icon-cloud",
         path: mdiWeb,
-        label: this._localize(
+        label: this._modeLocalize(
           "ui.panel.config.integrations.config_entry.depends_on_cloud"
         ),
       });
@@ -286,7 +298,7 @@ export class HaIntegrationCard extends LitElement {
       icons.push({
         id: "icon-yaml",
         path: mdiFileCodeOutline,
-        label: this._localize(
+        label: this._modeLocalize(
           "ui.panel.config.integrations.config_entry.no_config_flow"
         ),
       });

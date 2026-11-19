@@ -18,8 +18,19 @@ import type { HomeAssistant } from "../../../../../types";
 import { supervisorAppsStyle } from "../../resources/supervisor-apps-style";
 import { suggestSupervisorAppRestart } from "../dialogs/suggestSupervisorAppRestart";
 
+import { LanguageModeController } from "../../../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../../../common/translations/localize";
+
 @customElement("supervisor-app-audio")
 class SupervisorAppAudio extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public addon!: HassioAddonDetails;
@@ -40,7 +51,7 @@ class SupervisorAppAudio extends LitElement {
     return html`
       <ha-card
         outlined
-        .header=${this.hass.localize(
+        .header=${this._modeLocalize(
           "ui.panel.config.apps.configuration.audio.header"
         )}
       >
@@ -53,7 +64,7 @@ class SupervisorAppAudio extends LitElement {
           ${
             this._inputDevices &&
             html`<ha-select
-              .label=${this.hass.localize(
+              .label=${this._modeLocalize(
                 "ui.panel.config.apps.configuration.audio.input"
               )}
               @selected=${this._setInputDevice}
@@ -69,7 +80,7 @@ class SupervisorAppAudio extends LitElement {
           ${
             this._outputDevices &&
             html`<ha-select
-              .label=${this.hass.localize(
+              .label=${this._modeLocalize(
                 "ui.panel.config.apps.configuration.audio.output"
               )}
               @selected=${this._setOutputDevice}
@@ -88,7 +99,7 @@ class SupervisorAppAudio extends LitElement {
             .disabled=${this.disabled}
             @click=${this._saveSettings}
           >
-            ${this.hass.localize("ui.common.save")}
+            ${this._modeLocalize("ui.common.save")}
           </ha-progress-button>
         </div>
       </ha-card>
@@ -165,7 +176,7 @@ class SupervisorAppAudio extends LitElement {
       this._inputDevices = [noDevice, ...input];
       this._outputDevices = [noDevice, ...output];
     } catch {
-      this._error = this.hass.localize(
+      this._error = this._modeLocalize(
         "ui.panel.config.apps.configuration.audio.failed_to_load_hardware"
       );
       this._inputDevices = [noDevice];
@@ -194,7 +205,7 @@ class SupervisorAppAudio extends LitElement {
         await suggestSupervisorAppRestart(this, this.hass, this.addon);
       }
     } catch {
-      this._error = this.hass.localize(
+      this._error = this._modeLocalize(
         "ui.panel.config.apps.configuration.audio.failed_to_save"
       );
     }

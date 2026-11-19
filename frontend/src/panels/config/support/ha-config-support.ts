@@ -59,6 +59,8 @@ import {
   writeExtras,
 } from "./ticket-view-logic";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
 /**
  * The support desk as a page. Tickets are made and kept in this browser only
  * and nothing is sent anywhere. Beside it, a support bundle: a plain text
@@ -67,6 +69,14 @@ import {
  */
 @customElement("ha-config-support")
 class HaConfigSupport extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -123,7 +133,7 @@ class HaConfigSupport extends LitElement {
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
+    return this._modeLocalize(
       `ui.panel.config.support.${key}` as any,
       values
     ) as string;
@@ -137,7 +147,7 @@ class HaConfigSupport extends LitElement {
         .searchValue=${this._query}
         .searchCountText=${
           this._query
-            ? searchCountText(this.hass.localize, {
+            ? searchCountText(this._modeLocalize, {
                 current: viewTickets(this._tickets, this._extras, {
                   query: this._query,
                   status: this._statusFilter,

@@ -34,6 +34,17 @@ export const YUE_PREFIXES = [
   "ui.panel.config.automation.editor.triggers.type.time_pattern.expression",
   "ui.panel.config.backup.hosting.",
   "ui.panel.config.backup.self_check.",
+  // Page captions: the settings home tiles, page titles and tab labels.
+  "ui.panel.config.backup.caption",
+  "ui.panel.config.integrations.caption",
+  "ui.panel.config.entities.caption",
+  "ui.panel.config.devices.caption",
+  "ui.panel.config.scene.caption",
+  "ui.panel.config.script.caption",
+  "ui.panel.config.areas.caption",
+  "ui.panel.config.helpers.caption",
+  "ui.panel.config.automation.caption",
+  "ui.panel.config.lovelace.caption",
   "ui.panel.history.comparison.",
   "ui.panel.config.personal.",
   "ui.panel.config.device_health.",
@@ -42,7 +53,13 @@ export const YUE_PREFIXES = [
   "ui.panel.config.tools.nav.",
   "ui.components.web-rtc-player.state.",
   "ui.components.camera_timeline.not_kept_by_choice",
+  "ui.components.camera_timeline.on_this_system",
+  "ui.components.camera_timeline.in_registry",
+  "ui.panel.config.backup.agents.registry_",
   "ui.panel.config.camera_recording.",
+  // The Linked tab of the media page.
+  "ui.panel.media-browser.tabs.",
+  "ui.panel.media-browser.linked.",
   "ui.panel.config.defenders.",
   // Single strings, not whole blocks: the settings home banners and the apps page.
   "ui.panel.config.dashboard.",
@@ -249,6 +266,76 @@ export const YUE_PREFIXES = [
   "ui.panel.profile.passkeys.",
   "ui.panel.profile.refresh_tokens.header",
   "ui.page_tools.footer.",
+  // The settings pages: the shared table, status screens and tips, then each
+  // page's own blocks. Single keys where the rest of an upstream block is
+  // shown elsewhere and stays English.
+  "ui.components.data-table.",
+  "ui.components.subpage-data-table.",
+  "ui.status_screens.",
+  "ui.tips.",
+  "ui.init.",
+  "ui.errors.supervisor.",
+  "ui.errors.config.",
+  "ui.notification_toast.",
+  "ui.panel.config.generic.headers.",
+  "ui.panel.config.tips.",
+  "ui.panel.config.category.editor.",
+  "ui.panel.config.automation.picker.",
+  "ui.panel.config.script.picker.",
+  "ui.panel.config.scene.picker.",
+  "ui.panel.config.helpers.picker.",
+  "ui.panel.config.helpers.types.",
+  "ui.panel.config.devices.picker.",
+  "ui.panel.config.devices.data_table.",
+  "ui.panel.config.entities.picker.",
+  "ui.panel.config.areas.picker.",
+  "ui.panel.config.labels.",
+  "ui.panel.config.integrations.filters",
+  "ui.panel.config.integrations.filter_attention",
+  "ui.panel.config.integrations.disabled",
+  "ui.panel.config.integrations.ignore.ignored",
+  "ui.panel.config.integrations.summary",
+  "ui.panel.config.integrations.search",
+  "ui.panel.config.integrations.discovered_label",
+  "ui.panel.config.integrations.discovered_title",
+  "ui.panel.config.integrations.discovered_review",
+  "ui.panel.config.integrations.configured",
+  "ui.panel.config.integrations.none_found",
+  "ui.panel.config.integrations.none_found_detail",
+  "ui.panel.config.integrations.add_integration",
+  "ui.panel.config.integrations.none",
+  "ui.panel.config.integrations.no_integrations",
+  "ui.panel.config.integrations.no_disabled_integrations",
+  "ui.panel.config.integrations.no_ignored_integrations",
+  "ui.panel.config.integrations.confirm_new",
+  "ui.panel.config.integrations.config_flow.supported_brand_flow",
+  "ui.panel.config.integrations.config_flow.error",
+  "ui.panel.config.integrations.config_flow.no_config_flow",
+  "ui.panel.config.integrations.config_entry.",
+  "ui.panel.config.google_setup.open_from_integrations",
+  "ui.panel.config.lovelace.dashboards.dialog_new.",
+  "ui.panel.config.updates.no_area",
+  "ui.panel.config.logs.",
+  "ui.panel.config.release_notes.",
+  "ui.panel.config.notifications.",
+  "ui.panel.config.lovelace.resources.confirm_delete",
+  "ui.panel.config.lovelace.resources.types.",
+  "ui.panel.config.extensions.",
+  "ui.panel.config.tag.",
+  "ui.panel.config.problem_log.",
+  "ui.panel.config.ttc.",
+  "ui.panel.lovelace.cards.ttc.",
+  "ui.panel.lovelace.editor.card.ttc",
+  "ui.panel.config.help_page.",
+  "ui.panel.config.support.",
+  "ui.panel.config.person.",
+  "ui.panel.config.users.",
+  "ui.panel.config.guided_setup.",
+  "ui.panel.config.activity_record.",
+  "ui.panel.config.dashboard_history.",
+  "ui.panel.config.ollama.",
+  "ui.panel.config.automation_history.",
+  "ui.panel.config.apps.",
   // The entity state words and attribute names. These keys are not English
   // keys: they mirror the backend's `component.<domain>.entity_component`
   // lookup keys, see `entity-language-mode.ts`.
@@ -367,6 +454,37 @@ export const joinForMode = (
     : `${english}${separator}${cantonese}`;
 };
 
+/**
+ * True when a value is rich content, such as a link template, rather than
+ * text. The translation system then returns a list of parts, not a string.
+ */
+const hasRichValue = (values?: Values): boolean =>
+  !!values &&
+  Object.values(values as Record<string, unknown>).some(
+    (value) => typeof value === "object" && value !== null
+  );
+
+/**
+ * Fills `{name}` placeholders into a list of parts, so a rich value stays the
+ * object it is and is drawn as such. Text placeholders become text.
+ */
+export const fillPlaceholderParts = (
+  template: string,
+  values: Record<string, unknown>
+): unknown[] =>
+  template
+    .split(/\{(\w+)\}/)
+    .map((part, index) =>
+      index % 2 === 0
+        ? part
+        : part in values
+          ? typeof values[part] === "object" && values[part] !== null
+            ? values[part]
+            : String(values[part])
+          : `{${part}}`
+    )
+    .filter((part) => part !== "");
+
 /** A string in the chosen language mode. */
 export const modeText = (
   localize: Localize,
@@ -374,7 +492,31 @@ export const modeText = (
   values?: Values,
   mode: LanguageMode = currentLanguageMode(),
   separator = BILINGUAL_SEPARATOR
-): string => joinForMode(textParts(localize, key, values), mode, separator);
+): string => {
+  if (!hasRichValue(values)) {
+    return joinForMode(textParts(localize, key, values), mode, separator);
+  }
+  // With rich values the result is a list of parts that templates draw. The
+  // Cantonese parts are built the same way, and both mode puts the two lists
+  // one after the other.
+  const english: unknown = localize(key, values);
+  const raw = yueString(key);
+  if (raw === undefined || mode === "english") {
+    return english as string;
+  }
+  const cantonese = fillPlaceholderParts(
+    raw,
+    values as Record<string, unknown>
+  );
+  if (mode === "cantonese") {
+    return cantonese as unknown as string;
+  }
+  return [
+    ...(Array.isArray(english) ? english : [english]),
+    separator,
+    ...cantonese,
+  ] as unknown as string;
+};
 
 /** Gives one string of a sentence in the language being built. */
 export type PartText = ((key: string, values?: Values) => string) & {

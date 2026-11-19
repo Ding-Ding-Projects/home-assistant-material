@@ -171,7 +171,7 @@ export const getFieldHint = (
       kind: "password",
       inputType: "password",
       sensitive: true,
-      autocomplete: has(list, "new", "confirm", "repeat")
+      autocomplete: has(list, "new", "confirm", "confirmation", "repeat")
         ? "new-password"
         : "current-password",
     };

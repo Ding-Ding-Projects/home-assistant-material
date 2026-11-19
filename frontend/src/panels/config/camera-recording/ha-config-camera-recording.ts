@@ -4,7 +4,10 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { relativeTime } from "../../../common/datetime/relative_time";
-import { withLanguageMode } from "../../../common/language-mode/language-mode";
+import {
+  composeForMode,
+  withLanguageMode,
+} from "../../../common/language-mode/language-mode";
 import { navigate } from "../../../common/navigate";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
@@ -15,16 +18,22 @@ import "../../../components/ha-slider";
 import "../../../components/ha-switch";
 import "../../../components/entity/ha-entity-picker";
 import "../../../components/ha-svg-icon";
+import "./ha-camera-recording-places";
+import "./ha-camera-watched-settings";
 import {
   amountKey,
   fetchRecordingStatus,
   CLIP_SECONDS_RANGE,
   CLIPS_PER_HOUR_RANGE,
+  KEEP_DAYS_RANGE,
   pauseRecording,
+  recordTestClip,
+  setKeepDays,
   setLiveOptions,
   setRecordingAmount,
   type RecordingAmount,
   type RecordingCameraStatus,
+  type RecordingCheck,
   type RecordingDestinationStatus,
 } from "../../../data/camera_recording";
 import { getConfigEntry } from "../../../data/config_entries";
@@ -88,6 +97,8 @@ export class HaConfigCameraRecording extends LitElement {
   @state() private _problem?: string;
 
   @state() private _open = new Set<string>();
+
+  @state() private _testing = new Set<string>();
 
   private _timer?: number;
 
@@ -163,6 +174,10 @@ export class HaConfigCameraRecording extends LitElement {
               : nothing
           }
           ${(this._status ?? []).map((dest) => this._renderDestination(dest))}
+          <ha-camera-recording-places
+            .hass=${this.hass}
+            .destinations=${this._status}
+          ></ha-camera-recording-places>
           ${
             this._status?.length
               ? html`<ha-button appearance="plain" @click=${this._add}>
@@ -232,6 +247,19 @@ export class HaConfigCameraRecording extends LitElement {
                 </div>`
               : nothing
           }
+          <label class="keep">
+            <span>${this._l("keep.label", { days: dest.keep_days })}</span>
+            <ha-slider
+              labeled
+              min=${KEEP_DAYS_RANGE.min}
+              max=${KEEP_DAYS_RANGE.max}
+              step="1"
+              .value=${Math.min(dest.keep_days, KEEP_DAYS_RANGE.max)}
+              .entryId=${dest.entry_id}
+              @change=${this._keepDaysChanged}
+            ></ha-slider>
+            <span class="amount-note">${this._l("keep.note")}</span>
+          </label>
           ${
             dest.error
               ? html`<ha-alert alert-type="warning"
@@ -284,7 +312,14 @@ export class HaConfigCameraRecording extends LitElement {
                     </td>
                   </tr>
                   <tr class="amount-row">
-                    <td colspan="6">${this._renderAmount(dest, cam)}</td>
+                    <td colspan="6">
+                      ${this._renderAmount(dest, cam)}
+                      <ha-camera-watched-settings
+                        .hass=${this.hass}
+                        .entryId=${dest.entry_id}
+                        .entityId=${cam.entity_id}
+                      ></ha-camera-watched-settings>
+                    </td>
                   </tr>
                 `
               )}
@@ -414,6 +449,7 @@ export class HaConfigCameraRecording extends LitElement {
             : nothing
         }
         ${cam.provider_only ? this._renderLive(dest, cam) : nothing}
+        ${cam.check ? this._renderCheck(dest, cam, cam.check) : nothing}
         <p class="amount-note">${this._l("amount.keeps_existing")}</p>
         ${
           active === "light" && !cam.provider_only
@@ -428,7 +464,13 @@ export class HaConfigCameraRecording extends LitElement {
     dest: RecordingDestinationStatus,
     cam: RecordingCameraStatus
   ) {
-    const available = cam.live_reason !== "no_go2rtc";
+    const blocked =
+      cam.live_reason === "no_go2rtc" ||
+      cam.live_reason === "external_go2rtc" ||
+      cam.live_reason === "core_https"
+        ? cam.live_reason
+        : undefined;
+    const available = !blocked;
     return html`
       <div class="live">
         <label class="live-switch">
@@ -445,7 +487,7 @@ export class HaConfigCameraRecording extends LitElement {
           ${
             available
               ? this._l("amount.live_explain", { seconds: cam.clip_seconds })
-              : this._l("amount.live_no_go2rtc")
+              : this._l(`amount.live_${blocked ?? "no_go2rtc"}`)
           }
         </p>
         ${
@@ -495,6 +537,220 @@ export class HaConfigCameraRecording extends LitElement {
         }
       </div>
     `;
+  }
+
+  private _renderCheck(
+    dest: RecordingDestinationStatus,
+    cam: RecordingCameraStatus,
+    check: RecordingCheck
+  ) {
+    const program =
+      check.go2rtc_problem ??
+      (check.core_problem === "core_https" ? "core_https" : null);
+    const testing = this._testing.has(cam.entity_id);
+    const canTest = check.provider_only && !program && !check.recording_now;
+    const test = check.last_test;
+    const rows: [string, string][] = [
+      [
+        this._l("check.program"),
+        program ? this._l(`check.program_${program}`) : this._l("check.ready"),
+      ],
+      [
+        this._l("check.provider_only"),
+        this._l(check.provider_only ? "check.yes" : "check.no"),
+      ],
+      [
+        this._l("check.last_event"),
+        check.last_event
+          ? [
+              this._time(check.last_event.at),
+              check.last_event.kind
+                ? this._kindText(check.last_event.kind)
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : this._l("check.none_yet"),
+      ],
+      [
+        this._l("check.last_clip"),
+        check.last_clip
+          ? [
+              this._time(check.last_clip.at),
+              this._l(
+                check.last_clip.origin === "home"
+                  ? "check.from_home"
+                  : "check.from_service"
+              ),
+              this._l("check.length", {
+                seconds: Math.round(check.last_clip.duration),
+              }),
+              check.last_clip.cut_short ? this._l("check.cut_short") : "",
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : this._l("check.none_yet"),
+      ],
+      [
+        this._l("check.last_problem"),
+        check.last_problem
+          ? `${this._time(check.last_problem.at)} · ${this._reasonText(
+              check.last_problem.reason
+            )}`
+          : this._l("check.no_problem"),
+      ],
+      [
+        this._l("check.clips_left"),
+        this._l("check.clips_left_value", {
+          count: check.clips_left,
+          total: cam.clips_per_hour,
+        }),
+      ],
+    ];
+    return html`
+      <section class="check" aria-label=${this._l("check.title")}>
+        <h3>${this._l("check.title")}</h3>
+        <dl>
+          ${rows.map(
+            ([label, value]) =>
+              html`<div class="check-row">
+                <dt>${label}</dt>
+                <dd>${value}</dd>
+              </div>`
+          )}
+        </dl>
+        ${
+          check.provider_only
+            ? html`<div class="check-test">
+                <ha-button
+                  size="small"
+                  appearance="filled"
+                  .disabled=${!canTest || testing}
+                  .entryId=${dest.entry_id}
+                  .entity=${cam.entity_id}
+                  @click=${this._testClip}
+                >
+                  ${this._l(testing ? "check.testing" : "check.test")}
+                </ha-button>
+                <span class="amount-note">${this._l("check.test_note")}</span>
+              </div>`
+            : nothing
+        }
+        ${
+          test
+            ? html`<p
+                class="check-result ${test.ok ? "ok" : "bad"}"
+                role="status"
+              >
+                ${
+                  test.ok
+                    ? this._l("check.test_ok", {
+                        time: this._time(test.at),
+                        seconds: Math.round(test.duration ?? 0),
+                        size: bytesToString(test.size ?? 0),
+                      })
+                    : this._failedText(test.at, test.reason ?? "failed")
+                }
+              </p>`
+            : nothing
+        }
+      </section>
+    `;
+  }
+
+  private _kindText(kind: string): string {
+    const known = [
+      "doorbell_chime",
+      "camera_motion",
+      "camera_person",
+      "camera_sound",
+      "doorbell",
+      "motion",
+      "person",
+      "sound",
+      "ring",
+    ];
+    return known.includes(kind)
+      ? this._l(`check.kinds.${kind}`)
+      : this._l("check.kinds.other");
+  }
+
+  // The reason is put into the sentence in the sentence's own language, so
+  // the both-languages mode does not repeat it inside each half.
+  private _failedText(at: number, reason: string): string {
+    const prefix = "ui.panel.config.camera_recording.check";
+    return composeForMode(
+      this.hass.localize as unknown as (
+        key: string,
+        values?: Record<string, string | number>
+      ) => string,
+      (part) =>
+        part(`${prefix}.test_failed`, {
+          time: this._time(at),
+          reason: part(`${prefix}.reasons.${this._reasonCode(reason)}`),
+        })
+    );
+  }
+
+  private _reasonText(reason: string): string {
+    return this._l(`check.reasons.${this._reasonCode(reason)}`);
+  }
+
+  private _reasonCode(reason: string): string {
+    const known = [
+      "recording_off",
+      "rate_limited",
+      "timed_out",
+      "unsupported",
+      "storage_full",
+      "storage_unreachable",
+      "removed",
+      "no_media",
+      "failed",
+      "stream_ended",
+      "camera_busy",
+      "hourly_limit",
+      "busy",
+      "no_go2rtc",
+      "external_go2rtc",
+      "core_https",
+      "not_needed",
+      "no_http",
+    ];
+    return known.includes(reason) ? reason : "failed";
+  }
+
+  private async _testClip(ev: Event) {
+    const target = ev.currentTarget as HTMLElement & {
+      entryId: string;
+      entity: string;
+    };
+    const entity = target.entity;
+    this._testing = new Set(this._testing).add(entity);
+    try {
+      await recordTestClip(this.hass, target.entryId, entity);
+      this._problem = undefined;
+    } catch (err: unknown) {
+      this._problem = (err as Error | undefined)?.message ?? String(err);
+    }
+    const testing = new Set(this._testing);
+    testing.delete(entity);
+    this._testing = testing;
+    await this._load();
+  }
+
+  private async _keepDaysChanged(ev: Event) {
+    const target = ev.currentTarget as HTMLElement & {
+      entryId: string;
+      value: number;
+    };
+    try {
+      await setKeepDays(this.hass, target.entryId, Number(target.value));
+      this._problem = undefined;
+    } catch (err: unknown) {
+      this._problem = (err as Error | undefined)?.message ?? String(err);
+    }
+    await this._load();
   }
 
   private async _applyLive(
@@ -945,7 +1201,12 @@ export class HaConfigCameraRecording extends LitElement {
     .sliders label {
       display: flex;
       flex-direction: column;
+      gap: var(--ha-space-1);
       font-size: var(--ha-font-size-s);
+    }
+    .sliders ha-slider {
+      width: 100%;
+      margin-block: var(--ha-space-3);
     }
     .sources {
       display: flex;
@@ -971,6 +1232,77 @@ export class HaConfigCameraRecording extends LitElement {
       font: inherit;
       font-size: var(--ha-font-size-s);
       cursor: pointer;
+    }
+    .keep {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+      font-size: var(--ha-font-size-s);
+      margin-bottom: var(--ha-space-3);
+    }
+    /* The slider's touch area reaches past its own box, so it needs room
+       above and below or it sits over the label. */
+    .keep ha-slider {
+      width: 100%;
+      margin-block: var(--ha-space-3);
+    }
+    .check {
+      margin-top: var(--ha-space-2);
+      padding: var(--ha-space-3);
+      border-radius: var(--ha-border-radius-lg);
+      background: var(--secondary-background-color);
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      min-width: 0;
+    }
+    .check h3 {
+      margin: 0;
+      font-size: var(--ha-font-size-m);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .check dl {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .check-row {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+      gap: var(--ha-space-2);
+      padding: var(--ha-space-1) 0;
+      border-bottom: 1px solid var(--divider-color);
+      font-size: var(--ha-font-size-s);
+    }
+    .check-row:last-child {
+      border-bottom: none;
+    }
+    .check dt {
+      color: var(--secondary-text-color);
+      overflow-wrap: anywhere;
+    }
+    .check dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+    .check-test {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-2);
+    }
+    .check-result {
+      margin: 0;
+      font-size: var(--ha-font-size-s);
+    }
+    .check-result.bad {
+      color: var(--error-color);
+    }
+    @media (max-width: 450px) {
+      .check-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+      }
     }
     .problem {
       font-size: var(--ha-font-size-s);

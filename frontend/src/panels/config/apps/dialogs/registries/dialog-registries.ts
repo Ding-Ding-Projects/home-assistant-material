@@ -15,6 +15,9 @@ import { haStyle, haStyleDialog } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
 import type { RegistryDialogParams } from "./show-dialog-registries";
 
+import { LanguageModeController } from "../../../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../../../common/translations/localize";
+
 interface RegistryInput {
   registry?: string;
   username?: string;
@@ -43,6 +46,14 @@ const SCHEMA = [
 class AppsRegistriesDialog extends DirtyStateProviderMixin<RegistryInput>()(
   LitElement
 ) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _dialogParams?: RegistryDialogParams;
@@ -78,7 +89,7 @@ class AppsRegistriesDialog extends DirtyStateProviderMixin<RegistryInput>()(
       <ha-dialog
         .open=${this._open}
         @closed=${this._dialogClosed}
-        header-title=${this.hass.localize(
+        header-title=${this._modeLocalize(
           "ui.panel.config.apps.registries.add_title"
         )}
         .preventScrimClose=${this.isDirtyState}
@@ -97,7 +108,7 @@ class AppsRegistriesDialog extends DirtyStateProviderMixin<RegistryInput>()(
             @click=${this.closeDialog}
             appearance="plain"
           >
-            ${this.hass.localize("ui.common.cancel")}
+            ${this._modeLocalize("ui.common.cancel")}
           </ha-button>
           <ha-button
             slot="primaryAction"
@@ -109,7 +120,7 @@ class AppsRegistriesDialog extends DirtyStateProviderMixin<RegistryInput>()(
             .loading=${this._submitting}
             @click=${this._addRegistry}
           >
-            ${this.hass.localize("ui.panel.config.apps.registries.add")}
+            ${this._modeLocalize("ui.panel.config.apps.registries.add")}
           </ha-button>
         </ha-dialog-footer>
       </ha-dialog>
@@ -117,7 +128,7 @@ class AppsRegistriesDialog extends DirtyStateProviderMixin<RegistryInput>()(
   }
 
   private _computeLabel = (schema: SchemaUnion<typeof SCHEMA>) =>
-    this.hass.localize(`ui.panel.config.apps.registries.${schema.name}` as any);
+    this._modeLocalize(`ui.panel.config.apps.registries.${schema.name}` as any);
 
   private _valueChanged(ev: CustomEvent) {
     this._input = ev.detail.value;
@@ -139,7 +150,7 @@ class AppsRegistriesDialog extends DirtyStateProviderMixin<RegistryInput>()(
       this.closeDialog();
     } catch (err: any) {
       showAlertDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.apps.registries.failed_to_add"
         ),
         text: extractApiErrorMessage(err),

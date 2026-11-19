@@ -34,6 +34,9 @@ import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 interface HelpIndex {
   fetched: string;
   articles: HelpIndexEntry[];
@@ -52,6 +55,14 @@ type LoadState = "loading" | "ready" | "missing" | "error";
 /** The offline help: every bundled article, read in place. */
 @customElement("ha-config-help")
 class HaConfigHelp extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
@@ -161,7 +172,7 @@ class HaConfigHelp extends LitElement {
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
+    return this._modeLocalize(
       `ui.panel.config.help_page.${key}` as never,
       values as never
     ) as string;
@@ -183,7 +194,7 @@ class HaConfigHelp extends LitElement {
         .searchValue=${this._filter}
         .searchCountText=${
           this._filter && index
-            ? searchCountText(this.hass.localize, {
+            ? searchCountText(this._modeLocalize, {
                 current: index.articles.filter((a) =>
                   searchMatcher(this._filter)(a.title, a.path)
                 ).length,

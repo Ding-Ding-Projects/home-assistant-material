@@ -20,6 +20,7 @@ import { PageLockController } from "../../../common/locks/page-lock-controller";
 import {
   joinForMode,
   textParts,
+  withLanguageMode,
 } from "../../../common/language-mode/language-mode";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import type { LanguageMode } from "../../../common/preferences/personal-preferences";
@@ -54,6 +55,7 @@ import type { PageNavigation } from "../../../layouts/hass-tabs-subpage";
 import { ChildPanelReady } from "../../../layouts/panel-ready";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import { haStyle, haStyleScrollbar } from "../../../resources/styles";
+import type { LocalizeFunc } from "../../../common/translations/localize";
 import type { HomeAssistant } from "../../../types";
 import { isMobileClient } from "../../../util/is_mobile";
 import { configSections } from "../config-sections";
@@ -75,12 +77,14 @@ const randomTip = (
   hass: HomeAssistant,
   narrow: boolean
 ) => {
+  // The tips follow the language mode; they are picked once per visit.
+  const localize = withLanguageMode(hass.localize) as LocalizeFunc;
   const weighted: string[] = [];
   let tips = [
     {
-      content: hass.localize("ui.panel.config.tips.help_articles", {
+      content: localize("ui.panel.config.tips.help_articles", {
         help_link: html`<a href="#" @click=${openHelpFn}
-          >${hass.localize("ui.panel.config.tips.help_articles_link")}</a
+          >${localize("ui.panel.config.tips.help_articles_link")}</a
         >`,
       }),
       weight: 2,
@@ -91,30 +95,30 @@ const randomTip = (
   if (hass?.enableShortcuts && !isMobileClient) {
     const localizeParam = {
       keyboard_shortcut: html`<a href="#" @click=${openFn}
-        >${hass.localize("ui.tips.keyboard_shortcut")}</a
+        >${localize("ui.tips.keyboard_shortcut")}</a
       >`,
     };
 
     if (hass.user?.is_admin) {
       tips.push({
-        content: hass.localize("ui.tips.key_c_tip", localizeParam),
+        content: localize("ui.tips.key_c_tip", localizeParam),
         weight: 1,
         narrow: false,
       });
     }
     tips.push(
       {
-        content: hass.localize("ui.tips.key_m_tip", localizeParam),
+        content: localize("ui.tips.key_m_tip", localizeParam),
         weight: 1,
         narrow: false,
       },
       {
-        content: hass.localize("ui.tips.key_a_tip", localizeParam),
+        content: localize("ui.tips.key_a_tip", localizeParam),
         weight: 1,
         narrow: false,
       },
       {
-        content: hass.localize("ui.tips.key_shortcut_quick_search", {
+        content: localize("ui.tips.key_shortcut_quick_search", {
           ...localizeParam,
           modifier: ctrlOrCmdLabel(hass.localize),
         }),
@@ -379,10 +383,13 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           .value=${this._filter}
           .countText=${
             this._matches.total
-              ? searchCountText(this.hass.localize, {
-                  current: this._matches.shown,
-                  total: this._matches.total,
-                })
+              ? searchCountText(
+                  this._lang.cachedLocalizer(this.hass.localize),
+                  {
+                    current: this._matches.shown,
+                    total: this._matches.total,
+                  }
+                )
               : undefined
           }
           .open=${this._searchOpen}

@@ -36,6 +36,7 @@ from homeassistant.core import (
     HomeAssistant,
     callback,
 )
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
     async_track_state_change_event,
@@ -82,13 +83,14 @@ from .cost import CostTracker, PriceTable
 from .guards import guards_for
 from .model import Command, Ctx, Decision, Standdown, Touch
 from .pipeline import build_runtime, clamp_floor, decide
-from .reasons import Reason, reason_parts, restore_reason
+from .reasons import Reason, reason_from_parts, reason_parts
 from .siblings import check_band, sibling_of
 
 SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
 SIGNAL_GUARD_ACTED = f"{DOMAIN}_guard_acted_{{}}"
 SIGNAL_HANDOVER = f"{DOMAIN}_handover_{{}}"
 
+MISSING_KEYS = (CONF_ROOM_SENSOR, CONF_OUTDOOR, CONF_DOOR_SENSOR, CONF_PRESENCE)
 KEEP_SAMPLES = timedelta(hours=3)
 KEEP_TOUCHES = timedelta(hours=24)
 MAX_TOUCHES = 100
@@ -111,6 +113,29 @@ def _number(state: Any, attribute: str | None = None) -> float | None:
         return float(raw)
     except TypeError, ValueError:
         return None
+
+
+def _iso(value: datetime | None) -> str | None:
+    return value.isoformat() if value else None
+
+
+def _parse(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return dt_util.parse_datetime(value)
+    except ValueError:
+        return None
+
+
+class InvalidValue(ValueError):
+    """A refused value; the key and placeholders word it in any language."""
+
+    def __init__(self, key: str, message: str, **placeholders: Any) -> None:
+        """Keep the English message, the translation key and its values."""
+        super().__init__(message)
+        self.key = key
+        self.placeholders = {name: str(value) for name, value in placeholders.items()}
 
 
 class DefenderCoordinator:
@@ -147,6 +172,10 @@ class DefenderCoordinator:
         self._last_room: float | None = None
         self._last_action: str | None = None
         self._last_command_time: datetime | None = None
+        self._last_mode: str | None = None
+        self._missing: set[str] = set()
+        self.off_command_at: datetime | None = None
+        self.last_off_at: datetime | None = None
         self._unsubs: list[CALLBACK_TYPE] = []
         self._store: Store[dict[str, Any]] = Store(
             hass, STORAGE_VERSION, f"{entry.domain}.{entry.entry_id}"
@@ -210,14 +239,26 @@ class DefenderCoordinator:
                 "kind": pause.kind,
                 "until": pause.until.isoformat() if pause.until else None,
                 "reason": pause.reason,
+                "reason_parts": reason_parts(pause.reason),
                 "stop_everything": pause.stop_everything,
             }
             if pause
             else None,
             "last_acted": {
-                guard: {"time": item["time"].isoformat(), "reason": item["reason"]}
+                guard: {
+                    "time": item["time"].isoformat(),
+                    "reason": item["reason"],
+                    "parts": reason_parts(item["reason"]),
+                }
                 for guard, item in self.last_acted.items()
             },
+            "touches": [
+                [t.time.isoformat(), t.old, t.new, t.source, t.user_id]
+                for t in self.touches
+            ],
+            "commands": [[c.time.isoformat(), c.setpoint] for c in self.commands],
+            "off_command_at": _iso(self.off_command_at),
+            "last_off_at": _iso(self.last_off_at),
             "log": list(self.log),
             "holder": self.arbiter.holder if self.arbiter else None,
             "cost": {
@@ -242,12 +283,18 @@ class DefenderCoordinator:
                 self.pause = Standdown(
                     saved["kind"],
                     until,
-                    restore_reason(saved["reason"]),
+                    reason_from_parts(saved.get("reason_parts"), saved["reason"]),
                     saved["stop_everything"],
                 )
         for guard, item in data.get("last_acted", {}).items():
             if (when := dt_util.parse_datetime(item["time"])) is not None:
-                self.last_acted[guard] = {"time": when, "reason": item["reason"]}
+                reason = reason_from_parts(item.get("parts"), item["reason"])
+                self.last_acted[guard] = {
+                    "time": when,
+                    "reason": reason,
+                    "parts": reason_parts(reason),
+                }
+        self._restore_history(data)
         self.log.extend(data.get("log", []))
         saved_cost = data.get("cost", {})
         cost = self.cost
@@ -262,6 +309,30 @@ class DefenderCoordinator:
         }
         self.restored_holder = data.get("holder")
         return True
+
+    def _restore_history(self, data: dict[str, Any]) -> None:
+        """Bring back touches, commands and off times, pruned as when they were kept.
+
+        The original keeps these across a restart, so pacing guards do not
+        forget a touch or a command just because Home Assistant restarted.
+        """
+        for item in data.get("touches", []):
+            try:
+                when = dt_util.parse_datetime(item[0])
+                if when is not None:
+                    self.touches.append(Touch(when, item[1], item[2], item[3], item[4]))
+            except IndexError, TypeError, ValueError:
+                continue
+        for item in data.get("commands", []):
+            try:
+                when = dt_util.parse_datetime(item[0])
+                if when is not None:
+                    self.commands.append(Command(when, item[1]))
+            except IndexError, TypeError, ValueError:
+                continue
+        self.off_command_at = _parse(data.get("off_command_at"))
+        self.last_off_at = _parse(data.get("last_off_at"))
+        self._prune(dt_util.utcnow())
 
     async def async_save(self) -> None:
         """Write the state now."""
@@ -362,6 +433,10 @@ class DefenderCoordinator:
             self.room_samples.append((now, room))
         if outdoor is not None:
             self.outdoor_samples.append((now, outdoor))
+        mode = climate.state if climate else None
+        if climate is not None and mode == "off" and self._last_mode != "off":
+            self._note_off(climate.last_changed)
+        self._last_mode = mode
         action = attrs.get(ATTR_HVAC_ACTION)
         if action != self._last_action:
             self._last_action = action
@@ -423,7 +498,14 @@ class DefenderCoordinator:
             preset_mode=preset,
             protective_preset=preset in PROTECTIVE_PRESETS,
             last_command_time=self._last_command_time,
+            off_command_at=self.off_command_at,
+            last_off_at=self.last_off_at,
         )
+
+    def _note_off(self, when: datetime) -> None:
+        """Keep the latest moment the unit was turned off or seen off."""
+        if self.last_off_at is None or when > self.last_off_at:
+            self.last_off_at = when
 
     def _prune(self, now: datetime) -> None:
         self.room_samples = [s for s in self.room_samples if now - s[0] < KEEP_SAMPLES]
@@ -459,6 +541,7 @@ class DefenderCoordinator:
             async_dispatcher_send(self.hass, self.signal)
             return self.decision
         self._waiting_fresh = False
+        self._report_missing_entities()
         decision = decide(ctx, self.guards, self.pause)
         self.decision = decision
         sent = True
@@ -484,6 +567,32 @@ class DefenderCoordinator:
         self._store.async_delay_save(self._data_to_save, SAVE_DELAY_SECONDS)
         async_dispatcher_send(self.hass, self.signal)
         return decision
+
+    def _report_missing_entities(self) -> None:
+        """Raise a repair issue for each chosen sensor that no longer exists."""
+        for key in MISSING_KEYS:
+            entity_id = option(self.entry, key)
+            missing = bool(entity_id) and self.hass.states.get(entity_id) is None
+            if missing == (key in self._missing):
+                continue
+            issue_id = f"missing_{key}_{self.entry.entry_id}"
+            if missing:
+                self._missing.add(key)
+                ir.async_create_issue(
+                    self.hass,
+                    self.entry.domain,
+                    issue_id,
+                    is_fixable=False,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="missing_entity",
+                    translation_placeholders={
+                        "entity_id": entity_id,
+                        "title": self.entry.title,
+                    },
+                )
+            else:
+                self._missing.discard(key)
+                ir.async_delete_issue(self.hass, self.entry.domain, issue_id)
 
     def _reading_is_fresh(self, now: datetime) -> bool:
         """Return True once the device has reported since the start, or after the cap."""
@@ -554,9 +663,16 @@ class DefenderCoordinator:
             blocking=False,
             context=context,
         )
-        message = f"band: low {arbiter.low}, high {arbiter.high} (the two defenders share one band)"
+        reason = Reason("shared_band", low=arbiter.low, high=arbiter.high)
+        message = f"band: low {arbiter.low}, high {arbiter.high} ({reason})"
         self.add_log(
-            "command", "band", message, now, low=arbiter.low, high=arbiter.high
+            "command",
+            "band",
+            message,
+            now,
+            low=arbiter.low,
+            high=arbiter.high,
+            reason_parts=reason_parts(reason),
         )
 
     async def _send(self, decision: Decision, now: datetime) -> None:
@@ -581,6 +697,9 @@ class DefenderCoordinator:
             Command(now, decision.value if action == "set_temperature" else None)
         )
         self._last_command_time = now
+        if data.get("hvac_mode") == HVACMode.OFF:
+            self.off_command_at = now
+            self._note_off(now)
         if self.arbiter is not None:
             self.arbiter.note_command(self.role, now)
         guard = decision.guard or "defender"
@@ -695,14 +814,20 @@ class DefenderCoordinator:
         try:
             check_band(ac_temp, mode, heat_cap, use_floor)
         except BandError as err:
-            raise ValueError(str(err)) from err
+            raise InvalidValue(str(err), str(err)) from err
 
     def validate_floor(self, value: float) -> float:
         """Return a valid floor or raise ValueError; it can never be under the hard minimum."""
         if value < HARD_FLOOR:
-            raise ValueError(f"The floor cannot be lower than {HARD_FLOOR}")
+            raise InvalidValue(
+                "floor_below_minimum",
+                f"The floor cannot be lower than {HARD_FLOOR}",
+                minimum=HARD_FLOOR,
+            )
         if self.heat_mode == HEAT_MODE_CAP and value >= self.my_temp:
-            raise ValueError("The floor must be below the temperature cap")
+            raise InvalidValue(
+                "floor_not_below_cap", "The floor must be below the temperature cap"
+            )
         self._check_band(self.my_temp, value)
         return value
 
@@ -725,11 +850,26 @@ class DefenderCoordinator:
         low = _number(state, ATTR_MIN_TEMP)
         high = _number(state, ATTR_MAX_TEMP)
         if low is not None and value < low:
-            raise ValueError(f"{value} is below the device minimum of {low}")
+            raise InvalidValue(
+                "below_device_minimum",
+                f"{value} is below the device minimum of {low}",
+                value=value,
+                minimum=low,
+            )
         if high is not None and value > high:
-            raise ValueError(f"{value} is above the device maximum of {high}")
+            raise InvalidValue(
+                "above_device_maximum",
+                f"{value} is above the device maximum of {high}",
+                value=value,
+                maximum=high,
+            )
         if self.floor is not None and value <= self.floor:
-            raise ValueError(f"{value} must be above the floor of {self.floor}")
+            raise InvalidValue(
+                "not_above_floor",
+                f"{value} must be above the floor of {self.floor}",
+                value=value,
+                floor=self.floor,
+            )
         self._check_band(value, self.floor)
         return value
 

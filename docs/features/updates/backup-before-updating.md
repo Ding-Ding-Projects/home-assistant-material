@@ -52,5 +52,6 @@ Update button made no backup before; it now follows the choice.
 ## How it was verified
 
 Server part: 128 tests pass. Frontend: 398 tests in the affected folders (plus `backup-choice.test.ts`
-for the Custom fix). The per-app row was seen in a real run of build 523. Not yet seen: Custom
-staying selected, and a real update that makes a backup of a chosen app.
+for the Custom fix). The per-app row was seen in a real run of build 523. "Custom" staying
+selected was seen in a real run of build 2026.11.1.524. Not yet seen: a real update that makes a
+backup of a chosen app.

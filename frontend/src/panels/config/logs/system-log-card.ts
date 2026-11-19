@@ -36,8 +36,18 @@ import { showSystemLogDetailDialog } from "./show-dialog-system-log-detail";
 import { formatSystemLogTime } from "./util";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 @customElement("system-log-card")
 export class SystemLogCard extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property() public filter = "";
@@ -81,7 +91,7 @@ export class SystemLogCard extends LitElement {
   }
 
   private _multipleMessages(item: LoggedError): string {
-    return this.hass.localize("ui.panel.config.logs.multiple_messages", {
+    return this._modeLocalize("ui.panel.config.logs.multiple_messages", {
       time: formatSystemLogTime(
         item.first_occurred,
         this.hass.locale,
@@ -134,7 +144,7 @@ export class SystemLogCard extends LitElement {
       !this._showAllLevels && !!this.levels && this.levels.length === 0;
     const filteredItems = this._items
       ? this._getFilteredItems(
-          this.hass.localize,
+          this._modeLocalize,
           this._items,
           this.filter,
           this.integrations?.length ? this.integrationLoggers : undefined,
@@ -162,7 +172,7 @@ export class SystemLogCard extends LitElement {
                         : html`<h1 class="card-header">
                             ${
                               this.header ||
-                              this.hass.localize("ui.panel.config.logs.caption")
+                              this._modeLocalize("ui.panel.config.logs.caption")
                             }
                           </h1>`
                     }
@@ -173,7 +183,7 @@ export class SystemLogCard extends LitElement {
                           : html`<ha-icon-button
                               .path=${mdiDownload}
                               @click=${this._downloadLogs}
-                              .label=${this.hass.localize(
+                              .label=${this._modeLocalize(
                                 "ui.panel.config.logs.download_logs"
                               )}
                             ></ha-icon-button>`
@@ -181,7 +191,7 @@ export class SystemLogCard extends LitElement {
                       <ha-icon-button
                         .path=${mdiRefresh}
                         @click=${this.fetchData}
-                        .label=${this.hass.localize("ui.common.refresh")}
+                        .label=${this._modeLocalize("ui.common.refresh")}
                       ></ha-icon-button>
 
                       ${
@@ -194,14 +204,14 @@ export class SystemLogCard extends LitElement {
                               <ha-icon-button
                                 slot="trigger"
                                 .path=${mdiDotsVertical}
-                                .label=${this.hass.localize("ui.common.menu")}
+                                .label=${this._modeLocalize("ui.common.menu")}
                               ></ha-icon-button>
                               <ha-dropdown-item value="show-full-logs">
                                 <ha-svg-icon
                                   slot="icon"
                                   .path=${mdiText}
                                 ></ha-svg-icon>
-                                ${this.hass.localize(
+                                ${this._modeLocalize(
                                   "ui.panel.config.logs.show_full_logs"
                                 )}
                               </ha-dropdown-item>
@@ -212,7 +222,7 @@ export class SystemLogCard extends LitElement {
                   ${
                     logFileDownloadUnavailableReason
                       ? html`<ha-alert alert-type="warning">
-                          ${this.hass.localize(
+                          ${this._modeLocalize(
                             `ui.panel.config.logs.log_file_disabled.${logFileDownloadUnavailableReason}`
                           )}
                         </ha-alert>`
@@ -222,13 +232,13 @@ export class SystemLogCard extends LitElement {
                     this._items.length === 0
                       ? html`
                           <div class="card-content empty-content">
-                            ${this.hass.localize("ui.panel.config.logs.no_issues")}
+                            ${this._modeLocalize("ui.panel.config.logs.no_issues")}
                           </div>
                         `
                       : levelsHideAll
                         ? html`<div class="card-content empty-content">
                             <p class="levels-hidden">
-                              ${this.hass.localize(
+                              ${this._modeLocalize(
                                 "ui.panel.config.logs.levels_hidden"
                               )}
                             </p>
@@ -236,7 +246,7 @@ export class SystemLogCard extends LitElement {
                               appearance="plain"
                               @click=${this._showEveryLevel}
                             >
-                              ${this.hass.localize(
+                              ${this._modeLocalize(
                                 "ui.panel.config.logs.show_all_levels"
                               )}
                             </ha-button>
@@ -246,18 +256,18 @@ export class SystemLogCard extends LitElement {
                           ? html`<div class="card-content">
                               ${
                                 this.filter
-                                  ? this.hass.localize(
+                                  ? this._modeLocalize(
                                       "ui.panel.config.logs.no_issues_search",
                                       { term: this.filter }
                                     )
-                                  : this.hass.localize(
+                                  : this._modeLocalize(
                                       "ui.panel.config.logs.no_issues_integration",
                                       {
                                         integration: formatListWithAnds(
                                           this.hass.locale,
                                           this.integrations!.map((domain) =>
                                             domainToName(
-                                              this.hass.localize,
+                                              this._modeLocalize,
                                               domain
                                             )
                                           )
@@ -278,18 +288,18 @@ export class SystemLogCard extends LitElement {
                                     <span slot="secondary" class="secondary">
                                       ${this._timestamp(item)} –
                                       ${html`(<span class=${item.level}
-                                          >${this.hass.localize(
+                                          >${this._modeLocalize(
                                             `ui.panel.config.logs.level.${item.level}`
                                           )}</span
                                         >) `}
                                       ${
                                         integrations[idx]
                                           ? `${domainToName(
-                                              this.hass!.localize,
+                                              this._modeLocalize,
                                               integrations[idx]!
                                             )}${
                                               isCustomIntegrationError(item)
-                                                ? ` (${this.hass.localize(
+                                                ? ` (${this._modeLocalize(
                                                     "ui.panel.config.logs.custom_integration"
                                                   )})`
                                                 : ""
@@ -312,7 +322,7 @@ export class SystemLogCard extends LitElement {
 
                   <div class="card-actions">
                     <ha-call-service-button domain="system_log" service="clear"
-                      >${this.hass.localize(
+                      >${this._modeLocalize(
                         "ui.panel.config.logs.clear"
                       )}</ha-call-service-button
                     >
@@ -337,7 +347,7 @@ export class SystemLogCard extends LitElement {
     // Tell the page how many logged problems the search and levels leave, so
     // the top bar can show "n of total".
     const current = this._getFilteredItems(
-      this.hass.localize,
+      this._modeLocalize,
       this._items,
       this.filter,
       this.integrations?.length ? this.integrationLoggers : undefined,

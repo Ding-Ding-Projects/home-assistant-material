@@ -11,8 +11,19 @@ import type { ConfigEntryExtended } from "./ha-config-integrations";
 import "./ha-integration-action-card";
 import "../../../components/ha-button";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 @customElement("ha-ignored-config-entry-card")
 export class HaIgnoredConfigEntryCard extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public entry!: ConfigEntryExtended;
@@ -24,7 +35,7 @@ export class HaIgnoredConfigEntryCard extends LitElement {
       <ha-integration-action-card
         .hass=${this.hass}
         .manifest=${this.manifest}
-        .banner=${this.hass.localize(
+        .banner=${this._modeLocalize(
           "ui.panel.config.integrations.ignore.ignored"
         )}
         .domain=${this.entry.domain}
@@ -38,7 +49,7 @@ export class HaIgnoredConfigEntryCard extends LitElement {
         }
       >
         <ha-button appearance="plain" @click=${this._removeIgnoredIntegration}>
-          ${this.hass.localize(
+          ${this._modeLocalize(
             "ui.panel.config.integrations.ignore.stop_ignore"
           )}
         </ha-button>
@@ -48,21 +59,21 @@ export class HaIgnoredConfigEntryCard extends LitElement {
 
   private async _removeIgnoredIntegration() {
     showConfirmationDialog(this, {
-      title: this.hass!.localize(
+      title: this._modeLocalize(
         "ui.panel.config.integrations.ignore.confirm_delete_ignore_title",
         { name: this.hass.localize(`component.${this.entry.domain}.title`) }
       ),
-      text: this.hass!.localize(
+      text: this._modeLocalize(
         "ui.panel.config.integrations.ignore.confirm_delete_ignore"
       ),
-      confirmText: this.hass!.localize(
+      confirmText: this._modeLocalize(
         "ui.panel.config.integrations.ignore.stop_ignore"
       ),
       confirm: async () => {
         const result = await deleteConfigEntry(this.hass, this.entry.entry_id);
         if (result.require_restart) {
           showToast(this, {
-            message: this.hass.localize(
+            message: this._modeLocalize(
               "ui.panel.config.integrations.config_entry.restart_confirm"
             ),
             duration: -1,

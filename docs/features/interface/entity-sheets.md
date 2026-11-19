@@ -51,7 +51,20 @@ triggers and conditions. Eight faults were found and fixed:
   because the saved height was thrown away; it holds now. Disabled sheet buttons get a thin
   outline in the light theme, because their fill was 1.24 to 1 against white.
 - **Height changes glide** instead of jumping (`c9e3a5e67`). Build 523 still jumps between tabs.
-  Tested; not yet seen in a real run.
+  Tested; the glide is in build 524 but was not recorded as seen in its real run.
+- **More Cantonese** (`6e399887e`, in build 525). About 240 control labels on the sheets, the
+  details table, the related list and relative times such as "5 minutes ago" follow the language
+  mode. See
+  [`../language-and-voice/entity-words-and-stacked-labels.md`](../language-and-voice/entity-words-and-stacked-labels.md).
+- **Both-language tab bar** (`44d5a60e5`, in build 525). The four tabs at the foot of a sheet
+  stack English over smaller Cantonese: one row, 44 px targets, a 61 px bar in every mode, instead
+  of two rows taking a third of a 320 px screen. Related list rows reach 44 px. Seen in a browser
+  at 390 and 320 px.
+- **State words follow the mode** (`6db767de3`, on main, not built). On, Off, Open, Closed and
+  similar words, attribute names and weekday names in the weather sheet follow the language mode.
+- **History tab glide** (`6db767de3`, on main, not built). The History tab no longer jumps a
+  second time when its content arrives. Fan speed buttons and sensor range chips stack the two
+  languages on one row. Unit-tested only.
 
 ## Verification
 
@@ -63,7 +76,9 @@ triggers and conditions. Eight faults were found and fixed:
   actions tried in pass 1. After pass 3, touch targets on a few controls may still be under 44 px
   in places the test did not reach (pass 2 recorded some as still under 44 px; pass 3 addressed
   sheet buttons; inferred, not re-measured everywhere).
-- Not seen: most sheets in both-language mode (stated at `ecc3e18ef`).
+- Not seen: most sheets in both-language mode (stated at `ecc3e18ef`). The tab bar in
+  both-language mode was seen at 390 and 320 px (`44d5a60e5`); the other sheet controls in that
+  mode were not recorded as seen.
 - Differences from the board recorded after pass 1 and not stated as fixed since: a media player
   shows volume before transport, the humidifier ring and one numeral are still large, and the
   light and cover bars were tall (pass 2 changed these to wide bars; not re-measured against the

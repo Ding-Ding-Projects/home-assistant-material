@@ -114,7 +114,7 @@ class HaConfigGuidedSetup extends LitElement {
     if (this._filter.trim() === "" || !this._catalog || this._active) {
       return undefined;
     }
-    return searchCountText(this.hass.localize, {
+    return searchCountText(this._lang.cachedLocalizer(this.hass.localize), {
       current: this._shown().length,
       total: this._catalog.integrations.length,
     });

@@ -18,7 +18,15 @@ import "../../components/ha-dropdown";
 import "../../components/ha-dropdown-item";
 import "../../components/ha-icon-button";
 import "../../components/ha-icon-button-arrow-prev";
+import "../../components/ha-tab-group";
+import "../../components/ha-tab-group-tab";
 import "../../components/ha-top-app-bar-fixed";
+import { searchCountText } from "../../components/ha-top-bar-search";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
+import {
+  renderStackedLabel,
+  stackedLabelStyles,
+} from "../../common/language-mode/stacked-label";
 import "../../components/media-player/ha-media-manage-button";
 import "../../components/media-player/ha-media-player-browse";
 import type {
@@ -39,8 +47,11 @@ import type { ResolvedMediaSource } from "../../data/media_source";
 import { resolveMediaSource } from "../../data/media_source";
 import { showAlertDialog } from "../../dialogs/generic/show-dialog-box";
 import { haStyle } from "../../resources/styles";
+import type { LocalizeFunc } from "../../common/translations/localize";
 import type { HomeAssistant, Route } from "../../types";
 import "./ha-bar-media-player";
+import "./linked/ha-linked-media";
+import type { HaLinkedMedia } from "./linked/ha-linked-media";
 import type { BarMediaPlayer } from "./ha-bar-media-player";
 import { showWebBrowserPlayMediaDialog } from "./show-media-player-dialog";
 import type { HaDropdownSelectEvent } from "../../components/ha-dropdown";
@@ -92,6 +103,28 @@ class PanelMediaBrowser extends LitElement {
 
   @query("ha-bar-media-player") private _player!: BarMediaPlayer;
 
+  @query("ha-linked-media") private _linked?: HaLinkedMedia;
+
+  /** My media is the media browser; Linked lists files that live at a web address. */
+  @state()
+  @storage({
+    key: "mediaBrowserTab",
+    state: true,
+    subscribe: false,
+  })
+  private _tab: "mine" | "linked" = "mine";
+
+  @state() private _linkedFilter = "";
+
+  @state() private _linkedSearchOpen = false;
+
+  // Draws the tabs again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   public connectedCallback(): void {
     super.connectedCallback();
     window.addEventListener(MEDIA_LIBRARY_CHANGED_EVENT, this._libraryChanged);
@@ -139,6 +172,32 @@ class PanelMediaBrowser extends LitElement {
               : this._currentItem.title
           }
         </h1>
+        ${
+          this._tab === "linked"
+            ? html`<ha-top-bar-search
+                slot="actionItems"
+                .localize=${this.hass.localize}
+                .label=${this._modeLocalize(
+                  "ui.panel.media-browser.linked.search"
+                )}
+                .value=${this._linkedFilter}
+                .open=${this._linkedSearchOpen}
+                .wide=${!this.narrow}
+                .patternSamples=${this._linked?.searchSamples}
+                .countText=${
+                  this._linkedFilter
+                    ? searchCountText(this.hass.localize, {
+                        current: this._linked?.shownCount ?? 0,
+                        total: this._linked?.searchSamples.length ?? 0,
+                      })
+                    : undefined
+                }
+                @top-bar-search-open=${this._openLinkedSearch}
+                @top-bar-search-close=${this._closeLinkedSearch}
+                @top-bar-search-input=${this._linkedSearchInput}
+              ></ha-top-bar-search>`
+            : nothing
+        }
         <ha-media-manage-button
           slot="actionItems"
           .currentItem=${this._currentItem}
@@ -196,13 +255,44 @@ class PanelMediaBrowser extends LitElement {
             <ha-svg-icon slot="icon" .path=${mdiListBoxOutline}></ha-svg-icon>
           </ha-dropdown-item>
         </ha-dropdown>
-        <ha-media-player-browse
-          .entityId=${this._entityId}
-          .navigateIds=${this._navigateIds}
-          .preferredLayout=${this._preferredLayout}
-          @media-picked=${this._mediaPicked}
-          @media-browsed=${this._mediaBrowsed}
-        ></ha-media-player-browse>
+        ${
+          this._navigateIds.length === 1
+            ? html`<ha-tab-group @wa-tab-show=${this._tabChanged}>
+                <ha-tab-group-tab
+                  slot="nav"
+                  panel="mine"
+                  .active=${this._tab === "mine"}
+                  >${renderStackedLabel(
+                    this._modeLocalize("ui.panel.media-browser.tabs.mine")
+                  )}</ha-tab-group-tab
+                >
+                <ha-tab-group-tab
+                  slot="nav"
+                  panel="linked"
+                  .active=${this._tab === "linked"}
+                  >${renderStackedLabel(
+                    this._modeLocalize("ui.panel.media-browser.tabs.linked")
+                  )}</ha-tab-group-tab
+                >
+              </ha-tab-group>`
+            : nothing
+        }
+        ${
+          this._tab === "linked" && this._navigateIds.length === 1
+            ? html`<ha-linked-media
+                .hass=${this.hass}
+                .filter=${this._linkedFilter}
+                @linked-shown-changed=${this._linkedShownChanged}
+              ></ha-linked-media>`
+            : html`<ha-media-player-browse
+                class=${this._navigateIds.length === 1 ? "with-tabs" : ""}
+                .entityId=${this._entityId}
+                .navigateIds=${this._navigateIds}
+                .preferredLayout=${this._preferredLayout}
+                @media-picked=${this._mediaPicked}
+                @media-browsed=${this._mediaBrowsed}
+              ></ha-media-player-browse>`
+        }
       </ha-top-app-bar-fixed>
       <ha-bar-media-player
         .hass=${this.hass}
@@ -211,6 +301,33 @@ class PanelMediaBrowser extends LitElement {
         @player-picked=${this._playerPicked}
       ></ha-bar-media-player>
     `;
+  }
+
+  private _tabChanged(ev: CustomEvent<{ name: string }>) {
+    const tab = ev.detail.name === "linked" ? "linked" : "mine";
+    if (tab !== this._tab) {
+      this._tab = tab;
+      this._linkedFilter = "";
+      this._linkedSearchOpen = false;
+    }
+  }
+
+  private _openLinkedSearch() {
+    this._linkedSearchOpen = true;
+  }
+
+  private _closeLinkedSearch() {
+    this._linkedSearchOpen = false;
+    this._linkedFilter = "";
+  }
+
+  private _linkedSearchInput(ev: CustomEvent<{ value: string }>) {
+    this._linkedFilter = ev.detail.value;
+  }
+
+  // The count in the search field follows the rows the list shows.
+  private _linkedShownChanged() {
+    this.requestUpdate();
   }
 
   private _addMedia() {
@@ -377,13 +494,47 @@ class PanelMediaBrowser extends LitElement {
   }
 
   private _refreshMedia() {
-    this._browser.refresh();
+    this._browser?.refresh();
   }
 
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      stackedLabelStyles,
       css`
+        ha-tab-group {
+          border-bottom: 1px solid var(--divider-color);
+        }
+
+        /* The tabs take 48 px of the height the browser is given. */
+        ha-media-player-browse.with-tabs {
+          height: calc(
+            100vh -
+              (
+                148px +
+                  var(--total-top-app-bar-height, var(--header-height, 0px)) +
+                  var(--safe-area-inset-top, 0px) +
+                  var(--safe-area-inset-bottom, 0px)
+              )
+          );
+        }
+
+        :host([narrow]) ha-media-player-browse.with-tabs {
+          height: calc(
+            100vh -
+              (
+                116px +
+                  var(--total-top-app-bar-height, var(--header-height, 0px)) +
+                  var(--safe-area-inset-top, 0px) +
+                  var(--safe-area-inset-bottom, 0px)
+              )
+          );
+        }
+
+        ha-linked-media {
+          padding-bottom: 100px;
+        }
+
         ha-media-manage-button {
           --mdc-theme-primary: var(--app-header-text-color);
         }

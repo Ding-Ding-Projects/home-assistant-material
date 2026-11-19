@@ -165,6 +165,8 @@ import { draftText } from "./editor-frame/draft-strings";
 import { exportConfigs } from "./editor-frame/transfer-actions";
 import type { ExportMode } from "./editor-frame/transfer-actions";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 const renderIconBadge = (path: string, color: string) => html`
   <div
     style=${styleMap({
@@ -203,6 +205,14 @@ type AutomationItem = AutomationEntity & {
 
 @customElement("ha-automation-picker")
 class HaAutomationPicker extends SubscribeMixin(LitElement) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
@@ -465,7 +475,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
           groupable: true,
           urlName: "state",
           type: "overflow",
-          title: this.hass.localize("ui.panel.config.automation.picker.state"),
+          title: this._modeLocalize("ui.panel.config.automation.picker.state"),
           template: (automation) =>
             narrow
               ? automation.state === "off"
@@ -483,13 +493,13 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         actions: {
           lastFixed: true,
           title: "",
-          label: this.hass.localize("ui.panel.config.generic.headers.actions"),
+          label: this._modeLocalize("ui.panel.config.generic.headers.actions"),
           type: "icon-button",
           showNarrow: true,
           template: (automation) => html`
             <ha-icon-button
               .automation=${automation}
-              .label=${this.hass.localize("ui.common.overflow_menu")}
+              .label=${this._modeLocalize("ui.common.overflow_menu")}
               .path=${mdiDotsVertical}
               @click=${this._showOverflowMenu}
             ></ha-icon-button>
@@ -600,7 +610,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
   }
 
   private _describeTriggers(config: AutomationConfig): string | undefined {
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     if ("use_blueprint" in config) {
       const path = config.use_blueprint.path;
       const blueprint = this._blueprints?.[path];
@@ -690,7 +700,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
     if (chip === "blueprint" && !this._blueprints) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const options = this._chipOptions(chip);
     const { selected, total } = this._chipSelected(chip);
     const value =
@@ -774,12 +784,12 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
 
   /** How many automations there are, and how many of them are on. */
   private _summary(automations: { state: string }[]): string {
-    const count = this.hass.localize(
+    const count = this._modeLocalize(
       "ui.panel.config.automation.picker.summary",
       { number: automations.length }
     );
     return automations.length
-      ? `${count}. ${this.hass.localize(
+      ? `${count}. ${this._modeLocalize(
           "ui.panel.config.automation.picker.summary_on",
           {
             number: automations.filter(
@@ -791,7 +801,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
   }
 
   private _footerFor = (shown: number): string =>
-    this.hass.localize("ui.panel.config.automation.picker.footer", {
+    this._modeLocalize("ui.panel.config.automation.picker.footer", {
       shown,
       total: this.automations.length,
     });
@@ -815,13 +825,13 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         id="entity_id"
         .route=${this.route}
         .tabs=${configSections.automations}
-        .searchLabel=${this.hass.localize(
+        .searchLabel=${this._modeLocalize(
           "ui.panel.config.automation.picker.search",
           { number: automations.length }
         )}
         .summary=${this._summary(automations)}
         .statistics=${withFilterKeys(
-          buildListStatistics(this.hass.localize, {
+          buildListStatistics(this._modeLocalize, {
             total: this.automations.length,
             shown: automations.length,
             selected: this._selected.length,
@@ -844,7 +854,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
           []
         )}
         @statistic-selected=${this._clearFilter}
-        .emptyActionLabel=${this.hass.localize(
+        .emptyActionLabel=${this._modeLocalize(
           "ui.panel.config.automation.picker.add_automation"
         )}
         @empty-action=${this._createNew}
@@ -867,7 +877,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
                 )
           ).length
         }
-        .columns=${this._columns(this.narrow, this.hass.localize, automations)}
+        .columns=${this._columns(this.narrow, this._modeLocalize, automations)}
         .initialGroupColumn=${this._tableSettings.grouping}
         .initialCollapsedGroups=${this._activeCollapsed}
         .initialSorting=${this._tableSettings.sorting}
@@ -880,7 +890,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         .data=${automations}
         .empty=${!this.automations.length}
         @row-click=${this._handleRowClicked}
-        .noDataText=${this.hass.localize(
+        .noDataText=${this._modeLocalize(
           "ui.panel.config.automation.picker.no_automations"
         )}
         @clear-filter=${this._clearFilter}
@@ -893,7 +903,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
       >
         <ha-icon-button
           slot="toolbar-icon"
-          .label=${this.hass.localize("ui.common.help")}
+          .label=${this._modeLocalize("ui.common.help")}
           .path=${mdiHelpCircleOutline}
           @click=${this._showHelp}
         ></ha-icon-button>
@@ -970,17 +980,17 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
             ? html`<div class="empty" slot="empty">
                 <ha-svg-icon .path=${mdiRobotHappy}></ha-svg-icon>
                 <h2>
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.automation.picker.empty_header"
                   )}
                 </h2>
                 <p>
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.automation.picker.empty_text_1"
                   )}
                 </p>
                 <p>
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.automation.picker.empty_text_2",
                     { user: this.hass.user?.name || "Alice" }
                   )}
@@ -992,7 +1002,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
                   rel="noreferrer"
                   size="s"
                 >
-                  ${this.hass.localize("ui.panel.config.common.learn_more")}
+                  ${this._modeLocalize("ui.panel.config.common.learn_more")}
                   <ha-svg-icon slot="end" .path=${mdiOpenInNew}> </ha-svg-icon>
                 </ha-button>
               </div>`
@@ -1000,7 +1010,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         }
         <ha-button slot="fab" size="l" @click=${this._createNew}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize(
+          ${this._modeLocalize(
             "ui.panel.config.automation.picker.add_automation"
           )}
         </ha-button>
@@ -1030,7 +1040,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
                     slot="start"
                     .path=${mdiToggleSwitch}
                   ></ha-svg-icon>
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.automation.picker.bulk_actions.enable"
                   )}
                 </ha-button>
@@ -1045,7 +1055,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
                     slot="start"
                     .path=${mdiToggleSwitchOffOutline}
                   ></ha-svg-icon>
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.automation.picker.bulk_actions.disable"
                   )}
                 </ha-button>
@@ -1076,7 +1086,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
                     appearance="outlined"
                     variant="brand"
                   >
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.automation.picker.bulk_actions.move_category"
                     )}
                     <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
@@ -1090,7 +1100,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
                     appearance="outlined"
                     variant="brand"
                   >
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.automation.picker.bulk_actions.add_label"
                     )}
                     <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
@@ -1104,7 +1114,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
                     appearance="outlined"
                     variant="brand"
                   >
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.devices.picker.bulk_actions.move_area"
                     )}
                     <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
@@ -1123,34 +1133,34 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
       >
         <ha-dropdown-item value="show_info">
           <ha-svg-icon .path=${mdiInformationOutline} slot="icon"></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.automation.editor.show_info")}
+          ${this._modeLocalize("ui.panel.config.automation.editor.show_info")}
         </ha-dropdown-item>
 
         <ha-dropdown-item value="show_settings">
           <ha-svg-icon .path=${mdiCog} slot="icon"></ha-svg-icon>
-          ${this.hass.localize(
+          ${this._modeLocalize(
             "ui.panel.config.automation.picker.show_settings"
           )}
         </ha-dropdown-item>
         <ha-dropdown-item value="edit_category">
           <ha-svg-icon .path=${mdiTag} slot="icon"></ha-svg-icon>
-          ${this.hass.localize(
+          ${this._modeLocalize(
             `ui.panel.config.automation.picker.${this._overflowAutomation?.category ? "edit_category" : "assign_category"}`
           )}
         </ha-dropdown-item>
         <ha-dropdown-item value="run_actions">
           <ha-svg-icon .path=${mdiPlay} slot="icon"></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.automation.editor.run")}
+          ${this._modeLocalize("ui.panel.config.automation.editor.run")}
         </ha-dropdown-item>
         <ha-dropdown-item value="show_trace">
           <ha-svg-icon .path=${mdiTransitConnection} slot="icon"></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.automation.editor.show_trace")}
+          ${this._modeLocalize("ui.panel.config.automation.editor.show_trace")}
         </ha-dropdown-item>
         ${
           this._overflowAutomation?.attributes.id
             ? html`<ha-dropdown-item value="show_history">
                 <ha-svg-icon .path=${mdiHistory} slot="icon"></ha-svg-icon>
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.automation.picker.show_history"
                 )}
               </ha-dropdown-item>`
@@ -1159,7 +1169,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         <wa-divider></wa-divider>
         <ha-dropdown-item value="duplicate">
           <ha-svg-icon .path=${mdiContentDuplicate} slot="icon"></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.automation.picker.duplicate")}
+          ${this._modeLocalize("ui.panel.config.automation.picker.duplicate")}
         </ha-dropdown-item>
         <ha-dropdown-item value="export_download">
           <ha-svg-icon .path=${mdiDownload} slot="icon"></ha-svg-icon>
@@ -1183,13 +1193,13 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
           ></ha-svg-icon>
           ${
             this._overflowAutomation?.state === "off"
-              ? this.hass.localize("ui.panel.config.automation.editor.enable")
-              : this.hass.localize("ui.panel.config.automation.editor.disable")
+              ? this._modeLocalize("ui.panel.config.automation.editor.enable")
+              : this._modeLocalize("ui.panel.config.automation.editor.disable")
           }
         </ha-dropdown-item>
         <ha-dropdown-item value="delete" variant="danger">
           <ha-svg-icon .path=${mdiDelete} slot="icon"></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.automation.picker.delete")}
+          ${this._modeLocalize("ui.panel.config.automation.picker.delete")}
         </ha-dropdown-item>
       </ha-dropdown>
     `;
@@ -1453,10 +1463,10 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
     );
     if (!entityReg) {
       showAlertDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.automation.picker.no_category_support"
         ),
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.automation.picker.no_category_entity_reg"
         ),
       });
@@ -1471,7 +1481,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
   private _showTrace = (automation: AutomationItem) => {
     if (!automation.attributes.id) {
       showAlertDialog(this, {
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.automation.picker.traces_not_available"
         ),
       });
@@ -1498,15 +1508,15 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
 
   private _deleteConfirm = async (automation: AutomationItem) => {
     showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.automation.picker.delete_confirm_title"
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.automation.picker.delete_confirm_text",
         { name: automation.name }
       ),
-      confirmText: this.hass!.localize("ui.common.delete"),
-      dismissText: this.hass!.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.delete"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       confirm: () => this._delete(automation),
       destructive: true,
     });
@@ -1522,10 +1532,10 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
       await showAlertDialog(this, {
         text:
           err.status_code === 400
-            ? this.hass.localize(
+            ? this._modeLocalize(
                 "ui.panel.config.automation.editor.load_error_not_deletable"
               )
-            : this.hass.localize(
+            : this._modeLocalize(
                 "ui.panel.config.automation.editor.load_error_unknown",
                 { err_no: err.status_code }
               ),
@@ -1550,7 +1560,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         return;
       }
       await showAlertDialog(this, {
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.automation.editor.load_error_unknown",
           { err_no: err.status_code }
         ),
@@ -1560,16 +1570,16 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
 
   private _showHelp() {
     showAlertDialog(this, {
-      title: this.hass.localize("ui.panel.config.automation.caption"),
+      title: this._modeLocalize("ui.panel.config.automation.caption"),
       text: html`
-        ${this.hass.localize("ui.panel.config.automation.picker.introduction")}
+        ${this._modeLocalize("ui.panel.config.automation.picker.introduction")}
         <p>
           <a
             href=${documentationUrl(this.hass, "/docs/automation/editor/")}
             target="_blank"
             rel="noreferrer"
           >
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.automation.picker.learn_more"
             )}
           </a>
@@ -1664,7 +1674,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1708,7 +1718,7 @@ ${rejected
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1748,7 +1758,7 @@ ${rejected
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1778,7 +1788,7 @@ ${rejected
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1798,7 +1808,7 @@ ${rejected
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1849,13 +1859,13 @@ ${rejected
           </ha-dropdown-item>`
       )}
       <ha-dropdown-item .slot=${slot} value="category_none">
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.automation.picker.bulk_actions.no_category"
         )}
       </ha-dropdown-item>
       <wa-divider .slot=${slot}></wa-divider>
       <ha-dropdown-item .slot=${slot} value="category_create">
-        ${this.hass.localize("ui.panel.config.category.editor.add")}
+        ${this._modeLocalize("ui.panel.config.category.editor.add")}
       </ha-dropdown-item>`;
 
   private _renderLabelItems = (slot = "") =>
@@ -1890,7 +1900,7 @@ ${rejected
       })}
       <wa-divider .slot=${slot}></wa-divider>
       <ha-dropdown-item .slot=${slot} value="label_create">
-        ${this.hass.localize("ui.panel.config.labels.add_label")}
+        ${this._modeLocalize("ui.panel.config.labels.add_label")}
       </ha-dropdown-item>`;
 
   private _renderAreaItems = (slot = "") =>
@@ -1909,13 +1919,13 @@ ${rejected
           </ha-dropdown-item>`
       )}
       <ha-dropdown-item .slot=${slot} value="area_none">
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.devices.picker.bulk_actions.no_area"
         )}
       </ha-dropdown-item>
       <wa-divider .slot=${slot}></wa-divider>
       <ha-dropdown-item .slot=${slot} value="area_create">
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.devices.picker.bulk_actions.add_area"
         )}
       </ha-dropdown-item>`;
@@ -1923,7 +1933,7 @@ ${rejected
   private _bulkLocalize = (
     key: string,
     values?: Record<string, string | number>
-  ): string => this.hass.localize(key as any, values);
+  ): string => this._modeLocalize(key as any, values);
 
   private _filteredRowsChanged = () => {
     if (this._selected.length) {

@@ -153,6 +153,14 @@ export const coreCards: Card[] = [
     type: "alert",
     showElement: true,
   },
+  { type: "ttc-alert-banner" },
+  { type: "ttc-subway" },
+  { type: "ttc-departures" },
+  { type: "ttc-leave-by" },
+  { type: "ttc-route-alerts" },
+  { type: "ttc-step-free" },
+  { type: "ttc-vehicles" },
+  { type: "ttc-line-history" },
 ];
 
 export const energyCards: Card[] = [

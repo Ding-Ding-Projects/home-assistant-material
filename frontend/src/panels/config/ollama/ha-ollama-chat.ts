@@ -13,6 +13,9 @@ import {
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 type ChatState = "idle" | "running" | "done" | "stopped" | "error";
 
 /**
@@ -22,6 +25,14 @@ type ChatState = "idle" | "running" | "done" | "stopped" | "error";
  */
 @customElement("ha-ollama-chat")
 export class HaOllamaChat extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public entryId?: string;
@@ -72,7 +83,7 @@ export class HaOllamaChat extends LitElement {
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
+    return this._modeLocalize(
       `ui.panel.config.ollama.chat.${key}` as any,
       values
     );
@@ -83,9 +94,9 @@ export class HaOllamaChat extends LitElement {
       return this._l("incomplete");
     }
     return (
-      this.hass.localize(
+      this._modeLocalize(
         `ui.panel.config.ollama.errors.${code ?? "unknown"}` as any
-      ) || this.hass.localize("ui.panel.config.ollama.errors.unknown")
+      ) || this._modeLocalize("ui.panel.config.ollama.errors.unknown")
     );
   }
 

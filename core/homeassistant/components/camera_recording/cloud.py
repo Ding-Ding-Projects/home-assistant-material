@@ -22,7 +22,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 DRIVE_ONEDRIVE = "onedrive"
 DRIVE_GOOGLE = "google_drive"
-DRIVES: tuple[str, ...] = (DRIVE_ONEDRIVE, DRIVE_GOOGLE)
+DRIVE_REGISTRY = "registry_storage"
+DRIVES: tuple[str, ...] = (DRIVE_ONEDRIVE, DRIVE_GOOGLE, DRIVE_REGISTRY)
 
 CHUNK_SIZE = 1024 * 1024
 UPLOAD_TIMEOUT = ClientTimeout(connect=30, total=6 * 3600)
@@ -41,6 +42,9 @@ REASON_CHECK_FAILED = "check_failed"
 REASON_DRIVE_ERROR = "drive_error"
 REASON_FILE_GONE = "file_gone"
 REASON_GAVE_UP = "gave_up"
+# Used by the container registry place: both wait for the registry or the owner.
+REASON_RATE_LIMITED = "rate_limited"
+REASON_LOCKED = "locked"
 
 
 class DriveError(Exception):
@@ -96,6 +100,8 @@ def file_reader(hass: HomeAssistant, path: Path, bytes_per_second: float) -> Ope
         finally:
             await hass.async_add_executor_job(handle.close)
 
+    # A place that locks the whole file reads it from here instead of from the stream.
+    _chunks.path = path  # type: ignore[attr-defined]
     return _chunks
 
 
@@ -470,7 +476,10 @@ def _quote(value: str) -> str:
 
 def create_drives(hass: HomeAssistant) -> dict[str, CloudDrive]:
     """One object per supported drive."""
+    from .registry_place import RegistryDrive  # noqa: PLC0415
+
     return {
         DRIVE_ONEDRIVE: OneDriveDrive(hass),
         DRIVE_GOOGLE: GoogleDriveDrive(hass),
+        DRIVE_REGISTRY: RegistryDrive(hass),
     }

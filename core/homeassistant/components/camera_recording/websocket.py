@@ -13,18 +13,22 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_KEEP_DAYS,
     DOMAIN,
     MAX_CLIP_SECONDS_LIVE,
     MAX_CLIPS_PER_HOUR,
+    MAX_KEEP_DAYS,
     MAX_POST_SECONDS,
     MAX_PRE_SECONDS,
     MIN_CLIP_SECONDS,
     MIN_CLIPS_PER_HOUR,
+    MIN_KEEP_DAYS,
     MIN_POST_SECONDS,
     MIN_PRE_SECONDS,
     MODES,
 )
 from .manager import ModeError, RecordingManager
+from .registry_place import annotate_segments
 
 MAX_WINDOW_SECONDS = 8 * 86400
 
@@ -45,6 +49,8 @@ def async_register_websocket(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_pause)
     websocket_api.async_register_command(hass, ws_set_mode)
     websocket_api.async_register_command(hass, ws_set_live)
+    websocket_api.async_register_command(hass, ws_test_clip)
+    websocket_api.async_register_command(hass, ws_set_keep_days)
 
 
 @websocket_api.websocket_command(
@@ -100,7 +106,9 @@ def ws_segments(
         for manager in _managers(hass)
         if entity_id in manager.recorders
     ]
-    segments.sort(key=lambda seg: seg["start"])
+    segments = annotate_segments(
+        hass, entity_id, segments, start.timestamp(), end.timestamp()
+    )
     modes: list[dict[str, Any]] = []
     for manager in _managers(hass):
         if entity_id not in manager.cameras:
@@ -209,7 +217,7 @@ async def ws_set_mode(
             msg["mode"],
             msg.get("pre"),
             msg.get("post"),
-            msg["sources"] if "sources" in msg else False,
+            msg.get("sources", False),
         )
     except ModeError as err:
         connection.send_error(msg["id"], err.code, str(err))
@@ -252,4 +260,58 @@ async def ws_set_live(
         clip_seconds=msg.get("clip_seconds"),
         clips_per_hour=msg.get("clips_per_hour"),
     )
+    connection.send_result(msg["id"], manager.status())
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "camera_recording/test_clip",
+        probatio.Required("entry_id"): str,
+        probatio.Required("entity_id"): cv.entity_id,
+    }
+)
+@websocket_api.async_response
+async def ws_test_clip(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Record a short live clip of one camera now and say how it went."""
+    manager = next(
+        (m for m in _managers(hass) if m.entry.entry_id == msg["entry_id"]), None
+    )
+    if manager is None or msg["entity_id"] not in manager.recorders:
+        connection.send_error(
+            msg["id"], "not_found", "That camera is not recorded here"
+        )
+        return
+    result = await manager.async_test_clip(msg["entity_id"])
+    connection.send_result(msg["id"], result)
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "camera_recording/set_keep_days",
+        probatio.Required("entry_id"): str,
+        probatio.Required("keep_days"): probatio.All(
+            int, probatio.Range(min=MIN_KEEP_DAYS, max=MAX_KEEP_DAYS)
+        ),
+    }
+)
+@websocket_api.async_response
+async def ws_set_keep_days(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Choose how many days recordings and event clips are kept. Recording does not stop."""
+    manager = next(
+        (m for m in _managers(hass) if m.entry.entry_id == msg["entry_id"]), None
+    )
+    if manager is None:
+        connection.send_error(msg["id"], "not_found", "No such recording destination")
+        return
+    entry = manager.entry
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, CONF_KEEP_DAYS: msg["keep_days"]}
+    )
+    await manager.async_apply_options(entry.options)
     connection.send_result(msg["id"], manager.status())

@@ -123,7 +123,7 @@ def test_rate_limit_detection(text: str | None, limited: bool) -> None:
 async def test_recorder_waits_longer_after_each_refusal(hass: HomeAssistant) -> None:
     """After a refusal the recorder does not ask again in a tight loop."""
     delays: list[float] = []
-    recorder = CameraRecorder(hass, CAMERA, Path("/tmp/none"), 300, lambda: None)
+    recorder = CameraRecorder(hass, CAMERA, Path("unused"), 300, lambda: None)
 
     async def fake_sleep(seconds: float) -> None:
         delays.append(seconds)
@@ -152,7 +152,7 @@ async def test_recorder_without_a_source_is_marked_provider_only(
 ) -> None:
     """A camera that gives no stream address is reported as having none."""
     delays: list[float] = []
-    recorder = CameraRecorder(hass, CAMERA, Path("/tmp/none"), 300, lambda: None)
+    recorder = CameraRecorder(hass, CAMERA, Path("unused"), 300, lambda: None)
 
     async def fake_sleep(seconds: float) -> None:
         delays.append(seconds)

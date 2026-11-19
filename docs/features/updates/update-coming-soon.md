@@ -34,7 +34,8 @@ re-read for this document). Nothing is estimated except the time, and that is la
 
 The card kept showing progress after the build it described was installed. On main
 (`c9e3a5e67`) the build card goes quiet once that build is installed. Build 523 still shows
-the fault. The fix is tested (`build-progress.test.ts`, `build-notes.test.ts`) and not yet seen.
+the fault. The fix is tested (`build-progress.test.ts`, `build-notes.test.ts`), and the quiet
+build card was seen working in a real run of build 2026.11.1.524 (built from `c9e3a5e67`).
 
 ## Failure modes
 

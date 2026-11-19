@@ -11,6 +11,7 @@ export const LOVELACE_BUILTIN_DASHBOARD_STRATEGY_TYPES = [
   "areas",
   "home",
   "energy",
+  "transit",
 ] as const;
 
 export type LovelaceBuiltinDashboardStrategyType =

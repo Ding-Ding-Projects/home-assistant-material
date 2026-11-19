@@ -92,6 +92,7 @@ TEMPLATES: dict[str, str] = {
     "walking_back": "walking back {step:.1f} degrees",
     "matching_wall_step": "matching the wall step of {step:.1f} degrees",
     "snapped_to_step": "snapped to {step:.1f} degree steps",
+    "shared_band": "the two defenders share one band, {low:.1f} to {high:.1f}",
 }
 
 
@@ -139,6 +140,28 @@ def restore_reason(text: str) -> str:
     if not isinstance(text, Reason) and (code := _PLAIN_CODES.get(text)) is not None:
         return Reason(code)
     return text
+
+
+def reason_from_parts(parts: Any, text: str) -> str:
+    """Return a saved reason as a Reason again from its code and values.
+
+    Nested reasons are rebuilt too. Parts that are missing, malformed or carry
+    a code this version no longer knows fall back to the saved wording.
+    """
+    if not isinstance(parts, dict):
+        return restore_reason(text)
+    try:
+        return _rebuild(parts)
+    except KeyError, TypeError, ValueError, IndexError:
+        return restore_reason(text)
+
+
+def _rebuild(parts: dict[str, Any]) -> Reason:
+    params = {
+        key: _rebuild(value) if isinstance(value, dict) else value
+        for key, value in parts["params"].items()
+    }
+    return Reason(parts["code"], **params)
 
 
 def reason_parts(value: str | None) -> dict[str, Any] | None:

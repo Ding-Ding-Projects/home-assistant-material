@@ -1,6 +1,7 @@
 {
   "domain": "camera_recording",
   "name": "Camera recording",
+  "after_dependencies": ["google_drive", "onedrive", "registry_storage"],
   "categories": [
     "security_safety.cameras"
   ],

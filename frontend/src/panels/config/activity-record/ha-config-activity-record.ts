@@ -40,6 +40,8 @@ import {
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
 /** Days listed before Show more days. */
 const DAYS_SHOWN = 60;
 
@@ -53,6 +55,14 @@ const PUSH_POLL_MS = 2000;
  */
 @customElement("ha-config-activity-record")
 export class HaConfigActivityRecord extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -116,7 +126,7 @@ export class HaConfigActivityRecord extends LitElement {
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
+    return this._modeLocalize(
       `ui.panel.config.activity_record.${key}` as any,
       values
     );
@@ -300,7 +310,7 @@ export class HaConfigActivityRecord extends LitElement {
         back-path="/logbook"
         .header=${this._l("caption")}
         .breadcrumb=${[
-          this.hass.localize("panel.config"),
+          this._modeLocalize("panel.config"),
           this._l("caption"),
         ].join(", ")}
         .searchable=${!!this._day}
@@ -624,7 +634,7 @@ export class HaConfigActivityRecord extends LitElement {
     if (!this._search.trim() || !this._day) {
       return undefined;
     }
-    return searchCountText(this.hass.localize, {
+    return searchCountText(this._modeLocalize, {
       current: this._visibleEntries().length,
       total: this._entries.length,
     });

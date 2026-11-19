@@ -1,6 +1,6 @@
 # Setup
 
-| File | Feature | State (see `../../feature-status.md`) |
+| File | Feature | State (current state: `../../../ROADMAP.md`) |
 | --- | --- | --- |
 | [`first-run-setup.md`](first-run-setup.md) | First-run setup | Built, not yet seen in a running build |
 | [`guided-setup.md`](guided-setup.md) | Guided setup for integrations that have no setup screen | Partly built |

@@ -158,6 +158,8 @@ import "./ha-helper-state-text";
 import { showHelperDetailDialog } from "./show-dialog-helper-detail";
 import { computeDomain } from "../../../common/entity/compute_domain";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 function equalHelperEntity(
   a: HassEntity,
   b: HassEntity,
@@ -240,6 +242,14 @@ const getConfigEntry = (
 
 @customElement("ha-config-helpers")
 export class HaConfigHelpers extends SubscribeMixin(LitElement) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
@@ -472,13 +482,13 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
       actions: {
         lastFixed: true,
         title: "",
-        label: this.hass.localize("ui.panel.config.generic.headers.actions"),
+        label: this._modeLocalize("ui.panel.config.generic.headers.actions"),
         type: "overflow-menu",
         showNarrow: true,
         template: (helper) => html`
           <ha-icon-overflow-menu
             narrow
-            .label=${this.hass.localize("ui.common.overflow_menu_for", {
+            .label=${this._modeLocalize("ui.common.overflow_menu_for", {
               name: helper.name,
             })}
             .items=${[
@@ -487,7 +497,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
                 ? [
                     {
                       path: mdiAlertCircle,
-                      label: this.hass.localize(
+                      label: this._modeLocalize(
                         "ui.panel.config.helpers.picker.error_information"
                       ),
                       warning: true,
@@ -497,14 +507,14 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
                 : []),
               {
                 path: mdiCog,
-                label: this.hass.localize(
+                label: this._modeLocalize(
                   "ui.panel.config.automation.picker.show_settings"
                 ),
                 action: () => this._openSettings(helper),
               },
               {
                 path: mdiTag,
-                label: this.hass.localize(
+                label: this._modeLocalize(
                   `ui.panel.config.automation.picker.${helper.category ? "edit_category" : "assign_category"}`
                 ),
                 action: () => this._editCategory(helper),
@@ -516,7 +526,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
                 ? [
                     {
                       path: mdiTrashCan,
-                      label: this.hass.localize("ui.common.delete"),
+                      label: this._modeLocalize("ui.common.delete"),
                       warning: true,
                       action: () => this._deleteEntry(helper),
                     },
@@ -526,7 +536,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
                 ? [
                     {
                       path: mdiDownload,
-                      label: this.hass.localize(
+                      label: this._modeLocalize(
                         "ui.panel.config.integrations.config_entry.download_diagnostics"
                       ),
                       action: () => this._downloadDiagnostics(helper),
@@ -542,14 +552,14 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
                       ? [
                           {
                             path: mdiContentDuplicate,
-                            label: this.hass.localize("ui.common.duplicate"),
+                            label: this._modeLocalize("ui.common.duplicate"),
                             action: () => this._duplicateHelper(helper),
                           },
                         ]
                       : []),
                     {
                       path: mdiDelete,
-                      label: this.hass.localize("ui.common.delete"),
+                      label: this._modeLocalize("ui.common.delete"),
                       warning: true,
                       action: () => this._deleteHelper(helper),
                     },
@@ -739,7 +749,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
     }
 
     const helpers = this._getItems(
-      this.hass.localize,
+      this._modeLocalize,
       this._helperEntities,
       this.hass.formatEntityName,
       this._disabledEntityEntries || [],
@@ -756,18 +766,18 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.devices}
-        .searchLabel=${this.hass.localize(
+        .searchLabel=${this._modeLocalize(
           "ui.panel.config.helpers.picker.search",
           { number: helpers.length }
         )}
-        .summary=${this.hass.localize(
+        .summary=${this._modeLocalize(
           "ui.panel.config.helpers.picker.summary",
           {
             number: helpers.length,
           }
         )}
         .statistics=${withFilterKeys(
-          buildListStatistics(this.hass.localize, {
+          buildListStatistics(this._modeLocalize, {
             total:
               this._helperEntities.length +
               (this._disabledEntityEntries?.length ?? 0),
@@ -790,7 +800,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
           []
         )}
         @statistic-selected=${this._clearFilter}
-        .emptyActionLabel=${this.hass.localize(
+        .emptyActionLabel=${this._modeLocalize(
           "ui.panel.config.helpers.picker.create_helper"
         )}
         @empty-action=${this._createHelper}
@@ -809,7 +819,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
                 )
           ).length
         }
-        .columns=${this._columns(this.hass.localize, helpers)}
+        .columns=${this._columns(this._modeLocalize, helpers)}
         .data=${helpers}
         .initialGroupColumn=${this._tableSettings.grouping}
         .initialCollapsedGroups=${this._activeCollapsed}
@@ -830,7 +840,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
         @search-changed=${this._tableSettings.searchChanged}
         has-fab
         clickable
-        .noDataText=${this.hass.localize(
+        .noDataText=${this._modeLocalize(
           "ui.panel.config.helpers.picker.no_helpers"
         )}
         class=${this.narrow ? "narrow" : ""}
@@ -892,7 +902,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
         )}
         <ha-button slot="fab" size="l" @click=${this._createHelper}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.helpers.picker.create_helper")}
+          ${this._modeLocalize("ui.panel.config.helpers.picker.create_helper")}
         </ha-button>
       </hass-tabs-subpage-data-table>
       ${
@@ -919,7 +929,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
                     appearance="outlined"
                     variant="brand"
                   >
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.automation.picker.bulk_actions.move_category"
                     )}
                     <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
@@ -933,7 +943,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
                     appearance="outlined"
                     variant="brand"
                   >
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.automation.picker.bulk_actions.add_label"
                     )}
                     <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
@@ -963,7 +973,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
       aria-labelledby="create-card-title"
     >
       <h2 id="create-card-title">
-        ${this.hass.localize("ui.panel.config.helpers.picker.create_title")}
+        ${this._modeLocalize("ui.panel.config.helpers.picker.create_title")}
       </h2>
       <ul class="kinds">
         ${(this.narrow ? kinds.slice(0, 3) : kinds).map(
@@ -980,10 +990,10 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
                 </span>
                 <span class="kind-text">
                   <span class="kind-name"
-                    >${this.hass.localize(kind.nameKey as LocalizeKeys)}</span
+                    >${this._modeLocalize(kind.nameKey as LocalizeKeys)}</span
                   >
                   <span class="kind-description"
-                    >${this.hass.localize(kind.descriptionKey as LocalizeKeys)}</span
+                    >${this._modeLocalize(kind.descriptionKey as LocalizeKeys)}</span
                   >
                 </span>
               </button>
@@ -993,10 +1003,10 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
       <ha-button appearance="plain" @click=${this._createHelper}>
         ${
           total === undefined
-            ? this.hass.localize(
+            ? this._modeLocalize(
                 "ui.panel.config.helpers.picker.see_all_kinds_unknown"
               )
-            : this.hass.localize(
+            : this._modeLocalize(
                 "ui.panel.config.helpers.picker.see_all_kinds",
                 {
                   count: total,
@@ -1254,10 +1264,10 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
     ];
     if (!entityReg) {
       showAlertDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.helpers.picker.no_category_support"
         ),
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.helpers.picker.no_category_entity_reg"
         ),
       });
@@ -1272,7 +1282,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
   private _bulkLocalize = (
     key: string,
     values?: Record<string, string | number>
-  ): string => this.hass.localize(key as any, values);
+  ): string => this._modeLocalize(key as any, values);
 
   private _filteredRowsChanged = () => {
     if (this._selected.length) {
@@ -1314,7 +1324,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1355,7 +1365,7 @@ ${rejected
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1471,10 +1481,10 @@ ${rejected
         return;
       }
       showAlertDialog(this, {
-        title: this.hass.localize(
+        title: this._modeLocalize(
           "ui.panel.config.integrations.config_flow.error"
         ),
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.integrations.config_flow.no_config_flow"
         ),
       });
@@ -1487,7 +1497,7 @@ ${rejected
     );
     if (
       !(await showConfirmationDialog(this, {
-        title: this.hass.localize("ui.panel.config.integrations.confirm_new", {
+        title: this._modeLocalize("ui.panel.config.integrations.confirm_new", {
           integration: domainToName(localize, domain),
         }),
       }))
@@ -1582,7 +1592,7 @@ ${rejected
 
   private _showError(helper: HelperItem) {
     showAlertDialog(this, {
-      title: this.hass.localize("ui.errors.config.configuration_error"),
+      title: this._modeLocalize("ui.errors.config.configuration_error"),
       text: renderConfigEntryError(this.hass, helper.configEntry!),
       warning: true,
     });
@@ -1590,15 +1600,15 @@ ${rejected
 
   private async _deleteEntry(helper: HelperItem) {
     const confirmed = await showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.integrations.config_entry.delete_confirm_title",
         { title: helper.configEntry!.title }
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.integrations.config_entry.delete_confirm_text"
       ),
-      confirmText: this.hass!.localize("ui.common.delete"),
-      dismissText: this.hass!.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.delete"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       destructive: true,
     });
 
@@ -1633,15 +1643,15 @@ ${rejected
     }
 
     const confirmed = await showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.helpers.picker.delete_confirm_title"
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.helpers.picker.delete_confirm_text",
         { name: helper.name }
       ),
-      confirmText: this.hass.localize("ui.common.delete"),
-      dismissText: this.hass.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.delete"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       destructive: true,
     });
 
@@ -1660,7 +1670,7 @@ ${rejected
           !isComponentLoaded(this.hass.config, helper.type)
         ) {
           throw new Error(
-            this.hass.localize("ui.panel.config.helpers.picker.delete_failed")
+            this._modeLocalize("ui.panel.config.helpers.picker.delete_failed")
           );
         }
         await HELPERS_CRUD[helper.type as HelperDomain].delete(
@@ -1678,7 +1688,7 @@ ${rejected
       showAlertDialog(this, {
         text:
           err.message ||
-          this.hass.localize("ui.panel.config.helpers.picker.delete_failed"),
+          this._modeLocalize("ui.panel.config.helpers.picker.delete_failed"),
       });
     }
   }
@@ -1693,7 +1703,7 @@ ${rejected
     );
     if (!entityReg?.unique_id) {
       showAlertDialog(this, {
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.helpers.picker.duplicate_failed"
         ),
       });
@@ -1705,7 +1715,7 @@ ${rejected
     ).find((item) => item.id === entityReg.unique_id);
     if (!config) {
       showAlertDialog(this, {
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.helpers.picker.duplicate_failed"
         ),
       });
@@ -1769,13 +1779,13 @@ ${rejected
           </ha-dropdown-item>`
       )}
       <ha-dropdown-item .slot=${slot} value="category_none">
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.automation.picker.bulk_actions.no_category"
         )}
       </ha-dropdown-item>
       <wa-divider .slot=${slot}></wa-divider>
       <ha-dropdown-item .slot=${slot} value="category_create">
-        ${this.hass.localize("ui.panel.config.category.editor.add")}
+        ${this._modeLocalize("ui.panel.config.category.editor.add")}
       </ha-dropdown-item>`;
 
   private _renderLabelItems = (slot = "") =>
@@ -1810,7 +1820,7 @@ ${rejected
       })}
       <wa-divider .slot=${slot}></wa-divider>
       <ha-dropdown-item .slot=${slot} value="label_create">
-        ${this.hass.localize("ui.panel.config.labels.add_label")}
+        ${this._modeLocalize("ui.panel.config.labels.add_label")}
       </ha-dropdown-item>`;
 
   private _handleCollapseChanged(ev: CustomEvent) {

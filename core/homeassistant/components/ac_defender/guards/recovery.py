@@ -7,6 +7,7 @@ from ..reasons import Reason
 from ..spec import GROUP_TIMING, Guard, GuardSpec, cnt, deg, flag, mins, num, sec
 from .base import EpochHold
 
+MIN_OFF_MINUTES = 5.0
 QUIET_LEVELS = ("Calm", "Light", "Quiet", "Extra quiet", "Softest")
 
 
@@ -120,6 +121,10 @@ class CoolModeRestore(Guard):
                 "delay", ctx.rng.uniform(c.min_seconds, c.max_seconds)
             )
         until = started + timedelta(seconds=delay)
+        if ctx.run_mode == "cool" and ctx.last_off_at is not None:
+            # The original's compressor off dwell, counted from the later of
+            # the off command and the unit being seen off.
+            until = max(until, ctx.last_off_at + timedelta(minutes=MIN_OFF_MINUTES))
         if ctx.now >= until:
             return self._restore(ctx, Reason("restore_mode_changed"))
         reason = Reason("courtesy_wait") if courtesy else Reason("restore_mode_soon")

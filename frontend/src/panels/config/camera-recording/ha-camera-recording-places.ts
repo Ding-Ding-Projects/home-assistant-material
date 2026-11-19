@@ -17,6 +17,7 @@ import "../../../components/ha-card";
 import "../../../components/ha-slider";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
+import "./ha-camera-registry-places";
 import type { RecordingDestinationStatus } from "../../../data/camera_recording";
 import {
   CLOUD_DRIVE_NAMES,
@@ -119,6 +120,10 @@ export class HaCameraRecordingPlaces extends LitElement {
         ${drives
           .filter((drive) => drive.enabled)
           .map((drive) => this._renderDetails(drive))}
+        <ha-camera-registry-places
+          embedded
+          .hass=${this.hass}
+        ></ha-camera-registry-places>
         <p class="warning">
           <ha-svg-icon .path=${mdiAlertCircleOutline}></ha-svg-icon>
           <span>${this._l("warning")}</span>

@@ -15,6 +15,9 @@ import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
 import type { AdminChangePasswordDialogParams } from "./show-dialog-admin-change-password";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 const SCHEMA = [
   {
     name: "new_password",
@@ -47,6 +50,14 @@ interface FormData {
 class DialogAdminChangePassword extends DirtyStateProviderMixin<FormData>()(
   LitElement
 ) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _params?: AdminChangePasswordDialogParams;
@@ -89,10 +100,10 @@ class DialogAdminChangePassword extends DirtyStateProviderMixin<FormData>()(
   }
 
   private _computeLabel = (schema: SchemaUnion<typeof SCHEMA>) =>
-    this.hass.localize(`ui.panel.config.users.change_password.${schema.name}`);
+    this._modeLocalize(`ui.panel.config.users.change_password.${schema.name}`);
 
   private _computeError = (error: string) =>
-    this.hass.localize(
+    this._modeLocalize(
       `ui.panel.config.users.change_password.${error}` as any
     ) || error;
 
@@ -124,7 +135,7 @@ class DialogAdminChangePassword extends DirtyStateProviderMixin<FormData>()(
       <ha-dialog
         .open=${this._open}
         .preventScrimClose=${this.isDirtyState}
-        header-title=${this.hass.localize(
+        header-title=${this._modeLocalize(
           "ui.panel.config.users.change_password.caption"
         )}
         @closed=${this._dialogClosed}
@@ -133,13 +144,13 @@ class DialogAdminChangePassword extends DirtyStateProviderMixin<FormData>()(
           this._success
             ? html`
                 <p>
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.users.change_password.password_changed"
                   )}
                 </p>
                 <ha-dialog-footer slot="footer">
                   <ha-button slot="primaryAction" @click=${this.closeDialog}>
-                    ${this.hass.localize("ui.common.ok")}
+                    ${this._modeLocalize("ui.common.ok")}
                   </ha-button>
                 </ha-dialog-footer>
               `
@@ -161,14 +172,14 @@ class DialogAdminChangePassword extends DirtyStateProviderMixin<FormData>()(
                     appearance="plain"
                     @click=${this.closeDialog}
                   >
-                    ${this.hass.localize("ui.common.cancel")}
+                    ${this._modeLocalize("ui.common.cancel")}
                   </ha-button>
                   <ha-button
                     slot="primaryAction"
                     @click=${this._changePassword}
                     .disabled=${this._submitting || !canSubmit}
                   >
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.users.change_password.change"
                     )}
                   </ha-button>

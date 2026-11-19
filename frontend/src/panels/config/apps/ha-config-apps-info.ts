@@ -12,8 +12,19 @@ import type { HomeAssistant } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
 import { navigate } from "../../../common/navigate";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 @customElement("ha-config-apps-info")
 class HaConfigAppsInfo extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
@@ -26,17 +37,17 @@ class HaConfigAppsInfo extends LitElement {
         .hass=${this.hass}
         .narrow=${this.narrow}
         back-path="/config"
-        .header=${this.hass.localize("ui.panel.config.dashboard.apps.main")}
+        .header=${this._modeLocalize("ui.panel.config.dashboard.apps.main")}
       >
         <div class="content">
           <div class="icon-wrap">
             <ha-svg-icon .path=${mdiPuzzle}></ha-svg-icon>
           </div>
           <h1>
-            ${this.hass.localize("ui.panel.config.apps.info.needs_os_title")}
+            ${this._modeLocalize("ui.panel.config.apps.info.needs_os_title")}
           </h1>
           <p>
-            ${this.hass.localize("ui.panel.config.apps.info.no_store_text")}
+            ${this._modeLocalize("ui.panel.config.apps.info.no_store_text")}
           </p>
           <div class="actions">
             <ha-button
@@ -45,11 +56,11 @@ class HaConfigAppsInfo extends LitElement {
               rel="noreferrer"
             >
               <ha-svg-icon slot="start" .path=${mdiOpenInNew}></ha-svg-icon>
-              ${this.hass.localize("ui.panel.config.apps.info.compare_methods")}
+              ${this._modeLocalize("ui.panel.config.apps.info.compare_methods")}
             </ha-button>
             <ha-button @click=${this._dismiss} appearance="outlined">
               <ha-svg-icon slot="start" .path=${mdiEyeOff}></ha-svg-icon>
-              ${this.hass.localize("ui.panel.config.apps.info.dismiss")}
+              ${this._modeLocalize("ui.panel.config.apps.info.dismiss")}
             </ha-button>
           </div>
         </div>

@@ -3,6 +3,10 @@ import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import type { LocalizeFunc } from "../common/translations/localize";
+import {
+  type Localize,
+  withLanguageMode,
+} from "../common/language-mode/language-mode";
 import "../components/ha-button";
 import "../components/ha-svg-icon";
 
@@ -13,6 +17,11 @@ export class HaInitPage extends LitElement {
   @property({ type: Boolean }) public migration = false;
 
   @property({ attribute: false }) public localize?: LocalizeFunc;
+
+  // The strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): Localize | undefined {
+    return this.localize ? withLanguageMode(this.localize) : undefined;
+  }
 
   @state() private _retryInSeconds = 60;
 
@@ -30,19 +39,19 @@ export class HaInitPage extends LitElement {
         </div>
         <h2 class="title">
           ${
-            this.localize?.("ui.init.error.title") ||
+            this._modeLocalize?.("ui.init.error.title") ||
             "Unable to connect to Home Assistant."
           }
         </h2>
         <p class="message">
           ${
-            this.localize?.("ui.init.error.retrying", {
+            this._modeLocalize?.("ui.init.error.retrying", {
               seconds: this._retryInSeconds,
             }) || `Retrying in ${this._retryInSeconds} seconds...`
           }
         </p>
         <ha-button size="s" appearance="filled" @click=${this._retry}>
-          ${this.localize?.("ui.init.error.retry_now") || "Retry now"}
+          ${this._modeLocalize?.("ui.init.error.retry_now") || "Retry now"}
         </ha-button>
       </div>
     `;
@@ -50,7 +59,7 @@ export class HaInitPage extends LitElement {
 
   private _renderLoading() {
     const title =
-      this.localize?.("ui.status_screens.starting_title") ||
+      this._modeLocalize?.("ui.status_screens.starting_title") ||
       "Home Assistant is starting";
     return html`
       <div
@@ -67,11 +76,11 @@ export class HaInitPage extends LitElement {
             this.migration
               ? html`<span class="migration-text"
                   >${
-                    this.localize?.("ui.init.migration") ||
+                    this._modeLocalize?.("ui.init.migration") ||
                     "Database upgrade is in progress, Home Assistant will not start until the upgrade is completed.\n\nThe upgrade may need a long time to complete, please be patient."
                   }</span
                 >`
-              : this.localize?.("ui.init.loading") || "Loading..."
+              : this._modeLocalize?.("ui.init.loading") || "Loading..."
           }
         </p>
         <div class="bar" role="progressbar" aria-label=${title}>

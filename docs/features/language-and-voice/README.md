@@ -1,8 +1,9 @@
 # Language and voice
 
-| File | Feature | State (see `../../feature-status.md`) |
+| File | Feature | State (current state: `../../../ROADMAP.md`) |
 | --- | --- | --- |
-| [`language-modes.md`](language-modes.md) | Language mode, Cantonese copy, playfulness, dialog emoji switch | Built, not yet seen in a running build |
+| [`language-modes.md`](language-modes.md) | Language mode, Cantonese copy, playfulness, dialog emoji switch | The three modes seen in published build 131; playfulness and the emoji switch not yet seen |
+| [`entity-words-and-stacked-labels.md`](entity-words-and-stacked-labels.md) | Cantonese on entity sheets, Backups and the camera timeline; state words, attribute names and weekdays following the mode; stacked labels in both-language mode | Partly in build 525 (being verified); state words on main, not built |
 | [`narrator-and-read-aloud.md`](narrator-and-read-aloud.md) | Spoken narrator, read aloud, action sounds | Built, not yet seen in a running build |
 | [`school-and-attention-modes.md`](school-and-attention-modes.md) | School mode, one thing at a time, attention modes | Built, not yet seen in a running build |
 

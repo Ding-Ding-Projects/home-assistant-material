@@ -191,6 +191,17 @@ export const generateNavigationCommands = (
       ),
       icon_path: mdiKeyboard,
     },
+    ...(hass.user?.is_admin && isComponentLoaded(hass.config, "problem_log")
+      ? [
+          {
+            path: "/config/problem-log#send",
+            primary: hass.localize(
+              "ui.dialogs.quick-bar.commands.navigation.send_problem_log"
+            ),
+            icon_path: mdiUpload,
+          },
+        ]
+      : []),
   ];
 
   return finalizeNavigationCommands(hass.localize, [

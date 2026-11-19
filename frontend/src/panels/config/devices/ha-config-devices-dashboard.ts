@@ -117,6 +117,8 @@ import "../integrations/ha-integration-overflow-menu";
 import { showAddIntegrationDialog } from "../integrations/show-add-integration-dialog";
 import { showLabelDetailDialog } from "../labels/show-dialog-label-detail";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 interface DeviceRowData extends DeviceRegistryEntry {
   device?: DeviceRowData;
   area?: string;
@@ -147,6 +149,14 @@ const LOW_BATTERY = 15;
 
 @customElement("ha-config-devices-dashboard")
 export class HaConfigDeviceDashboard extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
@@ -571,7 +581,7 @@ export class HaConfigDeviceDashboard extends LitElement {
           device,
           this.hass.areas,
           this.hass.devices,
-          this.hass.localize,
+          this._modeLocalize,
           this.hass.language,
           this.hass.translationMetadata
         );
@@ -593,7 +603,7 @@ export class HaConfigDeviceDashboard extends LitElement {
 
         return {
           ...device,
-          name: computeDeviceNameDisplay(device, this.hass.localize),
+          name: computeDeviceNameDisplay(device, this._modeLocalize),
           model:
             device.model ||
             `<${localize("ui.panel.config.devices.data_table.unknown")}>`,
@@ -614,12 +624,12 @@ export class HaConfigDeviceDashboard extends LitElement {
                         entry.domain
                     )
                     .join(", ")
-                : this.hass.localize(
+                : this._modeLocalize(
                     "ui.panel.config.devices.data_table.no_integration"
                   ),
           domains: deviceEntries.map((entry) => entry.domain),
           parent_device_name: parentDevice
-            ? computeDeviceNameDisplay(parentDevice, this.hass.localize)
+            ? computeDeviceNameDisplay(parentDevice, this._modeLocalize)
             : "",
           // Grouping key that keeps a device with its family: children group
           // under their parent's name, a parent groups under its own name, and
@@ -629,7 +639,7 @@ export class HaConfigDeviceDashboard extends LitElement {
           // floor columns, this groups on the display name rather than the id,
           // because the data table renders the raw group value as its header.
           device_family_name: familyParentDevice
-            ? computeDeviceNameDisplay(familyParentDevice, this.hass.localize)
+            ? computeDeviceNameDisplay(familyParentDevice, this._modeLocalize)
             : undefined,
           firmware_version: device.sw_version || undefined,
           battery_entity: [
@@ -871,7 +881,7 @@ export class HaConfigDeviceDashboard extends LitElement {
                     .path=${mdiCancel}
                   ></ha-svg-icon>
                   <ha-tooltip .for="svg-icon-${device.id}" placement="left">
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.entities.picker.status.disabled"
                     )}
                   </ha-tooltip>
@@ -899,13 +909,13 @@ export class HaConfigDeviceDashboard extends LitElement {
           </ha-dropdown-item>`
       )}
       <ha-dropdown-item value="area_no" .slot=${slot}>
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.devices.picker.bulk_actions.no_area"
         )}
       </ha-dropdown-item>
       <wa-divider .slot=${slot}></wa-divider>
       <ha-dropdown-item value="area_create" .slot=${slot}>
-        ${this.hass.localize(
+        ${this._modeLocalize(
           "ui.panel.config.devices.picker.bulk_actions.add_area"
         )}
       </ha-dropdown-item>`;
@@ -946,21 +956,21 @@ export class HaConfigDeviceDashboard extends LitElement {
       })}
       <wa-divider .slot=${slot}></wa-divider>
       <ha-dropdown-item value="label_create" .slot=${slot}>
-        ${this.hass.localize("ui.panel.config.labels.add_label")}
+        ${this._modeLocalize("ui.panel.config.labels.add_label")}
       </ha-dropdown-item>`;
 
   /** How many devices there are, and how many have a low battery. */
   private _summary(
     devices: { low_battery?: boolean; offline?: boolean }[]
   ): string {
-    const count = this.hass.localize("ui.panel.config.devices.picker.summary", {
+    const count = this._modeLocalize("ui.panel.config.devices.picker.summary", {
       number: devices.length,
     });
     const attention = devices.filter(
       (device) => device.low_battery || device.offline
     ).length;
     return attention
-      ? `${count}. ${this.hass.localize(
+      ? `${count}. ${this._modeLocalize(
           "ui.panel.config.devices.picker.summary_attention",
           { number: attention }
         )}`
@@ -1011,14 +1021,14 @@ export class HaConfigDeviceDashboard extends LitElement {
   }
 
   private _renderChipMenu(chip: "area" | "integration") {
-    const localize = this.hass.localize;
+    const localize = this._modeLocalize;
     const options =
       chip === "area"
         ? this._areaOptions(this.hass.areas)
         : this._integrationOptions(
             this.entries,
             this.manifests,
-            this.hass.localize
+            this._modeLocalize
           );
     const { selected, total } = this._chipSelection(chip);
     const value =
@@ -1116,7 +1126,7 @@ export class HaConfigDeviceDashboard extends LitElement {
   }
 
   private _footerFor = (shown: number): string =>
-    this.hass.localize("ui.panel.config.devices.picker.footer", {
+    this._modeLocalize("ui.panel.config.devices.picker.footer", {
       shown,
       total: Object.keys(this.hass.devices).length,
     });
@@ -1130,7 +1140,7 @@ export class HaConfigDeviceDashboard extends LitElement {
       this.hass.areas,
       this.manifests,
       this._filters,
-      this.hass.localize,
+      this._modeLocalize,
       this._labels,
       this._notes
     );
@@ -1148,13 +1158,13 @@ export class HaConfigDeviceDashboard extends LitElement {
         back-path="/config"
         .tabs=${configSections.devices}
         .route=${this.route}
-        .searchLabel=${this.hass.localize(
+        .searchLabel=${this._modeLocalize(
           "ui.panel.config.devices.picker.search",
           { number: devicesOutput.length }
         )}
         .summary=${this._summary(devicesOutput)}
         .statistics=${withFilterKeys(
-          buildListStatistics(this.hass.localize, {
+          buildListStatistics(this._modeLocalize, {
             total: Object.keys(this.hass.devices).length,
             shown: devicesOutput.length,
             selected: this._selected.length,
@@ -1177,11 +1187,11 @@ export class HaConfigDeviceDashboard extends LitElement {
         )}
         .activeStatistic=${this._activeStatistic()}
         @statistic-selected=${this._statisticSelected}
-        .columns=${this._columns(this.hass.localize)}
+        .columns=${this._columns(this._modeLocalize)}
         .data=${devicesOutput}
         .loadError=${
           this.entriesFailed
-            ? this.hass.localize(
+            ? this._modeLocalize(
                 "ui.panel.config.devices.config_entries_load_failed"
               )
             : undefined
@@ -1231,7 +1241,7 @@ export class HaConfigDeviceDashboard extends LitElement {
           slot="filter-chips"
           data-filter="attention"
           .selected=${this._quick.attention}
-          .label=${this.hass.localize(
+          .label=${this._modeLocalize(
             "ui.panel.config.devices.picker.needs_attention"
           )}
           @click=${this._toggleQuickFilter}
@@ -1240,20 +1250,20 @@ export class HaConfigDeviceDashboard extends LitElement {
           slot="filter-chips"
           data-filter="battery"
           .selected=${this._quick.battery}
-          .label=${this.hass.localize(
+          .label=${this._modeLocalize(
             "ui.panel.config.devices.picker.battery_powered"
           )}
           @click=${this._toggleQuickFilter}
         ></ha-filter-chip>
         <ha-button slot="fab" size="l" @click=${this._addDevice}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.devices.add_device")}
+          ${this._modeLocalize("ui.panel.config.devices.add_device")}
         </ha-button>
         ${
           Array.isArray(this._filters.config_entry?.value) &&
           this._filters.config_entry?.value.length
             ? html`<ha-alert slot="filter-pane">
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.devices.filtering_by_config_entry"
                 )}
                 ${
@@ -1299,8 +1309,8 @@ export class HaConfigDeviceDashboard extends LitElement {
         ></ha-filter-integrations>
         <ha-filter-states
           .value=${this._filters["ha-filter-states"]?.value}
-          .states=${this._states(this.hass.localize)}
-          .label=${this.hass.localize("ui.panel.config.devices.picker.state")}
+          .states=${this._states(this._modeLocalize)}
+          .label=${this._modeLocalize("ui.panel.config.devices.picker.state")}
           @data-table-filter-changed=${this._filterChanged}
           slot="filter-pane"
           .expanded=${this._expandedFilter === "ha-filter-states"}
@@ -1324,7 +1334,7 @@ export class HaConfigDeviceDashboard extends LitElement {
                 >
                   <ha-assist-chip
                     slot="trigger"
-                    .label=${this.hass.localize(
+                    .label=${this._modeLocalize(
                       "ui.panel.config.automation.picker.bulk_actions.add_label"
                     )}
                   >
@@ -1345,7 +1355,7 @@ export class HaConfigDeviceDashboard extends LitElement {
                       >
                         <ha-assist-chip
                           slot="trigger"
-                          .label=${this.hass.localize(
+                          .label=${this._modeLocalize(
                             "ui.panel.config.devices.picker.bulk_actions.move_area"
                           )}
                         >
@@ -1363,7 +1373,7 @@ export class HaConfigDeviceDashboard extends LitElement {
           ${
             this.narrow
               ? html`<ha-assist-chip
-                  .label=${this.hass.localize(
+                  .label=${this._modeLocalize(
                     "ui.panel.config.automation.picker.bulk_action"
                   )}
                   slot="trigger"
@@ -1375,7 +1385,7 @@ export class HaConfigDeviceDashboard extends LitElement {
                 </ha-assist-chip>`
               : html`<ha-icon-button
                   .path=${mdiDotsVertical}
-                  .label=${this.hass.localize(
+                  .label=${this._modeLocalize(
                     "ui.panel.config.automation.picker.bulk_action"
                   )}
                   slot="trigger"
@@ -1384,7 +1394,7 @@ export class HaConfigDeviceDashboard extends LitElement {
           ${
             this.narrow
               ? html`<ha-dropdown-item>
-                  ${this.hass.localize(
+                  ${this._modeLocalize(
                     "ui.panel.config.automation.picker.bulk_actions.add_label"
                   )}
                   ${this._renderLabelItems("submenu")}
@@ -1394,7 +1404,7 @@ export class HaConfigDeviceDashboard extends LitElement {
           ${
             areasInOverflow
               ? html`<ha-dropdown-item>
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.devices.picker.bulk_actions.move_area"
                     )}
                     ${this._renderAreaItems("submenu")}
@@ -1408,7 +1418,7 @@ export class HaConfigDeviceDashboard extends LitElement {
             variant="danger"
           >
             <ha-svg-icon slot="icon" .path=${mdiDelete}></ha-svg-icon>
-            ${this.hass.localize(
+            ${this._modeLocalize(
               "ui.panel.config.devices.picker.bulk_actions.delete_selected.button"
             )}
           </ha-dropdown-item>
@@ -1518,7 +1528,7 @@ export class HaConfigDeviceDashboard extends LitElement {
         this.hass.areas,
         this.manifests,
         this._filters,
-        this.hass.localize,
+        this._modeLocalize,
         this._labels,
         this._notes
       );
@@ -1579,7 +1589,7 @@ export class HaConfigDeviceDashboard extends LitElement {
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1636,7 +1646,7 @@ ${rejected
     if (hasRejectedItems(result)) {
       const rejected = rejectedItems(result);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
+        title: this._modeLocalize("ui.panel.config.common.multiselect.failed", {
           number: rejected.length,
         }),
         text: html`<pre>
@@ -1658,23 +1668,23 @@ ${rejected
 
   private _deleteSelected = () => {
     showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.devices.picker.bulk_actions.delete_selected.confirm_title"
       ),
       text:
         this._selectedCanDelete.length === this._selected.length
-          ? this.hass.localize(
+          ? this._modeLocalize(
               "ui.panel.config.devices.picker.bulk_actions.delete_selected.confirm_text"
             )
-          : this.hass.localize(
+          : this._modeLocalize(
               "ui.panel.config.devices.picker.bulk_actions.delete_selected.confirm_partly_text",
               {
                 deletable: this._selectedCanDelete.length,
                 selected: this._selected.length,
               }
             ),
-      confirmText: this.hass.localize("ui.common.delete"),
-      dismissText: this.hass.localize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.delete"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
       destructive: true,
       confirm: async () => {
         const proms: Promise<null>[] = [];
@@ -1684,10 +1694,10 @@ ${rejected
         const results = await Promise.allSettled(proms);
         if (hasRejectedItems(results)) {
           showAlertDialog(this, {
-            text: this.hass.localize(
+            text: this._modeLocalize(
               "ui.panel.config.devices.picker.bulk_actions.delete_selected.partial_failure"
             ),
-            title: this.hass.localize(
+            title: this._modeLocalize(
               "ui.panel.config.devices.picker.bulk_actions.delete_selected.partial_failure_title"
             ),
           });

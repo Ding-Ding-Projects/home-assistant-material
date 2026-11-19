@@ -2,8 +2,10 @@
 
 One Markdown file for each feature, grouped by category. Each category has its own `README.md`
 index. Every file says what the feature does, how it is configured, how it fails, what it
-protects, and what has really been verified. The authoritative state of each feature is the row
-in [`../feature-status.md`](../feature-status.md); a file here never claims more than that row.
+protects, and what has really been verified. The current state of each feature is its item in
+[`../../ROADMAP.md`](../../ROADMAP.md), and what is live is in [`../../HANDOFF.md`](../../HANDOFF.md);
+a file here never claims more than its roadmap item. [`../feature-status.md`](../feature-status.md)
+is the older row-by-row record (10 to 13 November 2026), kept for its history.
 
 | Category | What it covers |
 | --- | --- |
@@ -40,7 +42,7 @@ listed in the file for that feature.
 ## Not built yet
 
 Boards that exist in `design/` and are not built. The state of each is in
-[`../feature-status.md`](../feature-status.md).
+[`../../ROADMAP.md`](../../ROADMAP.md).
 
 - **Extensions (the sandboxed store).** An Extensions page with recorded consent exists (see
   [`interface/extensions-and-job-progress.md`](interface/extensions-and-job-progress.md)). The

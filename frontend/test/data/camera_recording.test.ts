@@ -208,6 +208,16 @@ describe("clipForEvent", () => {
     });
   });
 
+  it("says when live video stopped before the chosen length", () => {
+    expect(
+      clipForEvent(event, [record({ cut_short: true })], [clipSegment], null)
+        .cutShort
+    ).toBe(true);
+    expect(clipForEvent(event, [record()], [clipSegment], null).cutShort).toBe(
+      false
+    );
+  });
+
   it("reports a picture and a clip being saved", () => {
     const picture = { ...clipSegment, kind: "event_image" as const };
     expect(

@@ -15,6 +15,8 @@ import {
 import { INTEGRATION_EDITORS_E } from "./domains/integrations/e";
 import { INTEGRATION_EDITORS_F } from "./domains/integrations/f";
 import { INTEGRATION_EDITORS_HEAT_DEFENDER } from "./domains/integrations/heat_defender";
+import { INTEGRATION_EDITORS_LINKED_MEDIA } from "./domains/integrations/linked_media";
+import { INTEGRATION_EDITORS_TTC } from "./domains/integrations/ttc";
 import { SYSTEM_EDITORS } from "./domains/system";
 import {
   compact,
@@ -81,6 +83,8 @@ export const DOMAIN_EDITORS: Record<string, DomainEditor> = {
   INTEGRATION_EDITORS_BAMBU,
   INTEGRATION_EDITORS_AC_DEFENDER,
   INTEGRATION_EDITORS_HEAT_DEFENDER,
+  INTEGRATION_EDITORS_LINKED_MEDIA,
+  INTEGRATION_EDITORS_TTC,
 ].forEach((share) => {
   Object.entries(share).forEach(([domain, editor]) => {
     const existing = DOMAIN_EDITORS[domain];

@@ -56,6 +56,8 @@ import {
   sortBySeverity,
 } from "./notification-insight";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
 /** The most titles named in the preview of a bulk dismissal. */
 const PREVIEW_TITLES = 3;
 
@@ -75,6 +77,14 @@ const SEVERITY_ICON: Record<NotificationSeverity, string> = {
  */
 @customElement("ha-config-notifications")
 class HaConfigNotifications extends SubscribeMixin(LitElement) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -118,7 +128,7 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
+    return this._modeLocalize(
       `ui.panel.config.notifications.${key}` as any,
       values
     );
@@ -127,7 +137,7 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
   private _bulkLocalize = (
     key: string,
     values?: Record<string, string | number>
-  ): string => this.hass.localize(key as any, values);
+  ): string => this._modeLocalize(key as any, values);
 
   private _shown(): PersistentNotification[] {
     const matches = searchMatcher(this._filter);
@@ -191,7 +201,7 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
         .searchValue=${this._filter}
         .searchCountText=${
           this._filter
-            ? searchCountText(this.hass.localize, {
+            ? searchCountText(this._modeLocalize, {
                 current: this._showDismissed
                   ? dismissedShown.length
                   : shown.length,
@@ -208,11 +218,11 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
         .hass=${this.hass}
         .narrow=${this.narrow}
         back-path="/config"
-        .header=${this.hass.localize("ui.notification_drawer.title")}
+        .header=${this._modeLocalize("ui.notification_drawer.title")}
       >
         <div class="content">
           <div class="page-heading">
-            <h1>${this.hass.localize("ui.notification_drawer.title")}</h1>
+            <h1>${this._modeLocalize("ui.notification_drawer.title")}</h1>
             <p>${this._l("summary", { count: all.length })}</p>
           </div>
           <div class="filters">
@@ -244,7 +254,7 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
                       ?disabled=${!all.length}
                       @click=${this._dismissAll}
                     >
-                      ${this.hass.localize("ui.notification_drawer.dismiss_all")}
+                      ${this._modeLocalize("ui.notification_drawer.dismiss_all")}
                     </ha-button>
                     <ha-button
                       size="s"
@@ -326,7 +336,7 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
           ${
             all.length
               ? this._l("no_match")
-              : this.hass.localize("ui.notification_drawer.empty")
+              : this._modeLocalize("ui.notification_drawer.empty")
           }
         </p>
       </div>`;

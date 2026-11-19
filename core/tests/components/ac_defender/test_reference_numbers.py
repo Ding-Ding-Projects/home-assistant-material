@@ -160,6 +160,7 @@ def cool_outdoor(minutes_off: int):
         options=options, outdoor=15.0, forecast_peak=17.0, room=22.0, setpoint=23.0
     )
     assert decide(ctx, guards).action == "turn_off"
+    ctx.off_command_at = NOW
     ctx.hvac_mode = "off"
     ctx.outdoor = 25.0
     ctx.now = NOW + timedelta(minutes=minutes_off)
@@ -206,6 +207,7 @@ def test_cool_outdoor_cannot_start_again_in_the_five_minutes_after_a_safety_rest
         options=options, outdoor=15.0, forecast_peak=17.0, room=22.0, setpoint=23.0
     )
     assert decide(ctx, guards).action == "turn_off"
+    ctx.off_command_at = NOW
     ctx.hvac_mode = "off"
     ctx.room = 24.8
     ctx.now = NOW + timedelta(minutes=1)

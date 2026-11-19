@@ -330,8 +330,68 @@
       }
     },
     "switch": {
-      "guard": {
-        "name": "{guard}",
+      "guard_safety": {
+        "name": "Safety: {guard}",
+        "state_attributes": {
+          "guard": {
+            "name": "Guard"
+          },
+          "safety": {
+            "name": "Safety guard"
+          },
+          "group": {
+            "name": "Group"
+          },
+          "last_acted": {
+            "name": "Last acted"
+          },
+          "reason": {
+            "name": "Reason"
+          }
+        }
+      },
+      "guard_people": {
+        "name": "People: {guard}",
+        "state_attributes": {
+          "guard": {
+            "name": "Guard"
+          },
+          "safety": {
+            "name": "Safety guard"
+          },
+          "group": {
+            "name": "Group"
+          },
+          "last_acted": {
+            "name": "Last acted"
+          },
+          "reason": {
+            "name": "Reason"
+          }
+        }
+      },
+      "guard_timing": {
+        "name": "Timing: {guard}",
+        "state_attributes": {
+          "guard": {
+            "name": "Guard"
+          },
+          "safety": {
+            "name": "Safety guard"
+          },
+          "group": {
+            "name": "Group"
+          },
+          "last_acted": {
+            "name": "Last acted"
+          },
+          "reason": {
+            "name": "Reason"
+          }
+        }
+      },
+      "guard_money": {
+        "name": "Money: {guard}",
         "state_attributes": {
           "guard": {
             "name": "Guard"
@@ -391,7 +451,40 @@
   "exceptions": {
     "climate_not_found": {
       "message": "The device {entity_id} is not available yet. Setup will try again."
+    },
+    "below_device_minimum": {
+      "message": "{value} is below the device minimum of {minimum}."
+    },
+    "above_device_maximum": {
+      "message": "{value} is above the device maximum of {maximum}."
+    },
+    "not_above_floor": {
+      "message": "{value} must be above the floor of {floor}."
+    },
+    "floor_below_minimum": {
+      "message": "The floor cannot be lower than {minimum}."
+    },
+    "floor_not_below_cap": {
+      "message": "The floor must be below the temperature cap."
+    },
+    "band_crossed": {
+      "message": "The two defenders would cross: the cooling temperature must be above the heating cap."
+    },
+    "band_too_narrow": {
+      "message": "The cooling temperature and the heating cap must be at least 1 degree apart."
+    },
+    "band_under_floor": {
+      "message": "The heating cap must be above the floor."
     }
   },
-  "issues": {}
+  "issues": {
+    "climate_missing": {
+      "title": "The device of {title} is missing",
+      "description": "{title} defends {entity_id}, which does not exist right now. Setup tries again by itself. If the device was removed or renamed, remove this defender and set it up again for the device."
+    },
+    "missing_entity": {
+      "title": "A sensor of {title} is missing",
+      "description": "{title} was set up to read {entity_id}, which does not exist right now. The defender keeps working without it. Choose another sensor in the options of {title}, or restore the sensor."
+    }
+  }
 }

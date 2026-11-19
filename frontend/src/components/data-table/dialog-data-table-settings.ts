@@ -22,12 +22,16 @@ import type {
   DataTableColumnData,
 } from "./ha-data-table";
 import type { DataTableSettingsDialogParams } from "./show-dialog-data-table-settings";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 
 @customElement("dialog-data-table-settings")
 export class DialogDataTableSettings extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  // Draws the dialog again when the language mode changes.
+  private _lang = new LanguageModeController(this);
 
   @state() private _params?: DataTableSettingsDialogParams;
 
@@ -120,7 +124,7 @@ export class DialogDataTableSettings extends LitElement {
       return nothing;
     }
 
-    const localize = this._localize;
+    const localize = this._lang.cachedLocalizer(this._localize);
 
     const columns = this._sortedColumns(
       this._params.columns,

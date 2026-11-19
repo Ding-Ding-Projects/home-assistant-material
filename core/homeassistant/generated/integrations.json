@@ -12404,6 +12404,12 @@
       "iot_class": "local_polling",
       "single_config_entry": true
     },
+    "registry_storage": {
+      "name": "Container registry storage",
+      "integration_type": "service",
+      "config_flow": true,
+      "iot_class": "cloud_push"
+    },
     "rehlko": {
       "name": "Rehlko",
       "integration_type": "hub",
@@ -15681,6 +15687,19 @@
       ],
       "config_flow": true,
       "iot_class": "cloud_polling"
+    },
+    "ttc": {
+      "name": "TTC transit",
+      "integration_type": "service",
+      "categories": [
+        "vehicles_transport.public_transport"
+      ],
+      "connectivity": [
+        "cloud"
+      ],
+      "config_flow": true,
+      "iot_class": "cloud_polling",
+      "single_config_entry": true
     },
     "tuya": {
       "name": "Tuya",

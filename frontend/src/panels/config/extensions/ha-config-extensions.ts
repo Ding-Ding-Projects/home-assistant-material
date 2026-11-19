@@ -60,6 +60,9 @@ import {
   requestExtensionConsent,
 } from "./extension-consent";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 interface PanelExtension {
   urlPath: string;
   name: string;
@@ -71,6 +74,14 @@ interface PanelExtension {
 /** The extensions of this installation: dashboard resources and custom panels. */
 @customElement("ha-config-extensions")
 class HaConfigExtensions extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
@@ -103,7 +114,7 @@ class HaConfigExtensions extends LitElement {
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
+    return this._modeLocalize(
       `ui.panel.config.extensions.${key}` as never,
       values as never
     ) as string;
@@ -145,7 +156,7 @@ class HaConfigExtensions extends LitElement {
         .searchValue=${this._filter}
         .searchCountText=${
           this._filter
-            ? searchCountText(this.hass.localize, {
+            ? searchCountText(this._modeLocalize, {
                 current: this._matchCount(resources, panels),
                 total: resources.length + panels.length,
               })
@@ -296,7 +307,7 @@ class HaConfigExtensions extends LitElement {
         <span class="chips">
           <span class="chip"
             >${
-              this.hass.localize(
+              this._modeLocalize(
                 `ui.panel.config.lovelace.resources.types.${resource.type}`
               ) || resource.type
             }</span
@@ -426,15 +437,15 @@ class HaConfigExtensions extends LitElement {
   private async _remove(ev: Event): Promise<void> {
     const resource = (ev.currentTarget as any).resource as LovelaceResource;
     const confirmed = await showConfirmationDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.lovelace.resources.confirm_delete_title"
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.lovelace.resources.confirm_delete_text",
         { url: resource.url }
       ),
-      dismissText: this.hass.localize("ui.common.cancel"),
-      confirmText: this.hass.localize("ui.common.delete"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
+      confirmText: this._modeLocalize("ui.common.delete"),
       destructive: true,
     });
     if (!confirmed) {

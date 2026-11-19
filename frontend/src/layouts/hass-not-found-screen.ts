@@ -6,6 +6,7 @@ import { navigate } from "../common/navigate";
 import "../components/ha-button";
 import "../components/ha-svg-icon";
 import { showQuickBar } from "../dialogs/quick-bar/show-dialog-quick-bar";
+import { withLanguageMode } from "../common/language-mode/language-mode";
 import type { HomeAssistant } from "../types";
 
 /** Card shown when an address resolves to no page. */
@@ -17,7 +18,7 @@ class HassNotFoundScreen extends LitElement {
   @property() public path?: string;
 
   protected render(): TemplateResult {
-    const localize = this.hass.localize;
+    const localize = withLanguageMode(this.hass.localize);
     const path = this.path ?? location.pathname;
     return html`
       <div class="content">

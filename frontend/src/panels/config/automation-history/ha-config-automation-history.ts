@@ -134,6 +134,9 @@ import {
   stateFromQueryParams,
 } from "./automation-history-query-params";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 interface VersionRow extends VersionRef {
   message: string;
   author?: string;
@@ -200,6 +203,14 @@ const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
  */
 @customElement("ha-config-automation-history")
 export class HaConfigAutomationHistory extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
@@ -349,7 +360,7 @@ export class HaConfigAutomationHistory extends LitElement {
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
+    return this._modeLocalize(
       // The keys of this page live under one node.
       `ui.panel.config.automation_history.${key}` as any,
       values
@@ -1025,7 +1036,9 @@ export class HaConfigAutomationHistory extends LitElement {
     const { cases, errors } = duplicateTestCase(
       this._cases,
       item.id,
-      this._l("case_copy_word")
+      // Part of the stored name of the copy, so it is not given in both
+      // languages at once.
+      this.hass.localize("ui.panel.config.automation_history.case_copy_word")
     );
     if (errors.length) {
       showAlertDialog(this, {
@@ -2444,7 +2457,7 @@ export class HaConfigAutomationHistory extends LitElement {
     if (this._search.trim() === "") {
       return undefined;
     }
-    return searchCountText(this.hass.localize, {
+    return searchCountText(this._modeLocalize, {
       current: this._visibleRows().length,
       total: this._rows.length,
     });

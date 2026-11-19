@@ -200,6 +200,12 @@ const TRIGGERS = [
   "todo.item_added",
   "todo.item_completed",
   "todo.item_removed",
+  "ttc.departure_within",
+  "ttc.lift_changed",
+  "ttc.new_alert",
+  "ttc.route_delayed",
+  "ttc.route_resumed",
+  "ttc.time_to_leave",
   "update.became_available",
   "vacuum.returned_to_dock",
   "vacuum.errored",
@@ -364,6 +370,8 @@ const CONDITIONS = [
   "timer.is_idle",
   "todo.all_completed",
   "todo.incomplete",
+  "ttc.route_has_problem",
+  "ttc.station_is_step_free",
   "update.is_available",
   "update.is_not_available",
   "vacuum.is_cleaning",
@@ -497,8 +505,8 @@ const byKey = (list: QuickControl[], key: string) =>
 
 describe("coverage by hand-written lists", () => {
   it("lists the expected number of triggers, conditions and device automations", () => {
-    expect(TRIGGERS).toHaveLength(202);
-    expect(CONDITIONS).toHaveLength(161);
+    expect(TRIGGERS).toHaveLength(208);
+    expect(CONDITIONS).toHaveLength(163);
     expect(DEVICE_AUTOMATIONS).toHaveLength(77);
   });
 

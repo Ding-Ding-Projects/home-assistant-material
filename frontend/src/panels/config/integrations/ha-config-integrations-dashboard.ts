@@ -77,6 +77,9 @@ import { showAddIntegrationDialog } from "./show-add-integration-dialog";
 import { configEntryNeedsAttention } from "./integration-card-summary";
 import { showSingleConfigEntryWarning } from "./show-single-config-entry-warning";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 export interface ConfigEntryExtended extends Omit<ConfigEntry, "entry_id"> {
   entry_id?: string;
   localized_domain_name?: string;
@@ -129,6 +132,14 @@ const sortConfigEntriesByName = (
 class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
   SubscribeMixin(LitElement)
 ) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -335,13 +346,13 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         sortConfigEntriesByName(
           ignored,
           this._manifests,
-          this.hass.localize,
+          this._modeLocalize,
           this.hass.locale.language
         ),
         sortConfigEntriesByName(
           disabled,
           this._manifests,
-          this.hass.localize,
+          this._modeLocalize,
           this.hass.locale.language
         ),
         // How many integrations the page lists with no search
@@ -499,7 +510,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
       this._manifests,
       this.configEntries,
       this._entityRegistryEntries,
-      this.hass.localize,
+      this._modeLocalize,
       this._filter
     );
     const configEntriesInProgress = this._filterConfigEntriesInProgress(
@@ -512,22 +523,22 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
       <div
         class="chips"
         role="group"
-        aria-label=${this.hass.localize("ui.panel.config.integrations.filters")}
+        aria-label=${this._modeLocalize("ui.panel.config.integrations.filters")}
       >
         <ha-filter-chip
-          .label=${this.hass.localize(
+          .label=${this._modeLocalize(
             "ui.panel.config.integrations.filter_attention"
           )}
           .selected=${this._attentionOnly}
           @click=${this._toggleAttentionOnly}
         ></ha-filter-chip>
         <ha-filter-chip
-          .label=${this.hass.localize("ui.panel.config.integrations.disabled")}
+          .label=${this._modeLocalize("ui.panel.config.integrations.disabled")}
           .selected=${this._showDisabled}
           @click=${this._toggleShowDisabled}
         ></ha-filter-chip>
         <ha-filter-chip
-          .label=${this.hass.localize(
+          .label=${this._modeLocalize(
             "ui.panel.config.integrations.ignore.ignored"
           )}
           .selected=${this._showIgnored}
@@ -552,14 +563,14 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.devices}
-        .summary=${this.hass.localize("ui.panel.config.integrations.summary")}
+        .summary=${this._modeLocalize("ui.panel.config.integrations.summary")}
         has-fab
         searchable
-        .searchLabel=${this.hass.localize("ui.panel.config.integrations.search")}
+        .searchLabel=${this._modeLocalize("ui.panel.config.integrations.search")}
         .searchValue=${this._filter}
         .searchCountText=${
           this._filter
-            ? searchCountText(this.hass.localize, {
+            ? searchCountText(this._modeLocalize, {
                 current: shownIntegrations.length,
                 total: totalIntegrations,
               })
@@ -585,7 +596,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
           <header class="page-head">
             <p>
               <a href="/config/google-setup"
-                >${this.hass.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.google_setup.open_from_integrations"
                 )}</a
               >
@@ -599,12 +610,12 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
                     </div>
                     <div class="hero-text">
                       <span class="hero-label"
-                        >${this.hass.localize(
+                        >${this._modeLocalize(
                           "ui.panel.config.integrations.discovered_label"
                         )}</span
                       >
                       <h2 id="discovered-title">
-                        ${this.hass.localize(
+                        ${this._modeLocalize(
                           "ui.panel.config.integrations.discovered_title",
                           { count: configEntriesInProgress.length }
                         )}
@@ -621,7 +632,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
                       </p>
                     </div>
                     <ha-button size="s" @click=${this._scrollToDiscovered}>
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         "ui.panel.config.integrations.discovered_review"
                       )}
                     </ha-button>
@@ -642,7 +653,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
           }
           <div class="toolbar">${chips}</div>
           <h2 class="section-header visually-hidden">
-            ${this.hass.localize("ui.panel.config.integrations.configured")}
+            ${this._modeLocalize("ui.panel.config.integrations.configured")}
           </h2>
           <div class="container">
             ${
@@ -667,12 +678,12 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
                     : html`
                         <div class="empty-message">
                           <h3>
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               "ui.panel.config.integrations.none_found"
                             )}
                           </h3>
                           <p>
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               "ui.panel.config.integrations.none_found_detail"
                             )}
                           </p>
@@ -685,7 +696,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
                               slot="start"
                               .path=${mdiPlus}
                             ></ha-svg-icon>
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               "ui.panel.config.integrations.add_integration"
                             )}
                           </ha-button>
@@ -695,12 +706,12 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
                     ? html`
                         <div class="empty-message">
                           <h3>
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               "ui.panel.config.integrations.none"
                             )}
                           </h3>
                           <p>
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               "ui.panel.config.integrations.no_integrations"
                             )}
                           </p>
@@ -713,7 +724,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
                               slot="start"
                               .path=${mdiPlus}
                             ></ha-svg-icon>
-                            ${this.hass.localize(
+                            ${this._modeLocalize(
                               "ui.panel.config.integrations.add_integration"
                             )}
                           </ha-button>
@@ -725,7 +736,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
           ${
             this._showDisabled
               ? html`<h2 class="section-header">
-                    ${this.hass.localize("ui.panel.config.integrations.disabled")}
+                    ${this._modeLocalize("ui.panel.config.integrations.disabled")}
                   </h2>
                   <div class="container">
                     ${
@@ -742,7 +753,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
                               ></ha-disabled-config-entry-card>
                             `
                           )
-                        : html`${this.hass.localize(
+                        : html`${this._modeLocalize(
                             "ui.panel.config.integrations.no_disabled_integrations"
                           )}`
                     }
@@ -752,7 +763,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
           ${
             this._showIgnored
               ? html`<h2 class="section-header">
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.integrations.ignore.ignored"
                     )}
                   </h2>
@@ -769,7 +780,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
                               ></ha-ignored-config-entry-card>
                             `
                           )
-                        : html`${this.hass.localize(
+                        : html`${this._modeLocalize(
                             "ui.panel.config.integrations.no_ignored_integrations"
                           )}`
                     }
@@ -779,7 +790,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         </div>
         <ha-button slot="fab" size="l" @click=${this._createFlow}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.integrations.add_integration")}
+          ${this._modeLocalize("ui.panel.config.integrations.add_integration")}
         </ha-button>
       </hass-tabs-subpage>
     `;
@@ -1054,7 +1065,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
       }
 
       showConfirmationDialog(this, {
-        text: this.hass.localize(
+        text: this._modeLocalize(
           "ui.panel.config.integrations.config_flow.supported_brand_flow",
           {
             supported_brand: integration.name || domainToName(localize, domain),
@@ -1110,10 +1121,10 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
       return;
     }
     showAlertDialog(this, {
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.integrations.config_flow.error"
       ),
-      text: this.hass.localize(
+      text: this._modeLocalize(
         "ui.panel.config.integrations.config_flow.no_config_flow"
       ),
     });

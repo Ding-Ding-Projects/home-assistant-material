@@ -30,6 +30,9 @@ import type { HomeAssistant } from "../../../types";
 import { showAdminChangePasswordDialog } from "./show-dialog-admin-change-password";
 import type { UserDetailDialogParams } from "./show-dialog-user-detail";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+
 interface UserDetailFormState {
   name: string;
   isAdmin?: boolean;
@@ -41,6 +44,14 @@ interface UserDetailFormState {
 class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
   LitElement
 ) {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _name!: string;
@@ -99,7 +110,7 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
               : nothing
           }
           <div class="secondary">
-            ${this.hass.localize("ui.panel.config.users.editor.id")}:
+            ${this._modeLocalize("ui.panel.config.users.editor.id")}:
             ${user.id}<br />
           </div>
           ${
@@ -126,13 +137,13 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
                       autofocus
                       .value=${this._name}
                       @input=${this._nameChanged}
-                      .label=${this.hass!.localize(
+                      .label=${this._modeLocalize(
                         "ui.panel.config.users.editor.name"
                       )}
                     ></ha-input>
                     <ha-row-item>
                       <span slot="headline"
-                        >${this.hass.localize(
+                        >${this._modeLocalize(
                           "ui.panel.config.users.editor.username"
                         )}</span
                       >
@@ -144,7 +155,7 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
                                 slot="end"
                                 .path=${mdiPencil}
                                 @click=${this._changeUsername}
-                                .label=${this.hass.localize(
+                                .label=${this._modeLocalize(
                                   "ui.panel.config.users.editor.change_username"
                                 )}
                               >
@@ -161,7 +172,7 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
                 ? html`
                     <ha-row-item>
                       <span slot="headline"
-                        >${this.hass.localize(
+                        >${this._modeLocalize(
                           "ui.panel.config.users.editor.password"
                         )}</span
                       >
@@ -173,7 +184,7 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
                                 slot="end"
                                 .path=${mdiPencil}
                                 @click=${this._changePassword}
-                                .label=${this.hass.localize(
+                                .label=${this._modeLocalize(
                                   "ui.panel.config.users.editor.change_password"
                                 )}
                               >
@@ -187,12 +198,12 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
             }
             <ha-row-item>
               <span slot="headline"
-                >${this.hass.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.users.editor.active"
                 )}</span
               >
               <span slot="supporting-text"
-                >${this.hass.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.users.editor.active_description"
                 )}</span
               >
@@ -205,12 +216,12 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
             </ha-row-item>
             <ha-row-item>
               <span slot="headline"
-                >${this.hass.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.users.editor.local_access_only"
                 )}</span
               >
               <span slot="supporting-text"
-                >${this.hass.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.users.editor.local_access_only_description"
                 )}</span
               >
@@ -223,12 +234,12 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
             </ha-row-item>
             <ha-row-item>
               <span slot="headline"
-                >${this.hass.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.users.editor.admin"
                 )}</span
               >
               <span slot="supporting-text"
-                >${this.hass.localize(
+                >${this._modeLocalize(
                   "ui.panel.config.users.editor.admin_description"
                 )}</span
               >
@@ -243,7 +254,7 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
               !this._isAdmin && !user.system_generated
                 ? html`
                     <ha-alert alert-type="info">
-                      ${this.hass.localize(
+                      ${this._modeLocalize(
                         "ui.panel.config.users.users_privileges_note"
                       )}
                     </ha-alert>
@@ -255,7 +266,7 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
             user.system_generated
               ? html`
                   <ha-alert alert-type="info">
-                    ${this.hass.localize(
+                    ${this._modeLocalize(
                       "ui.panel.config.users.editor.system_generated_read_only_users"
                     )}
                   </ha-alert>
@@ -274,7 +285,7 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
               this._submitting || user.system_generated || user.is_owner
             }
           >
-            ${this.hass!.localize("ui.panel.config.users.editor.delete_user")}
+            ${this._modeLocalize("ui.panel.config.users.editor.delete_user")}
           </ha-button>
           <ha-button
             slot="primaryAction"
@@ -286,7 +297,7 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
               !this.isDirtyState
             }
           >
-            ${this.hass!.localize("ui.common.save")}
+            ${this._modeLocalize("ui.common.save")}
           </ha-button>
         </ha-dialog-footer>
       </ha-dialog>
@@ -366,13 +377,13 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
       return;
     }
     const newUsername = await showPromptDialog(this, {
-      inputLabel: this.hass.localize(
+      inputLabel: this._modeLocalize(
         "ui.panel.config.users.change_username.new_username"
       ),
-      confirmText: this.hass.localize(
+      confirmText: this._modeLocalize(
         "ui.panel.config.users.change_username.change"
       ),
-      title: this.hass.localize(
+      title: this._modeLocalize(
         "ui.panel.config.users.change_username.caption"
       ),
       defaultValue: this._params!.entry.username!,
@@ -390,13 +401,13 @@ class DialogUserDetail extends DirtyStateProviderMixin<UserDetailFormState>()(
         };
         this._params.replaceEntry(this._params.entry);
         showAlertDialog(this, {
-          text: this.hass.localize(
+          text: this._modeLocalize(
             "ui.panel.config.users.change_username.username_changed"
           ),
         });
       } catch (err: any) {
         showAlertDialog(this, {
-          title: this.hass.localize(
+          title: this._modeLocalize(
             "ui.panel.config.users.change_username.failed"
           ),
           text: err.message,

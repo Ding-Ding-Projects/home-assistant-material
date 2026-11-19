@@ -14,7 +14,10 @@ import { searchCountText } from "../../../components/ha-top-bar-search";
 import { searchMatcher } from "../../../common/regex/filter";
 import { navigate } from "../../../common/navigate";
 import { caseInsensitiveStringCompare } from "../../../common/string/compare";
-import type { LocalizeKeys } from "../../../common/translations/localize";
+import type {
+  LocalizeKeys,
+  LocalizeFunc,
+} from "../../../common/translations/localize";
 import "../../../components/chips/ha-filter-chip";
 import "../../../components/ha-app-icon";
 import "../../../components/ha-bar";
@@ -40,12 +43,22 @@ import type { AppTag } from "./components/supervisor-apps-card-content";
 import "./components/supervisor-apps-state";
 import "./components/supervisor-apps-tag";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 type StatusFilter = "running" | "stopped" | "update";
 
 const STATUS_FILTERS: StatusFilter[] = ["running", "stopped", "update"];
 
 @customElement("ha-config-apps-installed")
 export class HaConfigAppsInstalled extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -96,16 +109,16 @@ export class HaConfigAppsInstalled extends LitElement {
         .narrow=${this.narrow}
         .route=${this.route}
         back-path="/config"
-        .header=${this.hass.localize("ui.panel.config.apps.caption")}
+        .header=${this._modeLocalize("ui.panel.config.apps.caption")}
         searchable
-        .searchLabel=${this.hass.localize(
+        .searchLabel=${this._modeLocalize(
           "ui.panel.config.apps.installed.search",
           { number: all.length }
         )}
         .searchValue=${this._filter ?? ""}
         .searchCountText=${
           this._filter
-            ? searchCountText(this.hass.localize, {
+            ? searchCountText(this._modeLocalize, {
                 current: addons.length,
                 total: all.length,
               })
@@ -118,33 +131,33 @@ export class HaConfigAppsInstalled extends LitElement {
           .disabled=${this._checkingUpdates}
           @click=${this._handleCheckUpdates}
           .path=${mdiRefresh}
-          .label=${this.hass.localize(
+          .label=${this._modeLocalize(
             "ui.panel.config.apps.store.check_updates"
           )}
         ></ha-icon-button>
         <div class="page">
           <header class="heading">
             <div class="heading-text">
-              <h2>${this.hass.localize("ui.panel.config.apps.caption")}</h2>
+              <h2>${this._modeLocalize("ui.panel.config.apps.caption")}</h2>
               <p>
-                ${this.hass.localize("ui.panel.config.apps.installed.summary", {
+                ${this._modeLocalize("ui.panel.config.apps.installed.summary", {
                   number: all.length,
                 })}
-                ${this.hass.localize(
+                ${this._modeLocalize(
                   "ui.panel.config.apps.installed.page_summary"
                 )}
               </p>
             </div>
             <ha-button size="l" href="/config/apps/available">
               <ha-svg-icon slot="start" .path=${mdiStorePlus}></ha-svg-icon>
-              ${this.hass.localize("ui.panel.config.apps.store.title")}
+              ${this._modeLocalize("ui.panel.config.apps.store.title")}
             </ha-button>
           </header>
           <div class="filters">
             <div
               class="chips"
               role="group"
-              aria-label=${this.hass.localize(
+              aria-label=${this._modeLocalize(
                 "ui.panel.config.apps.installed.filters"
               )}
             >
@@ -152,7 +165,7 @@ export class HaConfigAppsInstalled extends LitElement {
                 (status) => html`
                   <ha-filter-chip
                     .selected=${this._statusFilters.includes(status)}
-                    .label=${this.hass.localize(
+                    .label=${this._modeLocalize(
                       `ui.panel.config.apps.installed.filter_${status}`
                     )}
                     .status=${status}
@@ -169,7 +182,7 @@ export class HaConfigAppsInstalled extends LitElement {
                     <ha-card outlined class="empty">
                       <div class="card-content">
                         <button class="link" @click=${this._openStore}>
-                          ${this.hass.localize(
+                          ${this._modeLocalize(
                             "ui.panel.config.apps.installed.no_apps"
                           )}
                         </button>
@@ -180,7 +193,7 @@ export class HaConfigAppsInstalled extends LitElement {
                   ? html`
                       <ha-card outlined class="empty">
                         <div class="card-content">
-                          ${this.hass.localize(
+                          ${this._modeLocalize(
                             "ui.panel.config.apps.installed.no_matches"
                           )}
                         </div>
@@ -258,7 +271,7 @@ export class HaConfigAppsInstalled extends LitElement {
                 : nothing
               : addon.state === "stopped"
                 ? html`<div class="idle">
-                    ${this.hass.localize("ui.panel.config.apps.installed.idle")}
+                    ${this._modeLocalize("ui.panel.config.apps.installed.idle")}
                   </div>`
                 : nothing
           }
@@ -277,7 +290,7 @@ export class HaConfigAppsInstalled extends LitElement {
     const rounded = roundWithOneDecimal(value);
     return html`
       <div class="meter">
-        <span>${this.hass.localize(key, { percent: `${rounded} %` })}</span>
+        <span>${this._modeLocalize(key, { percent: `${rounded} %` })}</span>
         <ha-bar .value=${value}></ha-bar>
       </div>
     `;
@@ -327,7 +340,7 @@ export class HaConfigAppsInstalled extends LitElement {
       this._loadStats(this._addonInfo.addons);
     } catch (err: any) {
       this._error =
-        err.message || this.hass.localize("ui.panel.config.apps.error_loading");
+        err.message || this._modeLocalize("ui.panel.config.apps.error_loading");
     }
   }
 
@@ -388,7 +401,7 @@ export class HaConfigAppsInstalled extends LitElement {
 
     if (addon.update_available) {
       labels.push({
-        label: this.hass.localize(
+        label: this._modeLocalize(
           `ui.panel.config.apps.state.update_available`
         ),
         variant: "brand",
@@ -397,7 +410,7 @@ export class HaConfigAppsInstalled extends LitElement {
     }
     if (addon.stage !== "stable") {
       labels.push({
-        label: this.hass.localize(
+        label: this._modeLocalize(
           `ui.panel.config.apps.dashboard.capability.stages.${addon.stage}`
         ),
         variant: addon.stage === "experimental" ? "warning" : "danger",

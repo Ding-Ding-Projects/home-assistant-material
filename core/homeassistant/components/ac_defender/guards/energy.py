@@ -1,6 +1,7 @@
 """Energy and schedule guards."""
 
 from datetime import datetime, timedelta
+from typing import Any
 
 from ..model import Ctx, Decision, Hold
 from ..reasons import Reason
@@ -18,6 +19,7 @@ ROOM_BAND = 1.5
 MIN_DWELL_MINUTES = 5.0  # the original compressor dwell, both ways
 PARK_SETPOINT = 28.0  # the original stand-down park number
 DEBOUNCE_SECONDS = 120
+COMMAND_GRACE_SECONDS = 15  # the original's minimum wait for a command to show
 
 
 def weather_allows(mode: str, ctx: Ctx, target: float) -> bool:
@@ -161,65 +163,93 @@ class CoolOutdoorShutdown(Guard):
     )
 
     def holds_off(self, ctx: Ctx) -> bool:
-        """Apply this rule of the guard."""
-        return bool(self.st(ctx).get("off"))
-
-    def act(self, ctx: Ctx) -> Decision | None:
-        """Apply this rule of the guard."""
-        c = self.cfg(ctx)
+        """Hold the unit off for an episode nobody overrode by hand."""
         state = self.st(ctx)
-        if ctx.outdoor is None:
-            return None
-        warm = ctx.outdoor >= c.below + c.restore_margin
-        if warm and not state.get("off"):
-            state.clear()
-            return None
-        if state.get("off"):
-            dwell = ctx.now - state["since"] >= timedelta(
-                minutes=max(MIN_DWELL_MINUTES, c.min_off_minutes)
-            )
-            if ctx.hvac_mode != "off":
-                state["off"] = False
-                state["done"] = True
-                return None
-            if ctx.over_band(ROOM_BAND) or (warm and dwell):
-                state["off"] = False
-                if ctx.over_band(ROOM_BAND):
-                    state["reentry_until"] = ctx.now + timedelta(
-                        minutes=MIN_DWELL_MINUTES
-                    )
-                reason = (
-                    Reason("outdoor_room_warming")
-                    if ctx.over_band(ROOM_BAND)
-                    else Reason("outdoor_warm_again")
-                )
-                return Decision(
-                    action="set_hvac_mode",
-                    value="cool",
-                    reason=reason,
-                    guard=self.spec.key,
-                    acted=[(self.spec.key, reason)],
-                )
-            return None
-        if state.get("done") or ctx.outdoor >= c.below or ctx.over_band(ROOM_BAND):
-            return None
-        if state.get("reentry_until") and ctx.now < state["reentry_until"]:
-            return None
-        if c.forecast_gate and (
-            ctx.forecast_peak is None or ctx.forecast_peak >= c.below + c.restore_margin
-        ):
-            return None
-        state["since"] = ctx.now
-        state["off"] = True
-        if ctx.hvac_mode == "off":
-            return None
-        reason = Reason("outdoor_cool_off")
+        return bool(state.get("off")) and not state.get("override")
+
+    def _decision(self, action: str, reason: Reason) -> Decision:
         return Decision(
-            action="turn_off",
+            action=action,
+            value="cool" if action == "set_hvac_mode" else None,
             reason=reason,
             guard=self.spec.key,
             acted=[(self.spec.key, reason)],
         )
+
+    def act(self, ctx: Ctx) -> Decision | None:
+        """Turn off once per cool episode and restore it as the original does.
+
+        The minimum off time counts from the off command that was sent, or
+        from the start of the episode when the unit was already off. Someone
+        turning the unit back on after the command is respected until the
+        episode ends; an unknown outdoor reading never blocks a restore.
+        """
+        c = self.cfg(ctx)
+        state = self.st(ctx)
+        restore_at = c.below + c.restore_margin
+        warm = ctx.outdoor is not None and ctx.outdoor >= restore_at
+        if state.get("off"):
+            return self._episode(ctx, c, state, warm)
+        if ctx.outdoor is None:
+            return None
+        if warm:
+            state.clear()
+            return None
+        if ctx.outdoor >= c.below or ctx.over_band(ROOM_BAND):
+            return None
+        if state.get("reentry_until") and ctx.now < state["reentry_until"]:
+            return None
+        if c.forecast_gate and (
+            ctx.forecast_peak is None or ctx.forecast_peak >= restore_at
+        ):
+            return None
+        state.clear()
+        state["since"] = ctx.now
+        state["off"] = True
+        if ctx.hvac_mode == "off":
+            return None
+        return self._decision("turn_off", Reason("outdoor_cool_off"))
+
+    def _episode(
+        self, ctx: Ctx, c: Any, state: dict[str, Any], warm: bool
+    ) -> Decision | None:
+        """Hold, restore or stand aside during a cool episode."""
+        if state.get("override"):
+            if warm:
+                state.clear()
+            return None
+        sent = state.get("off_at")
+        if (
+            sent is None
+            and ctx.off_command_at is not None
+            and ctx.off_command_at >= state["since"]
+        ):
+            state["off_at"] = sent = ctx.off_command_at
+        mode_off = ctx.hvac_mode == "off"
+        if sent is None and not mode_off:
+            return self._decision("turn_off", Reason("outdoor_cool_off"))
+        if (
+            sent is not None
+            and not mode_off
+            and ctx.now - sent > timedelta(seconds=COMMAND_GRACE_SECONDS)
+        ):
+            state["override"] = True
+            return None
+        if ctx.over_band(ROOM_BAND):
+            state.clear()
+            state["reentry_until"] = ctx.now + timedelta(minutes=MIN_DWELL_MINUTES)
+            if sent is not None and mode_off:
+                return self._decision("set_hvac_mode", Reason("outdoor_room_warming"))
+            return None
+        dwell_end = (sent or state["since"]) + timedelta(
+            minutes=max(MIN_DWELL_MINUTES, c.min_off_minutes)
+        )
+        if not warm or ctx.now < dwell_end:
+            return None
+        state.clear()
+        if sent is not None and mode_off:
+            return self._decision("set_hvac_mode", Reason("outdoor_warm_again"))
+        return None
 
 
 class SiestaWatch(Guard):

@@ -76,6 +76,8 @@ import {
 import { configSections } from "../config-sections";
 import { showLabelDetailDialog } from "./show-dialog-label-detail";
 
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+
 type ConfigTranslationKey = FlattenObjectKeys<
   TranslationDict["ui"]["panel"]["config"]
 >;
@@ -114,6 +116,14 @@ const NAVIGATION_ACTIONS: {
 
 @customElement("ha-config-labels")
 export class HaConfigLabels extends LitElement {
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  // The page's strings in the chosen language mode, where they have Cantonese.
+  private get _modeLocalize(): LocalizeFunc {
+    return this._lang.cachedLocalizer(this.hass.localize);
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
@@ -200,7 +210,7 @@ export class HaConfigLabels extends LitElement {
         template: (label) => html`
           <ha-icon-button
             .selectedLabel=${label}
-            .label=${this.hass.localize("ui.common.overflow_menu")}
+            .label=${this._modeLocalize("ui.common.overflow_menu")}
             .path=${mdiDotsVertical}
             @click=${this._toggleOverflowMenu}
           ></ha-icon-button>
@@ -258,11 +268,11 @@ export class HaConfigLabels extends LitElement {
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.areas}
-        .columns=${this._columns(this.hass.localize)}
+        .columns=${this._columns(this._modeLocalize)}
         .data=${this._data(this._labels)}
         .loading=${this._loading}
-        .summary=${this.hass.localize("ui.panel.config.labels.summary")}
-        .noDataText=${this.hass.localize("ui.panel.config.labels.no_labels")}
+        .summary=${this._modeLocalize("ui.panel.config.labels.summary")}
+        .noDataText=${this._modeLocalize("ui.panel.config.labels.no_labels")}
         .hasFab=${this.narrow}
         .initialSorting=${this._tableSettings.sorting}
         .columnOrder=${this._activeColumnOrder}
@@ -285,7 +295,7 @@ export class HaConfigLabels extends LitElement {
         <ha-icon-button
           slot="toolbar-icon"
           @click=${this._showHelp}
-          .label=${this.hass.localize("ui.common.help")}
+          .label=${this._modeLocalize("ui.common.help")}
           .path=${mdiHelpCircleOutline}
         ></ha-icon-button>
         <ha-button
@@ -294,7 +304,7 @@ export class HaConfigLabels extends LitElement {
           @click=${this._addLabel}
         >
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.labels.add_label")}
+          ${this._modeLocalize("ui.panel.config.labels.add_label")}
         </ha-button>
       </hass-tabs-subpage-data-table>
       ${
@@ -327,14 +337,14 @@ export class HaConfigLabels extends LitElement {
           (action) => html`
             <ha-dropdown-item value=${action.value}>
               <ha-svg-icon slot="icon" .path=${action.icon}></ha-svg-icon>
-              ${this.hass.localize(`ui.panel.config.${action.translationKey}`)}
+              ${this._modeLocalize(`ui.panel.config.${action.translationKey}`)}
             </ha-dropdown-item>
           `
         )}
         <wa-divider></wa-divider>
         <ha-dropdown-item variant="danger" value="delete">
           <ha-svg-icon slot="icon" .path=${mdiDelete}></ha-svg-icon>
-          ${this.hass.localize("ui.common.delete")}
+          ${this._modeLocalize("ui.common.delete")}
         </ha-dropdown-item>
       </ha-dropdown>
     `;
@@ -347,10 +357,10 @@ export class HaConfigLabels extends LitElement {
 
   private _showHelp() {
     showAlertDialog(this, {
-      title: this.hass.localize("ui.panel.config.labels.caption"),
+      title: this._modeLocalize("ui.panel.config.labels.caption"),
       text: html`
-        ${this.hass.localize("ui.panel.config.labels.introduction")}
-        <p>${this.hass.localize("ui.panel.config.labels.introduction2")}</p>
+        ${this._modeLocalize("ui.panel.config.labels.introduction")}
+        <p>${this._modeLocalize("ui.panel.config.labels.introduction2")}</p>
       `,
     });
   }
@@ -408,14 +418,14 @@ export class HaConfigLabels extends LitElement {
   private async _deleteLabel(selectedLabel: LabelRegistryEntry) {
     if (
       !(await showConfirmationDialog(this, {
-        title: this.hass!.localize(
+        title: this._modeLocalize(
           "ui.panel.config.labels.confirm_delete_title"
         ),
-        text: this.hass.localize("ui.panel.config.labels.confirm_delete", {
+        text: this._modeLocalize("ui.panel.config.labels.confirm_delete", {
           label: selectedLabel.name || selectedLabel.label_id,
         }),
-        dismissText: this.hass!.localize("ui.common.cancel"),
-        confirmText: this.hass!.localize("ui.common.delete"),
+        dismissText: this._modeLocalize("ui.common.cancel"),
+        confirmText: this._modeLocalize("ui.common.delete"),
         destructive: true,
       }))
     ) {
@@ -441,13 +451,13 @@ export class HaConfigLabels extends LitElement {
   private _bulkLocalize = (
     key: string,
     values?: Record<string, string | number>
-  ): string => this.hass.localize(key as any, values);
+  ): string => this._modeLocalize(key as any, values);
 
   private _bulkActions(): BulkAction[] {
     return [
       {
         id: "delete",
-        label: this.hass.localize("ui.common.delete"),
+        label: this._modeLocalize("ui.common.delete"),
         path: mdiDelete,
         destructive: true,
       },
@@ -466,13 +476,13 @@ export class HaConfigLabels extends LitElement {
     const rest = chosen.length - names.length;
     const hidden = hiddenTableSelection(this._dataTable);
     return {
-      title: this.hass.localize("ui.panel.config.labels.bulk_preview_title", {
+      title: this._modeLocalize("ui.panel.config.labels.bulk_preview_title", {
         count: chosen.length,
       }),
       items: [
         {
           kind: "change",
-          text: `${this.hass.localize(
+          text: `${this._modeLocalize(
             "ui.panel.config.labels.bulk_preview_delete",
             { count: chosen.length }
           )}: ${names.join(", ")}${rest > 0 ? "…" : ""}`,
@@ -481,7 +491,7 @@ export class HaConfigLabels extends LitElement {
           ? [
               {
                 kind: "same" as const,
-                text: this.hass.localize("ui.bulk.preview_hidden", {
+                text: this._modeLocalize("ui.bulk.preview_hidden", {
                   count: hidden,
                 }),
               },
@@ -489,8 +499,8 @@ export class HaConfigLabels extends LitElement {
           : []),
       ],
       changeCount: chosen.length,
-      confirmLabel: this.hass.localize("ui.common.delete"),
-      note: this.hass.localize(
+      confirmLabel: this._modeLocalize("ui.common.delete"),
+      note: this._modeLocalize(
         "ui.panel.config.labels.confirm_delete_selected",
         { count: chosen.length }
       ),
@@ -530,12 +540,12 @@ export class HaConfigLabels extends LitElement {
         .filter((label) => ids.includes(label.label_id))
         .map((label) => label.name || label.label_id);
       showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.labels.delete_failed_title"),
+        title: this._modeLocalize("ui.panel.config.labels.delete_failed_title"),
         text: failedNames.length
-          ? this.hass.localize("ui.panel.config.labels.delete_failed_named", {
+          ? this._modeLocalize("ui.panel.config.labels.delete_failed_named", {
               names: failedNames.join(", "),
             })
-          : this.hass.localize("ui.panel.config.labels.delete_failed"),
+          : this._modeLocalize("ui.panel.config.labels.delete_failed"),
       });
     }
   };

@@ -3,6 +3,7 @@
 import pytest
 from pytest_homeassistant.common import MockConfigEntry
 
+from homeassistant.components.ac_defender.config_flow import temperature_error
 from homeassistant.components.ac_defender.const import (
     CONF_CLIMATE,
     CONF_ENABLED_GUARDS,
@@ -166,3 +167,22 @@ async def test_options_flow(hass: HomeAssistant, mock_entry: MockConfigEntry) ->
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert mock_entry.options[CONF_MY_TEMPERATURE] == 22.0
+
+
+async def test_options_flow_refuses_a_too_hot_number_at_or_below_the_target(
+    hass: HomeAssistant, mock_entry: MockConfigEntry
+) -> None:
+    """The too-hot temperature must stay above the temperature to hold."""
+    set_climate(hass)
+    mock_entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(mock_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_MY_TEMPERATURE: 24.0, CONF_SAFETY_TEMPERATURE: 24.0},
+    )
+    assert result["errors"] == {CONF_SAFETY_TEMPERATURE: "safety_below_target"}
+
+
+def test_temperature_error_without_the_entity(hass: HomeAssistant) -> None:
+    """A unit that is gone has no limits to check against."""
+    assert temperature_error(hass, CLIMATE, 40.0) is None
