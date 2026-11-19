@@ -26,7 +26,11 @@ import { removeLinkedFile, updateLinkedFile } from "../../../data/linked_media";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../../../types";
 import { bytesToString } from "../../../util/bytes-to-string";
-import { linkedFailureText, linkedUsedByText } from "./linked-text";
+import {
+  linkedFailureText,
+  linkedLocale,
+  linkedUsedByText,
+} from "./linked-text";
 
 const MIN_SIZE_MB = 1;
 const MAX_SIZE_MB = 2000;
@@ -90,11 +94,18 @@ export class HaLinkedFileSheet extends LitElement {
               >`
             : nothing
         }
+        ${
+          file.live
+            ? html`<ha-alert alert-type="info" .title=${this._l("live")}
+                >${this._l("sheet.live_note")}</ha-alert
+              >`
+            : nothing
+        }
         <div class="field">
           <span class="label">${this._l("sheet.fetch")}</span>
           <ha-button-toggle-group
             full-width
-            .disabled=${!isAdmin}
+            .disabled=${!isAdmin || file.live}
             .active=${file.fetch}
             .buttons=${[
               { label: this._l("sheet.each_time"), value: "each_time" },
@@ -180,7 +191,11 @@ export class HaLinkedFileSheet extends LitElement {
   }
 
   private _dateTime(value: string): string {
-    return formatDateTime(new Date(value), this.hass.locale, this.hass.config);
+    return formatDateTime(
+      new Date(value),
+      linkedLocale(this.hass),
+      this.hass.config
+    );
   }
 
   private async _save(settings: LinkedFileSettings): Promise<void> {

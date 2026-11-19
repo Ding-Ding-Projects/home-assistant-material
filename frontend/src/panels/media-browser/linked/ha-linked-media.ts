@@ -2,7 +2,10 @@ import { mdiImage, mdiMovieOpen, mdiMusic, mdiPlus } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
-import { formatTime } from "../../../common/datetime/format_time";
+import {
+  formatTime,
+  formatTimeWithSeconds,
+} from "../../../common/datetime/format_time";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import {
@@ -20,7 +23,11 @@ import { checkLinkedFile, fetchLinkedFiles } from "../../../data/linked_media";
 import type { HomeAssistant } from "../../../types";
 import "./ha-linked-file-add";
 import "./ha-linked-file-sheet";
-import { linkedFailureText, linkedUsedByText } from "./linked-text";
+import {
+  linkedFailureText,
+  linkedLocale,
+  linkedUsedByText,
+} from "./linked-text";
 
 const KIND_ICON = {
   audio: mdiMusic,
@@ -200,9 +207,11 @@ export class HaLinkedMedia extends LitElement {
     } else {
       const usage = file.last_used_at
         ? this._l("used_at", { time: this._time(file.last_used_at) })
-        : file.fetch === "keep"
-          ? this._l("kept")
-          : this._l("fetched_each_time");
+        : file.live
+          ? this._l("live_line")
+          : file.fetch === "keep"
+            ? this._l("kept")
+            : this._l("fetched_each_time");
       line = `${kind} · ${file.host} · ${usage}`;
     }
     const checking = this._checking.has(file.id);
@@ -218,7 +227,14 @@ export class HaLinkedMedia extends LitElement {
             <ha-svg-icon .path=${KIND_ICON[file.kind]}></ha-svg-icon>
           </span>
           <span class="text">
-            <span class="name">${file.name}</span>
+            <span class="name-line">
+              <span class="name">${file.name}</span>
+              ${
+                file.live
+                  ? html`<span class="live">${this._l("live")}</span>`
+                  : nothing
+              }
+            </span>
             <span class="secondary ${failed ? "error" : ""}">${line}</span>
           </span>
         </button>
@@ -270,9 +286,11 @@ export class HaLinkedMedia extends LitElement {
                   ),
                 })
               : undefined,
-            file.fetch === "keep"
-              ? this._l("in_use.kept")
-              : this._l("in_use.thrown_away"),
+            file.live
+              ? this._l("in_use.live")
+              : file.fetch === "keep"
+                ? this._l("in_use.kept")
+                : this._l("in_use.thrown_away"),
           ].filter(Boolean);
           return html`<div class="in-use">
             <span class="name">${file.name}</span>
@@ -288,15 +306,10 @@ export class HaLinkedMedia extends LitElement {
       return "";
     }
     const date = new Date(value);
-    if (seconds) {
-      return date.toLocaleTimeString(this.hass.locale.language, {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hourCycle: "h23",
-      });
-    }
-    return formatTime(date, this.hass.locale, this.hass.config);
+    const locale = linkedLocale(this.hass);
+    return seconds
+      ? formatTimeWithSeconds(date, locale, this.hass.config)
+      : formatTime(date, locale, this.hass.config);
   }
 
   private _openAdd(): void {
@@ -421,6 +434,24 @@ export class HaLinkedMedia extends LitElement {
         .name {
           font-size: var(--ha-font-size-m);
           font-weight: var(--ha-font-weight-medium);
+        }
+        .name-line {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+          min-width: 0;
+        }
+        .live {
+          flex: none;
+          padding: 0 var(--ha-space-2);
+          border-radius: var(--ha-border-radius-pill);
+          background: var(--error-color);
+          color: var(--text-primary-color, #fff);
+          font-size: var(--ha-font-size-xs);
+          font-weight: var(--ha-font-weight-bold);
+          line-height: 18px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
         }
         .secondary {
           font-size: var(--ha-font-size-s);

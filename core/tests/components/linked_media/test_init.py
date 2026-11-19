@@ -15,7 +15,7 @@ from pytest_homeassistant.components.diagnostics import get_diagnostics_for_conf
 from pytest_homeassistant.typing import ClientSessionGenerator, WebSocketGenerator
 
 from homeassistant.components import media_source
-from homeassistant.components.linked_media import temp_root
+from homeassistant.components.linked_media import handout_root, temp_root
 from homeassistant.components.linked_media.address import (
     AddressClass,
     address_has_secret,
@@ -57,7 +57,12 @@ async def _added(
 
 
 def _left_over(hass: HomeAssistant) -> list[Path]:
-    return [path for path in temp_root(hass).rglob("*") if path.is_file()]
+    return [
+        path
+        for folder in (temp_root(hass), handout_root(hass))
+        for path in folder.rglob("*")
+        if path.is_file()
+    ]
 
 
 @pytest.mark.parametrize(
@@ -345,7 +350,7 @@ async def test_size_limit_while_streaming(
         hass_ws_client,
         hass,
         name="Long",
-        address=address(media_server, "/big.mp3"),
+        address=address(media_server, "/big-chunked.mp4"),
         max_size_mb=1,
     )
     http = await hass_client()
@@ -369,7 +374,7 @@ async def test_size_limit_for_copy(
         hass_ws_client,
         hass,
         name="Long",
-        address=address(media_server, "/big.mp3"),
+        address=address(media_server, "/big-chunked.mp4"),
         max_size_mb=1,
     )
     http = await hass_client()
@@ -786,7 +791,7 @@ async def test_fetch_service_failure(
         hass_ws_client,
         hass,
         name="Long",
-        address=address(media_server, "/big.mp3"),
+        address=address(media_server, "/big-chunked.mp4"),
         max_size_mb=1,
     )
     with pytest.raises(HomeAssistantError) as err:
@@ -798,4 +803,156 @@ async def test_fetch_service_failure(
             return_response=True,
         )
     assert err.value.translation_placeholders == {"name": "Long", "reason": "too_large"}
+    assert _left_over(hass) == []
+
+
+async def test_fetched_file_is_in_an_allowed_folder(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    media_server: TestServer,
+) -> None:
+    """A handed out file sits hidden in the local media folder Core allows."""
+    media_dir = hass.config.media_dirs["local"]
+    # Core allows the media folders by default; the test config starts empty.
+    hass.config.allowlist_external_dirs = {media_dir}
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    linked = await _added(
+        hass_ws_client, hass, name="Chime", address=address(media_server, "/sound.mp3")
+    )
+    response = await hass.services.async_call(
+        DOMAIN,
+        "fetch",
+        {"file_id": linked["id"]},
+        blocking=True,
+        return_response=True,
+    )
+    path = Path(response["path"])
+    assert path.relative_to(media_dir).parts[0] == ".linked_media"
+    assert await hass.async_add_executor_job(hass.config.is_allowed_path, str(path))
+
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert not await hass.async_add_executor_job(handout_root(hass).exists)
+
+
+async def test_handed_out_left_overs_removed_at_start(hass: HomeAssistant) -> None:
+    """A handed out file left from an earlier run is removed at start."""
+    folder = handout_root(hass) / "old"
+    await hass.async_add_executor_job(lambda: folder.mkdir(parents=True))
+    await hass.async_add_executor_job((folder / "old.mp3").write_bytes, b"old")
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    assert _left_over(hass) == []
+
+
+@pytest.mark.usefixtures("setup_linked_media")
+async def test_live_stream_passes_through(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    hass_client: ClientSessionGenerator,
+    media_server: TestServer,
+) -> None:
+    """A sound with no length is a live stream: no size limit and no copy."""
+    linked = await _added(
+        hass_ws_client,
+        hass,
+        name="Radio",
+        address=address(media_server, "/radio.mp3"),
+        max_size_mb=1,
+        fetch="keep",
+    )
+    assert linked["live"] is True
+
+    http = await hass_client()
+    response = await http.get(
+        f"/api/linked_media/file/{linked['id']}", headers={"Range": "bytes=0-"}
+    )
+    assert response.status == 200
+    assert response.headers["Accept-Ranges"] == "none"
+    received = 0
+    while received <= 3 * 1024 * 1024:
+        received += len(await response.content.readany())
+    assert _left_over(hass) == []
+
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id(
+        {"type": "linked_media/status", "file_id": linked["id"]}
+    )
+    status = (await client.receive_json())["result"]
+    assert status["status"]["in_use"] is True
+    assert status["status"]["stored_bytes"] == 0
+
+    response.close()
+    media_server.app["state"]["radio_closed"].set()
+    await hass.async_block_till_done()
+    assert _left_over(hass) == []
+    assert status["last_failure_reason"] is None
+
+
+@pytest.mark.usefixtures("setup_linked_media")
+async def test_live_stream_has_no_position(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    hass_client: ClientSessionGenerator,
+    media_server: TestServer,
+) -> None:
+    """A player that asks for a position in a live stream gets a plain answer."""
+    linked = await _added(
+        hass_ws_client, hass, name="Radio", address=address(media_server, "/radio.mp3")
+    )
+    http = await hass_client()
+    response = await http.get(
+        f"/api/linked_media/file/{linked['id']}", headers={"Range": "bytes=100-"}
+    )
+    assert response.status == 416
+    assert "live_no_position" in await response.text()
+    assert _left_over(hass) == []
+
+
+@pytest.mark.usefixtures("setup_linked_media")
+async def test_live_stream_idle_timeout(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    hass_client: ClientSessionGenerator,
+    media_server: TestServer,
+) -> None:
+    """A live stream that goes quiet is stopped by the idle timeout."""
+    failed = async_capture_events(hass, EVENT_FAILED)
+    linked = await _added(
+        hass_ws_client, hass, name="Radio", address=address(media_server, "/radio.mp3")
+    )
+    media_server.app["state"]["radio_quiet_after"] = 512 * 1024
+    http = await hass_client()
+    with patch("homeassistant.components.linked_media.fetch.READ_IDLE_TIMEOUT", 0.3):
+        response = await http.get(f"/api/linked_media/file/{linked['id']}")
+        with pytest.raises(aiohttp.ClientPayloadError):
+            await response.read()
+    await hass.async_block_till_done()
+    assert failed[-1].data["reason"] == "timeout"
+    assert _left_over(hass) == []
+
+
+@pytest.mark.usefixtures("setup_linked_media")
+async def test_live_stream_is_not_handed_out(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    media_server: TestServer,
+) -> None:
+    """The fetch action says plainly that a live stream cannot be a file."""
+    linked = await _added(
+        hass_ws_client, hass, name="Radio", address=address(media_server, "/radio.mp3")
+    )
+    with pytest.raises(HomeAssistantError) as err:
+        await hass.services.async_call(
+            DOMAIN,
+            "fetch",
+            {"file_id": linked["id"]},
+            blocking=True,
+            return_response=True,
+        )
+    assert err.value.translation_placeholders == {
+        "name": "Radio",
+        "reason": "live_stream",
+    }
     assert _left_over(hass) == []

@@ -30,6 +30,8 @@ MAX_REDIRECTS: Final = 3
 CHUNK_SIZE: Final = 64 * 1024
 
 DEFAULT_FILE_SECONDS: Final = 300
+# Hidden inside the local media folder, so the media browser does not list it.
+HANDOUT_FOLDER: Final = ".linked_media"
 MAX_FILE_SECONDS: Final = 3600
 
 USER_AGENT: Final = "HomeAssistant-LinkedMedia/1"
@@ -56,6 +58,8 @@ class FailureReason(StrEnum):
     INTERNAL_ADDRESS = "internal_address"
     BLOCKED_ADDRESS = "blocked_address"
     INVALID_ADDRESS = "invalid_address"
+    LIVE_STREAM = "live_stream"
+    LIVE_NO_POSITION = "live_no_position"
 
 
 class LinkedMediaService(StrEnum):

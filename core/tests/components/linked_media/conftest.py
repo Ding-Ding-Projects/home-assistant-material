@@ -34,12 +34,36 @@ async def _clip(request: web.Request) -> web.Response:
 
 
 async def _big_unknown_length(request: web.Request) -> web.StreamResponse:
-    response = web.StreamResponse(headers={"Content-Type": "audio/mpeg"})
+    response = web.StreamResponse(headers={"Content-Type": "video/mp4"})
     response.enable_chunked_encoding()
     await response.prepare(request)
     for _ in range(BIG_CHUNKS):
         await response.write(BIG_CHUNK)
     await response.write_eof()
+    return response
+
+
+async def _radio(request: web.Request) -> web.StreamResponse:
+    """Send sound with no length until the test closes the stream."""
+    state = request.app["state"]
+    response = web.StreamResponse(headers={"Content-Type": "audio/mpeg"})
+    response.enable_chunked_encoding()
+    await response.prepare(request)
+    state["radio_listeners"] += 1
+    sent = 0
+    while not state["radio_closed"].is_set():
+        if (
+            state["radio_quiet_after"] is not None
+            and sent >= state["radio_quiet_after"]
+        ):
+            await state["radio_closed"].wait()
+            break
+        try:
+            await response.write(BIG_CHUNK)
+        except ConnectionError:
+            break
+        sent += len(BIG_CHUNK)
+        await asyncio.sleep(0)
     return response
 
 
@@ -92,10 +116,16 @@ async def media_server() -> AsyncIterator[TestServer]:
     """Run the pretend web server."""
     app = web.Application()
     app["seen_headers"] = []
-    app["state"] = {"gone": False}
+    app["state"] = {
+        "gone": False,
+        "radio_closed": asyncio.Event(),
+        "radio_listeners": 0,
+        "radio_quiet_after": None,
+    }
     app.router.add_get("/sound.mp3", _sound)
     app.router.add_get("/clip.mp4", _clip)
-    app.router.add_get("/big.mp3", _big_unknown_length)
+    app.router.add_get("/big-chunked.mp4", _big_unknown_length)
+    app.router.add_get("/radio.mp3", _radio)
     app.router.add_get("/big.mp4", _big_declared)
     app.router.add_get("/page.html", _page)
     app.router.add_get("/list.m3u8", _playlist)
@@ -109,6 +139,7 @@ async def media_server() -> AsyncIterator[TestServer]:
     server = TestServer(app, host="127.0.0.1")
     await server.start_server()
     yield server
+    app["state"]["radio_closed"].set()
     await server.close()
 
 

@@ -1,4 +1,6 @@
 import type { LocalizeFunc } from "../../../common/translations/localize";
+import type { FrontendLocaleData } from "../../../data/translation";
+import { TimeFormat } from "../../../data/translation";
 import type { LinkedCheck, LinkedFile } from "../../../data/linked_media";
 import type { HomeAssistant } from "../../../types";
 
@@ -23,6 +25,15 @@ export const linkedFailureText = (
     status: status ?? "",
   });
 };
+
+/** The person's locale with a 24-hour clock unless they chose 12-hour. */
+export const linkedLocale = (hass: HomeAssistant): FrontendLocaleData => ({
+  ...hass.locale,
+  time_format:
+    hass.locale.time_format === TimeFormat.am_pm
+      ? TimeFormat.am_pm
+      : TimeFormat.twenty_four,
+});
 
 /** Who last used a linked file: a player by its name, an action or a player. */
 export const linkedUsedByText = (

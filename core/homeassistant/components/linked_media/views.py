@@ -10,7 +10,7 @@ from aiohttp.web_request import BaseRequest
 
 from homeassistant.components.http import KEY_HASS, HomeAssistantView
 
-from .const import FETCH_KEEP, TOTAL_TIMEOUT
+from .const import FETCH_KEEP, FailureReason
 from .data import async_get_manager
 from .fetch import FetchError
 from .manager import LinkedFile, LinkedMediaManager
@@ -26,6 +26,7 @@ FAILURE_STATUS = {
     "timeout": HTTPStatus.GATEWAY_TIMEOUT,
     "unsupported_type": HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
     "playlist_not_supported": HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+    "live_no_position": HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE,
 }
 
 
@@ -71,6 +72,10 @@ class LinkedFileView(HomeAssistantView):
         manager = async_get_manager(hass)
         if manager is None or (linked := manager.get(file_id)) is None:
             return web.Response(status=HTTPStatus.NOT_FOUND)
+        if linked.live:
+            if request.headers.get(hdrs.RANGE, "bytes=0-").strip() != "bytes=0-":
+                return _failure(FetchError(FailureReason.LIVE_NO_POSITION))
+            return await self._pass_through(request, manager, linked)
         if hdrs.RANGE in request.headers or linked.fetch == FETCH_KEEP:
             return await self._send_copy(request, manager, linked)
         return await self._pass_through(request, manager, linked)
@@ -94,14 +99,18 @@ class LinkedFileView(HomeAssistantView):
     ) -> web.StreamResponse:
         """Stream the file straight through, keeping no copy at all."""
         try:
-            opened = await manager.async_open(linked, TOTAL_TIMEOUT)
+            # Only the idle timeout limits a stream, so a long play is not cut.
+            opened = await manager.async_open(linked, None)
         except FetchError as err:
             return _failure(err)
+        if opened.live:
+            linked.live = True
         manager.stream_started(linked)
         try:
-            response = web.StreamResponse(
-                headers={**SAFE_HEADERS, hdrs.CONTENT_TYPE: opened.content_type}
-            )
+            headers = {**SAFE_HEADERS, hdrs.CONTENT_TYPE: opened.content_type}
+            if opened.live:
+                headers[hdrs.ACCEPT_RANGES] = "none"
+            response = web.StreamResponse(headers=headers)
             if opened.size is not None:
                 response.content_length = opened.size
             await response.prepare(request)

@@ -17,7 +17,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from . import websocket
-from .const import DOMAIN
+from .const import DOMAIN, HANDOUT_FOLDER
 from .data import DATA_MANAGER
 from .manager import LinkedMediaManager
 from .services import async_setup_services
@@ -32,6 +32,18 @@ def temp_root(hass: HomeAssistant) -> Path:
     """Return this instance's folder for short lived copies."""
     digest = hashlib.sha256(hass.config.config_dir.encode()).hexdigest()[:12]
     return Path(tempfile.gettempdir()) / f"home-assistant-linked-media-{digest}"
+
+
+def handout_root(hass: HomeAssistant) -> Path:
+    """Return the folder for files handed to actions.
+
+    It sits hidden inside the local media folder, which Core allows other
+    integrations to read, and which the media browser does not list.
+    """
+    media_dirs = hass.config.media_dirs
+    if base := media_dirs.get("local") or next(iter(media_dirs.values()), None):
+        return Path(base) / HANDOUT_FOLDER
+    return temp_root(hass) / "files"
 
 
 async def _async_own_addresses(hass: HomeAssistant) -> frozenset[str]:
@@ -61,7 +73,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: LinkedMediaConfigEntry) -> None:
     """Load the list of linked files."""
     manager = LinkedMediaManager(
-        hass, temp_root(hass), await _async_own_addresses(hass)
+        hass,
+        temp_root(hass),
+        handout_root(hass),
+        await _async_own_addresses(hass),
     )
     await manager.async_load()
     entry.runtime_data = manager

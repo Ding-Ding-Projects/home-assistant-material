@@ -168,13 +168,23 @@ class OpenedFile:
     max_bytes: int
     elapsed: float
 
+    @property
+    def live(self) -> bool:
+        """Return True for a sound with no length, such as internet radio."""
+        return self.size is None and self.kind == KIND_AUDIO
+
     async def iter_chunks(self) -> AsyncIterator[bytes]:
-        """Yield the body, stopping when the size limit is passed."""
+        """Yield the body, stopping when the size limit is passed.
+
+        A live stream has no end, so it has no size limit; the idle timeout
+        still stops it when the server goes quiet.
+        """
         received = 0
+        live = self.live
         try:
             async for chunk in self.response.content.iter_chunked(CHUNK_SIZE):
                 received += len(chunk)
-                if received > self.max_bytes:
+                if not live and received > self.max_bytes:
                     raise FetchError(FailureReason.TOO_LARGE)
                 yield chunk
         except TimeoutError as err:
@@ -201,7 +211,7 @@ async def async_open(
     home_network: bool,
     own_addresses: frozenset[str],
     max_bytes: int,
-    total_timeout: float,
+    total_timeout: float | None,
 ) -> OpenedFile:
     """Open a linked file and check its answer before any body is read."""
     if (url := parse_address(address)) is None:

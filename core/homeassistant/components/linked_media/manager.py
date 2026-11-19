@@ -56,6 +56,7 @@ class LinkedFile:
     fetch: str = FETCH_EACH_TIME
     max_size_mb: int = DEFAULT_MAX_SIZE_MB
     home_network: bool = False
+    live: bool = False
     created_at: str = ""
     last_used_at: str | None = None
     last_used_by: str | None = None
@@ -88,6 +89,13 @@ class LinkedFile:
         return cls(**{key: value for key, value in data.items() if key in names})
 
 
+def _refuse_live(linked: LinkedFile, opened: OpenedFile) -> None:
+    """Refuse to store an endless stream on disk."""
+    if opened.live:
+        linked.live = True
+        raise FetchError(FailureReason.LIVE_STREAM)
+
+
 @dataclass(slots=True)
 class Copy:
     """A temporary copy of a linked file on this system."""
@@ -116,11 +124,16 @@ class LinkedMediaManager:
     """Own the list of linked files and every copy made of them."""
 
     def __init__(
-        self, hass: HomeAssistant, temp_root: Path, own_addresses: frozenset[str]
+        self,
+        hass: HomeAssistant,
+        temp_root: Path,
+        handout_root: Path,
+        own_addresses: frozenset[str],
     ) -> None:
         """Set up the manager."""
         self.hass = hass
         self.temp_root = temp_root
+        self.handout_root = handout_root
         self.own_addresses = own_addresses
         self.files: dict[str, LinkedFile] = {}
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, STORAGE_KEY)
@@ -153,11 +166,13 @@ class LinkedMediaManager:
         self._handouts.clear()
         await self._store.async_save(self._data())
         await self.hass.async_add_executor_job(shutil.rmtree, self.temp_root, True)
+        await self.hass.async_add_executor_job(shutil.rmtree, self.handout_root, True)
 
     def _reset_folder(self) -> None:
         shutil.rmtree(self.temp_root, ignore_errors=True)
         (self.temp_root / "copies").mkdir(parents=True, exist_ok=True)
-        (self.temp_root / "files").mkdir(parents=True, exist_ok=True)
+        shutil.rmtree(self.handout_root, ignore_errors=True)
+        self.handout_root.mkdir(parents=True, exist_ok=True)
 
     def _data(self) -> dict[str, Any]:
         return {"files": [asdict(item) for item in self.files.values()]}
@@ -188,6 +203,7 @@ class LinkedMediaManager:
         fetch: str,
         max_size_mb: int,
         home_network: bool,
+        live: bool = False,
     ) -> LinkedFile:
         """Add a file the owner checked."""
         now = dt_util.utcnow().isoformat()
@@ -200,6 +216,7 @@ class LinkedMediaManager:
             fetch=fetch,
             max_size_mb=max_size_mb,
             home_network=home_network,
+            live=live,
             created_at=now,
             last_checked_at=now,
             reachable=True,
@@ -272,7 +289,9 @@ class LinkedMediaManager:
         )
         self._save()
 
-    async def async_open(self, linked: LinkedFile, total_timeout: float) -> OpenedFile:
+    async def async_open(
+        self, linked: LinkedFile, total_timeout: float | None
+    ) -> OpenedFile:
         """Open the web address of a file, recording a failure."""
         try:
             return await async_open(
@@ -311,6 +330,7 @@ class LinkedMediaManager:
             "content_type": opened.content_type,
             "size": opened.size,
             "elapsed_ms": round(opened.elapsed * 1000),
+            "live": opened.live,
         }
 
     async def async_check(self, linked: LinkedFile) -> dict[str, Any]:
@@ -325,6 +345,7 @@ class LinkedMediaManager:
             linked.reachable = True
             linked.content_type = result["content_type"]
             linked.kind = result["kind"]
+            linked.live = result["live"]
             self._save()
         else:
             self.record_failure(
@@ -381,6 +402,7 @@ class LinkedMediaManager:
         try:
             opened = await self.async_open(linked, TOTAL_TIMEOUT)
             try:
+                _refuse_live(linked, opened)
                 handle = await self.hass.async_add_executor_job(copy.path.open, "wb")
                 try:
                     async for chunk in opened.iter_chunks():
@@ -446,7 +468,7 @@ class LinkedMediaManager:
     async def async_hand_out(self, linked: LinkedFile, seconds: int) -> Handout:
         """Fetch a file to a local path that is removed after some seconds."""
         token = ulid()
-        folder = self.temp_root / "files" / token
+        folder = self.handout_root / token
         stem = _SAFE_NAME.sub("_", linked.name).strip("._") or "file"
         path = folder / f"{stem}{linked.extension}"
         await self.hass.async_add_executor_job(folder.mkdir)
@@ -457,6 +479,7 @@ class LinkedMediaManager:
             await self.hass.async_add_executor_job(shutil.rmtree, folder, True)
             raise
         try:
+            _refuse_live(linked, opened)
             handle = await self.hass.async_add_executor_job(path.open, "wb")
             try:
                 async for chunk in opened.iter_chunks():
@@ -538,6 +561,7 @@ class LinkedMediaManager:
             "fetch": linked.fetch,
             "max_size_mb": linked.max_size_mb,
             "home_network": linked.home_network,
+            "live": linked.live,
             "created_at": linked.created_at,
             "last_used_at": linked.last_used_at,
             "last_used_by": linked.last_used_by,

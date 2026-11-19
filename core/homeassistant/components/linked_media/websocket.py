@@ -178,6 +178,7 @@ async def websocket_add(
         fetch=msg["fetch"],
         max_size_mb=msg["max_size_mb"],
         home_network=msg["home_network"],
+        live=check["live"],
     )
     connection.send_result(
         msg["id"],

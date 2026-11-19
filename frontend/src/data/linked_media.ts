@@ -17,7 +17,9 @@ export type LinkedFailureReason =
   | "too_many_redirects"
   | "internal_address"
   | "blocked_address"
-  | "invalid_address";
+  | "invalid_address"
+  | "live_stream"
+  | "live_no_position";
 
 export interface LinkedFileStatus {
   in_use: boolean;
@@ -41,6 +43,8 @@ export interface LinkedFile {
   fetch: LinkedFetchRule;
   max_size_mb: number;
   home_network: boolean;
+  /** A sound with no length, such as internet radio: streamed, never stored. */
+  live: boolean;
   created_at: string;
   last_used_at: string | null;
   /** A media player entity ID, "action" or "player". */
@@ -62,6 +66,7 @@ export interface LinkedCheck {
   content_type?: string;
   size?: number | null;
   elapsed_ms?: number;
+  live?: boolean;
   reason?: LinkedFailureReason;
   status?: number | null;
   file?: LinkedFile;
