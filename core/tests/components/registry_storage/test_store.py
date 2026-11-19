@@ -436,7 +436,7 @@ async def test_change_password(
     stored = await _put(store, os.urandom(PART_SIZE + 5), name="keep-me")
     blobs_before = dict(registry.blobs[REPOSITORY])
     old_header = await async_read_lock(store.client, REPOSITORY)
-    new_password = "another long password 98"
+    new_password = "cobalt yonder wombat sprocket larkspur"
     await store.async_change_password(PASSWORD, new_password, new_password)
     new_header = await async_read_lock(store.client, REPOSITORY)
     assert new_header != old_header
@@ -455,11 +455,16 @@ async def test_change_password(
     [
         (
             "not the password",
-            "another long password 98",
-            "another long password 98",
+            "cobalt yonder wombat sprocket larkspur",
+            "cobalt yonder wombat sprocket larkspur",
             Reason.WRONG_PASSWORD,
         ),
-        (PASSWORD, "another long password 98", "different", Reason.PASSWORD_MISMATCH),
+        (
+            PASSWORD,
+            "cobalt yonder wombat sprocket larkspur",
+            "different",
+            Reason.PASSWORD_MISMATCH,
+        ),
         (PASSWORD, "short", "short", Reason.PASSWORD_TOO_WEAK),
     ],
 )

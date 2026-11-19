@@ -15,14 +15,13 @@ import "../../../components/ha-slider";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
 import "../../../components/input/ha-input";
+import { getConfigEntry } from "../../../data/config_entries";
 import {
-  changeRegistryPassword,
+  fetchRegistryGetBack,
   fetchRegistryRecordings,
   fetchRegistryStatus,
   isValidRepositoryName,
   markRegistryPublicWarningSeen,
-  passwordFormProblem,
-  ratePassword,
   REGISTRY_DOMAIN,
   REGISTRY_KEEP_DAYS_RANGE,
   REGISTRY_NAMES,
@@ -33,18 +32,20 @@ import {
   registryVisibilityKey,
   repositoryChoiceForCamera,
   repositoryForBackups,
+  REGISTRY_WHERE_MAX_SECONDS,
   repositoryForCamera,
-  restoreRegistryRecording,
   runRegistrySelfTest,
+  setRegistryCameraRepository,
   setRegistryPlace,
-  setRegistryRepositories,
-  withCameraRepository,
+  startRegistryGetBack,
   type RegistryChange,
+  type RegistryGetBackJob,
   type RegistryPlace,
   type RegistryRecording,
   type RegistrySendChoice,
   type RegistrySelfTestResult,
 } from "../../../data/registry_storage";
+import { showOptionsFlowDialog } from "../../../dialogs/config-flow/show-dialog-options-flow";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../../../types";
 import { bytesToString } from "../../../util/bytes-to-string";
@@ -52,26 +53,18 @@ import { showToast } from "../../../util/toast";
 
 const REFRESH_MS = 10_000;
 
-interface PasswordDraft {
-  old_password: string;
-  password: string;
-  password_confirmation: string;
-  understand: boolean;
-}
-
-const EMPTY_PASSWORD: PasswordDraft = {
-  old_password: "",
-  password: "",
-  password_confirmation: "",
-  understand: false,
-};
+/** How often, and for how long at most, a get-back job is followed. */
+const GET_BACK_POLL_MS = 1_500;
+const GET_BACK_MAX_POLLS = 400;
 
 /**
  * The container registry as a place for camera recordings: what is sent, how
  * long it is kept, the repository each camera uses, getting a recording back,
- * and the settings behind it (default repository, access token, password and
- * a self-test). Everything stored there is locked with the owner's password
- * first, so the page says plainly what public means.
+ * and the settings behind it (access token, password and a self-test).
+ * Everything stored there is locked with the owner's password first, so the
+ * page says plainly what public means. The password is never typed here: it is
+ * changed in the integration's own options flow, so it never travels over the
+ * websocket.
  *
  * With `embedded` it draws only its rows, to sit inside the page's own list of
  * places; without it, it is a card of its own.
@@ -96,10 +89,6 @@ export class HaCameraRegistryPlaces extends LitElement {
   @state() private _recordings?: RegistryRecording[];
 
   @state() private _repoDraft: Record<string, string> = {};
-
-  @state() private _password: PasswordDraft = { ...EMPTY_PASSWORD };
-
-  @state() private _passwordBusy = false;
 
   @state() private _selfTest?: RegistrySelfTestResult | "running";
 
@@ -319,10 +308,14 @@ export class HaCameraRegistryPlaces extends LitElement {
             @change=${this._foreverChanged}
           ></ha-switch>
         </label>
-        <div class="field">
-          <span class="label">${this._l("used")}</span>
-          <span class="value">${bytesToString(place.used_bytes)}</span>
-        </div>
+        ${
+          place.used_bytes === null
+            ? nothing
+            : html`<div class="field">
+                <span class="label">${this._l("used")}</span>
+                <span class="value">${bytesToString(place.used_bytes)}</span>
+              </div>`
+        }
         <div class="field">
           <span class="label">${this._l("waiting")}</span>
           <span class="value"
@@ -479,6 +472,7 @@ export class HaCameraRegistryPlaces extends LitElement {
                     size="small"
                     .disabled=${this._restoring === rec.id}
                     .recordingId=${rec.id}
+                    .cameraId=${rec.entity_id}
                     @click=${this._restore}
                     >${this._l("get_back_button")}</ha-button
                   >
@@ -490,13 +484,6 @@ export class HaCameraRegistryPlaces extends LitElement {
   }
 
   private _renderManage(place: RegistryPlace) {
-    const draft = this._password;
-    const rating = ratePassword(draft.password);
-    const problem = passwordFormProblem(draft, true);
-    const defaultDraftKey = `${place.entry_id}|default`;
-    const defaultDraft = this._repoDraft[defaultDraftKey];
-    const defaultInvalid =
-      defaultDraft !== undefined && !isValidRepositoryName(defaultDraft);
     const test = this._selfTest;
     return html`
       <section class="details manage" aria-label=${this._l("manage.title")}>
@@ -507,30 +494,6 @@ export class HaCameraRegistryPlaces extends LitElement {
           >
           <span class="value">${this._placeName(place)}</span>
         </div>
-        <ha-input
-          .label=${this._l("repository.default_name")}
-          .hint=${
-            defaultInvalid
-              ? this._l("repository.invalid")
-              : this._l("repository.name_hint")
-          }
-          .invalid=${defaultInvalid}
-          .value=${defaultDraft ?? place.default_repository}
-          .draftKey=${defaultDraftKey}
-          @input=${this._draftInput}
-        ></ha-input>
-        <ha-button
-          size="small"
-          .disabled=${
-            defaultDraft === undefined ||
-            defaultInvalid ||
-            defaultDraft === place.default_repository
-          }
-          .entryId=${place.entry_id}
-          @click=${this._saveDefaultRepository}
-          >${this._l("repository.save")}</ha-button
-        >
-
         <h3 class="overline">${this._l("manage.token_title")}</h3>
         <p class="note">${this._l("manage.token_text")}</p>
         <ha-button appearance="plain" size="small" @click=${this._changeToken}
@@ -539,31 +502,8 @@ export class HaCameraRegistryPlaces extends LitElement {
 
         <h3 class="overline">${this._l("password.title")}</h3>
         <p class="note">${this._l("password.intro")}</p>
-        ${this._passwordInput("old_password", this._l("password.old"))}
-        ${this._passwordInput("password", this._l("password.new"))}
-        <p
-          class=${classMap({ note: true, bad: rating === "too_short" || rating === "obvious" })}
-        >
-          ${this._l(`password.rating.${rating}`)}
-        </p>
-        ${this._passwordInput("password_confirmation", this._l("password.again"))}
-        <label class="field">
-          <span class="label">${this._l("password.understand")}</span>
-          <ha-switch
-            .checked=${draft.understand}
-            @change=${this._understandChanged}
-          ></ha-switch>
-        </label>
-        ${
-          problem && draft.password
-            ? html`<p class="note bad">
-                ${this._l(`password.problem.${problem}`)}
-              </p>`
-            : nothing
-        }
         <ha-button
           size="small"
-          .disabled=${!!problem || this._passwordBusy}
           .entryId=${place.entry_id}
           @click=${this._changePassword}
           >${this._l("password.button")}</ha-button
@@ -604,24 +544,10 @@ export class HaCameraRegistryPlaces extends LitElement {
     `;
   }
 
-  private _passwordInput(field: keyof PasswordDraft, label: string) {
-    return html`<ha-input
-      type="password"
-      password-toggle
-      .label=${label}
-      .value=${String(this._password[field])}
-      .autocomplete=${field === "old_password" ? "current-password" : "new-password"}
-      .field=${field}
-      @input=${this._passwordInputChanged}
-    ></ha-input>`;
-  }
-
   private async _change(entryId: string, change: RegistryChange) {
     this._busy = new Set(this._busy).add(entryId);
     try {
-      this._places = (
-        await setRegistryPlace(this.hass, entryId, change)
-      ).places;
+      this._places = (await setRegistryPlace(this.hass, change)).places;
       this._error = undefined;
     } catch (err: unknown) {
       this._error = (err as Error | undefined)?.message ?? String(err);
@@ -654,7 +580,7 @@ export class HaCameraRegistryPlaces extends LitElement {
     markRegistryPublicWarningSeen();
     await this._change(target.entryId, {
       enabled: true,
-      video_leaves_home_confirmed: true,
+      public_understood: true,
     });
     this._loadRecordings();
   }
@@ -683,11 +609,17 @@ export class HaCameraRegistryPlaces extends LitElement {
   }
 
   private async _loadRecordings() {
-    try {
-      this._recordings = (await fetchRegistryRecordings(this.hass)).recordings;
-    } catch {
-      this._recordings = undefined;
-    }
+    // The server answers one camera and at most eight days at a time.
+    const end = Date.now() / 1000;
+    const start = end - REGISTRY_WHERE_MAX_SECONDS;
+    const perCamera = await Promise.all(
+      this._cameraIds().map((entityId) =>
+        fetchRegistryRecordings(this.hass, entityId, start, end).catch(
+          () => [] as RegistryRecording[]
+        )
+      )
+    );
+    this._recordings = perCamera.flat();
   }
 
   private _toggleManage(ev: Event) {
@@ -729,9 +661,7 @@ export class HaCameraRegistryPlaces extends LitElement {
     const draft = { ...this._repoDraft };
     delete draft[key];
     this._repoDraft = draft;
-    this._applyRepositories(target.entryId, {
-      camera_repositories: { [target.cameraId]: null },
-    });
+    this._applyCameraRepository(target.entryId, target.cameraId, null);
   }
 
   private _saveCameraRepository(ev: Event) {
@@ -741,46 +671,24 @@ export class HaCameraRegistryPlaces extends LitElement {
     };
     const key = `${target.entryId}|${target.cameraId}`;
     const name = this._repoDraft[key]?.trim();
-    const place = this._places?.find((p) => p.entry_id === target.entryId);
-    if (!name || !place || !isValidRepositoryName(name)) {
-      return;
-    }
-    // Send only this camera: the server merges it into the map it holds.
-    const merged = withCameraRepository(
-      place.camera_repositories,
-      target.cameraId,
-      name
-    );
-    const draft = { ...this._repoDraft };
-    delete draft[key];
-    this._repoDraft = draft;
-    this._applyRepositories(target.entryId, {
-      camera_repositories: { [target.cameraId]: merged[target.cameraId] },
-    });
-  }
-
-  private _saveDefaultRepository(ev: Event) {
-    const entryId = (ev.currentTarget as HTMLElement & { entryId: string })
-      .entryId;
-    const key = `${entryId}|default`;
-    const name = this._repoDraft[key]?.trim();
     if (!name || !isValidRepositoryName(name)) {
       return;
     }
     const draft = { ...this._repoDraft };
     delete draft[key];
     this._repoDraft = draft;
-    this._applyRepositories(entryId, { default_repository: name });
+    this._applyCameraRepository(target.entryId, target.cameraId, name);
   }
 
-  private async _applyRepositories(
+  private async _applyCameraRepository(
     entryId: string,
-    change: Parameters<typeof setRegistryRepositories>[2]
+    cameraId: string,
+    repository: string | null
   ) {
     this._busy = new Set(this._busy).add(entryId);
     try {
       this._places = (
-        await setRegistryRepositories(this.hass, entryId, change)
+        await setRegistryCameraRepository(this.hass, cameraId, repository)
       ).places;
       this._error = undefined;
       showToast(this, { message: this._l("repository.saved") });
@@ -794,12 +702,40 @@ export class HaCameraRegistryPlaces extends LitElement {
   }
 
   private async _restore(ev: Event) {
-    const id = (ev.currentTarget as HTMLElement & { recordingId: string })
-      .recordingId;
+    const target = ev.currentTarget as HTMLElement & {
+      recordingId: string;
+      cameraId: string;
+    };
+    const id = target.recordingId;
     this._restoring = id;
     try {
-      await restoreRegistryRecording(this.hass, id);
-      showToast(this, { message: this._l("got_back") });
+      let job: RegistryGetBackJob = await startRegistryGetBack(
+        this.hass,
+        target.cameraId,
+        id
+      );
+      for (
+        let poll = 0;
+        job.state === "running" &&
+        poll < GET_BACK_MAX_POLLS &&
+        this.isConnected;
+        poll++
+      ) {
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, GET_BACK_POLL_MS);
+        });
+        // eslint-disable-next-line no-await-in-loop
+        job = await fetchRegistryGetBack(this.hass, job.id);
+      }
+      if (job.state === "failed") {
+        throw new Error(
+          this._l(`reasons.${registryProblemKey(job.reason ?? "")}`)
+        );
+      }
+      if (job.state === "done") {
+        showToast(this, { message: this._l("got_back") });
+      }
       await this._loadRecordings();
     } catch (err: unknown) {
       this._error = this._l("get_back_failed", {
@@ -814,55 +750,25 @@ export class HaCameraRegistryPlaces extends LitElement {
     navigate(`/config/integrations/integration/${REGISTRY_DOMAIN}`);
   }
 
-  private _passwordInputChanged(ev: Event) {
-    const target = ev.currentTarget as HTMLElement & {
-      field: keyof PasswordDraft;
-      value: string;
-    };
-    this._password = { ...this._password, [target.field]: target.value };
-  }
-
-  private _understandChanged(ev: Event) {
-    this._password = {
-      ...this._password,
-      understand: (ev.currentTarget as HTMLElement & { checked: boolean })
-        .checked,
-    };
-  }
-
+  /** The integration's own options flow asks for the old and new password. */
   private async _changePassword(ev: Event) {
     const entryId = (ev.currentTarget as HTMLElement & { entryId: string })
       .entryId;
-    const draft = this._password;
-    if (passwordFormProblem(draft, true)) {
-      return;
-    }
-    this._passwordBusy = true;
     try {
-      await changeRegistryPassword(
-        this.hass,
-        entryId,
-        draft.old_password,
-        draft.password,
-        draft.password_confirmation
+      const { config_entry: entry } = await getConfigEntry(
+        this.hass.callWS,
+        entryId
       );
-      showToast(this, { message: this._l("password.changed") });
-      this._password = { ...EMPTY_PASSWORD };
+      showOptionsFlowDialog(this, entry);
     } catch (err: unknown) {
-      this._error = this._l("password.failed", {
-        error: (err as Error | undefined)?.message ?? String(err),
-      });
-    } finally {
-      this._passwordBusy = false;
+      this._error = (err as Error | undefined)?.message ?? String(err);
     }
   }
 
-  private async _runSelfTest(ev: Event) {
-    const entryId = (ev.currentTarget as HTMLElement & { entryId: string })
-      .entryId;
+  private async _runSelfTest() {
     this._selfTest = "running";
     try {
-      this._selfTest = await runRegistrySelfTest(this.hass, entryId);
+      this._selfTest = await runRegistrySelfTest(this.hass);
     } catch (err: unknown) {
       this._selfTest = {
         ok: false,

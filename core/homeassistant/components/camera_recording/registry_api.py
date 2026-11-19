@@ -14,8 +14,12 @@ from homeassistant.components.http.auth import async_sign_path
 from homeassistant.components.registry_storage import async_get_store
 from homeassistant.components.registry_storage.client import valid_repository
 from homeassistant.components.registry_storage.const import (
+    CONF_ADDRESS,
     CONF_CAMERA_REPOSITORIES,
+    CONF_REGISTRY,
+    CONF_USERNAME,
     DOMAIN as REGISTRY_DOMAIN,
+    RegistryKind,
 )
 from homeassistant.components.registry_storage.errors import (
     Reason,
@@ -51,18 +55,7 @@ def async_register_registry(hass: HomeAssistant) -> None:
     """Register the view and the commands, and start loading the index."""
     hass.http.register_view(RegistryRecordingView())
     get_place(hass)
-    for command in (
-        ws_registry_status,
-        ws_registry_test,
-        ws_registry_set,
-        ws_registry_camera_repository,
-        ws_registry_refresh,
-        ws_registry_where,
-        ws_registry_play,
-        ws_registry_get_back,
-        ws_registry_get_back_status,
-        ws_registry_get_back_cancel,
-    ):
+    for command in REGISTRY_COMMANDS:
         websocket_api.async_register_command(hass, command)
 
 
@@ -116,7 +109,16 @@ async def _status(hass: HomeAssistant) -> dict[str, Any]:
             )
         with suppress(RegistryStorageError):
             used = await store.async_used_size()
+    entry = entries[0] if entries else None
+    kind = entry.data.get(CONF_REGISTRY) if entry else None
     return {
+        "entry_id": entry.entry_id if entry else None,
+        "registry": kind,
+        # Only a registry of the owner's own has an address worth showing.
+        "address": entry.data.get(CONF_ADDRESS)
+        if entry and kind == RegistryKind.OTHER
+        else None,
+        "username": entry.data.get(CONF_USERNAME) if entry else None,
         "set_up": bool(entries),
         "loaded": store is not None,
         "default_repository": store.settings.default_repository if store else None,
@@ -526,3 +528,19 @@ async def ws_registry_get_back_cancel(
         with suppress(asyncio.CancelledError):
             await job.task
     connection.send_result(msg["id"], job.as_dict())
+
+
+# Every command the interface may send. Keep in step with REGISTRY_WS in the frontend's
+# src/data/registry_storage.ts: a test on each side checks the same list.
+REGISTRY_COMMANDS = (
+    ws_registry_status,
+    ws_registry_test,
+    ws_registry_set,
+    ws_registry_camera_repository,
+    ws_registry_refresh,
+    ws_registry_where,
+    ws_registry_play,
+    ws_registry_get_back,
+    ws_registry_get_back_status,
+    ws_registry_get_back_cancel,
+)

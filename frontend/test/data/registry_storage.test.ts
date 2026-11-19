@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  cancelRegistryGetBack,
+  fetchRegistryGetBack,
+  fetchRegistryRecordings,
+  fetchRegistryStatus,
   isRegistryAgent,
   isValidRepositoryName,
-  passwordFormProblem,
-  ratePassword,
+  playRegistryRecording,
+  refreshRegistryIndex,
+  REGISTRY_WHERE_MAX_SECONDS,
+  REGISTRY_WS,
   registryBars,
   registryOnlyRecordings,
   registryPlaceForAgent,
@@ -14,8 +20,13 @@ import {
   repositoryChoiceForCamera,
   repositoryForBackups,
   repositoryForCamera,
-  withCameraRepository,
+  runRegistrySelfTest,
+  setRegistryCameraRepository,
+  setRegistryPlace,
+  startRegistryGetBack,
   type RegistryPlace,
+  type RegistryServerStatus,
+  type RegistryWhereRow,
 } from "../../src/data/registry_storage";
 
 const place = (over: Partial<RegistryPlace> = {}): RegistryPlace => ({
@@ -34,7 +45,6 @@ const place = (over: Partial<RegistryPlace> = {}): RegistryPlace => ({
   used_bytes: 0,
   waiting_files: 0,
   waiting_bytes: 0,
-  backup_count: 0,
   last_sent: null,
   last_problem: null,
   ...over,
@@ -78,64 +88,11 @@ describe("per camera repositories", () => {
     expect(repositoryForBackups(place())).toBe("owner/home-vault");
   });
 
-  it("sets and clears a camera without touching the others", () => {
-    const current = { "camera.a": "x/a" };
-    expect(withCameraRepository(current, "camera.b", " x/b ")).toEqual({
-      "camera.a": "x/a",
-      "camera.b": "x/b",
-    });
-    expect(withCameraRepository(current, "camera.a", "")).toEqual({});
-    expect(withCameraRepository(current, "camera.a", null)).toEqual({});
-    expect(current).toEqual({ "camera.a": "x/a" });
-  });
-
   it("accepts only account/name in lower case", () => {
     expect(isValidRepositoryName("owner/home-vault")).toBe(true);
     expect(isValidRepositoryName("Owner/home")).toBe(false);
     expect(isValidRepositoryName("owner")).toBe(false);
     expect(isValidRepositoryName("owner/a/b")).toBe(false);
-  });
-});
-
-describe("password form", () => {
-  const good = "correct horse battery staple";
-  const form = (over = {}) => ({
-    old_password: "an old long password here",
-    password: good,
-    password_confirmation: good,
-    understand: true,
-    ...over,
-  });
-
-  it("rates length first, then obvious, then strong", () => {
-    expect(ratePassword("")).toBe("empty");
-    expect(ratePassword("short")).toBe("too_short");
-    expect(ratePassword("aaaaaaaaaaaaaaaa")).toBe("obvious");
-    expect(ratePassword("passwordpassword")).toBe("obvious");
-    expect(ratePassword(good)).toBe("very_strong");
-  });
-
-  it("names the first problem in a stable order", () => {
-    expect(passwordFormProblem(form(), true)).toBeUndefined();
-    expect(passwordFormProblem(form({ old_password: "" }), true)).toBe("empty");
-    expect(passwordFormProblem(form({ password: "short" }), true)).toBe(
-      "too_short"
-    );
-    expect(
-      passwordFormProblem(form({ password_confirmation: "different" }), true)
-    ).toBe("mismatch");
-    expect(passwordFormProblem(form({ old_password: good }), true)).toBe(
-      "same_as_old"
-    );
-    expect(passwordFormProblem(form({ understand: false }), true)).toBe(
-      "understand"
-    );
-  });
-
-  it("does not ask for the old password when the form has none", () => {
-    expect(
-      passwordFormProblem(form({ old_password: "" }), false)
-    ).toBeUndefined();
   });
 });
 
@@ -147,6 +104,16 @@ describe("problems and recordings", () => {
     expect(registryProblemAdvice("denied")).toBe("token");
     expect(registryProblemAdvice("tampered")).toBe("damaged");
     expect(registryProblemAdvice("rejected")).toBe("other");
+  });
+
+  it("reads the upload queue's own reason codes as registry reasons", () => {
+    expect(registryProblemKey("sign_in")).toBe("auth_failed");
+    expect(registryProblemKey("timed_out")).toBe("timeout");
+    expect(registryProblemKey("locked")).toBe("wrong_password");
+    expect(registryProblemKey("not_loaded")).toBe("not_ready");
+    expect(registryProblemKey("gave_up")).toBe("unexpected");
+    expect(registryProblemAdvice("sign_in")).toBe("token");
+    expect(registryProblemAdvice("drive_error")).toBe("later");
   });
 
   it("lists recordings only in the registry, newest first", () => {
@@ -191,5 +158,218 @@ describe("problems and recordings", () => {
     expect(bars).toHaveLength(1);
     expect(bars[0].left).toBe(0);
     expect(bars[0].width).toBeCloseTo(0.5);
+  });
+});
+
+/**
+ * Every command the page sends and the keys it sends with it. The camera
+ * recording integration's test_registry_contract.py holds the same table and
+ * checks it against the commands the server registers, so a rename or a
+ * changed payload on either side fails one of the two tests.
+ */
+const CONTRACT: Record<string, string[]> = {
+  "camera_recording/registry/status": [],
+  "camera_recording/registry/test": [],
+  "camera_recording/registry/set": [
+    "enabled",
+    "keep_days",
+    "public_understood",
+    "send",
+  ],
+  "camera_recording/registry/camera_repository": ["entity_id", "repository"],
+  "camera_recording/registry/refresh": [],
+  "camera_recording/registry/where": ["end_time", "entity_id", "start_time"],
+  "camera_recording/registry/play": ["entity_id", "name"],
+  "camera_recording/registry/get_back": ["entity_id", "name"],
+  "camera_recording/registry/get_back_status": ["job_id"],
+  "camera_recording/registry/get_back_cancel": ["job_id"],
+};
+
+const SERVER_STATUS: RegistryServerStatus = {
+  entry_id: "entry1",
+  registry: "github",
+  address: null,
+  username: "owner",
+  set_up: true,
+  loaded: true,
+  default_repository: "owner/home-vault",
+  backups_repository: null,
+  public: true,
+  used_bytes: 2048,
+  rate_limit_remaining: null,
+  tested: null,
+  upload: {
+    domain: "registry_storage",
+    set_up: true,
+    loaded: true,
+    enabled: true,
+    send: "everything",
+    keep_days: null,
+    enabled_at: 1,
+    waiting_files: 3,
+    waiting_bytes: 300,
+    sent_files: 1,
+    sent_bytes: 10,
+    given_up: 0,
+    last_sent: { entity_id: "camera.a", name: "a.mp4", kind: "event", at: 5 },
+    last_problem: { reason: "timed_out", at: 6 },
+  },
+  cameras: {
+    "camera.a": {
+      repository: "owner/a",
+      own_repository: true,
+      in_registry_files: 1,
+      in_registry_bytes: 10,
+      waiting_files: 0,
+      waiting_bytes: 0,
+      sending: [],
+    },
+    "camera.b": {
+      repository: "owner/home-vault",
+      own_repository: false,
+      in_registry_files: 0,
+      in_registry_bytes: 0,
+      waiting_files: 0,
+      waiting_bytes: 0,
+      sending: [],
+    },
+  },
+  playback: null,
+  indexed_files: 1,
+};
+
+const recorder = (answer: (msg: Record<string, unknown>) => unknown) => {
+  const sent: Record<string, unknown>[] = [];
+  return {
+    sent,
+    hass: {
+      callWS: async <T>(msg: Record<string, unknown>): Promise<T> => {
+        sent.push(msg);
+        return answer(msg) as T;
+      },
+    },
+  };
+};
+
+const STATUS_COMMANDS: string[] = [
+  REGISTRY_WS.status,
+  REGISTRY_WS.set,
+  REGISTRY_WS.cameraRepository,
+];
+
+describe("websocket contract with the server", () => {
+  it("names exactly the commands the server registers", () => {
+    expect(Object.values(REGISTRY_WS).sort()).toEqual(
+      Object.keys(CONTRACT).sort()
+    );
+  });
+
+  it("sends each command with the keys the server accepts", async () => {
+    const { sent, hass } = recorder((msg) => {
+      if (STATUS_COMMANDS.includes(msg.type as string)) {
+        return SERVER_STATUS;
+      }
+      return msg.type === REGISTRY_WS.where ? [] : {};
+    });
+    await fetchRegistryStatus(hass);
+    await runRegistrySelfTest(hass);
+    await setRegistryPlace(hass, {
+      enabled: true,
+      public_understood: true,
+      send: "events",
+      keep_days: 30,
+    });
+    await setRegistryCameraRepository(hass, "camera.a", null);
+    await refreshRegistryIndex(hass);
+    await fetchRegistryRecordings(hass, "camera.a", 0, 100);
+    await playRegistryRecording(hass, "camera.a", "a.mp4");
+    await startRegistryGetBack(hass, "camera.a", "a.mp4");
+    await fetchRegistryGetBack(hass, "job");
+    await cancelRegistryGetBack(hass, "job");
+    expect(sent.map((msg) => msg.type).sort()).toEqual(
+      Object.keys(CONTRACT).sort()
+    );
+    for (const msg of sent) {
+      const keys = Object.keys(msg)
+        .filter((key) => key !== "type")
+        .sort();
+      expect([msg.type, keys]).toEqual([
+        msg.type,
+        CONTRACT[msg.type as string],
+      ]);
+    }
+  });
+
+  it("never sends a password over the websocket", () => {
+    for (const keys of Object.values(CONTRACT)) {
+      expect(keys.some((key) => key.includes("password"))).toBe(false);
+    }
+  });
+
+  it("turns the server's status into the place the pages draw", async () => {
+    const { hass } = recorder(() => SERVER_STATUS);
+    const [p] = (await fetchRegistryStatus(hass)).places;
+    expect(p).toEqual({
+      entry_id: "entry1",
+      registry: "github",
+      address: null,
+      username: "owner",
+      default_repository: "owner/home-vault",
+      camera_repositories: { "camera.a": "owner/a" },
+      backups_repository: null,
+      loaded: true,
+      enabled: true,
+      public: true,
+      send: "everything",
+      keep_days: null,
+      used_bytes: 2048,
+      waiting_files: 3,
+      waiting_bytes: 300,
+      last_sent: { entity_id: "camera.a", at: 5 },
+      last_problem: { reason: "timed_out", at: 6 },
+    });
+    const none = recorder(() => ({ ...SERVER_STATUS, set_up: false }));
+    expect((await fetchRegistryStatus(none.hass)).places).toEqual([]);
+  });
+
+  it("asks for at most eight days and keeps only rows in the registry", async () => {
+    const rows: RegistryWhereRow[] = [
+      {
+        entry_id: null,
+        name: "a.mp4",
+        start: 10,
+        end: 70,
+        size: 5,
+        here: false,
+        kind: "event",
+        in_registry: true,
+      },
+      {
+        entry_id: "e",
+        name: "b.mp4",
+        start: 80,
+        end: 90,
+        size: 5,
+        here: true,
+        kind: "event",
+        in_registry: false,
+      },
+    ];
+    const { sent, hass } = recorder(() => rows);
+    const end = 1_000_000_000;
+    expect(await fetchRegistryRecordings(hass, "camera.a", 0, end)).toEqual([
+      {
+        id: "a.mp4",
+        entity_id: "camera.a",
+        start: 10,
+        duration: 60,
+        stored_size: 5,
+        local: false,
+      },
+    ]);
+    const msg = sent[0];
+    expect(
+      Date.parse(msg.end_time as string) - Date.parse(msg.start_time as string)
+    ).toBe(REGISTRY_WHERE_MAX_SECONDS * 1000);
   });
 });

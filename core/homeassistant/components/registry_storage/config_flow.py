@@ -12,7 +12,7 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     BooleanSelector,
@@ -89,8 +89,8 @@ def _password_schema(*, old: bool = False) -> probatio.Schema:
     return probatio.Schema(fields)
 
 
-def _strength_line(password: str) -> str:
-    check = check_password(password)
+async def _strength_line(hass: HomeAssistant, password: str) -> str:
+    check = await hass.async_add_executor_job(check_password, password)
     return f"{check.length} characters, {check.rating.value.replace('_', ' ')}"
 
 
@@ -211,9 +211,11 @@ class RegistryStorageConfigFlow(ConfigFlow, domain=DOMAIN):
         strength = ""
         if user_input is not None:
             password = user_input[CONF_PASSWORD]
-            strength = _strength_line(password)
+            strength = await _strength_line(self.hass, password)
             try:
-                require_password(password, user_input[CONF_PASSWORD_CONFIRMATION])
+                await self.hass.async_add_executor_job(
+                    require_password, password, user_input[CONF_PASSWORD_CONFIRMATION]
+                )
             except LockError as err:
                 errors["base"] = error_key(err.reason)
             else:
@@ -450,7 +452,7 @@ class RegistryStorageOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
         strength = ""
         if user_input is not None:
-            strength = _strength_line(user_input[CONF_PASSWORD])
+            strength = await _strength_line(self.hass, user_input[CONF_PASSWORD])
             if not user_input[CONF_UNDERSTAND]:
                 errors[CONF_UNDERSTAND] = "understand_required"
             else:

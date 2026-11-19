@@ -19,7 +19,7 @@ from homeassistant.core import HomeAssistant
 
 from .common import BASE, TOKEN, USER, FakeRegistry
 
-PASSWORD = "a few unrelated words 42"
+PASSWORD = "obsidian marmalade tundra gazebo nutmeg"
 REPOSITORY = "tester/vault"
 
 

@@ -466,7 +466,7 @@ async def test_options_change_password(
     """The password changes only with the old one, and the lock in the registry follows."""
     entry = await _entry(hass, registry)
     assert await hass.config_entries.async_setup(entry.entry_id)
-    new = "another long password 98"
+    new = "cobalt yonder wombat sprocket larkspur"
     for user_input, error in (
         (
             {

@@ -44,7 +44,7 @@ const registryOnlyIn = (
     start / 1000,
     end / 1000
   )
-    .then((result) => registryOnlyRecordings(result.recordings))
+    .then((rows) => registryOnlyRecordings(rows))
     // No registry place yet: nothing to draw, and nothing to report.
     .catch(() => [] as RegistryRecording[]);
   cache.set(key, { at: Date.now(), recordings });

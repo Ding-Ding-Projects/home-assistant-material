@@ -6,17 +6,23 @@ import type { HomeAssistant } from "../types";
  * owner's password before it leaves, so public is expected and the lock is
  * never optional.
  *
- * The websocket command names below follow the registry storage integration's
- * own naming. Keep them in this one block so a rename is one edit.
+ * The commands live in the camera recording integration, which owns the upload
+ * queue, the recording index and playback. Keep every name in this one block:
+ * a test here and a test in the integration check the same list, so a rename on
+ * either side fails a test. There is deliberately no command that carries a
+ * password; setting and changing it happen in the integration's own flows.
  */
 export const REGISTRY_WS = {
-  status: "registry_storage/status",
-  set: "registry_storage/set",
-  repositories: "registry_storage/repositories",
-  selfTest: "registry_storage/self_test",
-  changePassword: "registry_storage/change_password",
-  recordings: "registry_storage/recordings",
-  restore: "registry_storage/restore",
+  status: "camera_recording/registry/status",
+  test: "camera_recording/registry/test",
+  set: "camera_recording/registry/set",
+  cameraRepository: "camera_recording/registry/camera_repository",
+  refresh: "camera_recording/registry/refresh",
+  where: "camera_recording/registry/where",
+  play: "camera_recording/registry/play",
+  getBack: "camera_recording/registry/get_back",
+  getBackStatus: "camera_recording/registry/get_back_status",
+  getBackCancel: "camera_recording/registry/get_back_cancel",
 } as const;
 
 export const REGISTRY_DOMAIN = "registry_storage";
@@ -34,9 +40,68 @@ export type RegistrySendChoice = "events" | "everything";
 
 export const REGISTRY_KEEP_DAYS_RANGE = { min: 1, max: 365, default: 30 };
 
-/** The shortest password the lock accepts. The integration enforces it again. */
-export const REGISTRY_PASSWORD_MIN_LENGTH = 14;
+/** The server answers at most this window for one camera at a time. */
+export const REGISTRY_WHERE_MAX_SECONDS = 8 * 86400;
 
+/** The upload queue's view of the registry, as the server reports it. */
+export interface RegistryUploadStatus {
+  domain: string;
+  set_up: boolean;
+  loaded: boolean;
+  enabled: boolean;
+  send: RegistrySendChoice;
+  keep_days: number | null;
+  enabled_at: number | null;
+  waiting_files: number;
+  waiting_bytes: number;
+  sent_files: number;
+  sent_bytes: number;
+  given_up: number;
+  last_sent: {
+    entity_id: string;
+    name: string;
+    kind: string;
+    at: number;
+  } | null;
+  last_problem: { reason: string; at: number } | null;
+}
+
+export interface RegistryCameraStatus {
+  repository: string | null;
+  own_repository: boolean;
+  in_registry_files: number;
+  in_registry_bytes: number;
+  waiting_files: number;
+  waiting_bytes: number;
+  sending: { name: string; done: number; total: number }[];
+}
+
+/** The answer of `camera_recording/registry/status`. */
+export interface RegistryServerStatus {
+  entry_id: string | null;
+  registry: RegistryKind | null;
+  address: string | null;
+  username: string | null;
+  set_up: boolean;
+  loaded: boolean;
+  default_repository: string | null;
+  backups_repository: string | null;
+  public: boolean | null;
+  used_bytes: number | null;
+  rate_limit_remaining: number | null;
+  tested: {
+    ok: boolean;
+    reason: string | null;
+    at: number;
+    seconds: number;
+  } | null;
+  upload: RegistryUploadStatus;
+  cameras: Record<string, RegistryCameraStatus>;
+  playback: { reason: string; retry_after: number } | null;
+  indexed_files: number;
+}
+
+/** What the pages draw for one registry place. */
 export interface RegistryPlace {
   entry_id: string;
   registry: RegistryKind;
@@ -54,10 +119,10 @@ export interface RegistryPlace {
   send: RegistrySendChoice;
   /** Null keeps recordings there for ever. */
   keep_days: number | null;
-  used_bytes: number;
+  /** Null when the registry could not be asked. */
+  used_bytes: number | null;
   waiting_files: number;
   waiting_bytes: number;
-  backup_count: number;
   last_sent: { entity_id: string; at: number } | null;
   last_problem: { reason: string; at: number } | null;
 }
@@ -68,18 +133,10 @@ export interface RegistryStatus {
 
 export interface RegistryChange {
   enabled?: boolean;
-  /** Required by the server whenever a place is turned on. */
-  video_leaves_home_confirmed?: boolean;
+  /** Required by the server whenever sending is turned on. */
+  public_understood?: boolean;
   send?: RegistrySendChoice;
   keep_days?: number | null;
-}
-
-export interface RegistryRepositoriesChange {
-  default_repository?: string;
-  /** Null sends a camera back to the default. */
-  camera_repositories?: Record<string, string | null>;
-  /** Null sends backups back to the default. */
-  backups_repository?: string | null;
 }
 
 export interface RegistrySelfTestResult {
@@ -88,8 +145,22 @@ export interface RegistrySelfTestResult {
   seconds: number;
 }
 
+/** One row of `camera_recording/registry/where`. */
+export interface RegistryWhereRow {
+  entry_id: string | null;
+  name: string;
+  /** Epoch seconds. */
+  start: number;
+  end: number;
+  size: number;
+  here: boolean;
+  kind: string;
+  in_registry: boolean;
+}
+
 /** A recording stored in the registry. */
 export interface RegistryRecording {
+  /** The recording's file name; unique per camera. */
   id: string;
   entity_id: string;
   /** Epoch seconds. */
@@ -98,6 +169,28 @@ export interface RegistryRecording {
   stored_size: number;
   /** True while a copy is still on this system. */
   local: boolean;
+}
+
+export type RegistryGetBackState = "running" | "done" | "failed" | "cancelled";
+
+export interface RegistryGetBackJob {
+  id: string;
+  entity_id: string;
+  files: number;
+  done_files: number;
+  total_bytes: number;
+  done_bytes: number;
+  state: RegistryGetBackState;
+  reason: string | null;
+  started: number;
+}
+
+export interface RegistryPlayAnswer {
+  path: string;
+  expires_in: number;
+  size: number;
+  content_type: string;
+  waiting: { reason: string; retry_after: number } | null;
 }
 
 export type RegistryPlayState = "fetching" | "playing" | "done" | "failed";
@@ -110,69 +203,176 @@ export interface RegistryPlayback {
   played: number;
 }
 
+/** The server's status as the places the pages draw: none, or the one place. */
+export const registryPlacesFromStatus = (
+  status: RegistryServerStatus
+): RegistryPlace[] => {
+  if (!status.set_up || !status.entry_id) {
+    return [];
+  }
+  const cameraRepositories: Record<string, string> = {};
+  for (const [entityId, camera] of Object.entries(status.cameras ?? {})) {
+    if (camera.own_repository && camera.repository) {
+      cameraRepositories[entityId] = camera.repository;
+    }
+  }
+  const upload = status.upload;
+  return [
+    {
+      entry_id: status.entry_id,
+      registry: status.registry ?? "other",
+      address: status.address,
+      username: status.username ?? "",
+      default_repository: status.default_repository ?? "",
+      camera_repositories: cameraRepositories,
+      backups_repository: status.backups_repository,
+      loaded: status.loaded,
+      enabled: !!upload?.enabled,
+      public: status.public,
+      send: upload?.send ?? "events",
+      keep_days:
+        upload && "keep_days" in upload
+          ? upload.keep_days
+          : REGISTRY_KEEP_DAYS_RANGE.default,
+      used_bytes: status.used_bytes,
+      waiting_files: upload?.waiting_files ?? 0,
+      waiting_bytes: upload?.waiting_bytes ?? 0,
+      last_sent: upload?.last_sent
+        ? { entity_id: upload.last_sent.entity_id, at: upload.last_sent.at }
+        : null,
+      last_problem: upload?.last_problem ?? null,
+    },
+  ];
+};
+
 type CallWS = Pick<HomeAssistant, "callWS">;
 
-export const fetchRegistryStatus = (hass: CallWS) =>
-  hass.callWS<RegistryStatus>({ type: REGISTRY_WS.status });
+const toPlaces = (status: RegistryServerStatus): RegistryStatus => ({
+  places: registryPlacesFromStatus(status),
+});
 
-export const setRegistryPlace = (
+export const fetchRegistryStatus = async (
+  hass: CallWS
+): Promise<RegistryStatus> =>
+  toPlaces(
+    await hass.callWS<RegistryServerStatus>({ type: REGISTRY_WS.status })
+  );
+
+/** Turning sending on runs the registry's self-test on the server first. */
+export const setRegistryPlace = async (
   hass: CallWS,
-  entryId: string,
   change: RegistryChange
-) =>
-  hass.callWS<RegistryStatus>({
-    type: REGISTRY_WS.set,
-    entry_id: entryId,
-    ...change,
-  });
+): Promise<RegistryStatus> =>
+  toPlaces(
+    await hass.callWS<RegistryServerStatus>({
+      type: REGISTRY_WS.set,
+      ...change,
+    })
+  );
 
-export const setRegistryRepositories = (
+/** Give one camera its own repository, or null to send it back to the default. */
+export const setRegistryCameraRepository = async (
   hass: CallWS,
-  entryId: string,
-  change: RegistryRepositoriesChange
-) =>
-  hass.callWS<RegistryStatus>({
-    type: REGISTRY_WS.repositories,
-    entry_id: entryId,
-    ...change,
-  });
+  entityId: string,
+  repository: string | null
+): Promise<RegistryStatus> =>
+  toPlaces(
+    await hass.callWS<RegistryServerStatus>({
+      type: REGISTRY_WS.cameraRepository,
+      entity_id: entityId,
+      repository,
+    })
+  );
 
-export const runRegistrySelfTest = (hass: CallWS, entryId: string) =>
-  hass.callWS<RegistrySelfTestResult>({
-    type: REGISTRY_WS.selfTest,
-    entry_id: entryId,
-  });
+export const runRegistrySelfTest = (hass: CallWS) =>
+  hass.callWS<RegistrySelfTestResult>({ type: REGISTRY_WS.test });
 
-export const changeRegistryPassword = (
+/** Rebuild the recording index from the registry's own list. */
+export const refreshRegistryIndex = (hass: CallWS) =>
+  hass.callWS<{ recordings: number }>({ type: REGISTRY_WS.refresh });
+
+const isoSeconds = (seconds: number) => new Date(seconds * 1000).toISOString();
+
+export const fetchRegistryWhere = (
   hass: CallWS,
-  entryId: string,
-  oldPassword: string,
-  password: string,
-  passwordConfirmation: string
+  entityId: string,
+  start: number,
+  end: number
 ) =>
-  hass.callWS<undefined>({
-    type: REGISTRY_WS.changePassword,
-    entry_id: entryId,
-    old_password: oldPassword,
-    password,
-    password_confirmation: passwordConfirmation,
+  hass.callWS<RegistryWhereRow[]>({
+    type: REGISTRY_WS.where,
+    entity_id: entityId,
+    start_time: isoSeconds(start),
+    end_time: isoSeconds(end),
   });
 
-export const fetchRegistryRecordings = (
+export const registryRecordingsFromRows = (
+  entityId: string,
+  rows: RegistryWhereRow[]
+): RegistryRecording[] =>
+  rows
+    .filter((row) => row.in_registry)
+    .map((row) => ({
+      id: row.name,
+      entity_id: entityId,
+      start: row.start,
+      duration: Math.max(0, row.end - row.start),
+      stored_size: row.size,
+      local: row.here,
+    }));
+
+/**
+ * The recordings of one camera that are in the registry, between two epoch
+ * seconds. The server answers at most eight days, so a longer window keeps its
+ * most recent eight days.
+ */
+export const fetchRegistryRecordings = async (
   hass: CallWS,
-  entityId?: string,
-  start?: number,
-  end?: number
+  entityId: string,
+  start: number,
+  end: number
+): Promise<RegistryRecording[]> => {
+  const from = Math.max(start, end - REGISTRY_WHERE_MAX_SECONDS);
+  return registryRecordingsFromRows(
+    entityId,
+    await fetchRegistryWhere(hass, entityId, from, end)
+  );
+};
+
+export const playRegistryRecording = (
+  hass: CallWS,
+  entityId: string,
+  name: string
 ) =>
-  hass.callWS<{ recordings: RegistryRecording[] }>({
-    type: REGISTRY_WS.recordings,
-    ...(entityId ? { entity_id: entityId } : {}),
-    ...(start !== undefined ? { start } : {}),
-    ...(end !== undefined ? { end } : {}),
+  hass.callWS<RegistryPlayAnswer>({
+    type: REGISTRY_WS.play,
+    entity_id: entityId,
+    name,
   });
 
-export const restoreRegistryRecording = (hass: CallWS, id: string) =>
-  hass.callWS<undefined>({ type: REGISTRY_WS.restore, recording_id: id });
+/** Download and unlock one recording into the camera's folder, as a job. */
+export const startRegistryGetBack = (
+  hass: CallWS,
+  entityId: string,
+  name: string
+) =>
+  hass.callWS<RegistryGetBackJob>({
+    type: REGISTRY_WS.getBack,
+    entity_id: entityId,
+    name,
+  });
+
+export const fetchRegistryGetBack = (hass: CallWS, jobId: string) =>
+  hass.callWS<RegistryGetBackJob>({
+    type: REGISTRY_WS.getBackStatus,
+    job_id: jobId,
+  });
+
+export const cancelRegistryGetBack = (hass: CallWS, jobId: string) =>
+  hass.callWS<RegistryGetBackJob>({
+    type: REGISTRY_WS.getBackCancel,
+    job_id: jobId,
+  });
 
 /** Reason codes the integration reports; anything else shows as unexpected. */
 export const REGISTRY_PROBLEM_REASONS = [
@@ -191,10 +391,27 @@ export const REGISTRY_PROBLEM_REASONS = [
   "not_ready",
 ] as const;
 
-export const registryProblemKey = (reason: string): string =>
-  (REGISTRY_PROBLEM_REASONS as readonly string[]).includes(reason)
-    ? reason
+/**
+ * The upload queue words its problems in its own codes, shared with the cloud
+ * drives; these are the registry reasons they stand for.
+ */
+const UPLOAD_REASON_ALIASES: Record<string, string> = {
+  sign_in: "auth_failed",
+  refused: "rejected",
+  timed_out: "timeout",
+  drive_error: "unavailable",
+  locked: "wrong_password",
+  check_failed: "self_test_failed",
+  not_set_up: "not_ready",
+  not_loaded: "not_ready",
+};
+
+export const registryProblemKey = (reason: string): string => {
+  const key = UPLOAD_REASON_ALIASES[reason] ?? reason;
+  return (REGISTRY_PROBLEM_REASONS as readonly string[]).includes(key)
+    ? key
     : "unexpected";
+};
 
 /** What the owner can do about a problem. */
 export type RegistryProblemAdvice = "later" | "token" | "damaged" | "other";
@@ -202,7 +419,7 @@ export type RegistryProblemAdvice = "later" | "token" | "damaged" | "other";
 export const registryProblemAdvice = (
   reason: string
 ): RegistryProblemAdvice => {
-  switch (reason) {
+  switch (registryProblemKey(reason)) {
     case "rate_limited":
     case "unavailable":
     case "timeout":
@@ -266,110 +483,9 @@ export const repositoryChoiceForCamera = (
 ): RepositoryChoice =>
   place.camera_repositories[entityId] ? "own" : "default";
 
-/**
- * The camera map after one change: a blank or missing name sends the camera
- * back to the default, anything else gives it its own repository.
- */
-export const withCameraRepository = (
-  current: Record<string, string>,
-  entityId: string,
-  repository: string | null
-): Record<string, string> => {
-  const next = { ...current };
-  const name = repository?.trim();
-  if (name) {
-    next[entityId] = name;
-  } else {
-    delete next[entityId];
-  }
-  return next;
-};
-
 /** A repository name looks like account/name, in lower case. */
 export const isValidRepositoryName = (name: string): boolean =>
   /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/.test(name.trim());
-
-export type PasswordRating =
-  "empty" | "too_short" | "obvious" | "strong" | "very_strong";
-
-const COMMON_PASSWORDS = [
-  "password",
-  "passw0rd",
-  "123456",
-  "qwerty",
-  "letmein",
-  "iloveyou",
-  "admin",
-  "welcome",
-];
-
-/**
- * A quick local estimate so the owner sees feedback while typing. The
- * integration runs the real rules again when the password is set.
- */
-export const ratePassword = (password: string): PasswordRating => {
-  if (!password) {
-    return "empty";
-  }
-  if (password.length < REGISTRY_PASSWORD_MIN_LENGTH) {
-    return "too_short";
-  }
-  const lower = password.toLowerCase();
-  if (
-    new Set(password).size < 5 ||
-    COMMON_PASSWORDS.some(
-      (word) => lower.includes(word) && password.length < 20
-    )
-  ) {
-    return "obvious";
-  }
-  return password.length >= 20 || new Set(password).size >= 12
-    ? "very_strong"
-    : "strong";
-};
-
-export type PasswordFormProblem =
-  "empty" | "too_short" | "obvious" | "mismatch" | "same_as_old" | "understand";
-
-export interface PasswordFormValues {
-  old_password?: string;
-  password: string;
-  password_confirmation: string;
-  understand: boolean;
-}
-
-/**
- * The first reason the form cannot be submitted, or undefined when it can.
- * The old password is only checked when the form asks for one.
- */
-export const passwordFormProblem = (
-  values: PasswordFormValues,
-  needsOld: boolean
-): PasswordFormProblem | undefined => {
-  if (needsOld && !values.old_password) {
-    return "empty";
-  }
-  const rating = ratePassword(values.password);
-  if (rating === "empty") {
-    return "empty";
-  }
-  if (rating === "too_short") {
-    return "too_short";
-  }
-  if (rating === "obvious") {
-    return "obvious";
-  }
-  if (values.password !== values.password_confirmation) {
-    return "mismatch";
-  }
-  if (needsOld && values.old_password === values.password) {
-    return "same_as_old";
-  }
-  if (!values.understand) {
-    return "understand";
-  }
-  return undefined;
-};
 
 /** The registry backup location's agent id, for the backup pages. */
 export const isRegistryAgent = (agentId: string): boolean =>

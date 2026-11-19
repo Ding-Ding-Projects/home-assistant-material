@@ -972,8 +972,8 @@ class RegistryStore:
         old password: this changes who can open what is stored from now on, it does not
         take back what was already copied.
         """
-        require_password(new_password, confirmation)
         loop = self._hass
+        await loop.async_add_executor_job(require_password, new_password, confirmation)
         if not await loop.async_add_executor_job(
             password_matches, self._header, old_password, self._vault_key
         ):

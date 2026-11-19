@@ -91,7 +91,6 @@
   "options": {
     "step": {
       "init": {
-        "title": "Container registry storage",
         "menu_options": {
           "repositories": "Repositories",
           "password": "Change the password"
