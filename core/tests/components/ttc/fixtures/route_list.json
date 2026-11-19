@@ -1,0 +1,29 @@
+{
+  "copyright": "All data copyright Toronto Transit Commission 2026.",
+  "route": [
+    {
+      "tag": "7",
+      "title": "7-Bathurst"
+    },
+    {
+      "tag": "29",
+      "title": "29-Dufferin"
+    },
+    {
+      "tag": "103",
+      "title": "103-Mount Pleasant North"
+    },
+    {
+      "tag": "504",
+      "title": "504-King"
+    },
+    {
+      "tag": "510",
+      "title": "510-Spadina"
+    },
+    {
+      "tag": "929",
+      "title": "929-Dufferin Express"
+    }
+  ]
+}

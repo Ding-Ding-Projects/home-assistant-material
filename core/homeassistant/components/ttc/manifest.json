@@ -1,0 +1,14 @@
+{
+  "domain": "ttc",
+  "name": "TTC transit",
+  "categories": ["vehicles_transport.public_transport"],
+  "codeowners": [],
+  "config_flow": true,
+  "connectivity": ["cloud"],
+  "dependencies": ["websocket_api"],
+  "documentation": "https://www.home-assistant.io/integrations/ttc",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "single_config_entry": true
+}

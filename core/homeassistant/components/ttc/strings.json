@@ -1,0 +1,326 @@
+{
+  "conditions": {
+    "route_has_problem": {
+      "description": "Tests if a route has a delay, detour, closure or slow zone. Old or missing information does not pass.",
+      "fields": {
+        "route": {
+          "description": "The route number, for example 504, or 1 for Line 1.",
+          "name": "Route"
+        }
+      },
+      "name": "Route has a problem"
+    },
+    "station_is_step_free": {
+      "description": "Tests if no elevator is reported out of service at a station. Old or missing information does not pass.",
+      "fields": {
+        "station": {
+          "description": "The station name, as the TTC writes it, for example St George.",
+          "name": "Station"
+        }
+      },
+      "name": "Station is step-free"
+    }
+  },
+  "config": {
+    "error": {
+      "cannot_connect": "The TTC did not answer. Try again in a minute.",
+      "invalid_stop": "One of the stop numbers is not known to the TTC. Stop numbers are printed on the stop sign.",
+      "no_stations": "Choose at least one station, or turn off elevators and escalators in the first step.",
+      "no_stops": "Choose at least one stop, or turn off next departures in the first step.",
+      "nothing_chosen": "Choose at least one thing to watch.",
+      "routes_unavailable": "The list of bus and streetcar routes could not be read, so only the subway lines are offered. You can try again later."
+    },
+    "step": {
+      "routes": {
+        "data": {
+          "routes": "Routes",
+          "stations": "Stations"
+        },
+        "data_description": {
+          "routes": "Subway lines, buses and streetcars to show the status of. Search by number or name.",
+          "stations": "Stations to watch for elevators and escalators out of service. You can type a station that is not listed."
+        },
+        "description": "Choose routes and stations. Only these numbers are asked for.",
+        "title": "Routes and stations"
+      },
+      "stops": {
+        "data": {
+          "stops": "Stops"
+        },
+        "data_description": {
+          "stops": "Stops on your routes, or type the stop number from the stop sign."
+        },
+        "description": "Choose stops for next departures. Each is checked every 45 seconds.",
+        "title": "Stops for next departures"
+      },
+      "user": {
+        "data": {
+          "watch_alerts": "Service alerts",
+          "watch_departures": "Next departures",
+          "watch_lifts": "Elevators and escalators"
+        },
+        "data_description": {
+          "watch_alerts": "Delays, detours and closures, read once a minute.",
+          "watch_departures": "Predicted departures at stops you choose.",
+          "watch_lifts": "Out of service at stations you choose, read every few minutes."
+        },
+        "description": "Choose what to watch. This reads the TTC's public information and sends nothing about your home. You can change this later.",
+        "title": "TTC transit"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "alerts_fresh": {
+        "name": "Service alerts are fresh"
+      },
+      "departures_fresh": {
+        "name": "Departures are fresh"
+      },
+      "lifts_fresh": {
+        "name": "Elevator information is fresh"
+      },
+      "route_problem": {
+        "name": "Problem"
+      },
+      "step_free": {
+        "name": "Step-free"
+      }
+    },
+    "event": {
+      "new_alert": {
+        "name": "New alert",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "elevator": "Elevator",
+              "escalator": "Escalator",
+              "general": "General",
+              "route": "Route"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "alerts": {
+        "name": "Alerts",
+        "unit_of_measurement": "alerts"
+      },
+      "elevators_out": {
+        "name": "Elevators out"
+      },
+      "escalators_out": {
+        "name": "Escalators out"
+      },
+      "minutes_to_next": {
+        "name": "Minutes to next departure"
+      },
+      "next_departure": {
+        "name": "Next departure"
+      },
+      "route_status": {
+        "name": "Status",
+        "state": {
+          "delay": "Delay",
+          "detour": "Detour",
+          "no_service": "No service",
+          "reduced_service": "Reduced service",
+          "regular": "Regular service",
+          "slow": "Slow"
+        }
+      },
+      "second_departure": {
+        "name": "Second departure"
+      },
+      "third_departure": {
+        "name": "Third departure"
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_stop": {
+      "message": "Stop {stop} is not known to the TTC."
+    },
+    "malformed": {
+      "message": "The TTC answered with information that could not be read: {error}"
+    },
+    "not_loaded": {
+      "message": "TTC transit is not set up or not loaded."
+    },
+    "refused": {
+      "message": "The TTC refused the request (status {status}). It will be asked again later."
+    },
+    "unreachable": {
+      "message": "The TTC could not be reached: {error}"
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "[%key:component::ttc::config::error::cannot_connect%]",
+      "invalid_stop": "[%key:component::ttc::config::error::invalid_stop%]",
+      "no_stations": "[%key:component::ttc::config::error::no_stations%]",
+      "no_stops": "[%key:component::ttc::config::error::no_stops%]",
+      "routes_unavailable": "[%key:component::ttc::config::error::routes_unavailable%]"
+    },
+    "step": {
+      "routes": {
+        "data": {
+          "routes": "[%key:component::ttc::config::step::routes::data::routes%]",
+          "stations": "[%key:component::ttc::config::step::routes::data::stations%]"
+        },
+        "data_description": {
+          "routes": "[%key:component::ttc::config::step::routes::data_description::routes%]",
+          "stations": "[%key:component::ttc::config::step::routes::data_description::stations%]"
+        },
+        "description": "[%key:component::ttc::config::step::routes::description%]",
+        "title": "[%key:component::ttc::config::step::routes::title%]"
+      },
+      "stops": {
+        "data": {
+          "stops": "[%key:component::ttc::config::step::stops::data::stops%]"
+        },
+        "data_description": {
+          "stops": "[%key:component::ttc::config::step::stops::data_description::stops%]"
+        },
+        "description": "[%key:component::ttc::config::step::stops::description%]",
+        "title": "[%key:component::ttc::config::step::stops::title%]"
+      }
+    }
+  },
+  "selector": {
+    "alert_kind": {
+      "options": {
+        "any": "Any kind",
+        "elevator": "Elevator",
+        "escalator": "Escalator",
+        "general": "General",
+        "route": "Route"
+      }
+    },
+    "lift_change": {
+      "options": {
+        "any": "Goes out or comes back",
+        "back": "Comes back",
+        "out": "Goes out"
+      }
+    },
+    "lift_kind": {
+      "options": {
+        "any": "Elevator or escalator",
+        "elevator": "Elevator",
+        "escalator": "Escalator"
+      }
+    }
+  },
+  "services": {
+    "get_departures": {
+      "description": "Gets the predicted departures at any stop, read now.",
+      "fields": {
+        "limit": {
+          "description": "The most departures to return.",
+          "name": "Limit"
+        },
+        "route": {
+          "description": "Only departures of this route number.",
+          "name": "Route"
+        },
+        "stop": {
+          "description": "The stop number from the stop sign, for example 8126.",
+          "name": "Stop"
+        }
+      },
+      "name": "Get departures"
+    },
+    "refresh": {
+      "description": "Reads the TTC's information again now.",
+      "name": "Refresh"
+    }
+  },
+  "triggers": {
+    "departure_within": {
+      "description": "Triggers once for each departure, when its predicted time first drops to the chosen number of minutes or less.",
+      "fields": {
+        "minutes": {
+          "description": "How many minutes before the departure.",
+          "name": "Within"
+        },
+        "route": {
+          "description": "Only departures of this route number. Leave empty for any route at the stop.",
+          "name": "Route"
+        },
+        "stop": {
+          "description": "A stop number chosen in the setup.",
+          "name": "Stop"
+        }
+      },
+      "name": "Next departure is within"
+    },
+    "lift_changed": {
+      "description": "Triggers once for each elevator or escalator that goes out of service or comes back.",
+      "fields": {
+        "change": {
+          "description": "Whether to trigger when it goes out, comes back, or both.",
+          "name": "Change"
+        },
+        "kind": {
+          "description": "Elevators, escalators, or both.",
+          "name": "Kind"
+        },
+        "station": {
+          "description": "The station name. Leave empty for any station.",
+          "name": "Station"
+        }
+      },
+      "name": "Elevator or escalator goes out or comes back"
+    },
+    "new_alert": {
+      "description": "Triggers once for each new alert posted across the network.",
+      "fields": {
+        "kind": {
+          "description": "Only alerts of this kind.",
+          "name": "Kind"
+        }
+      },
+      "name": "New alert is posted"
+    },
+    "route_delayed": {
+      "description": "Triggers when a route in regular service gets a delay, detour, closure or slow zone.",
+      "fields": {
+        "route": {
+          "description": "The route number. Leave empty for any chosen route.",
+          "name": "Route"
+        }
+      },
+      "name": "Route gets a delay"
+    },
+    "route_resumed": {
+      "description": "Triggers when a route with a delay, detour or closure is back to regular service.",
+      "fields": {
+        "route": {
+          "description": "[%key:component::ttc::triggers::route_delayed::fields::route::description%]",
+          "name": "[%key:component::ttc::triggers::route_delayed::fields::route::name%]"
+        }
+      },
+      "name": "Route is back to regular service"
+    },
+    "time_to_leave": {
+      "description": "Triggers once for each departure, when it is time to walk to the stop to catch it.",
+      "fields": {
+        "route": {
+          "description": "[%key:component::ttc::triggers::departure_within::fields::route::description%]",
+          "name": "[%key:component::ttc::triggers::departure_within::fields::route::name%]"
+        },
+        "stop": {
+          "description": "[%key:component::ttc::triggers::departure_within::fields::stop::description%]",
+          "name": "[%key:component::ttc::triggers::departure_within::fields::stop::name%]"
+        },
+        "walk_minutes": {
+          "description": "How long it takes to walk to the stop.",
+          "name": "Walking time"
+        }
+      },
+      "name": "Time to leave"
+    }
+  }
+}

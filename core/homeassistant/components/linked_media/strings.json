@@ -1,0 +1,39 @@
+{
+  "exceptions": {
+    "fetch_failed": {
+      "message": "The linked file {name} could not be fetched: {reason}."
+    },
+    "file_not_found": {
+      "message": "There is no linked file with the ID {file_id}."
+    },
+    "not_loaded": {
+      "message": "Linked media is not set up."
+    }
+  },
+  "services": {
+    "fetch": {
+      "description": "Fetches a linked file to a temporary local file and returns its path. The file is removed after the given time or when it is released.",
+      "fields": {
+        "file_id": {
+          "description": "The ID of the linked file.",
+          "name": "Linked file"
+        },
+        "seconds": {
+          "description": "How long the local file is kept before it is removed.",
+          "name": "Keep for"
+        }
+      },
+      "name": "Fetch a linked file"
+    },
+    "release": {
+      "description": "Removes a local file that was handed out by the fetch action before its time is up.",
+      "fields": {
+        "path": {
+          "description": "The path the fetch action returned.",
+          "name": "Path"
+        }
+      },
+      "name": "Release a fetched file"
+    }
+  }
+}

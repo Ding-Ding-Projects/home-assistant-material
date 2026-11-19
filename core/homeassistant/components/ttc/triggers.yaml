@@ -1,0 +1,85 @@
+route_delayed:
+  fields:
+    route: &route
+      required: false
+      selector:
+        text:
+
+route_resumed:
+  fields:
+    route: *route
+
+departure_within:
+  fields:
+    stop: &stop
+      required: true
+      selector:
+        text:
+    route: *route
+    minutes:
+      required: true
+      default: 7
+      selector:
+        number:
+          min: 0
+          max: 90
+          step: 1
+          mode: slider
+          unit_of_measurement: min
+
+time_to_leave:
+  fields:
+    stop: *stop
+    route: *route
+    walk_minutes:
+      required: true
+      default: 6
+      selector:
+        number:
+          min: 0
+          max: 90
+          step: 1
+          mode: box
+          unit_of_measurement: min
+
+lift_changed:
+  fields:
+    station:
+      required: false
+      selector:
+        text:
+    kind:
+      required: true
+      default: any
+      selector:
+        select:
+          translation_key: lift_kind
+          options:
+            - any
+            - elevator
+            - escalator
+    change:
+      required: true
+      default: out
+      selector:
+        select:
+          translation_key: lift_change
+          options:
+            - out
+            - back
+            - any
+
+new_alert:
+  fields:
+    kind:
+      required: true
+      default: any
+      selector:
+        select:
+          translation_key: alert_kind
+          options:
+            - any
+            - route
+            - elevator
+            - escalator
+            - general

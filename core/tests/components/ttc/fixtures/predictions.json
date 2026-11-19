@@ -1,0 +1,204 @@
+{
+  "copyright": "All data copyright Toronto Transit Commission 2026.",
+  "predictions": [
+    {
+      "routeTag": "310",
+      "stopTag": "10138",
+      "routeTitle": "310-Spadina",
+      "agencyTitle": "Toronto Transit Commission",
+      "dirTitleBecauseNoPredictions": "South - 310 Spadina towards Union Station",
+      "stopTitle": "Spadina Ave At King St West"
+    },
+    {
+      "routeTag": "504",
+      "stopTag": "10138",
+      "routeTitle": "504-King",
+      "agencyTitle": "Toronto Transit Commission",
+      "stopTitle": "Spadina Ave At King St West",
+      "direction": {
+        "prediction": [
+          {
+            "seconds": "1884",
+            "tripTag": "50960224",
+            "minutes": "31",
+            "isDeparture": "false",
+            "block": "504_14_140",
+            "dirTag": "504_0_504Acon",
+            "branch": "504",
+            "epochTime": "1795046495502",
+            "vehicle": "4462"
+          },
+          {
+            "seconds": "2276",
+            "tripTag": "50960225",
+            "minutes": "37",
+            "isDeparture": "false",
+            "block": "504_15_150",
+            "dirTag": "504_0_504Acon",
+            "branch": "504",
+            "epochTime": "1795046887717",
+            "vehicle": "4616"
+          },
+          {
+            "affectedByLayover": "true",
+            "seconds": "2742",
+            "tripTag": "50960226",
+            "minutes": "45",
+            "isDeparture": "false",
+            "block": "504_16_160",
+            "dirTag": "504_0_504Acon",
+            "branch": "504",
+            "epochTime": "1795047353739",
+            "vehicle": "4615"
+          },
+          {
+            "affectedByLayover": "true",
+            "seconds": "3153",
+            "tripTag": "50960227",
+            "minutes": "52",
+            "isDeparture": "false",
+            "block": "504_17_170",
+            "dirTag": "504_0_504Acon",
+            "branch": "504",
+            "epochTime": "1795047765061",
+            "vehicle": "4654"
+          }
+        ],
+        "title": "East - 504 King towards Broadview Station"
+      }
+    },
+    {
+      "routeTag": "304",
+      "stopTag": "10138",
+      "routeTitle": "304-King",
+      "agencyTitle": "Toronto Transit Commission",
+      "dirTitleBecauseNoPredictions": "East - 304 King towards Broadview Station",
+      "stopTitle": "Spadina Ave At King St West"
+    },
+    {
+      "routeTag": "510",
+      "stopTag": "10138",
+      "routeTitle": "510-Spadina",
+      "agencyTitle": "Toronto Transit Commission",
+      "stopTitle": "Spadina Ave At King St West",
+      "direction": [
+        {
+          "prediction": [
+            {
+              "affectedByLayover": "true",
+              "seconds": "871",
+              "tripTag": "50962427",
+              "minutes": "14",
+              "isDeparture": "false",
+              "block": "510_13_130",
+              "dirTag": "510_0_510A",
+              "branch": "510",
+              "epochTime": "1795045482252",
+              "vehicle": "4477"
+            },
+            {
+              "affectedByLayover": "true",
+              "seconds": "1142",
+              "tripTag": "50962568",
+              "minutes": "19",
+              "isDeparture": "false",
+              "block": "510_12_120",
+              "dirTag": "510_0_510A",
+              "branch": "510",
+              "epochTime": "1795045753451",
+              "vehicle": "4507"
+            },
+            {
+              "affectedByLayover": "true",
+              "seconds": "2733",
+              "tripTag": "50962546",
+              "minutes": "45",
+              "isDeparture": "false",
+              "block": "510_3_30",
+              "dirTag": "510_0_510A",
+              "branch": "510",
+              "epochTime": "1795047344712",
+              "vehicle": "4513"
+            },
+            {
+              "affectedByLayover": "true",
+              "seconds": "3393",
+              "tripTag": "50962547",
+              "minutes": "56",
+              "isDeparture": "false",
+              "block": "510_9_90",
+              "dirTag": "510_0_510A",
+              "branch": "510",
+              "epochTime": "1795048004712",
+              "vehicle": "4423"
+            }
+          ],
+          "title": "South - 510 Spadina towards Union Station"
+        },
+        {
+          "prediction": [
+            {
+              "seconds": "90",
+              "tripTag": "50962447",
+              "minutes": "1",
+              "isDeparture": "false",
+              "block": "510_5_50",
+              "dirTag": "510_0_510B",
+              "branch": "510",
+              "epochTime": "1795044701583",
+              "vehicle": "4631"
+            },
+            {
+              "seconds": "603",
+              "tripTag": "50962448",
+              "minutes": "10",
+              "isDeparture": "false",
+              "block": "510_7_70",
+              "dirTag": "510_0_510B",
+              "branch": "510",
+              "epochTime": "1795045214677",
+              "vehicle": "4447"
+            },
+            {
+              "affectedByLayover": "true",
+              "seconds": "1217",
+              "tripTag": "50962449",
+              "minutes": "20",
+              "isDeparture": "false",
+              "block": "510_8_80",
+              "dirTag": "510_0_510B",
+              "branch": "510",
+              "epochTime": "1795045828912",
+              "vehicle": "4523"
+            },
+            {
+              "affectedByLayover": "true",
+              "seconds": "1880",
+              "tripTag": "50962571",
+              "minutes": "31",
+              "isDeparture": "false",
+              "block": "510_11_110",
+              "dirTag": "510_0_510B",
+              "branch": "510",
+              "epochTime": "1795046491465",
+              "vehicle": "4427"
+            },
+            {
+              "affectedByLayover": "true",
+              "seconds": "2470",
+              "tripTag": "50962436",
+              "minutes": "41",
+              "isDeparture": "false",
+              "block": "510_2_20",
+              "dirTag": "510_0_510B",
+              "branch": "510",
+              "epochTime": "1795047081774",
+              "vehicle": "4431"
+            }
+          ],
+          "title": "South - 510 Spadina towards Queens Quay"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+route_has_problem:
+  fields:
+    route:
+      required: true
+      selector:
+        text:
+
+station_is_step_free:
+  fields:
+    station:
+      required: true
+      selector:
+        text:

@@ -1,0 +1,43 @@
+{
+  "copyright": "All data copyright Toronto Transit Commission 2026.",
+  "route": {
+    "lonMax": "-79.35002",
+    "color": "ff0000",
+    "oppositeColor": "ffffff",
+    "stop": [
+      {
+        "stopId": "3372",
+        "lon": "-79.35117",
+        "tag": "1966",
+        "title": "Broadview Ave At Dundas St East",
+        "lat": "43.6622499"
+      },
+      {
+        "stopId": "8126",
+        "lon": "-79.3951699",
+        "tag": "10138",
+        "title": "Spadina Ave At King St West",
+        "lat": "43.6456699"
+      },
+      {
+        "stopId": "9317",
+        "lon": "-79.35187",
+        "tag": "3886",
+        "title": "Broadview Ave At Mountstephen St",
+        "lat": "43.66394"
+      },
+      {
+        "stopId": "1757",
+        "lon": "-79.35244",
+        "tag": "6205",
+        "title": "Broadview Ave At Gerrard St East",
+        "lat": "43.66527"
+      }
+    ],
+    "tag": "504",
+    "latMin": "43.63655",
+    "title": "504-King",
+    "latMax": "43.6771299",
+    "lonMin": "-79.45346"
+  }
+}

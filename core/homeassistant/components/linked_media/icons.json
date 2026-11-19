@@ -1,0 +1,10 @@
+{
+  "services": {
+    "fetch": {
+      "service": "mdi:link-variant"
+    },
+    "release": {
+      "service": "mdi:delete-clock-outline"
+    }
+  }
+}

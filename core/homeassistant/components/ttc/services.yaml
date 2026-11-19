@@ -1,0 +1,22 @@
+refresh:
+
+get_departures:
+  fields:
+    stop:
+      required: true
+      example: "8126"
+      selector:
+        text:
+    route:
+      required: false
+      example: "504"
+      selector:
+        text:
+    limit:
+      required: false
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 20
+          mode: box

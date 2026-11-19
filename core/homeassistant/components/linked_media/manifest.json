@@ -1,0 +1,17 @@
+{
+  "domain": "linked_media",
+  "name": "Linked media",
+  "codeowners": [],
+  "config_flow": false,
+  "dependencies": [
+    "http",
+    "media_source",
+    "network",
+    "websocket_api"
+  ],
+  "documentation": "https://github.com/Ding-Ding-Projects/home-assistant-material",
+  "integration_type": "system",
+  "iot_class": "local_push",
+  "quality_scale": "internal",
+  "single_config_entry": true
+}

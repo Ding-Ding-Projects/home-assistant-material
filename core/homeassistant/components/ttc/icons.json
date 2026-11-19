@@ -1,0 +1,98 @@
+{
+  "conditions": {
+    "route_has_problem": {
+      "condition": "mdi:bus-alert"
+    },
+    "station_is_step_free": {
+      "condition": "mdi:elevator-passenger"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "alerts_fresh": {
+        "default": "mdi:clock-check-outline"
+      },
+      "departures_fresh": {
+        "default": "mdi:clock-check-outline"
+      },
+      "lifts_fresh": {
+        "default": "mdi:clock-check-outline"
+      },
+      "route_problem": {
+        "default": "mdi:bus-alert"
+      },
+      "step_free": {
+        "default": "mdi:elevator-passenger",
+        "state": {
+          "off": "mdi:elevator-passenger-off"
+        }
+      }
+    },
+    "event": {
+      "new_alert": {
+        "default": "mdi:alert-circle-outline"
+      }
+    },
+    "sensor": {
+      "alerts": {
+        "default": "mdi:alert-circle-outline"
+      },
+      "elevators_out": {
+        "default": "mdi:elevator-passenger-off"
+      },
+      "escalators_out": {
+        "default": "mdi:escalator"
+      },
+      "minutes_to_next": {
+        "default": "mdi:bus-clock"
+      },
+      "next_departure": {
+        "default": "mdi:bus-clock"
+      },
+      "route_status": {
+        "default": "mdi:bus",
+        "state": {
+          "delay": "mdi:bus-alert",
+          "detour": "mdi:sign-direction",
+          "no_service": "mdi:bus-stop-uncovered",
+          "reduced_service": "mdi:bus-alert",
+          "slow": "mdi:speedometer-slow"
+        }
+      },
+      "second_departure": {
+        "default": "mdi:bus-clock"
+      },
+      "third_departure": {
+        "default": "mdi:bus-clock"
+      }
+    }
+  },
+  "services": {
+    "get_departures": {
+      "service": "mdi:bus-clock"
+    },
+    "refresh": {
+      "service": "mdi:refresh"
+    }
+  },
+  "triggers": {
+    "departure_within": {
+      "trigger": "mdi:bus-clock"
+    },
+    "lift_changed": {
+      "trigger": "mdi:elevator-passenger"
+    },
+    "new_alert": {
+      "trigger": "mdi:alert-circle-outline"
+    },
+    "route_delayed": {
+      "trigger": "mdi:bus-alert"
+    },
+    "route_resumed": {
+      "trigger": "mdi:bus-check"
+    },
+    "time_to_leave": {
+      "trigger": "mdi:walk"
+    }
+  }
+}
