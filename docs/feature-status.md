@@ -20,6 +20,8 @@ Where a row below and those files disagree, those files are newer.
 - Build 2026.11.1.525, built from `44d5a60e5`, is published and being verified; it is not live.
 - `6db767de3` (state words following the language mode, and ten small fixes) is on main and in no
   build.
+- A release for `a3cb56d37` (the integration commit that carries `6db767de3` and everything after
+  it) was dispatched on 18 November and is being built and verified; it is not live.
 - The design is 616 boards on 40 canvases in `../design/canvases/` (counted from the folders on
   18 November 2026).
 

@@ -13,6 +13,77 @@ is being verified; `docs/feature-status.md` is the older row-by-row record up to
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
+## Integration pass and a release dispatched for `a3cb56d37`, 18 November 2026
+
+The hosted instance still runs build 2026.11.1.524 (no record says it moved). Build 2026.11.1.525
+is published; its verification has no written result yet. A release for `a3cb56d37` (the first
+build to carry `6db767de3`, `71824ce14` and `a3cb56d37`) was dispatched at 20:40 Toronto time on
+18 November and is being built and verified; it is not live. A box is ticked below only where the
+integration look saw it on a local build of the whole tree (the last one made at 20:10, before the
+commit); none of this is seen in a released build yet. Details in `HANDOFF.md`.
+
+### Seen on the integration build
+
+- [x] English mode unchanged: the dashboard, the Entities list, the light sheet and the climate
+      sheet read the same as the 525 image at 390 px in dark theme.
+- [x] Cantonese and both-language modes at 390 px: the dashboard, Entities, Devices, Automations,
+      Integrations, Settings home, Logs and Release notes with no overflow, no cut text and no page
+      errors; thirteen kinds of entity sheet with no cut text in either mode.
+- [x] Switching the language mode from a second tab changes the open page without a reload.
+- [x] Page titles, tab labels and the breadcrumb of tabbed settings pages follow the language mode
+      ([`language-modes.md`](docs/features/language-and-voice/language-modes.md)). Fixed during the
+      look and seen on its second build.
+- [x] The camera recording page: sliders no longer sit on their labels, and a failed test clip
+      gives its reason once per language in both-language mode. Fixed during the look and seen on
+      its third build.
+- [x] The recording check of a camera (streaming program, service only, last event, last clip,
+      last problem, clips left this hour)
+      ([`event-clips-and-live-recording.md`](docs/features/camera-recording/event-clips-and-live-recording.md)).
+      Seen with a demo camera only.
+- [x] AC Defender and Heat Defender set up through the config flow; the device page groups the
+      guard switches by family; both Now pages open without cut text or errors. A test climate
+      entity, not a real unit.
+- [~] Light theme and 1440 px: Dashboard, Entities, Settings home, Updates, Backups, Personal
+      settings and the AC Defender Now page passed the automatic scan (no overflow, cut text or page
+      errors). Only Entities at 1440 px was looked at by eye. Missing: a light sheet in light theme,
+      Personal settings with the top bar search open, the search field width at 360 px.
+
+### Written, not yet seen working
+
+- [~] The test clip button. Pressed with a demo camera: the failure was reported with its reason,
+      and the clips left this hour went from 12 to 11 as designed. A saved test clip and the
+      "program not set up" reason were not seen; needs a real camera.
+- [~] Ten page captions in Cantonese (backups, integrations, entities, devices, scenes, scripts,
+      areas, helpers, automations, dashboards). "Entities · 實體" was seen; the others, including the
+      fixed Backups tile on Settings home, were not looked at one by one. Blueprint, energy, application credentials, roles and zone stay
+      English (no Cantonese block for them).
+- [ ] Cantonese on about 57 settings pages from the Cantonese lane. Opened pages showed no overflow
+      or cut text; the wording itself was not checked page by page, and no native reader has read it.
+- [ ] The defender quality scale items (flows fully tested, sensors that start disabled, translated
+      validation errors, repair issues for a missing climate entity or sensor) and the resent off
+      command of cool outdoor shutdown. Tested; not seen.
+- [ ] The defender reason line in both languages, a nested reason, pause, restart and a restored
+      pause reason. Not seen.
+- [ ] Camera event rows, and a camera sheet that never offers Play without a clip. Not seen.
+- [ ] The transit cards and page, the problem log page, the registry pages and the linked media
+      rows (other lanes in the same commit). Not seen. The registry place stays off until its
+      security review reports.
+
+### Faults found by the look, not yet fixed
+
+- [ ] Still English in Cantonese and both modes: the sidebar page names, the Backup Manager state
+      "Idle", and the Automations top bar title at 390 px.
+- [ ] Devices rows are 72 px and Automations rows 88 px, above the 64 px target (the same in
+      English).
+- [ ] Two search icons side by side in the Entities top bar at 1440 px. Not yet compared with 525
+      or the board.
+
+### Release and process
+
+- [ ] The release for `a3cb56d37` read back as a normal release, verified on a throwaway full
+      hosting copy (a page-load pass in three modes and a real update run), then moved to the hosted
+      instance. Dispatched; being built and verified.
+
 ## Build 524 live, build 525 being verified, Cantonese reaching entity words, 18 November 2026
 
 Build 2026.11.1.524 (built from `c9e3a5e67`) is what the hosted instance runs. It was verified
@@ -59,16 +130,23 @@ and the verification sections of the files linked below.
 
 ### State words and ten small fixes (`6db767de3`, on main, not built, unit-tested only)
 
-- [ ] Entity state words, attribute names and weather weekday names follow the language mode,
+- [~] Entity state words, attribute names and weather weekday names follow the language mode,
       through one wrapper on the lookup and a table of 463 entries checked against the server's
       word lists ([`entity-words-and-stacked-labels.md`](docs/features/language-and-voice/entity-words-and-stacked-labels.md)).
-      English mode unchanged; 5,000 states took 2.3 ms in English and 3.2 ms in Cantonese.
+      English mode unchanged; 5,000 states took 2.3 ms in English and 3.2 ms in Cantonese. State
+      words were seen in Cantonese and both modes, and English unchanged, in a browser (`71824ce14`)
+      and on the integration build of 18 November; attribute names and weekdays not recorded as
+      seen; about a hundred attribute names still English. Not in a released build yet.
 - [ ] The History tab of an entity sheet no longer jumps a second time when its content arrives.
 - [ ] Fan speed buttons and sensor range chips stack the two languages on one row.
-- [ ] The Updates page keeps one "What's new" button, not two.
-- [ ] Settings home shows a count in the top bar search.
-- [ ] A list search no longer finds "midnight" for "light": the typo-forgiving match waits for
-      words of six letters or more.
+- [x] The Updates page keeps one "What's new" button, not two. Seen on the integration build of 18
+      November, with the build list reachable and with every request off the host blocked
+      (`71824ce14` had found the button missing entirely and restored exactly one).
+- [ ] Settings home shows a count in the top bar search. Not identified in the integration look of
+      18 November.
+- [x] A list search no longer finds "midnight" for "light": the typo-forgiving match waits for
+      words of six letters or more. Seen on the integration build of 18 November: "light" on
+      Entities gave 15 rows, each containing the word.
 - [ ] Developer tools remember the search per tab.
 - [ ] Small buttons get a 44 px hit area.
 - [ ] Backup counts read properly in Cantonese.
@@ -123,8 +201,9 @@ Designs: canvas 38 (the Events board) and canvas 40 (search from the top bar).
       sign-in; the first clip to arrive wins. Tested with a pretend camera only.
 - [ ] An offline camera says when it was last seen. Written; not seen.
 - [ ] Light recording has a picker for what counts as "something was seen". Written; not seen.
-- [ ] The camera recording page follows the language mode. Fix written after a browser look; not
-      seen again.
+- [x] The camera recording page follows the language mode. Seen in both-language mode at 390 px on
+      the integration build of 18 November, after two more fixes there (sliders over their labels,
+      a reason said twice). Not in a released build yet.
 
 ### Search from the top bar
 

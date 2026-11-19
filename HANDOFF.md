@@ -1,5 +1,159 @@
 # Handoff
 
+## Integration pass, the whole tree committed together, a release dispatched for `a3cb56d37`, 18 November 2026
+
+This section covers the commits from `71824ce14` to `a3cb56d37` (after `6db767de3`) and the
+integration look at a local build of the whole tree. Where this section and an older one disagree,
+this one is newer. Feature documentation updated:
+[`event-clips-and-live-recording.md`](docs/features/camera-recording/event-clips-and-live-recording.md)
+(the recording check and the test clip),
+[`language-modes.md`](docs/features/language-and-voice/language-modes.md) (tabbed pages),
+[`entity-words-and-stacked-labels.md`](docs/features/language-and-voice/entity-words-and-stacked-labels.md),
+[`guard-descriptions-and-reasons.md`](docs/features/defenders/guard-descriptions-and-reasons.md),
+[`top-bar-search.md`](docs/features/interface/top-bar-search.md) and
+[`whats-new-and-notes.md`](docs/features/updates/whats-new-and-notes.md).
+
+### What is live and what is not
+
+- **Live (hosted instance):** build 2026.11.1.524, built from `c9e3a5e67`, as the next section
+  says. No record says the hosted instance has moved since.
+- **Published, not live:** build 2026.11.1.525, built from `44d5a60e5`. No written result of its
+  verification exists yet, so the three items not proven on 524 stay open.
+- **Release dispatched, being built and verified, not live:** a release for `a3cb56d37` (Release
+  workflow run 44438624121, dispatched at 20:40 Toronto time on 18 November). It was still running
+  when this was written. It will be the first build that carries `6db767de3`, `71824ce14` and
+  `a3cb56d37`. It is not verified and not live; the hosted instance moves to it only after a
+  page-load pass and a real update run on a throwaway full hosting copy.
+- Every commit in this range carries a skip marker; a push alone does not build or offer a build.
+
+### Why one commit
+
+`a3cb56d37` commits everything that was waiting in shared files at once, because the pieces depend
+on each other. One example seen in the integration look: the camera recording manifest now loads
+after the container registry integration, and Core refused to set up camera recording ("Integration
+'registry_storage' not found") until the registry folder was present too. A partial commit of this
+tree would not start camera recording.
+
+### What changed
+
+| Area | What | Commit | Documentation |
+| --- | --- | --- | --- |
+| State words seen and gaps closed | English mode compared with the published build: 1,474 texts on the dashboard, lists and sheets, none changed. Words an integration supplies itself borrow the common Cantonese word when the English is exactly the same; groups, schedules, calendars and cameras gained Cantonese states; the Updates page shows exactly one "What's new" button (it had lost it entirely); a 40 px upload button on the Backups page grew | `71824ce14` | [`entity-words-and-stacked-labels.md`](docs/features/language-and-voice/entity-words-and-stacked-labels.md), [`whats-new-and-notes.md`](docs/features/updates/whats-new-and-notes.md) |
+| Tabbed settings pages follow the language mode | Page titles, tab labels and the breadcrumb of every tabbed settings page (`hass-tabs-subpage.ts`). Before, the title and tab row stayed English in Cantonese and both-language modes | `a3cb56d37` | [`language-modes.md`](docs/features/language-and-voice/language-modes.md) |
+| Ten page captions in Cantonese | Backups, integrations, entities, devices, scenes, scripts, areas, helpers, automations and dashboards. The blueprint, energy, application credentials, roles and zone captions stay English: the Cantonese file has no block for them | `a3cb56d37` | [`entity-words-and-stacked-labels.md`](docs/features/language-and-voice/entity-words-and-stacked-labels.md) |
+| Cantonese on settings pages | About 57 settings page files from the Cantonese lane (integrations, devices, entities, helpers, scenes, scripts, labels, logs, people, users, tags and others), with two new tests that check the page strings and rich values | `a3cb56d37` | [`entity-words-and-stacked-labels.md`](docs/features/language-and-voice/entity-words-and-stacked-labels.md) |
+| Recording check and test clip | Each camera on the camera recording page shows its streaming program, whether it streams only through its service, the last event heard, the last clip, the last problem and the clips left this hour, with a button that records a 10 second test clip now. Two layout faults found in the look were fixed: sliders sat on top of their labels, and a failed test clip repeated its reason in both languages inside each half of the both-language sentence | `a3cb56d37` | [`event-clips-and-live-recording.md`](docs/features/camera-recording/event-clips-and-live-recording.md) |
+| Defender finish work | Quality scale items done for both defenders: every step, abort and error of the config, reconfigure and options flows tested (100 percent line coverage of both config flow modules, 91 percent for both integrations together, guard modules below 95 percent); the next check and room holder sensors start disabled; validation errors translated; a missing climate entity or chosen sensor raises a repair issue that clears when it returns. Cool outdoor shutdown sends an off command again when it never went out | `a3cb56d37` | [`guard-descriptions-and-reasons.md`](docs/features/defenders/guard-descriptions-and-reasons.md) |
+| Other lanes in the same commit | Transit cards, page and dashboard entry; linked media in the media browser and its two action editors; keeping live views and snapshots; sending recordings to a cloud drive; sending the problem log to a private repository; a container registry as an encrypted place for recordings and backups. The registry place is off until set up and should stay that way until its security review reports | `a3cb56d37` and the commits before it | [`container-registry.md`](docs/features/storage/container-registry.md), [`ttc.md`](docs/features/transit/ttc.md) |
+| Tests kept honest | The hand-written automation editor lists name the 6 new transit triggers and 2 conditions (counts 208 and 163); the settings registry classifies the media browser's new tab key | `a3cb56d37` | none |
+
+### What the integration look saw
+
+The look ran two throwaway instances from the published 525 image: one with the tree's frontend
+build and the tree's defender, auto update, camera recording, backup, registry and linked media
+folders mounted read-only, and one with the image's own frontend for comparison. Three local
+builds were made (19:03, 19:40 and 20:10), all exit 0. Both instances and their configuration
+copies and credentials were removed afterwards. These are local builds of the tree, not a released
+build; changes other lanes made after 20:10 are in the commit but were not in the last build.
+
+- **English mode unchanged (390 px, dark):** the dashboard (46 texts), the Entities list (48 texts),
+  the light sheet and the climate sheet read the same as the 525 image, apart from a relative time
+  ("34 seconds ago" against "37 seconds ago"). The climate sheet shows "Heating . Currently 25 °C"
+  twice in both, so that is not a regression.
+- **Cantonese and both-language modes (390 px, dark):** the dashboard, Entities, Devices,
+  Automations, Integrations, Settings home, Logs and Release notes had no horizontal overflow, no
+  text cut without an ellipsis (an automatic scan of every visible text) and no page errors. State
+  words showed in Cantonese and in both languages. The sheets of a light, climate unit, cover, lock,
+  fan, media player, alarm, vacuum, weather entity, sensor, motion sensor, moisture sensor and person
+  showed no cut text in either mode. Switching the mode from a second tab changed the open page
+  without a reload.
+- **Tabbed pages:** the tab labels and page titles followed the mode after the fix (seen on the
+  second build, for example "Entities · 實體" with both-language tabs at 1440 px in light theme).
+- **Small fixes of `6db767de3`:** exactly one "What's new" button on the Updates page, both with the
+  build list reachable and with every request off the host blocked (then it shows the quiet line
+  "You already have build 525" beside the button). The Entities search for "light" returned 15
+  rows, each containing the word. The Settings home Backups tile was English only and was fixed.
+- **Defenders:** AC Defender and Heat Defender were set up on a test climate entity through the
+  config flow. The device page groups the guard switches by family ("Money: Cool outdoor shutdown",
+  "People: Comfort memory" and so on). Both Now pages opened without cut text or errors.
+- **Camera recording, with a demo camera:** the recording check showed every line listed above. The
+  test clip button was pressed: "not saved. The home could not save the video." The streaming
+  program was present, so the "program not set up" reason was not provoked; the demo camera's live
+  offer failed, which gave the general failure reason. The clips left this hour went from 12 to 11
+  after the failed test, as designed (a test uses one live view from the camera service). The
+  slider overlap and the doubled reason were seen fixed on the third build.
+- **Light theme and 1440 px:** the dashboard, Entities, Settings home, Updates, Backups, Personal
+  settings and the AC Defender Now page at 1440 px, and Entities, Updates, Backups and the Defender
+  at 390 px, had no overflow, no cut text and no page errors by the automatic scan. Only the
+  Entities page at 1440 px was looked at by eye: a one-row top bar with readable contrast, but two
+  search icons side by side (one beside the title, one in the tool group), not compared with 525.
+
+### Checks on the tree
+
+- Type check: only the 2 known gallery errors.
+- Frontend tests, final run after the last edit: 9,588 passed, 3 failed. The 3 failures are the
+  known baseline in `test/build-scripts/build-management.test.js`. Before the test list and settings
+  registry fixes there were 4 more, from the transit lane and the media browser change.
+- Prettier and ESLint clean on every changed or new frontend file; the template check passed on
+  the three components the pass changed.
+- Core tests for both defenders, camera recording, automatic updates and the backup self-check: 582
+  passed, 18 failed, 9 skipped. All 18 failures were camera recording tests that write into a test
+  configuration folder that was mounted read-only. Camera recording run again on a writable copy,
+  with the current camera recording and registry tests: 187 passed, 4 skipped, 0 failed.
+- No Python file was changed by the pass, so Ruff was not run for it.
+
+### Known faults and gaps
+
+- **Still English in Cantonese and both modes:** the sidebar page names (Overview, Map, Energy and
+  the rest), the Backup Manager state value "Idle", and the Automations top bar title at 390 px.
+- **Rows above the 64 px target:** Devices rows are 72 px (integration name plus manufacturer line)
+  and Automations rows 88 px (name, last run, description). They are the same in English, so this is
+  not a language regression, but they are taller than the boards ask.
+- **Two search icons** in the top bar of Entities at 1440 px; not yet checked against 525 or the
+  board.
+- **Not seen in the look:** sorting and filtering Entities by state in each mode; a door sheet (no
+  door sensor in that configuration); the History tab glide, the fan and sensor chips, developer
+  tools search per tab, the 44 px hit areas, the Cantonese backup counts and the defender log
+  wording; the Settings home search count (not identified); the defender reason line in both
+  languages, a nested reason, pause, restart and a restored pause reason; camera event rows and a
+  camera sheet that never offers Play without a clip; a light sheet in light theme, Personal settings
+  with the top bar search open, the search field width at 360 px; an empty list page without a search
+  button, the dashboard history commits filter, the zone condition map and the Ollama model list.
+- **Not seen at all (other lanes):** the transit cards, the problem log page, the registry pages and
+  the linked media rows. No real camera, cloud drive, registry or speaker was used.
+- **Cantonese** of the new captions and settings pages has not been read by a native reader.
+
+### Open list, in order
+
+What only the owner can prove:
+
+1. The real doorbell camera: whether its service accepts the handshake, a successful test clip and
+   clips from a real event.
+2. A real air conditioner or heater under both defenders.
+3. USB sticks.
+4. Provider sign-in round trips.
+5. Cloud host sign-in.
+
+What is still unseen (beyond the list above):
+
+1. The three items not proven on 524 (start time on a page that did not start an update, "Update
+   the Supervisor first", the release link of the build on offer): they need the verification of 525
+   or of the new build.
+2. Everything in "Not seen in the look" above, and the other lanes' pages.
+
+Next steps:
+
+1. Let the release for `a3cb56d37` finish; read it back as a normal release (not a draft, not a
+   prerelease) with its expected files.
+2. Verify that build on a throwaway full hosting copy: a page-load pass in the three language modes
+   and a real update run, including the three items not proven on 524.
+3. Only then move the hosted instance to it, and tell the owner the build number.
+4. A browser pass for the items in "Not seen in the look", the transit, problem log, registry and
+   linked media pages, and the two search icons.
+5. Decide whether the Devices and Automations rows should come down to the 64 px target.
+6. Review the new Cantonese with a native reader.
+7. Ask the owner to try the camera, air conditioner and heater items.
+
 ## Build 524 live, build 525 being verified, Cantonese reaching entity words, 18 November 2026
 
 This section covers the commits from `6e399887e` to `6db767de3` (3 commits, after the

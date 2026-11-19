@@ -33,10 +33,15 @@ run of 524.
 
 ## One "What's new" button
 
-The Updates page showed two "What's new" buttons; it keeps one (`6db767de3`, on main, not built,
-unit-tested only).
+The Updates page showed two "What's new" buttons; it keeps one (`6db767de3`). A browser look at
+`71824ce14` then found the button missing entirely, the opposite of what was asked; that commit
+makes the page always show exactly one. Neither commit is in a released build yet; a release for
+`a3cb56d37`, which carries both, was dispatched on 18 November and is not yet verified.
 
 ## Verification
 
-Only the version-to-page rule is tested. Neither button has been seen in a browser on a real
-build.
+The version-to-page rule is tested. In the integration look of 18 November, on a local build of
+the tree (not a released build), at 390 px in dark theme and both-language mode, the Updates page
+showed exactly one "What's new" button both with the build list reachable and with every request
+off the host blocked; when blocked it shows the quiet line "You already have build 525" beside the
+button. The finished update card's link and the release link of the build on offer were not seen.

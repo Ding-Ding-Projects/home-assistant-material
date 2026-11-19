@@ -20,7 +20,8 @@ and the AC Defender and Heat Defender integrations
 checked only by lint, the type check and unit tests and has **not yet been seen in a running
 build**; a few server parts were run on a running copy. The hosted build is 2026.11.1.524, which a
 page-load pass and a real update run exercised before it went live. Build 2026.11.1.525 is
-published and being verified, and the newest work on main is in no build yet. Several features on
+published and being verified. A release for the newest main (`a3cb56d37`, 18 November) was
+dispatched and is being built and verified; it is not live. Several features on
 the boards are not built at all. [`ROADMAP.md`](ROADMAP.md) says, item by item, which is which,
 [`HANDOFF.md`](HANDOFF.md) says what is live, and [`docs/features/`](docs/features/README.md)
 documents each feature. [`docs/feature-status.md`](docs/feature-status.md) is the older

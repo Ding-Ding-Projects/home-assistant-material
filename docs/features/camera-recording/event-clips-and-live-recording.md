@@ -68,6 +68,29 @@ is seen.
 - Light recording has a picker for what counts as "something was seen".
 - The camera recording page now follows the language mode (it ignored it before, `ecc3e18ef`).
 
+## Recording check and test clip (`a3cb56d37`, in no released build yet)
+
+Each camera on the camera recording page has a **Recording check** that answers "will this camera
+actually record?" in one place:
+
+- **Streaming program:** set up and ready; not set up; runs elsewhere, so it cannot record here; or
+  Home Assistant uses HTTPS, which this does not support yet.
+- **Streams only through its service:** yes or no.
+- **Last event heard**, **Last clip** (recorded here or from the camera service, its length, and
+  whether it was cut short) and **Last problem** (or none).
+- **Clips left this hour**, as "count of total".
+- **Record a 10 second test clip now** runs the whole route once and reports "saved, seconds,
+  size" or "not saved" with the reason. The button notes that it uses one live view from the
+  camera service, so a test counts against the clips of the hour whether it succeeds or not
+  (`async_test_clip` in `manager.py`, websocket command `camera_recording/test_clip`). A test is
+  refused when the camera is busy, over its hourly limit, or not able to record live.
+
+The integration look of 18 November fixed two faults on this page: the "kept for N days", clip
+length and live clips per hour sliders (and "Longest live view kept" and "Snapshots that repeat"
+in the per-camera watched settings) sat on top of their labels, and in both-language mode a failed
+test clip repeated its reason in both languages inside each half of the sentence. The sentence is
+now composed per language.
+
 ## Verification and what is not proven
 
 - **Proven end to end only against a pretend camera service in a container:** 10.3 seconds from
@@ -79,3 +102,11 @@ is seen.
   unseen at `ecc3e18ef`), and the language mode on this page in both-language mode.
 - Both commits are in build 523, which was only exercised by a page-load pass and a real update
   run; neither exercised a camera.
+- **Integration look, 18 November, on a local build of the tree with a demo camera (390 px, dark,
+  both-language mode):** the recording check showed every line above, and the page followed the
+  language mode. The test clip was pressed: "not saved. The home could not save the video." The
+  streaming program was present, so the "not set up" reason was not provoked; the demo camera's
+  live offer failed, which gave the general failure reason. The clips left this hour went from 12
+  to 11, as designed. The slider and reason fixes were seen on the last build of that look. A saved
+  test clip, the event rows and the camera sheet were not seen. A release carrying this was
+  dispatched for `a3cb56d37` and is not yet verified.

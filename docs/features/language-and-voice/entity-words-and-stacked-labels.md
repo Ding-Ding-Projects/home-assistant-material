@@ -20,8 +20,21 @@ described in [`language-modes.md`](language-modes.md).
 | `6e399887e` | Build 2026.11.1.525 (built from `44d5a60e5`) | Published, being verified, not live |
 | `44d5a60e5` | Build 2026.11.1.525 | Published, being verified, not live |
 | `6db767de3` | None | On main, not built |
+| `71824ce14`, `a3cb56d37` | None yet: a release for `a3cb56d37` was dispatched on 18 November | Being built and verified, not live |
 
-The hosted instance runs build 2026.11.1.524, which has none of this.
+The hosted instance runs build 2026.11.1.524, which has none of this. The release dispatched for
+`a3cb56d37` will be the first build to carry `6db767de3` and the later commits.
+
+## Later additions (`71824ce14`, `a3cb56d37`)
+
+- `71824ce14`: words an integration supplies itself (a fan mode that says "Off") borrow the common
+  Cantonese word when the English is exactly the same; groups, schedules, calendars and cameras
+  gained Cantonese states.
+- `a3cb56d37`: ten page captions gained Cantonese (backups, integrations, entities, devices,
+  scenes, scripts, areas, helpers, automations, dashboards). The blueprint, energy, application
+  credentials, roles and zone captions stay English, because the Cantonese file has no block for
+  them. The same commit carries Cantonese on about 57 settings pages, with the tests
+  `settings-pages-cantonese.test.ts` and `rich-values.test.ts`.
 
 ## Cantonese on entity sheets, Backups and the camera timeline (`6e399887e`)
 
@@ -122,4 +135,13 @@ Cantonese name in Cantonese and both modes (`mode-format.ts`).
 - `6db767de3`: written and unit-tested only; not seen in a browser.
 - Build 525, which carries the first two commits, is published and being verified; no result is
   recorded yet.
+- `71824ce14`: in English mode 1,474 texts on the dashboard, lists and sheets were compared with the
+  published build in a browser, and none changed.
+- Integration look of 18 November, on a local build of the tree (not a released build), 390 px,
+  dark: English mode read the same as the 525 image on the dashboard, Entities, the light sheet and
+  the climate sheet. In Cantonese and both modes, eight pages (dashboard, Entities, Devices,
+  Automations, Integrations, Settings home, Logs, Release notes) and thirteen kinds of entity sheet
+  showed no overflow, no cut text and no page errors, and state words showed in Cantonese and in
+  both languages. Attribute names and weekdays were not recorded as seen; sorting and filtering
+  Entities by state was not tried; no door sheet was opened.
 - None of the Cantonese has been read by a native reader.

@@ -67,6 +67,20 @@ Unit-tested in `frontend/test/data/defenders.test.ts`; not seen in a browser.
   Defender switching a cooling unit to heat below her floor; the courtesy wait at zero turning the
   heating off within two seconds; a pause surviving a restart.
 - Not seen: the Cantonese reasons rendered in a browser at the time of `7cd4d5189`; any real unit.
+- **Finish work in `a3cb56d37`:** the quality scale files of both defenders mark the flow tests,
+  disabled-by-default sensors, translated validation errors and repair issues as done (every step,
+  abort and error of the config, reconfigure and options flows tested; 100 percent line coverage of
+  both config flow modules and 91 percent for both integrations together, with the guard modules
+  below 95 percent). Cool outdoor shutdown sends an off command again when it never went out
+  (`test_cool_outdoor.py`); quality tests were added and the persistence tests extended. A code owner still needs the
+  maintainer's account name.
+- **Integration look of 18 November, on a local build of the tree (not a released build), 390 px,
+  dark, both-language mode:** AC Defender and Heat Defender were set up on a test climate entity
+  through the config flow. The device page groups the guard switches by family ("Money: Cool
+  outdoor shutdown", "People: Comfort memory" and so on), and both Now pages opened without cut text
+  or errors. Not seen: the reason line in both languages, a nested reason, pause, restart, a
+  restored pause reason, and the log wording of `6db767de3`. A release for `a3cb56d37` was
+  dispatched and is not yet verified.
 - Not proven: every command a defender sends to real hardware, the heating floor in real cold
   weather, cost figures against real power use, and a real air conditioner and heater sharing one
   unit. Only the owner can prove these.

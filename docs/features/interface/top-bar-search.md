@@ -92,3 +92,10 @@ as still having its search in the content until you have checked.
 - Not seen: stepping with Enter read back, the apps pages with a Supervisor, and each page moved
   in `92fb942bc` and `28cd39810` one by one on a released image (the 524 run does not record them
   page by page).
+- Integration look of 18 November, on a local build of the tree (not a released build): searching
+  Entities for "light" in both-language mode at 390 px returned 15 rows, each containing the word,
+  so the shorter-word rule of `6db767de3` held there. At 1440 px in light theme the Entities top
+  bar showed two search icons side by side (one beside the title, one in the tool group); this was
+  not compared with build 525 or the board and is an open question. The Settings home search count
+  was not identified, developer tools search per tab was not tried, and Personal settings with the
+  top bar search open and the field width at 360 px were not seen.
