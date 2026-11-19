@@ -1,15 +1,176 @@
 {
  "format": 1,
- "generated": "2026-11-19T00:17:38Z",
+ "generated": "2026-11-19T02:01:54Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 525,
+ "newest_build": 526,
  "releases": [
+  {
+   "build": 526,
+   "core": "2026.11.1.526",
+   "supervisor": "2026.11.0.526",
+   "os": "18.5.526",
+   "tag": null,
+   "source": "a3cb56d37",
+   "date": "2026-11-18T20:40:00-05:00",
+   "previous_build": 525,
+   "changes": [
+    {
+     "sha": "a3cb56d37",
+     "date": "2026-11-18T20:40:00-05:00",
+     "title": "Integration pass: connect today's new work, both-language tabs, registry place [skip ci]",
+     "areas": [
+      "docs",
+      "core",
+      "interface"
+     ],
+     "detail": "Everything that was waiting in shared files, committed together because the pieces only stand up when they lean on each other.\n\nConnected: the transit integration's cards, page and dashboard entry; linked media in the media browser and its two action editors; keeping live views and snapshots; sending recordings to a cloud drive; sending the problem log to a private repository; and a container registry as an encrypted place for recordings and backups. The registry place is included while its security review is still running: it is off until set up, and should stay that way until that review reports.\n\nFixed by the integration look: tab labels, page titles and the breadcrumb on tabbed settings pages now follow the language mode (they had been speaking English at a Cantonese dinner); ten page captions gained Cantonese; sliders on the camera recording page no longer sit on their own labels; a failed test clip no longer says its reason twice per language. The defenders, the Cantonese settings pages and the documentation lanes are included.\n\nChecks on this tree: types at the two known errors; 9,588 frontend tests pass with the three known build-script failures; camera and registry Core te",
+     "detail_yue": "整合：接駁今日嘅新嘢、雙語分頁、登記處存放位。喺共用檔案度等緊嘅 嘢一次過提交，因為呢啲部件要互相挨住先企得穩。\n\n接駁咗：公共交通整合嘅卡片、頁面同儀表板入口；媒體瀏覽器入面嘅 連結媒體同佢兩個動作編輯器；留低直播同快照；錄影送去雲端硬碟； 問題記錄送去私人儲存庫；仲有用容器登記處做加密存放位，放錄影同 備份。登記處存放位嘅保安審查仲行緊就已經包埋：未設定之前係關閉嘅， 審查未有結果之前都應該保持咁。\n\n整合睇過之後修正：有分頁嘅設定頁，分頁標籤、頁面標題同路徑而家會 跟語言模式（之前喺廣東話飯局度講英文）；十個頁面標題加咗廣東話； 鏡頭錄影頁嘅滑桿唔再壓住自己個標籤；測試片段失敗嗰句唔再每種語言 講兩次原因。防護器、廣東話設定頁同文件嗰幾條線都包埋。\n\n呢棵樹嘅檢查：型別得返兩個已知錯誤；前端 9,588 個測試通過，三個 已知嘅建置腳本失敗照舊；鏡頭同登記處嘅 Core 測試喺可寫副本上面 187 個通過。喺瀏覽器用手機闊度、三種模式睇過：儀表板、清單、 詳情頁、更新、防護器同錄影檢查。未睇過：公共交通卡片、問題記錄頁、 登記處頁面、連結媒體嗰幾行，同埋好多小修正；冇真鏡頭、真硬碟、 真登記處、真喇叭。"
+    },
+    {
+     "sha": "2a6ee4b53",
+     "date": "2026-11-18T20:02:50-05:00",
+     "title": "Problem log to a private repository: the new files [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "A checkpoint of the new files only. The problem log can be sent to a private repository so a helper can read what went wrong without being let into the home. Off by default, administrators only.\n\nPrivate only: visibility and write access are read from the host before every send, and public, unknown or \"could not check\" all mean nothing goes. Redaction is one pure module that hides secrets, sign-in addresses, network addresses, host names, coordinates, people and place names, and swaps the names of things for stable labels such as \"camera 1\". It fails closed: if hiding stumbles, nothing is sent, which is the correct way for a curtain to fail. The preview runs the same code as the real send, and a test proves the two are identical.\n\nOne send an hour in total, by hand or hourly, remembered across a restart. Any problem can be held back. It only ever sends: one commit of five kinds of file, and the only thing read back is where the branch currently ends.\n\nSign-in with a code is built but waits for the project to have its own app identity on the host; nobody else's was borrowed. Until then the page offers a token limited to one repository and says why.\n\n66 new tests against a pretend ho",
+     "detail_yue": "問題記錄送去私人儲存庫：新檔案。呢個係淨係新檔案嘅存檔點。問題記錄 可以送去私人儲存庫，等幫手嘅人睇到出咗咩事，又唔使放佢入屋。預設 關閉，只限管理員。\n\n只限私人：每次送之前都會向主機查可見度同寫入權限，公開、唔知、或者 「查唔到」，一律唔送。遮蓋係一個獨立純模組，遮住秘密、帶登入嘅網址、 網絡地址、主機名、座標、人名同地方名，再將啲嘢嘅名換成固定標籤， 例如「camera 1」。佢係失敗就收手：遮蓋一出事就乜都唔送，窗簾壞都 應該係壞喺閂埋嗰邊。預覽同真送用同一段程式，有測試證明兩者一模一樣。\n\n每個鐘合共最多送一次，人手或者每小時都計，重啟之後都記得。任何一條 問題都可以扣起。佢只會送出去：一個提交、五類檔案，讀返嚟嘅只有分支 而家去到邊。\n\n用短碼登入已經寫好，但要等項目喺主機有自己嘅應用程式身份；冇借用 其他人嘅。喺嗰之前頁面會提供只限一個儲存庫嘅權杖，兼講明原因。\n\n66 個新測試，只對住假主機。未對真主機行過，未喺瀏覽器睇過。將呢啲 檔案接駁去頁面嗰幾行，會跟整合嗰轉一齊嚟。"
+    },
+    {
+     "sha": "e33f1d2a0",
+     "date": "2026-11-18T19:57:47-05:00",
+     "title": "TTC transit: vehicles near a stop, a line's last day, a dashboard strategy [skip ci]",
+     "areas": [
+      "core",
+      "docs",
+      "interface"
+     ],
+     "detail": "A checkpoint of the integration's own files.\n\nVehicles near your stop: positions of the buses and streetcars heading for the chosen stops, asked for only while a card is actually on screen. A test counts the requests: none before anyone looks, two per poll while someone does, none after they leave. The feed is not a television left on in an empty room.\n\nA line's last 24 hours as one strip, read from the history the system already keeps. A dashboard strategy builds the transit board afresh each time it opens, so it follows changes to routes and stops instead of remembering last month's.\n\nSaid plainly where the agency offers nothing: subway arrival times have no public feed without a key, so a subway station name is refused with that reason; and the alerts list only the elevators that are out, never a station's total, so \"3 of 4 working\" is not invented. Each elevator out does say where it no longer reaches step-free.\n\nDocumentation added under docs/features/transit. 79 tests from saved samples. Nothing built, nothing seen in a browser. The lines in shared files follow with the integration pass.",
+     "detail_yue": "多倫多公共交通：車站附近嘅車、一條線過去一日、儀表板策略。呢個係 整合自己檔案嘅存檔點。\n\n車站附近嘅車：去緊你揀嗰啲站嘅巴士同電車位置，只會喺真係有卡片 喺畫面上嗰陣先問。測試數住啲請求：冇人睇就零，有人睇每次輪詢兩個， 人走咗又返零。資料源唔係冇人喺廳都開住嘅電視。\n\n一條線過去 24 小時畫成一條帶，讀系統本身已經留住嘅歷史。儀表板策略 每次打開都重新砌過個交通板，所以會跟住路線同車站嘅改動，唔會記住 上個月嗰個。\n\n交通機構冇提供嘅就照直講：地鐵到站時間冇唔使鑰匙嘅公開資料源，所以 打地鐵站名會被拒絕兼講明原因；通告只列壞咗嘅升降機，從來冇講一個站 總共有幾多部，所以唔會作「四部有三部正常」。每部壞咗嘅升降機都會講 邊度去唔到無障礙。\n\n文件加咗喺 docs/features/transit。79 個測試，用存低嘅樣本。未建置， 未喺瀏覽器睇過。共用檔案嗰幾行會跟整合嗰轉一齊嚟。"
+    },
+    {
+     "sha": "da4a0abc8",
+     "date": "2026-11-18T19:38:27-05:00",
+     "title": "Linked media: radio streams, an allowed folder, action editors [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "A checkpoint of the integration's own files.\n\nLive streams such as internet radio are now recognised (audio with no length), always passed straight through and never written to disk. A river cannot be put in a bucket, so \"keep\" and \"fetch\" politely refuse one, and a player asking to jump to a position is told there is none. The overall time limit on pass-through streams is gone, so a long play is no longer cut off mid-song; only 30 s of silence ends it.\n\nFetched files are handed out from a hidden folder inside the media folder, which other integrations are already allowed to read, instead of a temp folder they were not. It is wiped at start, unload and stop.\n\nThe two actions get real editors: a picker of the owner's linked files by name (never the address) and a seconds slider. Times follow the 24-hour rule and show seconds.\n\nNot done: a Recordings tab, because nothing serves camera recordings as a media source yet. 63 tests with the network unplugged. Not built, not seen in a browser, not played on a real speaker. The lines in shared files follow with the integration pass.",
+     "detail_yue": "連結媒體：電台串流、可以讀嘅資料夾、動作編輯器。呢個係整合自己檔案 嘅存檔點。\n\n網上電台呢類直播串流而家認得出（冇長度嘅聲音），一律直接傳過去， 唔會寫落磁碟。條河裝唔落水桶，所以「保留」同「攞取」會有禮貌咁拒絕， 播放器想跳去某個位置亦會話畀佢知冇位置可言。直通串流嘅總時間上限 攞走咗，長時間播放唔會再唱到一半被斬；只有靜咗 30 秒先會完。\n\n攞返嚟嘅檔案改由媒體資料夾入面一個隱藏資料夾派出，其他整合本身已經 讀得到，唔再用佢哋讀唔到嘅暫存資料夾。開機、卸載同停止嗰陣都會清走。\n\n兩個動作有咗真正嘅編輯器：用名揀主人嘅連結檔案（永遠唔顯示網址）， 同埋秒數滑桿。時間跟 24 小時制，連秒都顯示。\n\n未做：錄影分頁，因為暫時未有嘢將鏡頭錄影當媒體來源提供。63 個測試， 拔咗網線跑。未建置、未喺瀏覽器睇過、未喺真喇叭播過。共用檔案嗰幾行 會跟整合嗰轉一齊嚟。"
+    },
+    {
+     "sha": "71adeccd7",
+     "date": "2026-11-18T19:23:58-05:00",
+     "title": "Keep what is watched: the new files [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "A checkpoint of the new files only. Every live view and every snapshot can now be kept, so \"I saw it happen\" and \"there is a recording\" stop being two different things. A camera that streams only through its service is pulled once by the home; watching and keeping share that one session, however many screens show it, and the session closes a short while after the last viewer leaves. Snapshots are kept at most once per repeat time and only when the picture changed, except when a person or an automation asked for one by name: those are always kept. Each row says who asked and, when nothing was kept, why.\n\nThe lines that connect these files to the rest follow with the integration pass. Proven with a pretend camera service on a network with no way out: one offer for two viewers plus the keeper. Not built into the interface bundle, not seen in a browser, not run on a real camera.",
+     "detail_yue": "睇過嘅都留低：新檔案。呢個係淨係新檔案嘅存檔點。每次睇直播同每張 快照而家都可以留低，「我親眼見到」同「有錄影」唔再係兩回事。只經 服務商串流嘅鏡頭，屋企只會拉一次；睇同錄共用同一個連線，幾多個畫面 睇都係一個，最後一個人走咗之後一陣先收線。快照每個重複時間最多留 一張，而且要畫面有變先留；不過如果係人或者自動化指明要影嘅，就一定 留。每一行都講明邊個要嘅，冇留低嘅話亦會講原因。\n\n將呢啲檔案接駁去其他部分嗰幾行，會跟整合嗰轉一齊嚟。用假鏡頭服務 喺冇出路嘅網絡度驗證過：兩個觀眾加埋錄影只開咗一個連線。未放入介面 套件，未喺瀏覽器睇過，亦未喺真鏡頭行過。"
+    },
+    {
+     "sha": "031411f5f",
+     "date": "2026-11-18T19:22:49-05:00",
+     "title": "Design board: send the problem log to a private repository [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "A board only, no code yet. The problem log can be sent to a repository so whoever helps with this home can read what went wrong without being handed the front door key. Sign-in is guided: a short code, one page to open, approve, done (a token is the fallback). Private repositories only, checked before every send; a repository that has gone public gets nothing and the page says why. Secrets and private details are hidden before anything leaves, and a preview shows the exact text first. Any problem can be held back. At most one send an hour, by hand or by itself, so a bad evening does not become a hundred commits. It only ever sends: nothing in the repository is read back as an instruction.",
+     "detail_yue": "設計板：將問題記錄送去私人儲存庫。淨係設計板，未有程式碼。問題記錄 可以送去一個儲存庫，等幫手嘅人睇到出咗咩事，又唔使將屋企大門鎖匙交 畀佢。登入有人帶住做：一個短碼，開一頁，批准，搞掂（權杖係後備）。 只限私人儲存庫，每次送之前都會查；變咗公開就乜都唔送，頁面會講原因。 秘密同私人資料送出之前會遮住，仲可以預先睇到實際送出嘅文字。任何 一條問題都可以扣起。每個鐘最多送一次，人手或者自動都係，咁一晚黑仔 都唔會變成一百個提交。佢只會送出去：儲存庫入面嘅嘢唔會當成指示讀返。"
+    },
+    {
+     "sha": "7828de21b",
+     "date": "2026-11-18T19:16:33-05:00",
+     "title": "Linked media and TTC transit: the new files [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "A checkpoint of two new integrations' own files.\n\nLinked media: a media file that lives at a web address. It is fetched only when something plays or shows it and thrown away after, like borrowing a book from the library and returning it the same day. Only addresses the owner added are fetched; loopback and this system's own addresses are always refused, home network addresses only when the owner says so, every redirect is checked, and an address with a key in it is never shown again. 57 tests, with the network unplugged.\n\nTTC transit: route status and delays, next departures, elevators and escalators out, a new-alert event, six automation triggers, its own page and six dashboard cards. It reads two public feeds that need no key, asks once a minute at most, and marks old figures as old. 74 tests from saved samples of the real feeds.\n\nThe lines that register the cards, the page routes and the wording sit in shared files and follow with the integration pass. Neither has been built or seen in a browser, and nothing was played on a real speaker.",
+     "detail_yue": "連結媒體同多倫多公共交通：新檔案。兩個新整合自己嘅檔案嘅存檔點。\n\n連結媒體：擺喺網址嘅媒體檔案。有嘢要播或者要顯示先去攞，用完就掉， 好似去圖書館借書即日還咁。只會攞主人加嘅網址；本機同呢部系統自己 嘅地址一律拒絕，屋企網絡嘅地址要主人講明先得，每次轉址都會查， 網址入面有鑰匙嘅話之後唔會再顯示。57 個測試，拔咗網線先跑。\n\n多倫多公共交通：路線狀態同延誤、下一班車、壞咗嘅升降機同扶手電梯、 新通告事件、六個自動化觸發、自己一頁同六張儀表板卡。讀兩個唔使 鑰匙嘅公開資料源，最多每分鐘問一次，舊數字會講明係舊。74 個測試， 用真資料源存低嘅樣本。\n\n登記卡片、頁面路徑同字句嗰幾行喺共用檔案度，會跟整合嗰轉一齊嚟。 兩個都未建置、未喺瀏覽器睇過，亦未喺真喇叭播過。"
+    },
+    {
+     "sha": "a7aa50fe8",
+     "date": "2026-11-18T18:56:50-05:00",
+     "title": "Camera recordings to OneDrive or Google Drive: the new files [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "A checkpoint of the new files only. Recordings can be sent to OneDrive or Google Drive through the integrations that already hold the sign-in: nothing is signed in again, no token is read or copied, and neither drive integration is edited. A queue that survives a restart sends one file at a time, never touches the recording at its usual place, and waits politely when the drive says no. Off by default, and turning a drive on means saying yes to \"video leaves the home\".\n\nThe lines that connect these files to the rest (setup, the page, the wording) follow with the integration pass, so on its own this commit is furniture still in its boxes.\n\nTested with pretend drives only. Nothing has been sent to a real drive or seen in a browser.",
+     "detail_yue": "鏡頭錄影送去 OneDrive 或者 Google Drive：新檔案。呢個係淨係新檔案嘅 存檔點。錄影可以經本身已經登入咗嘅整合送上 OneDrive 或者 Google Drive：唔使再登入，唔會讀或者抄權杖，兩個雲端硬碟整合都冇改過。 佇列重啟之後仲喺度，一次送一個檔案，唔會掂原位嘅錄影，雲端硬碟話 唔得就有禮貌咁等。預設關閉，要開就要先同意「影片會離開屋企」。\n\n將呢啲檔案接駁去其他部分（設定、頁面、字句）嗰幾行，會跟整合嗰轉 一齊嚟，所以單靠呢個提交，仲係未拆箱嘅傢俬。\n\n只用假雲端硬碟測試過。未送過去真硬碟，亦未喺瀏覽器睇過。"
+    },
+    {
+     "sha": "76691f382",
+     "date": "2026-11-18T18:41:06-05:00",
+     "title": "Design: a public container registry as a place, password required [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "A board for keeping camera recordings and backups in a free public container registry. Free means public, and public means anyone can copy the files, so the board makes the lock the whole point: a password typed twice, long, never stored or sent, and no way to skip it. Like leaving your suitcase in a busy station: fine, as long as the padlock is a good one and you remember the code. One repository by default, any camera can have its own, a guided sign-in with an access token, and older recordings play straight from the registry.",
+     "detail_yue": "設計：用公開嘅容器登記庫做存放位置，一定要密碼。呢塊畫板畫咗將鏡頭 錄影同備份放入免費公開嘅容器登記庫。免費即係公開，公開即係人人都 抄得走啲檔案，所以成塊畫板嘅重點就係把鎖：密碼要打兩次、要夠長、 唔會儲低亦唔會送出去，冇得跳過。好似將行李放喺人來人往嘅車站，冇 問題，只要把鎖夠穩陣，你又記得個密碼。預設一個儲存庫，每部鏡頭可以 有自己嗰個，有引導式登入用存取權杖，舊錄影可以直接由登記庫播放。"
+    },
+    {
+     "sha": "71824ce14",
+     "date": "2026-11-18T18:39:13-05:00",
+     "title": "State words seen in a browser: English untouched, gaps closed [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Looked at for real. In English mode 1,474 texts on the dashboard, lists and sheets were compared with the published build and none changed. In Cantonese and both modes the tiles, rows and sheets speak properly, and a tile holds both languages on one line at phone width.\n\nFound and fixed: words an integration supplies itself (a fan mode that says \"Off\") stayed English, so they now borrow the common Cantonese word when the English is exactly the same; groups, schedules, calendars and cameras had no Cantonese states at all; the Updates page had lost its \"What's new\" button entirely, which is the opposite of what was asked, and now always shows exactly one; and an upload button on the Backups page was 40 px.\n\nStill English: about a hundred attribute names, long dates, and the values only one integration uses.",
+     "detail_yue": "真係開瀏覽器睇過。英文模式下，儀表板、清單同面板一共 1,474 段文字對返 已發佈嘅版本，一個字都冇變。廣東話同雙語模式，磚塊、清單行同面板都 講得啱，手機闊度一塊磚一行擺得落兩種語言。\n\n搵到又修好嘅：整合自己提供嘅字（例如風扇模式個「Off」）一直係英文， 而家英文完全一樣嗰陣會借用通用嘅廣東話；群組、時間表、日曆同鏡頭 本來完全冇廣東話狀態；更新頁個「有乜新嘢」掣成個唔見咗，同要求啱啱 相反，而家一定有而且只有一個；備份頁有個上載掣得 40 px。\n\n仲係英文：大約一百個屬性名、長日期，同埋得一個整合用嘅數值。"
+    },
+    {
+     "sha": "91b74c3f7",
+     "date": "2026-11-18T18:34:12-05:00",
+     "title": "Design: keep what is watched, and start live video by itself [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "A board for two asks that belong together: live video starts by itself whenever a camera is on screen, and every live view and every snapshot is kept, whoever or whatever asked for it. The picture says when it is being kept, one live view from the camera service is shared for watching and keeping, and a dashboard that refreshes its picture all day is kept once a minute at most, so the disk does not fill up with ten thousand photos of an empty porch.",
+     "detail_yue": "設計：睇到乜就留低乜，直播自己開。一塊畫板講兩樣拍住上嘅要求：鏡頭 一出現喺畫面，直播就自己開；每次直播、每張快照，唔理係邊個或者乜嘢 要求，都會留低。畫面會講明留緊，睇同錄共用供應商一條直播，成日自動 更新畫面嘅儀表板最多每分鐘留一張，唔會將一萬張空門口相塞爆個碟。"
+    },
+    {
+     "sha": "a63eee5e8",
+     "date": "2026-11-18T18:27:07-05:00",
+     "title": "Design: canvas 41 for TTC transit, and a board for cloud drives [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "Boards first this time. Canvas 41 draws a transit integration for Toronto: setup, its own page, a dashboard made of separate cards, the triggers automations can start from, and what the page says when the information is old, because a departure board that lies is worse than no board. A new board on canvas 38 draws camera recordings going to a cloud drive through that drive's own integration, and media that lives at a web address: fetched when needed, used, thrown away.",
+     "detail_yue": "今次係先畫後做。第 41 塊畫板畫咗多倫多公共交通整合：設定、自己嗰頁、 由一張張卡砌成嘅儀表板、自動化可以用嘅觸發，仲有資料過時嗰陣頁面點 講，因為講大話嘅班次牌衰過冇牌。第 38 塊畫板加咗一塊：鏡頭錄影經雲端 硬碟自己嘅整合送上去，同埋擺喺網址嘅媒體：要用先攞，用完即棄。"
+    },
+    {
+     "sha": "fda3d566c",
+     "date": "2026-11-18T18:21:39-05:00",
+     "title": "Design: boards for both languages and the recording check [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "Two boards that should have been drawn before the code. The first sets the rules for showing English and Cantonese together on a phone: stacked inside a control, side by side in running text, and the same height either way. The second draws the camera recording check with its test clip, and the Updates page when the Supervisor has to go first. Drawing the map after the trip is the wrong order, but the map is still worth having for whoever travels next.",
+     "detail_yue": "設計：兩種語言同錄影檢查嘅畫板。呢兩塊畫板本來應該喺寫程式之前畫。 第一塊定咗手機上面英文同廣東話一齊顯示嘅規矩：喺控制項入面上下疊， 喺內文入面並排，點樣擺都一樣高。第二塊畫咗鏡頭錄影檢查同測試短片， 仲有監督程式要行先嗰陣嘅更新頁。行完先畫地圖次序係錯咗，不過下一位 上路嘅人仍然用得著。"
+    },
+    {
+     "sha": "6db767de3",
+     "date": "2026-11-18T17:16:33-05:00",
+     "title": "State words follow the language mode; ten small faults [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "On, Off, Open, Closed, Home, Heating: the words every list and tile shows were the last thing still speaking only English. They now follow the language mode through one wrapper at the place the words are looked up, with a Cantonese table of about 460 states and attribute names that a test checks against the server's own word lists. English mode returns exactly what it did before. Formatting 5,000 states took 2.3 ms in English and 3.2 ms in Cantonese. Weekday names in the weather sheet follow too.\n\nTen small recorded faults: the History tab no longer jumps a second time when its content arrives; fan speeds and sensor range chips stack the two languages on one row; the Updates page keeps one \"What's new\" button, not two; Settings home shows a count in the bar; typing \"light\" in a list no longer finds \"midnight\" because the typo-forgiving match now waits for words of six letters or more; developer tools remembers the search per tab; small buttons get a 44 px hit area; backup counts read properly in Cantonese; the defender log words its actions.\n\nWritten and unit-tested only. Not yet seen in a browser, and the Cantonese has not been read by a native reader.",
+     "detail_yue": "開、關、打開、閂咗、喺屋企、加熱緊：每張清單、每塊磚都見到嘅呢啲字， 係最後一批淨係識講英文嘅。而家佢哋會跟語言模式，喺搵字嗰個位加一層 包裝，配一張大約 460 個狀態同屬性名嘅廣東話表，有測試對返伺服器自己 嘅字表。英文模式出嘅字同以前一模一樣。格式化 5,000 個狀態，英文用 2.3 毫秒，廣東話 3.2 毫秒。天氣面板啲星期幾都跟埋。\n\n十個記低咗嘅小問題：歷史分頁啲內容到咗唔會再彈多一次；風扇速度同 感應器範圍掣將兩種語言疊埋一行；更新頁淨返一個「有乜新嘢」掣；設定 首頁頂欄有數；喺清單打「light」唔會再搵到「midnight」，因為容錯配對 而家要六個字母或以上先出手；開發者工具會記住每個分頁嘅搜尋；細掣有 44 px 觸控範圍；備份數量識得用廣東話講；守護記錄會講清楚做咗乜。\n\n只係寫咗同做咗單元測試。未喺瀏覽器睇過，廣東話亦未畀母語人士讀過。"
+    }
+   ]
+  },
   {
    "build": 525,
    "core": "2026.11.1.525",
    "supervisor": "2026.11.0.525",
    "os": "18.5.525",
-   "tag": null,
+   "tag": "v2026.11.1.525",
    "source": "44d5a60e5",
    "date": "2026-11-18T16:55:39-05:00",
    "previous_build": 524,
@@ -2130,88 +2291,6 @@
      ],
      "detail": "Documents only; no build is started by this push.\n\n- Four passes used the published images for real, feature by feature, on throwaway instances. The notes now say what was seen working, which faults were found and fixed and seen right afterwards, what is still open, and what has still not been seen in any published build. - Every destructive confirmation that was reached asks for the two keys and the slider and has nothing to type. - The live instance moved to 418 at 04:50, 419 at 05:34 and 420 at 06:30 Toronto time, each after a browser pass on that exact image.",
      "detail_yue": "記錄更新：418 至 420 版逐樣功能真係用過，邊樣見到得、邊樣搵到問題又 執好咗、邊樣仲未執、邊樣到而家都未見過，全部照實寫低。所有破壞性確認 都係兩把鎖匙加滑桿，冇嘢要打。淨係文件，唔會觸發構建。"
-    }
-   ]
-  },
-  {
-   "build": 420,
-   "core": "2026.11.1.420",
-   "supervisor": "2026.11.0.420",
-   "os": "18.5.420",
-   "tag": "v2026.11.1.420",
-   "source": "d26f8c47a",
-   "date": "2026-11-13T05:57:39-05:00",
-   "previous_build": 413,
-   "changes": [
-    {
-     "sha": "d26f8c47a",
-     "date": "2026-11-13T05:57:39-05:00",
-     "title": "Nothing is typed to confirm, and faults seen on build 419",
-     "areas": [
-      "interface"
-     ],
-     "detail": "Batch 57. A second pass used build 419 for real on a throwaway instance: twelve of the thirteen fixes of batch 56 were seen right. These are the faults that pass found. None of the fixes below has been seen in a browser yet.\n\n- Confirmations: the storage page's \"Apply and purge\" still asked for the entity name to be typed. The owner's rule is the two keys and the slider, with nothing typed. The second step of a destructive confirmation is now always the keys and the slider, also when the caller names the thing (storage purge, media, Matter fabrics, Thread networks). The server data delete loses its type-the-name field and uses the same confirmation; the name the server wants is sent for the person. - Raw dashboard editor: the status bar was still below the window bottom. The height now allows for the inset of the page card. - Automation editor: with the side pane open, Check, Dry run and Save were hidden under it. The floating bar now keeps clear of the pane. Left-to-right only; right-to-left is not handled. - Colour naming: black was called \"Deepest teal\". Near-black, greys and near-white now get their own names, in English and Cantonese, with unit tests. - \"Build text\" is now als",
-     "detail_yue": "第 57 批。屋主講明：確認只可以用兩把鎖匙加滑桿，唔准要人打字。儲存空間 頁「套用並清除」仲要打實體名，今次連根拔起：凡係破壞性確認，第二步一律 係鎖匙加滑桿。另外執咗：原始編輯器狀態列跌出視窗、自動化側欄開住時 儲存掣俾遮住、黑色俾人叫做「最深藍綠」、工具頁模板編輯器冇「砌文字」、 能源顏色名斷三行、自動化工具對話框轉分頁會跳。全部未喺瀏覽器睇。"
-    },
-    {
-     "sha": "7146cd41e",
-     "date": "2026-11-13T04:55:49-05:00",
-     "title": "Fix faults found by using every feature in build 413",
-     "areas": [
-      "interface"
-     ],
-     "detail": "Batch 56. Two passes used the features of batches 41 to 54 for real on throwaway instances of the published image. These are the faults they found. None of the fixes has been seen in a browser yet.\n\n- Automation tools, Week ahead: a blank panel and a page error for any time trigger without a weekday list. The missing list is now read as every day. - Add from a ZIP: a theme whose name has spaces and no quotes was not recognised. A plain top-level key may now hold spaces. - Navigation pane: \"Notifications\" sat off-centre because an entry without a link is a native button. Every entry now starts at the start edge. The change to the older sidebar in batch 55 did nothing for this and is taken out. - People, Roles and Tags showed their title twice; the layout's own header carries the title and the summary line now. - Dashboards list: the type column and the first group header were empty until a reload, because the cached list did not depend on the translations. The note about resources no longer spills into the room kept for the add button. - A page that brings its own help icon showed two in the tool pill on wide windows; the shared one stays. - Dashboard breadcrumb no longer starts wit",
-     "detail_yue": "第 56 批。搵咗兩個幫手喺 413 版逐樣功能真係用一次，搵到嘅問題一次過執： 「一週預覽」白畫面、ZIP 入面主題名有空格認唔到、側欄「通知」唔靠左、 人物／角色／標籤頁標題出兩次、儀表板清單個類型欄空白、兩粒問號掣、 選取列疊埋一齊、手機字串建構器副題被切……全部未喺瀏覽器睇， 等個映像出咗就睇。"
-    },
-    {
-     "sha": "48a0667c3",
-     "date": "2026-11-13T04:12:44-05:00",
-     "title": "Fix three faults seen on build 413",
-     "areas": [
-      "interface"
-     ],
-     "detail": "Batch 55. All three were seen in the browser pass on the published image.\n\n- Overview page error \"this._layoutElement.setConfig is not a function\": a section or view that reused its layout element called a method on it before the element's definition had loaded. When the element has no such method yet, a fresh one is made, which is given its configuration once it is defined. - The welcome banner on the wide home page was cut by the rounded top edge of the page card. On wide windows it is now a rounded card of its own, set in from the top and the sides. The phone layout is unchanged. - \"Notifications\" in the navigation pane sat off-centre: a row without a link is a native button and centred its text. Rows in the expanded pane now read from the start edge like the linked ones.\n\nChecks: full suite 7,629 passed with the 3 known build-script failures; type check clean apart from the two known gallery errors. Not yet seen in a browser; that is the next step on the published image.",
-     "detail_yue": "第 55 批，執返 413 版睇到嘅三個問題：首頁嗰個 setConfig 錯誤（元件未 載入完就叫佢做嘢，而家會整返個新嘅）；闊屏首頁條歡迎橫額俾圓角切咗頭， 而家自己做張圓角卡，四邊留返位；側欄「通知」嗰行無端端置中， 而家同其他行一樣靠左。未喺瀏覽器睇，等個映像出咗就睇。"
-    },
-    {
-     "sha": "f0728c7e2",
-     "date": "2026-11-13T04:07:25-05:00",
-     "title": "Records: the remote also has the channel branch",
-     "areas": [
-      "docs"
-     ],
-     "detail": "Documents only; no build is started by this push.\n\nThe closeout notes said main was the only branch on the remote. That was wrong: the remote also has \"channel\", which the release workflow writes the update channel file to and reads the last build number from. It stays. The notes now say so.",
-     "detail_yue": "更正記錄：之前寫遠端得 main 一條分支，寫錯咗。仲有條 channel， 發佈流程靠佢寫更新頻道檔同讀上一個版本號，唔郁得。而家寫返清楚。"
-    },
-    {
-     "sha": "c24ab60b5",
-     "date": "2026-11-13T04:06:38-05:00",
-     "title": "Records: build 413 seen, live at 02:46, release read back",
-     "areas": [
-      "docs"
-     ],
-     "detail": "Documents only; no build is started by this push.\n\n- Build 2026.11.1.413 was looked at in a browser as the published image: 100 captures over 29 pages, no sideways overflow. The live instance moved to it at 02:46 Toronto time and was read back healthy. - Three faults seen on that build are written down, not fixed: a page error on the built-in overview page, the welcome banner cut at the top on the wide home page, and \"Notifications\" off-centre in the pane. - Release v2026.11.1.413 read back: run succeeded, not a draft, not a prerelease, 25 files, and its notes say when it was updated. - Final inventory: one branch, one checkout, no stash.",
-     "detail_yue": "記錄更新：413 版喺瀏覽器睇過（29 頁、100 張相、冇橫向溢出），02:46 搬咗上線。有三個未整嘅問題照實寫低。發佈頁讀返：成功、唔係草稿、 25 個檔案，更新時間都寫咗。淨係文件，唔會觸發構建。"
-    },
-    {
-     "sha": "020e930dd",
-     "date": "2026-11-13T02:54:07-05:00",
-     "title": "README: pictures from published build 2026.11.1.413",
-     "areas": [
-      "docs"
-     ],
-     "detail": "Documents only; no build is started by this push.\n\n- Home, settings home, the System page and home on a phone are replaced with captures of build 2026.11.1.413 at double sharpness, run as it is with a small test home. - Three pictures are new: the automation editor with \"add a trigger, condition or action\" at the top, the storage page, and the performance page. - The animation page keeps its build 371 picture. The newer capture had a food toast over the preview, and no food pictures go into this repository.",
-     "detail_yue": "README 啲相換晒做 413 版，仲加多三張：自動化編輯器、儲存空間、效能頁。 動畫頁嗰張照用 371 版，因為新影嗰張俾個點心通知遮住咗一角， 食物相唔入倉。淨係文件，唔會觸發構建。"
-    },
-    {
-     "sha": "990348159",
-     "date": "2026-11-13T02:10:03-05:00",
-     "title": "Records: feature status, roadmap and articles through batch 54",
-     "areas": [
-      "docs"
-     ],
-     "detail": "Documents only; no build is started by this push.\n\n- Feature status and roadmap now cover batches 41 to 54. Two more boxes are ticked because build 401 was looked at: the storage page with its ring and biggest entities, and the 24-hour build stamp. Everything else from batches 52 to 54 is listed as built, unit tested and not seen, or as run for real on a throwaway instance where it was. - Eight new articles: the string builder, performance and the offline cache, wall tablets, notes on devices and entities, sidebar names with links and the quick bar, the dark mode readability check, multi-select with the clipboard and duplicate, light sliders with energy colours and the colour picker. The automation tools article gains fast mode, trigger groups, relationships, editor levels and adding a step. - Two lines that still described a typed-word confirmation are corrected: it is the two keys and the slider, on every device. - The list of differences from upstream gains the wall tablet integration, energy colours, trigger groups and manifest shortcuts.",
-     "detail_yue": "文件更新到第 54 批，淨係文件，唔會觸發構建。401 版真係睇過嘅兩樣 （儲存空間頁同 24 小時制時間）先剔格，其餘照寫「起咗、單元測試過、 未喺瀏覽器睇」。仲有兩句仲話要打字確認嘅舊文，執返做「兩把鎖匙加滑桿」。"
     }
    ]
   }
