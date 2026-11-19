@@ -1,15 +1,48 @@
 {
  "format": 1,
- "generated": "2026-11-19T03:29:49Z",
+ "generated": "2026-11-19T03:53:38Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 526,
+ "newest_build": 527,
  "releases": [
+  {
+   "build": 527,
+   "core": "2026.11.1.527",
+   "supervisor": "2026.11.0.527",
+   "os": "18.5.527",
+   "tag": null,
+   "source": "8b031b939",
+   "date": "2026-11-18T21:46:47-05:00",
+   "previous_build": 526,
+   "changes": [
+    {
+     "sha": "8b031b939",
+     "date": "2026-11-18T21:46:47-05:00",
+     "title": "Registry place: the page speaks the server's commands, stricter password check [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "Two faults found by the workers' own reports, repaired.\n\nThe settings page called seven commands that did not exist; it had been ordering from a menu the kitchen never printed. It now uses the ten commands the server really offers, and both sides hold the same hand-written list with a test that fails if either drifts. No command carries a password: changing it opens the integration's own flow.\n\nThe password check was length times alphabet with a short blacklist, so \"Capitalword2024word\" passed. It now prices dictionary words, years and dates, keyboard runs, sequences, repeats and leetspeak, and takes the cheapest way to guess. That example scores 33 bits and is refused; the bar is 60. Five uncommon words still pass. Known limit: two unlisted words joined together can still pass.\n\n243 Core tests passed and 15 frontend tests passed. Not seen in a browser. Two packaging check findings remain (manifest categories and the quality scale level).",
+     "detail_yue": "登記處存放位：頁面講返伺服器嘅指令，密碼檢查嚴啲。工人自己報告 搵到嘅兩個毛病，修好。\n\n設定頁之前叫緊七個唔存在嘅指令，等於照住廚房冇印過嘅餐牌落單。 而家用返伺服器真係有嘅十個指令，兩邊各自有同一份人手寫嘅清單， 有測試守住，任何一邊走樣都會失敗。冇任何指令會帶住密碼：改密碼 會開整合自己嘅流程。\n\n密碼檢查之前只係長度乘字符種類，加一張好短嘅黑名單，所以 「Capitalword2024word」過到關。而家會計字典字、年份同日期、鍵盤 連打、順序、重複同火星文，再揀最平嘅估法。嗰個例子得 33 位元， 會被拒絕；門檻係 60。五個冷門字仍然過到。已知限制：兩個唔喺清單 嘅字連埋一齊仍然可能過到。\n\nCore 測試 243 個通過，前端測試 15 個通過。未喺瀏覽器睇過。仲有 兩個封裝檢查發現未處理（清單類別同品質等級）。"
+    },
+    {
+     "sha": "388955622",
+     "date": "2026-11-18T21:44:47-05:00",
+     "title": "Docs: record build 526, what was seen and what was not [skip ci]",
+     "areas": [
+      "docs"
+     ],
+     "detail": "Handoff, roadmap, feature status and the feature pages now describe the tree as it shipped in build 526: what was proven in a browser, what was proven only against pretend hosts, and what nobody has looked at yet. An honest \"not seen\" ages better than an optimistic tick.",
+     "detail_yue": "文件：記錄第 526 版，睇過咩同未睇過咩。交接、路線圖、功能狀態同 功能頁而家照第 526 版出貨嘅樣寫：邊啲喺瀏覽器證實過，邊啲只對住 假主機證實過，邊啲仲未有人睇過。老實寫「未睇過」，放耐咗都好過 樂觀剔個剔。"
+    }
+   ]
+  },
   {
    "build": 526,
    "core": "2026.11.1.526",
    "supervisor": "2026.11.0.526",
    "os": "18.5.526",
-   "tag": null,
+   "tag": "v2026.11.1.526",
    "source": "a3cb56d37",
    "date": "2026-11-18T20:40:00-05:00",
    "previous_build": 525,
@@ -2259,38 +2292,6 @@
      ],
      "detail": "Documents only; no build is started by this push.\n\n- Release v2026.11.1.420: run succeeded, not a draft, not a prerelease, 25 files, and its notes say when it was updated. - Build 2026.11.1.422 (batch 58) passed its browser pass with no page errors and is live since 08:25 Toronto time. Its four fixes were not looked at one by one in that build, and the notes say so.",
      "detail_yue": "記錄：420 版發佈頁讀返無問題；422 版瀏覽器檢查零錯誤，08:25 上線。 嗰四個小修正未逐個喺新版睇，照實寫低。淨係文件，唔會觸發構建。"
-    }
-   ]
-  },
-  {
-   "build": 422,
-   "core": "2026.11.1.422",
-   "supervisor": "2026.11.0.422",
-   "os": "18.5.422",
-   "tag": "v2026.11.1.422",
-   "source": "013f64e4c",
-   "date": "2026-11-13T06:49:22-05:00",
-   "previous_build": 420,
-   "changes": [
-    {
-     "sha": "013f64e4c",
-     "date": "2026-11-13T06:49:22-05:00",
-     "title": "Four small faults seen on build 420",
-     "areas": [
-      "interface"
-     ],
-     "detail": "Batch 58. None of the fixes has been seen in a browser yet.\n\n- String builder: the note \"kept as one template piece\" stayed after that piece was removed. It now shows only while such a piece is among the pieces. - String builder on a phone: an empty strip sat under the buttons, because the sheet inherited the room kept for the floating bottom bar it covers. The sheet now keeps only the device's own safe-area inset. - Automation editor: a step scrolled to could land under the sticky search card, whose height varies. The card now publishes its real height as the scroll margin of the rows. - Navigation pane: with no saved order, the list of pages followed the order the server happened to register panels in, which is not stable, so two loads could differ. The default order is now fixed: the default page, dashboards by title, the built-in pages in their usual order, then the rest by title. A saved order is applied as before. A unit test covers it.\n\nChecks: full suite 7,632 passed with the 3 known build-script failures; type check clean apart from the two known gallery errors.",
-     "detail_yue": "第 58 批，420 版睇到嘅四個小問題：字串建構器個提示唔識收返、手機底部 多咗條白邊、自動化編輯器跳去某一步會俾搜尋卡遮住、側欄頁面次序每次 載入可能唔同（因為跟伺服器註冊次序，而家排死咗）。未喺瀏覽器睇。"
-    },
-    {
-     "sha": "7f22fe9c9",
-     "date": "2026-11-13T06:40:36-05:00",
-     "title": "Records: builds 418 to 420, what was seen by using them",
-     "areas": [
-      "docs"
-     ],
-     "detail": "Documents only; no build is started by this push.\n\n- Four passes used the published images for real, feature by feature, on throwaway instances. The notes now say what was seen working, which faults were found and fixed and seen right afterwards, what is still open, and what has still not been seen in any published build. - Every destructive confirmation that was reached asks for the two keys and the slider and has nothing to type. - The live instance moved to 418 at 04:50, 419 at 05:34 and 420 at 06:30 Toronto time, each after a browser pass on that exact image.",
-     "detail_yue": "記錄更新：418 至 420 版逐樣功能真係用過，邊樣見到得、邊樣搵到問題又 執好咗、邊樣仲未執、邊樣到而家都未見過，全部照實寫低。所有破壞性確認 都係兩把鎖匙加滑桿，冇嘢要打。淨係文件，唔會觸發構建。"
     }
    ]
   }
