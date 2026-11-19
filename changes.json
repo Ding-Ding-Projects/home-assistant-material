@@ -1,15 +1,92 @@
 {
  "format": 1,
- "generated": "2026-11-19T05:05:40Z",
+ "generated": "2026-11-19T19:09:27Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 527,
+ "newest_build": 528,
  "releases": [
+  {
+   "build": 528,
+   "core": "2026.11.1.528",
+   "supervisor": "2026.11.0.528",
+   "os": "18.5.528",
+   "tag": null,
+   "source": "29c228dd7",
+   "date": "2026-11-19T13:47:41-05:00",
+   "previous_build": 527,
+   "changes": [
+    {
+     "sha": "29c228dd7",
+     "date": "2026-11-19T13:47:41-05:00",
+     "title": "Backup pointers to save disk space; seven faults from the 527 check [skip ci]",
+     "areas": [
+      "core",
+      "docs",
+      "interface"
+     ],
+     "detail": "Pointers: once a backup is in the container registry and has been read back in full with its size and checksum matching, the copy on the disk can become a small pointer: the luggage tag stays, the suitcase goes to storage. Off by default. The newest backup stays whole unless told otherwise. Any doubt (no answer, timed out, parts tampered, copy differs) keeps the whole copy and records why. A pointer holds no key. A daily check notices a missing registry copy and stops offering that backup; it does not fetch the parts, so a damaged part is only found when bringing the backup back. A delete proof backup keeps its mark, and the backup made before going back stays whole until that has finished.\n\nFaults repaired: every network step of the registry setup now ends within 30 seconds with a plain reason instead of spinning for minutes; the recording page says \"set up, record a camera first\" instead of \"not set up\"; built-in additions can carry their own icon, and the registry place gets a plain box with a lock rather than anyone's logo; the first backup wizard lists its locations; the media player's slider fits a phone; \"What's new\" wraps inside its row; the Entities title follows the langu",
+     "detail_yue": "備份指標慳磁碟空間；527 檢查搵到嘅七個毛病。\n\n指標：備份入咗容器登記處，而且成份讀返出嚟、大細同核對碼都啱之後， 磁碟上面嗰份可以變成一個細指標：行李牌留低，個喼送去倉。預設關閉。 最新嗰個備份會成個留低，除非另有指示。只要有任何疑問（冇回應、 逾時、部分被改、副本唔同），成份都會留低兼記低原因。指標入面冇 鑰匙。每日檢查會發現登記處嗰份唔見咗，之後唔再提供嗰個備份；但 唔會下載各部分，所以某部分壞咗要到攞返嗰陣先知。防刪除備份會保留 標記，返轉頭之前做嘅備份喺成件事完成之前會成個留低。\n\n修好嘅毛病：登記處設定每一個網絡步驟而家三十秒內一定完，講明原因， 唔再轉幾分鐘；錄影頁會講「已設定，先錄一個鏡頭」，唔再講「未設定」； 內置新增嘅整合可以帶自己嘅圖示，登記處存放位用一個有鎖嘅普通箱， 唔用任何人嘅商標；第一次備份精靈會列出存放位；媒體播放器條滑桿 喺手機度放得落；「有咩新嘢」會喺自己嗰行入面換行；實體頁標題跟 語言模式。返轉頭嗰張卡可以一撳就將個備份標記做防刪除。\n\n測試：指標新測試 27 個；登記處同備份 867 個通過，一個無關嘅環境 失敗；登記處流程 208 個通過；前端型別得返兩個已知錯誤。呢度所有嘢 都未喺瀏覽器睇過，亦冇用過真登記處。"
+    },
+    {
+     "sha": "1e61499dd",
+     "date": "2026-11-19T13:01:20-05:00",
+     "title": "Going back always backs up first; delete proof backups [skip ci]",
+     "areas": [
+      "core",
+      "docs",
+      "interface",
+      "supervisor"
+     ],
+     "detail": "Two rules, both held by the system and not merely by a polite page.\n\nGoing back to an earlier build: the Supervisor now makes and checks a backup before installing an older Core, whoever asks and however they ask. A backup that failed, timed out, was stopped or did not pass its check means nothing is installed. The one way past it is a single-use pass the Supervisor issues for one version, one person and five minutes, and the page only asks for it after the two keys and four games: whack-a-mole, four in a row, a coin until heads and a cookie to 100. The games are a speed bump for a person, not a lock; the documentation says so. They are drawn by the page, work by keyboard, and have a form without movement.\n\nDelete proof: a backup can be marked so that nothing this system does can delete it: the button, deleting several, tidy-up by count or age, the Supervisor's own clean-ups. Marked backups are kept besides the newest N. If the list of marks cannot be read, every delete is refused, which is the right direction for a safe to fail in. Turning the mark off needs the two keys and the slider.\n\nTests: Supervisor 501 passed for going back and 137 for the backup suites; Core backup 632 pas",
+     "detail_yue": "返轉頭一定先備份；防刪除備份。兩條規矩，都係由系統守住，唔係淨係靠 個頁面有禮貌。\n\n返去舊版：而家無論邊個、用咩方法叫，Supervisor 都會先做備份兼核對， 先至裝舊版 Core。備份失敗、逾時、被停、或者核對唔過，就乜都唔裝。 唯一嘅例外係 Supervisor 發嘅一次性通行證，只限一個版本、一個人、 五分鐘；頁面要過咗兩條鑰匙同四個遊戲先會去攞：打地鼠、四子棋、 擲銀仔擲到公、撳曲奇撳到 100。遊戲係畀人諗清楚嘅減速壆，唔係鎖； 文件有照直講。遊戲由頁面自己畫，用鍵盤玩得，亦有冇動態嘅版本。\n\n防刪除：備份可以加標記，之後呢部系統做嘅任何嘢都刪唔到佢：刪除掣、 一次過刪幾個、按數量或者日子清理、Supervisor 自己嘅清理都唔得。 有標記嘅備份係喺最新 N 個之外另外留。如果標記清單讀唔到，所有刪除 一律拒絕；夾萬壞都應該係壞喺鎖住嗰邊。熄標記要兩條鑰匙加滑桿。\n\n測試：Supervisor 返轉頭 501 個通過，備份相關 137 個通過；Core 備份 632 個通過，一個無關嘅環境失敗；前端型別得返兩個已知錯誤。未喺 瀏覽器睇過，亦未真正返轉頭行過。"
+    },
+    {
+     "sha": "a60194fce",
+     "date": "2026-11-19T12:08:53-05:00",
+     "title": "Design board: a pointer on the disk instead of the whole backup [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "A board only. Once a backup is in the container registry and every part has been read back and checked, the copy on the disk can be replaced by a small pointer: a luggage tag instead of the suitcase. The swap happens only after a passed check; failed, unknown or \"did not answer\" keeps the whole copy where it is.\n\nThe newest backup stays whole by default so one restore still works with the network unplugged. A pointer holds no key. Pointers are checked each day, and one whose registry copy has gone missing turns red and is never offered as something to restore. Whole copies and pointers are counted apart, and the page says plainly that with only pointers, losing the account or the password means losing those backups.",
+     "detail_yue": "設計板：磁碟上面淨係留個指標，唔留成個備份。淨係設計板。備份入咗 容器登記處，而且每一部分都讀返出嚟核對過之後，磁碟上面嗰份可以換成 一個細細嘅指標：留行李牌，唔留成個喼。要核對通過先會換；失敗、唔知 結果、或者「冇回應」，成份備份都會原地留低。\n\n最新嗰個備份預設會成個留低，所以拔咗網線都仲還原到一次。指標入面 冇鑰匙。指標每日會核對一次，登記處嗰份唔見咗嘅話，嗰行會變紅， 永遠唔會當成可以還原嘅嘢。完整副本同指標分開計數，頁面亦會照直講： 得返指標嘅話，冇咗個帳戶或者密碼，即係冇咗嗰啲備份。"
+    },
+    {
+     "sha": "872e15cd1",
+     "date": "2026-11-19T11:59:49-05:00",
+     "title": "Design board: delete proof backups [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "A board only. A backup can be marked delete proof, and while the mark is on nothing this system does can delete it: not the Delete button, not deleting several at once, not the automatic tidy-up by count or age, not an automation. The rule lives in the system, not in a button that has merely been asked to look disabled.\n\nMarked backups are kept besides the newest N rather than counted among them. Turning the mark on needs nothing; turning it off needs the two keys and the slider, because that is the step that makes deleting possible again. When space runs low the page says how much the marked backups use and never clears one to make room. A file removed in a cloud drive's own app is outside this system, and the page then says the copy is missing instead of pretending.",
+     "detail_yue": "設計板：防刪除備份。淨係設計板。備份可以標記做防刪除，標記開住嗰陣， 呢部系統做嘅任何嘢都刪唔到佢：刪除掣唔得，一次過刪幾個唔得，按數量 或者日子自動清理唔得，自動化都唔得。條規矩住喺系統入面，唔係淨係 叫個掣扮無效。\n\n有標記嘅備份係喺「保留最新 N 個」之外另外留住，唔會計入去。開標記 唔使確認；熄標記要兩條鑰匙加滑桿，因為呢一步先會令刪除變返可能。 空間唔夠嗰陣，頁面會講明有標記嘅備份用咗幾多，永遠唔會清走一個嚟 騰位。喺雲端硬碟自己個程式度刪走嘅檔案唔關呢部系統事，頁面會照直講 嗰份副本唔見咗，唔會扮冇事。"
+    },
+    {
+     "sha": "2b171bef6",
+     "date": "2026-11-19T11:58:12-05:00",
+     "title": "Design board: the four games, drawn like real things [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "A board only. The games of the super confirmation now look like objects you could pick up: moles rising out of dirt holes in a grass field, a moulded blue rack with shaded discs, a struck metal coin on a felt table, and a baked cookie on a steel tray. All drawn by the page with gradients and shadows, so nothing is downloaded and it works with the network unplugged. If one must earn the right to skip a backup, the cookie may as well look worth clicking.\n\nScore, turn, result and time stay as text, movement has a reduced-motion form, and every target is a real button.",
+     "detail_yue": "設計板：四個遊戲，畫到似真嘢。淨係設計板。超級確認嗰幾個遊戲而家 睇落似攞得上手嘅實物：草地泥窿度鑽出嚟嘅地鼠、藍色膠架配有光暗嘅 棋子、絨枱面上面一個鑄出嚟嘅金屬銀仔，同埋鋼盤上面一塊焗好嘅曲奇。 全部由頁面用漸變同陰影畫出嚟，唔使下載任何嘢，拔咗網線都用得。 既然要搏命先可以唔做備份，塊曲奇起碼要靚到值得撳。\n\n分數、輪到邊個、結果同時間照舊用文字，動作有減少動態嘅版本，每個 目標都係真按鈕。"
+    },
+    {
+     "sha": "1d156ad4a",
+     "date": "2026-11-19T11:52:51-05:00",
+     "title": "Design board: a backup before going back to an earlier build [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "A board only, no code yet. Going back to an earlier build makes a backup first, and the older build is installed only after that backup has finished and passed its check. Failed, stopped, timed out or unknown all mean the same thing: nothing is changed. The rule is held by the system, not just by a polite page.\n\nThe one way past it is a super confirmation, good for that single going back: the two keys and the slider, then win at whack-a-mole, win four in a row, spin a coin until it lands heads, and click a cookie to 100. Anyone still determined after all that has at least had time to reconsider. Every game works with a keyboard and a screen reader and has a mode with no time limit: hard on purpose, never impossible.",
+     "detail_yue": "設計板：返去舊版之前先備份。淨係設計板，未有程式碼。返去舊版之前 會先做備份，要備份完成兼通過檢查，先會裝返舊版。失敗、停咗、逾時、 或者唔知結果，全部都係同一個意思：乜都唔改。呢條規矩由系統守住， 唔係淨係靠個頁面有禮貌。\n\n唯一嘅例外係超級確認，只限嗰一次返轉頭：兩條鑰匙加滑桿，之後要 打地鼠贏、四子棋贏、擲銀仔擲到公為止、再撳曲奇撳到 100。做完呢堆 仲係咁堅持嘅人，起碼有時間諗清楚。每個遊戲都用得鍵盤同螢幕閱讀器， 亦有冇時限嘅模式：係特登難，但唔會冇可能。"
+    }
+   ]
+  },
   {
    "build": 527,
    "core": "2026.11.1.527",
    "supervisor": "2026.11.0.527",
    "os": "18.5.527",
-   "tag": null,
+   "tag": "v2026.11.1.527",
    "source": "8b031b939",
    "date": "2026-11-18T21:46:47-05:00",
    "previous_build": 526,
@@ -2249,49 +2326,6 @@
      ],
      "detail": "Batch 61, saved unfinished so the work is not lost. Nothing in the interface uses it yet, so behaviour for people is unchanged.\n\nIn this commit - Server: an admin-only websocket command, tts/engine/options, that returns a text-to-speech engine's supported, common and default options. It compiles and has a written test. It has NOT been run against a real server. - Frontend: a model for \"known options\" of a dictionary field (merge by source, value kinds, keys used elsewhere in the home), a loader for the server command, and a catalogue holding only the five tts.speak option keys confirmed in the server source. No unit tests yet.\n\nNot done - The visual dictionary editor does not show known options: no chips, no specific controls, no strings. The action, field and language are not passed to the editor. - Notification data keys were left out on purpose: they are read by the companion app and could not be confirmed in this repository.\n\nChecks: type check at baseline (the two known gallery errors); the Python files compile. The full test suite was not run for this commit.",
      "detail_yue": "第 61 批，未完成，先保存。字典欄位「已知選項」只做咗底層：伺服器多咗個 讀取語音引擎選項嘅指令（未真係跑過），前端有模型同目錄（未有測試）。 介面完全未接駁，所以用落去同之前一樣。額度就嚟用完，先存檔免得唔見。"
-    }
-   ]
-  },
-  {
-   "build": 425,
-   "core": "2026.11.1.425",
-   "supervisor": "2026.11.0.425",
-   "os": "18.5.425",
-   "tag": "v2026.11.1.425",
-   "source": "f7f282a80",
-   "date": "2026-11-13T10:25:10-05:00",
-   "previous_build": 422,
-   "changes": [
-    {
-     "sha": "f7f282a80",
-     "date": "2026-11-13T10:25:10-05:00",
-     "title": "Automatic updates, continue on error for all, a visual dictionary editor",
-     "areas": [
-      "core",
-      "interface"
-     ],
-     "detail": "Batch 60. Four requests from the owner, and the last layout leftovers. The frontend parts have not been seen in a browser yet.\n\nAutomatic updates (owner: \"missing auto updates for all apps, also make it auto update for all apps option too\") - A new server integration, auto_update, loaded by default. Settings: update everything automatically, a choice per item, and a backup first when the update supports one. It installs when an update becomes available, one at a time, never a skipped version, and never retries a version that failed. Home Assistant Core, the Supervisor and the operating system are never updated automatically; they restart the whole system and keep their own row. - Run for real on a throwaway instance of the published image with the new files mounted: nothing installed while off, one item installed when only it was on, the rest installed in turn with \"everything\", a skipped version left alone, a failure recorded and not retried, the three protected updates refused, settings kept over a restart. - Updates page: an \"Automatic updates\" card with the two switches, an \"Automatic\" switch on every row, and the last automatic result with a 24-hour time.\n\nAutomation and scrip",
-     "detail_yue": "第 60 批。屋主四個要求一次過：（一）自動更新，可以逐個開，亦可以一掣 「全部自動更新」，伺服器做，唔使開住瀏覽器；核心、Supervisor、作業系統 永遠唔會自動更新。（二）自動化編輯器加「所有動作出錯都繼續」總掣。 （三）字典欄位有圖形編輯器，唔使再對住 YAML。（四）手機工具面板、 儲存列、時鐘小圖示遮住內容等版面問題。伺服器部分喺一次性實例真係跑過， 前端部分未喺瀏覽器睇。"
-    },
-    {
-     "sha": "0de76e7bd",
-     "date": "2026-11-13T09:22:20-05:00",
-     "title": "Visual faults found by looking at every capture of build 422",
-     "areas": [
-      "interface"
-     ],
-     "detail": "Batch 59. All 88 captures of the published build (light and dark, wide and phone) were looked at one by one. These are the faults that look found. None of the fixes has been seen in a browser yet.\n\nPhone - Storage: both cards were wider than the screen; grid tracks could not shrink below their content. They fit now and long values wrap. - Devices list: an empty battery cell drew a dash and took the room, so row text was cut. Empty cells are left out on a phone. - System: the title was cut and lost the version; it wraps now. - Template tool: the editor showed three and a half lines; it gets a proper height, and the selected tab is scrolled into view. - Media: the player slider no longer touches the screen edge; tile names keep room at the end.\n\nPages - Lights, Climate and Security were blank in a home with nothing of that kind. Each has an empty state now: what belongs here, how to add some, and for administrators a button to devices and services. - One title per page on Repairs, History, Integrations and Climate. Security still repeats its title when an alarm panel exists. - People and Roles: the footer sits at the bottom on short pages; the top row of People is on one line; Roles ",
-     "detail_yue": "第 59 批。422 版 88 張截圖逐張睇，搵到嘅畫面問題一次過執：手機儲存頁 啲卡闊過個屏、裝置清單啲字俾條橫線逼到切咗、燈光／氣候／保安頁喺冇 嗰類裝置嘅屋企係白畫面（而家有返空狀態）、幾版標題出兩次、闊屏工具列 衝出右邊、深色主題啲卡同開關睇唔清……全部未喺瀏覽器睇。"
-    },
-    {
-     "sha": "a731b5b9a",
-     "date": "2026-11-13T08:25:41-05:00",
-     "title": "Records: release 420 read back, build 422 live",
-     "areas": [
-      "docs"
-     ],
-     "detail": "Documents only; no build is started by this push.\n\n- Release v2026.11.1.420: run succeeded, not a draft, not a prerelease, 25 files, and its notes say when it was updated. - Build 2026.11.1.422 (batch 58) passed its browser pass with no page errors and is live since 08:25 Toronto time. Its four fixes were not looked at one by one in that build, and the notes say so.",
-     "detail_yue": "記錄：420 版發佈頁讀返無問題；422 版瀏覽器檢查零錯誤，08:25 上線。 嗰四個小修正未逐個喺新版睇，照實寫低。淨係文件，唔會觸發構建。"
     }
    ]
   }
