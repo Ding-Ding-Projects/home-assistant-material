@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The four games of the super confirmation, drawn like real things</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+.gcard{width:100%;max-width:390px;border-radius:28px;background:#14161B;box-shadow:0 0 0 1px #2A2D36;overflow:hidden;display:flex;flex-direction:column}
+.ghead{min-height:56px;display:flex;align-items:center;gap:10px;padding:0 16px}
+.gstep{width:24px;height:24px;border-radius:50%;background:#B4C5FF;color:#152E66;display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.gfoot{padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px}
+.gbtn{height:44px;border-radius:22px;box-shadow:inset 0 0 0 1px #44474F;color:#B4C5FF;display:grid;place-items:center;font-weight:700}
+.mono{font-family:'Roboto Mono',monospace}
+/* whack-a-mole */
+.field{margin:0 12px;border-radius:18px;padding:14px 10px 10px;background:radial-gradient(120% 90% at 50% 0%,#5FA348 0%,#3F7F34 55%,#2C5E28 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.18),inset 0 -10px 24px rgba(0,0,0,.28);display:grid;grid-template-columns:repeat(3,1fr);gap:10px 8px}
+.hole{position:relative;height:74px;display:grid;place-items:end center}
+.pit{position:absolute;left:8%;right:8%;bottom:6px;height:26px;border-radius:50%;background:radial-gradient(60% 70% at 50% 35%,#0E0906 0%,#2A1A10 70%,#4A2F1C 100%);box-shadow:0 3px 0 #6B4528,0 5px 6px rgba(0,0,0,.35)}
+.mound{position:absolute;left:2%;right:2%;bottom:0;height:16px;border-radius:50% 50% 46% 46%;background:linear-gradient(#7A5232,#5A3A22);clip-path:ellipse(50% 100% at 50% 100%)}
+.mole{position:relative;width:46px;height:50px;margin-bottom:14px;border-radius:24px 24px 14px 14px;background:radial-gradient(70% 60% at 38% 28%,#B98E66 0%,#8A6242 55%,#5E3F29 100%);box-shadow:inset 0 -8px 10px rgba(0,0,0,.3)}
+.mole i{position:absolute;top:16px;width:7px;height:8px;border-radius:50%;background:#140D08;box-shadow:inset 1.5px -1.5px 0 #fff3}
+.mole i.l{left:11px}.mole i.r{right:11px}
+.mole b{position:absolute;left:50%;top:25px;width:14px;height:10px;margin-left:-7px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#F3A9B4,#C96C7C)}
+.mole u{position:absolute;left:50%;top:35px;width:10px;height:7px;margin-left:-5px;border-radius:0 0 3px 3px;background:#FBF6EC;box-shadow:inset -5px 0 0 -4px #C9C2B4}
+.mole.hit{transform:translateY(8px) scaleY(.82);filter:brightness(.8)}
+.star{position:absolute;top:-2px;right:6px;color:#FFE08A;font-size:18px;text-shadow:0 1px 2px #0008}
+/* four in a row */
+.rackwrap{margin:0 12px;padding-bottom:10px;position:relative}
+.rack{border-radius:16px;padding:10px;background:linear-gradient(160deg,#3D6FE0 0%,#2450B8 55%,#17398C 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -6px 12px rgba(0,0,0,.35),0 8px 14px rgba(0,0,0,.45);display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cell{aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 50% 40%,#0A0C12 0%,#11141C 70%);box-shadow:inset 0 3px 5px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.25)}
+.cell.r{background:radial-gradient(circle at 34% 28%,#FF9A8C 0%,#E5392B 45%,#A41E14 100%);box-shadow:inset 0 0 0 3px rgba(120,16,10,.55),inset 0 -4px 6px rgba(0,0,0,.3),0 1px 0 rgba(255,255,255,.25)}
+.cell.y{background:radial-gradient(circle at 34% 28%,#FFF3A8 0%,#F6C82A 45%,#B98A08 100%);box-shadow:inset 0 0 0 3px rgba(140,100,0,.5),inset 0 -4px 6px rgba(0,0,0,.25),0 1px 0 rgba(255,255,255,.25)}
+.cell.win{outline:3px solid #fff;outline-offset:-1px}
+.feet{display:flex;justify-content:space-between;margin:0 6px}
+.feet span{width:34px;height:10px;border-radius:0 0 8px 8px;background:linear-gradient(#17398C,#0F2861)}
+/* coin */
+.table{margin:0 12px;height:190px;border-radius:18px;background:radial-gradient(120% 100% at 50% 0%,#2F6B4F 0%,#1F4A38 60%,#143226 100%);box-shadow:inset 0 0 0 6px #5A3A22,inset 0 0 0 8px #3B2515,inset 0 10px 30px rgba(0,0,0,.4);display:grid;place-items:center;position:relative}
+.coin{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#FFF4C2 0%,#F0C64A 30%,#C7922A 62%,#8C6212 100%);box-shadow:inset 0 0 0 5px #B7872A,inset 0 0 0 7px #F5D77A,inset 0 0 0 9px #9A6E18,0 10px 14px rgba(0,0,0,.5),0 2px 0 #6E4C0C;display:grid;place-items:center;position:relative}
+.coin::before{content:"";position:absolute;inset:11px;border-radius:50%;border:2px dotted rgba(110,76,12,.7)}
+.face{width:52px;height:60px;border-radius:26px 26px 18px 18px;background:linear-gradient(140deg,#F7DE8E,#B98A26);box-shadow:inset 2px 2px 0 rgba(255,255,255,.5),inset -3px -3px 0 rgba(110,76,12,.55)}
+.shadow{position:absolute;bottom:26px;width:120px;height:16px;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.45),transparent)}
+.edge{position:absolute;right:26px;top:26px;width:54px;height:12px;border-radius:6px;background:repeating-linear-gradient(90deg,#C7922A 0 3px,#8C6212 3px 5px);transform:rotate(-18deg);box-shadow:0 4px 6px rgba(0,0,0,.4);opacity:.9}
+/* cookie */
+.tray{margin:0 12px;height:190px;border-radius:18px;background:linear-gradient(160deg,#C9CED6 0%,#9AA1AC 50%,#757C88 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.6),inset 0 0 0 6px #868D99,inset 0 -12px 24px rgba(0,0,0,.25);display:grid;place-items:center;position:relative}
+.paper{position:absolute;inset:14px;border-radius:10px;background:linear-gradient(#F4EBDA,#E6D9C0);box-shadow:inset 0 0 0 1px #D8C9AC}
+.cookie{position:relative;width:132px;height:128px;border-radius:48% 52% 50% 50% / 52% 48% 52% 48%;background:radial-gradient(circle at 36% 30%,#EBC489 0%,#D39F58 42%,#B07A35 78%,#8E5E24 100%);box-shadow:inset 0 -8px 12px rgba(90,50,10,.45),inset 0 4px 6px rgba(255,235,190,.5),0 8px 10px rgba(60,40,10,.4)}
+.cookie s{position:absolute;border-radius:45% 55% 50% 50%;background:radial-gradient(circle at 35% 30%,#7A4A2C 0%,#4A2A16 60%,#2C170B 100%);box-shadow:inset 1px 1px 0 rgba(255,220,180,.25),0 1px 1px rgba(0,0,0,.3)}
+.cookie em{position:absolute;height:2px;border-radius:2px;background:rgba(120,78,30,.55)}
+.crumb{position:absolute;width:6px;height:5px;border-radius:50%;background:#C08A45;box-shadow:0 1px 1px rgba(0,0,0,.25)}
+.plus{position:absolute;right:54px;top:30px;font-weight:800;color:#5A3A12;font-size:18px}
+</style>
+</helmet>
+<div style="min-height: 1180px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Asked for by the owner: the games should look like real things. Each is drawn with light from the top left, a real surface under it, and weight when it moves. No pictures are downloaded; everything is drawn by the page itself.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section class="gcard" aria-label="Whack-a-mole">
+<div class="ghead"><span class="gstep">2</span><span style="flex: 1; font-size: 18px; font-weight: 700">Whack-a-mole</span><span class="mono" style="color: #C4C6D0">6 / 10 · 0:14</span></div>
+<div class="field">
+<div class="hole"><div class="pit"></div><div class="mound"></div></div>
+<div class="hole"><div class="pit"></div><div class="mole"><i class="l"></i><i class="r"></i><b></b><u></u></div><div class="mound"></div></div>
+<div class="hole"><div class="pit"></div><div class="mound"></div></div>
+<div class="hole"><div class="pit"></div><div class="mole hit"><i class="l"></i><i class="r"></i><b></b><u></u></div><div class="mound"></div><span class="star">✦</span></div>
+<div class="hole"><div class="pit"></div><div class="mound"></div></div>
+<div class="hole"><div class="pit"></div><div class="mole" style="margin-bottom: -6px"><i class="l"></i><i class="r"></i><b></b><u></u></div><div class="mound"></div></div>
+</div>
+<div class="gfoot"><div style="font-size: 12px; color: #C4C6D0">A mole rises out of the dirt, looks around, and ducks. A hit squashes it and throws a few crumbs of soil. Keys 1 to 6 hit the holes.</div><div class="gbtn">No time limit</div></div>
+</section>
+
+<section class="gcard" aria-label="Four in a row">
+<div class="ghead"><span class="gstep">3</span><span style="flex: 1; font-size: 18px; font-weight: 700">Four in a row</span><span style="display: flex; align-items: center; gap: 6px; color: #C4C6D0; font-size: 13px"><span style="width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 34% 28%,#FF9A8C,#E5392B 45%,#A41E14)"></span>Your turn</span></div>
+<div class="rackwrap">
+<div class="rack">
+<span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span>
+<span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span>
+<span class="cell"></span><span class="cell"></span><span class="cell y"></span><span class="cell r win"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span>
+<span class="cell"></span><span class="cell"></span><span class="cell r win"></span><span class="cell y"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span>
+<span class="cell"></span><span class="cell r win"></span><span class="cell y"></span><span class="cell r"></span><span class="cell y"></span><span class="cell"></span><span class="cell"></span>
+<span class="cell r win"></span><span class="cell y"></span><span class="cell r"></span><span class="cell y"></span><span class="cell y"></span><span class="cell r"></span><span class="cell"></span>
+</div>
+<div class="feet"><span></span><span></span></div>
+</div>
+<div class="gfoot"><div style="font-size: 12px; color: #C4C6D0">A moulded blue rack standing on two feet. A disc drops down its column, bounces once and settles. The winning four are ringed in white and named aloud. Keys 1 to 7 choose a column.</div><div class="gbtn">New game</div></div>
+</section>
+
+<section class="gcard" aria-label="Coin">
+<div class="ghead"><span class="gstep">4</span><span style="flex: 1; font-size: 18px; font-weight: 700">Spin until heads</span><span class="mono" style="color: #C4C6D0">Tails · Tails · ?</span></div>
+<div class="table"><span class="shadow"></span><span class="edge"></span><div class="coin"><span class="face"></span></div></div>
+<div class="gfoot"><div style="font-size: 12px; color: #C4C6D0">A struck metal coin with a raised rim and a milled edge on a felt table. It spins on its edge, wobbles, rings down flat, and its shadow tightens as it lands. The result is also written and spoken.</div><div class="gbtn" style="background: #B4C5FF; color: #152E66; box-shadow: none">Spin</div></div>
+</section>
+
+<section class="gcard" aria-label="Cookie">
+<div class="ghead"><span class="gstep">5</span><span style="flex: 1; font-size: 18px; font-weight: 700">Cookie to 100</span><span class="mono" style="color: #C4C6D0">37 / 100</span></div>
+<div class="tray"><span class="paper"></span>
+<span class="crumb" style="left: 70px; top: 128px"></span><span class="crumb" style="left: 262px; top: 60px; width: 4px; height: 4px"></span><span class="crumb" style="left: 246px; top: 138px"></span>
+<div class="cookie">
+<s style="left: 26px; top: 26px; width: 22px; height: 18px"></s><s style="left: 72px; top: 18px; width: 18px; height: 16px"></s><s style="left: 92px; top: 56px; width: 24px; height: 20px"></s><s style="left: 46px; top: 62px; width: 20px; height: 18px"></s><s style="left: 20px; top: 84px; width: 16px; height: 14px"></s><s style="left: 68px; top: 94px; width: 22px; height: 16px"></s>
+<em style="left: 54px; top: 46px; width: 20px; transform: rotate(18deg)"></em><em style="left: 34px; top: 106px; width: 16px; transform: rotate(-24deg)"></em><em style="left: 96px; top: 38px; width: 14px; transform: rotate(52deg)"></em>
+</div>
+<span class="plus">+1</span>
+</div>
+<div class="gfoot"><div style="height: 8px; border-radius: 4px; background: #2A2D36; overflow: hidden"><div style="width: 37%; height: 100%; background: #D39F58; border-radius: 4px"></div></div><div style="font-size: 12px; color: #C4C6D0">A baked cookie with melted chips and cracks on baking paper in a steel tray. Each press dents it a little, drops a crumb and lifts a "+1". Space or Enter presses it.</div></div>
+</section>
+
+</div>
+
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px; max-width: 800px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span class="mono" style="color: #B4C5FF; width: 20px">1</span><span>Drawn by the page: gradients, shadows and shapes only. No downloaded pictures, fonts or sounds, so it works with no network.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span class="mono" style="color: #B4C5FF; width: 20px">2</span><span>Movement has weight (rise, drop, bounce, wobble, dent). With reduced motion the result simply appears, with the same words.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span class="mono" style="color: #B4C5FF; width: 20px">3</span><span>Sounds (thud, clack, ring, crunch) are made by the page and follow the action sounds switch.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span class="mono" style="color: #B4C5FF; width: 20px">4</span><span>The picture is never the only carrier: score, turn, result and time are always text, and every target is a real button of at least 44 px.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span class="mono" style="color: #B4C5FF; width: 20px">5</span><span>The games keep their own colours in light theme; only the card around them changes.</span></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
