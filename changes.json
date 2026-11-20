@@ -1,15 +1,39 @@
 {
  "format": 1,
- "generated": "2026-11-20T05:07:53Z",
+ "generated": "2026-11-20T05:59:11Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 531,
+ "newest_build": 532,
  "releases": [
+  {
+   "build": 532,
+   "core": "2026.11.2.532",
+   "supervisor": "2026.11.0.532",
+   "os": "18.5.532",
+   "tag": null,
+   "source": "9c1c5a66b",
+   "date": "2026-11-20T00:35:37-05:00",
+   "previous_build": 531,
+   "changes": [
+    {
+     "sha": "9c1c5a66b",
+     "date": "2026-11-20T00:35:37-05:00",
+     "title": "Repairs from the build 531 browser check, and a name-hiding gap in the problem log [skip ci]",
+     "areas": [
+      "docs",
+      "core",
+      "interface"
+     ],
+     "detail": "A browser pass over build 531 came back with nine complaints and none of them could hurt data, which is the polite kind of bug report. Two more turned up when the newest problem log tests finally got run.\n\nSaving space page: - A pointer whose registry simply did not answer was announced as \"missing\", with the Bring back button taken away for good measure. It is now \"could not reach the registry\", and Bring back stays. - The listing waits 10 seconds for a silent registry instead of spinning for the better part of a minute. - A successful bring back now says so on the page. - The registry entry's setup check is bounded to 30 seconds, so one attempt can no longer sit in \"Initialising\" for about four minutes. The retry backoff itself is upstream's and is unchanged.\n\nGoing back: - Four in a row fits all seven columns at 360 px. Column 7 had been living outside the board, invisible and untappable. - Focus stays inside whack-a-mole and four in a row after Start and after a drop. Disabled buttons were throwing focus to the page. - The super confirmation has a Cancel button and listens to Escape.\n\nIntegrations export and import: - The group chips in \"Import a list\" wrap on narrow screens. -",
+     "detail_yue": "修好 531 版瀏覽器檢查搵到嘅九樣嘢，另外補返問題記錄一個遮名漏洞。\n\n慳位頁：登記處冇回應唔再話「唔見咗」，「攞返」掣留喺度；清單最多等 十秒；成功攞返會喺頁面講聲。登記處設定檢查限三十秒。 返舊版：四子棋喺 360 px 七行齊晒；打地鼠同四子棋開始之後焦點唔再 走佬；超級確認有「取消」，撳 Escape 都得。 整合匯出匯入：窄螢幕分組標籤識轉行；冇登入資料嘅整合，個開關會停用。 問題記錄：「Front door」呢類名因為「door」同內置整合撞名而冇遮到， 而家先遮名、後抽起程式字眼；用字指令嘅欄位改咗名，除錯記錄會遮住。 文件：HANDOFF.md 有 Python 測試做法，pointers.md 有攞返失敗原因。 視覺修正未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 531,
    "core": "2026.11.2.531",
    "supervisor": "2026.11.0.531",
    "os": "18.5.531",
-   "tag": null,
+   "tag": "v2026.11.2.531",
    "source": "738b1243e",
    "date": "2026-11-19T22:14:25-05:00",
    "previous_build": 530,
