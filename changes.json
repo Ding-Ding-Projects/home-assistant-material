@@ -1,15 +1,39 @@
 {
  "format": 1,
- "generated": "2026-11-20T09:09:19Z",
+ "generated": "2026-11-20T09:36:45Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 533,
+ "newest_build": 534,
  "releases": [
+  {
+   "build": 534,
+   "core": "2026.11.2.534",
+   "supervisor": "2026.11.0.534",
+   "os": "18.5.534",
+   "tag": null,
+   "source": "bc8e277f9",
+   "date": "2026-11-20T03:49:51-05:00",
+   "previous_build": 533,
+   "changes": [
+    {
+     "sha": "bc8e277f9",
+     "date": "2026-11-20T03:49:51-05:00",
+     "title": "Every browser can see an update run, local backups list at once, \"Idle\" speaks Cantonese [skip ci]",
+     "areas": [
+      "docs",
+      "core",
+      "interface"
+     ],
+     "detail": "An \"Update everything\" run used to be a secret between the server and the one browser that started it. Open the page on a phone mid-run and it looked like nothing was happening.\n\n- Update run record: the server now keeps a small display record of the run (which updates, in what order, where it is, how it ended). The browser that started the run still drives it and reports each step. Any other admin browser shows the same card read-only, with a line saying the run was started elsewhere, and offers no controls. The record lives in memory, expires two hours after its last change, is refused unless every id is an existing update entity (50 at most), and has no path that can start, order or cancel an install. - Saving space: the pointer info command now also returns the name, date and size of backups held on this disk, asked alongside the full list inside the same 10 second bound. The page shows those rows at once instead of waiting for a registry that is not answering. - Language mode: an integration state that reuses a shared core word, such as the Backup Manager's \"Idle\", now falls back to a shared Cantonese word list instead of to English. - ROADMAP: ticks for what was seen in a bro",
+     "detail_yue": "個個瀏覽器都睇到更新進度，本機備份即刻列出，「Idle」識講廣東話。\n\n更新進度記錄：伺服器而家會記低一次「全部更新」嘅次序同進度，淨係用嚟 顯示。開始嗰個瀏覽器照舊負責推進；其他管理員瀏覽器會見到同一張卡， 唯讀，冇任何掣。記錄喺記憶體，兩個鐘冇郁就過期，唔可以用嚟開始、 排次序或者取消安裝。 慳位頁：指標資料指令會連埋本機備份嘅名、日期同大細一齊畀，頁面即刻 列出，唔使等一個冇回應嘅登記處。 語言模式：整合借用核心共用字眼嘅狀態（例如備份管理員嘅「Idle」） 而家有廣東話。 ROADMAP：531 同 532 版喺瀏覽器睇過嘅項目已剔，未睇過嘅照直寫。 呢批改動仲未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 533,
    "core": "2026.11.2.533",
    "supervisor": "2026.11.0.533",
    "os": "18.5.533",
-   "tag": null,
+   "tag": "v2026.11.2.533",
    "source": "6978140c2",
    "date": "2026-11-20T02:24:28-05:00",
    "previous_build": 532,
