@@ -29,6 +29,8 @@ import type { DimSumDish } from "../../data/dim_sum";
 import { fetchRandomDish } from "../../data/dim_sum";
 import type { HomeAssistant } from "../../types";
 import "../ha-icon-button";
+import type { ClearanceBox } from "./dim-sum-clearance";
+import { dimSumClearance } from "./dim-sum-clearance";
 
 const POLL_MS = 500;
 const FADE_MS = 160;
@@ -36,8 +38,73 @@ const FADE_MS = 160;
 const STALE_MS = 60000;
 const RESERVED_PROPERTY = "--ha-dim-sum-reserved-height";
 
+/** Raises the card above the floating controls it would otherwise cover. */
+const CLEAR_PROPERTY = "--dim-sum-clear";
+/** How far apart the points are where the card looks for floating controls. */
+const SAMPLE_STEP_PX = 16;
+/** A floating control that animates in is measured once more after this. */
+const SETTLE_MS = 400;
+
 /** Separates the two languages; the text lines keep it as a line break. */
 const LINE_BREAK = "\n";
+
+/** Every element at a point, including those inside shadow roots. */
+const collectElementsAt = (
+  root: Document | ShadowRoot,
+  x: number,
+  y: number,
+  out: Set<Element>
+): void => {
+  for (const element of root.elementsFromPoint(x, y)) {
+    if (out.has(element)) {
+      continue;
+    }
+    out.add(element);
+    const shadow = element.shadowRoot;
+    if (shadow && shadow !== root) {
+      collectElementsAt(shadow, x, y, out);
+    }
+  }
+};
+
+/** The parent of an element in the rendered tree, across shadow roots. */
+const composedParent = (element: Element): Element | null => {
+  if (element.assignedSlot) {
+    return element.assignedSlot;
+  }
+  if (element.parentElement) {
+    return element.parentElement;
+  }
+  const root = element.getRootNode();
+  return root instanceof ShadowRoot ? root.host : null;
+};
+
+/** The closest element, from this one upwards, that is fixed or sticky. */
+const nearestFixedAncestor = (
+  element: Element,
+  cache: Map<Element, Element | null>
+): Element | null => {
+  const path: Element[] = [];
+  let current: Element | null = element;
+  let found: Element | null = null;
+  while (current && current !== document.body) {
+    if (cache.has(current)) {
+      found = cache.get(current) ?? null;
+      break;
+    }
+    path.push(current);
+    const position = getComputedStyle(current).position;
+    if (position === "fixed" || position === "sticky") {
+      found = current;
+      break;
+    }
+    current = composedParent(current);
+  }
+  for (const visited of path) {
+    cache.set(visited, found);
+  }
+  return found;
+};
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -89,6 +156,8 @@ export class HaDimSumSurprise extends LitElement {
 
   private _quietTimer?: number;
 
+  private _settleTimer?: number;
+
   public connectedCallback() {
     super.connectedCallback();
     if (!takeLaunchDraw()) {
@@ -112,6 +181,8 @@ export class HaDimSumSurprise extends LitElement {
     window.clearInterval(this._pollTimer);
     window.clearTimeout(this._dismissTimer);
     window.clearInterval(this._quietTimer);
+    window.clearTimeout(this._settleTimer);
+    window.removeEventListener("resize", this._handleResize);
     document.documentElement.style.removeProperty(RESERVED_PROPERTY);
   }
 
@@ -153,6 +224,11 @@ export class HaDimSumSurprise extends LitElement {
     this._announcement = "";
     await this.updateComplete;
     this._place();
+    window.addEventListener("resize", this._handleResize, { passive: true });
+    // A create button or tool pill that is still animating in is measured
+    // again once it has settled.
+    window.clearTimeout(this._settleTimer);
+    this._settleTimer = window.setTimeout(this._replace, SETTLE_MS);
     // The live region is in the page before its text is set.
     window.setTimeout(() => {
       if (this._dish === dish) {
@@ -222,7 +298,6 @@ export class HaDimSumSurprise extends LitElement {
       return;
     }
     card.style.setProperty("--dim-sum-phone-bar", phoneBarHeight());
-    this._publishHeight();
     try {
       if (!card.matches(":popover-open")) {
         card.showPopover();
@@ -230,15 +305,106 @@ export class HaDimSumSurprise extends LitElement {
     } catch (_err) {
       // The card stays in the page when popovers are not supported.
     }
+    this._clearFloatingControls();
+    this._publishHeight();
   }
+
+  /**
+   * Lifts the card above every control floating over the bottom of the page
+   * (the create button, the floating tool pills, a save or bulk bar), so a
+   * tap meant for one of them never lands on the card.
+   */
+  private _clearFloatingControls() {
+    const card = this._card;
+    if (!card) {
+      return;
+    }
+    card.style.removeProperty(CLEAR_PROPERTY);
+    const rect = card.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      return;
+    }
+    const viewportHeight = window.innerHeight;
+    const base = viewportHeight - rect.bottom;
+    const offset = dimSumClearance({
+      base,
+      cardHeight: rect.height,
+      cardLeft: rect.left,
+      cardRight: rect.right,
+      viewportHeight,
+      floating: this._floatingBoxes(rect.left, rect.right, viewportHeight),
+    });
+    if (offset > base) {
+      card.style.setProperty(CLEAR_PROPERTY, `${Math.ceil(offset)}px`);
+    }
+  }
+
+  /**
+   * The boxes of the fixed or sticky controls under the card's columns in
+   * the lower half of the screen, looking through every shadow root.
+   */
+  private _floatingBoxes(
+    left: number,
+    right: number,
+    viewportHeight: number
+  ): ClearanceBox[] {
+    const columns = [left + 8, (left + right) / 2, right - 8];
+    const seen = new Set<Element>();
+    const fixedCache = new Map<Element, Element | null>();
+    const boxes = new Map<Element, ClearanceBox>();
+    const top = viewportHeight / 2;
+    for (let y = viewportHeight - 2; y > top; y -= SAMPLE_STEP_PX) {
+      for (const x of columns) {
+        seen.clear();
+        collectElementsAt(document, x, y, seen);
+        for (const element of seen) {
+          if (this._ownsElement(element)) {
+            continue;
+          }
+          const floating = nearestFixedAncestor(element, fixedCache);
+          if (!floating || boxes.has(floating) || this._ownsElement(floating)) {
+            continue;
+          }
+          const box = floating.getBoundingClientRect();
+          boxes.set(floating, {
+            top: box.top,
+            bottom: box.bottom,
+            left: box.left,
+            right: box.right,
+          });
+        }
+      }
+    }
+    return [...boxes.values()];
+  }
+
+  private _ownsElement(element: Element): boolean {
+    return (
+      element === this ||
+      element.getRootNode() === this.shadowRoot ||
+      this.contains(element)
+    );
+  }
+
+  private _replace = () => {
+    if (this._dish) {
+      this._place();
+    }
+  };
+
+  // A window being resized fires many events; the card is measured again
+  // once the size has settled.
+  private _handleResize = () => {
+    window.clearTimeout(this._settleTimer);
+    this._settleTimer = window.setTimeout(this._replace, SETTLE_MS);
+  };
 
   /** Tells the page how much room to keep clear under its last row. */
   private _publishHeight() {
-    const narrow = window.innerWidth <= 450 || window.innerHeight <= 500;
     const height = this._dish && this._card ? this._card.offsetHeight + 8 : 0;
     document.documentElement.style.setProperty(
       RESERVED_PROPERTY,
-      narrow ? `${height}px` : "0px"
+      `${height}px`
     );
   }
 
@@ -290,6 +456,8 @@ export class HaDimSumSurprise extends LitElement {
       }
       this._dish = undefined;
       this._expanded = false;
+      window.clearTimeout(this._settleTimer);
+      window.removeEventListener("resize", this._handleResize);
       document.documentElement.style.removeProperty(RESERVED_PROPERTY);
       this._leaving = false;
       this._paused = false;
@@ -412,9 +580,12 @@ export class HaDimSumSurprise extends LitElement {
          above any toast already shown, so it never covers a row or a field. */
       inset: auto;
       inset-inline: 0;
-      inset-block-end: calc(
-        16px + var(--dim-sum-phone-bar, 0px) +
-          var(--ha-toast-reserved-height, 0px)
+      inset-block-end: max(
+        calc(
+          16px + var(--dim-sum-phone-bar, 0px) +
+            var(--ha-toast-reserved-height, 0px)
+        ),
+        var(--dim-sum-clear, 0px)
       );
       margin: 0 auto;
       padding: 0;

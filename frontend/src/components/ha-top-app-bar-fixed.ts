@@ -175,16 +175,32 @@ export const haTopAppBarFixedStyles: CSSResultGroup = [
       margin-inline-start: auto;
     }
 
+    /* The title takes the room the row has left. On a phone it measures its
+       font size against its own width (a size container), so it contributes
+       no width of its own to the row: without growing into the free space it
+       would collapse to nothing and stack one letter per line. */
     .main-title {
       display: flex;
       flex-direction: column;
       justify-content: center;
+      flex: 1 1 auto;
       min-width: 0;
       margin-inline-start: var(--ha-space-4);
       line-height: var(--ha-line-height-condensed);
     }
     :host([narrow]) .main-title {
       margin-inline-start: var(--ha-space-2);
+    }
+    /* On a phone the title stays on one line and ends in an ellipsis only
+       when it is too long even at its smallest size. */
+    :host([narrow]) .main-title .page-title,
+    :host([narrow]) ::slotted([slot="title"]) {
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow-wrap: normal;
     }
     #title .main-title {
       margin-inline-start: var(--ha-space-2);
@@ -273,8 +289,13 @@ export const haTopAppBarFixedStyles: CSSResultGroup = [
       overflow: auto;
     }
 
+    /* A phone page ends clear of the dim sum card while it shows. */
     :host([narrow]) .top-app-bar-fixed-adjust {
       padding-left: var(--safe-area-inset-left);
+      padding-bottom: calc(
+        var(--safe-area-inset-bottom, 0px) +
+          var(--ha-dim-sum-reserved-height, 0px)
+      );
     }
 
     /* Wide pages end in the page footer. */

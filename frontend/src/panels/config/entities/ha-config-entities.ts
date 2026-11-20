@@ -366,6 +366,37 @@ export class HaConfigEntities extends LitElement {
     },
   ]);
 
+  private _renderStatusChip(entry: EntityRow) {
+    if (!(
+      entry.restored ||
+      entry.unavailable ||
+      entry.disabled_by ||
+      entry.hidden_by ||
+      entry.readonly
+    )) {
+      return "";
+    }
+    const problem = entry.unavailable || entry.restored;
+    return html`<span
+      style=${styleMap({
+        display: "inline-block",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        padding: "2px 10px",
+        borderRadius: "999px",
+        fontSize: "var(--ha-font-size-s)",
+        fontWeight: "var(--ha-font-weight-medium)",
+        whiteSpace: "normal",
+        overflowWrap: "anywhere",
+        background: problem
+          ? "color-mix(in srgb, var(--error-color) 18%, var(--primary-background-color))"
+          : "var(--secondary-background-color)",
+        color: problem ? "var(--error-color)" : "var(--secondary-text-color)",
+      })}
+      >${entry.status}</span
+    >`;
+  }
+
   private _columns = memoize(
     (
       localize: LocalizeFunc,
@@ -416,39 +447,14 @@ export class HaConfigEntities extends LitElement {
       },
       status: {
         title: localize("ui.panel.config.entities.picker.headers.status"),
-        showNarrow: true,
+        // On a phone the status joins the line under the name instead of
+        // taking its own column, so the name keeps the width of the row.
+        showNarrow: false,
         sortable: true,
         filterable: true,
         minWidth: "130px",
         maxWidth: "150px",
-        template: (entry) => {
-          if (!(
-            entry.restored ||
-            entry.unavailable ||
-            entry.disabled_by ||
-            entry.hidden_by ||
-            entry.readonly
-          )) {
-            return "";
-          }
-          const problem = entry.unavailable || entry.restored;
-          return html`<span
-            style=${styleMap({
-              display: "inline-block",
-              padding: "2px 10px",
-              borderRadius: "999px",
-              fontSize: "var(--ha-font-size-s)",
-              fontWeight: "var(--ha-font-weight-medium)",
-              background: problem
-                ? "color-mix(in srgb, var(--error-color) 18%, var(--primary-background-color))"
-                : "var(--secondary-background-color)",
-              color: problem
-                ? "var(--error-color)"
-                : "var(--secondary-text-color)",
-            })}
-            >${entry.status}</span
-          >`;
-        },
+        template: (entry) => this._renderStatusChip(entry),
       },
       device: {
         title: localize("ui.panel.config.entities.picker.headers.device"),

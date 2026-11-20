@@ -1318,6 +1318,32 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         :host([narrow][expanded]) ha-list-item-button {
           margin-bottom: 0;
         }
+        /* The phone sheet scrolls as one: the panel list is not a scroller of
+           its own inside it, so no row is ever cut off by the rows fixed at
+           the bottom. The header stays at the top while the sheet scrolls. */
+        :host([narrow][expanded]) {
+          overflow-y: auto;
+        }
+        :host([narrow][expanded]) .menu {
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          flex: none;
+          background-color: var(
+            --sidebar-menu-button-background-color,
+            var(--sidebar-background-color)
+          );
+        }
+        :host([narrow][expanded]) .panels-list,
+        :host([narrow][expanded]) .wrapper {
+          flex: 1 0 auto;
+          min-height: auto;
+        }
+        :host([narrow][expanded]) ha-list-nav.before-spacer {
+          overflow-x: clip;
+          overflow-y: visible;
+          flex: none;
+        }
 
         .spacer {
           margin-top: auto;
@@ -1332,7 +1358,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
           padding: var(--ha-space-1) var(--ha-space-1) var(--ha-space-2);
           margin-left: var(--safe-area-inset-left, 0px);
           color: var(--secondary-text-color);
-          font-size: var(--ha-font-size-xs);
+          font-size: max(var(--ha-font-size-xs), 11px);
           line-height: var(--ha-line-height-condensed);
           text-align: center;
           user-select: text;

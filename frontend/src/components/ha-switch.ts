@@ -105,8 +105,10 @@ export class HaSwitch extends Switch {
           transform: translate(-50%, -50%);
           width: 100%;
           height: 100%;
-          min-width: var(--ha-switch-min-touch-size, 40px);
-          min-height: var(--ha-switch-min-touch-size, 40px);
+          /* The invisible hit area is 48 px tall, without making the drawn
+             switch or the row it sits in any bigger. */
+          min-width: var(--ha-switch-min-touch-size, 48px);
+          min-height: var(--ha-switch-min-touch-size, 48px);
         }
         label.disabled::before {
           pointer-events: none;

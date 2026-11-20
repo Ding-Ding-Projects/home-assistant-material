@@ -441,7 +441,8 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
             ${
               automation.trigger_text
                 ? html`<div
-                    style="color: var(--secondary-text-color); font-size: var(--ha-font-size-s);"
+                    title=${automation.trigger_text}
+                    style="color: var(--secondary-text-color); font-size: var(--ha-font-size-s); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                   >
                     ${automation.trigger_text}
                   </div>`

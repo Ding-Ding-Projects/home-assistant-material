@@ -809,7 +809,11 @@ export class QuickBar extends LitElement {
           "domain_name" in item &&
           (!("stateObj" in item) || !this._showEntityId)
             ? html`
-                <div slot="trailing-supporting-text" class="domain">
+                <div
+                  slot="trailing-supporting-text"
+                  class="domain"
+                  style="align-self: center;"
+                >
                   ${(item as EntityComboBoxItem).domain_name}
                 </div>
               `
@@ -1644,6 +1648,15 @@ export class QuickBar extends LitElement {
 
         @media all and (max-width: 450px), all and (max-height: 690px) {
           .hint:not(:first-child) {
+            display: none;
+          }
+        }
+
+        /* The hints name keys. A narrow touch screen with no keyboard or
+           mouse cannot press them, so they stay out of its way; a phone or
+           tablet with a keyboard or mouse still shows them. */
+        @media (max-width: 450px) and (any-hover: none) and (any-pointer: coarse) {
+          .hints {
             display: none;
           }
         }

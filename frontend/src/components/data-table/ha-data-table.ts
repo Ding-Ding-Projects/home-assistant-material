@@ -162,6 +162,34 @@ const AUTO_FOCUS_ALLOWED_ACTIVE_TAGS = ["BODY", "HTML", "HOME-ASSISTANT"];
 // Default row height, used to fill the viewport with skeleton rows.
 const ROW_HEIGHT = 52;
 
+// How long a finger holds a cut name before its full text shows.
+const LONG_PRESS_MS = 500;
+
+// How long the full text of a held name stays on screen.
+const NAME_PEEK_MS = 4000;
+
+/**
+ * The full text of a cell whose text is cut short, sideways or after its last
+ * allowed line on a phone; undefined when nothing is cut.
+ */
+const cutCellText = (cell: HTMLElement): string | undefined => {
+  const cut = (element: Element | null) =>
+    !!element &&
+    (element.scrollWidth > element.clientWidth + 1 ||
+      element.scrollHeight > element.clientHeight + 1);
+  const primary = cell.querySelector<HTMLElement>(".primary");
+  if (cut(primary)) {
+    return primary!.innerText;
+  }
+  if (
+    cell.scrollWidth > cell.offsetWidth ||
+    (cell.classList.contains("row-button") && cut(cell))
+  ) {
+    return cell.innerText;
+  }
+  return undefined;
+};
+
 /**
  * The selection after the header checkbox changes. With `keepHidden`, only
  * the shown rows are added or removed and hidden ticked rows survive; without
@@ -293,6 +321,22 @@ export class HaDataTable extends LitElement {
 
   // Row count of the data that _filteredData was computed from
   @state() private _filteredDataSourceLength = 0;
+
+  // The full text of a cut name, shown while a finger holds it.
+  @state() private _namePeek?: {
+    text: string;
+    left: number;
+    width: number;
+    bottom: number;
+  };
+
+  private _namePressTimer?: number;
+
+  private _namePeekTimer?: number;
+
+  private _suppressRowClick = false;
+
+  @query(".name-peek") private _namePeekElement?: HTMLDivElement;
 
   @query(".mdc-data-table__header-row") private _headerRow?: HTMLDivElement;
 
@@ -455,9 +499,14 @@ export class HaDataTable extends LitElement {
       cancelAnimationFrame(this._stickyGroupFrame);
       this._stickyGroupFrame = undefined;
     }
+    this._namePressEnd();
+    this._closeNamePeek();
   }
 
   protected updated(changedProps: PropertyValues<this>) {
+    if ((changedProps as PropertyValues).has("_namePeek") && this._namePeek) {
+      this._showNamePeek();
+    }
     // The sticky group header may have just been rendered, and the items may
     // have changed (filter, sort, collapse) without the visible range changing
     this._positionStickyGroupHeader();
@@ -961,6 +1010,22 @@ export class HaDataTable extends LitElement {
           }
         </div>
       </div>
+      ${
+        this._namePeek
+          ? html`<div
+              class="name-peek"
+              popover="manual"
+              aria-hidden="true"
+              style=${styleMap({
+                left: `${this._namePeek.left}px`,
+                width: `${this._namePeek.width}px`,
+                bottom: `${this._namePeek.bottom}px`,
+              })}
+            >
+              ${this._namePeek.text}
+            </div>`
+          : nothing
+      }
     `;
   }
 
@@ -1085,6 +1150,11 @@ export class HaDataTable extends LitElement {
             <div
               @mouseover=${this._setTitle}
               @focus=${this._setTitle}
+              @pointerdown=${this._namePressStart}
+              @pointerup=${this._namePressEnd}
+              @pointercancel=${this._namePressEnd}
+              @pointerleave=${this._namePressEnd}
+              @contextmenu=${this._nameContextMenu}
               role=${column.main ? "rowheader" : "cell"}
               class="mdc-data-table__cell ${classMap(this._cellClasses(column))}"
               style=${styleMap(this._cellStyles(column))}
@@ -1600,6 +1670,11 @@ export class HaDataTable extends LitElement {
   private _handleRowClick = (
     ev: HASSDomCurrentTargetEvent<HTMLElement & { rowId: string }>
   ) => {
+    if (this._suppressRowClick) {
+      // The tap was a hold that showed a cut name.
+      this._suppressRowClick = false;
+      return;
+    }
     if (
       ev
         .composedPath()
@@ -1623,18 +1698,79 @@ export class HaDataTable extends LitElement {
     const target = ev.currentTarget;
     // Cut short sideways, or after its last allowed line on a phone: the
     // full text is one hover or focus away.
-    const cut = (element: Element | null) =>
-      !!element &&
-      (element.scrollWidth > element.clientWidth + 1 ||
-        element.scrollHeight > element.clientHeight + 1);
-    const primary = target.querySelector<HTMLElement>(".primary");
-    if (cut(primary)) {
-      target.setAttribute("title", primary!.innerText);
-    } else if (
-      target.scrollWidth > target.offsetWidth ||
-      (target.classList.contains("row-button") && cut(target))
-    ) {
-      target.setAttribute("title", target.innerText);
+    const text = cutCellText(target);
+    if (text !== undefined) {
+      target.setAttribute("title", text);
+    }
+  }
+
+  // A touch screen has no hover: holding a finger on a cut name shows the
+  // full name above it instead, and that hold does not also open the row.
+  private _namePressStart(ev: PointerEvent) {
+    // A new press starts fresh, even when the last hold never ended in a tap.
+    this._suppressRowClick = false;
+    if (ev.pointerType !== "touch") {
+      return;
+    }
+    const cell = ev.currentTarget as HTMLElement;
+    this._namePressEnd();
+    this._namePressTimer = window.setTimeout(() => {
+      this._namePressTimer = undefined;
+      const text = cutCellText(cell);
+      if (text === undefined || !cell.isConnected) {
+        return;
+      }
+      const rect = cell.getBoundingClientRect();
+      this._suppressRowClick = true;
+      this._namePeek = {
+        text,
+        left: Math.max(rect.left, 8),
+        width: Math.min(rect.width, window.innerWidth - 16),
+        bottom: window.innerHeight - rect.top + 4,
+      };
+      window.clearTimeout(this._namePeekTimer);
+      this._namePeekTimer = window.setTimeout(
+        this._closeNamePeek,
+        NAME_PEEK_MS
+      );
+      window.addEventListener("pointerdown", this._closeNamePeek, {
+        capture: true,
+        once: true,
+      });
+    }, LONG_PRESS_MS);
+  }
+
+  private _namePressEnd() {
+    window.clearTimeout(this._namePressTimer);
+    this._namePressTimer = undefined;
+  }
+
+  private _nameContextMenu(ev: Event) {
+    // The hold that shows a name never also opens the browser's own menu.
+    if (this._namePeek || this._suppressRowClick) {
+      ev.preventDefault();
+    }
+  }
+
+  private _closeNamePeek = () => {
+    window.clearTimeout(this._namePeekTimer);
+    window.removeEventListener("pointerdown", this._closeNamePeek, {
+      capture: true,
+    });
+    this._namePeek = undefined;
+  };
+
+  private _showNamePeek() {
+    const peek = this._namePeekElement;
+    if (!peek) {
+      return;
+    }
+    try {
+      if (!peek.matches(":popover-open")) {
+        peek.showPopover();
+      }
+    } catch (_err) {
+      // Without popovers the name shows in place, above the list.
     }
   }
 
@@ -1669,6 +1805,9 @@ export class HaDataTable extends LitElement {
   @eventOptions({ passive: true })
   private _saveScrollPos(e: HASSDomTargetEvent<HTMLDivElement>) {
     this._savedScrollPos = e.target.scrollTop;
+    if (this._namePeek) {
+      this._closeNamePeek();
+    }
     // The list is the page's only scroller: the layout around it follows it,
     // for example to fold its large title.
     fireEvent(
@@ -2840,6 +2979,28 @@ export class HaDataTable extends LitElement {
           position: relative;
           color: var(--primary-text-color);
         }
+        /* An icon cell with nothing in it (a row that is editable shows no
+           "not editable" mark) draws no tile, and on a phone takes no room,
+           so the name gets that width. */
+        :host([row-cards])
+          .mdc-data-table__cell.mdc-data-table__cell--icon:not(
+            :has(*)
+          )::before {
+          content: none;
+        }
+        :host([row-cards][narrow])
+          .mdc-data-table__cell.mdc-data-table__cell--icon:not(:has(*)) {
+          display: none;
+        }
+        /* On a phone a row's button cell is as wide as its 48 px button and
+           no wider, so the name keeps the rest of the row. */
+        :host([row-cards][narrow]) .mdc-data-table__cell--icon-button {
+          flex: 0 0 48px !important;
+          width: 48px;
+          min-width: 48px;
+          padding: 0;
+          padding-inline: 0;
+        }
         :host([row-cards]) .mdc-data-table__cell--icon::before {
           content: "";
           position: absolute;
@@ -2888,6 +3049,30 @@ export class HaDataTable extends LitElement {
 
         ha-checkbox {
           padding: var(--ha-space-1);
+        }
+        /* A row's select mark keeps its drawn size; its invisible hit area is
+           48 px, so it is easy to tap on a phone. The cell does not clip it. */
+        .mdc-data-table__row-checkbox {
+          --ha-checkbox-min-touch-size: 48px;
+        }
+        /* The full text of a held name, just above it. */
+        .name-peek {
+          position: fixed;
+          inset: auto;
+          margin: 0;
+          box-sizing: border-box;
+          max-width: calc(100vw - 16px);
+          padding: var(--ha-space-2) var(--ha-space-3);
+          border: 0;
+          border-radius: var(--ha-border-radius-lg);
+          background: var(--primary-text-color);
+          color: var(--primary-background-color);
+          font-size: var(--ha-font-size-m);
+          line-height: var(--ha-line-height-normal);
+          white-space: normal;
+          overflow-wrap: anywhere;
+          box-shadow: var(--ha-box-shadow-m);
+          pointer-events: none;
         }
       `,
     ];

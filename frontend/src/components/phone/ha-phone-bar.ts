@@ -2549,8 +2549,10 @@ export class HaPhoneBar extends LitElement {
       max-width: 100%;
       overflow-wrap: anywhere;
     }
+    /* Two lines in both-languages mode, but never under 11 px: a line that
+       does not fit the item wraps instead of shrinking further. */
     .item-label:has(.item-line + .item-line) {
-      font-size: var(--ha-font-size-xs, 11px);
+      font-size: max(var(--ha-font-size-xs, 11px), 11px);
     }
     .item:has(.item-line + .item-line) .glyph {
       height: 26px;

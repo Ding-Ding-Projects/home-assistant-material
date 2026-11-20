@@ -13,6 +13,7 @@ import { styleMap } from "lit/directives/style-map";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
+import { restoreScroll } from "../../../common/decorators/restore-scroll";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import { ctrlOrCmdLabel } from "../../../common/keyboard/ctrl-or-cmd";
 import { ShortcutManager } from "../../../common/keyboard/shortcuts";
@@ -33,7 +34,10 @@ import "../../../components/ha-menu-button";
 import "../../../components/ha-tip";
 import { navigate } from "../../../common/navigate";
 import { searchCountText } from "../../../components/ha-top-bar-search";
-import type { HASSDomEvent } from "../../../common/dom/fire_event";
+import type {
+  HASSDomEvent,
+  HASSDomTargetEvent,
+} from "../../../common/dom/fire_event";
 import "../../../components/page/ha-page-footer";
 import "../../../components/page/ha-page-lock-banner";
 import "../../../components/page/ha-page-tools";
@@ -152,6 +156,12 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
   @property({ attribute: false }) public cloudStatus?: CloudStatus;
 
   @state() private _tip?: string;
+
+  // Opening a tile and coming back returns to the same place in the list,
+  // as on the pages built on the shared subpage layouts. The decorator reads
+  // the value; the compiler cannot see that.
+  // @ts-ignore
+  @restoreScroll(".content") private _savedScrollPos?: number;
 
   @state() private _repairsIssues: DashboardSummary<"issues", RepairsIssue> = {
     issues: [],
@@ -427,7 +437,11 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
         </ha-dropdown>
       </header>
       ${locked ? html`<ha-page-lock-banner></ha-page-lock-banner>` : nothing}
-      <div class="content ha-scrollbar" ?inert=${locked}>
+      <div
+        class="content ha-scrollbar"
+        ?inert=${locked}
+        @scroll=${this._saveScrollPos}
+      >
         <section class="hero rise">
           <h1>${title}</h1>
         </section>
@@ -543,6 +557,10 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           : html`<ha-page-footer .locked=${locked}></ha-page-footer>`
       }
     `;
+  }
+
+  private _saveScrollPos(ev: HASSDomTargetEvent<HTMLDivElement>): void {
+    this._savedScrollPos = ev.target.scrollTop;
   }
 
   private _openSearch(ev: Event): void {

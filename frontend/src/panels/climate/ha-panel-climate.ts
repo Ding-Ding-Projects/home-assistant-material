@@ -181,7 +181,10 @@ class PanelClimate extends LitElement {
         hui-view-container {
           position: relative;
           display: flex;
-          min-height: 100vh;
+          /* Fill the scrolling area, not the whole window: the window
+             height sits below the header, so 100vh left a screen of empty
+             space after the last card. */
+          min-height: 100%;
           box-sizing: border-box;
         }
         hui-view {

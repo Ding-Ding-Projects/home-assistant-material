@@ -37,6 +37,7 @@ import "../../../components/ha-card";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
+import "../../../components/ha-icon";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-icon-button-next";
 import "../../../components/ha-icon-next";
@@ -425,14 +426,7 @@ class HaConfigAreaPage extends LitElement {
         .hass=${this.hass}
         .narrow=${this.narrow}
         back-path="/config/areas/dashboard"
-        .header=${html`${
-          area.icon
-            ? html`<ha-icon
-                .icon=${area.icon}
-                style="margin-inline-end: 8px;"
-              ></ha-icon>`
-            : nothing
-        }${area.name}`}
+        .header=${area.name}
       >
         <ha-dropdown slot="toolbar-icon" @wa-select=${this._handleMenuAction}>
           <ha-icon-button
@@ -481,7 +475,16 @@ class HaConfigAreaPage extends LitElement {
           >
             <div class="hero-text">
               ${floor ? html`<span class="eyebrow">${floor.name}</span>` : nothing}
-              <h1>${area.name}</h1>
+              <h1>
+                ${
+                  area.icon
+                    ? html`<ha-icon
+                        class="area-icon"
+                        .icon=${area.icon}
+                      ></ha-icon>`
+                    : nothing
+                }${area.name}
+              </h1>
               ${
                 heroSentences.length
                   ? html`<p>${heroSentences.join(" ")}</p>`
@@ -1035,6 +1038,11 @@ class HaConfigAreaPage extends LitElement {
           font-size: var(--ha-font-size-4xl);
           font-weight: var(--ha-font-weight-normal);
           line-height: var(--ha-line-height-condensed);
+        }
+        .area-icon {
+          --mdc-icon-size: 1em;
+          margin-inline-end: var(--ha-space-2);
+          vertical-align: -0.1em;
         }
         .hero p {
           margin: 0;

@@ -293,10 +293,18 @@ class HaConfigProblemLog extends LitElement {
         <dl>
           <dt>${this._l("first_seen")}</dt>
           <dd>${problem.first_seen}</dd>
-          <dt>${this._l("logger")}</dt>
-          <dd>${problem.logger ?? ""}</dd>
-          <dt>${this._l("version")}</dt>
-          <dd>${problem.version ?? ""}</dd>
+          ${
+            problem.logger
+              ? html`<dt>${this._l("logger")}</dt>
+                  <dd>${problem.logger}</dd>`
+              : nothing
+          }
+          ${
+            problem.version
+              ? html`<dt>${this._l("version")}</dt>
+                  <dd>${problem.version}</dd>`
+              : nothing
+          }
           <dt>${this._l("file")}</dt>
           <dd>${problem.file}</dd>
         </dl>

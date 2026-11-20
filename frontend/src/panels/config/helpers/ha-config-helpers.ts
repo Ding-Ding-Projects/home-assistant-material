@@ -976,7 +976,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
         ${this._modeLocalize("ui.panel.config.helpers.picker.create_title")}
       </h2>
       <ul class="kinds">
-        ${(this.narrow ? kinds.slice(0, 3) : kinds).map(
+        ${kinds.map(
           (kind) =>
             html`<li>
               <button
@@ -1950,6 +1950,44 @@ ${rejected
         .kind-description {
           color: var(--secondary-text-color);
           font-size: var(--ha-font-size-s);
+        }
+        /* On a phone the card must not take the list's room: the title and
+           the "see all" button share one line, and the kinds sit in a single
+           row that scrolls sideways inside the card. */
+        hass-tabs-subpage-data-table.narrow .create-card {
+          flex-direction: row;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-2);
+          margin: 0 var(--ha-space-3) var(--ha-space-2);
+          padding: var(--ha-space-3);
+        }
+        hass-tabs-subpage-data-table.narrow .create-card h2 {
+          flex: 1 1 auto;
+          min-width: 0;
+          font-size: var(--ha-font-size-m);
+          overflow-wrap: anywhere;
+        }
+        hass-tabs-subpage-data-table.narrow .create-card ha-button {
+          flex: none;
+        }
+        hass-tabs-subpage-data-table.narrow .kinds {
+          order: 1;
+          flex: 1 0 100%;
+          display: flex;
+          gap: var(--ha-space-2);
+          min-width: 0;
+          overflow-x: auto;
+          overscroll-behavior-x: contain;
+          scroll-snap-type: x proximity;
+          scrollbar-width: none;
+        }
+        hass-tabs-subpage-data-table.narrow .kinds li {
+          flex: 0 0 min(240px, 78%);
+          scroll-snap-align: start;
+        }
+        hass-tabs-subpage-data-table.narrow .kind {
+          height: 100%;
         }
       `,
     ];

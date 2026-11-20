@@ -1500,7 +1500,8 @@ export class HaTwoKeyConfirm extends LitElement {
       }
       .caption,
       .note {
-        font-size: var(--ha-font-size-xs, 0.75rem);
+        font-size: max(var(--ha-font-size-xs, 0.75rem), 11px);
+        overflow-wrap: anywhere;
       }
       .hint {
         padding-inline: 72px var(--ha-space-2);

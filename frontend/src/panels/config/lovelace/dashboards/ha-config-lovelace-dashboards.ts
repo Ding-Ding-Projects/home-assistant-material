@@ -262,7 +262,7 @@ export class HaConfigLovelaceDashboards extends LitElement {
               `,
           extraTemplate: (dashboard) =>
             html`<span
-              style="display: block; color: var(--secondary-text-color); font-size: var(--ha-font-size-s);"
+              style="display: block; color: var(--secondary-text-color); font-size: var(--ha-font-size-s); white-space: normal; overflow-wrap: anywhere;"
               >/${dashboard.url_path}${
                 dashboard.hidden_now
                   ? html` ·
@@ -333,8 +333,10 @@ export class HaConfigLovelaceDashboards extends LitElement {
         ),
         sortable: true,
         showNarrow: true,
-        minWidth: "100px",
-        maxWidth: "120px",
+        // On a phone the column is only as wide as the switch, so the name
+        // keeps the room.
+        minWidth: narrow ? "64px" : "100px",
+        maxWidth: narrow ? "64px" : "120px",
         template: (dashboard) => html`
           <ha-switch
             .checked=${dashboard.show_in_sidebar}
@@ -667,10 +669,13 @@ export class HaConfigLovelaceDashboards extends LitElement {
     }
     return html`<div
       role="cell"
-      style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 4px 16px; border-radius: 16px; background: var(--secondary-background-color); color: var(--secondary-text-color);"
+      style="display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; box-sizing: border-box; padding: 8px 16px; border-radius: 16px; background: var(--secondary-background-color); color: var(--secondary-text-color); white-space: normal; overflow-wrap: anywhere;"
     >
-      <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
-      <span
+      <ha-svg-icon
+        style="flex: none;"
+        .path=${mdiInformationOutline}
+      ></ha-svg-icon>
+      <span style="flex: 1; min-width: 0;"
         >${this.hass.localize(
           "ui.panel.config.lovelace.dashboards.picker.resources_note",
           { count: this._resourceCount }

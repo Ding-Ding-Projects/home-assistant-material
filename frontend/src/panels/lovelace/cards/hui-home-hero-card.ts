@@ -637,6 +637,9 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
       display: block;
     }
     .heroes {
+      /* The columns follow the card's own width, not the window's: on a
+         tablet the card can be a third of the screen. */
+      container-type: inline-size;
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: var(--ha-space-3);
@@ -786,6 +789,7 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
     }
     .steps {
       display: flex;
+      flex-wrap: wrap;
       gap: var(--ha-space-2);
     }
     .step {
@@ -877,6 +881,16 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
       .hero.needs,
       .hero.room {
         grid-column: auto;
+      }
+    }
+    /* Too narrow for two 240 px columns: a hero that would span two
+       columns takes the one full row instead, so it never adds a thin
+       implicit column that squeezes the next hero (the media card) under
+       240 px. */
+    @container (max-width: 491px) {
+      .hero.needs,
+      .hero.room {
+        grid-column: 1 / -1;
       }
     }
   `;
