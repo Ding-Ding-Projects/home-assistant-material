@@ -174,6 +174,7 @@ export class HaGoingBackPanel extends LitElement {
           .hass=${this.hass}
           .build=${this.build}
           @super-make-backup=${this._backToConfirm}
+          @super-cancel=${this._cancel}
           @super-confirmed=${this._goWithoutBackup}
         ></ha-going-back-super-confirm>`;
       case "failed":

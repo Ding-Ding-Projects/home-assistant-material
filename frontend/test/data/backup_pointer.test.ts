@@ -99,6 +99,41 @@ describe("pointerRows", () => {
     expect(canRestore(rows[0])).toBe(false);
   });
 
+  it("calls an unlisted pointer unknown when its registry did not answer", () => {
+    const rows = pointerRows([], {
+      pointers: { gone: pointer("gone", "2026-11-11T04:45:00Z") },
+      kept: {},
+      places,
+      unreachable: [REGISTRY],
+    });
+    expect(rows[0].state).toBe("unknown");
+    expect(canRestore(rows[0])).toBe(true);
+    expect(rowsOnThisSystem(rows)).toHaveLength(1);
+  });
+
+  it("calls an unlisted pointer unknown when its registry is not loaded", () => {
+    const rows = pointerRows([], {
+      pointers: { gone: pointer("gone", "2026-11-11T04:45:00Z") },
+      kept: {},
+      places: [],
+    });
+    expect(rows[0].state).toBe("unknown");
+    expect(canRestore(rows[0])).toBe(true);
+  });
+
+  it("keeps a pointer the check found missing as missing, reached or not", () => {
+    const rows = pointerRows([], {
+      pointers: {
+        gone: pointer("gone", "2026-11-11T04:45:00Z", "missing"),
+      },
+      kept: {},
+      places,
+      unreachable: [REGISTRY],
+    });
+    expect(rows[0].state).toBe("missing");
+    expect(canRestore(rows[0])).toBe(false);
+  });
+
   it("marks a pointer the daily check found missing, and never offers a restore", () => {
     const rows = pointerRows(
       [backup("b", "2026-11-11T04:45:00Z", { [REGISTRY]: 400 })],

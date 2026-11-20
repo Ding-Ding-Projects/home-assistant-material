@@ -1,5 +1,6 @@
 """Tests for keeping only a pointer on this disk for backups in the registry."""
 
+import asyncio
 import errno
 import hashlib
 import json
@@ -417,7 +418,9 @@ async def test_counts_and_self_check_treat_pointers_apart(hass: HomeAssistant) -
     await manager.pointers.async_run_pass()
 
     backups, _ = await manager.async_get_backups()
-    summary = manager.pointers.summary(backups)
+    summary = manager.pointers.summary(
+        {backup_id: list(backup.agents) for backup_id, backup in backups.items()}
+    )
     assert summary["whole_here"] == 1
     assert summary["pointers"] == 1
     assert 0 < summary["saved_bytes"] < len(data)
@@ -525,6 +528,64 @@ async def test_settings_and_info_over_websocket(
     assert info["summary"]["whole_here"] == 0
     assert info["pointers"][OLD_ID]["restorable"] is True
     assert info["places"] == [{"agent_id": agent.agent_id, "name": agent.name}]
+
+
+@pytest.mark.usefixtures("patch_session")
+async def test_info_names_a_registry_that_did_not_answer(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A registry that fails to list is reported unreachable; the pointer is not called missing."""
+    manager, entry = await _setup_all(hass)
+    agent = _registry_agent(manager, entry)
+    await _add_backup(hass, manager, agent, OLD_ID)
+    await _enable(manager)
+    assert await manager.pointers.async_run_pass() == {OLD_ID: "pointer"}
+    client = await hass_ws_client(hass)
+
+    with patch.object(
+        agent,
+        "async_list_backups",
+        AsyncMock(side_effect=RegistryError(Reason.UNAVAILABLE)),
+    ):
+        await client.send_json_auto_id({"type": "backup/pointer/info"})
+        info = (await client.receive_json())["result"]
+
+    assert info["unreachable"] == [agent.agent_id]
+    assert info["pointers"][OLD_ID]["restorable"] is True
+    assert info["summary"]["missing"] == 0
+
+
+@pytest.mark.usefixtures("patch_session")
+async def test_info_does_not_wait_for_a_silent_registry(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A registry that never answers holds the page only for the short limit."""
+    manager, entry = await _setup_all(hass)
+    agent = _registry_agent(manager, entry)
+    await _add_backup(hass, manager, agent, OLD_ID)
+    await _add_backup(hass, manager, None, NEW_ID, year=2027)
+    await _enable(manager)
+    assert (await manager.pointers.async_run_pass())[OLD_ID] == "pointer"
+    client = await hass_ws_client(hass)
+
+    async def never(**kwargs: Any) -> list[Any]:
+        await asyncio.Event().wait()
+        return []
+
+    with (
+        patch.object(agent, "async_list_backups", never),
+        patch(
+            "homeassistant.components.backup.pointer_websocket.INFO_LIST_TIMEOUT",
+            0.05,
+        ),
+    ):
+        await client.send_json_auto_id({"type": "backup/pointer/info"})
+        info = (await client.receive_json())["result"]
+
+    assert info["unreachable"] == [agent.agent_id]
+    assert info["summary"]["pointers"] == 1
+    assert info["summary"]["whole_here"] == 1
+    assert info["pointers"][OLD_ID]["restorable"] is True
 
 
 async def _pointer_ready(hass: HomeAssistant) -> tuple[BackupManager, bytes]:

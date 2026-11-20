@@ -30,10 +30,13 @@ declare global {
     "super-confirmed": undefined;
     /** The person chose to make a backup instead. */
     "super-make-backup": undefined;
+    /** The person left the super confirmation without going back. */
+    "super-cancel": undefined;
   }
 }
 
 const PREFIX = "ui.panel.config.updates.history.super";
+const CANCEL_KEY = "ui.panel.config.updates.history.cancel";
 
 /**
  * The only way to go back without a backup: two keys and the slider, then
@@ -61,11 +64,13 @@ export class HaGoingBackSuperConfirm extends LitElement {
   public connectedCallback(): void {
     super.connectedCallback();
     document.addEventListener("visibilitychange", this._visibility);
+    this.addEventListener("keydown", this._escape);
   }
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     document.removeEventListener("visibilitychange", this._visibility);
+    this.removeEventListener("keydown", this._escape);
     this._restart();
   }
 
@@ -100,6 +105,9 @@ export class HaGoingBackSuperConfirm extends LitElement {
         ${SUPER_STEPS.map((step, index) => this._renderStep(step, index))}
       </ol>
       <div class="actions">
+        <ha-button appearance="plain" @click=${this._cancel}>
+          ${this._lang.text(this.hass.localize, CANCEL_KEY)}
+        </ha-button>
         <ha-button
           variant="brand"
           appearance="filled"
@@ -205,6 +213,19 @@ export class HaGoingBackSuperConfirm extends LitElement {
 
   private _makeBackup = () => {
     fireEvent(this, "super-make-backup");
+  };
+
+  // Cancel and Escape leave everything as it was: nothing is started and the
+  // progress of the steps is dropped with this panel.
+  private _cancel = () => {
+    fireEvent(this, "super-cancel");
+  };
+
+  private _escape = (ev: KeyboardEvent) => {
+    if (ev.key === "Escape" && !ev.defaultPrevented) {
+      ev.preventDefault();
+      this._cancel();
+    }
   };
 
   private _confirm = () => {

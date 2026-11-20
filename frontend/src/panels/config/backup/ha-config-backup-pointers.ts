@@ -89,6 +89,9 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
 
   @state() private _transferError?: string;
 
+  /** The success line of the last bring back from this page, until the next one. */
+  @state() private _transferDone?: string;
+
   /** The backup whose bring back was asked for, until the first progress arrives. */
   @state() private _starting?: string;
 
@@ -486,7 +489,8 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
               ? mdiArchiveOutline
               : row.state === "missing"
                 ? mdiLinkVariantRemove
-                : row.pointer?.check_state === "unknown"
+                : row.state === "unknown" ||
+                    row.pointer?.check_state === "unknown"
                   ? mdiLinkVariantOff
                   : mdiLinkVariant;
           const sub =
@@ -494,12 +498,14 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
               ? this._t(row.in_registry ? "row_whole_in_registry" : "row_whole")
               : row.state === "missing"
                 ? this._t("row_missing")
-                : row.pointer?.check_state === "unknown"
-                  ? this._t("row_unknown")
-                  : this._t("row_pointer", {
-                      size: bytesToString(row.size, 0),
-                      here: bytesToString(row.pointer?.stored_size ?? 0, 0),
-                    });
+                : row.state === "unknown"
+                  ? this._t("row_unreachable")
+                  : row.pointer?.check_state === "unknown"
+                    ? this._t("row_unknown")
+                    : this._t("row_pointer", {
+                        size: bytesToString(row.size, 0),
+                        here: bytesToString(row.pointer?.stored_size ?? 0, 0),
+                      });
           const sizeText =
             row.state === "whole" ? ` · ${bytesToString(row.size, 0)}` : "";
           return html`
@@ -605,6 +611,13 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
                   >${this._t("bring_back")}</ha-button
                 >
               </div>
+              ${
+                row.state === "unknown"
+                  ? html`<ha-alert alert-type="warning"
+                      >${this._t("unreachable_hint")}</ha-alert
+                    >`
+                  : nothing
+              }
               <p class="hint">${this._t("restore_hint")}</p>`
           : html`<ha-alert alert-type="error"
               >${this._t("not_restorable")}</ha-alert
@@ -638,13 +651,14 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
         </div>
       </div>`;
     }
-    if (!transfer && !this._transferError) {
-      return nothing;
-    }
     if (!transfer || transfer.state !== "in_progress") {
       return this._transferError
         ? html`<ha-alert alert-type="error">${this._transferError}</ha-alert>`
-        : nothing;
+        : this._transferDone
+          ? html`<ha-alert alert-type="success" role="status"
+              >${this._transferDone}</ha-alert
+            >`
+          : nothing;
     }
     const backup = this._info?.pointers[transfer.backup_id];
     const date = backup ? this._time(backup.date) : transfer.backup_id;
@@ -791,6 +805,7 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
 
   private async _transferTo(backupId: string, restore: boolean): Promise<void> {
     this._transferError = undefined;
+    this._transferDone = undefined;
     this._restoring = restore ? backupId : undefined;
     this._starting = backupId;
     try {
@@ -807,6 +822,11 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
       this._starting = undefined;
     }
     fireEvent(this, "ha-refresh-backup-info");
+    // The row becomes whole and leaves the detail panel, so the result stays
+    // on the page as its own line, not only as a passing toast.
+    this._transferDone = this._t(
+      restore ? "brought_back_restore" : "brought_back"
+    );
     showToast(this, {
       message: this._t(restore ? "brought_back_restore" : "brought_back"),
     });
@@ -955,6 +975,9 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
     }
     .tile.missing {
       color: var(--error-color);
+    }
+    .tile.unknown {
+      color: var(--warning-color);
     }
     .actions,
     .buttons {

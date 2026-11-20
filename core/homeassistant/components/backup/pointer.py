@@ -28,7 +28,7 @@ Rules kept here:
 
 import asyncio
 from collections import Counter
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import timedelta
 import errno
@@ -956,13 +956,16 @@ class BackupPointers:
         del self._state.pointers[backup_id]
         self._hass.async_create_task(self._async_save(), eager_start=True)
 
-    def summary(self, backups: dict[str, ManagerBackup]) -> dict[str, Any]:
-        """Return the honest counts the page shows."""
+    def summary(self, backups: Mapping[str, Iterable[str]]) -> dict[str, Any]:
+        """Return the honest counts the page shows.
+
+        ``backups`` maps each backup id to the agents that list it.
+        """
         local_ids = self.local_agent_ids()
         whole_here = [
             backup_id
-            for backup_id, backup in backups.items()
-            if any(agent_id in local_ids for agent_id in backup.agents)
+            for backup_id, agent_ids in backups.items()
+            if any(agent_id in local_ids for agent_id in agent_ids)
         ]
         pointers = self._state.pointers.values()
         return {

@@ -173,16 +173,20 @@ export class DialogEntrySettingsExport extends LitElement {
                     <ha-switch
                       .accessibleLabel=${this._t("settings_export.signins")}
                       .checked=${this._withSignins}
-                      .disabled=${this._busy}
+                      .disabled=${this._busy || !signins.length}
                       @change=${this._toggleSignins}
                     ></ha-switch>
                   </ha-settings-row>
-                  <ha-alert
-                    alert-type="warning"
-                    .title=${this._t("settings_export.locked_title")}
-                  >
-                    ${this._t("settings_export.locked_text")}
-                  </ha-alert>
+                  ${
+                    signins.length
+                      ? html`<ha-alert
+                          alert-type="warning"
+                          .title=${this._t("settings_export.locked_title")}
+                        >
+                          ${this._t("settings_export.locked_text")}
+                        </ha-alert>`
+                      : nothing
+                  }
                   ${
                     this._withSignins
                       ? html`

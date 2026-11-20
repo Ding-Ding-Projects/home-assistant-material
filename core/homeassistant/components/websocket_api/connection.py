@@ -48,6 +48,8 @@ REDACT_KEYS = {
     "auth_token",
     # Sent by the Google setup page; holds a private key.
     "service_account_key",
+    # Sent by the problem log page; the owner's own wording file.
+    "wording_entries",
 }
 
 type MessageHandler = Callable[[HomeAssistant, ActiveConnection, dict[str, Any]], None]

@@ -291,7 +291,7 @@ async def ws_create(
     {
         probatio.Required("type"): "problem_log/send/wording",
         # Checked in full by the sender; never logged or returned.
-        probatio.Required("entries"): probatio.Any(None, dict),
+        probatio.Required("wording_entries"): probatio.Any(None, dict),
     }
 )
 @websocket_api.async_response
@@ -303,7 +303,7 @@ async def ws_wording(
     sender: ProblemLogSender,
 ) -> dict[str, Any]:
     """Keep the owner's wording for what is sent, or delete the kept copy."""
-    await sender.async_set_wording(msg["entries"])
+    await sender.async_set_wording(msg["wording_entries"])
     return await sender.async_state()
 
 

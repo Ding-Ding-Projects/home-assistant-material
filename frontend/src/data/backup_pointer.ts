@@ -110,6 +110,11 @@ export interface BackupPointerInfo {
   revision?: number;
   places: { agent_id: string; name: string }[];
   local_agent_ids: string[];
+  /**
+   * Places that did not answer when the backups were listed, or did not answer
+   * in time. A pointer whose backup is not listed is then unknown, not missing.
+   */
+  unreachable?: string[];
 }
 
 export const KEEP_WHOLE_CHOICES: KeepWhole[] = [0, 1, 3];
@@ -183,8 +188,12 @@ export const passResult = (
   return { made, kept };
 };
 
-/** Whole here, a pointer, a pointer whose registry copy is missing, or not checked. */
-export type PointerRowState = "whole" | "pointer" | "missing" | "elsewhere";
+/**
+ * Whole here, a pointer, a pointer whose registry copy is missing, a pointer
+ * whose registry could not be reached just now, or a backup not on this system.
+ */
+export type PointerRowState =
+  "whole" | "pointer" | "missing" | "unknown" | "elsewhere";
 
 export interface PointerRow {
   backup_id: string;
@@ -207,13 +216,19 @@ const localSize = (backup: BackupContent): number | undefined => {
 /**
  * One row per backup, newest first. A pointer whose backup no place lists
  * any more still gets its row, so a missing registry copy is shown, never
- * dropped. A pointer is never counted as a copy here.
+ * dropped. When its registry is not loaded or did not answer, the row is
+ * unknown rather than missing: the copy may well still be there. A pointer is
+ * never counted as a copy here.
  */
 export const pointerRows = (
   backups: BackupContent[],
-  info: Pick<BackupPointerInfo, "pointers" | "kept" | "places">
+  info: Pick<BackupPointerInfo, "pointers" | "kept" | "places"> &
+    Partial<Pick<BackupPointerInfo, "unreachable">>
 ): PointerRow[] => {
   const places = new Set(info.places.map((place) => place.agent_id));
+  const unreachable = new Set(info.unreachable ?? []);
+  const reached = (agentId: string): boolean =>
+    places.has(agentId) && !unreachable.has(agentId);
   const rows: PointerRow[] = [];
   const seen = new Set<string>();
   for (const backup of backups) {
@@ -248,7 +263,10 @@ export const pointerRows = (
       backup_id: pointer.backup_id,
       name: pointer.name,
       date: pointer.date,
-      state: "missing",
+      state:
+        pointer.check_state === "missing" || reached(pointer.agent_id)
+          ? "missing"
+          : "unknown",
       size: pointer.size,
       pointer,
       in_registry: false,
@@ -261,9 +279,13 @@ export const pointerRows = (
 export const rowsOnThisSystem = (rows: PointerRow[]): PointerRow[] =>
   rows.filter((row) => row.state !== "elsewhere");
 
-/** A pointer can be restored only while its registry copy was last found. */
+/**
+ * A pointer can be restored unless its registry copy was found missing. When
+ * the registry could not be reached, trying again is still offered.
+ */
 export const canRestore = (row: PointerRow): boolean =>
-  row.state === "pointer" && !!row.pointer?.restorable;
+  (row.state === "pointer" || row.state === "unknown") &&
+  !!row.pointer?.restorable;
 
 /** Reasons the page has wording for; anything else reads as "unknown". */
 export const KEPT_REASONS = [

@@ -1,11 +1,14 @@
 """Tests for setup, unload, removal and diagnostics."""
 
+import asyncio
 import json
+from unittest.mock import patch
 
 import pytest
 from pytest_homeassistant.common import MockConfigEntry
 
 from homeassistant.components.registry_storage import async_get_store
+from homeassistant.components.registry_storage.client import RegistryClient
 from homeassistant.components.registry_storage.const import (
     CONF_ADDRESS,
     CONF_KEY_REF,
@@ -88,6 +91,24 @@ async def test_registry_down_retries(
     for _ in range(8):
         registry.fail("GET", 503)
     assert not await hass.config_entries.async_setup(entry.entry_id)
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+
+
+@pytest.mark.usefixtures("patch_session")
+async def test_silent_registry_retries_within_the_bound(hass: HomeAssistant) -> None:
+    """A registry that never answers ends the setup attempt after the bound, as a retry."""
+    entry = await _entry(hass)
+
+    async def never(self: RegistryClient, repository: str) -> None:
+        await asyncio.Event().wait()
+
+    with (
+        patch.object(RegistryClient, "async_check_credentials", never),
+        patch(
+            "homeassistant.components.registry_storage.SETUP_CHECK_TIMEOUT", 0.05
+        ),
+    ):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
     assert entry.state is ConfigEntryState.SETUP_RETRY
 
 

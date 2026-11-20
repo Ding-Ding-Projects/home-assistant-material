@@ -4,7 +4,9 @@ Everything is encrypted at home with a password before it is sent to a container
 registry, so the registry can be a free public one.
 """
 
+import asyncio
 from dataclasses import dataclass
+from typing import Final
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -29,6 +31,10 @@ from .errors import Reason, RegistryError
 from .store import KeyStore, RegistryStore, StorageSettings
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+# Seconds one setup attempt may spend checking the registry before it is
+# retried later.
+SETUP_CHECK_TIMEOUT: Final = 30.0
 
 
 @dataclass
@@ -75,7 +81,17 @@ async def async_setup_entry(
     )
     settings = settings_from_entry(entry)
     try:
-        await client.async_check_credentials(settings.default_repository)
+        # Without a bound, a silent registry keeps one setup attempt (and the
+        # entry's "Initialising" state) for several minutes of request
+        # timeouts, which also holds back the next scheduled retry.
+        async with asyncio.timeout(SETUP_CHECK_TIMEOUT):
+            await client.async_check_credentials(settings.default_repository)
+    except TimeoutError as err:
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="registry_not_ready",
+            translation_placeholders={"reason": str(Reason.TIMEOUT)},
+        ) from err
     except RegistryError as err:
         if err.reason == Reason.AUTH_FAILED:
             raise ConfigEntryAuthFailed(

@@ -96,11 +96,65 @@ With no network the daily check records "could not be reached" and nothing
 changes. Restore and bring back need the registry to answer; that is why the
 newest backup is kept whole by default.
 
+## When the registry cannot be reached
+
+The page reads the backups through `backup/pointer/info`, which asks every
+place to list its backups. That listing waits at most 10 seconds. If it takes
+longer, the page is still shown: only the backups on this system are listed,
+and every registry place is reported in `unreachable`. A registry place whose
+listing fails, or that is not loaded at all (for example while its entry is
+waiting to retry setup), is treated the same way.
+
+A pointer whose backup no place lists is shown as follows:
+
+- Its registry place answered and does not list it: **missing** ("the
+  registry copy is missing"). Restore and Bring back are not offered.
+- Its registry place did not answer, did not answer in time, or is not
+  loaded: **unknown** ("the registry could not be reached, so whether its copy
+  is there is not known"). Restore and Bring back stay available; they ask the
+  registry again, and if it still does not answer the failure line says to try
+  again later. The page never calls such a pointer missing.
+- A pointer the daily check found missing stays missing either way.
+
+After a successful bring back, the page keeps the line "Brought back and
+checked. It is whole on this disk again." under the detail panel until the
+next bring back starts, because the row leaves the pointer list at once.
+
+## Why a bring back failed
+
+A failed bring back answers with one of these reason codes, and the page shows
+the matching sentence. The log line names the backup, the registry place, the
+step that failed, how many bytes had arrived, the reason code and the
+technical error (for a disk error, its errno name such as `EACCES`).
+
+| Reason | Meaning |
+| --- | --- |
+| `registry_copy_missing` | The registry no longer has the backup |
+| `place_not_loaded` | The registry place is not loaded |
+| `registry_refused` | The registry refused the sign-in |
+| `no_answer` | The registry did not answer (or was busy) |
+| `timed_out` | The registry took too long to answer |
+| `failed` | The registry copy is damaged |
+| `check_failed` | The copy that came back did not match its size or check value, was not a readable backup, or was another backup; it is removed again |
+| `disk_full` | This disk is full (`ENOSPC`, `EDQUOT`) |
+| `disk_refused` | Writing or moving the copy was not allowed, or another program held the file (`EACCES`, `EPERM`, `EROFS`, `EBUSY`, `ETXTBSY`); the final move is tried four times, half a second apart |
+| `disk_error` | Any other disk error |
+| `not_a_pointer` | The backup is already whole here |
+| `not_local` | There is no local backup location to bring it back to |
+| `unknown` | Anything else; the log names the error |
+
+The steps named in the log are: asking the registry for the copy, receiving
+the copy into the temporary folder, writing the copy into the backup folder,
+reading the copy that came back, moving the copy into place, and listing the
+copy in the local backup location (or, on a supervised installation,
+registering the copy with the local backup location). A partly written copy is
+always removed.
+
 ## Websocket commands
 
 | Command | Does |
 | --- | --- |
-| `backup/pointer/info` | Setting, availability, honest counts, every pointer with `restorable`, the last kept-whole reasons, the current transfer |
+| `backup/pointer/info` | Setting, availability, honest counts, every pointer with `restorable`, the last kept-whole reasons, the current transfer, and `unreachable`: the places that failed to list their backups or did not answer within 10 seconds |
 | `backup/pointer/settings` | `enabled`, `keep_whole` (0, 1 or 3); turning on without a registry place answers `no_registry_place` |
 | `backup/pointer/run` | Runs a pass now and returns each outcome |
 | `backup/pointer/check` | Runs the daily check now |
@@ -126,9 +180,11 @@ newest backup is kept whole by default.
 ## Verification
 
 - Core tests: `core/tests/components/registry_storage/test_backup_pointer.py`
-  (27 tests against the in-memory registry: verified swap, each failure keeps
+  (against the in-memory registry: verified swap, each failure keeps
   the whole copy, newest kept whole, no secret in the pointer, bring back and
   restore byte for byte, missing copy detected, delete proof, going back,
-  retention, counts and self-check, admin only).
+  retention, counts and self-check, admin only, a registry that fails to list
+  reported as unreachable, and a registry that never answers holding the page
+  only for the short limit).
 - Interface unit tests: `frontend/test/data/backup_pointer.test.ts`.
 - Not seen in a browser and not run on a real instance or a real registry.

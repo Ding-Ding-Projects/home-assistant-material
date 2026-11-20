@@ -1,6 +1,6 @@
 import type { TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import { fireEvent } from "../../../../../common/dom/fire_event";
@@ -41,6 +41,8 @@ export class HaGameFour extends LitElement {
   @state() private _last?: { index: number; rows: number };
 
   @state() private _announce = "";
+
+  @query(".col") private _firstColumn?: HTMLButtonElement;
 
   private _lang = new LanguageModeController(this);
 
@@ -90,10 +92,13 @@ export class HaGameFour extends LitElement {
         <div class=${classMap({ rack: true, still })}>
           ${Array.from({ length: COLS }, (_, col) => {
             const full = landingRow(this._board, col) < 0;
+            // aria-disabled, not disabled: while the home takes its turn every
+            // column is off, and a disabled button would drop keyboard focus
+            // to the page so keys 1 to 7 stop working until a Tab.
             return html`<button
               class="col"
               .col=${col}
-              .disabled=${!canPlay || full}
+              aria-disabled=${!canPlay || full ? "true" : "false"}
               aria-label=${
                 full
                   ? this._t("four_column_full", { n: col + 1 })
@@ -220,6 +225,8 @@ export class HaGameFour extends LitElement {
     this._last = undefined;
     this._homeThinking = false;
     this._announce = this._t("four_your_turn");
+    // The new game button leaves the page; keep keyboard focus in the rack.
+    this.updateComplete.then(() => this._firstColumn?.focus());
   };
 
   static styles = [
@@ -276,12 +283,14 @@ export class HaGameFour extends LitElement {
           inset 0 -6px 12px rgba(0, 0, 0, 0.35),
           0 8px 14px rgba(0, 0, 0, 0.45);
         display: grid;
-        grid-template-columns: repeat(7, 1fr);
+        /* minmax(0, 1fr): all seven columns share the rack, however narrow. */
+        grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 2px;
         overflow: hidden;
       }
       .col {
-        min-width: 44px;
+        min-width: 0;
+        width: 100%;
         padding: 2px;
         border: none;
         border-radius: 12px;
@@ -291,10 +300,10 @@ export class HaGameFour extends LitElement {
         gap: 6px;
         cursor: pointer;
       }
-      .col:hover:not([disabled]) {
+      .col:hover:not([aria-disabled="true"]) {
         background: rgba(255, 255, 255, 0.08);
       }
-      .col[disabled] {
+      .col[aria-disabled="true"] {
         cursor: default;
       }
       .cell {

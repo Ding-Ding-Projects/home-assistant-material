@@ -1,5 +1,69 @@
 # Handoff
 
+## Running the Python test suites, 20 November 2026
+
+The Home Assistant and Supervisor test suites do not run on the Windows workstation directly.
+They do run in throwaway containers, as follows. Nothing here needs the network beyond the
+package indexes, and no container keeps state between runs.
+
+### Core
+
+1. Start a throwaway container from the project's published Core image with `core/` mounted
+   read-only at `/src`.
+2. Install the test dependencies once, pinned by Core's own constraints:
+
+   ```sh
+   cd /src
+   python -m pip install -c homeassistant/package_constraints.txt \
+     pytest==9.0.3 pytest-asyncio==1.4.0 pytest-aiohttp==1.1.1 pytest-freezer==0.4.9 \
+     freezegun==1.5.5 pytest-socket==0.8.1 pytest-timeout==2.4.0 pytest-unordered==0.8.0 \
+     pytest-xdist==3.8.0 requests-mock==1.12.1 respx==0.23.1 syrupy==6.1.1 \
+     pytest-picked==0.5.1 pytest-cov==7.1.0 mock-open==1.4.0 pydantic==2.14.1 \
+     paho-mqtt==2.1.0
+   ```
+
+3. Install the test helper plugin from a writable copy, without its dependencies:
+
+   ```sh
+   cp -r /src/packages/pytest-homeassistant /tmp/pth
+   pip install --no-deps /tmp/pth
+   ```
+
+4. Copy the source to a writable `/core`, because some tests write into
+   `tests/testing_config`:
+
+   ```sh
+   mkdir /core
+   tar -C /src --exclude='__pycache__' --exclude='*.pyc' -cf - \
+     homeassistant tests packages pyproject.toml | tar -C /core -xf -
+   cd /core
+   ```
+
+5. Run a target:
+
+   ```sh
+   PYTHONPATH=/core python -m pytest -q -p no:sugar -p no:cacheprovider -n 4 --timeout=120 <target>
+   ```
+
+   `tests/components/linked_media` and `tests/components/camera_recording` need `-n0`.
+
+### Supervisor
+
+1. Start a throwaway `python:3.14-slim` container with `supervisor/` mounted read-only.
+2. Install what the tests load (GitPython needs `git`, pulsectl needs `libpulse0`, pyudev needs
+   `libudev1`, and the D-Bus tests need `dbus-daemon`), then the Python requirements:
+
+   ```sh
+   apt-get update && apt-get install -y --no-install-recommends git libpulse0 libudev1 dbus-daemon
+   pip install -r requirements.txt -r requirements_tests.txt
+   ```
+
+3. Run a target from the Supervisor folder, with `PYTHONPATH` set to that folder:
+
+   ```sh
+   python -m pytest -q -p no:cacheprovider -n 4 --dist=loadfile --timeout=120 <target>
+   ```
+
 ## Check for updates installed the Supervisor with its switch off, 19 November 2026
 
 The owner reported that "Check for updates" updated the system while automatic updates were off.

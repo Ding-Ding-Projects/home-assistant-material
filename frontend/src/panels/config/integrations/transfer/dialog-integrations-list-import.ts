@@ -361,16 +361,18 @@ export class DialogIntegrationsListImport extends LitElement {
       display: block;
       margin-top: var(--ha-space-3);
     }
+    /* The chips wrap onto a second line on a narrow screen rather than run
+       past the edge, so every group and its count stays in view. */
     .groups {
       display: flex;
+      flex-wrap: wrap;
       gap: var(--ha-space-2);
-      overflow-x: auto;
       margin-top: var(--ha-space-3);
       padding-bottom: var(--ha-space-1);
-      scroll-snap-type: x proximity;
     }
     .group {
-      flex: 0 0 auto;
+      flex: 0 1 auto;
+      max-width: 100%;
       min-height: 48px;
       display: inline-flex;
       align-items: center;
@@ -382,7 +384,6 @@ export class DialogIntegrationsListImport extends LitElement {
       color: var(--primary-text-color);
       font: inherit;
       cursor: pointer;
-      scroll-snap-align: start;
     }
     .group.selected {
       background: var(--primary-color);

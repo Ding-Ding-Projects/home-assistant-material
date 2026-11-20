@@ -188,5 +188,5 @@ export const setProblemSendWording = (
 ) =>
   hass.callWS<ProblemSendState>({
     type: "problem_log/send/wording",
-    entries,
+    wording_entries: entries,
   });

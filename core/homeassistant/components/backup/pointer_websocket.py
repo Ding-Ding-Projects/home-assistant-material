@@ -1,16 +1,23 @@
 """Websocket commands for keeping only a pointer on this disk."""
 
+import asyncio
 from dataclasses import asdict
-from typing import Any
+from typing import TYPE_CHECKING, Any, Final
 
 import probatio
 
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
-from .const import DATA_MANAGER
+from .const import DATA_MANAGER, LOGGER
 from .models import BackupManagerError, Folder
 from .pointer import KEEP_WHOLE_CHOICES, PointerError, agent_backup_for
+
+if TYPE_CHECKING:
+    from .manager import BackupManager
+
+# Seconds the page waits for the places to list their backups.
+INFO_LIST_TIMEOUT: Final = 10.0
 
 
 @callback
@@ -25,16 +32,59 @@ def async_register_pointer_websocket_handlers(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, handle_pointer_subscribe)
 
 
+async def _list_agents_by_backup(
+    manager: BackupManager,
+) -> tuple[dict[str, list[str]], list[str]]:
+    """Return which agents list each backup, and the agents that did not answer.
+
+    A place that does not answer within a short time must not hold the page:
+    the backups on this system are then listed alone and every pointer place
+    is reported as not reached, so its pointers read as unknown, not missing.
+    """
+    try:
+        async with asyncio.timeout(INFO_LIST_TIMEOUT):
+            backups, errors = await manager.async_get_backups()
+    except TimeoutError:
+        LOGGER.warning(
+            "Listing the backups took longer than %s seconds; showing the "
+            "pointers with the registry state as unknown",
+            INFO_LIST_TIMEOUT,
+        )
+    else:
+        return (
+            {backup_id: list(backup.agents) for backup_id, backup in backups.items()},
+            sorted(errors),
+        )
+    by_backup: dict[str, list[str]] = {}
+    for agent_id in manager.pointers.local_agent_ids():
+        agent = manager.backup_agents.get(agent_id)
+        if agent is None:
+            continue
+        try:
+            async with asyncio.timeout(INFO_LIST_TIMEOUT):
+                listed = await agent.async_list_backups()
+        except Exception as err:  # noqa: BLE001
+            LOGGER.debug("Listing the backups of %s failed: %s", agent_id, err)
+            continue
+        for agent_backup in listed:
+            by_backup.setdefault(agent_backup.backup_id, []).append(agent_id)
+    unreachable = sorted(
+        agent.agent_id for agent in manager.pointers.pointer_agents()
+    )
+    return by_backup, unreachable
+
+
 async def _info(hass: HomeAssistant) -> dict[str, Any]:
     manager = hass.data[DATA_MANAGER]
     pointers = manager.pointers
-    backups, _ = await manager.async_get_backups()
+    backups, unreachable = await _list_agents_by_backup(manager)
     return {
         "readable": pointers.readable,
         "available": pointers.available,
         "settings": asdict(pointers.settings),
         "keep_whole_choices": list(KEEP_WHOLE_CHOICES),
         "summary": pointers.summary(backups),
+        "unreachable": unreachable,
         "pointers": {
             backup_id: agent_backup_for(pointer)
             for backup_id, pointer in pointers.all().items()

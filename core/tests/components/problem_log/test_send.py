@@ -645,7 +645,9 @@ async def test_wording_used_only_when_on(
     """The kept wording changes headings only, and is deleted when turned off."""
     client = await hass_ws_client(hass)
     entries = {"problems": "troubles", "Latest": "Newest"}
-    reply = await _call(client, type="problem_log/send/wording", entries=entries)
+    reply = await _call(
+        client, type="problem_log/send/wording", wording_entries=entries
+    )
     assert reply["success"], reply
     assert reply["result"]["wording_in_use"] is True
     assert "troubles" not in json.dumps(reply)
@@ -654,11 +656,11 @@ async def test_wording_used_only_when_on(
     assert preview["latest.md"].startswith("# Newest troubles\n")
     assert "An update was refused" in preview["latest.md"]
     assert "troubles" not in caplog.text
-    reply = await _call(client, type="problem_log/send/wording", entries=None)
+    reply = await _call(client, type="problem_log/send/wording", wording_entries=None)
     assert reply["result"]["wording_in_use"] is False
     assert (await sender.async_preview())["latest.md"].startswith("# Latest problems")
     bad = await _call(
-        client, type="problem_log/send/wording", entries={"a": "line\nbreak"}
+        client, type="problem_log/send/wording", wording_entries={"a": "line\nbreak"}
     )
     assert bad["error"]["code"] == "bad_wording"
 

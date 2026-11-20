@@ -1,6 +1,6 @@
 import type { TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import { LanguageModeController } from "../../../../../common/language-mode/language-mode-controller";
@@ -41,6 +41,8 @@ export class HaGameMoles extends LitElement {
   @state() private _squash: number | null = null;
 
   @state() private _announce = "";
+
+  @query(".hole") private _firstHole?: HTMLButtonElement;
 
   private _lang = new LanguageModeController(this);
 
@@ -122,10 +124,12 @@ export class HaGameMoles extends LitElement {
     const label = up
       ? this._t("moles_hole_up", { n: hole + 1 })
       : this._t("moles_hole", { n: hole + 1 });
+    // aria-disabled, not disabled: a disabled button drops keyboard focus to
+    // the page, and keys 1 to 6 would then do nothing until a Tab.
     return html`<button
       class="hole"
       aria-label=${label}
-      .disabled=${!playing}
+      aria-disabled=${playing ? "false" : "true"}
       .hole=${hole}
       @click=${this._hit}
     >
@@ -177,6 +181,9 @@ export class HaGameMoles extends LitElement {
     this._now = now;
     this._game = { ...newMoleGame(this._game.timed), startedAt: now };
     this._raise();
+    // The start button leaves the page once the game runs; keep keyboard
+    // focus inside the game so keys 1 to 6 work at once.
+    this.updateComplete.then(() => this._firstHole?.focus());
     this._tick = setInterval(() => {
       this._now = Date.now();
       if (moleOutcome(this._game, this._now) === "lost") {
@@ -279,7 +286,7 @@ export class HaGameMoles extends LitElement {
         display: grid;
         place-items: end center;
       }
-      .hole[disabled] {
+      .hole[aria-disabled="true"] {
         cursor: default;
       }
       .pit {

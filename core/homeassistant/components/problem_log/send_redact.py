@@ -735,8 +735,11 @@ def redact_text(
     shield = _Shield()
     text = _shield_paths(text, shield)
     text = _hide_entity_ids(text, shield, book, domains, keep_names)
-    text = _shield_words(text, shield, context, domains)
+    # Names first: a name such as "Front door" holds a word ("door") that is
+    # also an integration, and setting that word aside would split the name.
+    # A thing named exactly like a program is skipped by the name step itself.
     text = _hide_names(text, context, shield, book, domains, keep_names)
+    text = _shield_words(text, shield, context, domains)
     text = _hide_network(text)
     text = _LOCAL_HOST.sub(HIDDEN, text)
     text = _hide_coordinates(text, context.coordinates)
