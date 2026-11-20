@@ -22,7 +22,6 @@ import type { NavigationFilterOptions } from "../../common/config/filter_navigat
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import { stopPropagation } from "../../common/dom/stop_propagation";
 import { canToggleState } from "../../common/entity/can_toggle_state";
-import { computeStateDomain } from "../../common/entity/compute_state_domain";
 import type { PersonalPreferences } from "../../common/preferences/personal-preferences";
 import {
   getPersonalPreferences,
@@ -35,6 +34,8 @@ import { ctrlOrCmdLabel } from "../../common/keyboard/ctrl-or-cmd";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { navigate } from "../../common/navigate";
 import { caseInsensitiveStringCompare } from "../../common/string/compare";
+import "../../components/entity/ha-entity-quick-controls";
+import "../../components/entity/ha-entity-quick-row-actions";
 import "../../components/entity/state-badge";
 import "../../components/ha-adaptive-dialog";
 import "../../components/ha-app-icon";
@@ -64,6 +65,7 @@ import {
   getEntities,
   type EntityComboBoxItem,
 } from "../../data/entity/entity_picker";
+import { isRiskyEntity } from "../../data/quick-control";
 import {
   fetchHassioAddonsInfo,
   type HassioAddonInfo,
@@ -570,17 +572,6 @@ export class QuickBar extends LitElement {
     }
   }
 
-  private _entityToggled(ev: Event) {
-    const target = ev.currentTarget as HTMLInputElement & {
-      entityId: string;
-    };
-    this.hass.callService(
-      "homeassistant",
-      target.checked ? "turn_on" : "turn_off",
-      { entity_id: target.entityId }
-    );
-  }
-
   // A pin on every result that can be found again. Only a click or the Alt+P
   // key changes the pin; Enter and Space on the row still use the result.
   private _renderPinButton(item: QuickBarComboBoxItem) {
@@ -656,33 +647,16 @@ export class QuickBar extends LitElement {
       ></ha-switch>`;
     }
     if ("stateObj" in item && item.stateObj) {
-      const entityId = item.stateObj.entity_id;
-      const stateObj: HassEntity = this.hass.states[entityId] ?? item.stateObj;
-      const level =
-        computeStateDomain(stateObj) === "light" &&
-        stateObj.state === "on" &&
-        typeof stateObj.attributes.brightness === "number"
-          ? `${Math.round((stateObj.attributes.brightness / 255) * 100)}%`
-          : undefined;
-      const toggleable =
-        (stateObj.state === "on" || stateObj.state === "off") &&
-        canToggleState(this.hass, stateObj);
-      return html`<span slot="end" class="live">
-        ${
-          toggleable
-            ? html`${level ? html`<span class="level">${level}</span>` : nothing}<ha-switch
-                  .checked=${stateObj.state === "on"}
-                  aria-label=${item.primary ?? entityId}
-                  @click=${stopPropagation}
-                  @keydown=${stopPropagation}
-                  .entityId=${entityId}
-                  @change=${this._entityToggled}
-                ></ha-switch>`
-            : html`<span class="level"
-                >${this.hass.formatEntityState(stateObj)}</span
-              >`
-        }
-      </span>`;
+      // The same control the entity has everywhere it is listed: a switch,
+      // a press button, a stepper, an option list or its value. The slider
+      // and colour button sit under the name, where there is room.
+      return html`<ha-entity-quick-controls
+        slot="end"
+        class="live"
+        section="main"
+        .hass=${this.hass}
+        .entityId=${item.stateObj.entity_id}
+      ></ha-entity-quick-controls>`;
     }
     return nothing;
   }
@@ -817,6 +791,21 @@ export class QuickBar extends LitElement {
                   ${(item as EntityComboBoxItem).domain_name}
                 </div>
               `
+            : nothing
+        }
+        ${
+          "stateObj" in item && item.stateObj
+            ? html`<div slot="supporting-text" class="quick-extra">
+                <ha-entity-quick-controls
+                  section="level"
+                  .hass=${this.hass}
+                  .entityId=${item.stateObj.entity_id}
+                ></ha-entity-quick-controls>
+                <ha-entity-quick-row-actions
+                  .hass=${this.hass}
+                  .entityId=${item.stateObj.entity_id}
+                ></ha-entity-quick-row-actions>
+              </div>`
             : nothing
         }
         ${this._renderPinButton(item)}
@@ -1496,7 +1485,9 @@ export class QuickBar extends LitElement {
     }
     const entityId = item.stateObj.entity_id;
     const stateObj: HassEntity = this.hass.states[entityId] ?? item.stateObj;
+    // Things that secure the home ask first, so Space never switches them.
     return (stateObj.state === "on" || stateObj.state === "off") &&
+      !isRiskyEntity(stateObj) &&
       canToggleState(this.hass, stateObj)
       ? stateObj
       : undefined;
@@ -1644,6 +1635,16 @@ export class QuickBar extends LitElement {
         .level {
           color: var(--secondary-text-color);
           white-space: nowrap;
+        }
+
+        /* The slider, colour button and the two row buttons under the name. */
+        .quick-extra {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          white-space: normal;
+          /* Room for focus rings inside the row's clipped text column. */
+          padding: var(--ha-space-1) var(--ha-space-1) var(--ha-space-2);
         }
 
         @media all and (max-width: 450px), all and (max-height: 690px) {

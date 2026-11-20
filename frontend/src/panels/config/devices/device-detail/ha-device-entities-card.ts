@@ -4,6 +4,7 @@ import { customElement, property } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { repeat } from "lit/directives/repeat";
 import { until } from "lit/directives/until";
+import "../../../../components/entity/ha-entity-quick-row-actions";
 import "../../../../components/ha-card";
 import "../../../../components/ha-icon";
 import "../../../../components/ha-list";
@@ -146,8 +147,15 @@ export class HaDeviceEntitiesCard extends LitElement {
         "ui.panel.config.devices.entities.hidden"
       )})`;
     }
+    // The row already carries its own control; the two buttons add a quick
+    // action and the details in place.
     return html`<div>
       ${entityRowElement(entry.entity_id, name, this.hass)}
+      <ha-entity-quick-row-actions
+        class="quick-actions"
+        .hass=${this.hass}
+        .entityId=${entry.entity_id}
+      ></ha-entity-quick-row-actions>
     </div>`;
   }
 
@@ -189,6 +197,10 @@ export class HaDeviceEntitiesCard extends LitElement {
     .buttons {
       text-align: right;
       margin: 0 0 0 8px;
+    }
+    .quick-actions {
+      padding-inline-start: 56px;
+      padding-bottom: var(--ha-space-2);
     }
     .disabled-entry {
       color: var(--secondary-text-color);

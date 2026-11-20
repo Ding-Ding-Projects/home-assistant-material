@@ -56,6 +56,8 @@ import type {
   SelectionChangedEvent,
 } from "../../../components/data-table/ha-data-table";
 import "../../../components/data-table/ha-data-table-labels";
+import "../../../components/entity/ha-entity-quick-controls";
+import "../../../components/entity/ha-entity-quick-row-actions";
 import "../../../components/chips/ha-assist-chip";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
@@ -444,6 +446,33 @@ export class HaConfigEntities extends LitElement {
           const stateObj = this.hass.states[entry.entity_id];
           return stateObj ? this.hass.formatEntityState(stateObj) : "—";
         },
+      },
+      quick_control: {
+        title: localize("ui.components.quick_control.column"),
+        sortable: false,
+        // On a phone it stays at the end of the row, beside the name.
+        showNarrow: true,
+        minWidth: "200px",
+        template: (entry) =>
+          this.hass.states[entry.entity_id]
+            ? html`<div
+                style="display: flex; align-items: center; gap: 4px; min-width: 0"
+              >
+                <ha-entity-quick-controls
+                  compact
+                  no-value
+                  section=${this.narrow ? "main" : "all"}
+                  .hass=${this.hass}
+                  .entityId=${entry.entity_id}
+                ></ha-entity-quick-controls>
+                <ha-entity-quick-row-actions
+                  compact
+                  details="dialog"
+                  .hass=${this.hass}
+                  .entityId=${entry.entity_id}
+                ></ha-entity-quick-row-actions>
+              </div>`
+            : nothing,
       },
       status: {
         title: localize("ui.panel.config.entities.picker.headers.status"),

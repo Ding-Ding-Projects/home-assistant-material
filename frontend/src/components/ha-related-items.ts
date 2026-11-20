@@ -35,11 +35,14 @@ import {
 import type { ItemType, RelatedResult } from "../data/search";
 import { findRelated } from "../data/search";
 import type {
+  HomeAssistant,
   HomeAssistantConfig,
   HomeAssistantFormatters,
   HomeAssistantUI,
 } from "../types";
 import { brandsUrl } from "../util/brands-url";
+import "./entity/ha-entity-quick-controls";
+import "./entity/ha-entity-quick-row-actions";
 import "./ha-icon";
 import "./ha-icon-next";
 import "./ha-state-icon";
@@ -65,6 +68,12 @@ export class HaRelatedItems extends LitElement {
   @property({ attribute: false }) public exclude?: (keyof RelatedResult)[];
 
   @property({ type: Boolean, reflect: true }) public empty = true;
+
+  /**
+   * When set, every related entity is listed with its control in place and
+   * the "Run a quick action" and "Show more details" buttons.
+   */
+  @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _entries?: ConfigEntry[];
 
@@ -478,6 +487,31 @@ export class HaRelatedItems extends LitElement {
   }
 
   private _renderEntityRow(entity: HassEntity) {
+    if (this.hass) {
+      // The row button opens more-info; the controls sit beside it, never
+      // inside it, so each stays its own button.
+      return html`<div role="listitem" class="quick-row">
+        <ha-list-item-button
+          role="none"
+          .headline=${this._formatEntityName(entity)}
+          data-entity-id=${entity.entity_id}
+          @click=${this._openMoreInfo}
+        >
+          <ha-state-icon slot="start" .stateObj=${entity}></ha-state-icon>
+          <ha-icon-next slot="end"></ha-icon-next>
+        </ha-list-item-button>
+        <div class="quick">
+          <ha-entity-quick-controls
+            .hass=${this.hass}
+            .entityId=${entity.entity_id}
+          ></ha-entity-quick-controls>
+          <ha-entity-quick-row-actions
+            .hass=${this.hass}
+            .entityId=${entity.entity_id}
+          ></ha-entity-quick-row-actions>
+        </div>
+      </div>`;
+    }
     return html`
       <ha-list-item-button
         .headline=${this._formatEntityName(entity)}
@@ -556,6 +590,12 @@ export class HaRelatedItems extends LitElement {
 
     :host([empty]) {
       display: none;
+    }
+
+    .quick {
+      padding: 0 var(--ha-space-3) var(--ha-space-2);
+      padding-inline-start: calc(var(--ha-space-3) + 20px + var(--ha-space-3));
+      min-width: 0;
     }
 
     ha-list-item-button {

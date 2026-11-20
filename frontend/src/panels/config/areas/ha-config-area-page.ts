@@ -42,6 +42,8 @@ import "../../../components/ha-icon-button";
 import "../../../components/ha-icon-button-next";
 import "../../../components/ha-icon-next";
 import "../../../components/ha-list";
+import "../../../components/entity/ha-entity-quick-controls";
+import "../../../components/entity/ha-entity-quick-row-actions";
 import "../../../components/ha-list-item";
 import "../../../components/ha-svg-icon";
 import type { AreaRegistryEntry } from "../../../data/area/area_registry";
@@ -70,6 +72,8 @@ import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import "../../logbook/ha-logbook";
+import "../../../components/entity/ha-more-details-facts";
+import { areaFacts } from "../../../data/entity-details";
 import { isHelperDomain } from "../helpers/const";
 import {
   loadAreaAddToDialog,
@@ -511,6 +515,16 @@ class HaConfigAreaPage extends LitElement {
             </div>
           </section>
 
+          <ha-more-details-facts
+            class="more-details"
+            .facts=${areaFacts({
+              area_id: area.area_id,
+              floor_id: area.floor_id,
+              floorName: floor?.name,
+              aliases: area.aliases,
+            })}
+          ></ha-more-details-facts>
+
           <div class="cards">
             <ha-card outlined>
               <h2>
@@ -624,13 +638,36 @@ class HaConfigAreaPage extends LitElement {
                       ${nonAutomatedEntities.map(
                         (entity) => html`
                           <ha-list-item
+                            class="linked-entity"
                             @click=${this._openEntity}
                             .entity=${entity}
                             hasMeta
                           >
                             <span>${entity.name}</span>
-                            <ha-icon-next slot="meta"></ha-icon-next>
+                            <span slot="meta" class="entity-meta">
+                              <ha-entity-quick-controls
+                                section="main"
+                                .hass=${this.hass}
+                                .entityId=${entity.entity_id}
+                              ></ha-entity-quick-controls>
+                              <ha-icon-next></ha-icon-next>
+                            </span>
                           </ha-list-item>
+                          ${
+                            this.hass.states[entity.entity_id]
+                              ? html`<div class="entity-quick">
+                                  <ha-entity-quick-controls
+                                    section="level"
+                                    .hass=${this.hass}
+                                    .entityId=${entity.entity_id}
+                                  ></ha-entity-quick-controls>
+                                  <ha-entity-quick-row-actions
+                                    .hass=${this.hass}
+                                    .entityId=${entity.entity_id}
+                                  ></ha-entity-quick-row-actions>
+                                </div>`
+                              : nothing
+                          }
                         `
                       )}
                     </ha-list>`
@@ -956,6 +993,21 @@ class HaConfigAreaPage extends LitElement {
         :host {
           display: block;
           height: 100%;
+        }
+        .more-details {
+          margin: var(--ha-space-3) 0;
+        }
+        ha-list-item.linked-entity {
+          --mdc-list-item-meta-size: auto;
+        }
+        .entity-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+        }
+        .entity-quick {
+          padding: 0 var(--ha-space-4) var(--ha-space-2);
+          min-width: 0;
         }
         .page {
           box-sizing: border-box;

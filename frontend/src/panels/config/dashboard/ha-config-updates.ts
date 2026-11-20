@@ -10,7 +10,9 @@ import type { HASSDomCurrentTargetEvent } from "../../../common/dom/fire_event";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { computeDeviceNameDisplay } from "../../../common/entity/compute_device_name";
 import { getDeviceArea } from "../../../common/entity/context/get_device_context";
+import "../../../components/entity/ha-more-details-facts";
 import "../../../components/entity/state-badge";
+import { updateFacts } from "../../../data/entity-details";
 import "../../../components/ha-alert";
 import "../../../components/ha-icon-next";
 import "../../../components/ha-spinner";
@@ -169,6 +171,10 @@ class HaConfigUpdates extends LitElement {
                 }
               </ha-list-item-button>
             </ha-list-base>
+            <ha-more-details-facts
+              class="more-details"
+              .facts=${updateFacts(entity)}
+            ></ha-more-details-facts>
             <ha-update-progress .stateObj=${entity}></ha-update-progress>
           </div>
         `;
@@ -191,6 +197,9 @@ class HaConfigUpdates extends LitElement {
       css`
         ha-update-progress {
           margin: var(--ha-space-2) var(--ha-space-4);
+        }
+        .more-details {
+          margin: 0 var(--ha-space-4) var(--ha-space-2);
         }
         ha-list-item-button ha-icon-next {
           color: var(--secondary-text-color);

@@ -61,6 +61,8 @@ import { showHostBackupDialog } from "./dialogs/show-dialog-host-backup";
 import { modeText } from "../../../common/language-mode/language-mode";
 import { showRestoreBackupDialog } from "./dialogs/show-dialog-restore-backup";
 import { downloadBackup } from "./helper/download_backup";
+import "../../../components/entity/ha-more-details-facts";
+import { backupFacts } from "../../../data/entity-details";
 
 interface Agent extends BackupContentAgent {
   id: string;
@@ -193,6 +195,9 @@ class HaConfigBackupDetails extends LitElement {
                       .hass=${this.hass}
                       .isHassio=${isHassio}
                     ></ha-backup-details-summary>
+                    <ha-more-details-facts
+                      .facts=${backupFacts(this._backup)}
+                    ></ha-more-details-facts>
                     <ha-backup-delete-proof-card
                       .hass=${this.hass}
                       .backup=${this._backup}

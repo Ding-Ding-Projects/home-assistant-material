@@ -117,6 +117,8 @@ import "./device-detail/ha-device-child-devices-card";
 import "./device-detail/ha-device-entities-card";
 import "./device-detail/ha-device-info-card";
 import "../../../components/ha-registry-notes-card";
+import "../../../components/entity/ha-more-details-facts";
+import { deviceFacts } from "../../../data/entity-details";
 import type { ESPHomeSetupController } from "./device-detail/integration-elements/esphome/esphome-setup-controller";
 import "./device-detail/ha-device-linked-devices-card";
 import "./device-detail/ha-device-via-devices-card";
@@ -753,6 +755,10 @@ export class HaConfigDevicePage extends LitElement {
         .thumbnailDomain=${integrations[0]?.domain}
       >
         ${deviceInfo}
+        <ha-more-details-facts
+          class="more-details"
+          .facts=${deviceFacts(device)}
+        ></ha-more-details-facts>
         ${
           firstDeviceAction || actions.length
             ? html`
@@ -1827,6 +1833,9 @@ export class HaConfigDevicePage extends LitElement {
     return [
       haStyle,
       css`
+        .more-details {
+          padding: var(--ha-space-2) var(--ha-space-4);
+        }
         :host {
           display: block;
           height: 100%;

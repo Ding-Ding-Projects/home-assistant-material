@@ -88,6 +88,8 @@ import {
 
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import type { LocalizeFunc } from "../../../common/translations/localize";
+import "../../../components/entity/ha-more-details-facts";
+import { configEntryFacts } from "../../../data/entity-details";
 // How many devices an entry lists before the rest are folded away
 const DEVICES_SHOWN = 4;
 
@@ -231,6 +233,10 @@ export class HaConfigEntryRow extends LitElement {
                 `
               : nothing
           }
+          <ha-more-details-facts
+            class="more-details"
+            .facts=${configEntryFacts(item)}
+          ></ha-more-details-facts>
         </div>
         ${
           !item.disabled_by && item.state === "loaded"
@@ -1002,6 +1008,9 @@ export class HaConfigEntryRow extends LitElement {
   static styles = [
     haStyle,
     css`
+      .more-details {
+        margin-top: var(--ha-space-2);
+      }
       :host {
         display: block;
         position: relative;
