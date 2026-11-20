@@ -1,15 +1,37 @@
 {
  "format": 1,
- "generated": "2026-11-20T15:36:44Z",
+ "generated": "2026-11-20T16:12:42Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 536,
+ "newest_build": 537,
  "releases": [
+  {
+   "build": 537,
+   "core": "2026.11.2.537",
+   "supervisor": "2026.11.0.537",
+   "os": "18.5.537",
+   "tag": null,
+   "source": "d6523e045",
+   "date": "2026-11-20T10:39:37-05:00",
+   "previous_build": 536,
+   "changes": [
+    {
+     "sha": "d6523e045",
+     "date": "2026-11-20T10:39:37-05:00",
+     "title": "Updates page fails soft after a restart, Cantonese separators, OS switch off with no OS [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "From the build 536 browser check. The Updates page could sit on a spinner after Core changed version. The cause is NOT established from source; this change makes the page fail soft instead of pretending.\n\n- Updates page: after a reconnect, once Core is running, the page asks its own server whether the build it loaded is still served. If it is gone the page reloads itself once, never twice for the same build, and never while there are unsaved changes, an open dialog or focus in a field or slider. After 60 seconds disconnected it shows a plain line with a Reload button. The saved queue result survives the reload. No confirmation changed and the run record is still display only. - Cantonese mode: breadcrumbs join their parts with the language's own separator, the identity page's breadcrumb follows the language mode, and three more count lines use the right punctuation. - Automatic updates: on a system with no managed operating system the operating system switch is disabled with a reason line. A switch that is already on can still be turned off.\n\nNot done: the performance page's count line (English only by design). Leads left for the next browser check are in the hand-off notes.\n\nTests",
+     "detail_yue": "更新頁喺重新啟動之後唔再淨係轉圈：原因未搵到，所以老實啲，頁面自己 問伺服器「我載入嗰版仲喺唔喺度」，唔喺度就自己重新載入一次，只此一次， 而且有未儲存嘢、開緊對話框或者手指仲喺滑桿度就等。斷線六十秒會出一句 說明同一個重新載入掣。 廣東話模式：路徑用返中文分隔符號，身份頁嘅路徑跟語言模式，多三句 數量句子標點啱返。 自動更新：冇受管理作業系統嘅機，作業系統個掣會停用兼講原因；已經 開咗嘅仲可以熄。 呢批改動仲未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 536,
    "core": "2026.11.2.536",
    "supervisor": "2026.11.0.536",
    "os": "18.5.536",
-   "tag": null,
+   "tag": "v2026.11.2.536",
    "source": "37b882b19",
    "date": "2026-11-20T08:04:33-05:00",
    "previous_build": 535,
