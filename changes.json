@@ -1,15 +1,78 @@
 {
  "format": 1,
- "generated": "2026-11-20T19:39:40Z",
+ "generated": "2026-11-20T20:09:33Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 538,
+ "newest_build": 542,
  "releases": [
+  {
+   "build": 542,
+   "core": "2026.11.2.542",
+   "supervisor": "2026.11.0.542",
+   "os": "18.5.542",
+   "tag": null,
+   "source": "33e099f91",
+   "date": "2026-11-20T13:45:29-05:00",
+   "previous_build": 538,
+   "changes": [
+    {
+     "sha": "33e099f91",
+     "date": "2026-11-20T13:45:29-05:00",
+     "title": "Control things where they are listed, run a quick action, show more details [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Three additions the owner asked for. The look of the app does not change and no control was removed.\n\nControls in place - Wherever an entity is listed by name it can be controlled right there: a switch gets its toggle, a dimmer a slider, a colour light a colour button, a button or scene a press, a sensor its value. This is in the search drop-down, the Entities list (a column that can be hidden), the area page, and related lists. - Locks, alarms, valves, sirens and garage, gate and door covers ask first with the app's own two-key confirmation. Locks and alarms still ask for their code exactly as before. - A control uses the same service call as the full page. It never writes a state itself.\n\nRun a quick action - A dialog with guided steps (do this, wait, do this on another thing) and, for administrators, a YAML tab kept in sync both ways. It runs once and nothing is stored. \"Keep as a script\" opens the script editor prefilled; nothing is written until the person saves there. - Honest limit, said in the dialog: a running quick action cannot be stopped from the page. For an administrator, steps after a wait still run if the page is closed.\n\nShow more details - In place on an entity: e",
+     "detail_yue": "即場控制、行個快速動作、顯示更多資料：三樣屋主要嘅新嘢。 樣冇變，冇減任何掣。 即場控制：喺搜尋下拉、實體清單、區域頁同相關清單，開關有開關、 調光有滑桿、彩燈有揀色掣、感應器顯示數值。門鎖、警報、閥、警號 同車房閘門要用兩條鎖匙確認先；門鎖同警報照舊要輸入密碼。 快速動作：有引導步驟，管理員仲有 YAML 分頁，兩邊同步。行一次， 乜都唔儲；「留做腳本」會開腳本編輯器，要自己撳儲存先會寫入。 老實講明：行緊嘅快速動作喺頁面度停唔到。 更多資料：實體編號、裝置、整合、原始狀態、準確時間、所有屬性， 可以複製。管理員可以人手改狀態，要確認先，兼講明部裝置唔會收到。 未做：自動化、腳本同場景行嘅展開，仲有揀選器、卡片同歷史入面嘅掣。 呢批改動仲未喺瀏覽器睇過。"
+    },
+    {
+     "sha": "fc5d13aae",
+     "date": "2026-11-20T13:30:16-05:00",
+     "title": "Site polish: welcome band, a live build line, a change row that fills itself",
+     "areas": [
+      "build",
+      "docs"
+     ],
+     "detail": "The public site keeps its look. This is polish, and one fix so it stops going stale.\n\n- The first-visit welcome no longer opens as a dialog over the headline. It is a slim band with the same three steps, and the full welcome is still in Settings. - The badge that said the interface was only begun is replaced by a line with the newest product build and its date, read from the releases at publish time. When nothing is found it links to the releases page; a number is never made up. - \"New in the latest builds\": four cards taken from the change list by a rule in the generator, never written by hand. - The hero can show a real capture per theme once the files exist. None was drawn or invented. - Buttons respond to hover and press, sections rise once, and the tab row shows where it scrolls. All of it stops under reduced motion. - The publish workflow now regenerates the page's data, in a mode that touches no picture, and republishes when a release is published. It uses the same read-only token as before: no new secret, permission or action. - The site's scripts read and write UTF-8 explicitly, so they run on Windows.\n\nLooked at from the local files at 320, 390 and 1440 px: no dialog on a",
+     "detail_yue": "網站執靚咗：個樣冇變，仲整返好一樣嘢，等佢唔會再過期。 第一次嚟嘅歡迎唔再用對話框遮住大標題，變成一條幼帶，三個步驟 照舊，完整版仲喺設定度。 以前嗰個話「介面啱啱開始」嘅徽章換成一行：最新版本同日期，發佈 嗰陣由發佈資料讀出嚟；搵唔到就連去發佈頁，絕對唔會作個數字出嚟。 「最新版本有乜新嘢」四張卡由更改清單自動填，唔係人手寫。 發佈流程而家會重新產生頁面資料（唔會郁任何圖片），有新版本發佈 亦會重新出一次，用返同一個唯讀權杖。 喺本機檔案用 320、390 同 1440 闊度睇過：冇對話框彈出、幼帶見到、 冇橫向捲動、冇頁面錯誤。公開網址嗰邊仲未睇。"
+    },
+    {
+     "sha": "be773d9be",
+     "date": "2026-11-20T13:14:24-05:00",
+     "title": "Site: facts brought up to date, claims cut back to what is proven",
+     "areas": [
+      "docs"
+     ],
+     "detail": "The public site said a few things that were no longer true, or were never proven.\n\n- The version line now matches the current upstream version. - Tabs, the command palette, the pattern builder and navigation said \"built\". They now say which parts have been seen working and which are built but not yet seen. - Two hard-coded counts are gone (\"38 places\", \"616 boards on 40 canvases\"). Both were already stale. - The download fallback no longer says a first release is on its way. It points at the releases page.\n\nNothing about recent builds was added unless the project's own records show it was seen working. The look of the site is unchanged.",
+     "detail_yue": "網站：資料更新，講過龍嘅嘢收返。 版本行跟返而家嘅上游版本。分頁、指令面板、樣式工具同導覽之前寫 「做好」，而家寫明邊部分睇過得、邊部分做咗但未睇過。 兩個寫死嘅數字（「38 處」同「616 塊畫板」）刪走，因為早就唔啱。 下載後備字句唔再話「第一個版本就嚟到」，而係指去發佈頁。 近期版本嘅嘢，除非項目自己嘅記錄話睇過得，否則一律唔加。 網站個樣冇變。"
+    },
+    {
+     "sha": "ab302a59a",
+     "date": "2026-11-20T13:09:45-05:00",
+     "title": "Canvas 42 redrawn to today's look, plus quick controls, details and the site [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "The owner asked for today's look with a polish, not a new look. The bolder boards are removed. Every page board was redrawn from a real picture of today's build: automations list, front door, entity sheet, automation editor and Updates.\n\nNew boards for three things the owner asked for: - controls in place wherever a thing is listed (toggle, slider, colour button), with risky things asking first; - \"Run a quick action\": guided steps or YAML, runs once, kept only if asked; - \"Show more details\" in place, with edit behind a confirmation.\n\nAnd one board for the project's public site in its own look.\n\nReview pictures for every board are under design/frames. The quick controls, quick action, details and site polish are not built yet.",
+     "detail_yue": "畫布 42 照返而家個樣重畫，再加埋即場控制、詳細資料同網站。 屋主要嘅係「而家個樣，執靚啲」，唔係新造型，所以大膽嗰批畫板刪走， 每一頁都照住今日個 build 嘅真圖重畫：自動化清單、首頁、單件面板、 自動化編輯器同更新頁。 新加三樣：喺清單度即場控制（開關、滑桿、揀色），危險嘢要問先； 「行個快速動作」，有引導步驟亦可以寫 YAML，行一次就掉，除非話要留； 「顯示更多資料」，即場睇晒，改嘢要確認先。 仲有一塊畫板畀個公開網站。 每塊畫板都有圖放喺 design/frames。新嗰幾樣未起。"
+    },
+    {
+     "sha": "b46466d28",
+     "date": "2026-11-20T13:00:39-05:00",
+     "title": "Repairs from the browser hunt: blank area page, stacked titles, covered buttons [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "A browser pass over 82 pages of build 536 found fourteen faults. These are the repairs. The look of the app does not change and no control was removed.\n\n- Area pages were completely blank. The page handed its title code an icon-and-name template where plain text was expected, and the title code called a text method on it. The page now passes text and shows the icon beside the name, and the title code no longer falls over on a value that is not text. - Page titles on Lights, Climate, Security, Media sources and History stacked one letter per line on phones and tablets. The title had no width of its own in the top bar and collapsed to nothing. - The surprise card sat on top of the create button on phones and took its tap. It now measures the floating controls under it and rises above them. - Lights and Climate scrolled far past their content. Helpers gave its list about one row of room. Dashboards and Automations cut text at 320 px. The home media card was squeezed on tablets. Entities crushed names beside a status chip. Settings lost its scroll place on return. - Phone menu: one scroller, so no row hides under the bottom block. - Text that was 10 px is at least 11 px. In the two-key",
+     "detail_yue": "瀏覽器巡查 82 頁之後嘅修正，樣冇變，冇減任何掣。 區域頁之前係全白：頁面將「圖示加名」當純文字交咗畀標題程式， 標題程式就跌低。而家交返文字，圖示擺喺名隔籬，標題程式遇到唔係 文字嘅嘢都唔會再跌。 燈、冷暖、保安、媒體、歷史頁喺手機同平板，標題一個字一行： 而家返返一行。 驚喜卡之前壓住新增掣兼搶咗下撳：而家識量度下面嘅浮動掣再升高避開。 燈同冷暖頁捲過龍、輔助工具清單得一行位、320 闊度切字、平板媒體卡 迫到變形、設定頁返轉頭唔記得捲到邊，全部修正。 十像素嘅字最少十一像素；兩條鎖匙確認只改咗說明字嘅大細同轉行。 呢批改動仲未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 538,
    "core": "2026.11.2.538",
    "supervisor": "2026.11.0.538",
    "os": "18.5.538",
-   "tag": null,
+   "tag": "v2026.11.2.538",
    "source": "77a7687e5",
    "date": "2026-11-20T11:42:35-05:00",
    "previous_build": 537,
