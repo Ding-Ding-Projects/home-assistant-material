@@ -2,75 +2,85 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Entity sheet: a light</title>
+<title>Entity sheet, today's look polished</title>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
 <style>
-body{margin:0;background:#0C1016}
-@keyframes e-up{from{transform:translateY(90px);opacity:0}to{transform:none;opacity:1}}
-@keyframes e-fill{from{height:0}to{height:62%}}
-@keyframes e-ray{0%,100%{opacity:.35;transform:scale(.9)}50%{opacity:1;transform:scale(1.06)}}
-.e-up{animation:e-up .5s cubic-bezier(.2,1.3,.3,1) both}
-.e-fill{animation:e-fill .9s cubic-bezier(.2,1.3,.3,1) .25s both}
-.e-ray{animation:e-ray 2.6s ease-in-out infinite;transform-origin:50% 50%}
-.e-still *{animation:none !important}
-@media (prefers-reduced-motion:reduce){*{animation:none !important}}
-.e-pill{flex:1;min-width:0;height:52px;border:0;border-radius:26px;background:#222935;color:#E6E9EF;font-family:inherit;font-size:14px;font-weight:700}
-.e-sw{flex:none;width:40px;height:40px;border-radius:20px;border:0}
+body{margin:0;background:#1A1E25}
+@keyframes s-up{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
+@keyframes s-fill{from{width:0}to{width:71%}}
+.s-up{animation:s-up .34s cubic-bezier(.2,.9,.3,1) both}
+.s-fill{animation:s-fill .5s cubic-bezier(.2,.9,.3,1) .15s both}
+.s-still .s-up,.s-still .s-fill{animation:none}
+@media (prefers-reduced-motion:reduce){.s-up,.s-fill{animation:none}}
+.s-ib{width:48px;height:48px;border:0;border-radius:24px;background:transparent;display:grid;place-items:center;flex:none}
+.s-sw{width:48px;height:48px;border:0;border-radius:24px}
+.s-tab{flex:1;min-width:0;height:48px;border:0;border-radius:24px;background:transparent;color:#E3E6EC;font-family:inherit;font-size:14px;font-weight:500}
 </style>
 </helmet>
-<div class="{{motionClass}}" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0C1016; color: #E6E9EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px">
-<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,.6)"></div>
+<div class="{{motionClass}}" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #1A1E25; color: #E3E6EC; font-family: Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px">
 
-<section class="e-up" role="dialog" aria-label="Hallway light" style="position: absolute; left: 0; right: 0; bottom: 0; height: 760px; box-sizing: border-box; border-radius: 44px 44px 0 0; background: #171C24; display: flex; flex-direction: column">
-<div style="flex: none; border-radius: 44px 44px 36px 36px; background: #5A3E00; padding: 10px 10px 16px 22px; position: relative; overflow: hidden">
-<svg aria-hidden="true" width="150" height="150" viewBox="0 0 150 150" style="position: absolute; right: -24px; top: -30px"><g class="e-ray"><circle cx="75" cy="75" r="44" fill="#F2B62E" stroke="#F2B62E" stroke-width="20" stroke-dasharray="0 23" stroke-linecap="round"/></g></svg>
-<div aria-hidden="true" style="width: 36px; height: 4px; border-radius: 2px; background: #FFD77A; opacity: .6; margin: 0 auto 4px"></div>
-<div style="display: flex; align-items: flex-start; gap: 8px; position: relative">
-<div style="flex: 1; min-width: 0; padding-top: 8px"><div style="font-size: 12px; font-weight: 700; letter-spacing: .1em; color: #FFD77A">HALLWAY · LIGHT</div><h2 style="margin: 2px 0 0; font-size: 30px; line-height: 32px; font-weight: 900; font-stretch: 116%; letter-spacing: -0.02em; color: #FFFFFF">Hallway light</h2><p style="margin: 2px 0 0; font-size: 14px; color: #FFE7B0">On for 1 h 12 min</p></div>
-<button type="button" aria-label="Close" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: rgba(30,20,0,.5); display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+<div aria-hidden="true" style="opacity: .45">
+<div style="height: 56px; background: #14181E; display: flex; align-items: center; padding: 0 60px; font-size: 20px; font-weight: 700">Entities</div>
+<div style="margin: 60px 8px 0; height: 44px; border-radius: 16px; background: #20252D"></div>
 </div>
-</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,.5)"></div>
 
-<div style="flex: 1; min-height: 0; padding: 16px 16px 0; display: flex; flex-direction: column; align-items: center; gap: 14px">
-<div style="display: flex; align-items: flex-end; gap: 18px">
-<div role="slider" aria-label="Brightness" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100" tabindex="0" style="width: 132px; height: 300px; border-radius: 44px; background: #222935; position: relative; overflow: hidden">
-<div class="e-fill" style="position: absolute; left: 0; right: 0; bottom: 0; height: 62%; background: #F2B62E; border-radius: 0 0 44px 44px"><div style="width: 44px; height: 5px; border-radius: 3px; background: #3A2A00; margin: 10px auto 0"></div></div>
-<div style="position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; font-size: 40px; line-height: 40px; font-weight: 900; font-stretch: 118%; color: #3A2A00">62<span style="font-size: 18px">%</span></div>
-</div>
-<div style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 6px">
-<button type="button" class="e-sw" aria-label="Warm white" style="background: #FFD9A0; outline: 3px solid #FFFFFF; outline-offset: 2px"></button>
-<button type="button" class="e-sw" aria-label="Daylight" style="background: #F4F7FF"></button>
-<button type="button" class="e-sw" aria-label="Sunset" style="background: #FF8A65"></button>
-<button type="button" class="e-sw" aria-label="Sea" style="background: #7FE0A2"></button>
-<button type="button" class="e-sw" aria-label="Violet" style="background: #B9A2FF"></button>
+<section class="s-up" role="dialog" aria-label="Ceiling lights" style="position: absolute; left: 0; right: 0; bottom: 0; height: 640px; box-sizing: border-box; border-radius: 28px 28px 0 0; background: #1A1E25; display: flex; flex-direction: column">
+<div style="flex: none; padding: 8px 4px 0">
+<div aria-hidden="true" style="width: 36px; height: 4px; border-radius: 2px; background: #5A6270; margin: 0 auto 2px"></div>
+<div style="display: flex; align-items: center; gap: 4px">
+<button type="button" class="s-ib" aria-label="Close"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+<div aria-hidden="true" style="flex: none; width: 40px; height: 40px; border-radius: 12px; background: #4A3A12; display: grid; place-items: center; transition: background .3s"><svg width="22" height="22" viewBox="0 0 24 24" fill="#FFC14D"><path d="M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/><rect x="9.5" y="17.5" width="5" height="2.5" rx="1"/></svg></div>
+<div style="flex: 1; min-width: 0; padding-left: 6px"><div style="font-size: 16px; line-height: 20px; font-weight: 700; color: #FFFFFF; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">Ceiling lights</div><div style="font-size: 13px; line-height: 18px; color: #B4BBC6">On · Living room</div></div>
+<button type="button" class="s-ib" aria-label="History"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 16v-4M12 16V8M15 16v-6"/></svg></button>
+<button type="button" class="s-ib" aria-label="Settings"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/></svg></button>
+<button type="button" class="s-ib" aria-label="More actions"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#E3E6EC"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>
 </div>
 </div>
 
-<button type="button" style="width: 100%; height: 64px; border: 0; border-radius: 32px; background: {{accent}}; color: #06203A; font-family: inherit; font-size: 18px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 10px"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06203A" stroke-width="2.8" stroke-linecap="round"><path d="M12 4v8"/><path d="M6.5 7.5a8 8 0 1 0 11 0"/></svg>Turn off</button>
+<div style="flex: 1; min-height: 0; padding: 20px 24px 0; display: flex; flex-direction: column; align-items: center; gap: 22px">
+<div style="text-align: center"><div style="font-size: 30px; line-height: 36px; color: #FFFFFF">71%</div><div style="font-size: 14px; font-weight: 500; color: #E3E6EC">2 hours ago</div></div>
 
-<div style="width: 100%; display: flex; gap: 8px">
-<button type="button" class="e-pill">History</button>
-<button type="button" class="e-pill">Automations</button>
-<button type="button" class="e-pill">Settings</button>
+<div role="slider" aria-label="Brightness" aria-valuenow="71" aria-valuemin="0" aria-valuemax="100" tabindex="0" style="width: 100%; height: 56px; border-radius: 20px; background: #4A3A2A; position: relative; overflow: hidden"><div class="s-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: 71%; border-radius: 20px; background: #FFA94D"><div style="position: absolute; right: 8px; top: 14px; width: 4px; height: 28px; border-radius: 2px; background: #FFFFFF"></div></div></div>
+
+<div style="display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 28px; background: #20252D">
+<button type="button" class="s-ib" aria-label="Turn off"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round"><path d="M12 4v8"/><path d="M7 7.5a7 7 0 1 0 10 0"/></svg></button>
+<div aria-hidden="true" style="width: 1px; height: 32px; background: #444A54"></div>
+<button type="button" class="s-ib" aria-label="Brightness" aria-pressed="true" style="background: #E3E6EC"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="none" stroke="#1A1E25" stroke-width="2.2"/><path d="M12 6a6 6 0 0 1 0 12z" fill="#1A1E25"/></svg></button>
+<button type="button" class="s-ib" aria-label="Colour"><div style="width: 26px; height: 26px; border-radius: 13px; background: conic-gradient(#FF5A5A, #FFD24D, #5AE08A, #5AB4FF, #B77DFF, #FF5A5A)"></div></button>
+<button type="button" class="s-ib" aria-label="Colour temperature"><div style="width: 26px; height: 26px; border-radius: 13px; background: linear-gradient(180deg, #A9CBFF, #FFFFFF 50%, #FFB45A)"></div></button>
 </div>
 
-<div style="width: 100%; box-sizing: border-box; border-radius: 26px; background: #222935; padding: 12px 16px">
-<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #B9C0CC">TODAY</div>
-<svg role="img" aria-label="On from 07:00 to 08:10 and from 18:30 until now" width="326" height="28" viewBox="0 0 326 28" style="display: block; margin-top: 6px"><rect x="0" y="8" width="326" height="12" rx="6" fill="#0C1016"/><rect x="95" y="8" width="16" height="12" rx="6" fill="#F2B62E"/><rect x="251" y="8" width="18" height="12" rx="6" fill="#F2B62E"/></svg>
+<div style="display: grid; grid-template-columns: repeat(4, 48px); gap: 16px 22px">
+<button type="button" class="s-sw" aria-label="Orange" style="background: #FF8F1F"></button>
+<button type="button" class="s-sw" aria-label="Peach" style="background: #FFC08A"></button>
+<button type="button" class="s-sw" aria-label="Warm white" style="background: #FFE2C8"></button>
+<button type="button" class="s-sw" aria-label="White" style="background: #FFFFFF"></button>
+<button type="button" class="s-sw" aria-label="Blue" style="background: #86AEFF"></button>
+<button type="button" class="s-sw" aria-label="Violet" style="background: #D09BFF"></button>
+<button type="button" class="s-sw" aria-label="Pink" style="background: #FFA3F0"></button>
+<button type="button" class="s-sw" aria-label="Coral" style="background: #FF6B5A"></button>
 </div>
+</div>
+
+<div role="tablist" aria-label="Sections" style="flex: none; display: flex; gap: 4px; padding: 8px 12px 14px; border-top: 1px solid #2B313A">
+<button type="button" role="tab" aria-selected="true" class="s-tab" style="background: #E3E6EC; color: #1A1E25">Details</button>
+<button type="button" role="tab" aria-selected="false" class="s-tab">History</button>
+<button type="button" role="tab" aria-selected="false" class="s-tab">Settings</button>
+<button type="button" role="tab" aria-selected="false" class="s-tab">Related</button>
 </div>
 </section>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#9CC8FF","options":["#9CC8FF","#7FE0A2","#F2B62E","#B9A2FF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#A8C7FA","options":["#A8C7FA","#A8E6B8","#F2C86B","#CDB8FF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
 renderVals() {
-return { accent: this.props.accent ?? '#9CC8FF', motionClass: (this.props.motion ?? true) ? '' : 'e-still' };
+return { accent: this.props.accent ?? '#A8C7FA', motionClass: (this.props.motion ?? true) ? '' : 's-still' };
 }
 }
 </script>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Run a quick action</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+<style>
+body{margin:0;background:#1A1E25}
+@keyframes s-up{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
+.s-up{animation:s-up .34s cubic-bezier(.2,.9,.3,1) both}
+.s-still .s-up{animation:none}
+@media (prefers-reduced-motion:reduce){.s-up{animation:none}}
+.a-ib{width:48px;height:48px;border:0;border-radius:24px;background:transparent;display:grid;place-items:center;flex:none}
+.a-seg{flex:1;min-width:0;height:44px;border:0;border-radius:22px;background:transparent;color:#E3E6EC;font-family:inherit;font-size:14px;font-weight:700}
+.a-step{border-radius:18px;background:#252A32;padding:12px}
+.a-num{flex:none;width:26px;height:26px;border-radius:13px;background:#1D3F8F;color:#FFFFFF;font-size:13px;font-weight:700;display:grid;place-items:center}
+.a-sel{height:48px;box-sizing:border-box;border-radius:14px;background:#1A1E25;padding:0 12px 0 14px;display:flex;align-items:center;gap:8px;font-size:15px;color:#FFFFFF}
+.a-lab{margin:10px 0 4px;font-size:12px;color:#B4BBC6}
+.a-sw{width:36px;height:36px;border:0;border-radius:18px;position:relative}
+.a-sw::after{content:"";position:absolute;inset:-6px}
+</style>
+</helmet>
+<div class="{{motionClass}}" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #1A1E25; color: #E3E6EC; font-family: Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px">
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,.55)"></div>
+
+<section class="s-up" role="dialog" aria-label="Run a quick action" style="position: absolute; left: 0; right: 0; bottom: 0; height: 742px; box-sizing: border-box; border-radius: 28px 28px 0 0; background: #1A1E25; display: flex; flex-direction: column">
+<div style="flex: none; padding: 8px 4px 0 16px">
+<div aria-hidden="true" style="width: 36px; height: 4px; border-radius: 2px; background: #5A6270; margin: 0 auto 2px"></div>
+<div style="display: flex; align-items: center; gap: 8px"><div style="flex: 1; min-width: 0"><h2 style="margin: 0; font-size: 20px; line-height: 26px; font-weight: 700; color: #FFFFFF">Run a quick action</h2><div style="font-size: 13px; color: #B4BBC6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Hallway light · runs once, not saved</div></div><button type="button" class="a-ib" aria-label="Close"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div role="tablist" aria-label="How to write it" style="margin: 8px 12px 0 0; padding: 4px; border-radius: 26px; background: #20252D; display: flex; gap: 4px"><button type="button" role="tab" aria-selected="true" class="a-seg" style="background: #0F2A6B; color: #FFFFFF">Guided</button><button type="button" role="tab" aria-selected="false" class="a-seg">YAML</button></div>
+</div>
+
+<div style="flex: 1; min-height: 0; overflow: hidden; padding: 12px 12px 0; display: flex; flex-direction: column; gap: 8px">
+
+<section class="a-step">
+<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px"><div class="a-num">1</div><div style="flex: 1; font-size: 15px; font-weight: 700; color: #FFFFFF">Do this</div><button type="button" class="a-ib" aria-label="Step actions" style="width: 40px; height: 40px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#E3E6EC"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+<div class="a-sel" role="combobox" aria-label="Action" aria-expanded="false" tabindex="0"><span style="flex: 1">Turn on</span><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="#C3C9D3"><path d="M7 10l5 5 5-5z"/></svg></div>
+<div class="a-lab">Brightness · 62%</div>
+<div role="slider" aria-label="Brightness" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100" tabindex="0" style="height: 40px; border-radius: 14px; background: #4A3A2A; position: relative; overflow: hidden"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 62%; border-radius: 14px; background: #FFA94D"><div style="position: absolute; right: 6px; top: 10px; width: 4px; height: 20px; border-radius: 2px; background: #FFFFFF"></div></div></div>
+<div class="a-lab">Colour</div>
+<div style="display: flex; gap: 12px; flex-wrap: wrap"><button type="button" class="a-sw" aria-label="Warm white" style="background: #FFE2C8; outline: 2px solid #FFFFFF; outline-offset: 2px"></button><button type="button" class="a-sw" aria-label="White" style="background: #FFFFFF"></button><button type="button" class="a-sw" aria-label="Orange" style="background: #FF8F1F"></button><button type="button" class="a-sw" aria-label="Blue" style="background: #86AEFF"></button><button type="button" class="a-sw" aria-label="Violet" style="background: #D09BFF"></button><button type="button" class="a-sw" aria-label="Pick any colour" style="background: conic-gradient(#FF5A5A, #FFD24D, #5AE08A, #5AB4FF, #B77DFF, #FF5A5A)"></button></div>
+</section>
+
+<section class="a-step">
+<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px"><div class="a-num">2</div><div style="flex: 1; font-size: 15px; font-weight: 700; color: #FFFFFF">Then wait</div><button type="button" class="a-ib" aria-label="Step actions" style="width: 40px; height: 40px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#E3E6EC"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+<div class="a-sel" role="combobox" aria-label="How long" aria-expanded="false" tabindex="0"><span style="flex: 1">10 minutes</span><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="#C3C9D3"><path d="M7 10l5 5 5-5z"/></svg></div>
+</section>
+
+<section class="a-step">
+<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px"><div class="a-num">3</div><div style="flex: 1; font-size: 15px; font-weight: 700; color: #FFFFFF">Then do this</div><button type="button" class="a-ib" aria-label="Step actions" style="width: 40px; height: 40px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#E3E6EC"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+<div class="a-sel" role="combobox" aria-label="Action" aria-expanded="false" tabindex="0"><span style="flex: 1">Turn off</span><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="#C3C9D3"><path d="M7 10l5 5 5-5z"/></svg></div>
+</section>
+
+<button type="button" style="align-self: flex-start; height: 48px; border: 2px dashed #444A54; border-radius: 24px; background: transparent; color: #E3E6EC; font-family: inherit; font-size: 14px; font-weight: 500; padding: 0 18px 0 12px; display: flex; align-items: center; gap: 8px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add a step</button>
+</div>
+
+<div style="flex: none; padding: 10px 12px 16px; border-top: 1px solid #2B313A">
+<div style="font-size: 12px; line-height: 17px; color: #B4BBC6; margin-bottom: 8px">Runs once and is thrown away. Step 3 still runs if you close this page. Stop it from the running list.</div>
+<div style="display: flex; gap: 8px"><button type="button" style="flex: 1; min-width: 0; height: 52px; border: 1px solid #8D95A1; border-radius: 26px; background: transparent; color: #E3E6EC; font-family: inherit; font-size: 14px; font-weight: 500">Keep as a script</button><button type="button" style="flex: 1; min-width: 0; height: 52px; border: 0; border-radius: 26px; background: {{accent}}; color: #0B1F4A; font-family: inherit; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="#0B1F4A"><path d="M8 5l11 7-11 7z"/></svg>Run</button></div>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#A8C7FA","options":["#A8C7FA","#A8E6B8","#F2C86B","#CDB8FF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return { accent: this.props.accent ?? '#A8C7FA', motionClass: (this.props.motion ?? true) ? '' : 's-still' };
+}
+}
+</script>
+</body>
+</html>

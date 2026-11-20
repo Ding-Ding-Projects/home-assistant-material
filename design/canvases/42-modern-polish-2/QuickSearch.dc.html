@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Search results with quick controls</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+<style>
+body{margin:0;background:#1A1E25}
+@keyframes t-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.t-in{animation:t-in .32s cubic-bezier(.2,.9,.3,1) both}
+.t-still .t-in{animation:none}
+@media (prefers-reduced-motion:reduce){.t-in{animation:none}}
+.q-row{border-radius:18px;background:#252A32;padding:10px 12px}
+.q-top{display:flex;align-items:center;gap:12px;min-height:48px}
+.q-ico{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center}
+.q-name{font-size:15px;line-height:20px;font-weight:700;color:#FFFFFF}
+.q-sub{font-size:12px;line-height:17px;color:#B4BBC6}
+.q-on{flex:none;width:52px;height:32px;border:0;border-radius:16px;position:relative;padding:0}
+.q-on::before{content:"";position:absolute;inset:-8px 0}
+.q-on i{position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:12px;background:#0B1F4A}
+.q-off{flex:none;width:52px;height:32px;box-sizing:border-box;border:2px solid #8D95A1;border-radius:16px;background:transparent;position:relative;padding:0}
+.q-off::before{content:"";position:absolute;inset:-10px 0}
+.q-off i{position:absolute;left:6px;top:6px;width:16px;height:16px;border-radius:8px;background:#8D95A1}
+.q-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.q-act{height:36px;border:1px solid #444A54;border-radius:18px;background:transparent;color:#E3E6EC;font-family:inherit;font-size:12px;font-weight:500;padding:0 12px;display:flex;align-items:center;gap:6px;position:relative}
+.q-act::after{content:"";position:absolute;inset:-6px 0}
+.q-hit{background:#3A3000;color:#FFE08B;border-radius:4px;padding:0 2px}
+</style>
+</helmet>
+<div class="{{motionClass}}" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #1A1E25; color: #E3E6EC; font-family: Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; display: flex; flex-direction: column">
+
+<div style="flex: none; padding: 10px 12px; background: #14181E">
+<label style="height: 52px; box-sizing: border-box; border-radius: 26px; background: #252A32; display: flex; align-items: center; gap: 10px; padding: 0 6px 0 16px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" value="hall" aria-label="Search everything" style="flex: 1; min-width: 0; border: 0; background: transparent; color: #FFFFFF; font-family: inherit; font-size: 16px; outline: none"><button type="button" aria-label="Build a pattern" style="flex: none; width: 44px; height: 44px; border: 0; border-radius: 22px; background: transparent; color: #C3C9D3; font-family: ui-monospace, Consolas, monospace; font-size: 14px; font-weight: 700">.*</button></label>
+<div style="margin: 8px 4px 0; font-size: 12px; color: #B4BBC6">4 things match. Control them right here.</div>
+</div>
+
+<div style="flex: 1; min-height: 0; padding: 10px 12px 0; display: flex; flex-direction: column; gap: 8px">
+
+<section class="q-row t-in">
+<div class="q-top"><div class="q-ico" style="background: #4A3A12"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#FFC14D"><path d="M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/><rect x="9.5" y="17.5" width="5" height="2.5" rx="1"/></svg></div><div style="flex: 1; min-width: 0"><div class="q-name"><span class="q-hit">Hall</span>way light</div><div class="q-sub">On · 62% · Hallway</div></div><button type="button" role="switch" aria-checked="true" aria-label="Hallway light" class="q-on" style="background: {{accent}}"><i></i></button></div>
+<div style="display: flex; align-items: center; gap: 10px; margin-top: 6px"><div role="slider" aria-label="Brightness" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100" tabindex="0" style="flex: 1; min-width: 0; height: 40px; border-radius: 14px; background: #4A3A2A; position: relative; overflow: hidden"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 62%; border-radius: 14px; background: #FFA94D"><div style="position: absolute; right: 6px; top: 10px; width: 4px; height: 20px; border-radius: 2px; background: #FFFFFF"></div></div></div><button type="button" aria-label="Pick a colour" style="flex: none; width: 44px; height: 44px; border: 2px solid #444A54; border-radius: 22px; background: conic-gradient(#FF5A5A, #FFD24D, #5AE08A, #5AB4FF, #B77DFF, #FF5A5A)"></button></div>
+<div class="q-acts"><button type="button" class="q-act"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="#E3E6EC"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>Run a quick action</button><button type="button" class="q-act">Show more details<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
+</section>
+
+<section class="q-row t-in" style="animation-delay: .04s">
+<div class="q-top"><div class="q-ico" style="background: #1A1E25"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2"><rect x="6" y="4" width="12" height="16" rx="3"/><path d="M12 8v4" stroke-linecap="round"/></svg></div><div style="flex: 1; min-width: 0"><div class="q-name"><span class="q-hit">Hall</span>way fan plug</div><div class="q-sub">Off · Hallway</div></div><button type="button" role="switch" aria-checked="false" aria-label="Hallway fan plug" class="q-off"><i></i></button></div>
+<div class="q-acts"><button type="button" class="q-act"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="#E3E6EC"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>Run a quick action</button><button type="button" class="q-act">Show more details<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
+</section>
+
+<section class="q-row t-in" style="animation-delay: .08s">
+<div class="q-top"><div class="q-ico" style="background: #123B22"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#A8E6B8"><rect x="6" y="11" width="12" height="9" rx="2"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none" stroke="#A8E6B8" stroke-width="2.2"/></svg></div><div style="flex: 1; min-width: 0"><div class="q-name"><span class="q-hit">Hall</span> door lock</div><div class="q-sub">Locked · asks before unlocking</div></div><button type="button" style="flex: none; height: 44px; border: 1px solid #8D95A1; border-radius: 22px; background: transparent; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 500; padding: 0 16px">Unlock</button></div>
+<div class="q-acts"><button type="button" class="q-act"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="#E3E6EC"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>Run a quick action</button><button type="button" class="q-act">Show more details<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
+</section>
+
+<section class="q-row t-in" style="animation-delay: .12s">
+<div class="q-top"><div class="q-ico" style="background: #1A1E25"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round"><path d="M12 4v10"/><circle cx="12" cy="17" r="3"/></svg></div><div style="flex: 1; min-width: 0"><div class="q-name"><span class="q-hit">Hall</span>way temperature</div><div class="q-sub">Hallway · 2 minutes ago</div></div><div style="flex: none; font-size: 20px; font-weight: 500; color: #FFFFFF">21.4°</div></div>
+<div class="q-acts"><button type="button" class="q-act">Show more details<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#A8C7FA","options":["#A8C7FA","#A8E6B8","#F2C86B","#CDB8FF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return { accent: this.props.accent ?? '#A8C7FA', motionClass: (this.props.motion ?? true) ? '' : 't-still' };
+}
+}
+</script>
+</body>
+</html>

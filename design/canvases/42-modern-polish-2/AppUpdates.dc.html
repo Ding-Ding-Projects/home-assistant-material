@@ -2,66 +2,75 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Updates and backups</title>
+<title>Updates, today's look polished</title>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;700&display=swap">
 <style>
-body{margin:0;background:#0C1016}
-@keyframes u-in{from{opacity:0;transform:translateY(36px) scale(.92)}to{opacity:1;transform:none}}
-@keyframes u-ring{from{stroke-dashoffset:565}to{stroke-dashoffset:198}}
-@keyframes u-turn{to{transform:rotate(360deg)}}
-@keyframes u-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-.u-in{animation:u-in .55s cubic-bezier(.2,1.4,.3,1) both}
-.u-ring{stroke-dasharray:565;stroke-dashoffset:198;animation:u-ring 1.4s cubic-bezier(.2,1,.3,1) .2s both}
-.u-turn{animation:u-turn 14s linear infinite;transform-origin:105px 105px}
-.u-pulse{animation:u-pulse 1.6s ease-in-out infinite;transform-origin:50% 50%}
-.u-still *{animation:none !important}
-@media (prefers-reduced-motion:reduce){*{animation:none !important}}
-.u-step{display:flex;align-items:center;gap:12px;min-height:52px}
-.u-b{flex:none;width:30px;height:30px;border-radius:15px;display:grid;place-items:center}
+body{margin:0;background:#1A1E25}
+@keyframes t-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes t-spin{to{transform:rotate(360deg)}}
+.t-in{animation:t-in .32s cubic-bezier(.2,.9,.3,1) both}
+.t-spin{animation:t-spin 1.1s linear infinite;transform-origin:50% 50%}
+.t-still .t-in,.t-still .t-spin{animation:none}
+@media (prefers-reduced-motion:reduce){.t-in,.t-spin{animation:none}}
+.t-ib{width:48px;height:48px;border:0;border-radius:24px;background:transparent;display:grid;place-items:center;flex:none}
+.t-card{border-radius:20px;background:#14181E;padding:14px 16px}
+.t-h{font-size:16px;line-height:22px;font-weight:700;color:#FFFFFF}
+.t-s{font-size:13px;line-height:18px;color:#B4BBC6}
+.t-upd{flex:none;height:48px;border:0;border-radius:24px;background:#A8C7FA;color:#0B1F4A;font-family:inherit;font-size:14px;font-weight:500;padding:0 20px}
+.t-ver{font-family:'Roboto Mono',ui-monospace,monospace;font-size:12px;line-height:18px;color:#B4BBC6}
+.t-nav{position:absolute;left:12px;right:12px;bottom:10px;height:64px;box-sizing:border-box;border-radius:32px;background:#20252D;box-shadow:0 8px 22px rgba(0,0,0,.5);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:6px}
+.t-nav a{display:grid;justify-items:center;align-content:center;gap:1px;color:#C3C9D3;text-decoration:none;font-size:12px;font-weight:500;border-radius:26px;position:relative}
+.t-badge{position:absolute;top:2px;left:50%;margin-left:6px;min-width:18px;height:18px;box-sizing:border-box;border-radius:9px;background:#E3E6EC;color:#1A1E25;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px}
 </style>
 </helmet>
-<div class="{{motionClass}}" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0C1016; color: #E6E9EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px">
+<div class="{{motionClass}}" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #1A1E25; color: #E3E6EC; font-family: Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; display: flex; flex-direction: column">
 
-<section class="u-in" style="margin: 10px 10px 0; border-radius: 48px; background: #0F4A2A; padding: 10px 10px 18px; position: relative; overflow: hidden">
-<button type="button" aria-label="Back" style="position: relative; width: 48px; height: 48px; border: 0; border-radius: 24px; background: rgba(0,20,10,.45); display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
-<div style="display: flex; align-items: center; gap: 6px; padding: 0 8px">
-<svg role="img" aria-label="Step 2 of 3, 65 percent" width="170" height="170" viewBox="0 0 210 210" style="flex: none">
-<g class="u-turn"><circle cx="105" cy="105" r="90" fill="none" stroke="#1C7A45" stroke-width="26" stroke-dasharray="0 31.4" stroke-linecap="round"/></g>
-<circle cx="105" cy="105" r="90" fill="none" stroke="#0A3520" stroke-width="14"/>
-<circle class="u-ring" cx="105" cy="105" r="90" fill="none" stroke="#A8F5C2" stroke-width="14" stroke-linecap="round" transform="rotate(-90 105 105)"/>
-<text x="105" y="122" text-anchor="middle" font-family="Roboto Flex, sans-serif" font-size="64" font-weight="900" fill="#FFFFFF">65</text>
-</svg>
-<div style="flex: 1; min-width: 0"><div style="font-size: 12px; font-weight: 800; letter-spacing: .1em; color: #A8F5C2">UPDATING · 2 OF 3</div><h1 style="margin: 2px 0 0; font-size: 28px; line-height: 30px; font-weight: 900; font-stretch: 114%; letter-spacing: -0.02em; color: #FFFFFF">Core to build 537</h1><p style="margin: 4px 0 0; font-size: 13px; line-height: 18px; color: #CFF9DD">Started 09:15 · about 2 min left</p></div>
+<header style="flex: none; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px; background: #14181E">
+<button type="button" class="t-ib" aria-label="Back" style="background: #20252D; width: 40px; height: 40px; margin: 0 4px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m6-7l-7 7 7 7"/></svg></button>
+<h1 style="flex: 1; min-width: 0; margin: 0; font-size: 20px; line-height: 28px; font-weight: 700; color: #FFFFFF">Updates</h1>
+<button type="button" class="t-ib" aria-label="Page tools"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
+<button type="button" class="t-ib" aria-label="More actions"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#E3E6EC"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>
+</header>
+
+<div style="flex: 1; min-height: 0; padding: 12px 12px 0; display: flex; flex-direction: column; gap: 10px">
+
+<section class="t-in" style="border-radius: 24px; background: #333B4A; padding: 16px">
+<div style="display: flex; align-items: flex-start; gap: 12px"><h2 style="flex: 1; min-width: 0; margin: 0; font-size: 22px; line-height: 28px; font-weight: 700; color: #FFFFFF">4 updates are ready</h2><button type="button" style="flex: none; height: 40px; border: 0; border-radius: 20px; background: #1D3F8F; color: #FFFFFF; font-family: inherit; font-size: 13px; font-weight: 500; padding: 0 14px; display: flex; align-items: center; gap: 6px; position: relative"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4"/></svg>Check now</button></div>
+<p style="margin: 6px 0 12px; font-size: 14px; line-height: 20px; color: #D6DBE4">They run one at a time, in a safe order. A backup is made first.</p>
+<button type="button" style="width: 100%; height: 52px; border: 0; border-radius: 26px; background: #A8C7FA; color: #0B1F4A; font-family: inherit; font-size: 15px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B1F4A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4"/></svg>Update everything (4)</button>
+</section>
+
+<section class="t-card t-in" style="animation-delay: .04s; display: flex; align-items: center; gap: 12px"><svg class="t-spin" aria-hidden="true" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="none" stroke="#333B4A" stroke-width="4"/><path d="M14 3a11 11 0 0 1 11 11" fill="none" stroke="#A8C7FA" stroke-width="4" stroke-linecap="round"/></svg><div style="flex: 1; min-width: 0"><div class="t-h">Update coming soon</div><div class="t-s">Build 539 is being made · step 3 of 6 · started 14:02</div></div></section>
+
+<button type="button" aria-expanded="false" class="t-card t-in" style="animation-delay: .08s; border: 0; color: inherit; font-family: inherit; text-align: left; display: flex; align-items: center; gap: 12px"><div style="flex: 1; min-width: 0"><div class="t-h">Automatic updates</div><div class="t-s">Off. Nothing installs without a press.</div></div><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+
+<section class="t-card t-in" style="animation-delay: .12s; padding: 6px 8px 6px 16px">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 64px"><div style="flex: 1; min-width: 0"><div class="t-h" style="font-size: 15px">Core</div><div class="t-ver">2026.11.2.536 &gt; <b style="color: #FFFFFF">2026.11.2.538</b></div></div><button type="button" class="t-upd">Update</button><button type="button" class="t-ib" aria-label="More about Core"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
+<div style="display: flex; align-items: center; gap: 12px; min-height: 64px; border-top: 1px solid #2B313A"><div style="flex: 1; min-width: 0"><div class="t-h" style="font-size: 15px">Supervisor</div><div class="t-ver">2026.11.0.536 &gt; <b style="color: #FFFFFF">2026.11.0.538</b></div></div><button type="button" class="t-upd">Update</button><button type="button" class="t-ib" aria-label="More about Supervisor"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
+<div style="display: flex; align-items: center; gap: 12px; min-height: 64px; border-top: 1px solid #2B313A"><div style="flex: 1; min-width: 0"><div class="t-h" style="font-size: 15px; overflow-wrap: anywhere">Living room bulb firmware</div><div class="t-ver">1.93.3 &gt; <b style="color: #FFFFFF">1.94.2</b></div></div><button type="button" class="t-upd">Update</button><button type="button" class="t-ib" aria-label="More about Living room bulb firmware"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
+</section>
+
+<p style="margin: 0 4px; font-size: 12px; line-height: 17px; color: #8D95A1">You have build 536. Build progress and the change list are read from public pages by this browser. Nothing about this home is sent.</p>
 </div>
-</section>
 
-<section class="u-in" style="animation-delay: .08s; margin: 10px 10px 0; border-radius: 32px; background: #171C24; padding: 10px 16px">
-<div class="u-step"><div class="u-b" style="background: #7FE0A2"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0C1016" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></div><div style="flex: 1; min-width: 0"><div style="font-weight: 700">Backup made and checked</div><div style="font-size: 13px; color: #B9C0CC">09:15 · 108 MB</div></div></div>
-<div class="u-step"><div class="u-b" style="background: #7FE0A2"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0C1016" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></div><div style="flex: 1; min-width: 0"><div style="font-weight: 700">Supervisor</div><div style="font-size: 13px; color: #B9C0CC">536 to 537 · took 0:41</div></div></div>
-<div class="u-step"><div class="u-b u-pulse" style="background: {{accent}}"><div style="width: 10px; height: 10px; border-radius: 5px; background: #06203A"></div></div><div style="flex: 1; min-width: 0"><div style="font-weight: 800; color: #FFFFFF">Core</div><div style="font-size: 13px; color: #B9C0CC">Restarting now. This page comes back by itself.</div></div></div>
-<div class="u-step"><div class="u-b" style="border: 2px solid #3A4352; box-sizing: border-box"></div><div style="flex: 1; min-width: 0; color: #8A93A0"><div style="font-weight: 700">Two apps</div><div style="font-size: 13px">Waiting</div></div></div>
-</section>
-
-<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 10px 0">
-<button type="button" class="u-in" style="animation-delay: .16s; height: 128px; border: 0; border-radius: 30px; background: #13337F; color: #C9D8FF; padding: 14px; text-align: left; font-family: inherit; position: relative; overflow: hidden"><svg aria-hidden="true" width="80" height="80" viewBox="0 0 80 80" style="position: absolute; right: -16px; top: -16px"><rect x="12" y="12" width="56" height="56" rx="20" fill="#2A56C6" transform="rotate(14 40 40)"/></svg><div style="font-size: 38px; line-height: 38px; font-weight: 900; font-stretch: 118%; color: #FFFFFF">7</div><div style="font-size: 14px; font-weight: 800">Backups</div><div style="font-size: 12px">Last one 09:15, checked</div></button>
-<button type="button" class="u-in" style="animation-delay: .22s; height: 128px; border: 0; border-radius: 30px; background: #3A1F66; color: #DCC6FF; padding: 14px; text-align: left; font-family: inherit; position: relative; overflow: hidden"><svg aria-hidden="true" width="80" height="80" viewBox="0 0 80 80" style="position: absolute; right: -18px; top: -12px"><rect x="6" y="22" width="68" height="36" rx="18" fill="#6B45B8" transform="rotate(-20 40 40)"/></svg><div style="font-size: 38px; line-height: 38px; font-weight: 900; font-stretch: 118%; color: #FFFFFF">536</div><div style="font-size: 14px; font-weight: 800">Go back</div><div style="font-size: 12px">A backup is made first</div></button>
-</div>
-
-<section class="u-in" style="animation-delay: .28s; margin: 10px 10px 0; border-radius: 32px; background: #171C24; padding: 14px 16px">
-<div style="font-size: 12px; font-weight: 800; letter-spacing: .1em; color: #B9C0CC">AUTOMATIC UPDATES</div>
-<div style="display: flex; align-items: center; gap: 12px; min-height: 52px"><div style="flex: 1; min-width: 0"><div style="font-weight: 700">Core</div><div style="font-size: 13px; color: #B9C0CC">Off. Nothing installs without a press.</div></div><div role="img" aria-label="Off" style="flex: none; width: 52px; height: 32px; box-sizing: border-box; border-radius: 16px; border: 2px solid #8A93A0; position: relative"><div style="position: absolute; left: 6px; top: 6px; width: 16px; height: 16px; border-radius: 8px; background: #8A93A0"></div></div></div>
-</section>
+<nav class="t-nav" aria-label="Main">
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#C3C9D3"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Home</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2"><rect x="4" y="6" width="16" height="13" rx="2.5"/></svg><span class="t-badge">9</span>Pages</a>
+<a href="#" style="background: #0F2A6B; color: #FFFFFF; font-weight: 700"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/></svg><span class="t-badge">4</span>Settings</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menu</a>
+</nav>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#9CC8FF","options":["#9CC8FF","#7FE0A2","#F2B62E","#B9A2FF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#A8C7FA","options":["#A8C7FA","#A8E6B8","#F2C86B","#CDB8FF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
 renderVals() {
-return { accent: this.props.accent ?? '#9CC8FF', motionClass: (this.props.motion ?? true) ? '' : 'u-still' };
+return { accent: this.props.accent ?? '#A8C7FA', motionClass: (this.props.motion ?? true) ? '' : 't-still' };
 }
 }
 </script>

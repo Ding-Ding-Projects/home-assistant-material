@@ -2,84 +2,83 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Front door</title>
+<title>Front door, today's look polished</title>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
 <style>
-body{margin:0;background:#0C1016}
-@keyframes h-in{from{opacity:0;transform:translateY(40px) scale(.9)}to{opacity:1;transform:none}}
-@keyframes h-spin{from{transform:rotate(-140deg) scale(.2);opacity:0}to{transform:none;opacity:1}}
-@keyframes h-glow{0%,100%{opacity:.55}50%{opacity:1}}
-@keyframes h-turn{to{transform:rotate(360deg)}}
-.h-in{animation:h-in .6s cubic-bezier(.2,1.4,.3,1) both}
-.h-spin{animation:h-spin 1s cubic-bezier(.2,1.4,.3,1) .15s both}
-.h-glow{animation:h-glow 3s ease-in-out infinite}
-.h-turn{animation:h-turn 30s linear infinite}
-.h-still *{animation:none !important}
-@media (prefers-reduced-motion:reduce){*{animation:none !important}}
-.h-area{border:0;border-radius:30px;padding:14px;height:132px;text-align:left;font-family:inherit;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
-.h-area b{font-size:38px;line-height:36px;font-weight:900;font-stretch:118%;letter-spacing:-.03em}
-.h-area span{font-size:14px;font-weight:700}
-.h-area small{font-size:12px;opacity:.85}
-.h-chip{flex:none;height:48px;border:0;border-radius:24px;padding:0 18px;font-family:inherit;font-size:14px;font-weight:800}
-.h-nav{position:absolute;left:12px;right:12px;bottom:12px;height:68px;box-sizing:border-box;border-radius:34px;background:#1B212B;box-shadow:0 12px 30px rgba(0,0,0,.6);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:6px}
-.h-nav a{display:grid;justify-items:center;align-content:center;gap:1px;color:#B9C0CC;text-decoration:none;font-size:12px;font-weight:600;border-radius:28px}
+body{margin:0;background:#1A1E25}
+@keyframes t-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.t-in{animation:t-in .32s cubic-bezier(.2,.9,.3,1) both}
+.t-still .t-in{animation:none}
+@media (prefers-reduced-motion:reduce){.t-in{animation:none}}
+.t-ib{width:48px;height:48px;border:0;border-radius:24px;background:transparent;display:grid;place-items:center;flex:none}
+.t-sec{margin:0 0 8px 4px;font-size:15px;line-height:20px;font-weight:500;color:#FFFFFF}
+.t-area{min-width:0;height:96px;border:1px solid #333B4A;border-radius:22px;background:#1F242C;color:#E3E6EC;font-family:inherit;display:grid;justify-items:center;align-content:center;gap:4px;padding:6px}
+.t-area span{font-size:13px;font-weight:500;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-area small{font-size:11px;color:#B4BBC6}
+.t-nav{position:absolute;left:12px;right:12px;bottom:10px;height:64px;box-sizing:border-box;border-radius:32px;background:#20252D;box-shadow:0 8px 22px rgba(0,0,0,.5);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:6px}
+.t-nav a{display:grid;justify-items:center;align-content:center;gap:1px;color:#C3C9D3;text-decoration:none;font-size:12px;font-weight:500;border-radius:26px;position:relative}
+.t-badge{position:absolute;top:2px;left:50%;margin-left:6px;min-width:18px;height:18px;box-sizing:border-box;border-radius:9px;background:#E3E6EC;color:#1A1E25;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px}
 </style>
 </helmet>
-<div class="{{motionClass}}" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0C1016; color: #E6E9EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px">
+<div class="{{motionClass}}" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #1A1E25; color: #E3E6EC; font-family: Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; display: flex; flex-direction: column">
 
-<section class="h-in" style="margin: 10px 10px 0; height: 300px; border-radius: 48px; background: #10245C; position: relative; overflow: hidden">
-<svg aria-hidden="true" width="370" height="300" viewBox="0 0 370 300" style="position: absolute; inset: 0">
-<g class="h-spin" style="transform-origin: 318px 128px"><g class="h-turn" style="transform-origin: 318px 128px"><circle cx="318" cy="128" r="30" fill="#F2B62E" stroke="#F2B62E" stroke-width="16" stroke-dasharray="0 15.7" stroke-linecap="round"/></g></g>
-<path d="M0 250 C70 214 120 262 190 236 S310 214 370 246 V300 H0 Z" fill="#0F4A2A"/>
-<path d="M0 272 C80 246 150 286 230 262 S330 250 370 268 V300 H0 Z" fill="#1C7A45"/>
-<g transform="translate(196 132)"><path d="M0 60 L62 10 L124 60 V124 H0 Z" fill="#1B3F99"/><path d="M-10 64 L62 4 L134 64" fill="none" stroke="{{accent}}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><rect class="h-glow" x="20" y="72" width="34" height="34" rx="9" fill="#FFE08B"/><rect x="74" y="78" width="30" height="46" rx="8" fill="#0C1A44"/></g>
-</svg>
-<div style="position: absolute; right: 10px; top: 10px; display: flex; gap: 6px">
-<button type="button" aria-label="Search" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: rgba(6,16,40,.5); display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+<header style="flex: none; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 14px; background: #14181E">
+<h1 style="flex: 1; min-width: 0; margin: 0; font-size: 22px; line-height: 28px; font-weight: 700; color: #FFFFFF">Overview</h1>
+<button type="button" class="t-ib" aria-label="Search"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+<button type="button" class="t-ib" aria-label="Edit this page"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#E3E6EC"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="4" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M14 19l5-5 1.5 1.5-5 5H14z"/></svg></button>
+<button type="button" class="t-ib" aria-label="More actions"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#E3E6EC"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>
+</header>
+
+<div style="flex: 1; min-height: 0; padding: 16px 12px 0; display: flex; flex-direction: column; gap: 16px">
+
+<div class="t-in">
+<h2 style="margin: 0 0 4px 2px; font-size: 24px; line-height: 30px; font-weight: 500; color: #FFFFFF; overflow-wrap: anywhere">Good evening, Alex</h2>
+<p style="margin: 0 0 12px 2px; font-size: 15px; line-height: 22px; color: #C3C9D3">3 lights are on. The front door is locked. 21° inside.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" style="height: 48px; border: 1px solid #444A54; border-radius: 24px; background: transparent; color: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 500; padding: 0 18px 0 14px; display: flex; align-items: center; gap: 10px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#E3E6EC"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-.6-1.4-.6-2.2c0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/></svg>Night mode</button>
+<button type="button" style="height: 48px; border: 1px solid #444A54; border-radius: 24px; background: transparent; color: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 500; padding: 0 18px 0 14px; display: flex; align-items: center; gap: 10px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#E3E6EC"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-.6-1.4-.6-2.2c0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/></svg>All lights off</button>
 </div>
-<div style="position: absolute; left: 22px; top: 22px; right: 150px">
-<div style="font-size: 12px; font-weight: 700; letter-spacing: .1em; color: #C9D8FF">19:42 · 21° INSIDE</div>
-<h1 style="margin: 6px 0 0; font-size: 44px; line-height: 42px; font-weight: 900; font-stretch: 120%; letter-spacing: -0.03em; color: #FFFFFF">Good evening, Alex</h1>
-<p style="margin: 8px 0 0; font-size: 14px; line-height: 20px; color: #C9D8FF">3 lights on. Front door locked.</p>
 </div>
+
+<section class="t-in" style="animation-delay: .04s; border-radius: 28px; background: #6B4E0A; padding: 16px">
+<div style="display: flex; align-items: flex-start; justify-content: space-between"><div aria-hidden="true" style="width: 48px; height: 48px; border-radius: 16px; background: #1F242C; display: grid; place-items: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M20.5 6.5a5 5 0 0 1-6.6 4.7L6.4 18.7a2 2 0 0 1-2.8-2.8l7.5-7.5A5 5 0 0 1 17.5 2l-3 3 1 3 3 1z"/></svg></div><div style="height: 28px; border-radius: 14px; background: #1F242C; color: #FFFFFF; font-size: 12px; font-weight: 500; padding: 0 12px; display: flex; align-items: center">Needs you</div></div>
+<div style="margin-top: 10px; font-size: 22px; line-height: 28px; color: #FFFFFF; overflow-wrap: anywhere">1 thing needs repair</div>
+<button type="button" style="margin-top: 10px; height: 48px; border: 0; border-radius: 24px; background: #1F242C; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 500; padding: 0 20px">Review repairs</button>
 </section>
 
-<div style="display: flex; gap: 8px; padding: 10px 10px 0; overflow: hidden">
-<button type="button" class="h-chip" style="background: {{accent}}; color: #06203A">All lights off</button>
-<button type="button" class="h-chip" style="background: #3A1F66; color: #DCC6FF">Night mode</button>
-<button type="button" class="h-chip" style="background: #1B212B; color: #E6E9EF">Away</button>
+<section class="t-in" style="animation-delay: .08s">
+<h3 class="t-sec">Summaries</h3>
+<button type="button" style="height: 56px; border: 1px solid #333B4A; border-radius: 28px; background: #14181E; color: #E3E6EC; font-family: inherit; text-align: left; padding: 0 24px 0 16px; display: flex; align-items: center; gap: 14px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#FFA726"><path d="M20.5 6.5a5 5 0 0 1-6.6 4.7L6.4 18.7a2 2 0 0 1-2.8-2.8l7.5-7.5A5 5 0 0 1 17.5 2l-3 3 1 3 3 1z"/></svg><span><span style="display: block; font-size: 14px; font-weight: 500; color: #FFFFFF">Repairs</span><span style="display: block; font-size: 12px; line-height: 16px; color: #A8C7FA">1 issue</span></span></button>
+</section>
+
+<section class="t-in" style="animation-delay: .12s">
+<h3 class="t-sec">Areas</h3>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<button type="button" class="t-area"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="#5E8BD6"><path d="M4 12a2 2 0 0 1 2-2V8a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v2a2 2 0 0 1 2 2v5h-2v2h-2v-2H8v2H6v-2H4z"/></svg><span>Living room</span><small>2 lights on</small></button>
+<button type="button" class="t-area"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="#5E8BD6"><path d="M5 4h14v6H5zM5 12h14v8H5zM8 6.5h2M8 15h2" stroke="#1F242C" stroke-width="1.5"/></svg><span>Kitchen</span><small>1 light on</small></button>
+<button type="button" class="t-area"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="#5E8BD6"><path d="M3 18v-6a2 2 0 0 1 2-2h1V8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h1a2 2 0 0 1 2 2v6h-2v-2H5v2z"/></svg><span>Bedroom</span><small>Dark · 19.8°</small></button>
+</div>
+</section>
 </div>
 
-<button type="button" class="h-in" style="animation-delay: .1s; margin: 10px 10px 0; width: 370px; box-sizing: border-box; border: 0; border-radius: 30px; background: #5A3E00; color: #FFD77A; padding: 14px 16px; display: flex; align-items: center; gap: 14px; text-align: left; font-family: inherit">
-<div style="font-size: 56px; line-height: 48px; font-weight: 900; font-stretch: 118%">1</div>
-<div style="flex: 1; min-width: 0"><div style="font-size: 17px; font-weight: 800">thing needs you</div><div style="font-size: 13px; line-height: 18px">A door sensor has not answered since 14:02</div></div>
-<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFD77A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
-</button>
-
-<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 10px 10px 0">
-<button type="button" class="h-area h-in" style="animation-delay: .18s; background: #5A2A14; color: #FFD0BD"><svg aria-hidden="true" width="90" height="90" viewBox="0 0 90 90" style="position: absolute; right: -18px; top: -18px"><rect x="14" y="14" width="62" height="62" rx="22" fill="#FF8A65" transform="rotate(14 45 45)"/></svg><b>2</b><span>Living room</span><small>2 lights on · 21.4°</small></button>
-<button type="button" class="h-area h-in" style="animation-delay: .24s; background: #0F4A2A; color: #A8F5C2"><svg aria-hidden="true" width="90" height="90" viewBox="0 0 90 90" style="position: absolute; right: -20px; top: -20px"><circle cx="45" cy="45" r="34" fill="#1C7A45"/><circle cx="45" cy="45" r="14" fill="#0F4A2A"/></svg><b>1</b><span>Kitchen</span><small>1 light on · quiet</small></button>
-<button type="button" class="h-area h-in" style="animation-delay: .3s; height: 104px; background: #3A1F66; color: #DCC6FF"><svg aria-hidden="true" width="90" height="90" viewBox="0 0 90 90" style="position: absolute; right: -22px; top: -14px"><rect x="8" y="24" width="74" height="42" rx="21" fill="#B9A2FF" transform="rotate(-20 45 45)"/></svg><b>0</b><span>Bedroom</span><small>Dark · 19.8°</small></button>
-<button type="button" class="h-area h-in" style="animation-delay: .36s; height: 104px; background: #13337F; color: #C9D8FF"><svg aria-hidden="true" width="90" height="90" viewBox="0 0 90 90" style="position: absolute; right: -20px; top: -20px"><path d="M45 8 L82 45 L45 82 L8 45 Z" fill="#9CC8FF" stroke="#9CC8FF" stroke-width="10" stroke-linejoin="round"/></svg><b>0</b><span>Garden</span><small>Gate closed</small></button>
-</div>
-
-<nav class="h-nav" aria-label="Main">
-<a href="#" style="background: #13337F; color: #FFFFFF"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/></svg>Home</a>
-<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search</a>
-<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M4 10h16"/></svg>Pages</a>
-<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="8.5"/></svg>Settings</a>
+<nav class="t-nav" aria-label="Main">
+<a href="#" style="background: #0F2A6B; color: #FFFFFF; font-weight: 700"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Home</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2"><rect x="4" y="6" width="16" height="13" rx="2.5"/></svg><span class="t-badge">11</span>Pages</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/></svg><span class="t-badge">1</span>Settings</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menu</a>
 </nav>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#9CC8FF","options":["#9CC8FF","#7FE0A2","#F2B62E","#B9A2FF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#A8C7FA","options":["#A8C7FA","#A8E6B8","#F2C86B","#CDB8FF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
 renderVals() {
-return { accent: this.props.accent ?? '#9CC8FF', motionClass: (this.props.motion ?? true) ? '' : 'h-still' };
+return { accent: this.props.accent ?? '#A8C7FA', motionClass: (this.props.motion ?? true) ? '' : 't-still' };
 }
 }
 </script>

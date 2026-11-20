@@ -2,94 +2,93 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>List page, at the top</title>
+<title>Automations list, today's look polished</title>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
 <style>
-body{margin:0;background:#0C1016}
-@keyframes a-in{from{opacity:0;transform:translateY(40px) scale(.9)}to{opacity:1;transform:none}}
-@keyframes a-spin{from{transform:rotate(-140deg) scale(.2);opacity:0}to{transform:none;opacity:1}}
-@keyframes a-num{0%{transform:translateY(60px) scale(.5);opacity:0}65%{transform:translateY(-6px) scale(1.12);opacity:1}100%{transform:none;opacity:1}}
-@keyframes a-turn{to{transform:rotate(360deg)}}
-@keyframes a-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-.a-hero{animation:a-in .6s cubic-bezier(.2,1.4,.3,1) both}
-.a-s1{animation:a-spin .9s cubic-bezier(.2,1.4,.3,1) .1s both}
-.a-s2{animation:a-spin 1s cubic-bezier(.2,1.4,.3,1) .22s both}
-.a-s3{animation:a-spin 1.1s cubic-bezier(.2,1.4,.3,1) .34s both}
-.a-turn{animation:a-turn 26s linear infinite;transform-origin:50% 50%}
-.a-bob{animation:a-bob 3.6s ease-in-out infinite}
-.a-num{animation:a-num .8s cubic-bezier(.2,1.5,.3,1) .3s both}
-.a-row{animation:a-in .5s cubic-bezier(.2,1.4,.3,1) both}
-.a-still *{animation:none !important}
-@media (prefers-reduced-motion:reduce){*{animation:none !important}}
-.a-tile{flex:0 0 112px;height:92px;border:0;border-radius:28px;padding:12px 14px;text-align:left;font-family:inherit;position:relative;overflow:hidden}
-.a-tile b{display:block;font-size:34px;line-height:34px;font-weight:800;font-stretch:112%}
-.a-tile span{font-size:13px;font-weight:700}
-.a-rowc{min-height:72px;box-sizing:border-box;border-radius:26px;background:#171C24;padding:10px 12px 10px 10px;display:flex;align-items:center;gap:12px}
-.a-name{font-weight:700;font-size:15px;line-height:20px}
-.a-sub{font-size:13px;line-height:18px;color:#B9C0CC}
-.a-on{flex:none;width:52px;height:32px;border-radius:16px;position:relative}
-.a-on i{position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:12px;background:#06203A}
-.a-off{flex:none;width:52px;height:32px;box-sizing:border-box;border-radius:16px;border:2px solid #8A93A0;position:relative}
-.a-off i{position:absolute;left:6px;top:6px;width:16px;height:16px;border-radius:8px;background:#8A93A0}
-.a-nav{position:absolute;left:12px;right:88px;bottom:12px;height:68px;box-sizing:border-box;border-radius:34px;background:#1B212B;box-shadow:0 12px 30px rgba(0,0,0,.6);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:6px}
-.a-nav a{display:grid;justify-items:center;align-content:center;gap:1px;color:#B9C0CC;text-decoration:none;font-size:12px;font-weight:600;border-radius:28px}
+body{margin:0;background:#1A1E25}
+@keyframes t-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.t-in{animation:t-in .32s cubic-bezier(.2,.9,.3,1) both}
+.t-still .t-in{animation:none}
+@media (prefers-reduced-motion:reduce){.t-in{animation:none}}
+.t-ib{width:48px;height:48px;border:0;border-radius:24px;background:transparent;display:grid;place-items:center;flex:none}
+.t-chip{flex:none;height:36px;box-sizing:border-box;border:1px solid #444A54;border-radius:18px;background:transparent;color:#E3E6EC;font-family:inherit;font-size:13px;font-weight:500;padding:0 14px;display:flex;align-items:center;gap:8px;position:relative}
+.t-chip::after{content:"";position:absolute;inset:-6px 0}
+.t-row{border-radius:18px;background:#252A32;padding:12px 4px 12px 14px;display:flex;align-items:center;gap:12px;min-height:72px;box-sizing:border-box}
+.t-sel{flex:none;width:20px;height:20px;box-sizing:border-box;border:2px solid #8D95A1;border-radius:10px;position:relative}
+.t-sel::after{content:"";position:absolute;inset:-14px}
+.t-ico{flex:none;width:40px;height:40px;border-radius:20px;background:#1A1E25;display:grid;place-items:center}
+.t-name{font-size:15px;line-height:20px;font-weight:700;color:#FFFFFF;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.t-sub{font-size:12px;line-height:17px;color:#B4BBC6}
+.t-trig{font-size:12px;line-height:17px;color:#A8C7FA;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-nav{position:absolute;left:12px;right:12px;bottom:10px;height:64px;box-sizing:border-box;border-radius:32px;background:#20252D;box-shadow:0 8px 22px rgba(0,0,0,.5);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:6px}
+.t-nav a{display:grid;justify-items:center;align-content:center;gap:1px;color:#C3C9D3;text-decoration:none;font-size:12px;font-weight:500;border-radius:26px;position:relative}
+.t-badge{position:absolute;top:2px;left:50%;margin-left:6px;min-width:18px;height:18px;box-sizing:border-box;border-radius:9px;background:#E3E6EC;color:#1A1E25;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px}
 </style>
 </helmet>
-<div class="{{motionClass}}" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0C1016; color: #E6E9EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; display: flex; flex-direction: column">
+<div class="{{motionClass}}" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #1A1E25; color: #E3E6EC; font-family: Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; display: flex; flex-direction: column">
 
-<section class="a-hero" style="flex: none; margin: 10px 10px 0; height: 262px; border-radius: 44px; background: #13337F; position: relative; overflow: hidden">
-<svg aria-hidden="true" width="370" height="262" viewBox="0 0 370 262" style="position: absolute; inset: 0">
-<g class="a-s1" style="transform-origin: 300px 60px"><g class="a-turn" style="transform-origin: 300px 60px"><circle cx="300" cy="60" r="62" fill="#F2B62E" stroke="#F2B62E" stroke-width="26" stroke-dasharray="0 32.46" stroke-linecap="round"/></g></g>
-<g class="a-s2" style="transform-origin: 250px 190px"><rect x="196" y="150" width="150" height="76" rx="38" fill="#7FE0A2" transform="rotate(-24 271 188)"/></g>
-<g class="a-s3" style="transform-origin: 340px 250px"><circle cx="350" cy="262" r="70" fill="none" stroke="{{accent}}" stroke-width="22"/></g>
-<g class="a-bob"><rect x="268" y="34" width="64" height="50" rx="16" fill="#13337F"/><circle cx="288" cy="58" r="7" fill="#F2B62E"/><circle cx="312" cy="58" r="7" fill="#F2B62E"/><path d="M300 34 V22" stroke="#13337F" stroke-width="6" stroke-linecap="round"/><circle cx="300" cy="18" r="6" fill="#13337F"/></g>
-</svg>
-<div style="position: absolute; left: 8px; top: 8px; right: 8px; display: flex; justify-content: space-between">
-<button type="button" aria-label="Back" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: rgba(6,16,40,.45); display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
-</div>
-<div style="position: absolute; left: 22px; bottom: 20px; right: 120px">
-<div class="a-num" style="font-size: 104px; line-height: 88px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.05em; color: #FFFFFF; transform-origin: 0 100%">12</div>
-<h1 style="margin: 6px 0 0; font-size: 32px; line-height: 34px; font-weight: 800; font-stretch: 114%; letter-spacing: -0.02em; color: #FFFFFF">Automations</h1>
-<p style="margin: 4px 0 0; font-size: 14px; line-height: 20px; color: #C9D8FF">9 are on. 1 needs you.</p>
-</div>
-</section>
+<header style="flex: none; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px; background: #14181E">
+<button type="button" class="t-ib" aria-label="Back" style="background: #20252D; width: 40px; height: 40px; margin: 0 4px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m6-7l-7 7 7 7"/></svg></button>
+<h1 style="flex: 1; min-width: 0; margin: 0; font-size: 20px; line-height: 28px; font-weight: 700; color: #FFFFFF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Automations</h1>
+<button type="button" class="t-ib" aria-label="Search"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+<button type="button" class="t-ib" aria-label="More actions"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#E3E6EC"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>
+</header>
 
-<div style="flex: none; position: relative; margin-top: 10px">
-<div style="display: flex; gap: 8px; padding: 0 10px; overflow: hidden">
-<button type="button" class="a-tile" style="background: #0F4A2A; color: #A8F5C2"><b>9</b><span>On</span><svg aria-hidden="true" width="60" height="60" viewBox="0 0 60 60" style="position: absolute; right: -14px; top: -14px"><circle cx="30" cy="30" r="20" fill="#1C7A45"/></svg></button>
-<button type="button" class="a-tile" style="background: #1B212B; color: #E6E9EF"><b>3</b><span style="color: #B9C0CC">Off</span><svg aria-hidden="true" width="60" height="60" viewBox="0 0 60 60" style="position: absolute; right: -14px; top: -14px"><rect x="10" y="10" width="40" height="40" rx="12" fill="#2B3340" transform="rotate(18 30 30)"/></svg></button>
-<button type="button" class="a-tile" style="background: #5A3E00; color: #FFD77A"><b>1</b><span>Needs repair</span><svg aria-hidden="true" width="60" height="60" viewBox="0 0 60 60" style="position: absolute; right: -12px; top: -14px"><path d="M30 8 L54 50 H6 Z" fill="#8A6100" stroke="#8A6100" stroke-width="8" stroke-linejoin="round"/></svg></button>
-<button type="button" class="a-tile" style="background: #3A1F66; color: #DCC6FF"><b>4</b><span>Ran today</span></button>
+<div style="flex: none; position: relative; background: #14181E; padding: 4px 12px 10px">
+<div role="tablist" aria-label="Sections" style="display: flex; gap: 6px; overflow: hidden">
+<button type="button" role="tab" aria-selected="true" style="flex: none; height: 48px; border: 1px solid #2B4BA0; border-radius: 24px; background: #0F2A6B; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 500; padding: 0 18px 0 14px; display: flex; align-items: center; gap: 10px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#FFFFFF"><rect x="5" y="9" width="14" height="10" rx="3"/><circle cx="9.5" cy="14" r="1.6" fill="#0F2A6B"/><circle cx="14.5" cy="14" r="1.6" fill="#0F2A6B"/><rect x="11" y="4" width="2" height="5"/></svg>Automations</button>
+<button type="button" role="tab" aria-selected="false" style="flex: none; height: 48px; border: 0; border-radius: 24px; background: #20252D; color: #E3E6EC; font-family: inherit; font-size: 14px; font-weight: 500; padding: 0 18px 0 14px; display: flex; align-items: center; gap: 10px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#E3E6EC"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-.6-1.4-.6-2.2c0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/></svg>Scenes</button>
+<button type="button" role="tab" aria-selected="false" style="flex: none; height: 48px; border: 0; border-radius: 24px; background: #20252D; color: #E3E6EC; font-family: inherit; font-size: 14px; font-weight: 500; padding: 0 18px">Scripts</button>
+<button type="button" role="tab" aria-selected="false" style="flex: none; height: 48px; border: 0; border-radius: 24px; background: #20252D; color: #E3E6EC; font-family: inherit; font-size: 14px; font-weight: 500; padding: 0 18px">Blueprints</button>
 </div>
-<div aria-hidden="true" style="position: absolute; top: 0; right: 0; width: 56px; height: 92px; background: linear-gradient(90deg, rgba(12,16,22,0), #0C1016)"></div>
+<div aria-hidden="true" style="position: absolute; top: 0; right: 0; bottom: 10px; width: 48px; background: linear-gradient(90deg, rgba(20,24,30,0), #14181E)"></div>
 </div>
 
-<div style="flex: 1; min-height: 0; padding: 10px 10px 0; display: flex; flex-direction: column; gap: 8px">
-<div class="a-rowc a-row" style="animation-delay: .35s"><svg aria-hidden="true" width="52" height="52" viewBox="0 0 52 52" style="flex: none"><circle cx="26" cy="26" r="17" fill="#F2B62E" stroke="#F2B62E" stroke-width="9" stroke-dasharray="0 10.68" stroke-linecap="round"/><path d="M26 17a7 7 0 0 0-4 12.6V33h8v-3.4A7 7 0 0 0 26 17z" fill="#3A2A00"/></svg><div style="flex: 1; min-width: 0"><div class="a-name" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Hallway light at dusk</div><div class="a-sub">Ran 18:42</div></div><div class="a-on" role="img" aria-label="On" style="background: {{accent}}"><i></i></div></div>
-<div class="a-rowc a-row" style="animation-delay: .42s"><svg aria-hidden="true" width="52" height="52" viewBox="0 0 52 52" style="flex: none"><rect x="5" y="5" width="42" height="42" rx="15" fill="#FF8A65" transform="rotate(12 26 26)"/><path d="M26 15v14a5 5 0 1 0 0 0" fill="none" stroke="#4A1500" stroke-width="4" stroke-linecap="round"/></svg><div style="flex: 1; min-width: 0"><div class="a-name" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">Turn the heating down when every window sensor upstairs reports open</div><div class="a-sub">Ran yesterday, 07:10</div></div><div class="a-on" role="img" aria-label="On" style="background: {{accent}}"><i></i></div></div>
-<div class="a-rowc a-row" style="animation-delay: .49s; background: #3A2A06"><svg aria-hidden="true" width="52" height="52" viewBox="0 0 52 52" style="flex: none"><path d="M26 7 L47 43 H5 Z" fill="#FFD77A" stroke="#FFD77A" stroke-width="7" stroke-linejoin="round"/><path d="M26 21v10" stroke="#3A2A00" stroke-width="4.5" stroke-linecap="round"/><circle cx="26" cy="38" r="2.8" fill="#3A2A00"/></svg><div style="flex: 1; min-width: 0"><div class="a-name" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Front door left open</div><div class="a-sub" style="color: #FFD77A">Needs repair: a device is missing</div></div><div class="a-off" role="img" aria-label="Off"><i></i></div></div>
-<div class="a-rowc a-row" style="animation-delay: .56s"><svg aria-hidden="true" width="52" height="52" viewBox="0 0 52 52" style="flex: none"><rect x="4" y="12" width="44" height="28" rx="14" fill="#B9A2FF" transform="rotate(-18 26 26)"/><path d="M30 17a10 10 0 1 0 5 15 8 8 0 0 1-5-15z" fill="#22104F"/></svg><div style="flex: 1; min-width: 0"><div class="a-name" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Night mode at 23:00</div><div class="a-sub">Ran 23:00</div></div><div class="a-on" role="img" aria-label="On" style="background: {{accent}}"><i></i></div></div>
+<button type="button" aria-expanded="false" style="flex: none; margin: 8px 8px 0; min-height: 48px; border: 0; border-radius: 16px; background: #20252D; color: #C3C9D3; font-family: inherit; font-size: 13px; padding: 6px 12px 6px 16px; display: flex; align-items: center; gap: 8px; text-align: left"><span style="flex: 1; min-width: 0">Total 12 · Shown 12 · Turned off 3 · Unavailable 0</span><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+
+<div style="flex: none; display: flex; gap: 8px; padding: 12px 16px 4px; overflow: hidden">
+<button type="button" class="t-chip"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filters</button>
+<button type="button" class="t-chip">Category: any<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="#E3E6EC"><path d="M7 10l5 5 5-5z"/></svg></button>
+<button type="button" class="t-chip">Label: any<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="#E3E6EC"><path d="M7 10l5 5 5-5z"/></svg></button>
 </div>
 
-<button type="button" aria-label="Create automation" style="position: absolute; right: 12px; bottom: 12px; width: 68px; height: 68px; border: 0; border-radius: 24px; background: {{accent}}; display: grid; place-items: center; box-shadow: 0 12px 30px rgba(0,0,0,.6)"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#06203A" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<div style="flex: 1; min-height: 0; padding: 4px 16px 0; display: flex; flex-direction: column; gap: 8px">
+<button type="button" aria-expanded="true" style="height: 44px; border: 0; background: transparent; color: #FFFFFF; font-family: inherit; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 12px; padding: 0 12px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>Lighting · 3</button>
 
-<nav class="a-nav" aria-label="Main">
-<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/></svg>Home</a>
-<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search</a>
-<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M4 10h16"/></svg>Pages</a>
-<a href="#" style="background: #13337F; color: #FFFFFF"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="8.5"/></svg>Settings</a>
+<div class="t-row t-in"><div class="t-sel" role="checkbox" aria-checked="false" aria-label="Select Hallway light at dusk" tabindex="0"></div><div class="t-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#E3E6EC"><rect x="5" y="9" width="14" height="10" rx="3"/><circle cx="9.5" cy="14" r="1.6" fill="#1A1E25"/><circle cx="14.5" cy="14" r="1.6" fill="#1A1E25"/><rect x="11" y="4" width="2" height="5"/></svg></div><div style="flex: 1; min-width: 0"><div class="t-name">Hallway light at dusk</div><div class="t-sub">Ran 18:42</div><div class="t-trig">When the sun sets</div></div><button type="button" class="t-ib" aria-label="Actions for Hallway light at dusk"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#E3E6EC"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+
+<div class="t-row t-in" style="animation-delay: .04s"><div class="t-sel" role="checkbox" aria-checked="false" aria-label="Select Turn the heating down" tabindex="0"></div><div class="t-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#E3E6EC"><rect x="5" y="9" width="14" height="10" rx="3"/><circle cx="9.5" cy="14" r="1.6" fill="#1A1E25"/><circle cx="14.5" cy="14" r="1.6" fill="#1A1E25"/><rect x="11" y="4" width="2" height="5"/></svg></div><div style="flex: 1; min-width: 0"><div class="t-name">Turn the heating down when every window sensor upstairs reports open</div><div class="t-sub">Ran yesterday, 07:10</div><div class="t-trig">When a window sensor changes to open</div></div><button type="button" class="t-ib" aria-label="Actions for Turn the heating down"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#E3E6EC"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+
+<div class="t-row t-in" style="animation-delay: .08s"><div class="t-sel" role="checkbox" aria-checked="false" aria-label="Select Night mode at 23:00" tabindex="0"></div><div class="t-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#8D95A1"><rect x="5" y="9" width="14" height="10" rx="3"/><circle cx="9.5" cy="14" r="1.6" fill="#1A1E25"/><circle cx="14.5" cy="14" r="1.6" fill="#1A1E25"/><rect x="11" y="4" width="2" height="5"/></svg></div><div style="flex: 1; min-width: 0"><div class="t-name" style="color: #C3C9D3">Night mode at 23:00</div><div class="t-sub">Turned off · last ran 3 days ago</div><div class="t-trig">When the time is 23:00</div></div><button type="button" class="t-ib" aria-label="Actions for Night mode at 23:00"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#E3E6EC"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+</div>
+
+<div style="position: absolute; left: 12px; right: 12px; bottom: 84px; display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<div role="toolbar" aria-label="Page tools" style="display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 28px; background: #2B313A; box-shadow: 0 8px 22px rgba(0,0,0,.5)">
+<button type="button" class="t-ib" aria-label="Sort"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5v14m0 0l-3-3m3 3l3-3M17 19V5m0 0l-3 3m3-3l3 3"/></svg></button>
+<button type="button" class="t-ib" aria-label="Group"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3E6EC" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="5" width="16" height="5" rx="2"/><rect x="4" y="14" width="16" height="5" rx="2"/></svg></button>
+<button type="button" class="t-ib" aria-label="More tools"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#E3E6EC"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
+</div>
+<button type="button" style="height: 56px; border: 0; border-radius: 28px; background: {{accent}}; color: #0B1F4A; padding: 0 22px 0 16px; display: flex; align-items: center; gap: 8px; font-family: inherit; font-size: 15px; font-weight: 500; box-shadow: 0 8px 22px rgba(0,0,0,.5)"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B1F4A" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Create automation</button>
+</div>
+
+<nav class="t-nav" aria-label="Main">
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#C3C9D3"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Home</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2"><rect x="4" y="6" width="16" height="13" rx="2.5"/></svg><span class="t-badge">11</span>Pages</a>
+<a href="#" style="background: #0F2A6B; color: #FFFFFF; font-weight: 700"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/></svg><span class="t-badge">1</span>Settings</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C3C9D3" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menu</a>
 </nav>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#9CC8FF","options":["#9CC8FF","#7FE0A2","#F2B62E","#B9A2FF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#A8C7FA","options":["#A8C7FA","#A8E6B8","#F2C86B","#CDB8FF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
 renderVals() {
-return { accent: this.props.accent ?? '#9CC8FF', motionClass: (this.props.motion ?? true) ? '' : 'a-still' };
+return { accent: this.props.accent ?? '#A8C7FA', motionClass: (this.props.motion ?? true) ? '' : 't-still' };
 }
 }
 </script>
