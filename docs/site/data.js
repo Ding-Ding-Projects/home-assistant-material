@@ -72,8 +72,8 @@ window.SITE = {
   "GamepadVariant": "M7,6H17A6,6 0 0,1 23,12A6,6 0 0,1 17,18C15.22,18 13.63,17.23 12.53,16H11.47C10.37,17.23 8.78,18 7,18A6,6 0 0,1 1,12A6,6 0 0,1 7,6M6,9V11H4V13H6V15H8V13H10V11H8V9H6M15.5,12A1.5,1.5 0 0,0 14,13.5A1.5,1.5 0 0,0 15.5,15A1.5,1.5 0 0,0 17,13.5A1.5,1.5 0 0,0 15.5,12M18.5,9A1.5,1.5 0 0,0 17,10.5A1.5,1.5 0 0,0 18.5,12A1.5,1.5 0 0,0 20,10.5A1.5,1.5 0 0,0 18.5,9Z"
  },
  "version": "2026.11.2",
- "updated": "2026-11-20T13:09:45-05:00",
- "commit": "ab302a59",
+ "updated": "2026-11-20T13:14:24-05:00",
+ "commit": "be773d9b",
  "repo": "https://github.com/Ding-Ding-Projects/home-assistant-material",
  "image": "ghcr.io/ding-ding-projects/home-assistant-material",
  "features": [
@@ -780,6 +780,12 @@ window.SITE = {
  ],
  "changes": [
   {
+   "sha": "be773d9b",
+   "date": "2026-11-20T13:14:24-05:00",
+   "title": "Site: facts brought up to date, claims cut back to what is proven",
+   "body": "The public site said a few things that were no longer true, or were\nnever proven.\n\n- The version line now matches the current upstream version.\n- Tabs, the command palette, the pattern builder and navigation said\n  \"built\". They now say which parts have been seen working and which are\n  built but not yet seen.\n- Two hard-coded counts are gone (\"38 places\", \"616 boards on 40\n  canvases\"). Both were already stale.\n- The download fallback no longer says a first release is on its way.\n  It points at the releases page.\n\nNothing about recent builds was added unless the project's own records\nshow it was seen working. The look of the site is unchanged.\n\n網站：資料更新，講過龍嘅嘢收返。\n版本行跟返而家嘅上游版本。分頁、指令面板、樣式工具同導覽之前寫\n「做好」，而家寫明邊部分睇過得、邊部分做咗但未睇過。\n兩個寫死嘅數字（「38 處」同「616 塊畫板」）刪走，因為早就唔啱。\n下載後備字句唔再話「第一個版本就嚟到」，而係指去發佈頁。\n近期版本嘅嘢，除非項目自己嘅記錄話睇過得，否則一律唔加。\n網站個樣冇變。"
+  },
+  {
    "sha": "ab302a59",
    "date": "2026-11-20T13:09:45-05:00",
    "title": "Canvas 42 redrawn to today's look, plus quick controls, details and the site [skip ci]",
@@ -1012,14 +1018,31 @@ window.SITE = {
    "date": "2026-11-18T18:34:12-05:00",
    "title": "Design: keep what is watched, and start live video by itself [skip ci]",
    "body": "A board for two asks that belong together: live video starts by\nitself whenever a camera is on screen, and every live view and every\nsnapshot is kept, whoever or whatever asked for it. The picture says\nwhen it is being kept, one live view from the camera service is\nshared for watching and keeping, and a dashboard that refreshes its\npicture all day is kept once a minute at most, so the disk does not\nfill up with ten thousand photos of an empty porch.\n\n設計：睇到乜就留低乜，直播自己開。一塊畫板講兩樣拍住上嘅要求：鏡頭\n一出現喺畫面，直播就自己開；每次直播、每張快照，唔理係邊個或者乜嘢\n要求，都會留低。畫面會講明留緊，睇同錄共用供應商一條直播，成日自動\n更新畫面嘅儀表板最多每分鐘留一張，唔會將一萬張空門口相塞爆個碟。"
-  },
-  {
-   "sha": "a63eee5e",
-   "date": "2026-11-18T18:27:07-05:00",
-   "title": "Design: canvas 41 for TTC transit, and a board for cloud drives [skip ci]",
-   "body": "Boards first this time. Canvas 41 draws a transit integration for\nToronto: setup, its own page, a dashboard made of separate cards, the\ntriggers automations can start from, and what the page says when the\ninformation is old, because a departure board that lies is worse\nthan no board. A new board on canvas 38 draws camera recordings going\nto a cloud drive through that drive's own integration, and media that\nlives at a web address: fetched when needed, used, thrown away.\n\n今次係先畫後做。第 41 塊畫板畫咗多倫多公共交通整合：設定、自己嗰頁、\n由一張張卡砌成嘅儀表板、自動化可以用嘅觸發，仲有資料過時嗰陣頁面點\n講，因為講大話嘅班次牌衰過冇牌。第 38 塊畫板加咗一塊：鏡頭錄影經雲端\n硬碟自己嘅整合送上去，同埋擺喺網址嘅媒體：要用先攞，用完即棄。"
   }
  ],
+ "latest": [
+  {
+   "sha": "b46466d2",
+   "date": "2026-11-20T13:00:39-05:00",
+   "title": "Repairs from the browser hunt: blank area page, stacked titles, covered buttons"
+  },
+  {
+   "sha": "77a7687e",
+   "date": "2026-11-20T11:42:35-05:00",
+   "title": "Polish pass: scrolling and fit repairs, floating tool pills, more search bars, action moments"
+  },
+  {
+   "sha": "d6523e04",
+   "date": "2026-11-20T10:39:37-05:00",
+   "title": "Updates page fails soft after a restart, Cantonese separators, OS switch off with no OS"
+  },
+  {
+   "sha": "37b882b1",
+   "date": "2026-11-20T08:04:33-05:00",
+   "title": "An update run keeps its start time across a restart, empty lists wrap on phones"
+  }
+ ],
+ "hero": {},
  "status": [
   {
    "title": "Current state at a glance, 18 November 2026",
@@ -3337,10 +3360,6 @@ window.SITE = {
     {
      "name": "DeployMinecraftRules",
      "title": "Deploy Assistant, game rules with their own controls"
-    },
-    {
-     "name": "DeployWorldGen",
-     "title": "Deploy Assistant, the world generator with a chunk grid"
     }
    ]
   },
@@ -3348,6 +3367,10 @@ window.SITE = {
    "id": "20-deploy-assistant-managers",
    "title": "Deploy Assistant: Minecraft servers, AI models and virtual disks",
    "boards": [
+    {
+     "name": "DeployWorldGen",
+     "title": "Deploy Assistant, the world generator with a chunk grid"
+    },
     {
      "name": "DeployModels",
      "title": "Deploy Assistant, local AI models"
@@ -3379,6 +3402,260 @@ window.SITE = {
     {
      "name": "DeployNarrow",
      "title": "Deploy Assistant, a narrow window"
+    }
+   ]
+  },
+  {
+   "id": "21-dashboard-editor",
+   "title": "Dashboard editor: Dashboard tools",
+   "boards": []
+  },
+  {
+   "id": "22-live-app",
+   "title": "Home Assistant, drawn from a running copy",
+   "boards": []
+  },
+  {
+   "id": "23-modern-remake",
+   "title": "Home Assistant Material, modern remake",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Navigation pane, expanded, light"
+    }
+   ]
+  },
+  {
+   "id": "24-modern-everyday",
+   "title": "Home Assistant Material, modern: Everyday",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Home, light"
+    }
+   ]
+  },
+  {
+   "id": "25-modern-settings",
+   "title": "Home Assistant Material, modern: Settings",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Integrations"
+    }
+   ]
+  },
+  {
+   "id": "26-modern-system",
+   "title": "Home Assistant Material, modern: System and tools",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Voice assistants"
+    }
+   ]
+  },
+  {
+   "id": "27-modern-protocols",
+   "title": "Home Assistant Material, modern: Protocols and dialogs",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Zigbee network"
+    }
+   ]
+  },
+  {
+   "id": "28-modern-features",
+   "title": "Home Assistant Material, modern: Features",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Language modes and playfulness"
+    }
+   ]
+  },
+  {
+   "id": "29-modern-polish",
+   "title": "Home Assistant Material, modern: Polish, decisions and dashboard tools",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Pattern workbench on a phone"
+    }
+   ]
+  },
+  {
+   "id": "30-modern-editors",
+   "title": "Home Assistant Material, modern: Editors",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Flow view of an automation"
+    }
+   ]
+  },
+  {
+   "id": "31-modern-requests",
+   "title": "Home Assistant Material, modern: Community requests",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Non-destructive scene editing"
+    }
+   ]
+  },
+  {
+   "id": "32-modern-cameras",
+   "title": "Home Assistant Material, modern: Cameras",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Live camera with the event timeline"
+    }
+   ]
+  },
+  {
+   "id": "33-updates",
+   "title": "Updates: version comparison and build progress",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Updates page, wide, dark"
+    },
+    {
+     "name": "States",
+     "title": "Update coming soon: every state, light"
+    },
+    {
+     "name": "SuperConfirm",
+     "title": "Super confirmation: turn two keys, slide, dramatic"
+    }
+   ]
+  },
+  {
+   "id": "34-polish",
+   "title": "Home Assistant Material: full interface polish",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Front door of the app, wide, dark"
+    },
+    {
+     "name": "Settings",
+     "title": "Settings front, wide, light"
+    }
+   ]
+  },
+  {
+   "id": "35-features",
+   "title": "Home Assistant Material: new features",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Automation editor, redrawn"
+    },
+    {
+     "name": "Helpers",
+     "title": "Helpers made, changed and removed inside the automation editor"
+    },
+    {
+     "name": "Updates",
+     "title": "Update history, rollback, backup self-check, USB"
+    },
+    {
+     "name": "Cloud",
+     "title": "Cloud host through a Cloudflare tunnel, one click"
+    }
+   ]
+  },
+  {
+   "id": "36-rich-editors",
+   "title": "Home Assistant Material: rich editors for every entity",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Speak, made for speaking"
+    }
+   ]
+  },
+  {
+   "id": "37-integration-editors",
+   "title": "Home Assistant Material: rich editors for every one of the 1577",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Unique integrations get editors made for them"
+    }
+   ]
+  },
+  {
+   "id": "38-progress-drafts-entities",
+   "title": "Home Assistant Material: progress, drafts and every entity kind",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Updates: compact rows, coming soon, real progress"
+    },
+    {
+     "name": "Backups",
+     "title": "Backups: each stage and each place on its own row"
+    },
+    {
+     "name": "Entities",
+     "title": "Every entity kind: row, detail sheet, tile"
+    },
+    {
+     "name": "Cloud",
+     "title": "Recordings to a cloud drive, and media that lives at a web address"
+    },
+    {
+     "name": "Logs",
+     "title": "Send the problem log to a private repository"
+    }
+   ]
+  },
+  {
+   "id": "39-ac-defender",
+   "title": "Home Assistant Material: AC Defender as an integration",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "AC Defender as an integration: setup, the defender page, guards"
+    }
+   ]
+  },
+  {
+   "id": "40-search-top-bar",
+   "title": "Home Assistant Material: search from the top bar",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Search button in the top bar: one tap from anywhere on a long page"
+    }
+   ]
+  },
+  {
+   "id": "41-ttc-transit",
+   "title": "Home Assistant Material: TTC transit integration",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "TTC: setup, next departures, delays, lifts and escalators"
+    },
+    {
+     "name": "Dashboard",
+     "title": "TTC dashboard cards, automation triggers and entities"
+    }
+   ]
+  },
+  {
+   "id": "42-modern-polish-2",
+   "title": "HA Material: Modern polish 2",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Automations list"
     }
    ]
   }

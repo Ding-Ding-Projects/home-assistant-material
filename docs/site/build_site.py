@@ -1,13 +1,22 @@
 """Builds docs/site/data.js for the project page: the feature list, one article per feature, the
 recent changes and the version the page documents.
 
-Run from the repository root: python3 docs/site/build_site.py
+Run from the repository root: python docs/site/build_site.py
 The feature list below is written by hand on purpose. tests: check_site.py fails when a feature
 the project owes a page is missing from it.
+
+With --data-only, only data.js is written: no board picture is converted or re-encoded and the
+Deploy Assistant demo is not copied. The publishing workflow uses this mode so the page always
+carries the newest changes without touching committed images.
+
+Every file is read and written as UTF-8, so the script runs the same on Windows and Linux.
 """
 import json
 import os
+import re
+import struct
 import subprocess
+import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -96,15 +105,21 @@ F = [
 ]
 
 
+def read_json(path):
+    with open(path, encoding='utf-8') as fh:
+        return json.load(fh)
+
+
 def git(*a):
-    return subprocess.run(['git', '-C', ROOT] + list(a), capture_output=True, text=True).stdout.strip()
+    return subprocess.run(['git', '-C', ROOT] + list(a), capture_output=True, text=True, encoding='utf-8', errors='replace').stdout.strip()
 
 
 def status_sections():
     """The status page (docs/feature-status.md) as sections of rows, so the project page can show it."""
     out, cur, head = [], None, None
-    for line in open(os.path.join(ROOT, 'docs', 'feature-status.md'), encoding='utf-8'):
-        line = line.rstrip('\n')
+    with open(os.path.join(ROOT, 'docs', 'feature-status.md'), encoding='utf-8') as fh:
+        lines = fh.read().splitlines()
+    for line in lines:
         if line.startswith('## '):
             cur = {'title': line[3:].strip(), 'head': [], 'rows': []}
             out.append(cur)
@@ -121,41 +136,57 @@ def status_sections():
     return [x for x in out if x['rows']]
 
 
-def boards():
-    """Every design board with a picture, by canvas, for the gallery on the project page."""
-    from PIL import Image
+def boards(data_only=False):
+    """Every design board with a picture, by canvas, for the gallery on the project page.
+
+    With data_only, nothing is converted or removed: a board is listed only when its picture
+    already exists in docs/site/boards.
+    """
     dest = os.path.join(HERE, 'boards')
-    os.makedirs(dest, exist_ok=True)
+    if not data_only:
+        from PIL import Image
+        os.makedirs(dest, exist_ok=True)
     out = []
     cdir = os.path.join(ROOT, 'design', 'canvases')
     for c in sorted(os.listdir(cdir)):
         f = os.path.join(cdir, c, 'canvas.json')
         if not os.path.exists(f):
             continue
-        idx = json.load(open(f))
+        idx = read_json(f)
         items = []
         for k in idx.get('order', []):
             name = k.replace('.dc.html', '')
             frame = os.path.join(ROOT, 'design', 'frames', name + '.png')
-            if not os.path.exists(frame):
-                continue
             webp = os.path.join(dest, name + '.webp')
-            if not os.path.exists(webp) or os.path.getmtime(webp) < os.path.getmtime(frame):
-                im = Image.open(frame).convert('RGB')
-                if im.width > 1000:
-                    im = im.resize((1000, round(im.height * 1000 / im.width)), Image.LANCZOS)
-                im.save(webp, 'WEBP', quality=72)
+            if data_only:
+                if not os.path.exists(webp):
+                    continue
+            else:
+                if not os.path.exists(frame):
+                    continue
+                if not os.path.exists(webp) or os.path.getmtime(webp) < os.path.getmtime(frame):
+                    im = Image.open(frame).convert('RGB')
+                    if im.width > 1000:
+                        im = im.resize((1000, round(im.height * 1000 / im.width)), Image.LANCZOS)
+                    im.save(webp, 'WEBP', quality=72)
             items.append({'name': name, 'title': idx['boards'][k].get('title', name)})
         out.append({'id': c, 'title': idx.get('title', c), 'boards': items})
-    keep = {b['name'] + '.webp' for c in out for b in c['boards']}
-    for f in os.listdir(dest):
-        if f not in keep:
-            os.remove(os.path.join(dest, f))
+    if not data_only:
+        keep = {b['name'] + '.webp' for c in out for b in c['boards']}
+        for f in os.listdir(dest):
+            if f not in keep:
+                os.remove(os.path.join(dest, f))
     return out
 
 
-def deploy_demo():
-    """Copies the Deploy Assistant's page here, so the project page can run it as a demo."""
+def deploy_demo(data_only=False):
+    """Copies the Deploy Assistant's page here, so the project page can run it as a demo.
+
+    With data_only, nothing is copied and only the version is read.
+    """
+    version = read_json(os.path.join(ROOT, 'deploy-assistant', 'package.json'))['version']
+    if data_only:
+        return version
     import shutil
     src = os.path.join(ROOT, 'deploy-assistant', 'src', 'renderer')
     dest = os.path.join(HERE, 'deploy-assistant')
@@ -164,21 +195,83 @@ def deploy_demo():
         shutil.copy(os.path.join(src, f), os.path.join(dest, f))
     shutil.rmtree(os.path.join(dest, 'vendor'), ignore_errors=True)
     shutil.copytree(os.path.join(src, 'vendor'), os.path.join(dest, 'vendor'))
-    for f in []:
-        shutil.copy(os.path.join(src, f), os.path.join(dest, f))
     shutil.rmtree(os.path.join(dest, 'boards'), ignore_errors=True)
     shutil.copytree(os.path.join(src, 'boards'), os.path.join(dest, 'boards'))
     for f in os.listdir(os.path.join(src, 'fonts')):
         shutil.copy(os.path.join(src, 'fonts', f), os.path.join(dest, 'fonts', f))
-    version = json.load(open(os.path.join(ROOT, 'deploy-assistant', 'package.json')))['version']
     built = git('log', '-1', '--format=%cI', '--', 'deploy-assistant').strip()
-    with open(os.path.join(dest, 'build-info.js'), 'w') as fh:
+    with open(os.path.join(dest, 'build-info.js'), 'w', encoding='utf-8', newline='\n') as fh:
         fh.write('window.HAM_BUILD = ' + json.dumps({'version': version, 'builtAt': built}) + ';\n')
     return version
 
 
+def image_size(path):
+    """Width and height of a WebP or PNG file, read from its header, or None."""
+    with open(path, 'rb') as fh:
+        head = fh.read(64)
+    if head[:8] == b'\x89PNG\r\n\x1a\n' and head[12:16] == b'IHDR':
+        return struct.unpack('>II', head[16:24])
+    if head[:4] == b'RIFF' and head[8:12] == b'WEBP':
+        kind = head[12:16]
+        if kind == b'VP8 ' and head[23:26] == b'\x9d\x01\x2a':
+            w, h = struct.unpack('<HH', head[26:30])
+            return w & 0x3FFF, h & 0x3FFF
+        if kind == b'VP8L' and head[20] == 0x2F:
+            b = head[21:25]
+            w = 1 + (((b[1] & 0x3F) << 8) | b[0])
+            h = 1 + (((b[3] & 0x0F) << 10) | (b[2] << 2) | ((b[1] & 0xC0) >> 6))
+            return w, h
+        if kind == b'VP8X':
+            w = 1 + int.from_bytes(head[24:27], 'little')
+            h = 1 + int.from_bytes(head[27:30], 'little')
+            return w, h
+    return None
+
+
+# Pictures of the newest build for the top of the home page, one per theme. A later capture pass
+# drops them in; until then the page keeps its present picture (img/home.webp).
+HERO_FILES = {'light': ['hero-light.webp', 'hero-light.png'], 'dark': ['hero-dark.webp', 'hero-dark.png']}
+
+
+def hero_pictures():
+    out = {}
+    for theme, names in HERO_FILES.items():
+        for name in names:
+            path = os.path.join(HERE, 'img', name)
+            if os.path.exists(path):
+                size = image_size(path)
+                if size:
+                    out[theme] = {'src': 'img/' + name, 'w': size[0], 'h': size[1]}
+                    break
+    return out
+
+
+# The "New in the latest builds" row on the home page is filled from the change list by this rule,
+# never written by hand. Markers such as [skip ci] are removed. A change is left out when its
+# subject starts with a word that marks design, documentation, page or repository housekeeping.
+MARKER = re.compile(r'\s*\[(?:skip ci|ci skip|no ci|skip actions|actions skip)\]\s*', re.I)
+HOUSEKEEPING = re.compile(r'^(?:design|canvas|board|docs?|site|readme|roadmap|handoff|changelog|merge|bump|chore|revert|record)\b', re.I)
+
+
+def clean_subject(s):
+    return re.sub(r'\s{2,}', ' ', MARKER.sub(' ', s)).strip()
+
+
+def latest(changes, n=4):
+    out = []
+    for c in changes:
+        title = clean_subject(c['title'])
+        if not title or HOUSEKEEPING.match(title):
+            continue
+        out.append({'sha': c['sha'], 'date': c['date'], 'title': title})
+        if len(out) == n:
+            break
+    return out
+
+
 def main():
-    versions = json.load(open(os.path.join(ROOT, 'versions.json')))
+    data_only = '--data-only' in sys.argv
+    versions = read_json(os.path.join(ROOT, 'versions.json'))
     log = git('log', '-40', '--format=%H%x1f%cI%x1f%s%x1f%b%x1e')
     changes = []
     for rec in log.split('\x1e'):
@@ -191,7 +284,7 @@ def main():
     feats = [{'id': i, 'group': c, 'name': n, 'what': w, 'here': h, 'state': st, 'product': p, 'try': t} for i, c, n, w, h, st, p, t in F]
     ids = [f['id'] for f in feats]
     assert len(ids) == len(set(ids)), 'a feature id repeats'
-    icons_all = json.load(open(os.path.join(ROOT, 'design', 'source', 'icons.json')))
+    icons_all = read_json(os.path.join(ROOT, 'design', 'source', 'icons.json'))
     want = ['Magnify', 'Regex', 'Close', 'Plus', 'Bell', 'Cog', 'HumanHandsup', 'ThemeLightDark', 'ContentCopy', 'Export', 'Lock', 'LockOutline', 'LockOpenVariant',
             'FormatPaint', 'AccountVoice', 'Pin', 'ChevronLeft', 'ChevronRight', 'ChevronDown', 'ChevronUp', 'InformationOutline', 'Restore', 'History', 'Undo', 'DeleteOutline',
             'Check', 'CheckCircle', 'Alert', 'AlertCircle', 'ProgressClock', 'Home', 'PlayCircle', 'FormatListBulleted', 'BookOpenVariant', 'PaletteSwatch', 'Update',
@@ -201,10 +294,12 @@ def main():
     icons = {k: icons_all[k] for k in want if k in icons_all}
     data = {'icons': icons, 'version': versions['core'], 'updated': changes[0]['date'] if changes else '', 'commit': changes[0]['sha'] if changes else '',
             'repo': 'https://github.com/' + versions['repository'], 'image': 'ghcr.io/' + versions['registry_owner'] + '/home-assistant-material',
-            'features': feats, 'changes': changes, 'status': status_sections(), 'canvases': boards(), 'deployVersion': deploy_demo()}
+            'features': feats, 'changes': changes, 'latest': latest(changes), 'hero': hero_pictures(), 'status': status_sections(),
+            'canvases': boards(data_only), 'deployVersion': deploy_demo(data_only)}
     out = os.path.join(HERE, 'data.js')
-    open(out, 'w').write('// Written by build_site.py. Do not edit by hand.\nwindow.SITE = ' + json.dumps(data, ensure_ascii=False, indent=1) + ';\n')
-    print(out, len(feats), 'features', len(changes), 'changes')
+    with open(out, 'w', encoding='utf-8', newline='\n') as fh:
+        fh.write('// Written by build_site.py. Do not edit by hand.\nwindow.SITE = ' + json.dumps(data, ensure_ascii=False, indent=1) + ';\n')
+    print(out, len(feats), 'features', len(changes), 'changes', len(data['latest']), 'new', 'data only' if data_only else 'with pictures')
 
 
 if __name__ == '__main__':

@@ -43,7 +43,11 @@
     notifications: ['Notifications', '通知'], access: ['Accessibility tools', '無障礙工具'], theme: ['Switch light and dark', '轉光暗'], palette: ['Search everything', '搵晒所有嘢'],
     language: ['Language', '語言'], wording: ['Your wording', '你嘅用字'], modes: ['Modes', '模式'], sound: ['Sound and voice', '聲音同讀音'], schedule: ['Schedule', '時間表'],
     appearance: ['Appearance', '外觀'], tabsSet: ['Tabs', '分頁'], identity: ['Name and logo', '名同標誌'], locks: ['Locks', '鎖'], start: ['Start again', '重新開始'], resetAll: ['Reset everything', '全部還原'],
-    early: ['Early: the first part of the interface is built', '起步中：介面第一部分已經整好'],
+    newestBuild: ['Newest build', '最新版本'], seeChanged: ['see what changed', '睇吓改咗咩'], seeReleases: ['See the releases page', '睇吓發佈版本頁'],
+    latest: ['New in the latest builds', '最近幾個版本嘅新嘢'], latestNote: ['These cards are filled from the change list, never written by hand.', '呢啲卡片由更新清單自動填，唔係人手寫嘅。'],
+    readChange: ['Read this change', '睇呢個改動'], readEvery: ['Read every change', '睇晒所有改動'],
+    bandLead: ['First visit? Choose English, 廣東話 or both.', '第一次嚟？揀 English、廣東話，定兩樣都要。'], bandTheme: ['Light or dark?', '光定暗？'], bandDone: ['You are set. Ctrl Shift F searches everything; right-click anything to edit or lock it.', '搞掂。撳 Ctrl Shift F 搵晒所有嘢；右撳任何嘢可以改外觀或者鎖住。'],
+    bandClose: ['Close the welcome', '閂咗歡迎'], productBuild: ['Product build', '產品版本'], upstream: ['upstream core', '上游核心'], released: ['released', '發佈於'],
     heroTitle: ['Home Assistant in Material Design 3', 'Material Design 3 版 Home Assistant'],
     heroText: ['The same home automation, with a calmer interface: a floating pane, a slim rail, large type and fewer, larger cards. Built from one repository, released for Docker, Raspberry Pi and virtual machines.',
       '一樣嘅智能家居，介面平和啲：浮動面板、幼身導航欄、大字、卡片少啲但大啲。全部由一個儲存庫整出嚟，有 Docker、Raspberry Pi 同虛擬機版本。'],
@@ -226,22 +230,57 @@
   var q = {}; // search text per surface
   var view = { article: null, featState: 'all', featCat: 'all', filtersOpen: true, sel: {} };
   function stateTag(s) { var k = { built: 'stateBuilt', partly: 'statePartly', written: 'stateWritten', designed: 'stateDesigned', na: 'stateNa' }[s]; return '<span class="tag ' + s + '">' + L(k) + '</span>'; }
+  // The newest product release, written at publish time by the page workflow from the releases
+  // list. When the lookup found nothing it is empty, and the page says so instead of guessing.
+  function release() {
+    var r = window.PRODUCT_RELEASE || {};
+    var tag = typeof r.tag === 'string' ? r.tag : '';
+    var m = tag.match(/^v\d+(?:\.\d+)*\.(\d+)$/);
+    if (!m) return null;
+    var d = r.published ? new Date(r.published) : null;
+    return { tag: tag, build: m[1], date: d && !isNaN(d) ? d : null, url: typeof r.url === 'string' && /^https:\/\/github\.com\//.test(r.url) ? r.url : S.repo + '/releases/tag/' + encodeURIComponent(tag) };
+  }
+  function day(d) { return d ? d.toLocaleDateString(st.lang === 'yue' ? 'zh-HK' : 'en-CA', { year: 'numeric', month: 'long', day: 'numeric' }) : ''; }
+  function liveLine() {
+    var r = release();
+    if (!r) return '<a class="status live" data-k="status" href="' + esc(S.repo) + '/releases"><span class="dot" aria-hidden="true"></span>' + L('seeReleases') + '</a>';
+    return '<button class="status live" data-k="status" data-go="changes:top"><span class="dot" aria-hidden="true"></span><span>' + L('newestBuild') + ' ' + esc(r.build) + (r.date ? ' · ' + esc(day(r.date)) : '') + ' · ' + L('seeChanged') + '</span></button>';
+  }
   function foot() {
     var d = S.updated ? new Date(S.updated) : null;
-    var when = d ? d.toLocaleString(st.lang === 'yue' ? 'zh-HK' : 'en-CA', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short' }) : '';
-    return '<footer class="foot bs" data-k="foot"><span>' + esc(w('page')) + ', ' + esc(w('version')) + ' ' + esc(S.version) + ' (' + esc(S.commit) + '), ' + esc(w('updated')) + ' ' + esc(when) + '</span><span class="grow"></span>' +
+    var when = d ? d.toLocaleString(st.lang === 'yue' ? 'zh-HK' : 'en-CA', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', timeZoneName: 'short' }) : '';
+    var r = release();
+    var build = r ? '<a href="' + esc(r.url) + '">' + esc(w('productBuild')) + ' ' + esc(r.build) + '</a>' + (r.date ? ', ' + esc(w('released')) + ' ' + esc(day(r.date)) : '') : '<a href="' + esc(S.repo) + '/releases">' + esc(w('productBuild')) + ': ' + esc(w('seeReleases')) + '</a>';
+    return '<footer class="foot bs" data-k="foot"><span>' + build + ' · ' + esc(w('upstream')) + ' ' + esc(S.version) + ' · ' + esc(w('page')) + ' (' + esc(S.commit) + '), ' + esc(w('updated')) + ' ' + esc(when) + '</span><span class="grow"></span>' +
       '<span>Right-click anything to edit or lock it · Ctrl Shift F searches everything</span></footer>';
   }
   function h2(k, id) { return '<h2 class="hs" id="' + (id || k) + '" data-k="h-' + k + '">' + L(k) + '</h2>'; }
 
+  // The hero picture: a capture of the newest build for the page's theme when one was published
+  // (img/hero-light.webp, img/hero-dark.webp), otherwise the present picture.
+  function heroPic() {
+    var h = S.hero || {}, p = isDark() ? (h.dark || h.light) : (h.light || h.dark);
+    if (p && p.src && p.w && p.h) return { src: p.src, w: p.w, h: p.h, alt: 'The Home page of the newest build, from a running copy' };
+    return { src: 'img/home.webp', w: 1440, h: 900, alt: 'The Home page of a running build: a slim rail, pill tabs and rounded cards' };
+  }
+  function latestRow() {
+    var list = (S.latest || []).filter(function (c) { return S.changes.some(function (x) { return x.sha === c.sha; }); });
+    if (!list.length) return '';
+    return '<section class="section" id="latest" data-k="latest">' + h2('latest', 'latest-h') + '<div class="grid4">' + list.map(function (c) {
+      var d = c.date ? new Date(c.date) : null;
+      return '<article class="news" data-k="new-' + esc(c.sha) + '"><span class="kick bs">' + esc(day(d && !isNaN(d) ? d : null)) + '</span><h3 class="tm">' + esc(c.title) + '</h3><span class="grow"></span><button class="btn text sm" data-go="changes:c-' + esc(c.sha) + '">' + L('readChange') + icon('ChevronRight', 's') + '</button></article>';
+    }).join('') + '</div><p class="bs mu">' + L('latestNote') + ' <a href="#changes" data-go="changes:top">' + L('readEvery') + '</a></p></section>';
+  }
   var R = {};
   R.home = function () {
     var built = [['crop-workbench', 'regex-search'], ['crop-element-menu', 'context-menus'], ['crop-appearance', 'appearance-editor']].map(function (x) {
       var f = feat(x[1]); return '<article class="feat" data-k="built-' + x[1] + '"><img src="img/' + x[0] + '.webp" width="800" height="600" alt="' + esc(f.name) + ', from a running build" loading="lazy"><h3 class="tl">' + esc(f.name) + '</h3><p class="bm mu">' + esc(f.what) + '</p><div>' + stateTag(f.state) + '</div></article>';
     }).join('');
-    return '<section class="hero" id="top" data-k="hero"><div class="col" style="gap:20px"><span class="status" data-k="status">' + icon('ProgressClock', 's') + L('early') + '</span><h1 data-k="hero-title">' + L('heroTitle') + '</h1>' +
+    var hp = heroPic();
+    return '<section class="hero" id="top" data-k="hero"><div class="col" style="gap:20px">' + liveLine() + '<h1 data-k="hero-title">' + L('heroTitle') + '</h1>' +
       '<p class="bl mu" data-k="hero-text">' + L('heroText') + '</p><div class="chipline"><button class="btn fill lg" data-go="deploy:top">' + icon('Download', 's') + 'Get the Deploy Assistant</button><button class="btn tonal lg" data-go="run:top">' + L('runDocker') + '</button><a class="btn out lg" href="' + S.repo + '/releases">' + L('releases') + '</a></div></div>' +
-      '<div><img class="shot" data-k="hero-shot" src="img/home.webp" width="1440" height="900" alt="The Home page of a running build: a slim rail, pill tabs and rounded cards"></div></section>' +
+      '<div><img class="shot" data-k="hero-shot" src="' + esc(hp.src) + '" width="' + hp.w + '" height="' + hp.h + '" alt="' + esc(hp.alt) + '"></div></section>' +
+      latestRow() +
       '<section class="section card" id="demo" style="padding:24px">' + h2('demoTitle', 'demo-title') + '<p class="bm mu">' + L('demoText') + '</p><div class="chipline"><a class="btn fill" href="demo/">' + L('openDemo') + '</a><a class="btn tonal" href="demo/#/config/automation/edit/demo_action_options">' + L('demoSpeech') + '</a><a class="btn tonal" href="demo/#/config/automation/edit/demo_play_media">' + L('demoMedia') + '</a><a class="btn tonal" href="demo/#/config/automation/edit/demo_todo_item">' + L('demoTodo') + '</a><a class="btn out" href="demo/#/config/automation/edit/demo_scene_dictionary">' + L('demoScene') + '</a><a class="btn out" href="demo/#/lovelace/home">' + L('demoDashboard') + '</a></div><p class="bm"><a href="guides/features/automations/visual-action-dictionaries.html">' + (st.lang === 'en' ? 'Read the visual dictionary guide' : st.lang === 'yue' ? '閱讀視覺化字典指南' : 'Read the visual dictionary guide · 閱讀視覺化字典指南') + '</a></p></section>' +
       '<section class="section" id="built">' + h2('built', 'built-h') + '<div class="grid3">' + built + '</div><div><button class="btn tonal" data-go="features:top">' + esc(S.features.length) + ' features and their state</button></div></section>' +
       '<section class="section" id="live">' + h2('visit', 'live-h') + '<p class="bm mu">Clicks and key presses on this page, every two seconds. Move over the chart to read a value. Nothing is sent anywhere.</p><canvas class="live" id="livechart" width="1000" height="160" role="img" aria-label="Live chart of activity on this page during this visit"></canvas><p class="bs mu" id="livevalue" aria-live="polite"></p></section>' +
@@ -325,7 +364,7 @@
   R.changes = function () {
     var m = matcher(q.changes); var list = S.changes.filter(function (c) { return m.test(c.title + ' ' + c.body); });
     return '<div class="section" id="top"><h1 class="hl">' + L('changes') + '</h1><p class="bl mu">The latest changes to the repository, newest first. Every change publishes a release.</p>' + findField('csearch', 'Search changes', q.changes) +
-      (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') + (list.length ? list.map(function (c) { return '<details class="row-item" data-k="c-' + c.sha + '" style="display:block"><summary class="row" style="gap:12px;cursor:pointer;min-height:44px"><span class="tm grow">' + esc(c.title) + '</span><span class="bs mu">' + esc(c.date.slice(0, 10)) + ' · <span class="mono">' + c.sha + '</span></span></summary>' + (c.body ? '<div style="padding-top:8px">' + md(c.body) + '</div>' : '') + '</details>'; }).join('') : '<p class="bm mu">' + L('noMatch') + '</p>') + '</div>' + foot();
+      (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') + (list.length ? list.map(function (c) { return '<details class="row-item" id="c-' + c.sha + '" data-k="c-' + c.sha + '" style="display:block"><summary class="row" style="gap:12px;cursor:pointer;min-height:44px"><span class="tm grow">' + esc(c.title) + '</span><span class="bs mu">' + esc(c.date.slice(0, 10)) + ' · <span class="mono">' + c.sha + '</span></span></summary>' + (c.body ? '<div style="padding-top:8px">' + md(c.body) + '</div>' : '') + '</details>'; }).join('') : '<p class="bm mu">' + L('noMatch') + '</p>') + '</div>' + foot();
   };
   // Settings rows: title, explanation, default, what it reaches, control, reset.
   function srow(id, title, desc, def, reach, ctl, path) {
@@ -422,9 +461,18 @@
       '<button class="ib opt" data-act="lang" aria-label="' + esc(w('language')) + ': ' + st.lang + '">' + icon('Translate') + '</button>' +
       '<button class="ib" data-act="bell" aria-label="' + esc(w('notifications')) + '" style="position:relative">' + icon('Bell') + '<span class="badge" id="bellcount" hidden>0</span></button></header>' +
       '<nav class="tabstrip" role="tablist" aria-label="Pages" aria-orientation="' + (st.edge === 'left' || st.edge === 'right' ? 'vertical' : 'horizontal') + '" data-k="tabs"></nav>' +
-      '<main class="main" id="main">' + TABS.map(function (t) { return '<section class="pane" role="tabpanel" id="p-' + t + '" aria-labelledby="t-' + t + '" hidden></section>'; }).join('') + '</main></div>' +
+      '<main class="main" id="main"><div id="wband"></div>' + TABS.map(function (t) { return '<section class="pane" role="tabpanel" id="p-' + t + '" aria-labelledby="t-' + t + '" hidden></section>'; }).join('') + '</main></div>' +
       '<div class="toasts" aria-live="polite"></div>';
     tabstrip(); bell();
+    var tn = $('.tabstrip'); tn.addEventListener('scroll', function () { tabHint(tn); }, { passive: true });
+  }
+  // A horizontal tab row that scrolls fades at the edge that has more tabs, so no tab is hidden
+  // without a sign of it; the selected tab is kept in view.
+  function tabHint(nav) {
+    var horiz = !(st.edge === 'left' || st.edge === 'right') || window.innerWidth <= 900;
+    var more = horiz && nav.scrollWidth > nav.clientWidth + 1;
+    nav.classList.toggle('fade-l', more && nav.scrollLeft > 2);
+    nav.classList.toggle('fade-r', more && nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 2);
   }
   function tabstrip() {
     var nav = $('.tabstrip'); var order = st.tabs.open.slice().sort(function (a, b) { return (st.tabs.pinned.indexOf(b) >= 0) - (st.tabs.pinned.indexOf(a) >= 0); });
@@ -433,12 +481,18 @@
       return '<button class="pt' + (sel ? ' sel' : '') + '" role="tab" id="t-' + t + '" aria-selected="' + sel + '" aria-controls="p-' + t + '" tabindex="' + (sel ? 0 : -1) + '" draggable="true" data-tab="' + t + '" data-k="tab-' + t + '">' + (pin ? icon('Pin', 'pin') : '') + L(t) +
         (pin ? '' : '<span class="x" role="button" tabindex="-1" data-closetab="' + t + '" aria-label="' + esc(w('close')) + ' ' + esc(w(t)) + '">' + icon('Close', 's') + '</span>') + '</button>';
     }).join('') + '<button class="ib" style="width:44px;height:44px;flex:none" data-act="newtab" aria-label="' + esc(w('newtab')) + '">' + icon('Plus') + '</button>';
+    var selTab = nav.querySelector('.pt.sel');
+    if (selTab && nav.scrollWidth > nav.clientWidth) { var l = selTab.getBoundingClientRect().left - nav.getBoundingClientRect().left + nav.scrollLeft, r = l + selTab.offsetWidth; if (l < nav.scrollLeft) nav.scrollLeft = l - 16; else if (r > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = r - nav.clientWidth + 16; }
+    tabHint(nav);
   }
   function render() {
     if (st.tabs.open.indexOf(st.active) < 0) st.active = st.tabs.open[0] || 'home';
     if (!st.tabs.open.length) { st.tabs.open = ['home']; st.active = 'home'; }
     tabstrip();
+    drawBand();
     TABS.forEach(function (t) { var p = $('#p-' + t); p.hidden = t !== st.active; if (t === st.active) { p.innerHTML = R[t](); } else p.innerHTML = ''; });
+    // Sections rise once, the first time a tab is shown in this visit; later renders stay still.
+    var pane = $('#p-' + st.active); pane.classList.toggle('entering', !risen[st.active]); risen[st.active] = true;
     decorate($('#p-' + st.active)); applyVocab($('#app'));
     if (st.active === 'home') live.draw(); if (st.active === 'tools') { otpDraw(); colour(); }
     document.title = st.name + ' · ' + w(st.active);
@@ -458,7 +512,7 @@
     var p = String(target).split(':'), tab = p[0], anchor = p[1] || 'top';
     if (st.tabs.open.indexOf(tab) < 0) { st.tabs.open.push(tab); }
     st.active = tab; save(); render();
-    setTimeout(function () { var el = document.getElementById(anchor) || $('#p-' + tab); if (el) { el.scrollIntoView({ block: 'start' }); el.classList.add('flash'); setTimeout(function () { el.classList.remove('flash'); }, 1500); var f = el.matches('input,button,select,textarea,a') ? el : el.querySelector('input,button,select,textarea,a'); if (f) f.focus({ preventScroll: true }); } }, 30);
+    setTimeout(function () { var el = document.getElementById(anchor) || $('#p-' + tab); if (el) { if (el.tagName === 'DETAILS') el.open = true; el.scrollIntoView({ block: 'start' }); el.classList.add('flash'); setTimeout(function () { el.classList.remove('flash'); }, 1500); var f = el.matches('input,button,select,textarea,a') ? el : el.querySelector('input,button,select,textarea,a'); if (f) f.focus({ preventScroll: true }); } }, 30);
   }
 
   // ---------- Dialogs ----------
@@ -779,6 +833,29 @@
     if (a === 'welcome') welcome(true);
     if (a === 'resetall') superConfirm('Reset everything', ['Every setting goes back to its default.', 'Every lock, history entry, ticket and authenticator secret on this page is removed.'], 'RESET', function () { try { localStorage.removeItem(KEY); sessionStorage.removeItem(KEY + '-open'); } catch (e) { /* storage off */ } st = load(); unlocked = {}; apply(); shell(); render(); toast(msg('reset')); });
   }
+  var risen = {}, bandShown = false;
+  // First visit: the welcome is a slim band above the page instead of a dialog over the headline.
+  // It walks the same three steps in place (language, light or dark, the keys) and is remembered
+  // the same way: Close or Done sets welcomed. Settings, Start again still opens the full welcome.
+  function drawBand() {
+    var box = $('#wband'); if (!box) return;
+    if (st.welcomed) { box.innerHTML = ''; return; }
+    var i = Math.min(st.welcomeStep || 0, 2);
+    var body = i === 0 ? '<span class="bm grow">' + L('bandLead') + '</span>' + seg('lang', [['en', 'English'], ['yue', '廣東話'], ['both', 'Both']], 'Language mode')
+      : i === 1 ? '<span class="bm grow">' + L('bandTheme') + '</span>' + seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']], 'Theme')
+        : '<span class="bm grow">' + L('bandDone') + '</span>';
+    box.innerHTML = '<section class="wband' + (bandShown ? '' : ' first') + '" role="region" aria-label="' + esc(w('welcome')) + ', ' + (i + 1) + ' of 3" data-k="welcome-band">' + body +
+      '<span class="row" style="gap:4px">' + (i ? '<button class="btn text sm" data-act="wb-back">' + L('back') + '</button>' : '') +
+      '<button class="btn tonal sm" data-act="wb-next">' + (i === 2 ? L('done') : L('next')) + '</button>' +
+      '<button class="ib" style="width:40px;height:40px" data-act="wb-close" aria-label="' + esc(w('bandClose')) + '">' + icon('Close', 's') + '</button></span></section>';
+    bandShown = true;
+  }
+  function bandStep(a) {
+    if (a === 'wb-close') { st.welcomed = true; st.welcomeStep = 0; save(); drawBand(); var m = $('#p-' + st.active + ' h1, #p-' + st.active + ' .hl'); if (m) { m.setAttribute('tabindex', '-1'); m.focus({ preventScroll: true }); } return; }
+    if (a === 'wb-next' && (st.welcomeStep || 0) >= 2) { bandStep('wb-close'); return; }
+    st.welcomeStep = Math.max(0, Math.min(2, (st.welcomeStep || 0) + (a === 'wb-next' ? 1 : -1))); save(); drawBand(); applyVocab($('#wband'));
+    var f = $('#wband [data-act="wb-next"]'); if (f) f.focus();
+  }
   function welcome(force) {
     if (st.welcomed && !force) return;
     var steps = [['Choose a language', seg('lang', [['en', 'English'], ['yue', '廣東話'], ['both', 'Both']], 'Language mode') + '<p class="bs mu">Every label changes at once. You can change it any time in Settings.</p>'],
@@ -787,9 +864,9 @@
     var i = Math.min(st.welcomeStep || 0, steps.length - 1);
     function draw() {
       dialog(w('welcome') + ' · ' + (i + 1) + ' of ' + steps.length, '<h3 class="tm">' + steps[i][0] + '</h3>' + steps[i][1] + '<div class="row" style="gap:8px"><button class="btn text" id="wskip">' + L('skip') + '</button><span class="grow"></span>' + (i ? '<button class="btn text" id="wback">' + L('back') + '</button>' : '') + '<button class="btn fill" id="wnext">' + (i === steps.length - 1 ? L('done') : L('next')) + '</button></div>', { emoji: '👋' });
-      $('#wnext').onclick = function () { if (i === steps.length - 1) { st.welcomed = true; st.welcomeStep = 0; save(); closeDialog(); } else { i++; st.welcomeStep = i; save(); draw(); } };
+      $('#wnext').onclick = function () { if (i === steps.length - 1) { st.welcomed = true; st.welcomeStep = 0; save(); closeDialog(); drawBand(); } else { i++; st.welcomeStep = i; save(); draw(); } };
       if ($('#wback')) $('#wback').onclick = function () { i--; st.welcomeStep = i; save(); draw(); };
-      $('#wskip').onclick = function () { st.welcomed = true; save(); closeDialog(); };
+      $('#wskip').onclick = function () { st.welcomed = true; save(); closeDialog(); drawBand(); };
     }
     draw();
   }
@@ -913,7 +990,7 @@
       b = t.closest('[data-board]'); if (b) { dialog(b.dataset.btitle, '<img src="boards/' + esc(b.dataset.board) + '.webp" alt="' + esc(b.dataset.btitle) + '" style="width:100%;height:auto;border-radius:16px;box-shadow:0 0 0 1px var(--outv)">', { full: true }); return; }
       b = t.closest('[data-axshow]'); if (b) { setVal('axHidden', !st.axHidden, 'Accessibility button'); shell(); render(); return; }
       b = t.closest('[data-toggle]'); if (b) { setVal(b.dataset.toggle, !get(b.dataset.toggle), labelOf(b)); if (b.dataset.toggle === 'school' && st.school) { st.funEn = 1; st.funYue = 1; save(); } render(); return; }
-      b = t.closest('[data-set]'); if (b) { var v = b.dataset.val; if (/^(funEn|funYue|textScale)$/.test(b.dataset.set)) v = +v; setVal(b.dataset.set, v, b.closest('[role=group]').getAttribute('aria-label')); if (b.dataset.set === 'edge') shell(); render(); return; }
+      b = t.closest('[data-set]'); if (b) { var v = b.dataset.val; if (/^(funEn|funYue|textScale)$/.test(b.dataset.set)) v = +v; setVal(b.dataset.set, v, b.closest('[role=group]').getAttribute('aria-label')); if (b.dataset.set === 'edge') shell(); var inBand = !!b.closest('#wband'); render(); if (inBand) { var rb = $('#wband [data-set="' + b.dataset.set + '"][data-val="' + b.dataset.val + '"]'); if (rb) rb.focus(); } return; }
       b = t.closest('[data-reset]'); if (b) { var p = b.dataset.reset, dv = p.split('.').reduce(function (o, k) { return o == null ? o : o[k]; }, DEF); setVal(p, JSON.parse(JSON.stringify(dv)), 'Reset ' + p); if (p === 'edge' || p === 'name' || p === 'logo') shell(); render(); toast(msg('saved')); return; }
       b = t.closest('[data-info]'); if (b) { var m = $('#i-' + b.dataset.info); m.hidden = !m.hidden; b.setAttribute('aria-expanded', !m.hidden); return; }
       b = t.closest('[data-undo]'); if (b) { undoEntry(+b.dataset.undo); toast(msg('saved')); return; }
@@ -928,6 +1005,7 @@
       b = t.closest('[data-conv]'); if (b) { convert(b.dataset.conv); return; }
       b = t.closest('[data-rmotp]'); if (b) { st.otp.splice(+b.dataset.rmotp, 1); save(); otpDraw(); return; }
       b = t.closest('[data-act]'); if (!b) return; var a = b.dataset.act;
+      if (a === 'wb-next' || a === 'wb-back' || a === 'wb-close') { bandStep(a); return; }
       if (a === 'palette') palette();
       if (a === 'theme') { setVal('theme', isDark() ? 'light' : 'dark', 'Theme'); render(); }
       if (a === 'lang') { setVal('lang', st.lang === 'en' ? 'yue' : st.lang === 'yue' ? 'both' : 'en', 'Language mode'); shell(); render(); }
@@ -1053,8 +1131,8 @@
 
   // ---------- Start ----------
   apply(); shell(); render(); wire();
+  window.addEventListener('resize', function () { var n = $('.tabstrip'); if (n) tabHint(n); });
   if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = function () { if (st.active === 'settings') render(); };
-  if (!st.welcomed) setTimeout(function () { welcome(false); }, 300);
   setTimeout(function () { if (Math.random() < 0.25) dimsum(false); }, 45000);
   if (location.hash && location.hash.length > 1) { var h = location.hash.slice(1); if (TABS.indexOf(h) >= 0) go(h + ':top'); }
 })();
