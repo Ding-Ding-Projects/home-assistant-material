@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Floating pills, hover to open</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#0C1016}
+.p-pill{display:flex;align-items:center;gap:4px;padding:8px;border-radius:40px;background:#222935;box-shadow:0 10px 28px rgba(0,0,0,.55)}
+.p-item{display:flex;align-items:center;height:56px;min-width:56px;box-sizing:border-box;padding:0 17px;border:0;border-radius:28px;background:transparent;color:#E0E2E8;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s,padding .35s cubic-bezier(.2,1.3,.3,1)}
+.p-item span{max-width:0;opacity:0;overflow:hidden;white-space:nowrap;transition:max-width .35s cubic-bezier(.2,1.3,.3,1),opacity .2s,margin .35s}
+.p-item:hover,.p-item:focus-visible{background:#3A3F46;outline:none}
+.p-item:hover span,.p-item:focus-visible span,.p-open .p-item span{max-width:160px;opacity:1;margin-left:10px}
+.p-item svg{flex:none}
+.p-has{position:relative}
+.p-menu{position:absolute;left:50%;bottom:72px;width:260px;margin-left:-130px;box-sizing:border-box;padding:8px;border-radius:28px;background:#222935;box-shadow:0 10px 28px rgba(0,0,0,.55);opacity:0;transform:translateY(14px) scale(.92);transform-origin:50% 100%;pointer-events:none;transition:opacity .2s,transform .3s cubic-bezier(.2,1.4,.3,1)}
+.p-has:hover .p-menu,.p-has:focus-within .p-menu{opacity:1;transform:none;pointer-events:auto}
+.p-has::before{content:"";position:absolute;left:-20px;right:-20px;bottom:56px;height:24px}
+.p-mi{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;box-sizing:border-box;padding:0 14px;border:0;border-radius:20px;background:transparent;color:#E0E2E8;font-family:inherit;font-size:15px;text-align:left;cursor:pointer}
+.p-mi:hover,.p-mi:focus-visible{background:#3A3F46;outline:none}
+.p-still .p-item,.p-still .p-item span,.p-still .p-menu{transition:none}
+@media (prefers-reduced-motion:reduce){.p-item,.p-item span,.p-menu{transition:none}}
+.p-row{height:60px;border-radius:20px;background:#171C24;padding:0 18px;display:flex;align-items:center;justify-content:space-between}
+</style>
+</helmet>
+<div class="{{motionClass}}" style="width: 1100px; height: 700px; box-sizing: border-box; position: relative; overflow: hidden; background: #0C1016; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; padding: 28px 40px">
+
+<div style="font-size: 12px; font-weight: 600; letter-spacing: .08em; color: #C2C7CF">SETTINGS</div>
+<h1 style="margin: 0; font-size: 34px; line-height: 38px; font-weight: 800; letter-spacing: -0.02em">Automations</h1>
+<p style="margin: 4px 0 18px; font-size: 14px; color: #C2C7CF">Move the pointer over the pills at the bottom. On a phone the same pills open with a tap.</p>
+
+<div style="display: flex; flex-direction: column; gap: 8px; max-width: 760px">
+<div class="p-row" style="outline: 2px solid {{accent}}; outline-offset: -2px"><span style="font-weight: 600">Hallway light at dusk</span><span style="color: #C2C7CF; font-size: 13px">Selected</span></div>
+<div class="p-row" style="outline: 2px solid {{accent}}; outline-offset: -2px"><span style="font-weight: 600">Night mode at 23:00</span><span style="color: #C2C7CF; font-size: 13px">Selected</span></div>
+<div class="p-row"><span style="font-weight: 600">Water the garden</span><span style="color: #C2C7CF; font-size: 13px">Never ran</span></div>
+<div class="p-row"><span style="font-weight: 600">Open the blinds at sunrise</span><span style="color: #C2C7CF; font-size: 13px">Ran 06:52</span></div>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 28px; display: flex; justify-content: center; align-items: flex-end; gap: 16px">
+
+<div class="p-pill" role="toolbar" aria-label="Page tools">
+<button type="button" class="p-item"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span></button>
+<div class="p-has">
+<button type="button" class="p-item" aria-haspopup="menu"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>Filter</span></button>
+<div class="p-menu" role="menu" aria-label="Filter">
+<button type="button" class="p-mi" role="menuitem"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11l8-7 8 7v9H4z"/></svg>By area</button>
+<button type="button" class="p-mi" role="menuitem"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h9l7 7-7 7H4z"/></svg>By label</button>
+<button type="button" class="p-mi" role="menuitem"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>Ran today</button>
+<button type="button" class="p-mi" role="menuitem"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4l9 16H3zM12 10v4"/></svg>Needs repair</button>
+</div>
+</div>
+<button type="button" class="p-item"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 5v14m0 0l-3-3m3 3l3-3M17 19V5m0 0l-3 3m3-3l3 3"/></svg><span>Sort</span></button>
+<button type="button" class="p-item"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg><span>More tools</span></button>
+</div>
+
+<div class="p-pill p-open" role="toolbar" aria-label="2 selected" style="background: #1E3A56">
+<div style="padding: 0 10px 0 14px; font-weight: 800">2 selected</div>
+<button type="button" class="p-item"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="8" width="18" height="8" rx="4"/><circle cx="16" cy="12" r="2"/></svg><span>Turn off</span></button>
+<button type="button" class="p-item"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M4 5h9l7 7-7 7H4z"/></svg><span>Label</span></button>
+<button type="button" class="p-item" style="color: #FFB4AB"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/></svg><span>Delete</span></button>
+</div>
+
+<button type="button" class="p-item" style="height: 72px; border-radius: 36px; background: {{accent}}; color: #06203A; padding: 0 25px; box-shadow: 0 10px 28px rgba(0,0,0,.55)"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Create automation</span></button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#9CC8FF","options":["#9CC8FF","#B7D086","#FFB870","#D6BAFF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":1100,"height":700}}'>
+class Component extends DCLogic {
+renderVals() {
+return { accent: this.props.accent ?? '#9CC8FF', motionClass: (this.props.motion ?? true) ? '' : 'p-still' };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Detail page with long words</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#0C1016}
+.e-card{border-radius:24px;background:#171C24;padding:16px}
+.e-h{margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:.08em;color:#C2C7CF}
+.e-row{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid #2B3036}
+.e-l{flex:0 1 auto;min-width:88px;color:#C2C7CF}
+.e-v{flex:1 1 0;min-width:0;text-align:right;overflow-wrap:anywhere}
+.e-chip{min-height:32px;box-sizing:border-box;padding:5px 12px;border-radius:16px;background:#222935;font-size:13px;line-height:22px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0C1016; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; display: flex; flex-direction: column">
+
+<header style="flex: none; height: 56px; box-sizing: border-box; padding: 4px 8px; display: flex; align-items: center; gap: 4px">
+<button type="button" aria-label="Back" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E0E2E8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+<div style="flex: 1; min-width: 0; font-size: 12px; font-weight: 600; letter-spacing: .08em; color: #C2C7CF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">SETTINGS, DEVICES</div>
+<button type="button" aria-label="More actions" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#E0E2E8"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>
+</header>
+
+<div style="flex: 1; min-height: 0; padding: 0 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="border-radius: 36px; background: #5A2A14; padding: 18px 18px 14px; position: relative; overflow: hidden">
+<svg aria-hidden="true" width="120" height="120" viewBox="0 0 120 120" style="position: absolute; right: -30px; top: -34px"><circle cx="60" cy="60" r="40" fill="#FF8A65" stroke="#FF8A65" stroke-width="18" stroke-dasharray="0 20.9" stroke-linecap="round"/></svg>
+<h1 style="position: relative; margin: 0; padding-right: 56px; font-size: 28px; line-height: 32px; font-weight: 800; letter-spacing: -0.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">Upstairs hallway temperature and humidity sensor (north wall)</h1>
+<button type="button" style="margin-top: 2px; min-height: 32px; border: 0; background: transparent; padding: 0; color: {{accent}}; font-family: inherit; font-size: 13px; font-weight: 700">Show the full name</button>
+</div>
+
+<section class="e-card">
+<h2 class="e-h">ABOUT</h2>
+<div class="e-row" style="border-top: 0; padding-top: 0"><div class="e-l">Area</div><div class="e-v">Upstairs landing</div></div>
+<div class="e-row"><div class="e-l">Identifier</div><div class="e-v" style="font-family: ui-monospace, Consolas, monospace; font-size: 13px">sensor.upstairs_hallway_temperature_and_humidity_north_wall</div></div>
+<div class="e-row" style="padding-bottom: 0"><div class="e-l">Last seen</div><div class="e-v">Today, 14:02</div></div>
+</section>
+
+<section class="e-card">
+<h2 class="e-h">LABELS</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<span class="e-chip">Heating</span><span class="e-chip">Upstairs</span><span class="e-chip">Battery powered</span><span class="e-chip">Checked this month</span><span class="e-chip">North wall</span>
+</div>
+</section>
+
+<section class="e-card">
+<h2 class="e-h">READINGS</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="border-radius: 16px; background: #222935; padding: 12px; min-width: 0"><div style="font-size: 30px; line-height: 34px; font-weight: 800">21.4°</div><div style="font-size: 13px; color: #C2C7CF">Temperature</div></div>
+<div style="border-radius: 16px; background: #222935; padding: 12px; min-width: 0"><div style="font-size: 30px; line-height: 34px; font-weight: 800">48%</div><div style="font-size: 13px; color: #C2C7CF">Humidity</div></div>
+</div>
+</section>
+</div>
+
+<div style="position: absolute; left: 12px; right: 12px; bottom: 88px; padding: 8px 8px 8px 20px; border-radius: 34px; background: #222935; box-shadow: 0 12px 30px rgba(0,0,0,.6); display: flex; align-items: center; gap: 12px">
+<div style="flex: 1; min-width: 0; font-size: 13px; line-height: 18px; color: #C2C7CF">1 change not saved</div>
+<button type="button" style="height: 48px; border: 0; border-radius: 24px; background: transparent; color: #E0E2E8; padding: 0 14px; font-family: inherit; font-size: 15px; font-weight: 700">Undo</button>
+<button type="button" style="height: 48px; border: 0; border-radius: 24px; background: {{accent}}; color: #06203A; padding: 0 22px; font-family: inherit; font-size: 15px; font-weight: 800">Save</button>
+</div>
+
+<nav aria-label="Main" style="position: absolute; left: 12px; right: 12px; bottom: 12px; height: 68px; box-sizing: border-box; border-radius: 34px; background: #1B212B; box-shadow: 0 12px 30px rgba(0,0,0,.6); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 6px">
+<a href="#" style="display: grid; justify-items: center; align-content: center; gap: 2px; color: #C2C7CF; text-decoration: none; font-size: 12px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C2C7CF" stroke-width="2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/></svg>Home</a>
+<a href="#" style="display: grid; justify-items: center; align-content: center; gap: 2px; color: #C2C7CF; text-decoration: none; font-size: 12px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C2C7CF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search</a>
+<a href="#" style="display: grid; justify-items: center; align-content: center; gap: 2px; color: #C2C7CF; text-decoration: none; font-size: 12px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C2C7CF" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M4 10h16"/></svg>Pages</a>
+<a href="#" style="display: grid; justify-items: center; align-content: center; gap: 2px; color: #FFFFFF; background: #13337F; border-radius: 28px; text-decoration: none; font-size: 12px; font-weight: 700"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="8.5"/></svg>Settings</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#9CC8FF","options":["#9CC8FF","#B7D086","#FFB870","#D6BAFF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return { accent: this.props.accent ?? '#9CC8FF' };
+}
+}
+</script>
+</body>
+</html>

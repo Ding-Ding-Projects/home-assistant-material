@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>List page, scrolled to the end</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#0C1016}
+.s-row{min-height:64px;box-sizing:border-box;border-radius:26px;background:#171C24;padding:10px 12px 10px 10px;display:flex;align-items:center;gap:12px}
+.s-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s-sub{font-size:13px;line-height:18px;color:#C2C7CF}
+.s-off{flex:none;width:52px;height:32px;box-sizing:border-box;border-radius:16px;border:2px solid #8C9199;position:relative}
+.s-off i{position:absolute;left:6px;top:6px;width:16px;height:16px;border-radius:8px;background:#8C9199}
+.s-on{flex:none;width:52px;height:32px;border-radius:16px;position:relative}
+.s-on i{position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:12px;background:#06203A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0C1016; color: #E0E2E8; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; display: flex; flex-direction: column">
+
+<header style="flex: none; height: 56px; box-sizing: border-box; padding: 4px 8px; display: flex; align-items: center; gap: 4px; background: #13337F">
+<button type="button" aria-label="Back" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E0E2E8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+<div style="flex: 1; min-width: 0"><div style="font-size: 17px; line-height: 22px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Automations</div><div style="font-size: 12px; line-height: 16px; color: #C2C7CF">12 in all, 9 are on</div></div>
+<button type="button" aria-label="Search" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E0E2E8" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+<button type="button" aria-label="More actions" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#E0E2E8"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>
+</header>
+
+<div style="flex: 1; min-height: 0; padding: 8px 16px 0; display: flex; flex-direction: column; gap: 8px">
+<div class="s-row"><svg aria-hidden="true" width="48" height="48" viewBox="0 0 52 52" style="flex: none"><circle cx="26" cy="26" r="17" fill="#F2B62E" stroke="#F2B62E" stroke-width="9" stroke-dasharray="0 10.68" stroke-linecap="round"/></svg><div style="flex: 1; min-width: 0"><div class="s-name">Open the blinds at sunrise</div><div class="s-sub">Ran 06:52</div></div><div class="s-on" role="img" aria-label="On" style="background: {{accent}}"><i></i></div></div>
+<div class="s-row"><svg aria-hidden="true" width="48" height="48" viewBox="0 0 52 52" style="flex: none"><rect x="5" y="5" width="42" height="42" rx="15" fill="#FF8A65" transform="rotate(12 26 26)"/></svg><div style="flex: 1; min-width: 0"><div class="s-name">Tell me when the washer is done</div><div class="s-sub">Ran 14:05</div></div><div class="s-on" role="img" aria-label="On" style="background: {{accent}}"><i></i></div></div>
+<div class="s-row"><svg aria-hidden="true" width="48" height="48" viewBox="0 0 52 52" style="flex: none"><rect x="4" y="12" width="44" height="28" rx="14" fill="#B9A2FF" transform="rotate(-18 26 26)"/></svg><div style="flex: 1; min-width: 0"><div class="s-name">Porch light when someone arrives</div><div class="s-sub">Ran 19:31</div></div><div class="s-on" role="img" aria-label="On" style="background: {{accent}}"><i></i></div></div>
+<div class="s-row"><svg aria-hidden="true" width="48" height="48" viewBox="0 0 52 52" style="flex: none"><circle cx="26" cy="26" r="21" fill="#7FE0A2"/><circle cx="26" cy="26" r="9" fill="#0F4A2A"/></svg><div style="flex: 1; min-width: 0"><div class="s-name">Holiday mode</div><div class="s-sub">Never ran</div></div><div class="s-off" role="img" aria-label="Off"><i></i></div></div>
+<div class="s-row"><svg aria-hidden="true" width="48" height="48" viewBox="0 0 52 52" style="flex: none"><path d="M26 5 L47 26 L26 47 L5 26 Z" fill="#9CC8FF" stroke="#9CC8FF" stroke-width="6" stroke-linejoin="round"/></svg><div style="flex: 1; min-width: 0"><div class="s-name">Water the garden</div><div class="s-sub">Never ran</div></div><div class="s-off" role="img" aria-label="Off"><i></i></div></div>
+<p style="margin: 6px 0 0; text-align: center; font-size: 13px; color: #8C9199">End of the list. 12 of 12 shown.</p>
+<div aria-hidden="true" style="height: 148px; box-sizing: border-box; border: 1px dashed #42474E; border-radius: 12px; display: grid; place-items: center; font-size: 12px; color: #8C9199; margin-bottom: 0">End space: floating bar 80 + button 60 + 8</div>
+</div>
+
+<button type="button" style="position: absolute; right: 16px; bottom: 92px; height: 60px; border: 0; border-radius: 30px; background: {{accent}}; color: #06203A; padding: 0 20px 0 16px; display: flex; align-items: center; gap: 8px; font-family: inherit; font-size: 15px; font-weight: 700; box-shadow: 0 6px 16px rgba(0,0,0,.45)"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#06203A" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Create</button>
+
+<nav aria-label="Main" style="position: absolute; left: 12px; right: 12px; bottom: 12px; height: 68px; box-sizing: border-box; border-radius: 34px; background: #1B212B; box-shadow: 0 12px 30px rgba(0,0,0,.6); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 6px">
+<a href="#" style="display: grid; justify-items: center; align-content: center; gap: 2px; color: #C2C7CF; text-decoration: none; font-size: 12px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C2C7CF" stroke-width="2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/></svg>Home</a>
+<a href="#" style="display: grid; justify-items: center; align-content: center; gap: 2px; color: #C2C7CF; text-decoration: none; font-size: 12px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C2C7CF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search</a>
+<a href="#" style="display: grid; justify-items: center; align-content: center; gap: 2px; color: #C2C7CF; text-decoration: none; font-size: 12px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C2C7CF" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M4 10h16"/></svg>Pages</a>
+<a href="#" style="display: grid; justify-items: center; align-content: center; gap: 2px; color: #FFFFFF; background: #13337F; border-radius: 28px; text-decoration: none; font-size: 12px; font-weight: 700"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="8.5"/></svg>Settings</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#9CC8FF","options":["#9CC8FF","#B7D086","#FFB870","#D6BAFF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return { accent: this.props.accent ?? '#9CC8FF' };
+}
+}
+</script>
+</body>
+</html>
