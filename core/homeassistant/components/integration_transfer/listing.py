@@ -46,15 +46,10 @@ def _entity_kinds(
 
 
 def _device_counts(hass: HomeAssistant, entry_domain: dict[str, str]) -> Counter[str]:
-    """Count devices for each integration domain, each device once per domain."""
+    """Count devices for each integration domain."""
     counts: Counter[str] = Counter()
-    for device in dr.async_get(hass).devices.values():
-        domains = {
-            entry_domain[entry_id]
-            for entry_id in device.config_entries
-            if entry_id in entry_domain
-        }
-        for domain in domains:
+    for device in dr.async_get(hass).devices:
+        if (domain := entry_domain.get(device.config_entry_id or "")) is not None:
             counts[domain] += 1
     return counts
 

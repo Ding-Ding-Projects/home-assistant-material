@@ -1,11 +1,18 @@
 """Tests for the integration export and import commands."""
 
+from collections.abc import Generator
 import json
 from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from pytest_homeassistant.common import MockConfigEntry, MockModule, mock_integration
+from pytest_homeassistant.common import (
+    MockConfigEntry,
+    MockModule,
+    mock_config_flow,
+    mock_integration,
+    mock_platform,
+)
 from pytest_homeassistant.typing import WebSocketGenerator
 
 from homeassistant.components.integration_transfer.const import (
@@ -14,8 +21,9 @@ from homeassistant.components.integration_transfer.const import (
     SETTINGS_KIND,
 )
 from homeassistant.components.registry_storage import crypto
-from homeassistant.config_entries import ConfigEntryState
+from homeassistant.config_entries import ConfigEntryState, ConfigFlow
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.setup import async_setup_component
 
@@ -31,6 +39,18 @@ DATA = {
     "broker": {"port": 1883, "token": "token-value"},
 }
 OPTIONS = {"discovery": True, "keep_alive": 60}
+
+
+class MockFlow(ConfigFlow):
+    """Config flow of the test integration."""
+
+
+@pytest.fixture(autouse=True)
+def config_flow_fixture(hass: HomeAssistant) -> Generator[None]:
+    """Give the test integration a config flow, which entry setup requires."""
+    mock_platform(hass, f"{TEST_DOMAIN}.config_flow")
+    with mock_config_flow(TEST_DOMAIN, MockFlow):
+        yield
 
 
 @pytest.fixture(autouse=True)
@@ -49,8 +69,8 @@ async def _setup(
         hass,
         MockModule(
             TEST_DOMAIN,
-            async_setup_entry=setup_entry or AsyncMock(return_value=True),
-            async_unload_entry=AsyncMock(return_value=True),
+            async_setup_entry=setup_entry or AsyncMock(return_value=None),
+            async_unload_entry=AsyncMock(return_value=None),
         ),
     )
     entry = MockConfigEntry(
@@ -448,7 +468,9 @@ async def test_apply_rolls_back_when_reload_fails(
     hass: HomeAssistant, hass_ws_client: WebSocketGenerator
 ) -> None:
     """When the integration refuses the new settings, nothing is changed."""
-    setup_entry = AsyncMock(side_effect=[True, False, True])
+    setup_entry = AsyncMock(
+        side_effect=[None, ConfigEntryError("refused"), None]
+    )
     entry = await _setup(hass, setup_entry)
     client = await hass_ws_client(hass)
 

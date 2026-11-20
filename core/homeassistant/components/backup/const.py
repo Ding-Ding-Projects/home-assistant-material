@@ -17,6 +17,7 @@ EXCLUDE_FROM_BACKUP = [
     ".storage/backup.hosting",
     ".storage/registry_storage.*",
     ".storage/problem_log.send_wording",
+    ".storage/problem_log.send_auth",
     "**/__pycache__/*",
     "**/.DS_Store",
     ".HA_RESTORE",
