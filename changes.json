@@ -1,15 +1,39 @@
 {
  "format": 1,
- "generated": "2026-11-20T11:12:58Z",
+ "generated": "2026-11-20T11:42:01Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 534,
+ "newest_build": 535,
  "releases": [
+  {
+   "build": 535,
+   "core": "2026.11.2.535",
+   "supervisor": "2026.11.0.535",
+   "os": "18.5.535",
+   "tag": null,
+   "source": "73a735503",
+   "date": "2026-11-20T06:20:22-05:00",
+   "previous_build": 534,
+   "changes": [
+    {
+     "sha": "73a735503",
+     "date": "2026-11-20T06:20:22-05:00",
+     "title": "Local backups answer in two seconds, summaries and tabs follow the language mode [skip ci]",
+     "areas": [
+      "core",
+      "docs",
+      "interface"
+     ],
+     "detail": "The build 534 browser check was kind but thorough. \"Local backups list at once\" turned out to mean \"after ten seconds, together with everything else\", because the quick answer politely waited for the slow one.\n\n- Saving space: the pointer info command now answers two seconds after it starts with whatever is on this disk, and names the places it is still waiting for as \"checking\". The full listing carries on in the background under its own ten second bound and the page asks again until it is in. A place is called unreachable only once that bound has really passed. - The summary line under Settings section titles follows the language mode, like the title and breadcrumb above it already did. - The \"Blueprints\" tab has its Cantonese name. The \"Last triggered\" column for automations, scripts and scenes shows relative times in the chosen language. Other relative times around the interface are composed inside sentences and are left alone. - A change of language mode is saved to the account at once and on page hide, instead of on the next slow sync, so a reload straight after a switch no longer loads the old mode. - Page titles shrink a step on very narrow screens so a word does not break ",
+     "detail_yue": "本機備份兩秒就答到，摘要同頁籤跟返語言模式。\n\n慳位頁：指標資料指令開始兩秒就答本機有乜，未答嘅地方標「檢查緊」， 完整清單喺背景繼續行，真係過咗十秒先叫連唔到。 設定各分頁標題下面嗰行摘要跟語言模式；「藍圖」頁籤有廣東話名； 自動化、腳本、場景嘅「上次觸發」時間跟語言。 轉語言模式會即刻存入帳戶，轉完即刻重新載入唔會再見返舊模式。 頁面標題喺 320 px 會縮細一級，唔會斷開一個字。 唯讀嘅更新進度卡，做完會顯示剔號。 呢批改動仲未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 534,
    "core": "2026.11.2.534",
    "supervisor": "2026.11.0.534",
    "os": "18.5.534",
-   "tag": null,
+   "tag": "v2026.11.2.534",
    "source": "bc8e277f9",
    "date": "2026-11-20T03:49:51-05:00",
    "previous_build": 533,
