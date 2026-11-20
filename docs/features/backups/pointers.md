@@ -99,26 +99,36 @@ newest backup is kept whole by default.
 ## When the registry cannot be reached
 
 The page reads the backups through `backup/pointer/info`, which asks every
-place to list its backups. That listing waits at most 10 seconds. If it takes
-longer, the page is still shown: only the backups on this system are listed,
-and every registry place is reported in `unreachable`. A registry place whose
-listing fails, or that is not loaded at all (for example while its entry is
-waiting to retry setup), is treated the same way.
+place to list its backups. The command answers within about 2 seconds. If the
+full listing has not finished by then, only the backups on this system are
+listed and every registry place is reported in `checking`: still being asked,
+neither reached nor unreachable. The full listing keeps going for up to 10
+seconds, and the page asks again shortly after such an answer; that request
+joins the listing already under way instead of starting a new one, and reads
+its result once it is in. A listing that finished but was not read is kept for
+30 seconds for that follow-up.
+
+Only a place whose listing did not finish within the full 10 seconds, whose
+listing failed, or that is not loaded at all (for example while its entry is
+waiting to retry setup) is reported in `unreachable`.
 
 The same answer also carries `local_backups`: every backup the agents on this
 system hold, newest first, with its name, date, size and the local agents that
-hold it. These are listed at the same time as the full list and within the
-same 10 seconds. The saving space page shows them as rows "whole here" as soon
-as this answer arrives, instead of waiting for the full backup list of the
-backups page, which waits for every place. When the full list arrives it
-replaces these rows; only then can a row also say that the backup is in the
-registry. A Core without `local_backups` leaves the page as before: a loading
-state until the full list arrives.
+hold it. The agents on this system have their own limit of about 2 seconds, so
+these rows arrive within it whatever the places elsewhere do. The saving space
+page shows them as rows "whole here" as soon as this answer arrives, instead
+of waiting for the full backup list of the backups page, which waits for every
+place. When the full list arrives it replaces these rows; only then can a row
+also say that the backup is in the registry. A Core without `local_backups`
+leaves the page as before: a loading state until the full list arrives.
 
 A pointer whose backup no place lists is shown as follows:
 
 - Its registry place answered and does not list it: **missing** ("the
   registry copy is missing"). Restore and Bring back are not offered.
+- Its registry place is still being asked: **checking** ("still checking
+  with the registry"). Restore and Bring back stay available; the row settles
+  when the page's follow-up request reads the full listing.
 - Its registry place did not answer, did not answer in time, or is not
   loaded: **unknown** ("the registry could not be reached, so whether its copy
   is there is not known"). Restore and Bring back stay available; they ask the
@@ -164,7 +174,7 @@ always removed.
 
 | Command | Does |
 | --- | --- |
-| `backup/pointer/info` | Setting, availability, honest counts, every pointer with `restorable`, the last kept-whole reasons, the current transfer, `unreachable`: the places that failed to list their backups or did not answer within 10 seconds, and `local_backups`: the backups on this system with name, date, size and agent ids |
+| `backup/pointer/info` | Setting, availability, honest counts, every pointer with `restorable`, the last kept-whole reasons, the current transfer, `unreachable`: the places that failed to list their backups or did not answer within 10 seconds, `checking`: the places still being asked when the command answered after about 2 seconds, and `local_backups`: the backups on this system with name, date, size and agent ids |
 | `backup/pointer/settings` | `enabled`, `keep_whole` (0, 1 or 3); turning on without a registry place answers `no_registry_place` |
 | `backup/pointer/run` | Runs a pass now and returns each outcome |
 | `backup/pointer/check` | Runs the daily check now |
@@ -194,7 +204,9 @@ always removed.
   the whole copy, newest kept whole, no secret in the pointer, bring back and
   restore byte for byte, missing copy detected, delete proof, going back,
   retention, counts and self-check, admin only, a registry that fails to list
-  reported as unreachable, and a registry that never answers holding the page
-  only for the short limit).
+  reported as unreachable, a registry that never answers holding the page
+  only for the short limit, a slow registry reported as still checking with
+  the follow-up joining the same listing, and a registry still silent after
+  the full limit reported unreachable on the follow-up).
 - Interface unit tests: `frontend/test/data/backup_pointer.test.ts`.
 - Not seen in a browser and not run on a real instance or a real registry.

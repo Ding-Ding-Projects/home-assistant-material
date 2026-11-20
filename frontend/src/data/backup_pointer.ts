@@ -116,6 +116,12 @@ export interface BackupPointerInfo {
    */
   unreachable?: string[];
   /**
+   * Places still being asked when the command answered early. Their listing
+   * keeps going; the page asks again to read its result. Missing on an older
+   * Core.
+   */
+  checking?: string[];
+  /**
    * The backups the agents on this system hold, newest first, with what a row
    * shows. Listed within the same short limit, so the page can show them
    * before the full backup list, which waits for every place, has arrived.
@@ -230,10 +236,16 @@ export const passResult = (
 
 /**
  * Whole here, a pointer, a pointer whose registry copy is missing, a pointer
- * whose registry could not be reached just now, or a backup not on this system.
+ * whose registry could not be reached just now, a pointer whose registry is
+ * still being asked, or a backup not on this system.
  */
 export type PointerRowState =
-  "whole" | "pointer" | "missing" | "unknown" | "elsewhere";
+  "whole" | "pointer" | "missing" | "unknown" | "checking" | "elsewhere";
+
+/** True when the answer still waits for a place to list its backups. */
+export const stillChecking = (
+  info: Partial<Pick<BackupPointerInfo, "checking">>
+): boolean => (info.checking ?? []).length > 0;
 
 export interface PointerRow {
   backup_id: string;
@@ -263,10 +275,11 @@ const localSize = (backup: BackupContent): number | undefined => {
 export const pointerRows = (
   backups: BackupContent[],
   info: Pick<BackupPointerInfo, "pointers" | "kept" | "places"> &
-    Partial<Pick<BackupPointerInfo, "unreachable">>
+    Partial<Pick<BackupPointerInfo, "unreachable" | "checking">>
 ): PointerRow[] => {
   const places = new Set(info.places.map((place) => place.agent_id));
   const unreachable = new Set(info.unreachable ?? []);
+  const checking = new Set(info.checking ?? []);
   const reached = (agentId: string): boolean =>
     places.has(agentId) && !unreachable.has(agentId);
   const rows: PointerRow[] = [];
@@ -304,9 +317,13 @@ export const pointerRows = (
       name: pointer.name,
       date: pointer.date,
       state:
-        pointer.check_state === "missing" || reached(pointer.agent_id)
+        pointer.check_state === "missing"
           ? "missing"
-          : "unknown",
+          : checking.has(pointer.agent_id)
+            ? "checking"
+            : reached(pointer.agent_id)
+              ? "missing"
+              : "unknown",
       size: pointer.size,
       pointer,
       in_registry: false,
@@ -324,7 +341,9 @@ export const rowsOnThisSystem = (rows: PointerRow[]): PointerRow[] =>
  * the registry could not be reached, trying again is still offered.
  */
 export const canRestore = (row: PointerRow): boolean =>
-  (row.state === "pointer" || row.state === "unknown") &&
+  (row.state === "pointer" ||
+    row.state === "unknown" ||
+    row.state === "checking") &&
   !!row.pointer?.restorable;
 
 /** Reasons the page has wording for; anything else reads as "unknown". */

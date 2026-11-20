@@ -5,6 +5,7 @@ import {
   normalizeConfirmationDrama,
 } from "../confirm/two-key-drama";
 import { getStorage } from "../decorators/storage";
+import { announceLocalSettingsChange } from "../instance-sync/local-change-event";
 import { narrator } from "../narration/narrator";
 import { attentionModes } from "./attention-modes";
 import { focusSpotlight } from "./focus-spotlight";
@@ -504,6 +505,8 @@ export const updatePersonalPreferences = (
   if (!saved && typeof window !== "undefined") {
     window.dispatchEvent(new Event(PERSONAL_PREFERENCES_NOT_SAVED_EVENT));
   }
+  // Saved to the account now, so the next load anywhere reads this choice.
+  announceLocalSettingsChange();
   return preferences;
 };
 
@@ -525,12 +528,14 @@ export const followDefaultPreferences = (
     PERSONAL_PREFERENCES_STORAGE_KEY,
     Object.keys(kept).length ? kept : undefined
   );
+  announceLocalSettingsChange();
   return getStoredPreferences();
 };
 
 /** Removes every stored choice, so the defaults apply again. */
 export const resetPersonalPreferences = (): PersonalPreferences => {
   safeSetStored(PERSONAL_PREFERENCES_STORAGE_KEY, undefined);
+  announceLocalSettingsChange();
   return getStoredPreferences();
 };
 

@@ -349,6 +349,7 @@ class HaUpdateQueueCard extends LitElement {
       return nothing;
     }
     const ended = view.state !== "running" && view.state !== "failed";
+    const finishedOk = view.state === "done";
     if (ended && this._hiddenShared === run.updated) {
       return nothing;
     }
@@ -384,7 +385,21 @@ class HaUpdateQueueCard extends LitElement {
     return html`
       <section class="card shared" aria-labelledby="queue-title">
         <div class="title-row">
-          <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
+          ${
+            // The same finished tick the driving browser shows, never a ring.
+            finishedOk
+              ? html`<ha-svg-icon
+                  class="ring tick"
+                  .path=${mdiCheckCircle}
+                ></ha-svg-icon>`
+              : nothing
+          }
+          <svg
+            class="ring"
+            viewBox="0 0 36 36"
+            aria-hidden="true"
+            ?hidden=${finishedOk}
+          >
             <g transform="rotate(-90 18 18)">
               <circle class="ring-track" cx="18" cy="18" r="15" />
               <circle

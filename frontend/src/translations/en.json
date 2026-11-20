@@ -10025,6 +10025,7 @@
             "row_missing": "Pointer · the registry copy is missing",
             "row_unknown": "Pointer · the last check could not reach the registry",
             "row_unreachable": "Pointer · the registry could not be reached, so whether its copy is there is not known",
+            "row_checking": "Pointer · still checking with the registry",
             "empty": "No backup is on this disk yet.",
             "load_error": "The backups could not be loaded: {error}",
             "save_error": "The setting was not saved: {reason}",

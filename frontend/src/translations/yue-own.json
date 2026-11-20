@@ -2347,6 +2347,7 @@
             "row_missing": "指標 · 登錄處嘅副本唔見咗",
             "row_unknown": "指標 · 上次檢查聯絡唔到登錄處",
             "row_unreachable": "指標 · 聯絡唔到登錄處，所以唔知佢嘅副本仲喺唔喺度",
+            "row_checking": "指標 · 仲同緊登錄處核對",
             "empty": "呢隻磁碟仲未有備份。",
             "load_error": "載入唔到備份：{error}",
             "save_error": "設定冇儲存到：{reason}",
@@ -5157,6 +5158,9 @@
             "migrate_script": "遷移腳本？",
             "migrate_script_description": "你可以遷移呢個腳本，等佢可以喺介面度編輯。遷移完同儲存咗之後，你要自己喺設定度刪除舊嘅腳本。要唔要遷移呢個腳本？"
           }
+        },
+        "blueprint": {
+          "caption": "藍圖"
         },
         "scene": {
           "caption": "場景",

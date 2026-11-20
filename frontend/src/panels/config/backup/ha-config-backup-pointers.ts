@@ -47,6 +47,7 @@ import {
   rowsOnThisSystem,
   runBackupPointerPass,
   setBackupPointerSettings,
+  stillChecking,
   subscribeBackupPointerTransfer,
   transferPercent,
 } from "../../../data/backup_pointer";
@@ -62,6 +63,9 @@ const PREFIX = "ui.panel.config.backup.pointers";
 
 /** Several changes in a row (one per backup a pass makes a pointer) read once. */
 const REFRESH_DELAY_MS = 400;
+
+/** How soon to ask again when a place was still being asked for its backups. */
+const CHECK_AGAIN_MS = 1000;
 
 /** The result line of the last pass: counts, or why it did not finish. */
 type RunResult =
@@ -117,6 +121,8 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
 
   private _refreshTimer?: ReturnType<typeof setTimeout>;
 
+  private _checkTimer?: ReturnType<typeof setTimeout>;
+
   private _lang = new LanguageModeController(this);
 
   public hassSubscribe(): Promise<UnsubscribeFunc>[] {
@@ -132,6 +138,10 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
     if (this._refreshTimer) {
       clearTimeout(this._refreshTimer);
       this._refreshTimer = undefined;
+    }
+    if (this._checkTimer) {
+      clearTimeout(this._checkTimer);
+      this._checkTimer = undefined;
     }
   }
 
@@ -227,9 +237,21 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
   }
 
   private async _fetch(): Promise<void> {
+    if (this._checkTimer) {
+      clearTimeout(this._checkTimer);
+      this._checkTimer = undefined;
+    }
     try {
       const info = await fetchBackupPointerInfo(this.hass);
       this._info = info;
+      // The answer came before every place had listed its backups; the next
+      // request joins the listing still under way and reads its result.
+      if (stillChecking(info) && this.isConnected) {
+        this._checkTimer = setTimeout(() => {
+          this._checkTimer = undefined;
+          this._fetch();
+        }, CHECK_AGAIN_MS);
+      }
       if (info.pass) {
         this._pass = info.pass;
       }
@@ -528,6 +550,7 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
               : row.state === "missing"
                 ? mdiLinkVariantRemove
                 : row.state === "unknown" ||
+                    row.state === "checking" ||
                     row.pointer?.check_state === "unknown"
                   ? mdiLinkVariantOff
                   : mdiLinkVariant;
@@ -538,12 +561,14 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
                 ? this._t("row_missing")
                 : row.state === "unknown"
                   ? this._t("row_unreachable")
-                  : row.pointer?.check_state === "unknown"
-                    ? this._t("row_unknown")
-                    : this._t("row_pointer", {
-                        size: bytesToString(row.size, 0),
-                        here: bytesToString(row.pointer?.stored_size ?? 0, 0),
-                      });
+                  : row.state === "checking"
+                    ? this._t("row_checking")
+                    : row.pointer?.check_state === "unknown"
+                      ? this._t("row_unknown")
+                      : this._t("row_pointer", {
+                          size: bytesToString(row.size, 0),
+                          here: bytesToString(row.pointer?.stored_size ?? 0, 0),
+                        });
           const sizeText =
             row.state === "whole" ? ` · ${bytesToString(row.size, 0)}` : "";
           return html`

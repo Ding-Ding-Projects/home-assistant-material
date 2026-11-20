@@ -1,5 +1,6 @@
 import type { Connection } from "home-assistant-js-websocket";
 import { markFirstInstanceMerge } from "./first-merge";
+import { LOCAL_SETTINGS_CHANGED_EVENT } from "./local-change-event";
 import { ownerStillClaimed } from "./sync-owner";
 import { clampStamp, SYNC_MAX_BYTES, UserDataSync } from "./user-data-sync";
 import { SETTING_VALUE_MAX_CHARS, syncedRuleFor } from "./settings-registry";
@@ -555,6 +556,14 @@ export class SettingsBundleSync extends UserDataSync<SettingsBundle> {
     }
   };
 
+  // A change made through the interface, or the page going away, is recorded
+  // and sent at once: waiting for the next look and the debounce would let a
+  // reload, or another device, read the instance copy from before the change.
+  private _saveNow = () => {
+    this.checkNow();
+    this.flushNow();
+  };
+
   private _watchStart() {
     this._watchStarts++;
     if (this._watchStarts > 1) {
@@ -563,7 +572,8 @@ export class SettingsBundleSync extends UserDataSync<SettingsBundle> {
     // The starting point: what is stored now is not a change.
     recordLocalChanges(Date.now(), true);
     window.addEventListener("storage", this._onStorage);
-    window.addEventListener("pagehide", this.checkNow);
+    window.addEventListener("pagehide", this._saveNow);
+    window.addEventListener(LOCAL_SETTINGS_CHANGED_EVENT, this._saveNow);
     document.addEventListener("visibilitychange", this._onVisibility);
     // Some writers (direct property assignment) raise no event at all.
     this._interval = setInterval(() => {
@@ -575,7 +585,8 @@ export class SettingsBundleSync extends UserDataSync<SettingsBundle> {
 
   private _watchHalt() {
     window.removeEventListener("storage", this._onStorage);
-    window.removeEventListener("pagehide", this.checkNow);
+    window.removeEventListener("pagehide", this._saveNow);
+    window.removeEventListener(LOCAL_SETTINGS_CHANGED_EVENT, this._saveNow);
     document.removeEventListener("visibilitychange", this._onVisibility);
     clearInterval(this._interval);
     this._interval = undefined;
@@ -588,7 +599,8 @@ export class SettingsBundleSync extends UserDataSync<SettingsBundle> {
     }
     this.checkNow();
     window.removeEventListener("storage", this._onStorage);
-    window.removeEventListener("pagehide", this.checkNow);
+    window.removeEventListener("pagehide", this._saveNow);
+    window.removeEventListener(LOCAL_SETTINGS_CHANGED_EVENT, this._saveNow);
     document.removeEventListener("visibilitychange", this._onVisibility);
     clearInterval(this._interval);
     this._interval = undefined;

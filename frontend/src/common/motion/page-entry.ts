@@ -181,6 +181,20 @@ export const pageHeaderStyles = css`
     font-weight: 700;
     font-stretch: 100%;
   }
+  /* On a very narrow phone the room beside the buttons can be narrower than
+     one long word at 22 px ("Integrations" at 320 px). The title then shrinks
+     with the room it has, down to 16 px, so it wraps only at spaces and at
+     the separator; a word breaks only when it is wider than the whole line
+     even at the smallest size. */
+  :host([narrow]) .main-title {
+    container-type: inline-size;
+  }
+  @supports (font-size: 1cqi) {
+    :host([narrow]) .main-title .page-title,
+    :host([narrow]) .main-title h1.page-title {
+      font-size: clamp(16px, 14.5cqi, 22px);
+    }
+  }
   :host([narrow]) ha-icon-button-arrow-prev,
   :host([narrow]) ha-menu-button {
     width: 44px;

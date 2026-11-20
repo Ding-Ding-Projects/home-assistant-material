@@ -9,6 +9,7 @@ import {
   settingsBundleSync,
   validateSettingsData,
 } from "../../../src/common/instance-sync/settings-bundle";
+import { announceLocalSettingsChange } from "../../../src/common/instance-sync/local-change-event";
 import { startInstanceSync } from "../../../src/common/instance-sync/start-instance-sync";
 import {
   forgetClaimedOwner,
@@ -190,6 +191,24 @@ describe("the settings bundle sync", () => {
     );
     await vi.advanceTimersByTimeAsync(SETTLE * 2);
     expect(bundles()).toHaveLength(1);
+  });
+
+  // A choice such as the language mode must reach the account before a
+  // reload or another device reads it, not after the next periodic look.
+  it("sends a change announced by the interface at once", async () => {
+    const { conn, handlers, bundles } = makeConn();
+    stop = settingsBundleSync.start(conn as never);
+    handlers.settings_bundle({ value: null });
+    await vi.advanceTimersByTimeAsync(SETTLE);
+    expect(bundles()).toHaveLength(0);
+
+    window.localStorage.setItem("personalPreferences", '{"languageMode":"x"}');
+    announceLocalSettingsChange();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(bundles()).toHaveLength(1);
+    expect(bundles()[0].data.personalPreferences.v).toBe(
+      '{"languageMode":"x"}'
+    );
   });
 
   it("puts a newer instance value in use and tells the features", async () => {

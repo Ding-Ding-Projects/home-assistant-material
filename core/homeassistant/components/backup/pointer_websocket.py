@@ -1,13 +1,14 @@
 """Websocket commands for keeping only a pointer on this disk."""
 
 import asyncio
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any, Final
 
 import probatio
 
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.util.hass_dict import HassKey
 
 from .const import DATA_MANAGER, LOGGER
 from .models import AgentBackup, BackupManagerError, Folder
@@ -16,8 +17,29 @@ from .pointer import KEEP_WHOLE_CHOICES, PointerError, agent_backup_for
 if TYPE_CHECKING:
     from .manager import BackupManager
 
-# Seconds the page waits for the places to list their backups.
+# Seconds the full listing may take before a place counts as not reached.
 INFO_LIST_TIMEOUT: Final = 10.0
+# Seconds the page waits before it is answered with the backups on this system
+# alone; the agents on this system are bounded by the same limit.
+INFO_EARLY_TIMEOUT: Final = 2.0
+# Seconds a finished full listing that nobody read yet stays usable for the
+# page's follow-up request.
+INFO_RESULT_KEEP: Final = 30.0
+
+type _FullListing = tuple[dict[str, list[str]], list[str]] | None
+
+
+@dataclass(slots=True)
+class _PendingListing:
+    """A full listing an earlier answer did not wait for."""
+
+    task: asyncio.Task[_FullListing]
+    started: float
+
+
+DATA_PENDING_LISTING: HassKey[_PendingListing] = HassKey(
+    "backup_pointer_pending_listing"
+)
 
 
 @callback
@@ -51,12 +73,12 @@ async def _list_local_backups(
 ) -> tuple[dict[str, list[str]], list[dict[str, Any]]]:
     """Return the backups the agents on this system hold, with what a row shows.
 
-    The agents are asked together and only for the short limit, so a slow
-    disk never holds the page longer than the full list may.
+    The agents are asked together and only for the early limit, so the page
+    gets these rows within it whatever the places elsewhere do.
     """
     agent_ids = list(manager.pointers.local_agent_ids())
     try:
-        async with asyncio.timeout(INFO_LIST_TIMEOUT):
+        async with asyncio.timeout(INFO_EARLY_TIMEOUT):
             results = await asyncio.gather(
                 *(_list_one_local_agent(manager, agent_id) for agent_id in agent_ids)
             )
@@ -83,9 +105,7 @@ async def _list_local_backups(
     return by_backup, local
 
 
-async def _list_all_backups(
-    manager: BackupManager,
-) -> tuple[dict[str, list[str]], list[str]] | None:
+async def _list_all_backups(manager: BackupManager) -> _FullListing:
     """Return which agents list each backup and the agents that did not answer.
 
     None when the full list did not arrive within the short limit.
@@ -106,35 +126,70 @@ async def _list_all_backups(
     )
 
 
-async def _list_agents_by_backup(
-    manager: BackupManager,
-) -> tuple[dict[str, list[str]], list[str], list[dict[str, Any]]]:
-    """Return which agents list each backup, the agents that did not answer,
-    and the backups held on this system with their name, date and size.
+def _full_listing_task(
+    hass: HomeAssistant, manager: BackupManager
+) -> asyncio.Task[_FullListing]:
+    """Return the full listing an earlier answer left running, or start one.
 
-    A place that does not answer within a short time must not hold the page:
-    the backups on this system are then listed alone and every pointer place
-    is reported as not reached, so its pointers read as unknown, not missing.
-    The full list and the list on this system are asked for together, so both
-    stay within the same short limit.
+    The page asks again after an answer that was still checking; joining the
+    listing already under way keeps that follow-up from starting over.
     """
-    full, (local_by_backup, local) = await asyncio.gather(
-        _list_all_backups(manager), _list_local_backups(manager)
+    now = hass.loop.time()
+    pending = hass.data.get(DATA_PENDING_LISTING)
+    if pending is not None and (
+        not pending.task.done() or now - pending.started < INFO_RESULT_KEEP
+    ):
+        return pending.task
+    task = hass.async_create_background_task(
+        _list_all_backups(manager), "backup pointer full listing"
     )
-    if full is not None:
-        return full[0], full[1], local
-    unreachable = sorted(
+    hass.data[DATA_PENDING_LISTING] = _PendingListing(task, now)
+    return task
+
+
+async def _list_agents_by_backup(
+    hass: HomeAssistant, manager: BackupManager
+) -> tuple[dict[str, list[str]], list[str], list[str], list[dict[str, Any]]]:
+    """Return which agents list each backup, the agents that did not answer,
+    the agents still being asked, and the backups held on this system with
+    their name, date and size.
+
+    The page is answered within the early limit. When the full list is not in
+    by then, the backups on this system are listed alone and every pointer
+    place is reported as still being checked: the full listing keeps going
+    for its own limit, and the page's next request reads its result. Only a
+    place that failed, or did not answer within the full limit, is reported
+    as not reached.
+    """
+    started = hass.loop.time()
+    task = _full_listing_task(hass, manager)
+    local_by_backup, local = await _list_local_backups(manager)
+    remaining = max(0.0, INFO_EARLY_TIMEOUT - (hass.loop.time() - started))
+    if not task.done():
+        await asyncio.wait({task}, timeout=remaining)
+    pointer_ids = sorted(
         agent.agent_id for agent in manager.pointers.pointer_agents()
     )
-    return local_by_backup, unreachable, local
+    if not task.done():
+        return local_by_backup, [], pointer_ids, local
+    pending = hass.data.get(DATA_PENDING_LISTING)
+    if pending is not None and pending.task is task:
+        del hass.data[DATA_PENDING_LISTING]
+    full = task.result()
+    if full is not None:
+        return full[0], full[1], [], local
+    return local_by_backup, pointer_ids, [], local
 
 
 async def _info(hass: HomeAssistant) -> dict[str, Any]:
     manager = hass.data[DATA_MANAGER]
     pointers = manager.pointers
-    backups, unreachable, local_backups = await _list_agents_by_backup(manager)
+    backups, unreachable, checking, local_backups = await _list_agents_by_backup(
+        hass, manager
+    )
     return {
         "local_backups": local_backups,
+        "checking": checking,
         "readable": pointers.readable,
         "available": pointers.available,
         "settings": asdict(pointers.settings),

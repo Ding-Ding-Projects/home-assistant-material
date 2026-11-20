@@ -10,6 +10,7 @@ import {
   pointerRisk,
   pointerRows,
   rowsOnThisSystem,
+  stillChecking,
   transferPercent,
   type BackupPointer,
 } from "../../src/data/backup_pointer";
@@ -110,6 +111,20 @@ describe("pointerRows", () => {
     expect(rows[0].state).toBe("unknown");
     expect(canRestore(rows[0])).toBe(true);
     expect(rowsOnThisSystem(rows)).toHaveLength(1);
+  });
+
+  // A registry still being asked must never make a pointer read as missing.
+  it("calls an unlisted pointer checking while its registry is still asked", () => {
+    const rows = pointerRows([], {
+      pointers: { gone: pointer("gone", "2026-11-11T04:45:00Z") },
+      kept: {},
+      places,
+      checking: [REGISTRY],
+    });
+    expect(rows[0].state).toBe("checking");
+    expect(canRestore(rows[0])).toBe(true);
+    expect(stillChecking({ checking: [REGISTRY] })).toBe(true);
+    expect(stillChecking({})).toBe(false);
   });
 
   it("calls an unlisted pointer unknown when its registry is not loaded", () => {

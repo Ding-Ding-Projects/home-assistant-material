@@ -641,7 +641,92 @@ async def test_info_lists_local_backups_when_all_answer(
     info = (await client.receive_json())["result"]
 
     assert info["unreachable"] == []
+    assert info["checking"] == []
     assert [row["backup_id"] for row in info["local_backups"]] == [OLD_ID]
+
+
+@pytest.mark.usefixtures("patch_session")
+async def test_info_answers_early_while_a_registry_is_slow(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A slow registry is still being checked, not unreachable, and the next request reads its answer."""
+    manager, entry = await _setup_all(hass)
+    agent = _registry_agent(manager, entry)
+    await _add_backup(hass, manager, agent, OLD_ID)
+    await _add_backup(hass, manager, None, NEW_ID, year=2027)
+    await _enable(manager)
+    assert (await manager.pointers.async_run_pass())[OLD_ID] == "pointer"
+    client = await hass_ws_client(hass)
+    gate = asyncio.Event()
+    real_list = agent.async_list_backups
+    calls: list[int] = []
+
+    async def slow(**kwargs: Any) -> list[Any]:
+        calls.append(1)
+        await gate.wait()
+        return await real_list(**kwargs)
+
+    with (
+        patch.object(agent, "async_list_backups", slow),
+        patch(
+            "homeassistant.components.backup.pointer_websocket.INFO_EARLY_TIMEOUT",
+            0.05,
+        ),
+    ):
+        await client.send_json_auto_id({"type": "backup/pointer/info"})
+        early = (await client.receive_json())["result"]
+        gate.set()
+        await hass.async_block_till_done()
+        await client.send_json_auto_id({"type": "backup/pointer/info"})
+        late = (await client.receive_json())["result"]
+
+    assert early["checking"] == [agent.agent_id]
+    assert early["unreachable"] == []
+    assert [row["backup_id"] for row in early["local_backups"]] == [NEW_ID]
+    assert early["pointers"][OLD_ID]["restorable"] is True
+    assert early["summary"]["missing"] == 0
+    assert late["checking"] == []
+    assert late["unreachable"] == []
+    # The follow-up joined the listing already under way.
+    assert len(calls) == 1
+
+
+@pytest.mark.usefixtures("patch_session")
+async def test_info_reports_unreachable_once_the_full_limit_passed(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A registry still silent after the full limit is reported unreachable on the next request."""
+    manager, entry = await _setup_all(hass)
+    agent = _registry_agent(manager, entry)
+    await _add_backup(hass, manager, agent, OLD_ID)
+    await _enable(manager)
+    assert (await manager.pointers.async_run_pass())[OLD_ID] == "pointer"
+    client = await hass_ws_client(hass)
+
+    async def never(**kwargs: Any) -> list[Any]:
+        await asyncio.Event().wait()
+        return []
+
+    with (
+        patch.object(agent, "async_list_backups", never),
+        patch(
+            "homeassistant.components.backup.pointer_websocket.INFO_EARLY_TIMEOUT",
+            0.05,
+        ),
+        patch(
+            "homeassistant.components.backup.pointer_websocket.INFO_LIST_TIMEOUT",
+            0.2,
+        ),
+    ):
+        await client.send_json_auto_id({"type": "backup/pointer/info"})
+        early = (await client.receive_json())["result"]
+        await asyncio.sleep(0.3)
+        await client.send_json_auto_id({"type": "backup/pointer/info"})
+        late = (await client.receive_json())["result"]
+
+    assert (early["checking"], early["unreachable"]) == ([agent.agent_id], [])
+    assert (late["checking"], late["unreachable"]) == ([], [agent.agent_id])
+    assert late["pointers"][OLD_ID]["restorable"] is True
 
 
 async def _pointer_ready(hass: HomeAssistant) -> tuple[BackupManager, bytes]:

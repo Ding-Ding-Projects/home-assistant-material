@@ -510,7 +510,8 @@ export class HassTabsSubpage extends LitElement {
     if (!sectionKey?.endsWith(".main")) {
       return undefined;
     }
-    const text = this._i18n.localize(
+    // The same language mode as the title and breadcrumb above it.
+    const text = this._modeLocalize(
       `${sectionKey.slice(0, -".main".length)}.secondary` as LocalizeKeys
     );
     return text || undefined;

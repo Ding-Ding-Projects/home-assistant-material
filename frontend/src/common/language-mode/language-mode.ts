@@ -44,6 +44,7 @@ export const YUE_PREFIXES = [
   "ui.panel.config.devices.caption",
   "ui.panel.config.scene.caption",
   "ui.panel.config.script.caption",
+  "ui.panel.config.blueprint.caption",
   "ui.panel.config.areas.caption",
   "ui.panel.config.helpers.caption",
   "ui.panel.config.automation.caption",

@@ -327,6 +327,11 @@ export class UserDataSync<T> {
     this._schedule();
   }
 
+  /** Sends a change that is waiting for its debounce now. */
+  public flushNow(): void {
+    this._flush();
+  }
+
   /** Tries the last failed save again. */
   public retry(): void {
     if (!this._ownerOk()) {

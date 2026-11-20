@@ -5,9 +5,10 @@ import type { HomeAssistant } from "../../../types";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import type { DataTableColumnData } from "../../../components/data-table/ha-data-table";
 import { slugify } from "../../../common/string/slugify";
-import { relativeTime } from "../../../common/datetime/relative_time";
 import { formatShortDateTimeWithConditionalYear } from "../../../common/datetime/format_date_time";
 import { UNAVAILABLE, UNKNOWN } from "../../../data/entity/entity";
+// Follows the language mode, unlike a bare relativeTime() call.
+import "../../../components/ha-relative-time";
 import "../../../components/ha-tooltip";
 import "../../../components/ha-svg-icon";
 
@@ -176,7 +177,9 @@ export const renderRelativeTimeColumn = (
         ? formattedTime
         : html`
             <ha-tooltip for=${elementId}>${formattedTime}</ha-tooltip>
-            <span id=${elementId}>${relativeTime(date, hass.locale)}</span>
+            <span id=${elementId}
+              ><ha-relative-time .datetime=${date}></ha-relative-time
+            ></span>
           `
     }
   `;
