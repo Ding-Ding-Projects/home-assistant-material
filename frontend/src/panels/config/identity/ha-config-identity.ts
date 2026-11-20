@@ -250,9 +250,10 @@ class HaConfigIdentity extends LitElement {
         .narrow=${this.narrow}
         back-path="/config/personal"
         .header=${this._l("caption")}
-        .breadcrumb=${`${this.hass.localize("panel.config")}, ${this.hass.localize(
-          "ui.panel.config.personal.caption"
-        )}`}
+        .breadcrumb=${this._lang.list(this.hass.localize, [
+          "panel.config",
+          "ui.panel.config.personal.caption",
+        ])}
       >
         <div class="content">
           <p class="intro">${this._l("intro")}</p>

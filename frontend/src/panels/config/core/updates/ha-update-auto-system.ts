@@ -19,6 +19,7 @@ import {
   AUTO_SYSTEM_PARTS,
   autoSystemFailures,
   autoSystemLastResult,
+  autoSystemOsUnmanaged,
   autoSystemPending,
   autoSystemSupervisorSelfUpdate,
   autoWindowMinutes,
@@ -110,18 +111,24 @@ export class HaUpdateAutoSystem extends LitElement {
   }
 
   private _renderPart(part: AutoSystemPartName): TemplateResult {
+    // Without a managed operating system there is nothing to turn on. A switch
+    // that is on stays usable, so it can still be turned off.
+    const unmanaged =
+      part === "os" &&
+      autoSystemOsUnmanaged(this.system) &&
+      !this.system.enabled[part];
+    const help = this._t(
+      unmanaged ? "auto_system_os_unmanaged" : `auto_system_${part}_help`
+    );
     return html`
       <div class="row">
         <span class="text">
           <span class="name">${this._partName(part)}</span>
-          <span
-            class="sub one-line"
-            title=${this._t(`auto_system_${part}_help`)}
-            >${this._t(`auto_system_${part}_help`)}</span
-          >
+          <span class="sub one-line" title=${help}>${help}</span>
         </span>
         <ha-switch
           .systemPart=${part}
+          .disabled=${unmanaged}
           .checked=${this.system.enabled[part]}
           haptic
           @change=${this._togglePart}

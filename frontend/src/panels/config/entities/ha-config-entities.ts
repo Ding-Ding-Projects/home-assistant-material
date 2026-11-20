@@ -197,6 +197,20 @@ export class HaConfigEntities extends LitElement {
     return this._lang.cachedLocalizer(this.hass.localize);
   }
 
+  /** How many entities are shown, then the tagline. */
+  // Built once per language, so each sentence uses its own punctuation.
+  private _summary(count: number): string {
+    return this._lang.compose(this.hass.localize, (part) => {
+      const countText = part("ui.panel.config.entities.picker.summary", {
+        number: count,
+      });
+      const tagline = part("ui.panel.config.entities.picker.tagline");
+      return part.cantonese
+        ? `${countText}。${tagline}`
+        : `${countText}. ${tagline}`;
+    });
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
@@ -988,10 +1002,7 @@ export class HaConfigEntities extends LitElement {
           "ui.panel.config.entities.picker.search",
           { number: filteredEntities.length }
         )}
-        .summary=${`${this._modeLocalize(
-          "ui.panel.config.entities.picker.summary",
-          { number: filteredEntities.length }
-        )}. ${this._modeLocalize("ui.panel.config.entities.picker.tagline")}`}
+        .summary=${this._summary(filteredEntities.length)}
         .statistics=${withFilterKeys(
           buildListStatistics(this._modeLocalize, {
             total: this._entities.length + this._entitiesWithoutUniqueId.length,

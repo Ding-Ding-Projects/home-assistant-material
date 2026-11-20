@@ -14,11 +14,18 @@ import type {
   HassEntities,
   UnsubscribeFunc,
 } from "home-assistant-js-websocket";
+import { STATE_RUNNING } from "home-assistant-js-websocket";
 import type { TemplateResult, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { ifDefined } from "lit/directives/if-defined";
 import memoizeOne from "memoize-one";
+import {
+  probeLoadedBuild,
+  reloadFresh,
+} from "../../../util/recover-stale-build";
+import { getTopOpenDialogTag } from "../../../dialogs/make-dialog-manager";
+import { deepActiveElement } from "../../../common/dom/deep-active-element";
 import { searchCountText } from "../../../components/ha-top-bar-search";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { fireEvent } from "../../../common/dom/fire_event";
@@ -134,6 +141,11 @@ import {
   pageShowsSpinner,
   RetryingLoad,
 } from "./updates/update-page-loading";
+import {
+  DISCONNECT_NOTICE_MS,
+  focusIsEditing,
+  UpdatePageRecovery,
+} from "./updates/update-page-recovery";
 
 type Localizer = HomeAssistant["localize"];
 
@@ -195,6 +207,28 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       }
     }
   );
+
+  // After a restart of Home Assistant the page checks once whether the server
+  // still serves the build it runs, reloads itself once when it does not, and
+  // offers a reload when the connection stays away.
+  private _recovery = new UpdatePageRecovery({
+    probe: probeLoadedBuild,
+    busy: () =>
+      !!window.isDirtyState ||
+      getTopOpenDialogTag() !== undefined ||
+      focusIsEditing(deepActiveElement()),
+    reload: reloadFresh,
+    changed: () => this.requestUpdate(),
+    storage: (() => {
+      try {
+        return window.sessionStorage;
+      } catch (_err) {
+        return undefined;
+      }
+    })(),
+  });
+
+  private _noticeTimer?: ReturnType<typeof setTimeout>;
 
   private _lang = new LanguageModeController(this);
 
@@ -279,7 +313,46 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       if (old && old.connected === false && this.hass.connected !== false) {
         this._supervisorLoad.retryNow();
       }
+      this._updateRecovery();
     }
+  }
+
+  private _updateRecovery(): void {
+    const connected = this.hass.connected !== false;
+    this._recovery.update({
+      connected,
+      running: this.hass.config?.state === STATE_RUNNING,
+    });
+    if (connected) {
+      clearTimeout(this._noticeTimer);
+      this._noticeTimer = undefined;
+    } else if (this._noticeTimer === undefined) {
+      // Nothing else changes while the connection is away: show the notice
+      // when it is due.
+      this._noticeTimer = setTimeout(() => {
+        this._noticeTimer = undefined;
+        this.requestUpdate();
+      }, DISCONNECT_NOTICE_MS + 100);
+    }
+  }
+
+  private _reloadPage(): void {
+    location.reload();
+  }
+
+  private _renderRecoveryNotice() {
+    if (!this._recovery.noticeDue()) {
+      return nothing;
+    }
+    const key = this._recovery.newerBuild
+      ? "recovery.newer_build"
+      : "recovery.disconnected";
+    return html`<ha-alert alert-type="warning" class="recovery">
+      ${this._ui(key)}
+      <ha-button slot="action" @click=${this._reloadPage}>
+        ${this._ui("recovery.reload")}
+      </ha-button>
+    </ha-alert>`;
   }
 
   private _installingIds?: Set<string>;
@@ -323,6 +396,8 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     this._supervisorLoad.stop();
     clearTimeout(this._backupWaitTimer);
     this._backupWaitTimer = undefined;
+    clearTimeout(this._noticeTimer);
+    this._noticeTimer = undefined;
   }
 
   protected hassSubscribe(): Promise<UnsubscribeFunc>[] {
@@ -505,6 +580,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
             }
           </ha-dropdown>
         </div>
+        ${this._renderRecoveryNotice()}
         ${
           this._backupStateLoading()
             ? html`
@@ -1744,6 +1820,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         flex-direction: column;
         gap: var(--ha-space-4);
       }
+      :host([narrow]) ha-alert.recovery {
+        padding: var(--ha-space-2) var(--ha-space-3) 0;
+      }
       /* The last line of the page stays above the floating phone bar. */
       :host([narrow]) .page {
         padding: var(--ha-space-2) var(--ha-space-3)
@@ -1759,6 +1838,12 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       }
       ha-alert {
         display: block;
+      }
+      ha-alert.recovery {
+        box-sizing: border-box;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: var(--ha-space-4) var(--ha-space-8) 0;
       }
       .page-head {
         display: flex;

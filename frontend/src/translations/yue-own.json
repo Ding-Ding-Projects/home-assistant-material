@@ -2928,6 +2928,12 @@
           "auto_system_supervisor_help": "會重新啟動 Supervisor。",
           "auto_system_os": "作業系統",
           "auto_system_os_help": "會重新啟動成部裝置。",
+          "auto_system_os_unmanaged": "呢部機冇受管理嘅作業系統可以更新。",
+          "recovery": {
+            "disconnected": "同 Home Assistant 嘅連線仲未恢復。重新載入頁面就會見到最新狀態。",
+            "newer_build": "Home Assistant 而家用緊呢個頁面嘅新版本。重新載入頁面就會見到最新狀態。",
+            "reload": "重新載入"
+          },
           "auto_system_confirm_title": "自動更新 {name}？",
           "auto_system_confirm_text": "更新時你嘅屋企會自己重新啟動，自動化會暫停幾分鐘。",
           "auto_system_confirm_text_os": "更新時你嘅屋企會自己重新啟動，自動化會暫停幾分鐘，成部裝置都會重新啟動。",

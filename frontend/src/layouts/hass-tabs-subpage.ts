@@ -491,11 +491,17 @@ export class HassTabsSubpage extends LitElement {
     }
     const localize = this._modeLocalize;
     const sectionKey = sectionResolver?.(this.tabs);
-    const parts = [
-      localize("panel.config"),
-      sectionKey ? localize(sectionKey as LocalizeKeys) : undefined,
-    ].filter((part): part is string => !!part && part !== title);
-    return parts.length ? parts.join(", ") : undefined;
+    const keys = ["panel.config", sectionKey].filter((key): key is string => {
+      if (!key) {
+        return false;
+      }
+      const text = localize(key as LocalizeKeys);
+      return !!text && text !== title;
+    });
+    // Each language uses its own separator.
+    return keys.length
+      ? this._lang.list(this._i18n.localize, keys) || undefined
+      : undefined;
   }
 
   /** The line under the title: the given one, or the description of the Settings section. */

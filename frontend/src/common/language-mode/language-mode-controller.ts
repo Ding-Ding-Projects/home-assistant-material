@@ -76,6 +76,19 @@ export class LanguageModeController implements ReactiveController {
     return composeForMode(localize, build, this._mode, separator);
   }
 
+  /**
+   * Several strings in a row, such as the parts of a breadcrumb, each
+   * language joined with its own separator. Empty strings are left out.
+   */
+  public list(localize: Localize, keys: string[]): string {
+    return this.compose(localize, (part) =>
+      keys
+        .map((key) => part(key))
+        .filter((text) => !!text)
+        .join(part.cantonese ? "，" : ", ")
+    );
+  }
+
   /** A localize function whose strings follow the mode, for markup that already calls one. */
   public localizer(localize: Localize): Localize {
     return (key, values) => modeText(localize, key, values, this._mode);

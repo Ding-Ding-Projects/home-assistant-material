@@ -161,6 +161,27 @@ const probeChunk = async (url: string): Promise<ChunkVerdict> => {
   }
 };
 
+/**
+ * Asks the server whether the build this page runs is still the one it
+ * serves, by probing one hashed file the page already loaded. "gone" means the
+ * server now serves another build; "unknown" covers no hashed file to probe
+ * (development builds), no answer and server errors. Only ever a HEAD request
+ * to this page's own origin.
+ */
+export const probeLoadedBuild = async (): Promise<{
+  verdict: ChunkVerdict;
+  url?: string;
+}> => {
+  if (__DEV__ || __DEMO__) {
+    return { verdict: "unknown" };
+  }
+  const url = referenceUrl();
+  if (!url) {
+    return { verdict: "unknown" };
+  }
+  return { verdict: await probeChunk(url), url };
+};
+
 const dropCachesAndReload = async (bust: number): Promise<void> => {
   // A service worker serves chunks CacheFirst (with `ignoreSearch`), so a
   // cache-busting navigation alone would still be answered from the stale

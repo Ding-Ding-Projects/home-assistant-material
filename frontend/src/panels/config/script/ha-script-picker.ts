@@ -169,6 +169,20 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
     return this._lang.cachedLocalizer(this.hass.localize);
   }
 
+  /** How many scripts are shown, then what scripts are for. */
+  // Built once per language, so each sentence uses its own punctuation.
+  private _summary(count: number): string {
+    return this._lang.compose(this.hass.localize, (part) => {
+      const countText = part("ui.panel.config.script.picker.summary", {
+        number: count,
+      });
+      const description = part("ui.panel.config.script.picker.description");
+      return part.cantonese
+        ? `${countText}。${description}`
+        : `${countText}. ${description}`;
+    });
+  }
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public scripts!: ScriptEntity[];
@@ -521,10 +535,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
           "ui.panel.config.script.picker.search",
           { number: scripts.length }
         )}
-        .summary=${`${this._modeLocalize(
-          "ui.panel.config.script.picker.summary",
-          { number: scripts.length }
-        )}. ${this._modeLocalize("ui.panel.config.script.picker.description")}`}
+        .summary=${this._summary(scripts.length)}
         .statistics=${withFilterKeys(
           buildListStatistics(this._modeLocalize, {
             total: this.scripts.length,

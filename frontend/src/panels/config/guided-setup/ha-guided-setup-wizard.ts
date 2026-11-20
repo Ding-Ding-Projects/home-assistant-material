@@ -266,6 +266,18 @@ export class HaGuidedSetupWizard extends LitElement {
     return this._l(message.key, message.params);
   }
 
+  /** Whether a field is required, then how to fill it in. */
+  // Built once per language, so each sentence uses its own punctuation.
+  private _fieldDescription(leaf: LeafField): string {
+    const hint = fieldHint(leaf);
+    return this._lang.compose(this.hass.localize, (part) => {
+      const prefix = "ui.panel.config.guided_setup.";
+      const need = part(`${prefix}${leaf.required ? "required" : "optional"}`);
+      const how = part(`${prefix}${hint.key}`, hint.params);
+      return part.cantonese ? `${need}。${how}` : `${need}. ${how}`;
+    });
+  }
+
   /** The things that can be added: an entity domain, or null for settings. */
   private _targets(): (string | null)[] {
     const targets: (string | null)[] = [...this.integration.entity_domains];
@@ -1087,7 +1099,7 @@ export class HaGuidedSetupWizard extends LitElement {
               <ha-setting-info
                 .hass=${this.hass}
                 .label=${this._labelOf(leaf)}
-                .description=${`${this._l(leaf.required ? "required" : "optional")}. ${this._msg(fieldHint(leaf))}`}
+                .description=${this._fieldDescription(leaf)}
                 .defaultText=${defaultText(leaf.default, leaf.secret) ?? ""}
                 .reach=${modeText(
                   this.hass.localize as any,

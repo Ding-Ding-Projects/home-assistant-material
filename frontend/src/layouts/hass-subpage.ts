@@ -19,6 +19,7 @@ import { LanguageModeController } from "../common/language-mode/language-mode-co
 import { renderBilingualTitle } from "../common/language-mode/stacked-label";
 import { PageLockController } from "../common/locks/page-lock-controller";
 import { getHistoryState } from "../common/navigate";
+import type { LocalizeKeys } from "../common/translations/localize";
 import { sanitizeNavigationPath } from "../common/url/sanitize-navigation-path";
 import { handleBackClick } from "./back-navigation";
 import "../components/ha-icon-button-arrow-prev";
@@ -303,13 +304,22 @@ class HassSubpage extends LitElement {
     }
     // The same language mode as the page title under it.
     const localize = this._lang.cachedLocalizer(this._i18n.localize);
-    const parts = [
-      localize("panel.config"),
+    const keys = [
+      "panel.config",
       backPath.startsWith("/config/system")
-        ? localize("ui.panel.config.dashboard.system.main")
+        ? "ui.panel.config.dashboard.system.main"
         : undefined,
-    ].filter((part) => part && part !== this.header);
-    return parts.length ? parts.join(", ") : undefined;
+    ].filter((key): key is string => {
+      if (!key) {
+        return false;
+      }
+      const text = localize(key as LocalizeKeys);
+      return !!text && text !== this.header;
+    });
+    // Each language uses its own separator.
+    return keys.length
+      ? this._lang.list(this._i18n.localize, keys) || undefined
+      : undefined;
   }
 
   private _fabChanged(ev: Event): void {

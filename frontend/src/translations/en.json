@@ -8767,6 +8767,12 @@
           "auto_system_supervisor_help": "Restarts the Supervisor.",
           "auto_system_os": "The operating system",
           "auto_system_os_help": "Restarts the whole device.",
+          "auto_system_os_unmanaged": "This system has no managed operating system to update.",
+          "recovery": {
+            "disconnected": "The connection to Home Assistant has not come back yet. Reload the page to see the latest state.",
+            "newer_build": "Home Assistant now serves a newer version of this page. Reload the page to see the latest state.",
+            "reload": "Reload"
+          },
           "auto_system_confirm_title": "Update {name} automatically?",
           "auto_system_confirm_text": "Your home restarts by itself when this updates, and automations pause for a few minutes.",
           "auto_system_confirm_text_os": "Your home restarts by itself when this updates, automations pause for a few minutes, and the whole device restarts.",

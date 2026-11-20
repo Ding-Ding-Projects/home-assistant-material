@@ -64,6 +64,16 @@ export interface AutoSystemPart {
   self_update?: boolean | null;
 }
 
+/**
+ * Whether the operating system has nothing to update automatically: there is
+ * no operating system update with an installed version, as on a system
+ * without a managed operating system.
+ */
+export const autoSystemOsUnmanaged = (system: AutoSystemInfo): boolean => {
+  const os = system.parts.find((part) => part.part === "os");
+  return !os || !os.available || !os.installed_version;
+};
+
 /** Whether the Supervisor still updates itself outside the owner's switches. */
 export const autoSystemSupervisorSelfUpdate = (
   system: AutoSystemInfo
