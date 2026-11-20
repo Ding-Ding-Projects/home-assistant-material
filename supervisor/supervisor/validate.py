@@ -194,7 +194,9 @@ SCHEMA_UPDATER_CONFIG = vol.Schema(
             extra=vol.REMOVE_EXTRA,
         ),
         vol.Optional(ATTR_OTA): vol.Url(),
-        vol.Optional(ATTR_AUTO_UPDATE, default=True): bool,
+        # Off: the Supervisor never updates itself. Home Assistant installs it
+        # only when the owner presses Update or turns on its automatic switch.
+        vol.Optional(ATTR_AUTO_UPDATE, default=False): bool,
     },
     extra=vol.REMOVE_EXTRA,
 )

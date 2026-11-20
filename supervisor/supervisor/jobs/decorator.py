@@ -549,11 +549,9 @@ class Job(CoreSysAttributes):
                 if plugin.need_update
             ]
         ):
-            if not coresys.sys_updater.auto_update:
-                raise JobConditionException(
-                    f"'{method_name}' blocked from execution, plugin(s) {', '.join(plugin.slug for plugin in out_of_date)} are not up to date and auto-update is disabled"
-                )
-
+            # The job was started on purpose (an update the owner asked for), so
+            # its plugins are brought up to date as part of it even while
+            # automatic updates are off; refusing would block every install.
             errors = await asyncio.gather(
                 *[plugin.update() for plugin in out_of_date], return_exceptions=True
             )

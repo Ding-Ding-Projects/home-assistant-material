@@ -29,6 +29,7 @@ from aiohasupervisor.models import (
     RootInfo,
     StoreInfo,
     SupervisorInfo,
+    SupervisorOptions,
     SupervisorStats,
     UnhealthyReason,
     UnsupportedReason,
@@ -1652,9 +1653,35 @@ class HassioMainDataUpdateCoordinator(DataUpdateCoordinator[HassioMainData]):
         self.dev_reg = dev_reg
         self.is_hass_os = False
         self.supervisor_client = get_supervisor_client(hass)
+        # Whether the Supervisor is known not to update itself
+        self._supervisor_self_update_off = False
         self._dispatcher_disconnect = async_dispatcher_connect(
             hass, EVENT_SUPERVISOR_EVENT, self._supervisor_event
         )
+
+    async def _async_turn_off_supervisor_self_update(self) -> bool:
+        """Stop the Supervisor updating itself; return whether it is off.
+
+        The Supervisor is installed only through its update entity: when the
+        owner presses Update, or by the owner's automatic switch inside the
+        update window. Its own flag would also install it on any check for
+        updates, so it stays off. A failure is retried on the next refresh.
+        """
+        if self._supervisor_self_update_off:
+            return True
+        try:
+            await self.supervisor_client.supervisor.set_options(
+                SupervisorOptions(auto_update=False)
+            )
+        except SupervisorError as err:
+            _LOGGER.warning(
+                "Could not stop the Supervisor updating itself, trying again on "
+                "the next refresh: %s",
+                err,
+            )
+            return False
+        self._supervisor_self_update_off = True
+        return True
 
     @callback
     def _supervisor_event(self, event: dict[str, Any]) -> None:
@@ -1729,6 +1756,14 @@ class HassioMainDataUpdateCoordinator(DataUpdateCoordinator[HassioMainData]):
             mounts_info = await client.mounts.info()
         except SupervisorError as err:
             raise UpdateFailed(f"Error on Supervisor API: {err}") from err
+
+        if supervisor_info.auto_update:
+            # Set again from outside, or never pushed on an older install
+            self._supervisor_self_update_off = False
+            if await self._async_turn_off_supervisor_self_update():
+                supervisor_info = replace(supervisor_info, auto_update=False)
+        else:
+            self._supervisor_self_update_off = True
 
         # Build clean coordinator data
         self.is_hass_os = info.hassos is not None
@@ -1812,10 +1847,14 @@ class HassioMainDataUpdateCoordinator(DataUpdateCoordinator[HassioMainData]):
             # startup or cause a timeout so we only refresh the
             # updates if this is not a scheduled refresh and
             # we are not doing the first refresh.
-            try:
-                await self.supervisor_client.reload_updates()
-            except SupervisorError as err:
-                _LOGGER.warning("Error on Supervisor API: %s", err)
+            #
+            # A reload lets the Supervisor update itself when its own flag is
+            # on, so a check for updates only looks once that flag is off.
+            if await self._async_turn_off_supervisor_self_update():
+                try:
+                    await self.supervisor_client.reload_updates()
+                except SupervisorError as err:
+                    _LOGGER.warning("Error on Supervisor API: %s", err)
 
         await super()._async_refresh(
             log_failures, raise_on_auth_failed, scheduled, raise_on_entry_error

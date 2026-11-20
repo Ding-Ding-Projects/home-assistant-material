@@ -102,6 +102,7 @@ export interface SupervisorOptions {
   channel?: "beta" | "dev" | "stable";
   diagnostics?: boolean;
   addons_repositories?: string[];
+  auto_update?: boolean;
 }
 
 export const reloadSupervisor = async (hass: HomeAssistant) => {

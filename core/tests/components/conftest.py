@@ -647,7 +647,8 @@ def supervisor_info_fixture(supervisor_client: AsyncMock) -> AsyncMock:
         debug=False,
         debug_block=False,
         diagnostics=None,
-        auto_update=True,
+        # Home Assistant keeps the Supervisor's own updating off
+        auto_update=False,
         country=None,
         detect_blocking_io=False,
         feature_flags={},

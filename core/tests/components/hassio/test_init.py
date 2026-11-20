@@ -1327,6 +1327,65 @@ async def test_coordinator_updates(
     assert "Error on Supervisor API: Unknown" in caplog.text
 
 
+@pytest.mark.usefixtures("addon_installed")
+async def test_coordinator_turns_off_supervisor_self_update(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+    supervisor_client: AsyncMock,
+    supervisor_info: AsyncMock,
+) -> None:
+    """Test a check for updates only looks until the Supervisor stops updating itself."""
+    supervisor_info.return_value = replace(
+        supervisor_info.return_value, auto_update=True
+    )
+    refused = True
+
+    async def set_options(options: SupervisorOptions) -> None:
+        if options.auto_update is False and refused:
+            raise SupervisorError("refused")
+
+    supervisor_client.supervisor.set_options.side_effect = set_options
+    await async_setup_component(hass, HOMEASSISTANT_DOMAIN, {})
+    with patch.dict(os.environ, MOCK_ENVIRON):
+        config_entry = MockConfigEntry(domain=DOMAIN, data={}, unique_id=DOMAIN)
+        config_entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(config_entry.entry_id)
+        await hass.async_block_till_done()
+
+    # Setup tried to turn it off and failed
+    supervisor_client.supervisor.set_options.assert_any_call(
+        SupervisorOptions(auto_update=False)
+    )
+    assert "Could not stop the Supervisor updating itself" in caplog.text
+
+    # While it may still update itself, a check for updates does not reload
+    await hass.services.async_call(
+        HOMEASSISTANT_DOMAIN,
+        SERVICE_UPDATE_ENTITY,
+        {"entity_id": ["update.home_assistant_supervisor_update"]},
+        blocking=True,
+    )
+    async_fire_time_changed(
+        hass, dt_util.now() + timedelta(seconds=REQUEST_REFRESH_DELAY)
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+    supervisor_client.reload_updates.assert_not_called()
+
+    # Once it is turned off, the check reloads the update information
+    refused = False
+    await hass.services.async_call(
+        HOMEASSISTANT_DOMAIN,
+        SERVICE_UPDATE_ENTITY,
+        {"entity_id": ["update.home_assistant_supervisor_update"]},
+        blocking=True,
+    )
+    async_fire_time_changed(
+        hass, dt_util.now() + timedelta(seconds=REQUEST_REFRESH_DELAY)
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+    supervisor_client.reload_updates.assert_called_once()
+
+
 @pytest.mark.usefixtures("entity_registry_enabled_by_default", "addon_installed")
 async def test_coordinator_updates_stats_entities_enabled(
     hass: HomeAssistant,

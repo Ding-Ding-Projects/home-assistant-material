@@ -59,7 +59,18 @@ export interface AutoSystemPart {
   eligible_at: string | null;
   failed: AutoSystemFailure | null;
   last_result: AutoUpdateResult | null;
+  // The Supervisor's own flag, which installs it outside these switches;
+  // null when unknown or not the Supervisor. Missing on an older server.
+  self_update?: boolean | null;
 }
+
+/** Whether the Supervisor still updates itself outside the owner's switches. */
+export const autoSystemSupervisorSelfUpdate = (
+  system: AutoSystemInfo
+): boolean =>
+  system.parts.some(
+    (part) => part.part === "supervisor" && part.self_update === true
+  );
 
 export interface AutoSystemInfo {
   enabled: Record<AutoSystemPartName, boolean>;

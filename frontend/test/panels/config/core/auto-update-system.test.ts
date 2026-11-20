@@ -7,6 +7,7 @@ import {
   autoSystemFailures,
   autoSystemLastResult,
   autoSystemPending,
+  autoSystemSupervisorSelfUpdate,
   autoWaitDaysLeft,
   autoWindowMinutes,
   autoWindowSummary,
@@ -145,5 +146,29 @@ describe("autoSystemLastResult and autoSystemFailures", () => {
       result: fresh,
     });
     expect(autoSystemFailures(info).map((item) => item.part)).toEqual(["core"]);
+  });
+});
+
+describe("autoSystemSupervisorSelfUpdate", () => {
+  it("warns only when the Supervisor reports updating itself", () => {
+    expect(
+      autoSystemSupervisorSelfUpdate(
+        system([part({ part: "supervisor", self_update: true })])
+      )
+    ).toBe(true);
+    expect(
+      autoSystemSupervisorSelfUpdate(
+        system([part({ part: "supervisor", self_update: false })])
+      )
+    ).toBe(false);
+    // An older server does not say; that is no reason to warn
+    expect(
+      autoSystemSupervisorSelfUpdate(system([part({ part: "supervisor" })]))
+    ).toBe(false);
+    expect(
+      autoSystemSupervisorSelfUpdate(
+        system([part({ part: "core", self_update: true })])
+      )
+    ).toBe(false);
   });
 });

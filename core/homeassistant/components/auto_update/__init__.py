@@ -21,6 +21,7 @@ import probatio
 
 from homeassistant.components import websocket_api
 from homeassistant.components.update import (
+    ATTR_AUTO_UPDATE,
     ATTR_IN_PROGRESS,
     ATTR_SKIPPED_VERSION,
     DOMAIN as UPDATE_DOMAIN,
@@ -298,6 +299,11 @@ class AutoUpdateManager:
     @callback
     def _changed(self) -> None:
         self._save()
+        self.async_notify()
+
+    @callback
+    def async_notify(self) -> None:
+        """Tell the listeners the picture changed, without saving anything."""
         for listener in list(self._listeners):
             listener()
 
@@ -548,6 +554,14 @@ class AutoUpdateManager:
                         else None
                     ),
                     "last_result": result,
+                    # The Supervisor's own flag, which would install it outside
+                    # these switches; Home Assistant keeps it off. None when
+                    # unknown or not the Supervisor.
+                    "self_update": (
+                        attrs.get(ATTR_AUTO_UPDATE)
+                        if part == "supervisor" and state is not None
+                        else None
+                    ),
                 }
             )
         return {
@@ -652,8 +666,6 @@ class AutoUpdateManager:
             or self.attempts.get(entity_id) == latest
         ):
             return None
-        if forced:
-            return state
         if forced:
             return state
         eligible = self._eligible_at(entity_id, latest)
@@ -866,6 +878,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     @callback
     def _on_state_changed(event: Event[EventStateChangedData]) -> None:
         new_state = event.data["new_state"]
+        if event.data["entity_id"] in SYSTEM_PARTS.values():
+            # The page shows these versions and the Supervisor's own flag
+            manager.async_notify()
         if new_state is not None and new_state.state == STATE_ON:
             manager.async_schedule()
 

@@ -20,6 +20,7 @@ import {
   autoSystemFailures,
   autoSystemLastResult,
   autoSystemPending,
+  autoSystemSupervisorSelfUpdate,
   autoWindowMinutes,
   autoWindowSummary,
   formatAutoUpdateDateTime,
@@ -29,6 +30,7 @@ import {
   setAutoUpdateSystemWindow,
 } from "../../../../data/auto-update";
 import { extractApiErrorMessage } from "../../../../data/hassio/common";
+import { setSupervisorOption } from "../../../../data/hassio/supervisor";
 import { TimeFormat } from "../../../../data/translation";
 import { showConfirmationDialog } from "../../../../dialogs/generic/show-dialog-box";
 import { haStyle } from "../../../../resources/styles";
@@ -53,6 +55,8 @@ export class HaUpdateAutoSystem extends LitElement {
   @state() private _start?: string;
 
   @state() private _end?: string;
+
+  @state() private _turningOff = false;
 
   private _lang = new LanguageModeController(this);
 
@@ -85,6 +89,26 @@ export class HaUpdateAutoSystem extends LitElement {
     `;
   }
 
+  private _renderSelfUpdate(): TemplateResult | typeof nothing {
+    if (!autoSystemSupervisorSelfUpdate(this.system)) {
+      return nothing;
+    }
+    return html`
+      <div class="self-update" role="alert">
+        <span class="sub warning"
+          >${this._t("auto_system_supervisor_self_update")}</span
+        >
+        <ha-button
+          appearance="plain"
+          size="s"
+          .disabled=${this._turningOff}
+          @click=${this._turnOffSelfUpdate}
+          >${this._t("auto_system_supervisor_self_update_off")}</ha-button
+        >
+      </div>
+    `;
+  }
+
   private _renderPart(part: AutoSystemPartName): TemplateResult {
     return html`
       <div class="row">
@@ -104,6 +128,7 @@ export class HaUpdateAutoSystem extends LitElement {
           aria-label=${this._partName(part)}
         ></ha-switch>
       </div>
+      ${part === "supervisor" ? this._renderSelfUpdate() : nothing}
     `;
   }
 
@@ -338,6 +363,26 @@ export class HaUpdateAutoSystem extends LitElement {
     await this._save(() => setAutoUpdateSystem(this.hass, part, enabled));
   }
 
+  // Turning the Supervisor's own updating off is always safe, so it needs
+  // no confirmation. The warning goes once the Supervisor reports it off.
+  private async _turnOffSelfUpdate(): Promise<void> {
+    const entry = this.system.parts.find((item) => item.part === "supervisor");
+    this._turningOff = true;
+    try {
+      await this._save(async () => {
+        await setSupervisorOption(this.hass, { auto_update: false });
+        if (entry) {
+          // Read the Supervisor again so the page shows the new setting.
+          await this.hass.callService("homeassistant", "update_entity", {
+            entity_id: entry.entity_id,
+          });
+        }
+      });
+    } finally {
+      this._turningOff = false;
+    }
+  }
+
   private _startChanged(ev: ValueChangedEvent<string | undefined>): void {
     this._windowChanged(ev.detail.value?.slice(0, 5), undefined);
   }
@@ -525,6 +570,21 @@ export class HaUpdateAutoSystem extends LitElement {
         .status .failed,
         .error {
           color: var(--error-color);
+        }
+        .self-update {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-2);
+          padding-bottom: var(--ha-space-1);
+        }
+        .self-update .warning {
+          flex: 1 1 200px;
+          min-width: 0;
+          color: var(--warning-color);
+        }
+        .self-update ha-button {
+          --ha-button-height: 44px;
         }
         ha-alert {
           display: block;

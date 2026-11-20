@@ -528,8 +528,10 @@ async def test_plugins_updated(coresys: CoreSys):
         assert await test.execute()
 
 
-async def test_plugins_updated_skips_update_when_auto_update_disabled(coresys: CoreSys):
-    """Test plugins updated condition blocks when auto update is disabled."""
+async def test_plugins_updated_updates_plugins_when_auto_update_disabled(
+    coresys: CoreSys,
+):
+    """Test a job that needs current plugins updates them even with auto update off."""
 
     class TestClass:
         """Test class."""
@@ -551,10 +553,10 @@ async def test_plugins_updated_skips_update_when_auto_update_disabled(coresys: C
 
     with (
         patch.object(PluginAudio, "need_update", new=PropertyMock(return_value=True)),
-        patch.object(PluginAudio, "update") as update,
+        patch.object(PluginAudio, "update", return_value=None) as update,
     ):
-        assert not await test.execute()
-        update.assert_not_called()
+        assert await test.execute()
+        update.assert_called_once()
 
 
 async def test_auto_update(coresys: CoreSys):

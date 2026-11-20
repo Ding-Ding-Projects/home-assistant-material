@@ -463,3 +463,47 @@ async def test_info_describes_the_system_settings(
     assert system["wait_days"] == 1
     assert system["next_window"]["open"] is False
     assert system["next_window"]["day_offset"] == 1
+
+
+async def test_check_for_updates_installs_nothing_while_switches_are_off(
+    hass: HomeAssistant, clock: _Clock
+) -> None:
+    """Newly found system updates only show; the switch for everything does not cover them."""
+    calls = await _mock_install(hass)
+    manager = await _setup(hass)
+    manager.async_set_all(True)
+    for entity_id in SYSTEM_PARTS.values():
+        _set_update(hass, entity_id, state="off", latest="1.0")
+    await _drain(hass, manager)
+
+    # A check for updates finds a new version of every part inside the window
+    for entity_id in SYSTEM_PARTS.values():
+        _set_update(hass, entity_id, latest="3.0")
+    await _drain(hass, manager)
+    # A later check in the window, after the wait, still installs nothing
+    clock.now = _local(4, 30)
+    manager.async_schedule()
+    await _drain(hass, manager)
+    assert not calls
+
+
+async def test_info_reports_the_supervisor_updating_itself(
+    hass: HomeAssistant, clock: _Clock
+) -> None:
+    """The page can warn when the Supervisor's own flag is still on."""
+    manager = await _setup(hass)
+    _set_update(hass, CORE)
+    hass.states.async_set(
+        SUPERVISOR,
+        "on",
+        {
+            "installed_version": "1.0",
+            "latest_version": "2.0",
+            "supported_features": INSTALL,
+            "auto_update": True,
+        },
+    )
+    parts = {part["part"]: part for part in manager.async_info()["system"]["parts"]}
+    assert parts["supervisor"]["self_update"] is True
+    assert parts["core"]["self_update"] is None
+    assert parts["os"]["self_update"] is None

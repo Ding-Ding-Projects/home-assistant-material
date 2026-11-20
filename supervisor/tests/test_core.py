@@ -997,3 +997,20 @@ async def test_start_completes_after_healthcheck(
 
         release.set()
         await asyncio.sleep(0)
+
+
+@pytest.mark.usefixtures("core_start_base_mocks")
+async def test_start_does_not_update_supervisor_when_auto_update_off(
+    coresys: CoreSys,
+):
+    """Test startup leaves an outdated Supervisor alone while auto update is off."""
+    coresys.updater.auto_update = False
+
+    with (
+        patch.object(Supervisor, "need_update", new=PropertyMock(return_value=True)),
+        patch.object(Supervisor, "update") as update,
+    ):
+        await coresys.core.start()
+
+    update.assert_not_called()
+    coresys.homeassistant.core.start.assert_awaited_once()

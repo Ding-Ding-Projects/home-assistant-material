@@ -260,6 +260,33 @@ async def test_reload_triggers_supervisor_update(
 
 
 @pytest.mark.usefixtures("no_job_throttle", "supervisor_internet")
+async def test_reload_never_updates_supervisor_when_auto_update_off(
+    coresys: CoreSys, mock_update_data: MockResponse
+) -> None:
+    """Test a check for updates only looks while auto update is off."""
+    coresys.hardware.disk.get_disk_free_space = lambda x: 5000
+    await coresys.core.set_state(CoreState.RUNNING)
+    coresys.updater.auto_update = False
+
+    version_data = await mock_update_data.text()
+    mock_update_data.update_text(version_data.replace("2024.10.0", "2024.10.1"))
+
+    with (
+        patch.object(
+            Supervisor,
+            "version",
+            new=PropertyMock(return_value=AwesomeVersion("2024.10.0")),
+        ),
+        patch.object(Supervisor, "update") as update,
+    ):
+        await coresys.updater.reload()
+        assert coresys.supervisor.latest_version == AwesomeVersion("2024.10.1")
+        assert coresys.supervisor.need_update
+        await coresys.block_till_done()
+        update.assert_not_called()
+
+
+@pytest.mark.usefixtures("no_job_throttle", "supervisor_internet")
 async def test_reload_skips_supervisor_update_during_startup(
     coresys: CoreSys, mock_update_data: MockResponse
 ) -> None:

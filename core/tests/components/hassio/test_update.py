@@ -118,7 +118,7 @@ def mock_all(
     ("entity_id", "expected_state", "auto_update"),
     [
         ("update.home_assistant_operating_system_update", "on", False),
-        ("update.home_assistant_supervisor_update", "on", True),
+        ("update.home_assistant_supervisor_update", "on", False),
         ("update.home_assistant_core_update", "on", False),
         ("update.test_update", "on", True),
         ("update.test2_update", "off", False),

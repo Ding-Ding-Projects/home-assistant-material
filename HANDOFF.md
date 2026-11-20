@@ -1,5 +1,51 @@
 # Handoff
 
+## Check for updates installed the Supervisor with its switch off, 19 November 2026
+
+The owner reported that "Check for updates" updated the system while automatic updates were off.
+On the live instance the Supervisor moved itself from 2026.11.0.527 to .528 and reported its own
+`auto_update` setting as on.
+
+### The fault
+
+- "Check for updates" refreshes the Supervisor integration, which asks the Supervisor to reload its
+  update information. When a newer Supervisor is found, that reload installs it at once if the
+  Supervisor's own `auto_update` setting is on. That setting defaulted to on and the switches on
+  the Updates page never wrote it, so it was on everywhere. The same setting also made the
+  Supervisor update itself at start, on its daily check, when the beta channel was joined, and
+  before a restore of a newer backup, and it updated the plugins on a schedule.
+- Core and the operating system had no such path: the automatic updater installs them only when
+  their own switch is on, inside the window, and "Update everything" and "Update the Supervisor
+  first" only run on a press. Reading the code found no path that installs them on a check.
+
+### The fix
+
+- One way in for the Supervisor: its own setting now defaults to off, and Home Assistant turns it
+  off whenever it finds it on (at start and on every refresh, retrying after a failure). Until that
+  has worked, a check for updates does not ask the Supervisor to reload. The Supervisor is then
+  installed only through its update entity, by a press or by its switch inside the window with
+  the wait and the backup choice. Mirroring the switch into the Supervisor's setting was rejected,
+  because that would install the Supervisor at any hour once the switch was on.
+- Plugins no longer update on a schedule or at start. An install that someone started updates any
+  out-of-date plugins first instead of refusing, so Update presses keep working. Missing or broken
+  plugins are still installed and repaired at start.
+- The Updates page shows a warning with **Turn off now** under the Supervisor switch if the
+  Supervisor still reports its own setting on.
+- Documentation: the "What off means" section of
+  [`updates/README.md`](docs/features/updates/README.md).
+
+### Not verified
+
+- The Home Assistant and Supervisor Python test suites cannot run on the workstation (their
+  dependencies are not installed). The new and changed tests were checked by reading and by
+  compiling only.
+- Nothing was seen in a browser or on a running instance. Existing installs keep the Supervisor's
+  stored setting on until the new Core build runs once; in that gap the Supervisor can still update
+  itself at its own start or daily check.
+- With the Supervisor switch off and an older Supervisor, the Supervisor reports itself as
+  unsupported ("not using latest version of Supervisor and auto update is disabled"); that message
+  is unchanged and may now appear on more installs.
+
 ## Integration pass, the whole tree committed together, a release dispatched for `a3cb56d37`, 18 November 2026
 
 This section covers the commits from `71824ce14` to `a3cb56d37` (after `6db767de3`) and the

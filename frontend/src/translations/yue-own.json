@@ -2955,6 +2955,8 @@
           "auto_system_try_now_title": "而家試下更新 {name}？",
           "auto_system_skip": "跳過呢個版本",
           "auto_system_skip_done": "{name} {version} 會被跳過。",
+          "auto_system_supervisor_self_update": "Supervisor 仲係設定咗一搵到更新就自己更新，唔理呢個開關同時段。",
+          "auto_system_supervisor_self_update_off": "即刻閂咗佢",
           "backups_title": "備份",
           "backups_description": "每次更新之前，如果該更新支援備份，就會提議先做備份。打開備份就可以檢閱。",
           "before_updating": "更新之前",

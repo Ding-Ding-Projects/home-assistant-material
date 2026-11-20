@@ -625,6 +625,9 @@ async def coresys(
     coresys_obj._ingress.save_data = AsyncMock()
     coresys_obj._auth.save_data = AsyncMock()
     coresys_obj._updater.save_data = AsyncMock()
+    # Most tests exercise self-update with it switched on; the real default is
+    # off (see test_validate), and tests for that set it themselves.
+    coresys_obj._updater.auto_update = True
     coresys_obj._config.save_data = AsyncMock()
     coresys_obj._jobs.save_data = AsyncMock()
     coresys_obj._resolution.save_data = AsyncMock()

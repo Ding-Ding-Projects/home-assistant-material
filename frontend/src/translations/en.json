@@ -8797,6 +8797,8 @@
           "auto_system_try_now_title": "Try {name} now?",
           "auto_system_skip": "Skip this version",
           "auto_system_skip_done": "{name} {version} will be skipped.",
+          "auto_system_supervisor_self_update": "The Supervisor is still set to update itself whenever an update is found, outside this switch and window.",
+          "auto_system_supervisor_self_update_off": "Turn off now",
           "queue": {
             "button": "Update everything ({count})",
             "confirm_title": "Update everything?",

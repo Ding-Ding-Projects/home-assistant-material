@@ -158,3 +158,8 @@ def test_supervisor_config_apps_custom_list_unchanged():
         {"apps_custom_list": ["https://example.com/repo"]}
     )
     assert result["apps_custom_list"] == ["https://example.com/repo"]
+
+
+def test_updater_config_auto_update_defaults_off():
+    """Test the Supervisor does not update itself unless told to."""
+    assert validate.SCHEMA_UPDATER_CONFIG({})["auto_update"] is False
