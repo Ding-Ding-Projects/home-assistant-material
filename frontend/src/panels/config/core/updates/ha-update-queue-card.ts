@@ -1,6 +1,7 @@
 import {
   mdiAlertCircle,
   mdiCheckCircle,
+  mdiCheckCircleOutline,
   mdiChevronRight,
   mdiClockOutline,
   mdiNewBox,
@@ -16,6 +17,8 @@ import "../../../../components/ha-button";
 import "../../../../components/ha-spinner";
 import "../../../../components/ha-svg-icon";
 import "../../../../components/progress/ha-progress-bar";
+import type { UpdateRunRecord } from "../../../../data/auto-update";
+import { formatAutoUpdateTime } from "../../../../data/auto-update";
 import { notesPageUrlForVersion } from "../../../../data/build-notes";
 import type { UpdateEntity } from "../../../../data/update";
 import { haStyle } from "../../../../resources/styles";
@@ -28,6 +31,8 @@ import {
 } from "./update-queue";
 import { queueOrderOf, queuePositionOf } from "./update-progress-model";
 import type { UpdateQueueController } from "./update-queue-controller";
+import type { SharedStepState } from "./update-run-share";
+import { sharedRunView } from "./update-run-share";
 
 const PREFIX = "ui.panel.config.updates.queue";
 
@@ -55,12 +60,37 @@ const STATE_ICON: Partial<Record<QueueStep["state"], string>> = {
   skipped: mdiSkipNextCircle,
 };
 
+// A shared run only says where it is, so a step it moved past is shown as
+// finished, never as installed: it may have been skipped.
+const SHARED_STEP_ICON: Partial<Record<SharedStepState, string>> = {
+  finished: mdiCheckCircleOutline,
+  failed: mdiAlertCircle,
+  waiting: mdiClockOutline,
+};
+
+const SHARED_STEP_CLASS: Record<SharedStepState, string> = {
+  finished: "finished",
+  current: "updating",
+  failed: "failed",
+  waiting: "waiting",
+  unknown: "unknown",
+};
+
 /** The card at the top of the updates page while "Update everything" runs. */
 @customElement("ha-update-queue-card")
 class HaUpdateQueueCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public controller!: UpdateQueueController;
+
+  /**
+   * A run another browser is driving. It is shown only when this browser has
+   * no queue of its own, and then read-only: nothing here can drive it.
+   */
+  @property({ attribute: false }) public sharedRun?: UpdateRunRecord;
+
+  // The ended shared run this browser closed, by its last change time.
+  @state() private _hiddenShared?: string;
 
   private _lang = new LanguageModeController(this);
 
@@ -133,7 +163,7 @@ class HaUpdateQueueCard extends LitElement {
   protected render(): TemplateResult | typeof nothing {
     const queue = this.controller.queue;
     if (!queue) {
-      return nothing;
+      return this._renderShared();
     }
     const active = queueIsActive(queue);
     const progress = queueProgress(queue);
@@ -308,6 +338,125 @@ class HaUpdateQueueCard extends LitElement {
         </div>
       </section>
     `;
+  }
+
+  // A run another browser drives: the same progress, with nothing to press
+  // that could change it. Only an ended run can be closed, and only here.
+  private _renderShared(): TemplateResult | typeof nothing {
+    const run = this.sharedRun;
+    const view = sharedRunView(run);
+    if (!run || !view) {
+      return nothing;
+    }
+    const ended = view.state !== "running" && view.state !== "failed";
+    if (ended && this._hiddenShared === run.updated) {
+      return nothing;
+    }
+    const currentName = view.current
+      ? updateDisplayName(this.hass, view.current)
+      : "";
+    let title: string;
+    if (view.state === "running") {
+      title = this._t("progress_title", {
+        position: view.position,
+        total: view.total,
+        name: currentName,
+      });
+    } else if (view.state === "failed") {
+      title = this._t("failed_title", { name: currentName });
+    } else if (view.state === "cancelled") {
+      title = this._t("stopped_title");
+    } else {
+      title = this._t("finished_title");
+    }
+    const startedAt = formatAutoUpdateTime(
+      run.started,
+      this.hass.locale?.language
+    );
+    const note =
+      view.state === "running" || view.state === "failed"
+        ? this._t("shared_note_running")
+        : this._t("shared_note_ended");
+    const progressText = this._t("progress_text", {
+      finished: view.finished,
+      total: view.total,
+    });
+    return html`
+      <section class="card shared" aria-labelledby="queue-title">
+        <div class="title-row">
+          <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
+            <g transform="rotate(-90 18 18)">
+              <circle class="ring-track" cx="18" cy="18" r="15" />
+              <circle
+                class="ring-arc"
+                cx="18"
+                cy="18"
+                r="15"
+                pathLength="100"
+                stroke-dasharray="${Math.max(0, Math.min(100, view.percent))} 100"
+              />
+            </g>
+          </svg>
+          <h2 id="queue-title" class=${view.state === "failed" ? "failed" : ""}>
+            ${title}
+          </h2>
+        </div>
+        <p class="lead">
+          ${note}${
+            startedAt
+              ? html` ${this._t("shared_started", { time: startedAt })}`
+              : nothing
+          }
+        </p>
+        <ha-progress-bar
+          .value=${view.percent}
+          .label=${`${this._t("progress_label")}: ${progressText}`}
+        ></ha-progress-bar>
+        <p class="progress-text">${progressText}</p>
+        <ol class="steps" aria-label=${this._t("steps_label")}>
+          ${view.steps.map(
+            (step) => html`
+              <li class="step ${SHARED_STEP_CLASS[step.state]}">
+                <span class="step-icon" aria-hidden="true">
+                  ${
+                    step.state === "current"
+                      ? html`<ha-spinner size="small"></ha-spinner>`
+                      : SHARED_STEP_ICON[step.state]
+                        ? html`<ha-svg-icon
+                            .path=${SHARED_STEP_ICON[step.state]}
+                          ></ha-svg-icon>`
+                        : nothing
+                  }
+                </span>
+                <span class="step-name"
+                  >${updateDisplayName(this.hass, step.entityId)}</span
+                >
+                ${
+                  step.state === "unknown"
+                    ? nothing
+                    : html`<span class="step-state"
+                        >${this._t(`shared_state_${step.state}`)}</span
+                      >`
+                }
+              </li>
+            `
+          )}
+        </ol>
+        ${
+          ended
+            ? html`<div class="actions">
+                <ha-button appearance="outlined" @click=${this._hideShared}>
+                  ${this._t("dismiss")}
+                </ha-button>
+              </div>`
+            : nothing
+        }
+      </section>
+    `;
+  }
+
+  private _hideShared(): void {
+    this._hiddenShared = this.sharedRun?.updated;
   }
 
   // Where the run makes its backups, in plain words.

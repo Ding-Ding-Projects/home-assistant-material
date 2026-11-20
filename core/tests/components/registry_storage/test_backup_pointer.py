@@ -588,6 +588,62 @@ async def test_info_does_not_wait_for_a_silent_registry(
     assert info["pointers"][OLD_ID]["restorable"] is True
 
 
+@pytest.mark.usefixtures("patch_session")
+async def test_info_lists_local_backups_with_a_silent_registry(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """The backups on this disk come with name, date and size within the limit.
+
+    The saving space page shows them at once from this answer instead of
+    waiting for the full backup list, which waits for every place.
+    """
+    manager, entry = await _setup_all(hass)
+    agent = _registry_agent(manager, entry)
+    await _add_backup(hass, manager, None, OLD_ID)
+    await _add_backup(hass, manager, None, NEW_ID, year=2027)
+    client = await hass_ws_client(hass)
+
+    async def never(**kwargs: Any) -> list[Any]:
+        await asyncio.Event().wait()
+        return []
+
+    with (
+        patch.object(agent, "async_list_backups", never),
+        patch(
+            "homeassistant.components.backup.pointer_websocket.INFO_LIST_TIMEOUT",
+            0.05,
+        ),
+    ):
+        await client.send_json_auto_id({"type": "backup/pointer/info"})
+        info = (await client.receive_json())["result"]
+
+    assert info["unreachable"] == [agent.agent_id]
+    local = info["local_backups"]
+    assert [row["backup_id"] for row in local] == [NEW_ID, OLD_ID]
+    for row in local:
+        assert row["name"]
+        assert row["date"]
+        assert row["size"] > 0
+        assert row["agent_ids"] == [LOCAL_AGENT_ID]
+
+
+@pytest.mark.usefixtures("patch_session")
+async def test_info_lists_local_backups_when_all_answer(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """The local rows are there when the full list arrives in time too."""
+    manager, entry = await _setup_all(hass)
+    agent = _registry_agent(manager, entry)
+    await _add_backup(hass, manager, agent, OLD_ID)
+    client = await hass_ws_client(hass)
+
+    await client.send_json_auto_id({"type": "backup/pointer/info"})
+    info = (await client.receive_json())["result"]
+
+    assert info["unreachable"] == []
+    assert [row["backup_id"] for row in info["local_backups"]] == [OLD_ID]
+
+
 async def _pointer_ready(hass: HomeAssistant) -> tuple[BackupManager, bytes]:
     """Set up a place, make one backup a pointer and return the manager and its bytes."""
     manager, entry = await _setup_all(hass)

@@ -1,5 +1,6 @@
 import type { ReactiveController, ReactiveControllerHost } from "lit";
 import { supportsFeature } from "../../../../common/entity/supports-feature";
+import { clearUpdateRun, setUpdateRun } from "../../../../data/auto-update";
 import { installUpdatesTracked } from "../../../../components/update-progress/update-install-tracker";
 import { isConnectionLostError } from "../../../../components/update-progress/update-progress-logic";
 import { extractApiErrorMessage } from "../../../../data/hassio/common";
@@ -18,6 +19,7 @@ import {
   storeQueue,
   SYSTEM_STEP_SETTLE_MS,
 } from "./update-queue";
+import { runReportFromQueue } from "./update-run-share";
 
 /** How often a running step is looked at when no state change arrives. */
 const TICK_MS = 5000;
@@ -62,6 +64,9 @@ export class UpdateQueueController implements ReactiveController {
 
   /** Steps whose install call has not answered yet. */
   private _calling = new Set<string>();
+
+  /** The last report sent for other browsers, to send each change once. */
+  private _sharedKey?: string;
 
   constructor(host: ReactiveControllerHost, getHass: () => HomeAssistant) {
     this._host = host;
@@ -205,6 +210,7 @@ export class UpdateQueueController implements ReactiveController {
 
   /** Looks at the running step and starts the next one when it is time. */
   public tick(): void {
+    this._share();
     const hass = this._getHass();
     if (!this.queue || !hass?.states) {
       return;
@@ -455,5 +461,45 @@ export class UpdateQueueController implements ReactiveController {
     this.queue = queue;
     storeQueue(queue);
     this._host.requestUpdate();
+    this._share();
+  }
+
+  /**
+   * Reports this browser's queue so that other browsers can show it. Only the
+   * browser that holds the queue reports, and the report changes nothing on
+   * the server but the shared display record. A failed report is not retried
+   * until the queue changes or the connection comes back.
+   */
+  private _share(): void {
+    const hass = this._getHass();
+    if (!hass || hass.connected === false) {
+      // After a restart the record is gone; send it again once connected.
+      this._sharedKey = undefined;
+      return;
+    }
+    const report = runReportFromQueue(this.queue);
+    if (!report) {
+      if (this._sharedKey !== undefined && !this.queue) {
+        this._sharedKey = undefined;
+        this._sendShare(() => clearUpdateRun(hass));
+      }
+      return;
+    }
+    const key = JSON.stringify(report);
+    if (key === this._sharedKey) {
+      return;
+    }
+    this._sharedKey = key;
+    this._sendShare(() => setUpdateRun(hass, report));
+  }
+
+  private _sendShare(send: () => Promise<void>): void {
+    try {
+      send().catch(() => {
+        // The record is for display only; the run goes on without it.
+      });
+    } catch (_err) {
+      // No connection to send on; the run goes on without the record.
+    }
   }
 }

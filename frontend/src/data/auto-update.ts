@@ -175,6 +175,48 @@ export const retryAutoUpdateSystem = (
   part: AutoSystemPartName
 ): Promise<void> => hass.callWS({ type: "auto_update/retry_system", part });
 
+/** How an "Update everything" run stands, as the shared record reports it. */
+export type UpdateRunState = "running" | "done" | "failed" | "cancelled";
+
+/**
+ * The display record of an "Update everything" run. The browser that started
+ * the run drives it; other browsers only show this. It never installs anything.
+ */
+export interface UpdateRunRecord {
+  entity_ids: string[];
+  /** The 1-based place of the update being worked on. */
+  position: number;
+  total: number;
+  state: UpdateRunState;
+  current: string | null;
+  started: string;
+  updated: string;
+}
+
+export interface UpdateRunReport {
+  entity_ids: string[];
+  position: number;
+  state: UpdateRunState;
+  current: string | null;
+}
+
+export const subscribeUpdateRun = (
+  hass: HomeAssistant,
+  callback: (run: UpdateRunRecord | null) => void
+): Promise<UnsubscribeFunc> =>
+  hass.connection.subscribeMessage<{ run: UpdateRunRecord | null }>(
+    (message) => callback(message.run),
+    { type: "auto_update/run/subscribe" }
+  );
+
+export const setUpdateRun = (
+  hass: HomeAssistant,
+  report: UpdateRunReport
+): Promise<void> => hass.callWS({ type: "auto_update/run/set", ...report });
+
+export const clearUpdateRun = (hass: HomeAssistant): Promise<void> =>
+  hass.callWS({ type: "auto_update/run/clear" });
+
 export interface AutoUpdateRowState {
   checked: boolean;
   disabled: boolean;

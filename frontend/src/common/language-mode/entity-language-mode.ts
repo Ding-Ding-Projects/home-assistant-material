@@ -68,6 +68,71 @@ export const entityYueKey = (key: string): string | undefined => {
 const INTEGRATION_KEY =
   /^component\.[^.]+\.entity\.([^.]+)\.[^.]+\.((?:state\.|state_attributes\.[^.]+\.state\.).+)$/;
 
+// The shared state words of the backend (`common::state` in the core strings).
+// Integrations reference them for states such as "Idle", and many of those
+// states have no generic entity component word to borrow, for instance a
+// sensor state. Such a key answers with the shared Cantonese word, but only
+// when its English text is exactly the shared English word.
+const COMMON_STATE_ENGLISH: Record<string, string> = {
+  active: "Active",
+  auto: "Auto",
+  charging: "Charging",
+  closed: "Closed",
+  closing: "Closing",
+  connected: "Connected",
+  disabled: "Disabled",
+  discharging: "Discharging",
+  disconnected: "Disconnected",
+  empty: "Empty",
+  enabled: "Enabled",
+  error: "Error",
+  fault: "Fault",
+  full: "Full",
+  high: "High",
+  home: "Home",
+  idle: "Idle",
+  locked: "Locked",
+  low: "Low",
+  manual: "Manual",
+  medium: "Medium",
+  no: "No",
+  normal: "Normal",
+  not_home: "Away",
+  off: "Off",
+  on: "On",
+  open: "Open",
+  opening: "Opening",
+  paused: "Paused",
+  standby: "Standby",
+  stopped: "Stopped",
+  unlocked: "Unlocked",
+  very_high: "Very high",
+  very_low: "Very low",
+  yes: "Yes",
+};
+
+const INTEGRATION_STATE_KEY =
+  /^component\.[^.]+\.entity\.[^.]+\.[^.]+\.state\.([^.]+)$/;
+
+/**
+ * The shared Cantonese key for an integration state worded with a shared
+ * backend state word, or undefined.
+ */
+export const commonStateYueKey = (
+  key: string,
+  english: string
+): string | undefined => {
+  const match = INTEGRATION_STATE_KEY.exec(key);
+  if (!match) {
+    return undefined;
+  }
+  const word = match[1];
+  return Object.prototype.hasOwnProperty.call(COMMON_STATE_ENGLISH, word) &&
+    COMMON_STATE_ENGLISH[word] === english
+    ? `yue_entity.common_state.${word}`
+    : undefined;
+};
+
 /** The generic entity component key that an integration key may share words with. */
 export const genericEntityKey = (key: string): string | undefined => {
   const match = INTEGRATION_KEY.exec(key);
@@ -143,7 +208,11 @@ export const createEntityModeLocalize = (
         yueKey = entityYueKey(generic);
       }
     }
-    const yue = yueKey === undefined ? undefined : yueString(yueKey);
+    let yue = yueKey === undefined ? undefined : yueString(yueKey);
+    if (yue === undefined) {
+      const common = commonStateYueKey(key, english);
+      yue = common === undefined ? undefined : yueString(common);
+    }
     const text =
       yue === undefined
         ? english

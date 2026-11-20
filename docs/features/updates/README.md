@@ -23,6 +23,37 @@ Related, documented elsewhere:
 - [`../backups/backup-progress.md`](../backups/backup-progress.md) for the backup that can run
   before an update.
 
+## The "Update everything" run in every browser
+
+The browser that starts "Update everything" drives the run: it installs one update at a time, in
+its own order, and keeps its queue in that browser's session storage. So that a second browser can
+show the same progress ("Updating 2 of 2"), the driving browser also reports a small display record
+to the server, and every other browser reads it.
+
+- The record holds the update entity ids in order, the position (1-based), the total, the state
+  (`running`, `done`, `failed` or `cancelled`), the update being worked on, and when the run
+  started and last changed. It lives in memory only in `auto_update/run_record.py`.
+- It is display only. It never starts, orders, retries or cancels an install; only the driving
+  browser does that.
+- A browser without its own queue shows the record read-only: the same title and progress, the
+  steps, the start time in 24-hour form and the line "This run was started in another browser and
+  can only be stopped there." It has no Stop, Try again or Skip button. While the run is running or
+  failed it does not offer its own "Update everything" either. An ended run can be closed in that
+  browser only, which hides it there.
+- Because the record only says where the run is, a step the run moved past is shown as "Finished",
+  never as installed (it may have been skipped), and a stopped run claims no result per step.
+- The record disappears when the driving browser closes its finished card, two hours after its
+  last change, and when Core starts (it is not stored). After a Core restart the driving browser
+  reports it again once it is connected.
+- Websocket commands, all for administrators only: `auto_update/run/get`, `auto_update/run/set`
+  (`entity_ids`, at most 50 existing `update.*` entities without duplicates; `position` within the
+  run; `state`; optional `current`, which must be in the run), `auto_update/run/clear` and
+  `auto_update/run/subscribe` (sends `{"run": record or null}` now and on every change or expiry).
+- A queue of more than 50 updates is not shared; it still runs in its own browser.
+
+Tests: `core/tests/components/auto_update/test_run_record.py` and
+`frontend/test/panels/config/core/update-run-share.test.ts`. Not yet seen in a browser.
+
 ## Automatic system updates
 
 Core, Supervisor and the operating system may update by themselves, by owner decision of 17

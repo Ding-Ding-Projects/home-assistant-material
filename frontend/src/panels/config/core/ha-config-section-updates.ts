@@ -40,7 +40,10 @@ import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
 import type { HaSwitch } from "../../../components/ha-switch";
-import type { AutoUpdateInfo } from "../../../data/auto-update";
+import type {
+  AutoUpdateInfo,
+  UpdateRunRecord,
+} from "../../../data/auto-update";
 import {
   AUTO_SYSTEM_PARTS,
   autoUpdateRowState,
@@ -48,6 +51,7 @@ import {
   setAutoUpdateAll,
   setAutoUpdateEntity,
   subscribeAutoUpdate,
+  subscribeUpdateRun,
 } from "../../../data/auto-update";
 import type { ManagerState } from "../../../data/backup_manager";
 import { subscribeBackupEvents } from "../../../data/backup_manager";
@@ -165,6 +169,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   @state() private _supervisorInfo?: HassioSupervisorInfo;
 
   @state() private _autoInfo?: AutoUpdateInfo;
+
+  // An "Update everything" run another browser is driving, shown read-only.
+  @state() private _sharedRun?: UpdateRunRecord;
 
   // The automatic updates card rests as one summary row and opens its settings.
   @state() private _autoOpen = false;
@@ -328,6 +335,16 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         }).catch(() => {
           // An older server has no automatic updates; the page works without.
           this._autoInfo = undefined;
+
+          return () => undefined;
+        })
+      );
+      subscriptions.push(
+        subscribeUpdateRun(this.hass, (run) => {
+          this._sharedRun = run ?? undefined;
+        }).catch(() => {
+          // An older server keeps no shared run; only this browser's queue shows.
+          this._sharedRun = undefined;
 
           return () => undefined;
         })
@@ -1048,9 +1065,23 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         .controller=${this._queue}
       ></ha-update-queue-card>`;
     }
+    // A run started in another browser is shown read-only; that browser
+    // keeps driving it.
+    // A failed run may still be retried there, so this browser does not
+    // offer a second run beside it.
+    const sharedRunning =
+      this._sharedRun?.state === "running" ||
+      this._sharedRun?.state === "failed";
+    const shared = this._sharedRun
+      ? html`<ha-update-queue-card
+          .hass=${this.hass}
+          .controller=${this._queue}
+          .sharedRun=${this._sharedRun}
+        ></ha-update-queue-card>`
+      : nothing;
     const ready = orderUpdateQueue(installable);
-    if (ready.length < 2) {
-      return nothing;
+    if (ready.length < 2 || sharedRunning) {
+      return shared;
     }
     const running = installable.find((entity) => updateIsInstalling(entity));
     const reason = this._usbRunning
@@ -1061,6 +1092,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
           })
         : undefined;
     return html`
+      ${shared}
       <div class="queue-bar">
         <ha-button
           appearance="filled"

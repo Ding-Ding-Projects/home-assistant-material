@@ -39,6 +39,7 @@ import {
   isCheckProblem,
   KEEP_WHOLE_CHOICES,
   keptReason,
+  localBackupContents,
   passResult,
   pointerErrorReason,
   pointerRisk,
@@ -272,7 +273,13 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
   }
 
   private _renderColumns(info: BackupPointerInfo) {
-    const rows = rowsOnThisSystem(pointerRows(this.backups, info));
+    // Until the full backup list arrives, the backups on this disk come from
+    // the pointer info, which answers within its short limit. The full list
+    // replaces them as soon as it is there.
+    const early = this._earlyRows(info);
+    const rows = rowsOnThisSystem(
+      pointerRows(early ? localBackupContents(info) : this.backups, info)
+    );
     const selected =
       rows.find((row) => row.backup_id === this._selected && row.pointer) ??
       rows.find((row) => row.pointer);
@@ -487,11 +494,20 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
     });
   }
 
+  /** The full backup list has not arrived, but the pointer info named the local backups. */
+  private _earlyRows(info: BackupPointerInfo): boolean {
+    return !this.info && this.fetching && info.local_backups !== undefined;
+  }
+
   private _renderList(rows: PointerRow[], selected?: PointerRow) {
     // Until the backup list has arrived, a list of pointers alone would read
     // as if no backup were whole on this disk. If reading the list failed,
     // the pointers are still shown.
-    if (!this.info && this.fetching) {
+    if (
+      !this.info &&
+      this.fetching &&
+      !(this._info && this._earlyRows(this._info))
+    ) {
       return html`<div
         class="card loading"
         role="status"

@@ -239,6 +239,7 @@ describe.skipIf(!hasCoreStrings)("Cantonese entity words", () => {
         own(key) &&
         !key.startsWith("yue_entity.default.") &&
         !key.startsWith("yue_entity.attribute_names.") &&
+        !key.startsWith("yue_entity.common_state.") &&
         ![...keys].some((english) => entityYueKey(english) === key)
     );
     expect(stale).toEqual([]);
@@ -279,6 +280,28 @@ describe("createEntityModeLocalize", () => {
     );
     expect(wrapped("component.demo.entity.light.x.state.on" as any)).toBe(
       "Bright"
+    );
+  });
+
+  // The backup integration's "Backup Manager state" sensor says "Idle" through
+  // the shared backend state words; sensors have no generic state word, so it
+  // stayed English in Cantonese mode.
+  it("answers an integration state worded with a shared state word", () => {
+    const keyed: Record<string, string> = {
+      "component.backup.entity.sensor.backup_manager_state.state.idle": "Idle",
+      "component.demo.entity.sensor.x.state.idle": "Resting",
+    };
+    const wrapped = createEntityModeLocalize(
+      ((key: string) => keyed[key] ?? "") as LocalizeFunc,
+      () => "cantonese"
+    );
+    expect(
+      wrapped(
+        "component.backup.entity.sensor.backup_manager_state.state.idle" as any
+      )
+    ).toBe("閒置");
+    expect(wrapped("component.demo.entity.sensor.x.state.idle" as any)).toBe(
+      "Resting"
     );
   });
 

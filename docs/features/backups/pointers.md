@@ -105,6 +105,16 @@ and every registry place is reported in `unreachable`. A registry place whose
 listing fails, or that is not loaded at all (for example while its entry is
 waiting to retry setup), is treated the same way.
 
+The same answer also carries `local_backups`: every backup the agents on this
+system hold, newest first, with its name, date, size and the local agents that
+hold it. These are listed at the same time as the full list and within the
+same 10 seconds. The saving space page shows them as rows "whole here" as soon
+as this answer arrives, instead of waiting for the full backup list of the
+backups page, which waits for every place. When the full list arrives it
+replaces these rows; only then can a row also say that the backup is in the
+registry. A Core without `local_backups` leaves the page as before: a loading
+state until the full list arrives.
+
 A pointer whose backup no place lists is shown as follows:
 
 - Its registry place answered and does not list it: **missing** ("the
@@ -154,7 +164,7 @@ always removed.
 
 | Command | Does |
 | --- | --- |
-| `backup/pointer/info` | Setting, availability, honest counts, every pointer with `restorable`, the last kept-whole reasons, the current transfer, and `unreachable`: the places that failed to list their backups or did not answer within 10 seconds |
+| `backup/pointer/info` | Setting, availability, honest counts, every pointer with `restorable`, the last kept-whole reasons, the current transfer, `unreachable`: the places that failed to list their backups or did not answer within 10 seconds, and `local_backups`: the backups on this system with name, date, size and agent ids |
 | `backup/pointer/settings` | `enabled`, `keep_whole` (0, 1 or 3); turning on without a registry place answers `no_registry_place` |
 | `backup/pointer/run` | Runs a pass now and returns each outcome |
 | `backup/pointer/check` | Runs the daily check now |

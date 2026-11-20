@@ -10,7 +10,7 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
 from .const import DATA_MANAGER, LOGGER
-from .models import BackupManagerError, Folder
+from .models import AgentBackup, BackupManagerError, Folder
 from .pointer import KEEP_WHOLE_CHOICES, PointerError, agent_backup_for
 
 if TYPE_CHECKING:
@@ -32,14 +32,63 @@ def async_register_pointer_websocket_handlers(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, handle_pointer_subscribe)
 
 
-async def _list_agents_by_backup(
-    manager: BackupManager,
-) -> tuple[dict[str, list[str]], list[str]]:
-    """Return which agents list each backup, and the agents that did not answer.
+async def _list_one_local_agent(
+    manager: BackupManager, agent_id: str
+) -> list[AgentBackup]:
+    """List the backups of one agent on this system; a failure lists none."""
+    agent = manager.backup_agents.get(agent_id)
+    if agent is None:
+        return []
+    try:
+        return await agent.async_list_backups()
+    except Exception as err:  # noqa: BLE001
+        LOGGER.debug("Listing the backups of %s failed: %s", agent_id, err)
+        return []
 
-    A place that does not answer within a short time must not hold the page:
-    the backups on this system are then listed alone and every pointer place
-    is reported as not reached, so its pointers read as unknown, not missing.
+
+async def _list_local_backups(
+    manager: BackupManager,
+) -> tuple[dict[str, list[str]], list[dict[str, Any]]]:
+    """Return the backups the agents on this system hold, with what a row shows.
+
+    The agents are asked together and only for the short limit, so a slow
+    disk never holds the page longer than the full list may.
+    """
+    agent_ids = list(manager.pointers.local_agent_ids())
+    try:
+        async with asyncio.timeout(INFO_LIST_TIMEOUT):
+            results = await asyncio.gather(
+                *(_list_one_local_agent(manager, agent_id) for agent_id in agent_ids)
+            )
+    except TimeoutError:
+        LOGGER.debug("The backups on this system did not list in time")
+        return {}, []
+    by_backup: dict[str, list[str]] = {}
+    details: dict[str, dict[str, Any]] = {}
+    for agent_id, listed in zip(agent_ids, results, strict=True):
+        for agent_backup in listed:
+            by_backup.setdefault(agent_backup.backup_id, []).append(agent_id)
+            row = details.setdefault(
+                agent_backup.backup_id,
+                {
+                    "backup_id": agent_backup.backup_id,
+                    "name": agent_backup.name,
+                    "date": agent_backup.date,
+                    "size": agent_backup.size,
+                    "agent_ids": [],
+                },
+            )
+            row["agent_ids"].append(agent_id)
+    local = sorted(details.values(), key=lambda row: row["date"], reverse=True)
+    return by_backup, local
+
+
+async def _list_all_backups(
+    manager: BackupManager,
+) -> tuple[dict[str, list[str]], list[str]] | None:
+    """Return which agents list each backup and the agents that did not answer.
+
+    None when the full list did not arrive within the short limit.
     """
     try:
         async with asyncio.timeout(INFO_LIST_TIMEOUT):
@@ -50,35 +99,42 @@ async def _list_agents_by_backup(
             "pointers with the registry state as unknown",
             INFO_LIST_TIMEOUT,
         )
-    else:
-        return (
-            {backup_id: list(backup.agents) for backup_id, backup in backups.items()},
-            sorted(errors),
-        )
-    by_backup: dict[str, list[str]] = {}
-    for agent_id in manager.pointers.local_agent_ids():
-        agent = manager.backup_agents.get(agent_id)
-        if agent is None:
-            continue
-        try:
-            async with asyncio.timeout(INFO_LIST_TIMEOUT):
-                listed = await agent.async_list_backups()
-        except Exception as err:  # noqa: BLE001
-            LOGGER.debug("Listing the backups of %s failed: %s", agent_id, err)
-            continue
-        for agent_backup in listed:
-            by_backup.setdefault(agent_backup.backup_id, []).append(agent_id)
+        return None
+    return (
+        {backup_id: list(backup.agents) for backup_id, backup in backups.items()},
+        sorted(errors),
+    )
+
+
+async def _list_agents_by_backup(
+    manager: BackupManager,
+) -> tuple[dict[str, list[str]], list[str], list[dict[str, Any]]]:
+    """Return which agents list each backup, the agents that did not answer,
+    and the backups held on this system with their name, date and size.
+
+    A place that does not answer within a short time must not hold the page:
+    the backups on this system are then listed alone and every pointer place
+    is reported as not reached, so its pointers read as unknown, not missing.
+    The full list and the list on this system are asked for together, so both
+    stay within the same short limit.
+    """
+    full, (local_by_backup, local) = await asyncio.gather(
+        _list_all_backups(manager), _list_local_backups(manager)
+    )
+    if full is not None:
+        return full[0], full[1], local
     unreachable = sorted(
         agent.agent_id for agent in manager.pointers.pointer_agents()
     )
-    return by_backup, unreachable
+    return local_by_backup, unreachable, local
 
 
 async def _info(hass: HomeAssistant) -> dict[str, Any]:
     manager = hass.data[DATA_MANAGER]
     pointers = manager.pointers
-    backups, unreachable = await _list_agents_by_backup(manager)
+    backups, unreachable, local_backups = await _list_agents_by_backup(manager)
     return {
+        "local_backups": local_backups,
         "readable": pointers.readable,
         "available": pointers.available,
         "settings": asdict(pointers.settings),

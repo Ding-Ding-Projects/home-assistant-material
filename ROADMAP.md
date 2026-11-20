@@ -15,31 +15,42 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 
 ## Seen in a browser on builds 531 and 532, 20 November 2026
 
-These items had no line in this file before. Each was reported seen working in a browser on build
-2026.11.1.531 or 2026.11.1.532; which of the two builds is not recorded per item, so they are
-listed unticked with that state rather than ticked from a summary.
+These items had no line in this file before. A box is ticked where the build it was seen on is
+recorded; everything else stays unticked with its state.
 
-- [ ] Integrations list export and import. Seen working in a browser on build 531 or 532.
-- [ ] Settings of one integration, export and import. Seen working in a browser on build 531 or
+- [x] Integrations list export and import. Seen working in a browser on build 531.
+- [x] Settings of one integration, export and import, with sign-ins left out. Seen working in a
+      browser on build 531.
+- [x] Checking for updates installs nothing. Seen in a browser on build 531.
+- [x] Problem log: names hidden in the preview. Seen working in a browser on build 532.
+- [ ] Problem log: choosing the repository. The page was seen only without a sign-in, so the
+      choice itself was not seen.
+- [x] Saving space: bringing a pointer back to a whole backup. Seen working in a browser on build
+      531.
+- [x] Saving space with the registry not reachable: the page shows the unreachable state, Bring
+      back stays offered, and the success line is shown after a bring back. Seen in a browser on
+      build 532.
+- [ ] Saving space with the registry not reachable: the backups whole on this disk appeared about
+      2 s after the pointer row (fault seen on build 531 or 532). The list now waits for the backup
+      list instead of showing the pointer row alone, and `backup/pointer/info` now returns
+      `local_backups` (name, date, size) within its 10 s limit so the page shows those rows at
+      once and replaces them when the full list arrives (source and tests only, not seen).
+- [x] The four games of the super confirmation (whack-a-mole, four in a row, the coin and the
+      cookie) completed by keyboard. Seen working in a browser on build 531.
+- [x] The super confirmation's Cancel. Seen working in a browser on build 532.
+- [x] Four in a row shows all seven columns at 390 px and at 360 px. Seen in a browser on build
       532.
-- [ ] Checking for updates installs nothing. Seen in a browser on build 531 or 532.
-- [ ] Problem log: choosing the repository, and hiding names. Seen working in a browser on build
-      531 or 532.
-- [ ] Saving space: bringing a pointer back to a whole backup. Seen working in a browser on build
-      531 or 532.
-- [ ] Saving space with the registry not reachable: the page shows the unreachable state. Seen in a
-      browser on build 531 or 532. Fault seen there: the backups whole on this disk appeared about
-      2 s after the pointer row. The list now waits for the backup list instead of showing the
-      pointer row alone (source only, not seen); showing the local backups at once needs their
-      name, date and size from `backup/pointer/info`, which today returns only ids.
-- [ ] The four games of the super confirmation (whack-a-mole, four in a row, the coin and the
-      cookie) played by keyboard. Seen working in a browser on build 531 or 532. Fault seen there:
-      focus stayed on the page and Escape did nothing until one Tab. Focus now moves inside when it
-      opens and Escape works from anywhere (source only, not seen).
-- [ ] "Updating 2 of 2" during "Update everything" is missing in a second browser that opens the
-      page during the run. Not fixed: the queue lives only in the browser that started it (session
-      storage), and the server keeps no record of which updates are in the run, their order or the
-      total.
+- [x] The import chips wrap instead of running off the screen. Seen in a browser on build 532.
+- [x] The Sign-ins switch of an export is disabled when there are no sign-ins. Seen in a browser
+      on build 532.
+- [ ] Escape closes the super confirmation at once. Fault seen on build 531 or 532: focus stayed
+      on the page and Escape did nothing until one Tab. Focus now moves inside when it opens and
+      Escape works from anywhere (source only, not seen).
+- [ ] "Updating 2 of 2" during "Update everything" in a second browser that opens the page during
+      the run. The browser that started the run now reports a display-only record to the server
+      (`auto_update/run/*`), and other browsers show the same progress read-only, without controls
+      ([`docs/features/updates/README.md`](docs/features/updates/README.md)). Source and tests only;
+      the Python tests have not been run by the author, not seen in a browser.
 - [ ] A page title in both languages at 390 px ("Integrations · 整合") wrapped awkwardly. The
       separator and the second language now wrap together and never inside a word (source only,
       not seen).
@@ -105,7 +116,12 @@ commit); none of this is seen in a released build yet. Details in `HANDOFF.md`.
 - [ ] Still English in Cantonese and both modes: the sidebar page names, the Backup Manager state
       "Idle", and the Automations top bar title at 390 px. The page names in the page tab strip
       came from a list built with plain English text; it now follows the language mode, as the
-      older sidebar already did (source only, 20 November, not seen). The other two are not fixed.
+      older sidebar already did (source only, 20 November, not seen). "Idle" came from the shared
+      backend state words, which a sensor state cannot borrow from a generic entity word; such
+      integration states now take the shared Cantonese word when their English is exactly the
+      shared word (source and tests only, not seen). The Automations top bar title is not fixed:
+      reading the code, the title, the narrow title and the tab names all go through the language
+      mode and have Cantonese text, so the English title seen at 390 px is not explained yet.
 - [ ] Devices rows are 72 px and Automations rows 88 px, above the 64 px target (the same in
       English).
 - [ ] Two search icons side by side in the Entities top bar at 1440 px. Not yet compared with 525

@@ -115,7 +115,47 @@ export interface BackupPointerInfo {
    * in time. A pointer whose backup is not listed is then unknown, not missing.
    */
   unreachable?: string[];
+  /**
+   * The backups the agents on this system hold, newest first, with what a row
+   * shows. Listed within the same short limit, so the page can show them
+   * before the full backup list, which waits for every place, has arrived.
+   * Missing on an older Core.
+   */
+  local_backups?: LocalPointerBackup[];
 }
+
+export interface LocalPointerBackup {
+  backup_id: string;
+  name: string;
+  date: string;
+  size: number;
+  agent_ids: string[];
+}
+
+/**
+ * The backups on this system as backup list entries, for the rows shown
+ * until the full backup list arrives. Only this system's agents are known
+ * then, so no row claims a copy anywhere else.
+ */
+export const localBackupContents = (
+  info: Pick<BackupPointerInfo, "local_backups">
+): BackupContent[] =>
+  (info.local_backups ?? []).map((backup) => ({
+    backup_id: backup.backup_id,
+    name: backup.name,
+    date: backup.date,
+    agents: Object.fromEntries(
+      backup.agent_ids.map((agentId) => [
+        agentId,
+        { size: backup.size, protected: false },
+      ])
+    ),
+    failed_agent_ids: [],
+    failed_addons: [],
+    failed_folders: [],
+    extra_metadata: {},
+    with_automatic_settings: null,
+  }));
 
 export const KEEP_WHOLE_CHOICES: KeepWhole[] = [0, 1, 3];
 

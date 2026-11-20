@@ -74,6 +74,7 @@ from .backup_choice import (
     settings_from_store,
     wants_backup,
 )
+from .run_record import async_setup_run_record
 
 DOMAIN = "auto_update"
 
@@ -920,6 +921,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     websocket_api.async_register_command(hass, websocket_set_system_window)
     websocket_api.async_register_command(hass, websocket_set_system_wait)
     websocket_api.async_register_command(hass, websocket_retry_system)
+    async_setup_run_record(hass)
     return True
 
 

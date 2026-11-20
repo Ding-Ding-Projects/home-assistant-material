@@ -8846,7 +8846,14 @@
             "announce_stopped": "Stopped. The remaining updates were not started.",
             "announce_finished": "All updates finished",
             "waiting_usb": "Waiting for the update from USB storage to finish",
-            "queue_label": "the update queue"
+            "queue_label": "the update queue",
+            "shared_note_running": "This run was started in another browser and can only be stopped there.",
+            "shared_note_ended": "This run was started in another browser.",
+            "shared_started": "Started at {time}.",
+            "shared_state_finished": "Finished",
+            "shared_state_current": "Updating",
+            "shared_state_failed": "Failed",
+            "shared_state_waiting": "Waiting"
           },
           "build_data": {
             "retry": "Try again",

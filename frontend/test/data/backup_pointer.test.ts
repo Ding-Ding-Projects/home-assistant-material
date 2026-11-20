@@ -4,6 +4,7 @@ import {
   canRestore,
   isCheckProblem,
   keptReason,
+  localBackupContents,
   passResult,
   pointerErrorReason,
   pointerRisk,
@@ -254,5 +255,40 @@ describe("pointerRisk", () => {
     expect(pointerRisk({ pointers: 0, whole_here: 2 })).toBe("none");
     expect(pointerRisk({ pointers: 5, whole_here: 1 })).toBe("some");
     expect(pointerRisk({ pointers: 5, whole_here: 0 })).toBe("all");
+  });
+});
+
+// The saving space page shows the backups on this disk from the pointer info
+// before the full backup list arrives; they must read as whole here, with
+// their size, and never as copied anywhere else.
+describe("localBackupContents", () => {
+  it("turns the local backups into whole rows on this disk", () => {
+    const contents = localBackupContents({
+      local_backups: [
+        {
+          backup_id: "a",
+          name: "Nightly",
+          date: "2026-11-20T03:00:00+00:00",
+          size: 2048,
+          agent_ids: [CORE_LOCAL_AGENT],
+        },
+      ],
+    });
+    const rows = rowsOnThisSystem(
+      pointerRows(contents, { pointers: {}, kept: {}, places: [] })
+    );
+    expect(rows).toEqual([
+      expect.objectContaining({
+        backup_id: "a",
+        name: "Nightly",
+        state: "whole",
+        size: 2048,
+        in_registry: false,
+      }),
+    ]);
+  });
+
+  it("gives nothing for an older Core without local backups", () => {
+    expect(localBackupContents({})).toEqual([]);
   });
 });
