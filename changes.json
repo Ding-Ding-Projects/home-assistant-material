@@ -1,15 +1,62 @@
 {
  "format": 1,
- "generated": "2026-11-20T00:39:18Z",
+ "generated": "2026-11-20T01:30:10Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 529,
+ "newest_build": 530,
  "releases": [
+  {
+   "build": 530,
+   "core": "2026.11.2.530",
+   "supervisor": "2026.11.0.530",
+   "os": "18.5.530",
+   "tag": null,
+   "source": "d020d1276",
+   "date": "2026-11-19T20:07:35-05:00",
+   "previous_build": 529,
+   "changes": [
+    {
+     "sha": "d020d1276",
+     "date": "2026-11-19T20:07:35-05:00",
+     "title": "Export and import for integrations: the list, and each one's settings [skip ci]",
+     "areas": [
+      "core",
+      "docs",
+      "interface"
+     ],
+     "detail": "Built from the board. The Integrations page can now write a packing list of what is installed and what kinds of entity each integration makes, and read such a list back to show what is missing here. The list carries no sign-in, setting, address or state. Importing only compares; \"Set up\" opens each integration's own setup, one at a time, and a row counts as here only once an entry really exists. A file that is too big, the wrong kind or the wrong shape is refused whole, and every name in it is treated as text.\n\nEach integration can also export and import its own settings. Sign-ins are left out by default, by a deliberately suspicious filter: when in doubt, it is a sign-in. Asking for them needs the two keys and a strong password, and the file is then always encrypted with the project's existing primitives; no new cryptography was written. An import fits only the integration and entry version it names, shows every change by name first, applies after the two keys, keeps the earlier settings for Undo, and puts them back by itself if the integration refuses to load. It never creates an entry.\n\nSaid plainly in the documentation: for a locked file the password does travel over the signed",
+     "detail_yue": "整合嘅匯出同匯入：成張清單，同埋每個整合自己嘅設定。照設計板起。\n\n整合頁而家可以寫一張執行李清單：裝咗啲乜、每個整合會整出邊類 實體；亦可以讀返呢張清單，話你知呢度爭咗邊啲。清單入面冇登入 資料、設定、地址或者狀態。匯入只係比較；「設定」會逐個打開嗰個 整合自己嘅設定流程，要真係有咗先當係「已經喺度」。檔案太大、 種類唔啱或者格式唔啱，成個拒絕；入面每個名都只當文字處理。\n\n每個整合亦可以匯出同匯入自己嘅設定。登入資料預設唔放，個過濾器 刻意多疑：唔肯定就當係登入資料。要放嘅話，要過兩條鑰匙加一個夠 強嘅密碼，檔案一定用項目現有嘅加密元件加密，冇寫新嘅密碼學。 匯入只啱返佢寫明嗰個整合同版本，會先逐項列出改動嘅名稱，過咗 兩條鑰匙先套用，之前嘅設定會留低畀你還原；整合載入唔到嘅話會 自己還原。永遠唔會新增項目。\n\n文件照直講：鎖住嘅檔案，密碼喺嗰一次呼叫會經已登入嘅連線傳送； 唔會儲存、唔會寫入記錄、唔會傳返出嚟。\n\n檢查：前端型別得返兩個已知錯誤；前端測試 9689 個通過，三個已知 失敗；登入資料過濾器 35 個個案全過。伺服器嘅 websocket 測試冇行到 （今日冇容器引擎），亦未喺瀏覽器睇過。"
+    },
+    {
+     "sha": "901ed4ab4",
+     "date": "2026-11-19T19:40:03-05:00",
+     "title": "Checking for updates no longer installs the Supervisor [skip ci]",
+     "areas": [
+      "docs",
+      "core",
+      "interface",
+      "supervisor"
+     ],
+     "detail": "Reported by the owner: with automatic updates switched off, pressing \"Check for updates\" installed an update anyway. The Supervisor has a self-update setting of its own, on by default, that fires after every refresh of the version list, at its own start, on its daily reload and when the channel changes. The switches on the Updates page never touched it, so \"off\" was more of a suggestion.\n\nNow there is one installer per part. The Supervisor's own setting defaults to off, and Core turns it off on existing installs at every refresh; if that cannot be confirmed, the check skips asking the Supervisor to reload, so looking cannot install. The Supervisor is installed only by a press of Update, or by the owner's own switch inside its window with its waiting days and backup choice. The page shows a warning with \"Turn off now\" if the Supervisor still reports its own setting as on.\n\nSide effects, on purpose: Supervisor plugins no longer update on a schedule; they update as part of an install someone started, and the repair of a missing plugin at start is unchanged. Restoring a backup from a newer Supervisor now asks for the Supervisor to be updated first instead of doing it silently.\n\nCore an",
+     "detail_yue": "檢查更新唔再會順手裝埋 Supervisor。\n\n擁有人報告：自動更新熄咗，撳「檢查更新」竟然照裝。原來 Supervisor 自己有個自我更新設定，預設係開，每次重新整理版本清單、自己啟動、 每日重新載入、轉頻道之後都會發動。更新頁嗰啲開關從來冇掂過佢， 所以「熄咗」只係一個建議。\n\n而家每個部分只有一個安裝途徑。Supervisor 自己個設定預設關閉， 舊有安裝會由 Core 每次重新整理嗰陣熄咗佢；如果確認唔到，檢查就 唔會叫 Supervisor 重新載入，所以睇一睇唔會變成裝。Supervisor 只會喺有人撳「更新」，或者擁有人自己開咗開關、喺指定時段、過咗 等候日數同備份選擇之後先會裝。如果 Supervisor 仲話自己個設定係 開，頁面會出警告同「即刻閂咗佢」。\n\n刻意嘅副作用：Supervisor 插件唔再定時自己更新，而係跟住有人發起 嘅安裝一齊更新；啟動時修復唔見咗嘅插件就照舊。還原由較新 Supervisor 做嘅備份，而家會叫你先更新 Supervisor，唔再靜靜雞自己做。\n\nCore 同作業系統嘅途徑都查過，確認受各自開關管住；新測試證明開關 熄咗嗰陣檢查唔會裝任何嘢。檢查：前端型別得返兩個已知錯誤；前端 測試 9665 個通過，三個已知失敗。Python 測試冇行到（今日冇容器 引擎），亦未喺瀏覽器睇過。"
+    },
+    {
+     "sha": "4ea84e6d6",
+     "date": "2026-11-19T19:23:39-05:00",
+     "title": "Design board: export and import for integrations [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "A board drawn before any code. The Integrations page gets a packing list: export what is installed and what kinds of entity each one makes, and import such a list to see what is missing and set it up one at a time. The list carries no sign-in, no setting and no state, and importing installs nothing by itself.\n\nEach integration can also pack its own settings. Sign-ins stay out of the suitcase unless the owner asks, and then the suitcase is always locked with the owner's password behind the two keys. An import shows every change by name first, applies only after the two keys and the slider, and keeps the earlier settings so Undo works.",
+     "detail_yue": "設計板：整合嘅匯出同匯入，未寫程式先畫板。整合頁多咗一張執行李 清單：匯出裝咗啲乜、每個整合會整出邊類實體；匯入呢張清單就睇到 爭咗邊啲，再逐個設定。清單入面冇登入資料、冇設定、冇狀態，匯入 本身唔會自己裝任何嘢。\n\n每個整合亦可以將自己嘅設定執入喼。登入資料預設唔放入去，除非 擁有人要求；要放嘅話，個喼一定用擁有人嘅密碼鎖住，仲要過兩條 鑰匙。匯入會先逐項列出改動嘅名稱，過咗兩條鑰匙同滑桿先至套用， 之前嘅設定會留低，方便還原。"
+    }
+   ]
+  },
   {
    "build": 529,
    "core": "2026.11.2.529",
    "supervisor": "2026.11.0.529",
    "os": "18.5.529",
-   "tag": null,
+   "tag": "v2026.11.2.529",
    "source": "8ca81a026",
    "date": "2026-11-19T17:56:16-05:00",
    "previous_build": null,
