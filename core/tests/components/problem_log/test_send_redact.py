@@ -93,7 +93,7 @@ def test_names_of_things_become_stable_labels() -> None:
     assert first == "[camera 1] offline; [camera 1] retry"
     assert "[area 1]" in _redact("Garden shed light", book=book)
     restored = LabelBook.from_dict(book.as_dict())
-    assert _redact("front door again", book=restored) == "[camera 1] again"
+    assert _redact("Front door again", book=restored) == "[camera 1] again"
     assert _redact("Hallway hub and Alex Moreau", book=restored) == (
         "[device 1] and [person 1]"
     )
@@ -158,3 +158,216 @@ def test_error_inside_redaction_fails_closed(monkeypatch: pytest.MonkeyPatch) ->
 def test_hidden_placeholder() -> None:
     """Addresses become the plain placeholder the preview shows."""
     assert _redact("address: 192.0.2.7") == f"address: {HIDDEN}"
+
+
+# The names below are invented. The shapes follow lines seen in a real sent
+# log, where names given to things had rewritten the names of programs.
+
+PROGRAMS = ["sun", "weather", "todo", "update", "sensor", "recorder", "Sun"]
+THINGS_NAMED_LIKE_PROGRAMS = [
+    NamedThing(
+        "device_tracker.homeassistant",
+        "device_tracker",
+        entity_names("device_tracker.homeassistant", "homeassistant"),
+    ),
+    NamedThing(
+        "conversation.home_assistant",
+        "conversation",
+        entity_names("conversation.home_assistant", "Home Assistant"),
+    ),
+    NamedThing("sun.sun", "sun", entity_names("sun.sun", "Sun")),
+    NamedThing(
+        "weather.forecast_home",
+        "weather",
+        entity_names("weather.forecast_home", "Weather"),
+    ),
+    NamedThing("todo.shopping", "todo", entity_names("todo.shopping", "Todo")),
+    NamedThing("update.firmware", "update", entity_names("update.firmware", "update")),
+    NamedThing("sensor.plain", "sensor", entity_names("sensor.plain", "Sensor")),
+    NamedThing("device:9", "device", ("device",)),
+    NamedThing(
+        "light.willow_lamp",
+        "light",
+        entity_names("light.willow_lamp", "Willow lamp"),
+    ),
+    NamedThing("person.rowan", "person", entity_names("person.rowan", "Rowan Ashby")),
+]
+
+
+def _program_context() -> RedactContext:
+    return RedactContext(
+        secrets=["fast", "Tr0ub4dor&3xyz"],
+        hostnames=["homeassistant", "pi-cellar"],
+        coordinates=[52.3731, 4.8922],
+        things=THINGS_NAMED_LIKE_PROGRAMS,
+        program_names=PROGRAMS,
+    )
+
+
+@pytest.mark.parametrize(
+    ("text", "kept"),
+    [
+        pytest.param(
+            "- Logger: homeassistant.components.recorder.db_schema",
+            "homeassistant.components.recorder.db_schema",
+            id="logger_line",
+        ),
+        pytest.param(
+            "Error in homeassistant.helpers.entity while Willow lamp updated",
+            "homeassistant.helpers.entity",
+            id="logger_in_prose",
+        ),
+        pytest.param(
+            "Installation: Home Assistant OS or Supervised",
+            "Home Assistant OS or Supervised",
+            id="product_name",
+        ),
+        pytest.param(
+            "## Integrations set up\n\n- sun\n- weather\n- todo\n- update\n- sensor",
+            "- sun\n- weather\n- todo\n- update\n- sensor",
+            id="integration_list",
+        ),
+        pytest.param(
+            "Setting up sun took longer than expected",
+            "Setting up sun took",
+            id="domain_in_prose",
+        ),
+        pytest.param(
+            "device offline, update failed for Sensor",
+            "device offline, update failed for Sensor",
+            id="common_words",
+        ),
+        pytest.param(
+            'File "/usr/local/lib/python3.14/site-packages/dbus_fast/aio/message_bus.py", line 42, in call',
+            "dbus_fast/aio/message_bus.py",
+            id="library_path",
+        ),
+        pytest.param(
+            "dbus_fast.errors.DBusError: timeout",
+            "dbus_fast.errors.DBusError",
+            id="library_module",
+        ),
+        pytest.param(
+            "## 2026-11-18 18:52 update",
+            "## 2026-11-18 18:52 update",
+            id="heading_domain",
+        ),
+    ],
+)
+def test_program_names_survive(text: str, kept: str) -> None:
+    """Hiding names never rewrites the names of programs."""
+    result = redact_text(text, _program_context(), LabelBook())
+    assert kept in result
+    assert "[device tracker" not in result
+    assert "[conversation" not in result
+    assert "[removed]" not in result
+
+
+def test_given_names_still_hidden_beside_program_names() -> None:
+    """Invented names, ids, addresses and secrets go; the logger stays."""
+    text = (
+        "homeassistant.components.light: Willow lamp at 192.0.2.44 refused "
+        "light.willow_lamp for Rowan Ashby on pi-cellar with Tr0ub4dor&3xyz; "
+        "token=ghp_INVENTED0123 at 52.3731, 4.8922"
+    )
+    result = redact_text(text, _program_context(), LabelBook())
+    assert result.startswith("homeassistant.components.light: [light 1] at ")
+    for leak in (
+        "Willow lamp",
+        "willow_lamp",
+        "192.0.2.44",
+        "Rowan Ashby",
+        "pi-cellar",
+        "Tr0ub4dor&3xyz",
+        "ghp_INVENTED0123",
+        "52.3731",
+    ):
+        assert leak not in result
+
+
+def test_quoted_short_or_common_name_is_hidden() -> None:
+    """A name that is an ordinary word is hidden where it stands as a name."""
+    context = _program_context()
+    context.things.append(NamedThing("switch.den", "switch", ("Den",)))
+    result = redact_text(
+        "changed 'Den' and friendly_name: Den; the den door", context, LabelBook()
+    )
+    assert result == "changed '[switch 1]' and friendly_name: [switch 1]; the den door"
+
+
+@pytest.mark.parametrize(
+    "dump",
+    [
+        pytest.param(
+            "{'condition': 'state', 'entity_id': ['binary_sensor.maple_shed_window'], 'state': 'on'}",
+            id="repr_list",
+        ),
+        pytest.param(
+            'condition failed: {"entity_id": "binary_sensor.maple_shed_window"}',
+            id="json",
+        ),
+        pytest.param(
+            "entity_id: binary_sensor.maple_shed_window,lock.cellar_hatch",
+            id="comma_list",
+        ),
+        pytest.param(
+            "[binary_sensor.maple_shed_window, sensor.2nd_floor_cellar_hatch]",
+            id="object_id_starts_with_digit",
+        ),
+    ],
+)
+def test_entity_ids_hidden_in_structured_text(dump: str) -> None:
+    """Entity ids are labelled inside repr'd dicts and lists, known or not."""
+    result = redact_text(dump, _program_context(), LabelBook())
+    assert "maple_shed_window" not in result
+    assert "cellar_hatch" not in result
+    assert "[binary sensor 1]" in result
+
+
+def test_entity_id_label_matches_its_names() -> None:
+    """An entity id and its friendly name get the same label."""
+    result = redact_text(
+        "Willow lamp (light.willow_lamp) is off", _program_context(), LabelBook()
+    )
+    assert result == "[light 1] ([light 1]) is off"
+
+
+def test_file_names_are_not_entity_ids() -> None:
+    """A module file such as sensor.py keeps its name."""
+    result = redact_text(
+        "failed in sensor.py and update.json", _program_context(), LabelBook()
+    )
+    assert result == "failed in sensor.py and update.json"
+
+
+def test_short_secret_inside_a_name_is_not_cut() -> None:
+    """A short secret is hidden on its own, never inside a library name."""
+    result = redact_text(
+        "dbus_fast said the value fast", _program_context(), LabelBook()
+    )
+    assert result == "dbus_fast said the value [removed]"
+    redact_for_sending({"latest.md": "dbus_fast only"}, _program_context(), LabelBook())
+
+
+def test_hass_uuid_and_urls_stay_hidden() -> None:
+    """Values hidden before stay hidden."""
+    result = redact_text(
+        "hass_uuid 0123456789abcdef0123456789abcdef at "
+        "https://example.org/hook?key=QwErTy123",
+        _program_context(),
+        LabelBook(),
+    )
+    assert "0123456789abcdef0123456789abcdef" not in result
+    assert "QwErTy123" not in result
+    assert "[removed]" in result
+    assert HIDDEN in result
+
+
+def test_host_named_like_the_product_does_not_cut_loggers() -> None:
+    """The default host name "homeassistant" leaves logger names whole."""
+    result = redact_text(
+        "homeassistant.components.recorder.core: slow, see homeassistant.local",
+        _program_context(),
+        LabelBook(),
+    )
+    assert result == f"homeassistant.components.recorder.core: slow, see {HIDDEN}"

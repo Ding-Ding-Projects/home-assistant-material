@@ -1,6 +1,9 @@
 import {
   mdiAlertCircleOutline,
   mdiCheckCircleOutline,
+  mdiLock,
+  mdiLockOpenVariantOutline,
+  mdiRefresh,
   mdiUpload,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
@@ -10,36 +13,56 @@ import { formatTime24h } from "../../../common/datetime/format_time";
 import { fireEvent } from "../../../common/dom/fire_event";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import { copyToClipboard } from "../../../common/util/copy-clipboard";
+import {
+  getStoredPersonalVocabulary,
+  VOCABULARY_CHANGED_EVENT,
+} from "../../../common/vocabulary/personal-vocabulary";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-button-toggle-group";
+import "../../../components/ha-icon-button";
+import "../../../components/ha-select";
+import type { HaSelectSelectEvent } from "../../../components/ha-select";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
 import "../../../components/input/ha-input";
+import "../../../components/input/ha-input-search";
 import type { HaInput } from "../../../components/input/ha-input";
 import type {
   ProblemSendMode,
+  ProblemSendRepository,
+  ProblemSendRepositoryList,
   ProblemSendSettings,
   ProblemSendState,
 } from "../../../data/problem_log_send";
 import {
   cancelProblemSendDeviceSignIn,
+  chooseProblemSendRepository,
+  createProblemSendRepository,
   fetchProblemSendState,
+  listProblemSendRepositories,
   previewProblemSend,
   sendProblemLogNow,
   setProblemSendToken,
+  setProblemSendWording,
   signOutProblemSend,
   startProblemSendDeviceSignIn,
   testProblemSend,
   updateProblemSendSettings,
 } from "../../../data/problem_log_send";
+import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import { showToast } from "../../../util/toast";
 import type { HomeAssistant, ToggleButton } from "../../../types";
 import {
+  DEFAULT_REPOSITORY_NAME,
   minutesLeft,
   sendReadiness,
+  serverQuery,
   shortAddress,
+  shownRepositories,
+  validClientId,
+  validRepositoryName,
 } from "./problem-log-send-logic";
 
 declare global {
@@ -68,7 +91,16 @@ const KNOWN_ERRORS = new Set([
   "nothing_new",
   "no_client_id",
   "busy",
+  "missing_scope",
+  "name_taken",
+  "bad_name",
+  "unknown_organization",
+  "created_not_private",
+  "bad_wording",
+  "bad_client_id",
 ]);
+
+const SEARCH_DELAY_MS = 300;
 
 /**
  * Sending the problem log to a private repository.
@@ -111,6 +143,25 @@ export class HaProblemLogSend extends LitElement {
 
   @state() private _now = new Date();
 
+  @state() private _repoQuery = "";
+
+  @state() private _repoList?: ProblemSendRepositoryList;
+
+  @state() private _repoLoading = false;
+
+  @state() private _repoError?: string;
+
+  @state() private _newName = DEFAULT_REPOSITORY_NAME;
+
+  /** "" for the signed-in account, or an organization from the list. */
+  @state() private _newOwner = "";
+
+  @state() private _wordingLoaded = false;
+
+  private _search?: number;
+
+  private _listedFor?: string;
+
   private _tick?: number;
 
   private _poll?: number;
@@ -120,12 +171,40 @@ export class HaProblemLogSend extends LitElement {
     this._tick = window.setInterval(() => {
       this._now = new Date();
     }, 30000);
+    this._wordingLoaded = !!getStoredPersonalVocabulary();
+    window.addEventListener(VOCABULARY_CHANGED_EVENT, this._wordingChanged);
   }
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     window.clearInterval(this._tick);
     window.clearTimeout(this._poll);
+    window.clearTimeout(this._search);
+    window.removeEventListener(VOCABULARY_CHANGED_EVENT, this._wordingChanged);
+  }
+
+  private _wordingChanged = (): void => {
+    this._wordingLoaded = !!getStoredPersonalVocabulary();
+  };
+
+  protected updated(changed: PropertyValues<this>): void {
+    super.updated(changed);
+    const s = this.sendState;
+    // The list is read once the settings are open and a sign-in is stored.
+    if (
+      this.section === "status" &&
+      this._settingsOpen &&
+      s?.signed_in &&
+      this._listedFor !== s.sign_in_method &&
+      !this._repoLoading
+    ) {
+      this._listedFor = s.sign_in_method ?? "";
+      this._loadRepositories(false);
+    }
+    if (s && !s.signed_in && this._listedFor !== undefined) {
+      this._listedFor = undefined;
+      this._repoList = undefined;
+    }
   }
 
   protected willUpdate(changed: PropertyValues<this>): void {
@@ -326,24 +405,20 @@ export class HaProblemLogSend extends LitElement {
     return html`
       <section class="card setup">
         <div class="overline">${this._l("setup_title")}</div>
-        <div class="field">
-          <ha-input
-            .label=${this._l("repository")}
-            .hint=${this._l("repository_hint")}
-            .value=${this._repository}
-            inputmode="url"
-            autocomplete="off"
-            @input=${this._repositoryInput}
-          ></ha-input>
-          <ha-button
-            appearance="filled"
-            size="small"
-            .disabled=${this._busy || this._repository.trim() === s.repository}
-            @click=${this._saveRepository}
-            >${this._l("save_repository")}</ha-button
-          >
-        </div>
+        <div class="step">${this._l("step_sign_in")}</div>
         ${s.signed_in ? this._renderSignedIn(s) : this._renderSignIn(s)}
+        <div class="divider"></div>
+        <div class="step">${this._l("step_where")}</div>
+        ${s.signed_in ? this._renderWhere(s) : nothing}
+        ${
+          s.signed_in
+            ? html`<details class="help">
+                <summary>${this._l("type_address")}</summary>
+                ${this._renderAddress(s)}
+              </details>`
+            : this._renderAddress(s)
+        }
+        ${this._renderWording(s)}
         ${
           check?.ok
             ? html`<div class="ok">
@@ -394,6 +469,204 @@ export class HaProblemLogSend extends LitElement {
           }
         </div>
       </section>
+    `;
+  }
+
+  private _renderAddress(s: ProblemSendState): TemplateResult {
+    return html`<div class="field">
+      <ha-input
+        .label=${this._l("repository")}
+        .hint=${this._l("repository_hint")}
+        .value=${this._repository}
+        inputmode="url"
+        autocomplete="off"
+        @input=${this._repositoryInput}
+      ></ha-input>
+      <ha-button
+        appearance="filled"
+        size="small"
+        .disabled=${this._busy || this._repository.trim() === s.repository}
+        @click=${this._saveRepository}
+        >${this._l("save_repository")}</ha-button
+      >
+    </div>`;
+  }
+
+  private _renderWhere(s: ProblemSendState): TemplateResult {
+    const list = this._repoList;
+    const shown = list
+      ? shownRepositories(list.repositories, this._repoQuery)
+      : [];
+    const privateCount = list
+      ? list.repositories.filter((repo) => repo.private).length
+      : 0;
+    return html`
+      <div class="search-row">
+        <ha-input-search
+          .label=${this._l("where_search")}
+          .value=${this._repoQuery}
+          @input=${this._repoQueryInput}
+        ></ha-input-search>
+        <ha-icon-button
+          .path=${mdiRefresh}
+          .label=${this._l("where_refresh")}
+          .disabled=${this._repoLoading}
+          @click=${this._refreshRepositories}
+        ></ha-icon-button>
+      </div>
+      ${
+        list?.missing_scope
+          ? html`<ha-alert alert-type="warning"
+              >${this._l("error.missing_scope")}</ha-alert
+            >`
+          : nothing
+      }
+      ${
+        this._repoError
+          ? html`<ha-alert alert-type="error">${this._repoError}</ha-alert>`
+          : nothing
+      }
+      ${
+        this._repoLoading && !list
+          ? html`<div class="center">
+              <ha-spinner .ariaLabel=${this._l("where_loading")}></ha-spinner>
+            </div>`
+          : list
+            ? html`
+                <p class="note" aria-live="polite">
+                  ${this._l("where_count", {
+                    private: privateCount,
+                    shown: shown.length,
+                  })}
+                  ${list.truncated ? this._l("where_truncated") : nothing}
+                </p>
+                ${
+                  shown.length
+                    ? html`<div
+                        class="repos"
+                        role="listbox"
+                        aria-label=${this._l("where_list")}
+                      >
+                        ${shown.map((repo) => this._renderRepository(s, repo))}
+                      </div>`
+                    : html`<p class="note">${this._l("where_none")}</p>`
+                }
+              `
+            : nothing
+      }
+      ${this._renderCreate(list)}
+    `;
+  }
+
+  private _renderRepository(
+    s: ProblemSendState,
+    repo: ProblemSendRepository
+  ): TemplateResult {
+    const chosen = repo.full_name.toLowerCase() === s.repository.toLowerCase();
+    let detail: string;
+    if (!repo.private) {
+      detail = this._l("where_public");
+    } else if (repo.has_files && !chosen) {
+      detail = this._l("where_has_files");
+    } else if (chosen && s.folder) {
+      detail = this._l("where_in_folder");
+    } else {
+      detail = repo.pushed_at
+        ? this._l("where_changed", { time: this._dayTime(repo.pushed_at) })
+        : this._l("private");
+    }
+    return html`<div
+      class="repo ${repo.private ? "" : "unusable"} ${chosen ? "chosen" : ""}"
+      role="option"
+      tabindex=${repo.private ? "0" : "-1"}
+      aria-selected=${chosen ? "true" : "false"}
+      aria-disabled=${repo.private && !this._busy ? "false" : "true"}
+      data-repository=${repo.full_name}
+      data-usable=${repo.private ? "yes" : "no"}
+      @click=${this._chooseClick}
+      @keydown=${this._chooseKey}
+    >
+      <ha-svg-icon
+        .path=${repo.private ? mdiLock : mdiLockOpenVariantOutline}
+      ></ha-svg-icon>
+      <div class="text">
+        <div class="primary mono">${repo.full_name}</div>
+        <div class="secondary">${detail}</div>
+      </div>
+      ${
+        chosen
+          ? html`<ha-svg-icon
+              class="tick"
+              .path=${mdiCheckCircleOutline}
+            ></ha-svg-icon>`
+          : nothing
+      }
+    </div>`;
+  }
+
+  private _renderCreate(list?: ProblemSendRepositoryList): TemplateResult {
+    const name = this._newName.trim();
+    const valid = validRepositoryName(name);
+    const owners = list?.organizations ?? [];
+    return html`
+      <div class="create">
+        <div class="primary">${this._l("create_title")}</div>
+        <div class="field">
+          <ha-input
+            .label=${this._l("create_name")}
+            .value=${this._newName}
+            .hint=${name && !valid ? this._l("create_name_invalid") : ""}
+            maxlength="100"
+            autocomplete="off"
+            spellcheck="false"
+            @input=${this._newNameInput}
+          ></ha-input>
+          ${
+            owners.length
+              ? html`<ha-select
+                  .label=${this._l("create_owner")}
+                  .value=${this._newOwner}
+                  .options=${[
+                    { value: "", label: this._l("create_owner_you") },
+                    ...owners.map((owner) => ({ value: owner, label: owner })),
+                  ]}
+                  @selected=${this._newOwnerSelected}
+                ></ha-select>`
+              : nothing
+          }
+        </div>
+        <p class="note">${this._l("create_note")}</p>
+        <ha-button
+          appearance="outlined"
+          .disabled=${this._busy || !valid}
+          @click=${this._create}
+          >${this._l("create_button")}</ha-button
+        >
+      </div>
+    `;
+  }
+
+  private _renderWording(s: ProblemSendState): TemplateResult | typeof nothing {
+    if (!this._wordingLoaded && !s.wording_in_use) {
+      return nothing;
+    }
+    return html`
+      <div class="divider"></div>
+      <div class="step">${this._l("step_wording")}</div>
+      <label class="switch-row">
+        <span>${this._l("wording_switch")}</span>
+        <ha-switch
+          .checked=${s.wording_in_use}
+          .disabled=${this._busy || (!this._wordingLoaded && !s.wording_in_use)}
+          @change=${this._wordingSwitch}
+        ></ha-switch>
+      </label>
+      <p class="note">${this._l("wording_note")}</p>
+      ${
+        s.wording_in_use && !this._wordingLoaded
+          ? html`<p class="note">${this._l("wording_not_here")}</p>`
+          : nothing
+      }
     `;
   }
 
@@ -458,17 +731,31 @@ export class HaProblemLogSend extends LitElement {
         <details class="help">
           <summary>${this._l("client_id")}</summary>
           <p>${this._l("client_id_help")}</p>
+          <p>${this._l("client_id_where")}</p>
+          <p>${this._l("client_id_public")}</p>
+          <p>${this._l("app_check")}</p>
           <div class="field">
             <ha-input
               .label=${this._l("client_id")}
               .value=${this._clientId}
+              .hint=${
+                this._clientId.trim() && !validClientId(this._clientId.trim())
+                  ? this._l("client_id_invalid")
+                  : ""
+              }
               autocomplete="off"
+              spellcheck="false"
               @input=${this._clientIdInput}
             ></ha-input>
             <ha-button
               appearance="plain"
               size="small"
-              .disabled=${this._busy || this._clientId.trim() === s.client_id}
+              .disabled=${
+                this._busy ||
+                this._clientId.trim() === s.client_id ||
+                (!!this._clientId.trim() &&
+                  !validClientId(this._clientId.trim()))
+              }
               @click=${this._saveClientId}
               >${this._l("save_client_id")}</ha-button
             >
@@ -507,6 +794,7 @@ export class HaProblemLogSend extends LitElement {
                   minutes: minutesLeft(device.expires_at, this._now),
                 })}
               </p>
+              <p class="note">${this._l("app_check")}</p>
               <div class="buttons">
                 <ha-button
                   appearance="plain"
@@ -658,6 +946,122 @@ export class HaProblemLogSend extends LitElement {
 
   private _saveClientId(): void {
     this._update({ client_id: this._clientId.trim() });
+  }
+
+  private _dayTime(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+    const day = new Intl.DateTimeFormat(this.hass.locale.language, {
+      day: "numeric",
+      month: "short",
+      timeZone: this.hass.config.time_zone,
+    }).format(date);
+    return `${day} ${this._time(date)}`;
+  }
+
+  private async _loadRepositories(refresh: boolean): Promise<void> {
+    this._repoLoading = true;
+    this._repoError = undefined;
+    try {
+      this._repoList = await listProblemSendRepositories(
+        this.hass,
+        serverQuery(this._repoQuery),
+        refresh
+      );
+    } catch (err: any) {
+      this._repoError = this._errorText(err?.code ?? "");
+    } finally {
+      this._repoLoading = false;
+    }
+  }
+
+  private _repoQueryInput(ev: Event): void {
+    this._repoQuery = (ev.target as HaInput).value ?? "";
+    window.clearTimeout(this._search);
+    this._search = window.setTimeout(
+      () => this._loadRepositories(false),
+      SEARCH_DELAY_MS
+    );
+  }
+
+  private _refreshRepositories(): void {
+    this._loadRepositories(true);
+  }
+
+  private _chooseClick(ev: Event): void {
+    const target = ev.currentTarget as HTMLElement;
+    if (target.dataset.usable !== "yes" || this._busy) {
+      return;
+    }
+    this._choose(target.dataset.repository ?? "");
+  }
+
+  private _chooseKey(ev: KeyboardEvent): void {
+    if (ev.key !== "Enter" && ev.key !== " ") {
+      return;
+    }
+    ev.preventDefault();
+    this._chooseClick(ev);
+  }
+
+  private async _choose(repository: string): Promise<void> {
+    if (!repository) {
+      return;
+    }
+    await this._run(
+      () => chooseProblemSendRepository(this.hass, repository),
+      this._l("chosen", { repository })
+    );
+    await this._loadRepositories(false);
+  }
+
+  private _newNameInput(ev: Event): void {
+    this._newName = (ev.target as HaInput).value ?? "";
+  }
+
+  private _newOwnerSelected(ev: HaSelectSelectEvent): void {
+    this._newOwner = ev.detail.value ?? "";
+  }
+
+  private async _create(): Promise<void> {
+    const name = this._newName.trim();
+    if (!validRepositoryName(name)) {
+      return;
+    }
+    const owner = this._newOwner;
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("create_confirm_title"),
+      text: this._l("create_confirm_text", {
+        repository: owner ? `${owner}/${name}` : name,
+      }),
+      confirmText: this._l("create_button"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    await this._run(
+      () => createProblemSendRepository(this.hass, name, owner || null),
+      this._l("created")
+    );
+    await this._loadRepositories(true);
+  }
+
+  private async _wordingSwitch(ev: Event): Promise<void> {
+    const target = ev.target as HTMLInputElement;
+    if (!target.checked) {
+      await this._run(() => setProblemSendWording(this.hass, null));
+      return;
+    }
+    const entries = getStoredPersonalVocabulary();
+    if (!entries) {
+      target.checked = false;
+      this._wordingLoaded = false;
+      return;
+    }
+    await this._run(() => setProblemSendWording(this.hass, entries));
   }
 
   private async _saveToken(): Promise<void> {
@@ -846,7 +1250,7 @@ export class HaProblemLogSend extends LitElement {
       display: flex;
       align-items: center;
       gap: var(--ha-space-2);
-      min-height: 44px;
+      min-height: 48px;
     }
     .code,
     .mono {
@@ -864,7 +1268,7 @@ export class HaProblemLogSend extends LitElement {
       display: flex;
       align-items: center;
       gap: var(--ha-space-2);
-      min-height: 44px;
+      min-height: 48px;
     }
     .ok {
       color: var(--success-color);
@@ -893,11 +1297,11 @@ export class HaProblemLogSend extends LitElement {
       flex: 1 1 160px;
     }
     ha-button {
-      min-height: 44px;
+      min-height: 48px;
     }
     details.help summary {
       cursor: pointer;
-      min-height: 44px;
+      min-height: 48px;
       display: flex;
       align-items: center;
       color: var(--primary-color);
@@ -908,7 +1312,7 @@ export class HaProblemLogSend extends LitElement {
     }
     .files summary {
       cursor: pointer;
-      min-height: 44px;
+      min-height: 48px;
       display: flex;
       align-items: center;
     }
@@ -927,6 +1331,64 @@ export class HaProblemLogSend extends LitElement {
       display: flex;
       justify-content: center;
       padding: var(--ha-space-4);
+    }
+    .step {
+      font-weight: var(--ha-font-weight-medium);
+      margin: var(--ha-space-2) 0;
+    }
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-1);
+    }
+    .search-row ha-input-search {
+      flex: 1;
+      min-width: 0;
+    }
+    .repos {
+      display: grid;
+      gap: var(--ha-space-1);
+      max-height: 360px;
+      overflow: auto;
+    }
+    .repo {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-3);
+      min-height: 48px;
+      padding: var(--ha-space-2) var(--ha-space-3);
+      border-radius: var(--ha-border-radius-lg, 12px);
+      border: 1px solid var(--divider-color);
+      cursor: pointer;
+      --mdc-icon-size: 20px;
+    }
+    .repo:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .repo.chosen {
+      border-color: var(--primary-color);
+      background: rgba(var(--rgb-primary-color), 0.08);
+    }
+    .repo.unusable {
+      cursor: not-allowed;
+      color: var(--secondary-text-color);
+      background: var(--secondary-background-color);
+    }
+    .repo .tick {
+      color: var(--primary-color);
+      flex: none;
+    }
+    .create {
+      display: grid;
+      gap: var(--ha-space-2);
+      margin-top: var(--ha-space-3);
+      padding-top: var(--ha-space-3);
+      border-top: 1px dashed var(--divider-color);
+      justify-items: start;
+    }
+    .create .field {
+      width: 100%;
     }
   `;
 }

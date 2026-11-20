@@ -6,7 +6,7 @@ here are not yet redacted; the caller passes them through
 and the real send come from the same code path.
 """
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, tzinfo
 import json
@@ -18,6 +18,12 @@ DETAIL_LIMIT = 4000
 STATUS_SENT = "sent"
 STATUS_NOT_SENT = "not_sent"
 STATUS_HELD = "held"
+
+# Written as the first line of README.md, so a later send can tell that the
+# repository is a problem log and its files belong at the root.
+README_MARKER = "<!-- problem-log: home-assistant-material -->"
+# The opening sentence of the README written before the marker existed.
+_LEGACY_README = "This repository is written by Home Assistant Material."
 
 README = """# Problem log
 
@@ -38,6 +44,20 @@ or changes the home.
 - `problems/index.json`: every problem in this send, for tools.
 - `system.md`: the build, the versions and which integrations are set up.
 """
+
+
+Words = Callable[[str], str]
+"""Rewrites the feature's own wording; never given log text."""
+
+
+def _same(text: str) -> str:
+    return text
+
+
+def is_problem_log_readme(text: str) -> bool:
+    """Return True if a README was written by this feature."""
+    head = text[:4000]
+    return README_MARKER in head or _LEGACY_README in " ".join(head.split())
 
 
 @dataclass(frozen=True)
@@ -160,11 +180,11 @@ def _date(problem: Problem, zone: tzinfo) -> str:
     return moment.strftime("%Y-%m-%d") if moment else "unknown"
 
 
-def _seen(count: int) -> str:
-    return "seen once" if count == 1 else f"seen {count} times"
+def _seen(count: int, words: Words) -> str:
+    return words("seen once") if count == 1 else words(f"seen {count} times")
 
 
-def _section(problem: Problem, zone: tzinfo) -> str:
+def _section(problem: Problem, zone: tzinfo, words: Words) -> str:
     detail = problem.detail.strip()
     if len(detail) > DETAIL_LIMIT:
         detail = detail[:DETAIL_LIMIT] + "\n[truncated]"
@@ -174,10 +194,10 @@ def _section(problem: Problem, zone: tzinfo) -> str:
         "",
         problem.title or problem.logger,
         "",
-        f"- {problem.level or 'WARNING'}, {_seen(problem.count)}, "
-        f"first {_local(problem.first_seen, zone, '%Y-%m-%d %H:%M')}",
-        f"- Logger: {problem.logger}",
-        f"- Build: {problem.version}",
+        f"- {problem.level or 'WARNING'}, {_seen(problem.count, words)}, "
+        f"{words('first')} {_local(problem.first_seen, zone, '%Y-%m-%d %H:%M')}",
+        f"- {words('Logger')}: {problem.logger}",
+        f"- {words('Build')}: {problem.version}",
     ]
     if detail:
         lines += ["", "~~~~text", detail, "~~~~"]
@@ -189,10 +209,16 @@ def build_files(
     held: Iterable[str],
     system: SystemInfo,
     zone: tzinfo,
+    *,
+    words: Words = _same,
+    folder: str = "",
 ) -> dict[str, str]:
     """Return the files of one send: path to text, before redaction.
 
-    Held problems are left out. latest.md lists the newest first.
+    Held problems are left out. latest.md lists the newest first. `words`
+    rewrites only this feature's own headings, labels and README; log lines,
+    logger names, versions and integration names are never passed to it.
+    `folder` ("" or "problem-log/") is put in front of every path.
     """
     held_set = set(held)
     shown = sorted(
@@ -200,20 +226,25 @@ def build_files(
         key=lambda p: (p.last_seen, p.file),
         reverse=True,
     )
-    latest = ["# Latest problems", "", "Newest first."]
+    latest = [f"# {words('Latest problems')}", "", words("Newest first.")]
     if not shown:
-        latest += ["", "No problems to show."]
+        latest += ["", words("No problems to show.")]
     latest_text = "\n".join(latest) + "\n"
-    latest_text += "".join("\n" + _section(p, zone) for p in shown[:LATEST_LIMIT])
+    latest_text += "".join(
+        "\n" + _section(p, zone, words) for p in shown[:LATEST_LIMIT]
+    )
 
     by_date: dict[str, list[Problem]] = {}
     for problem in shown:
         by_date.setdefault(_date(problem, zone), []).append(problem)
 
-    files: dict[str, str] = {"README.md": README, "latest.md": latest_text}
+    files: dict[str, str] = {
+        "README.md": f"{README_MARKER}\n\n{words(README)}",
+        "latest.md": latest_text,
+    }
     for date, items in sorted(by_date.items()):
-        text = f"# Problems last seen on {date}\n"
-        text += "".join("\n" + _section(p, zone) for p in items)
+        text = f"# {words('Problems last seen on')} {date}\n"
+        text += "".join("\n" + _section(p, zone, words) for p in items)
         files[f"problems/{date}.md"] = text
 
     index = [
@@ -237,22 +268,53 @@ def build_files(
 
     integrations = "\n".join(f"- {name}" for name in sorted(set(system.integrations)))
     files["system.md"] = (
-        "# System\n\n"
-        f"- Build: {system.build}\n"
-        f"- Python: {system.python}\n"
-        f"- Installation: {system.installation}\n"
-        f"- Operating system: {system.operating_system}\n"
-        f"- Architecture: {system.architecture}\n"
-        "\n## Integrations set up\n\n"
-        f"{integrations or '- none'}\n"
+        f"# {words('System')}\n\n"
+        f"- {words('Build')}: {system.build}\n"
+        f"- {words('Python')}: {system.python}\n"
+        f"- {words('Installation')}: {system.installation}\n"
+        f"- {words('Operating system')}: {system.operating_system}\n"
+        f"- {words('Architecture')}: {system.architecture}\n"
+        f"\n## {words('Integrations set up')}\n\n"
+        f"{integrations or '- ' + words('none')}\n"
     )
-    return files
+    return {f"{folder}{path}": text for path, text in files.items()}
 
 
-def commit_message(count: int, moment: datetime) -> str:
+def commit_message(count: int, moment: datetime, words: Words = _same) -> str:
     """Return the message of the one commit a send makes."""
-    noun = "problem" if count == 1 else "problems"
-    return f"Problem log: {count} {noun}, sent {moment.strftime('%Y-%m-%d %H:%M')}"
+    noun = words("problem") if count == 1 else words("problems")
+    return (
+        f"{words('Problem log')}: {count} {noun}, "
+        f"{words('sent')} {moment.strftime('%Y-%m-%d %H:%M')}"
+    )
+
+
+_NAME_CHARACTERS = set(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_."
+)
+_OWNER_CHARACTERS = set(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-"
+)
+
+
+def valid_repository_name(name: str) -> bool:
+    """Return True if GitHub accepts the text as a new repository's name."""
+    return (
+        0 < len(name) <= 100
+        and set(name) <= _NAME_CHARACTERS
+        and name not in {".", ".."}
+        and not name.lower().endswith(".git")
+    )
+
+
+def valid_owner_name(name: str) -> bool:
+    """Return True if the text can be a GitHub account or organization name."""
+    return (
+        0 < len(name) <= 39
+        and set(name) <= _OWNER_CHARACTERS
+        and not name.startswith("-")
+        and not name.endswith("-")
+    )
 
 
 def parse_repository(address: str) -> tuple[str, str] | None:

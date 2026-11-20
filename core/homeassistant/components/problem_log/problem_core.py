@@ -43,6 +43,16 @@ _DIGITS = re.compile(r"\d+")
 _SLUG_UNSAFE = re.compile(r"[^a-z0-9._-]+")
 
 
+SHORT_SECRET = 8
+
+
+def secret_pattern(secret: str) -> re.Pattern[str]:
+    """Return the pattern that finds one exact secret value."""
+    if len(secret) >= SHORT_SECRET:
+        return re.compile(re.escape(secret))
+    return re.compile(rf"(?<![A-Za-z0-9_]){re.escape(secret)}(?![A-Za-z0-9_])")
+
+
 def _redact_long_run(match: re.Match[str]) -> str:
     """Remove a long base64-like run, but keep ordinary long paths and words."""
     run = match.group(0)
@@ -65,11 +75,13 @@ def _redact_pair(match: re.Match[str]) -> str:
 def redact(text: str, secrets: Iterable[str] = ()) -> str:
     """Replace anything that looks confidential with "[removed]".
 
-    `secrets` are exact values (for example read from secrets.yaml) that are
-    removed wherever they appear, whatever surrounds them.
+    `secrets` are exact values (for example read from secrets.yaml). A value of
+    `SHORT_SECRET` characters or more is removed wherever it appears; a shorter
+    one only where it stands on its own, so that a short value such as "fast"
+    does not cut a library name such as "dbus_fast" in half.
     """
     for secret in sorted({s for s in secrets if s and len(s) >= 4}, key=len, reverse=True):
-        text = text.replace(secret, REMOVED)
+        text = secret_pattern(secret).sub(REMOVED, text)
     text = _URL_CREDENTIALS.sub(lambda m: f"{m.group('scheme')}{REMOVED}@", text)
     text = _BEARER.sub(lambda m: f"{m.group(1)} {REMOVED}", text)
     text = _SENSITIVE_PAIR.sub(_redact_pair, text)

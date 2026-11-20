@@ -219,6 +219,94 @@ async def ws_send_now(
     return await sender.async_send()
 
 
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "problem_log/send/repositories",
+        probatio.Optional("query", default=""): probatio.All(
+            str, probatio.Length(max=100)
+        ),
+        probatio.Optional("refresh", default=False): bool,
+    }
+)
+@websocket_api.async_response
+@_refusals
+async def ws_repositories(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+    sender: ProblemLogSender,
+) -> dict[str, Any]:
+    """List the owner's repositories that match the typed text."""
+    return await sender.async_list_repositories(msg["query"], refresh=msg["refresh"])
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "problem_log/send/choose",
+        probatio.Required("repository"): probatio.All(
+            str, probatio.Length(min=3, max=140)
+        ),
+    }
+)
+@websocket_api.async_response
+@_refusals
+async def ws_choose(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+    sender: ProblemLogSender,
+) -> dict[str, Any]:
+    """Choose a repository from the list; a public one is refused."""
+    await sender.async_choose(msg["repository"])
+    return await sender.async_state()
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "problem_log/send/create",
+        probatio.Required("name"): probatio.All(str, probatio.Length(min=1, max=100)),
+        probatio.Optional("organization"): probatio.Any(
+            None, probatio.All(str, probatio.Length(max=39))
+        ),
+    }
+)
+@websocket_api.async_response
+@_refusals
+async def ws_create(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+    sender: ProblemLogSender,
+) -> dict[str, Any]:
+    """Make a new private repository and choose it."""
+    await sender.async_create(msg["name"], msg.get("organization"))
+    return await sender.async_state()
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "problem_log/send/wording",
+        # Checked in full by the sender; never logged or returned.
+        probatio.Required("entries"): probatio.Any(None, dict),
+    }
+)
+@websocket_api.async_response
+@_refusals
+async def ws_wording(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+    sender: ProblemLogSender,
+) -> dict[str, Any]:
+    """Keep the owner's wording for what is sent, or delete the kept copy."""
+    await sender.async_set_wording(msg["entries"])
+    return await sender.async_state()
+
+
 @callback
 def async_register(hass: HomeAssistant) -> None:
     """Register every command."""
@@ -233,5 +321,9 @@ def async_register(hass: HomeAssistant) -> None:
         ws_preview,
         ws_test,
         ws_send_now,
+        ws_repositories,
+        ws_choose,
+        ws_create,
+        ws_wording,
     ):
         websocket_api.async_register_command(hass, handler)

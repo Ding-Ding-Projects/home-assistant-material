@@ -1,4 +1,7 @@
+import { searchMatcher } from "../../../common/regex/filter";
+import { isRegexQuery } from "../../../common/regex/query";
 import type {
+  ProblemSendRepository,
   ProblemSendState,
   ProblemSendStatus,
 } from "../../../data/problem_log_send";
@@ -88,3 +91,43 @@ export const minutesLeft = (expiresAt: string | null, now: Date): number => {
  */
 export const shortAddress = (url: string): string =>
   url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+
+/** The name offered for a new repository. */
+export const DEFAULT_REPOSITORY_NAME = "home-problem-log";
+
+/** Whether GitHub accepts the text as a new repository's name. */
+export const validRepositoryName = (name: string): boolean =>
+  name.length > 0 &&
+  name.length <= 100 &&
+  /^[A-Za-z0-9._-]+$/.test(name) &&
+  name !== "." &&
+  name !== ".." &&
+  !name.toLowerCase().endsWith(".git");
+
+/**
+ * Whether the text has the shape of a GitHub app's client ID. The backend
+ * checks the same shape; a client ID is public, not a secret.
+ */
+export const validClientId = (text: string): boolean =>
+  /^[A-Za-z0-9][A-Za-z0-9._-]{9,39}$/.test(text);
+
+/**
+ * The text sent to the server's own search: plain text as typed, nothing
+ * for a pattern, which is then matched here against the whole list.
+ */
+export const serverQuery = (raw: string): string =>
+  isRegexQuery(raw) ? "" : raw.trim();
+
+/**
+ * The repositories to show for the search text, private ones first. The
+ * server already filtered plain text; a pattern is matched here.
+ */
+export const shownRepositories = (
+  repositories: readonly ProblemSendRepository[],
+  raw: string
+): ProblemSendRepository[] => {
+  const matches = searchMatcher(raw);
+  return repositories
+    .filter((repo) => matches(repo.full_name))
+    .sort((a, b) => Number(b.private) - Number(a.private));
+};

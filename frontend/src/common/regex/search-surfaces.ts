@@ -312,6 +312,12 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "The user's own saved cards, by name and card type",
   },
   {
+    file: "panels/config/problem-log/ha-problem-log-send.ts",
+    searches:
+      "The signed-in GitHub account's repositories, when choosing where the problem log is sent. Plain text is also searched on the server; a pattern is matched on the page",
+    matcher: "panels/config/problem-log/problem-log-send-logic.ts",
+  },
+  {
     file: "panels/lovelace/editor/card-editor/hui-suggestion-entity-tree.ts",
     searches: "Entities to suggest cards for",
     matcher: FUZZY,

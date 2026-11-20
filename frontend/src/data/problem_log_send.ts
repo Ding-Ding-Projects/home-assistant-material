@@ -50,6 +50,10 @@ export interface ProblemSendState {
   keep_names: boolean;
   client_id: string;
   device_sign_in_available: boolean;
+  /** "" for the root of the repository, or "problem-log/" beside other files. */
+  folder: string;
+  /** Whether the owner's wording is kept for what is sent. Never the wording itself. */
+  wording_in_use: boolean;
   signed_in: boolean;
   sign_in_method: "device" | "token" | null;
   last_sent: string | null;
@@ -114,4 +118,75 @@ export const testProblemSend = (hass: HomeAssistant) =>
 export const sendProblemLogNow = (hass: HomeAssistant) =>
   hass.callWS<{ sent: number; commit: string; at: string }>({
     type: "problem_log/send/send_now",
+  });
+
+/** One of the owner's repositories, as the sign-in sees it. */
+export interface ProblemSendRepository {
+  full_name: string;
+  owner: string;
+  name: string;
+  /** Only a private repository can be chosen; the server refuses any other. */
+  private: boolean;
+  visibility: string;
+  can_push: boolean;
+  /** Whether it already holds files; the log then goes in its own folder. */
+  has_files: boolean;
+  pushed_at: string | null;
+  selected: boolean;
+}
+
+export interface ProblemSendRepositoryList {
+  repositories: ProblemSendRepository[];
+  /** How many repositories were read in all, before the search. */
+  total: number;
+  /** Organizations seen in the list, where a new repository can be made. */
+  organizations: string[];
+  /** True when there were more repositories than are read. */
+  truncated: boolean;
+  /** The permission the sign-in lacks to see private repositories, or null. */
+  missing_scope: string | null;
+}
+
+export const listProblemSendRepositories = (
+  hass: HomeAssistant,
+  query: string,
+  refresh = false
+) =>
+  hass.callWS<ProblemSendRepositoryList>({
+    type: "problem_log/send/repositories",
+    query,
+    refresh,
+  });
+
+export const chooseProblemSendRepository = (
+  hass: HomeAssistant,
+  repository: string
+) =>
+  hass.callWS<ProblemSendState>({
+    type: "problem_log/send/choose",
+    repository,
+  });
+
+export const createProblemSendRepository = (
+  hass: HomeAssistant,
+  name: string,
+  organization: string | null
+) =>
+  hass.callWS<ProblemSendState>({
+    type: "problem_log/send/create",
+    name,
+    organization,
+  });
+
+/**
+ * Keeps the owner's checked wording on the server for what is sent, or
+ * deletes the kept copy when given null.
+ */
+export const setProblemSendWording = (
+  hass: HomeAssistant,
+  entries: Record<string, string> | null
+) =>
+  hass.callWS<ProblemSendState>({
+    type: "problem_log/send/wording",
+    entries,
   });

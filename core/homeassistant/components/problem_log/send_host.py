@@ -13,6 +13,8 @@ from typing import Any
 
 import aiohttp
 
+from .send_files import is_problem_log_readme
+
 API = "https://api.github.com"
 WEB = "https://github.com"
 DEVICE_SCOPE = "repo"
@@ -25,6 +27,16 @@ ERROR_NO_WRITE = "no_write"
 ERROR_UNREACHABLE = "unreachable"
 ERROR_RATE_LIMITED = "rate_limited"
 ERROR_HOST = "host_error"
+ERROR_MISSING_SCOPE = "missing_scope"
+ERROR_NAME_TAKEN = "name_taken"
+
+# Repositories read for the list the owner chooses from, at most.
+LIST_LIMIT = 500
+LIST_PAGE = 100
+# A README larger than this is not read when looking for the marker.
+README_LIMIT = 65536
+# Where the files go in a repository that already holds other files.
+FOLDER = "problem-log/"
 
 DEVICE_PENDING = "pending"
 DEVICE_SLOW_DOWN = "slow_down"
@@ -51,6 +63,34 @@ class RepositoryInfo:
     visibility: str
     can_push: bool
     default_branch: str
+
+
+@dataclass(frozen=True)
+class RepositoryEntry:
+    """One repository in the list the owner chooses from."""
+
+    owner: str
+    name: str
+    private: bool
+    visibility: str
+    can_push: bool
+    has_files: bool
+    owner_is_organization: bool
+    pushed_at: str | None
+
+    @property
+    def full_name(self) -> str:
+        """Return "owner/name"."""
+        return f"{self.owner}/{self.name}"
+
+
+@dataclass(frozen=True)
+class RepositoryList:
+    """The owner's repositories, and whether the list was cut short."""
+
+    entries: list[RepositoryEntry]
+    truncated: bool
+    missing_scope: bool
 
 
 @dataclass(frozen=True)
@@ -87,6 +127,45 @@ def _retry_after(response: aiohttp.ClientResponse) -> float | None:
     return None
 
 
+def _entry(item: object) -> RepositoryEntry | None:
+    """Read one repository from the host's list, or None if it is malformed."""
+    if not isinstance(item, dict):
+        return None
+    owner = item.get("owner")
+    if (
+        not isinstance(owner, dict)
+        or not isinstance(owner.get("login"), str)
+        or not isinstance(item.get("name"), str)
+        or not isinstance(item.get("private"), bool)
+    ):
+        return None
+    permissions = item.get("permissions")
+    pushed = item.get("pushed_at")
+    return RepositoryEntry(
+        owner=owner["login"],
+        name=item["name"],
+        private=item["private"],
+        visibility=str(item.get("visibility", "")),
+        can_push=isinstance(permissions, dict) and bool(permissions.get("push")),
+        has_files=bool(item.get("size")),
+        owner_is_organization=owner.get("type") == "Organization",
+        pushed_at=pushed if isinstance(pushed, str) else None,
+    )
+
+
+def _says_name_taken(body: object) -> bool:
+    """Return True if a refusal says the repository name is in use."""
+    if not isinstance(body, dict):
+        return False
+    errors = body.get("errors")
+    texts = [str(body.get("message", ""))]
+    if isinstance(errors, list):
+        texts.extend(
+            str(error.get("message", "")) for error in errors if isinstance(error, dict)
+        )
+    return any("already exists" in text for text in texts)
+
+
 class GitHubHost:
     """A small GitHub client. Tests replace it with a pretend host."""
 
@@ -97,6 +176,9 @@ class GitHubHost:
         self._session = session
         self._api = api
         self._web = web
+        # The scopes a classic token or code sign-in reported on its last
+        # answer; None when the host did not say (as for fine-grained tokens).
+        self.scopes: set[str] | None = None
 
     async def _request(
         self,
@@ -126,6 +208,10 @@ class GitHubHost:
                 allow_redirects=False,
             ) as response:
                 status = response.status
+                if token and (scopes := response.headers.get("X-OAuth-Scopes")) is not None:
+                    self.scopes = {
+                        part.strip() for part in scopes.split(",") if part.strip()
+                    }
                 retry = _retry_after(response) if status in (403, 429) else None
                 try:
                     body = await response.json(content_type=None)
@@ -219,6 +305,107 @@ class GitHubHost:
             default_branch=str(body.get("default_branch") or "main"),
         )
 
+    def missing_repo_scope(self) -> bool:
+        """Return True if the host said this sign-in lacks the "repo" scope."""
+        return self.scopes is not None and "repo" not in self.scopes
+
+    async def list_repositories(self, token: str) -> RepositoryList:
+        """Read the repositories this sign-in owns or reaches as an organization member."""
+        entries: list[RepositoryEntry] = []
+        truncated = False
+        page = 1
+        while True:
+            status, body = await self._request(
+                "GET",
+                f"{self._api}/user/repos?affiliation=owner,organization_member"
+                f"&sort=pushed&per_page={LIST_PAGE}&page={page}",
+                token,
+            )
+            self._raise_for(status, ERROR_HOST)
+            if not isinstance(body, list):
+                raise HostError(ERROR_HOST)
+            for item in body:
+                if (entry := _entry(item)) is not None:
+                    entries.append(entry)
+            if len(body) < LIST_PAGE:
+                break
+            if len(entries) >= LIST_LIMIT:
+                truncated = True
+                break
+            page += 1
+        return RepositoryList(
+            entries[:LIST_LIMIT],
+            truncated or len(entries) > LIST_LIMIT,
+            self.missing_repo_scope(),
+        )
+
+    async def create_repository(
+        self, token: str, name: str, description: str, organization: str | None
+    ) -> str:
+        """Make a new private repository with no files; return its owner."""
+        url = (
+            f"{self._api}/orgs/{organization}/repos"
+            if organization
+            else f"{self._api}/user/repos"
+        )
+        status, body = await self._request(
+            "POST",
+            url,
+            token,
+            payload={
+                "name": name,
+                "private": True,
+                "description": description,
+                "auto_init": False,
+                "has_issues": False,
+                "has_wiki": False,
+                "has_projects": False,
+            },
+        )
+        if status == 422 and _says_name_taken(body):
+            raise HostError(ERROR_NAME_TAKEN)
+        if status == 401:
+            raise HostError(ERROR_TOKEN_REFUSED)
+        if status in (403, 404) or (status >= 400 and self.missing_repo_scope()):
+            raise HostError(ERROR_MISSING_SCOPE)
+        self._raise_for(status, ERROR_HOST)
+        try:
+            return str(body["owner"]["login"])
+        except KeyError, TypeError:
+            raise HostError(ERROR_HOST) from None
+
+    async def layout(self, owner: str, name: str, token: str, branch: str) -> str:
+        """Return where the files go: the root, or a folder of their own.
+
+        An empty repository, or one whose README was written by this feature,
+        gets the files at its root. Any other repository keeps its own files
+        and gets the problem log in `FOLDER`. The README is only searched for
+        the marker; nothing it says is acted on.
+        """
+        if await self._head(owner, name, token, branch) is None:
+            return ""
+        status, body = await self._request(
+            "GET",
+            f"{self._api}/repos/{owner}/{name}/contents/README.md?ref={branch}",
+            token,
+        )
+        if status == 404:
+            return FOLDER
+        self._raise_for(status)
+        if (
+            isinstance(body, dict)
+            and body.get("encoding") == "base64"
+            and isinstance(body.get("content"), str)
+            and int(body.get("size") or 0) <= README_LIMIT
+        ):
+            try:
+                text = base64.b64decode(body["content"]).decode("utf-8", "replace")
+            except ValueError:
+                return FOLDER
+            if is_problem_log_readme(text):
+                return ""
+        return FOLDER
+
     async def _head(self, owner: str, name: str, token: str, branch: str) -> str | None:
         status, body = await self._request(
             "GET", f"{self._api}/repos/{owner}/{name}/git/ref/heads/{branch}", token
@@ -246,13 +433,16 @@ class GitHubHost:
         if head is None:
             # An empty repository has no branch to build on; the contents
             # endpoint makes its first commit, the rest follows as usual.
+            readme = min(
+                (path for path in files if path.endswith("README.md")), key=len
+            )
             status, _ = await self._request(
                 "PUT",
-                f"{base}/contents/README.md",
+                f"{base}/contents/{readme}",
                 token,
                 payload={
                     "message": "Start the problem log",
-                    "content": base64.b64encode(files["README.md"].encode()).decode(),
+                    "content": base64.b64encode(files[readme].encode()).decode(),
                     "branch": branch,
                 },
             )

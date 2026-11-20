@@ -14,8 +14,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import json
 import logging
+import pkgutil
 import platform
+import re
 import socket
+import time
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -29,8 +32,14 @@ from homeassistant.helpers import (
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_call_later, async_track_time_interval
 from homeassistant.helpers.storage import Store
+from homeassistant.loader import (
+    Integration,
+    async_get_custom_components,
+    async_get_integrations,
+)
 from homeassistant.util import dt as dt_util
 
+from .problem_core import redact as redact_confidential
 from .send_files import (
     STATUS_NOT_SENT,
     Problem,
@@ -42,6 +51,8 @@ from .send_files import (
     next_allowed,
     parse_repository,
     status_of,
+    valid_owner_name,
+    valid_repository_name,
 )
 from .send_host import (
     DEVICE_APPROVED,
@@ -53,8 +64,10 @@ from .send_host import (
     ERROR_RATE_LIMITED,
     GitHubHost,
     HostError,
+    RepositoryList,
 )
 from .send_redact import (
+    ENTITY_DOMAINS,
     KIND_AREA,
     KIND_DEVICE,
     KIND_PERSON,
@@ -64,13 +77,18 @@ from .send_redact import (
     RedactContext,
     RedactionError,
     entity_names,
+    kind_of_domain,
+    leaked,
     redact_for_sending,
 )
+from .send_wording import WordingRefused, build_replacer, check_entries
 
 _LOGGER = logging.getLogger(__name__)
 
 STORAGE_KEY = "problem_log.send"
 AUTH_STORAGE_KEY = "problem_log.send_auth"
+# The owner's wording, kept apart so that it is easy to leave out of backups.
+WORDING_STORAGE_KEY = "problem_log.send_wording"
 STORAGE_VERSION = 1
 
 MODE_BY_HAND = "by_hand"
@@ -90,6 +108,18 @@ ERROR_TOO_SOON = "too_soon"
 ERROR_NOTHING_NEW = "nothing_new"
 ERROR_NO_CLIENT_ID = "no_client_id"
 ERROR_BUSY = "busy"
+ERROR_BAD_NAME = "bad_name"
+ERROR_UNKNOWN_ORGANIZATION = "unknown_organization"
+ERROR_CREATED_NOT_PRIVATE = "created_not_private"
+ERROR_BAD_WORDING = "bad_wording"
+ERROR_BAD_CLIENT_ID = "bad_client_id"
+
+REPOSITORY_DESCRIPTION = (
+    "Problem log of one home, written by Home Assistant Material. "
+    "Only ever written to; nothing here is read back."
+)
+# How long the list of repositories is reused before it is read again.
+LIST_CACHE_SECONDS = 300
 
 DEVICE_CANCELLED = "cancelled"
 DEVICE_FAILED = "failed"
@@ -98,8 +128,10 @@ SCHEDULE_CHECK = timedelta(minutes=5)
 RATE_LIMIT_FALLBACK = timedelta(minutes=15)
 
 # The files that are written as they are, without passing names through
-# redaction (they hold nothing about this home).
-_FIXED_FILES = {"README.md"}
+# redaction: they hold only this feature's own text and the names of
+# programs, never anything about this home. They are still checked for the
+# sign-in and the secrets.
+_FIXED_FILES = {"README.md", "system.md"}
 
 
 class SendRefused(Exception):
@@ -121,13 +153,26 @@ class _DeviceSignIn:
     device_code: str = ""
 
 
-def _kind(domain: str) -> str:
-    """Return the label kind of an entity domain."""
-    if domain == "zone":
-        return KIND_PLACE
-    if domain == "person":
-        return KIND_PERSON
-    return domain
+_CLIENT_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{9,39}")
+
+
+def valid_client_id(text: str) -> bool:
+    """Return True if the text has the shape of a GitHub app's client ID."""
+    return _CLIENT_ID.fullmatch(text) is not None
+
+
+_BUILTIN_DOMAINS: list[str] = []
+
+
+def _builtin_domains() -> list[str]:
+    """Return every built-in integration domain (read once, from the files)."""
+    if not _BUILTIN_DOMAINS:
+        import homeassistant.components as components  # noqa: PLC0415
+
+        _BUILTIN_DOMAINS.extend(
+            module.name for module in pkgutil.iter_modules(components.__path__)
+        )
+    return _BUILTIN_DOMAINS
 
 
 def _iso(moment: datetime | None) -> str | None:
@@ -161,11 +206,21 @@ class ProblemLogSender:
         self._auth_store: Store[dict[str, Any]] = Store(
             hass, STORAGE_VERSION, AUTH_STORAGE_KEY, private=True
         )
+        self._wording_store: Store[dict[str, Any]] = Store(
+            hass, STORAGE_VERSION, WORDING_STORAGE_KEY, private=True
+        )
+        self._wording: dict[str, str] | None = None
+        # The owner's repositories as last read, and when; never stored.
+        self._listing: RepositoryList | None = None
+        self._listing_at = 0.0
         self.enabled = False
         self.mode = MODE_BY_HAND
         self.repository = ""
         self.keep_names = False
         self.client_id = ""
+        # "" for the root of the repository, or "problem-log/" when the
+        # repository also holds other files.
+        self.folder = ""
         self._token: str | None = None
         self._method: str | None = None
         self.last_sent: datetime | None = None
@@ -193,6 +248,7 @@ class ProblemLogSender:
         self.repository = str(settings.get("repository", ""))
         self.keep_names = bool(settings.get("keep_names", False))
         self.client_id = str(settings.get("client_id", ""))
+        self.folder = "problem-log/" if settings.get("folder") == "problem-log/" else ""
         self.last_sent = _parse(data.get("last_sent"))
         self.backoff_until = _parse(data.get("backoff_until"))
         sent = data.get("sent", {})
@@ -210,6 +266,11 @@ class ProblemLogSender:
         if isinstance(auth.get("token"), str) and auth["token"]:
             self._token = auth["token"]
             self._method = str(auth.get("method", METHOD_TOKEN))
+        wording = await self._wording_store.async_load() or {}
+        try:
+            self._wording = check_entries(wording.get("entries"))
+        except WordingRefused:
+            self._wording = None
         self._schedule = async_track_time_interval(
             self.hass, self._async_tick, SCHEDULE_CHECK
         )
@@ -230,6 +291,7 @@ class ProblemLogSender:
                 "repository": self.repository,
                 "keep_names": self.keep_names,
                 "client_id": self.client_id,
+                "folder": self.folder,
             },
             "last_sent": _iso(self.last_sent),
             "backoff_until": _iso(self.backoff_until),
@@ -279,6 +341,8 @@ class ProblemLogSender:
             "keep_names": self.keep_names,
             "client_id": self.client_id,
             "device_sign_in_available": bool(self.client_id),
+            "folder": self.folder,
+            "wording_in_use": self._wording is not None,
             "signed_in": self.signed_in,
             "sign_in_method": self._method if self.signed_in else None,
             "last_sent": _iso(self.last_sent),
@@ -301,13 +365,17 @@ class ProblemLogSender:
             if address != self.repository:
                 self.last_check = None
                 self.enabled = False
+                self.folder = ""
             self.repository = address
         if "mode" in changes and changes["mode"] in MODES:
             self.mode = changes["mode"]
         if "keep_names" in changes:
             self.keep_names = bool(changes["keep_names"])
         if "client_id" in changes:
-            self.client_id = str(changes["client_id"]).strip()
+            client_id = str(changes["client_id"]).strip()
+            if client_id and not valid_client_id(client_id):
+                raise SendRefused(ERROR_BAD_CLIENT_ID)
+            self.client_id = client_id
         if "enabled" in changes:
             if changes["enabled"]:
                 await self._async_check_repository()
@@ -334,6 +402,7 @@ class ProblemLogSender:
         self.last_check = None
         self._cancel_device_timer()
         self._device = None
+        self._listing = None
         await self._async_save_auth()
         await self._async_save()
 
@@ -379,6 +448,15 @@ class ProblemLogSender:
             code = ERROR_NO_WRITE
         else:
             code = None
+        if code is None:
+            try:
+                self.folder = await host.layout(
+                    owner, name, self._token, info.default_branch
+                )
+            except HostError as err:
+                self.last_check = {"ok": False, "error": err.code, "at": _iso(now)}
+                self._note_rate_limit(err, now)
+                raise SendRefused(err.code) from None
         self.last_check = {
             "ok": code is None,
             "error": code,
@@ -399,6 +477,133 @@ class ProblemLogSender:
             else RATE_LIMIT_FALLBACK
         )
         self.backoff_until = now + wait
+
+    def _words(self) -> Callable[[str], str]:
+        """Return the owner's wording for this feature's own text, or no change."""
+        if self._wording is None:
+            return lambda text: text
+        return build_replacer(self._wording)
+
+    async def async_set_wording(self, entries: object | None) -> None:
+        """Keep the owner's wording on this system, or delete the kept copy."""
+        if entries is None:
+            self._wording = None
+            await self._wording_store.async_remove()
+            return
+        try:
+            checked = check_entries(entries)
+        except WordingRefused:
+            raise SendRefused(ERROR_BAD_WORDING) from None
+        self._wording = checked
+        await self._wording_store.async_save({"entries": checked})
+
+    async def _async_listing(self, refresh: bool) -> RepositoryList:
+        if not self._token:
+            raise SendRefused(ERROR_NOT_SIGNED_IN)
+        if (
+            refresh
+            or self._listing is None
+            or time.monotonic() - self._listing_at > LIST_CACHE_SECONDS
+        ):
+            host = self._host_factory()
+            try:
+                self._listing = await host.list_repositories(self._token)
+            except HostError as err:
+                self._note_rate_limit(err, dt_util.utcnow())
+                raise SendRefused(err.code) from None
+            self._listing_at = time.monotonic()
+        return self._listing
+
+    async def async_list_repositories(
+        self, query: str = "", *, refresh: bool = False
+    ) -> dict[str, Any]:
+        """Return the owner's repositories that match the typed text.
+
+        Public ones are listed so the owner sees why they are missing from
+        the choice, marked as unusable; they can never be chosen.
+        """
+        listing = await self._async_listing(refresh)
+        needle = query.strip().lower()
+        matches = [
+            entry
+            for entry in listing.entries
+            if not needle or needle in entry.full_name.lower()
+        ]
+        organizations = sorted(
+            {entry.owner for entry in listing.entries if entry.owner_is_organization},
+            key=str.lower,
+        )
+        return {
+            "repositories": [
+                {
+                    "full_name": entry.full_name,
+                    "owner": entry.owner,
+                    "name": entry.name,
+                    "private": entry.private and entry.visibility in ("private", ""),
+                    "visibility": entry.visibility,
+                    "can_push": entry.can_push,
+                    "has_files": entry.has_files,
+                    "pushed_at": entry.pushed_at,
+                    "selected": entry.full_name.lower() == self.repository.lower(),
+                }
+                for entry in matches
+            ],
+            "total": len(listing.entries),
+            "organizations": organizations,
+            "truncated": listing.truncated,
+            "missing_scope": "repo" if listing.missing_scope else None,
+        }
+
+    async def async_choose(self, full_name: str) -> None:
+        """Make a private repository from the list the target, after asking the host."""
+        target = parse_repository(full_name)
+        if target is None:
+            raise SendRefused(ERROR_NO_REPOSITORY)
+        previous = (self.repository, self.enabled, self.folder, self.last_check)
+        self.repository = f"{target[0]}/{target[1]}"
+        if previous[0].lower() != self.repository.lower():
+            self.enabled = False
+            self.folder = ""
+        try:
+            await self._async_check_repository()
+        except SendRefused as err:
+            if err.code in (ERROR_PUBLIC, ERROR_VISIBILITY_UNKNOWN):
+                # A public repository is never kept as the target.
+                (self.repository, self.enabled, self.folder, self.last_check) = previous
+            await self._async_save()
+            raise
+        await self._async_save()
+
+    async def async_create(self, name: str, organization: str | None) -> None:
+        """Make a new private repository, check it is private, and choose it."""
+        name = name.strip()
+        if not valid_repository_name(name):
+            raise SendRefused(ERROR_BAD_NAME)
+        if not self._token:
+            raise SendRefused(ERROR_NOT_SIGNED_IN)
+        if organization:
+            if not valid_owner_name(organization):
+                raise SendRefused(ERROR_UNKNOWN_ORGANIZATION)
+            listing = await self._async_listing(False)
+            known = {e.owner for e in listing.entries if e.owner_is_organization}
+            if organization not in known:
+                raise SendRefused(ERROR_UNKNOWN_ORGANIZATION)
+        host = self._host_factory()
+        try:
+            owner = await host.create_repository(
+                self._token, name, REPOSITORY_DESCRIPTION, organization or None
+            )
+        except HostError as err:
+            self._note_rate_limit(err, dt_util.utcnow())
+            raise SendRefused(err.code) from None
+        self._listing = None
+        try:
+            info = await host.repository(owner, name, self._token)
+        except HostError as err:
+            raise SendRefused(err.code) from None
+        if not info.private or info.visibility not in ("private", ""):
+            raise SendRefused(ERROR_CREATED_NOT_PRIVATE)
+        await self.async_choose(f"{owner}/{name}")
 
     async def async_hold(self, file: str, held: bool) -> None:
         """Hold a problem back from every send, or let it go again."""
@@ -437,7 +642,7 @@ class ProblemLogSender:
             things.append(
                 NamedThing(
                     state.entity_id,
-                    _kind(state.domain),
+                    kind_of_domain(state.domain),
                     entity_names(
                         state.entity_id, friendly if isinstance(friendly, str) else None
                     ),
@@ -446,7 +651,7 @@ class ProblemLogSender:
         things.extend(
             NamedThing(
                 entry.entity_id,
-                _kind(entry.domain),
+                kind_of_domain(entry.domain),
                 (entry.entity_id, entry.name) if entry.name else (entry.entity_id,),
             )
             for entry in er.async_get(hass).entities.values()
@@ -470,7 +675,32 @@ class ProblemLogSender:
             hostnames=[h for h in hostnames if h],
             coordinates=[float(c) for c in coordinates if c is not None],
             things=things,
+            program_names=await self._async_program_names(),
+            entity_domains=sorted(
+                {state.domain for state in hass.states.async_all()}
+                | {entry.domain for entry in er.async_get(hass).entities.values()}
+                | ENTITY_DOMAINS
+            ),
         )
+
+    async def _async_program_names(self) -> list[str]:
+        """Return every integration domain and name the loader knows."""
+        hass = self.hass
+        domains = {c.split(".", 1)[0] for c in hass.config.components}
+        domains |= {entry.domain for entry in hass.config_entries.async_entries()}
+        names = set(domains)
+        names.update(await hass.async_add_executor_job(_builtin_domains))
+        integrations = await async_get_integrations(hass, domains)
+        names.update(
+            value.name
+            for value in integrations.values()
+            if isinstance(value, Integration) and value.name
+        )
+        for integration in (await async_get_custom_components(hass)).values():
+            names.add(integration.domain)
+            if integration.name:
+                names.add(integration.name)
+        return sorted(names)
 
     def _system(self) -> SystemInfo:
         hass = self.hass
@@ -497,9 +727,20 @@ class ProblemLogSender:
             context = await self._async_context()
             system = self._system()
             zone = dt_util.get_default_time_zone()
-            files = build_files(problems, self.held, system, zone)
-            fixed = {path: text for path, text in files.items() if path in _FIXED_FILES}
-            variable = {p: t for p, t in files.items() if p not in _FIXED_FILES}
+            files = build_files(
+                problems,
+                self.held,
+                system,
+                zone,
+                words=self._words(),
+                folder=self.folder,
+            )
+            fixed = {
+                path: redact_confidential(text, context.secrets)
+                for path, text in files.items()
+                if path.removeprefix(self.folder) in _FIXED_FILES
+            }
+            variable = {p: t for p, t in files.items() if p not in fixed}
             forbidden = [self._token] if self._token else []
             redacted = await self.hass.async_add_executor_job(
                 lambda: redact_for_sending(
@@ -511,9 +752,9 @@ class ProblemLogSender:
                 )
             )
             for text in fixed.values():
-                if any(value and value in text for value in forbidden):
+                if leaked(text, forbidden, context.secrets):
                     raise RedactionError("A confidential value was still present")  # noqa: TRY301
-            json.loads(redacted["problems/index.json"])
+            json.loads(redacted[f"{self.folder}problems/index.json"])
         except Exception as err:  # noqa: BLE001
             # Fail closed: whatever went wrong, nothing is sent.
             _LOGGER.warning(
@@ -557,7 +798,7 @@ class ProblemLogSender:
                 self._token,
                 branch,
                 files,
-                commit_message(waiting, dt_util.as_local(now)),
+                commit_message(waiting, dt_util.as_local(now), self._words()),
             )
         except SendRefused as err:
             await self._async_failed(err.code, now, waiting)

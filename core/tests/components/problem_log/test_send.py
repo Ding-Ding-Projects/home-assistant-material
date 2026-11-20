@@ -28,7 +28,9 @@ from homeassistant.components.problem_log.send_host import (
     DeviceCode,
     DevicePoll,
     HostError,
+    RepositoryEntry,
     RepositoryInfo,
+    RepositoryList,
 )
 from homeassistant.components.problem_log.send_manager import ProblemLogSender
 from homeassistant.components.problem_log.send_websocket import DATA_SENDER
@@ -53,6 +55,10 @@ class PretendHost:
         self.commits: list[dict[str, Any]] = []
         self.checks = 0
         self.polls: list[DevicePoll] = []
+        self.folder = ""
+        self.listing: list[RepositoryEntry] = []
+        self.create_error: HostError | None = None
+        self.created: list[dict[str, Any]] = []
 
     async def repository(self, owner: str, name: str, token: str) -> RepositoryInfo:
         """Answer the visibility check."""
@@ -76,6 +82,27 @@ class PretendHost:
             raise self.commit_error
         self.commits.append({"files": files, "message": message, "branch": branch})
         return f"c{len(self.commits)}"
+
+    async def layout(self, owner: str, name: str, token: str, branch: str) -> str:
+        """Say where the files go."""
+        return self.folder
+
+    async def list_repositories(self, token: str) -> RepositoryList:
+        """Answer the list of repositories."""
+        assert token == TOKEN
+        return RepositoryList(list(self.listing), False, False)
+
+    async def create_repository(
+        self, token: str, name: str, description: str, organization: str | None
+    ) -> str:
+        """Make a repository, or refuse."""
+        assert token == TOKEN
+        if self.create_error:
+            raise self.create_error
+        self.created.append(
+            {"name": name, "description": description, "organization": organization}
+        )
+        return organization or "your-account"
 
     async def device_code(self, client_id: str) -> DeviceCode:
         """Hand out a code."""
@@ -489,3 +516,171 @@ async def test_sign_out_turns_off(sender: ProblemLogSender) -> None:
     state = await sender.async_state()
     assert state["signed_in"] is False
     assert state["enabled"] is False
+
+def _entry(owner: str, name: str, private: bool, *, org: bool = False) -> RepositoryEntry:
+    return RepositoryEntry(
+        owner=owner,
+        name=name,
+        private=private,
+        visibility="private" if private else "public",
+        can_push=True,
+        has_files=name != "home-problem-log",
+        owner_is_organization=org,
+        pushed_at="2026-11-19T20:58:00Z",
+    )
+
+
+LISTING = [
+    _entry("your-account", "home-problem-log", True),
+    _entry("your-account", "home-notes", True),
+    _entry("your-account", "home-site", False),
+    _entry("maple-lane", "household", True, org=True),
+]
+
+
+async def test_repository_list_marks_public_as_unusable(
+    sender: ProblemLogSender, host: PretendHost
+) -> None:
+    """The list is filtered on the server and says which ones cannot be used."""
+    host.listing = LISTING
+    await sender.async_set_token(TOKEN)
+    result = await sender.async_list_repositories("home")
+    names = {r["full_name"]: r for r in result["repositories"]}
+    assert set(names) == {
+        "your-account/home-problem-log",
+        "your-account/home-notes",
+        "your-account/home-site",
+    }
+    assert names["your-account/home-site"]["private"] is False
+    assert names["your-account/home-notes"]["has_files"] is True
+    assert result["organizations"] == ["maple-lane"]
+    assert TOKEN not in json.dumps(result)
+
+
+async def test_choosing_a_public_repository_is_refused(
+    sender: ProblemLogSender, host: PretendHost
+) -> None:
+    """A public repository can never become the target, whatever the page sends."""
+    await sender.async_set_token(TOKEN)
+    host.private = False
+    host.visibility = "public"
+    with pytest.raises(Exception, match="repository_public"):
+        await sender.async_choose("your-account/home-site")
+    assert sender.repository == ""
+    host.private = True
+    host.visibility = "private"
+    host.folder = "problem-log/"
+    await sender.async_choose("your-account/home-notes")
+    assert sender.repository == "your-account/home-notes"
+    assert (await sender.async_state())["folder"] == "problem-log/"
+
+
+async def test_files_go_in_their_own_folder(
+    sender: ProblemLogSender, host: PretendHost
+) -> None:
+    """A repository with other files gets the problem log in a folder."""
+    host.folder = "problem-log/"
+    await _ready(sender)
+    await sender.async_send()
+    files = host.commits[0]["files"]
+    assert all(path.startswith("problem-log/") for path in files)
+    assert "problem-log/README.md" in files
+
+
+async def test_create_private_repository(
+    sender: ProblemLogSender, host: PretendHost
+) -> None:
+    """A new repository is made private, read back, and chosen."""
+    host.listing = LISTING
+    await sender.async_set_token(TOKEN)
+    await sender.async_create("home-problem-log", None)
+    assert host.created[0]["name"] == "home-problem-log"
+    assert "Home Assistant Material" in host.created[0]["description"]
+    assert sender.repository == "your-account/home-problem-log"
+    await sender.async_create("household-log", "maple-lane")
+    assert sender.repository == "maple-lane/household-log"
+    with pytest.raises(Exception, match="unknown_organization"):
+        await sender.async_create("x", "someone-else")
+    with pytest.raises(Exception, match="bad_name"):
+        await sender.async_create("has space", None)
+
+
+@pytest.mark.parametrize(
+    ("error", "code"),
+    [
+        pytest.param(HostError("name_taken"), "name_taken", id="taken"),
+        pytest.param(HostError("missing_scope"), "missing_scope", id="scope"),
+    ],
+)
+async def test_create_refused(
+    sender: ProblemLogSender, host: PretendHost, error: HostError, code: str
+) -> None:
+    """A name in use or a missing permission comes back as a plain code."""
+    await sender.async_set_token(TOKEN)
+    host.create_error = error
+    with pytest.raises(Exception, match=code):
+        await sender.async_create("home-problem-log", None)
+    assert sender.repository == ""
+
+
+async def test_created_repository_that_is_not_private_is_not_used(
+    sender: ProblemLogSender, host: PretendHost
+) -> None:
+    """If the host reports the new repository as public, it is not chosen."""
+    await sender.async_set_token(TOKEN)
+    host.private = False
+    host.visibility = "public"
+    with pytest.raises(Exception, match="created_not_private"):
+        await sender.async_create("home-problem-log", None)
+    assert sender.repository == ""
+
+
+async def test_wording_used_only_when_on(
+    hass: HomeAssistant,
+    sender: ProblemLogSender,
+    host: PretendHost,
+    hass_ws_client: WebSocketGenerator,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The kept wording changes headings only, and is deleted when turned off."""
+    client = await hass_ws_client(hass)
+    entries = {"problems": "troubles", "Latest": "Newest"}
+    reply = await _call(client, type="problem_log/send/wording", entries=entries)
+    assert reply["success"], reply
+    assert reply["result"]["wording_in_use"] is True
+    assert "troubles" not in json.dumps(reply)
+    await _ready(sender)
+    preview = await sender.async_preview()
+    assert preview["latest.md"].startswith("# Newest troubles\n")
+    assert "An update was refused" in preview["latest.md"]
+    assert "troubles" not in caplog.text
+    reply = await _call(client, type="problem_log/send/wording", entries=None)
+    assert reply["result"]["wording_in_use"] is False
+    assert (await sender.async_preview())["latest.md"].startswith("# Latest problems")
+    bad = await _call(
+        client, type="problem_log/send/wording", entries={"a": "line\nbreak"}
+    )
+    assert bad["error"]["code"] == "bad_wording"
+
+
+async def test_system_file_keeps_program_names(
+    hass: HomeAssistant, sender: ProblemLogSender
+) -> None:
+    """A thing named like the product does not rewrite system.md."""
+    hass.states.async_set(
+        "conversation.home_assistant", "idle", {"friendly_name": "Home Assistant"}
+    )
+    hass.states.async_set("sun.sun", "above_horizon", {"friendly_name": "Sun"})
+    hass.config.components.add("sun")
+    system = (await sender.async_preview())["system.md"]
+    assert "[conversation" not in system
+    assert "- sun" in system
+
+
+async def test_client_id_shape_is_checked(sender: ProblemLogSender) -> None:
+    """A client ID that cannot be one is refused; none is shipped by default."""
+    assert (await sender.async_state())["client_id"] == ""
+    with pytest.raises(Exception, match="bad_client_id"):
+        await sender.async_update_settings({"client_id": "not an id"})
+    await sender.async_update_settings({"client_id": "Ov23liPRETENDid0123"})
+    assert (await sender.async_state())["device_sign_in_available"] is True
