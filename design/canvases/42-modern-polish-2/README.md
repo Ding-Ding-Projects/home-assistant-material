@@ -22,6 +22,14 @@ On the list boards the create button sits beside the floating bar, not above it,
 
 Review pictures of the boards are in `design/frames/42-modern-polish-2/`. They were rendered from the board markup with the default accent and are a still of each board after its arrival motion.
 
+## Owner decision that overrides the boards (20 November 2026)
+
+- Dramatic animations and graphics apply only to actions: something finished, failed, was deleted or was saved.
+- The interface itself gets animations and transitions only: no decorative pictures, no decorative shapes, no looping motion on resting pages.
+- Dashboard cards stay close to how they look today.
+
+Read the boards for colour, type, layout and transitions. Do not build the pictures and shapes drawn on resting pages.
+
 ## Rules the boards agree on
 
 1. One scroller per page. No scroller inside a scroller on the same axis.
