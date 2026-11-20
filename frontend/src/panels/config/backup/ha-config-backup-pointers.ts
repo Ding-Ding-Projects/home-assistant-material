@@ -38,6 +38,7 @@ import {
   fetchBackupPointerInfo,
   isCheckProblem,
   KEEP_WHOLE_CHOICES,
+  keepUnreachableWhileChecking,
   keptReason,
   localBackupContents,
   passResult,
@@ -243,7 +244,9 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
     }
     try {
       const info = await fetchBackupPointerInfo(this.hass);
-      this._info = info;
+      // A place already shown as unreachable keeps that state while it is
+      // asked again; only a finished listing with another answer changes it.
+      this._info = keepUnreachableWhileChecking(this._info, info);
       // The answer came before every place had listed its backups; the next
       // request joins the listing still under way and reads its result.
       if (stillChecking(info) && this.isConnected) {

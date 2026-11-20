@@ -247,6 +247,38 @@ export const stillChecking = (
   info: Partial<Pick<BackupPointerInfo, "checking">>
 ): boolean => (info.checking ?? []).length > 0;
 
+/**
+ * The answer as the page shows it. A place already shown as unreachable stays
+ * unreachable while a later listing asks it again, so the page does not flick
+ * back to "still checking" on every refresh; it changes only when a listing
+ * finishes with a different answer. Without an earlier answer, a place being
+ * asked is shown as still checking.
+ */
+export const keepUnreachableWhileChecking = <
+  T extends Partial<Pick<BackupPointerInfo, "unreachable" | "checking">>,
+>(
+  previous: Partial<Pick<BackupPointerInfo, "unreachable">> | undefined,
+  next: T
+): T & Partial<Pick<BackupPointerInfo, "unreachable" | "checking">> => {
+  const shownUnreachable = new Set(previous?.unreachable ?? []);
+  const checking = next.checking ?? [];
+  const carried = checking.filter((agentId) => shownUnreachable.has(agentId));
+  if (!carried.length) {
+    return next;
+  }
+  const unreachable = [...(next.unreachable ?? [])];
+  for (const agentId of carried) {
+    if (!unreachable.includes(agentId)) {
+      unreachable.push(agentId);
+    }
+  }
+  return {
+    ...next,
+    unreachable,
+    checking: checking.filter((agentId) => !shownUnreachable.has(agentId)),
+  };
+};
+
 export interface PointerRow {
   backup_id: string;
   name: string;

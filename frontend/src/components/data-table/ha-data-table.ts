@@ -2525,6 +2525,23 @@ export class HaDataTable extends LitElement {
           flex: 0 1 auto !important;
           white-space: nowrap;
         }
+        /* The empty state is one cell as wide as the screen whose message
+           wraps; the rule above would keep it on one line and let it run off
+           both sides. */
+        :host([narrow])
+          .mdc-data-table__content
+          .mdc-data-table__row.empty-state-row {
+          width: 100%;
+        }
+        :host([narrow])
+          .mdc-data-table__content
+          .mdc-data-table__row.empty-state-row
+          .mdc-data-table__cell[role="cell"] {
+          flex: 1 1 100% !important;
+          min-width: 0;
+          max-width: 100% !important;
+          white-space: normal;
+        }
         :host([row-cards][narrow]) .primary {
           font-size: var(--ha-list-row-title-size, var(--ha-font-size-m));
           font-weight: var(--ha-list-row-title-weight, 600);

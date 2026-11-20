@@ -82,6 +82,37 @@ describe("runReportFromQueue", () => {
     ).toMatchObject({ state: "done", position: 2, current: null });
   });
 
+  // The server loses its record when Core restarts in the middle of a run;
+  // the browser's own start time keeps "Started at" from moving to the time
+  // of the next report.
+  it("reports the queue's own start time", () => {
+    const start = Date.UTC(2026, 10, 20, 7, 14);
+    expect(
+      runReportFromQueue(
+        queue([step(A, "done"), step(B, "updating")], { startedAt: start })
+      )?.started
+    ).toBe("2026-11-20T07:14:00.000Z");
+  });
+
+  it("uses the first started step for a queue without its own start", () => {
+    const first = Date.UTC(2026, 10, 20, 7, 14);
+    const second = Date.UTC(2026, 10, 20, 7, 16);
+    expect(
+      runReportFromQueue(
+        queue([
+          { ...step(A, "done"), startedAt: first },
+          { ...step(B, "updating"), startedAt: second },
+        ])
+      )?.started
+    ).toBe("2026-11-20T07:14:00.000Z");
+  });
+
+  it("reports no start time when nothing says when the run began", () => {
+    expect(runReportFromQueue(queue([step(A, "waiting")]))).not.toHaveProperty(
+      "started"
+    );
+  });
+
   it("shares nothing without a queue or with more steps than allowed", () => {
     expect(runReportFromQueue(undefined)).toBeUndefined();
     const many = Array.from({ length: MAX_SHARED_STEPS + 1 }, (_, index) =>

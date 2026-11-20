@@ -783,21 +783,23 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
   }
 
   /** How many automations there are, and how many of them are on. */
+  // Built once per language, so each sentence uses its own punctuation.
   private _summary(automations: { state: string }[]): string {
-    const count = this._modeLocalize(
-      "ui.panel.config.automation.picker.summary",
-      { number: automations.length }
-    );
-    return automations.length
-      ? `${count}. ${this._modeLocalize(
-          "ui.panel.config.automation.picker.summary_on",
-          {
-            number: automations.filter(
-              (automation) => automation.state === "on"
-            ).length,
-          }
-        )}`
-      : count;
+    const on = automations.filter(
+      (automation) => automation.state === "on"
+    ).length;
+    return this._lang.compose(this.hass.localize, (part) => {
+      const count = part("ui.panel.config.automation.picker.summary", {
+        number: automations.length,
+      });
+      if (!automations.length) {
+        return count;
+      }
+      const onText = part("ui.panel.config.automation.picker.summary_on", {
+        number: on,
+      });
+      return part.cantonese ? `${count}，${onText}` : `${count}. ${onText}`;
+    });
   }
 
   private _footerFor = (shown: number): string =>

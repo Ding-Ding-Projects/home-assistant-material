@@ -37,12 +37,33 @@ export const runReportFromQueue = (
   } else {
     state = "done";
   }
+  const started = runStartedAt(queue);
   return {
     entity_ids: queue.steps.map((step) => step.entityId),
     position: Math.max(1, Math.min(progress.total, progress.position)),
     state,
     current: current?.entityId ?? null,
+    ...(started === undefined
+      ? {}
+      : { started: new Date(started).toISOString() }),
   };
+};
+
+/**
+ * When the run started, in milliseconds. A queue stored by an older build has
+ * no start time of its own, so its first started step stands in for it.
+ */
+const runStartedAt = (queue: QueueState): number | undefined => {
+  if (typeof queue.startedAt === "number" && Number.isFinite(queue.startedAt)) {
+    return queue.startedAt;
+  }
+  const stepStarts = queue.steps
+    .map((step) => step.startedAt)
+    .filter(
+      (value): value is number =>
+        typeof value === "number" && Number.isFinite(value)
+    );
+  return stepStarts.length ? Math.min(...stepStarts) : undefined;
 };
 
 export type SharedStepState =

@@ -5,7 +5,7 @@ administrators can read or write the record, malformed runs are refused, the
 record never installs anything and it disappears by itself.
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from freezegun.api import FrozenDateTimeFactory
@@ -23,6 +23,7 @@ from homeassistant.components.auto_update.run_record import (
 from homeassistant.components.update import DOMAIN as UPDATE_DOMAIN
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.setup import async_setup_component
+from homeassistant.util import dt as dt_util
 
 UPDATE_A = "update.app_a"
 UPDATE_B = "update.app_b"
@@ -100,6 +101,78 @@ async def test_started_kept_for_the_same_run(
     assert run["updated"] != started
 
 
+async def test_reported_start_survives_an_emptied_record(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """The driving browser's start time is kept when the record was emptied.
+
+    A Core restart in the middle of a run empties the in-memory record; the
+    next report must not move the start to the time of that report.
+    """
+    await _setup(hass)
+    client = await hass_ws_client(hass)
+    # Only forwards: a sign-in made before a clock moved back is refused.
+    run_start = dt_util.utcnow().replace(microsecond=0)
+    freezer.move_to(run_start + timedelta(minutes=4))
+    await client.send_json_auto_id(
+        {
+            "type": "auto_update/run/set",
+            "entity_ids": [UPDATE_A, UPDATE_B],
+            "position": 2,
+            "state": "done",
+            "started": run_start.isoformat(),
+        }
+    )
+    assert (await client.receive_json())["success"]
+    run = hass.data[DATA_RUN_RECORD].async_get()
+    assert run["started"] == run_start.isoformat()
+    assert run["updated"] == (run_start + timedelta(minutes=4)).isoformat()
+
+
+@pytest.mark.parametrize(
+    "reported",
+    [
+        pytest.param("2026-11-20T07:30:00+00:00", id="future"),
+        pytest.param("2026-11-18T07:18:00+00:00", id="older_than_a_day"),
+        pytest.param("2026-11-20T07:14:00", id="no_timezone"),
+    ],
+)
+async def test_implausible_reported_start_ignored(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory, reported: str
+) -> None:
+    """An implausible reported start falls back to the server clock."""
+    freezer.move_to("2026-11-20T07:18:00+00:00")
+    await _setup(hass)
+    record = hass.data[DATA_RUN_RECORD]
+    record.async_set(
+        [UPDATE_A],
+        1,
+        "running",
+        UPDATE_A,
+        datetime.fromisoformat(reported),
+    )
+    assert record.async_get()["started"] == "2026-11-20T07:18:00+00:00"
+
+
+async def test_reported_start_slightly_ahead_is_clamped(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """A browser clock a few seconds ahead never yields a start in the future."""
+    freezer.move_to("2026-11-20T07:18:00+00:00")
+    await _setup(hass)
+    record = hass.data[DATA_RUN_RECORD]
+    record.async_set(
+        [UPDATE_A],
+        1,
+        "running",
+        UPDATE_A,
+        datetime.fromisoformat("2026-11-20T07:18:20+00:00"),
+    )
+    assert record.async_get()["started"] == "2026-11-20T07:18:00+00:00"
+
+
 async def test_clear(hass: HomeAssistant, hass_ws_client: WebSocketGenerator) -> None:
     """Clearing removes the record."""
     await _setup(hass)
@@ -156,6 +229,15 @@ async def test_clear(hass: HomeAssistant, hass_ws_client: WebSocketGenerator) ->
                 "state": "running",
             },
             id="too_many",
+        ),
+        pytest.param(
+            {
+                "entity_ids": [UPDATE_A],
+                "position": 1,
+                "state": "running",
+                "started": "not a time",
+            },
+            id="started_not_a_timestamp",
         ),
     ],
 )

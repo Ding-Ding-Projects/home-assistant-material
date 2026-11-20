@@ -2007,6 +2007,11 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       max-width: 100%;
       overflow-wrap: anywhere;
     }
+    /* On a phone the floating button is the page's create action, so an empty
+       page shows that one button rather than a second one behind it. */
+    :host([has-fab][narrow]) slot[name="empty-action"] {
+      display: none;
+    }
     .table-header.with-chips ha-input-search {
       flex: 0 1 320px;
       min-width: 200px;

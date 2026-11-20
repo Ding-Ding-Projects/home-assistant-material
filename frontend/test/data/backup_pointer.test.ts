@@ -3,6 +3,7 @@ import { CORE_LOCAL_AGENT, type BackupContent } from "../../src/data/backup";
 import {
   canRestore,
   isCheckProblem,
+  keepUnreachableWhileChecking,
   keptReason,
   localBackupContents,
   passResult,
@@ -125,6 +126,34 @@ describe("pointerRows", () => {
     expect(canRestore(rows[0])).toBe(true);
     expect(stillChecking({ checking: [REGISTRY] })).toBe(true);
     expect(stillChecking({})).toBe(false);
+  });
+
+  // A later refresh asks an unreachable registry again; the row must not flick
+  // back to "still checking" for those seconds.
+  it("keeps an unreachable registry unreachable while it is asked again", () => {
+    const first = keepUnreachableWhileChecking(undefined, {
+      checking: [REGISTRY],
+    });
+    expect(first.checking).toEqual([REGISTRY]);
+    const settled = { unreachable: [REGISTRY], checking: [] };
+    const again = keepUnreachableWhileChecking(settled, {
+      checking: [REGISTRY],
+    });
+    expect(again.unreachable).toEqual([REGISTRY]);
+    expect(again.checking).toEqual([]);
+    const rows = pointerRows([], {
+      pointers: { gone: pointer("gone", "2026-11-11T04:45:00Z") },
+      kept: {},
+      places,
+      ...again,
+    });
+    expect(rows[0].state).toBe("unknown");
+    // A finished listing that reaches the registry changes the answer.
+    const reached = keepUnreachableWhileChecking(again, {
+      unreachable: [],
+      checking: [],
+    });
+    expect(reached.unreachable).toEqual([]);
   });
 
   it("calls an unlisted pointer unknown when its registry is not loaded", () => {

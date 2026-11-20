@@ -58,6 +58,11 @@ export interface QueueState {
   backupSteps?: string[];
   /** When the queue finished; a finished queue is kept for an hour. */
   finishedAt?: number;
+  /**
+   * When the queue was started, in milliseconds. Missing in a queue stored by
+   * an older build.
+   */
+  startedAt?: number;
 }
 
 /** How long a finished queue is remembered across a reload. */
@@ -140,9 +145,11 @@ export const orderUpdateQueue = (entities: UpdateEntity[]): UpdateEntity[] =>
 export const createQueue = (
   entities: UpdateEntity[],
   backup: boolean,
-  backupSteps?: string[]
+  backupSteps?: string[],
+  now: number = Date.now()
 ): QueueState => ({
   version: 1,
+  startedAt: now,
   backup,
   ...(backupSteps ? { backupSteps } : {}),
   stopRequested: false,
@@ -373,6 +380,10 @@ export const parseStoredQueue = (
     }
     return {
       finishedAt,
+      startedAt:
+        typeof data.startedAt === "number" && Number.isFinite(data.startedAt)
+          ? data.startedAt
+          : undefined,
       version: 1,
       steps,
       backup: data.backup === true,

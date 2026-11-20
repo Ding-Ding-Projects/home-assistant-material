@@ -963,18 +963,25 @@ export class HaConfigDeviceDashboard extends LitElement {
   private _summary(
     devices: { low_battery?: boolean; offline?: boolean }[]
   ): string {
-    const count = this._modeLocalize("ui.panel.config.devices.picker.summary", {
-      number: devices.length,
-    });
     const attention = devices.filter(
       (device) => device.low_battery || device.offline
     ).length;
-    return attention
-      ? `${count}. ${this._modeLocalize(
-          "ui.panel.config.devices.picker.summary_attention",
-          { number: attention }
-        )}`
-      : count;
+    // Built once per language, so each sentence uses its own punctuation.
+    return this._lang.compose(this.hass.localize, (part) => {
+      const count = part("ui.panel.config.devices.picker.summary", {
+        number: devices.length,
+      });
+      if (!attention) {
+        return count;
+      }
+      const attentionText = part(
+        "ui.panel.config.devices.picker.summary_attention",
+        { number: attention }
+      );
+      return part.cantonese
+        ? `${count}，${attentionText}`
+        : `${count}. ${attentionText}`;
+    });
   }
 
   private _areaOptions = memoizeOne((areas: HomeAssistant["areas"]) =>

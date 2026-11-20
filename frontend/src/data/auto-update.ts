@@ -198,6 +198,11 @@ export interface UpdateRunReport {
   position: number;
   state: UpdateRunState;
   current: string | null;
+  /**
+   * When the driving browser started the run, as an ISO timestamp. The server
+   * keeps it across a Core restart, which empties its in-memory record.
+   */
+  started?: string;
 }
 
 export const subscribeUpdateRun = (

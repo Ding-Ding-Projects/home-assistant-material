@@ -22,6 +22,10 @@ from homeassistant.util.hass_dict import HassKey
 RUN_EXPIRE_AFTER = timedelta(hours=2)
 MAX_RUN_STEPS = 50
 RUN_STATES = ("running", "done", "failed", "cancelled")
+# A reported start older than this, or later than now, is ignored.
+MAX_REPORTED_START_AGE = timedelta(days=1)
+# Allowance for a browser clock that runs slightly ahead of the server.
+START_CLOCK_SKEW = timedelta(minutes=1)
 
 DATA_RUN_RECORD: HassKey["UpdateRunRecord"] = HassKey("auto_update_run_record")
 
@@ -52,16 +56,25 @@ class UpdateRunRecord:
         position: int,
         state: str,
         current: str | None = None,
+        reported_started: datetime | None = None,
     ) -> None:
-        """Store the run as the driving browser last reported it."""
+        """Store the run as the driving browser last reported it.
+
+        The driving browser's own start time wins when it is plausible, so a
+        Core restart in the middle of a run, which empties this record, does not
+        move the start to the next report.
+        """
         now = dt_util.utcnow()
         started = now
-        if (
+        if reported_started is not None and _plausible_start(reported_started, now):
+            started = min(reported_started, now)
+        elif (
             self._record is not None
             and not self._expired(now)
             and self._record["entity_ids"] == entity_ids
         ):
             started = datetime.fromisoformat(self._record["started"])
+        started = dt_util.as_utc(started)
         self._record = {
             "entity_ids": list(entity_ids),
             "position": position,
@@ -128,6 +141,13 @@ class UpdateRunRecord:
             listener()
 
 
+def _plausible_start(started: datetime, now: datetime) -> bool:
+    """Return whether a reported start time can be the start of a current run."""
+    if started.tzinfo is None:
+        return False
+    return now - MAX_REPORTED_START_AGE <= started <= now + START_CLOCK_SKEW
+
+
 @callback
 def async_setup_run_record(hass: HomeAssistant) -> None:
     """Create the record and register its websocket commands."""
@@ -158,6 +178,7 @@ def websocket_run_get(
         probatio.Required("position"): probatio.All(int, probatio.Range(min=1)),
         probatio.Required("state"): probatio.In(list(RUN_STATES)),
         probatio.Optional("current"): probatio.Any(str, None),
+        probatio.Optional("started"): probatio.All(str, probatio.Length(max=64)),
     }
 )
 @callback
@@ -186,8 +207,16 @@ def websocket_run_set(
             msg["id"], "invalid_format", "The current update is not part of the run"
         )
         return
+    reported_started: datetime | None = None
+    if (raw_started := msg.get("started")) is not None:
+        reported_started = dt_util.parse_datetime(raw_started)
+        if reported_started is None:
+            connection.send_error(
+                msg["id"], "invalid_format", "The start time is not a timestamp"
+            )
+            return
     hass.data[DATA_RUN_RECORD].async_set(
-        entity_ids, msg["position"], msg["state"], current
+        entity_ids, msg["position"], msg["state"], current, reported_started
     )
     connection.send_result(msg["id"])
 

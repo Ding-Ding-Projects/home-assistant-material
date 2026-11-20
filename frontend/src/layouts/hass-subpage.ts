@@ -15,6 +15,7 @@ import { pageHeaderStyles, playPageEntry } from "../common/motion/page-entry";
 import type { HASSDomTargetEvent } from "../common/dom/fire_event";
 import { fireEvent } from "../common/dom/fire_event";
 import { ShortcutManager } from "../common/keyboard/shortcuts";
+import { LanguageModeController } from "../common/language-mode/language-mode-controller";
 import { renderBilingualTitle } from "../common/language-mode/stacked-label";
 import { PageLockController } from "../common/locks/page-lock-controller";
 import { getHistoryState } from "../common/navigate";
@@ -96,6 +97,8 @@ class HassSubpage extends LitElement {
   private _i18n?: ContextType<typeof internationalizationContext>;
 
   private _shortcuts = new ShortcutManager();
+
+  private _lang = new LanguageModeController(this);
 
   // @ts-ignore
   @restoreScroll(".content") private _savedScrollPos?: number;
@@ -298,7 +301,8 @@ class HassSubpage extends LitElement {
     if (!this._i18n || this.mainPage || !backPath?.startsWith("/config")) {
       return undefined;
     }
-    const localize = this._i18n.localize;
+    // The same language mode as the page title under it.
+    const localize = this._lang.cachedLocalizer(this._i18n.localize);
     const parts = [
       localize("panel.config"),
       backPath.startsWith("/config/system")
