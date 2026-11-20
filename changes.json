@@ -1,15 +1,67 @@
 {
  "format": 1,
- "generated": "2026-11-20T17:54:54Z",
+ "generated": "2026-11-20T18:21:39Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 537,
+ "newest_build": 538,
  "releases": [
+  {
+   "build": 538,
+   "core": "2026.11.2.538",
+   "supervisor": "2026.11.0.538",
+   "os": "18.5.538",
+   "tag": null,
+   "source": "77a7687e5",
+   "date": "2026-11-20T11:42:35-05:00",
+   "previous_build": 537,
+   "changes": [
+    {
+     "sha": "77a7687e5",
+     "date": "2026-11-20T11:42:35-05:00",
+     "title": "Polish pass: scrolling and fit repairs, floating tool pills, more search bars, action moments [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The interface keeps today's look. This is a polish and repair pass, and no control was removed.\n\nScrolling and fit - List pages have one scroller. The end of the list is measured from the floating bar, the create button and any bulk bar, so the last row is never underneath them. - Row names wrap to two lines, with the full name on hover or focus. A table wider than its card scrolls inside the card. Lists stop at 1200 px on wide windows. - Dialogs and sheets keep their title and buttons in place; only the middle scrolls. The sheet's header and footer used to scroll away with the content. - Long names, identifiers and labels wrap on the device page, the entity settings, the front door and the Updates page at 320 px.\n\nTools and search - Page tools on list pages sit in a floating pill. On a desktop an item shows its name on hover or focus and menus open on hover; a tap opens them on a phone. Selection actions float the same way. - Search with the pattern builder on the System page, Connectivity, Zones, People, and four filter panels. Settings search also finds words inside the pages it lists. Search only hides rows and says how many it hides. - Fixed: the blueprint filter could tick th",
+     "detail_yue": "翻新一轉：樣仲係而家個樣，冇減任何掣。 捲動同排版：清單頁得返一條捲軸，頁尾會量度浮動列同新增掣嘅高度， 最後一行唔會再俾遮住；名太長會轉兩行；闊過卡片嘅表格喺卡片入面捲； 對話框同底部面板嘅標題同掣唔會跟住捲走。 工具同搜尋：清單頁嘅工具放入浮動藥丸掣，桌面一指就打開；系統頁、 連線、區域、成員同四個篩選板都加咗搜尋，設定搜尋仲識搵頁面入面嘅字。 搜尋只會收埋，仲會講收埋咗幾多。 動畫：誇張效果只留畀「做完、失敗、刪除」呢啲動作，頁面只係有轉場。 修正：一個藍圖載入失敗之後，篩選有機會剔錯藍圖。 呢批改動仲未喺瀏覽器睇過。"
+    },
+    {
+     "sha": "bfaa003b0",
+     "date": "2026-11-20T11:23:27-05:00",
+     "title": "Canvas 42: drama and graphics are for actions only, cards stay familiar [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "The owner's decision, recorded on the canvas and in its notes so nobody builds the wrong thing from the pictures:\n\n- Dramatic animations and graphics apply only to actions: something finished, failed, was deleted or was saved. - The interface itself gets animations and transitions only. No decorative pictures, no decorative shapes, no looping motion on resting pages. - Dashboard cards stay close to how they look today.\n\nThe boards are still read for colour, type, layout and transitions. The pictures and shapes drawn on resting pages are not to be built.",
+     "detail_yue": "畫布 42：誇張動畫同圖畫只用喺「動作」度，卡片唔好變到唔認得。 屋主話事，寫埋落畫布同說明度，費事有人照住張圖起錯： 誇張動畫同圖畫，只限做完、失敗、刪除、儲存呢啲動作； 介面本身只要動畫同轉場，唔要裝飾圖、唔要裝飾形狀、 靜止嘅頁面唔好有循環郁動；儀表板卡片保持返而家咁上下。 畫板仍然用嚟睇顏色、字體、排版同轉場。"
+    },
+    {
+     "sha": "0b888e38f",
+     "date": "2026-11-20T11:11:54-05:00",
+     "title": "Design canvas 42 grows to the whole app, with review pictures [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "The first draft of this canvas was flatter than the app it was meant to improve. It is redrawn in the app's own bold look and pushed further, and this time every board was rendered and looked at before being called done.\n\n- Five new boards for the whole app: the front door as a colour scene, the sheet for one thing with a giant slider, the automation editor as a path of colour blocks, updates and backups as a big ring with steps, and dashboard cards with moving pictures of their data. - The list boards: colour hero with a huge count, shaped icons, coloured statistic tiles. The create button moved beside the floating bar, because the picture showed it covering a row's switch. - Review pictures for all thirteen boards under design/frames.\n\nStill a design. Building has started; nothing from it has been seen in a browser.",
+     "detail_yue": "設計畫布 42 擴大到成個 app，仲加埋檢視用嘅圖。 第一稿仲平淡過個 app 本身，所以照返 app 大膽嘅風格重畫，再推前。 今次每塊畫板都真係出咗圖睇過先算數。 新加五塊：有畫面嘅首頁、有巨型滑桿嘅單件面板、變成彩色路線嘅 自動化編輯器、用大圓環同步驟顯示嘅更新同備份、同埋資料識郁嘅 儀表板卡片。 清單畫板：新增掣搬去浮動列隔籬，因為張圖見到佢遮住咗一行嘅開關。 十三塊畫板嘅圖放喺 design/frames。 仍然只係設計，未喺瀏覽器睇過。"
+    },
+    {
+     "sha": "5e31bd095",
+     "date": "2026-11-20T10:49:13-05:00",
+     "title": "Design canvas 42: modern polish 2, scrolling and fit, pills, motion [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "Eight boards drawn before any code for the next modernising pass. They keep the app's bold look and push it: a colour hero with a moving picture and a huge count, shaped icons on rows, coloured statistic tiles, floating pills that open on hover on a desktop, five dramatic moments with pictures, a search bar on pages and filter sheets that lacked one, and the rules for scrolling and fit (one scroller, nothing wider than the screen, the end of a page clears every floating thing, text wraps instead of being sliced). One rule sits above the rest: nothing is removed.\n\nNot built yet. The boards were not rendered to pictures in this pass.",
+     "detail_yue": "設計畫布 42：新一輪翻新，全部畫咗先，未寫任何程式。 保留返個 app 本身大膽嘅樣，再推前一步：有圖畫識郁嘅彩色頭版同 巨型數字、列嘅圖示有形狀、彩色統計磚、喺桌面一指就打開嘅浮動 藥丸掣、五個有畫面嘅誇張時刻、之前冇搜尋欄嘅頁面同篩選板加返、 同埋捲動同排版嘅規矩：一頁一條捲軸、唔可以闊過螢幕、頁尾要避開 所有浮動嘢、文字轉行唔切斷。最大條規矩：一樣功能都唔減。 仲未起，今次亦未有將畫板變做圖片。"
+    }
+   ]
+  },
   {
    "build": 537,
    "core": "2026.11.2.537",
    "supervisor": "2026.11.0.537",
    "os": "18.5.537",
-   "tag": null,
+   "tag": "v2026.11.2.537",
    "source": "d6523e045",
    "date": "2026-11-20T10:39:37-05:00",
    "previous_build": 536,
