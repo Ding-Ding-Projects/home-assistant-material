@@ -38,6 +38,7 @@ import {
 } from "../../common/tabs/tab-seen";
 import { visiblePanels } from "../../data/dashboard-visibility";
 import { getDefaultPanelUrlPath } from "../../data/panel";
+import { currentLanguageMode } from "../../common/language-mode/language-mode";
 import { computePageTabs } from "./compute-page-tabs";
 import { loadCatalogTranslations } from "../page-catalog-entries";
 import { computeStripTabs, currentTabId } from "./destination-tabs";
@@ -341,7 +342,8 @@ export class TabStoreController implements ReactiveController {
       visiblePanels(hass, defaultPanel),
       defaultPanel,
       Boolean(hass.user?.is_admin),
-      hass.localize
+      hass.localize,
+      currentLanguageMode()
     );
   }
 

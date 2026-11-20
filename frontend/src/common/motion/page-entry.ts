@@ -165,6 +165,14 @@ export const pageHeaderStyles = css`
   :host(:not([narrow])) .main-title .page-title {
     font-size: 32px;
   }
+  /* A title in both languages: the separator and the second language wrap
+     together onto the next line, and neither half breaks inside a word. */
+  .main-title .page-title .title-alt {
+    display: inline-block;
+    max-width: 100%;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
   /* Phone: a compact title and 44 px round buttons, so the content below
      the header stays on screen. */
   :host([narrow]) .main-title .page-title,

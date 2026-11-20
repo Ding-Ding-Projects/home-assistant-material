@@ -34,6 +34,45 @@ const urlPaths = (panels: PanelInfo[]) =>
     localize
   ).map((tab) => tab.urlPath);
 
+describe("computePageTabs language mode", () => {
+  // Panel titles that are translation keys, as the built-in panels send them.
+  const keyed = Object.fromEntries(
+    [
+      panel("lovelace", "home", "lovelace"),
+      panel("map", "map", "map"),
+      panel("history", "history", "history"),
+      panel("calendar", "calendar", "calendar"),
+      panel("todo", "todo", "todo"),
+    ].map((item) => [item.url_path, item])
+  ) as HomeAssistant["panels"];
+
+  it("gives the page names in Cantonese in Cantonese mode", () => {
+    const tabs = computePageTabs(
+      keyed,
+      "lovelace",
+      false,
+      localize,
+      "cantonese"
+    );
+    expect(tabs.find((tab) => tab.urlPath === "map")?.title).toBe("地圖");
+    expect(tabs.find((tab) => tab.urlPath === "history")?.title).toBe("歷史");
+  });
+
+  it("keeps the English names and order when no mode is passed", () => {
+    const tabs = computePageTabs(keyed, "lovelace", false, localize);
+    expect(tabs.find((tab) => tab.urlPath === "map")?.title).toBe("panel.map");
+  });
+
+  it("keeps the same default order in every mode", () => {
+    const order = (mode: "english" | "cantonese" | "bilingual") =>
+      computePageTabs(keyed, "lovelace", false, localize, mode).map(
+        (tab) => tab.urlPath
+      );
+    expect(order("cantonese")).toEqual(order("english"));
+    expect(order("bilingual")).toEqual(order("english"));
+  });
+});
+
 describe("computePageTabs order", () => {
   it("is the same whatever order the server lists the panels in", () => {
     const forward = urlPaths(list);

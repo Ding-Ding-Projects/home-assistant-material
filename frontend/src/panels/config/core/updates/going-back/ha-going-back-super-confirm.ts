@@ -1,7 +1,7 @@
 import { mdiCheck } from "@mdi/js";
-import type { TemplateResult } from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { keyed } from "lit/directives/keyed";
 import { fireEvent } from "../../../../../common/dom/fire_event";
@@ -9,6 +9,7 @@ import { LanguageModeController } from "../../../../../common/language-mode/lang
 import "../../../../../components/ha-button";
 import "../../../../../components/ha-svg-icon";
 import "../../../../../components/ha-two-key-confirm";
+import type { HaTwoKeyConfirm } from "../../../../../components/ha-two-key-confirm";
 import type { HomeAssistant } from "../../../../../types";
 import "./ha-game-coin";
 import "./ha-game-cookie";
@@ -61,17 +62,46 @@ export class HaGoingBackSuperConfirm extends LitElement {
 
   private _lang = new LanguageModeController(this);
 
+  @query("section.panel") private _panel?: HTMLElement;
+
+  @query("ha-two-key-confirm") private _keys?: HaTwoKeyConfirm;
+
   public connectedCallback(): void {
     super.connectedCallback();
     document.addEventListener("visibilitychange", this._visibility);
-    this.addEventListener("keydown", this._escape);
+    // On the window, so Escape works wherever focus is while this is open,
+    // including when focus is still on the page body.
+    window.addEventListener("keydown", this._escape);
   }
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     document.removeEventListener("visibilitychange", this._visibility);
-    this.removeEventListener("keydown", this._escape);
+    window.removeEventListener("keydown", this._escape);
     this._restart();
+  }
+
+  protected firstUpdated(changed: PropertyValues<this>): void {
+    super.firstUpdated(changed);
+    this._focusInside();
+  }
+
+  /**
+   * Moves focus inside when the super confirmation opens: to the first key of
+   * step 1 once it has rendered, otherwise to the panel itself.
+   */
+  private async _focusInside(): Promise<void> {
+    const keys = this._keys;
+    if (keys) {
+      await keys.updateComplete;
+    }
+    if (!this.isConnected) {
+      return;
+    }
+    const first = keys?.shadowRoot?.querySelector<HTMLElement>(
+      "button:not([disabled])"
+    );
+    (first ?? this._panel)?.focus();
   }
 
   private _visibility = () => {
@@ -91,7 +121,11 @@ export class HaGoingBackSuperConfirm extends LitElement {
 
   protected render(): TemplateResult {
     const done = allStepsDone(this._progress);
-    return html`<section class="panel" aria-labelledby="super-title">
+    return html`<section
+      class="panel"
+      tabindex="-1"
+      aria-labelledby="super-title"
+    >
       <h3 id="super-title">${this._t("title", { build: this.build })}</h3>
       <p class="quiet">${this._t("intro")}</p>
       <p class="progress" aria-live="polite">
@@ -245,6 +279,9 @@ export class HaGoingBackSuperConfirm extends LitElement {
       padding: var(--ha-space-4);
       border-radius: var(--ha-border-radius-4xl, 16px);
       background: var(--secondary-background-color);
+    }
+    .panel:focus {
+      outline: none;
     }
     h3,
     p,

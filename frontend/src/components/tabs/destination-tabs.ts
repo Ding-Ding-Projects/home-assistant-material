@@ -1,5 +1,6 @@
 import memoizeOne from "memoize-one";
 import { getStorage } from "../../common/decorators/storage";
+import { currentLanguageMode } from "../../common/language-mode/language-mode";
 import { currentPath } from "../../common/url/current-path";
 import {
   readDestinations,
@@ -171,7 +172,8 @@ export const computeStripTabs = (
       visiblePanels(hass, getDefaultPanelUrlPath(hass)),
       getDefaultPanelUrlPath(hass),
       Boolean(hass.user?.is_admin),
-      hass.localize
+      hass.localize,
+      currentLanguageMode()
     ),
     computeDestinationTabs(hass, surface)
   );

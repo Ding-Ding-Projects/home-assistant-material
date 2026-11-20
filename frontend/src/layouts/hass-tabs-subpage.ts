@@ -20,6 +20,7 @@ import type { HASSDomTargetEvent } from "../common/dom/fire_event";
 import { fireEvent } from "../common/dom/fire_event";
 import { ShortcutManager } from "../common/keyboard/shortcuts";
 import { LanguageModeController } from "../common/language-mode/language-mode-controller";
+import { renderBilingualTitle } from "../common/language-mode/stacked-label";
 import { PageLockController } from "../common/locks/page-lock-controller";
 import { getHistoryState } from "../common/navigate";
 import type {
@@ -366,8 +367,12 @@ export class HassTabsSubpage extends LitElement {
                   !title
                     ? ""
                     : this.contentHeading
-                      ? html`<span class="bar-title page-title">${title}</span>`
-                      : html`<h1 class="page-title">${title}</h1>`
+                      ? html`<span class="bar-title page-title"
+                          >${renderBilingualTitle(title)}</span
+                        >`
+                      : html`<h1 class="page-title">
+                          ${renderBilingualTitle(title)}
+                        </h1>`
                 }</slot
               >${
                 summary && !this._narrow

@@ -13,6 +13,37 @@ is being verified; `docs/feature-status.md` is the older row-by-row record up to
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
+## Seen in a browser on builds 531 and 532, 20 November 2026
+
+These items had no line in this file before. Each was reported seen working in a browser on build
+2026.11.1.531 or 2026.11.1.532; which of the two builds is not recorded per item, so they are
+listed unticked with that state rather than ticked from a summary.
+
+- [ ] Integrations list export and import. Seen working in a browser on build 531 or 532.
+- [ ] Settings of one integration, export and import. Seen working in a browser on build 531 or
+      532.
+- [ ] Checking for updates installs nothing. Seen in a browser on build 531 or 532.
+- [ ] Problem log: choosing the repository, and hiding names. Seen working in a browser on build
+      531 or 532.
+- [ ] Saving space: bringing a pointer back to a whole backup. Seen working in a browser on build
+      531 or 532.
+- [ ] Saving space with the registry not reachable: the page shows the unreachable state. Seen in a
+      browser on build 531 or 532. Fault seen there: the backups whole on this disk appeared about
+      2 s after the pointer row. The list now waits for the backup list instead of showing the
+      pointer row alone (source only, not seen); showing the local backups at once needs their
+      name, date and size from `backup/pointer/info`, which today returns only ids.
+- [ ] The four games of the super confirmation (whack-a-mole, four in a row, the coin and the
+      cookie) played by keyboard. Seen working in a browser on build 531 or 532. Fault seen there:
+      focus stayed on the page and Escape did nothing until one Tab. Focus now moves inside when it
+      opens and Escape works from anywhere (source only, not seen).
+- [ ] "Updating 2 of 2" during "Update everything" is missing in a second browser that opens the
+      page during the run. Not fixed: the queue lives only in the browser that started it (session
+      storage), and the server keeps no record of which updates are in the run, their order or the
+      total.
+- [ ] A page title in both languages at 390 px ("Integrations · 整合") wrapped awkwardly. The
+      separator and the second language now wrap together and never inside a word (source only,
+      not seen).
+
 ## Integration pass and a release dispatched for `a3cb56d37`, 18 November 2026
 
 The hosted instance still runs build 2026.11.1.524 (no record says it moved). Build 2026.11.1.525
@@ -72,7 +103,9 @@ commit); none of this is seen in a released build yet. Details in `HANDOFF.md`.
 ### Faults found by the look, not yet fixed
 
 - [ ] Still English in Cantonese and both modes: the sidebar page names, the Backup Manager state
-      "Idle", and the Automations top bar title at 390 px.
+      "Idle", and the Automations top bar title at 390 px. The page names in the page tab strip
+      came from a list built with plain English text; it now follows the language mode, as the
+      older sidebar already did (source only, 20 November, not seen). The other two are not fixed.
 - [ ] Devices rows are 72 px and Automations rows 88 px, above the 64 px target (the same in
       English).
 - [ ] Two search icons side by side in the Entities top bar at 1440 px. Not yet compared with 525

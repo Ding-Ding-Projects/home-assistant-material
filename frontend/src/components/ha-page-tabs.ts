@@ -620,7 +620,7 @@ export class HaPageTabs extends LitElement {
           ? entry(
               "tools",
               mdiHammer,
-              named("tools", this.hass.localize("ui.sidebar.developer_tools")),
+              named("tools", this._t("ui.sidebar.developer_tools")),
               onTools,
               entryRoute("tools")
             )
@@ -631,7 +631,7 @@ export class HaPageTabs extends LitElement {
           ? entry(
               "settings",
               mdiCog,
-              named("config", this.hass.localize("panel.config")),
+              named("config", this._t("panel.config")),
               this.hass.panelUrl === "config" && !onTools,
               entryRoute("config"),
               undefined,
@@ -642,10 +642,7 @@ export class HaPageTabs extends LitElement {
       ${entry(
         "notifications",
         mdiBell,
-        named(
-          "notifications",
-          this.hass.localize("ui.notification_drawer.title")
-        ),
+        named("notifications", this._t("ui.notification_drawer.title")),
         false,
         undefined,
         () => fireEvent(this, "hass-show-notifications"),

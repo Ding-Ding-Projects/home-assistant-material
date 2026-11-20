@@ -32,6 +32,23 @@ export const renderStackedLabel = (label: string): TemplateResult | string => {
   >`;
 };
 
+/**
+ * Renders a page title. In both-language mode the second language and the
+ * separator before it form one unit that wraps as a whole, so a narrow
+ * screen breaks the title at the separator and never inside a word. Any
+ * other title is returned unchanged. The styles live in `pageHeaderStyles`.
+ */
+export const renderBilingualTitle = (
+  title: string
+): TemplateResult | string => {
+  const parts = splitBilingualLabel(title);
+  if (!parts) {
+    return title;
+  }
+  return html`<span class="title-main">${parts[0]}</span>
+    <span class="title-alt">·&nbsp;${parts[1]}</span>`;
+};
+
 /** Styles for `renderStackedLabel`; add to the control's own styles. */
 export const stackedLabelStyles = css`
   .stacked-label {

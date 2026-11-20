@@ -21,7 +21,7 @@ import "../../../components/ha-button-toggle-group";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
-import type { BackupContent } from "../../../data/backup";
+import type { BackupContent, BackupInfo } from "../../../data/backup";
 import { formatMarkedTime } from "../../../data/backup_delete_proof";
 import type {
   BackupPointerInfo,
@@ -74,6 +74,16 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
   @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @property({ attribute: false }) public backups: BackupContent[] = [];
+
+  /**
+   * The backup list of the backups page. Undefined until it has arrived:
+   * listing every place can wait for a registry that does not answer, and
+   * until then the backups on this disk are not known by name, date or size.
+   */
+  @property({ attribute: false }) public info?: BackupInfo;
+
+  /** The backups page is still reading the backups, the settings and places. */
+  @property({ attribute: false }) public fetching = false;
 
   @state() private _info?: BackupPointerInfo;
 
@@ -478,6 +488,18 @@ class HaConfigBackupPointers extends SubscribeMixin(LitElement) {
   }
 
   private _renderList(rows: PointerRow[], selected?: PointerRow) {
+    // Until the backup list has arrived, a list of pointers alone would read
+    // as if no backup were whole on this disk. If reading the list failed,
+    // the pointers are still shown.
+    if (!this.info && this.fetching) {
+      return html`<div
+        class="card loading"
+        role="status"
+        aria-label=${this._lang.text(this.hass.localize, "ui.common.loading")}
+      >
+        <ha-spinner size="small"></ha-spinner>
+      </div>`;
+    }
     if (!rows.length) {
       return html`<div class="card empty">${this._t("empty")}</div>`;
     }

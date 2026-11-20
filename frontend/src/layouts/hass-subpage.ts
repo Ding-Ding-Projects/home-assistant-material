@@ -15,6 +15,7 @@ import { pageHeaderStyles, playPageEntry } from "../common/motion/page-entry";
 import type { HASSDomTargetEvent } from "../common/dom/fire_event";
 import { fireEvent } from "../common/dom/fire_event";
 import { ShortcutManager } from "../common/keyboard/shortcuts";
+import { renderBilingualTitle } from "../common/language-mode/stacked-label";
 import { PageLockController } from "../common/locks/page-lock-controller";
 import { getHistoryState } from "../common/navigate";
 import { sanitizeNavigationPath } from "../common/url/sanitize-navigation-path";
@@ -205,7 +206,9 @@ class HassSubpage extends LitElement {
                 : nothing
             }
             <span class="title-text page-title"
-              ><slot name="header">${this.header}</slot></span
+              ><slot name="header"
+                >${this.header ? renderBilingualTitle(this.header) : nothing}</slot
+              ></span
             >
             ${
               this.summary && !this.narrow
