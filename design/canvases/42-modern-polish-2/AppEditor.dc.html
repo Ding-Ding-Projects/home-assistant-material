@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Automation editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#0C1016}
+@keyframes r-in{from{opacity:0;transform:translateX(-30px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes r-flow{to{stroke-dashoffset:-24}}
+.r-in{animation:r-in .5s cubic-bezier(.2,1.4,.3,1) both}
+.r-flow{stroke-dasharray:6 6;animation:r-flow 1.2s linear infinite}
+.r-still *{animation:none !important}
+@media (prefers-reduced-motion:reduce){*{animation:none !important}}
+.r-step{position:relative;margin-left:34px;border-radius:28px;padding:12px 12px 12px 16px;display:flex;align-items:center;gap:12px;min-height:76px;box-sizing:border-box}
+.r-dot{position:absolute;left:-34px;top:50%;margin-top:-13px;width:26px;height:26px;border-radius:13px;display:grid;place-items:center;font-size:12px;font-weight:900;color:#0C1016}
+.r-k{font-size:11px;font-weight:800;letter-spacing:.1em}
+.r-t{font-size:15px;line-height:20px;font-weight:700;color:#FFFFFF}
+.r-more{flex:none;width:48px;height:48px;border:0;border-radius:24px;background:rgba(0,0,0,.25);display:grid;place-items:center}
+.r-add{margin-left:34px;height:48px;border:2px dashed #3A4352;border-radius:24px;background:transparent;color:#B9C0CC;font-family:inherit;font-size:14px;font-weight:700}
+</style>
+</helmet>
+<div class="{{motionClass}}" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0C1016; color: #E6E9EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px; display: flex; flex-direction: column">
+
+<header style="flex: none; margin: 10px 10px 0; border-radius: 40px; background: #13337F; padding: 8px 8px 16px; position: relative; overflow: hidden">
+<svg aria-hidden="true" width="140" height="140" viewBox="0 0 140 140" style="position: absolute; right: -30px; bottom: -50px"><circle cx="70" cy="70" r="48" fill="none" stroke="#9CC8FF" stroke-width="20"/></svg>
+<div style="display: flex; align-items: center; justify-content: space-between; position: relative">
+<button type="button" aria-label="Back" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: rgba(6,16,40,.45); display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+<div style="display: flex; gap: 6px"><button type="button" style="height: 48px; border: 0; border-radius: 24px; background: rgba(6,16,40,.45); color: #FFFFFF; padding: 0 16px; font-family: inherit; font-size: 14px; font-weight: 800">Try it</button><button type="button" aria-label="More actions" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: rgba(6,16,40,.45); display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#FFFFFF"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+</div>
+<div style="padding: 10px 14px 0; position: relative"><h1 style="margin: 0; font-size: 28px; line-height: 30px; font-weight: 900; font-stretch: 114%; letter-spacing: -0.02em; color: #FFFFFF">Hallway light at dusk</h1><p style="margin: 4px 0 0; font-size: 14px; color: #C9D8FF">On · ran 18:42 · 3 steps</p></div>
+</header>
+
+<div style="flex: 1; min-height: 0; position: relative; padding: 14px 10px 0; display: flex; flex-direction: column; gap: 10px">
+<svg aria-hidden="true" width="26" height="420" viewBox="0 0 26 420" style="position: absolute; left: 10px; top: 30px"><path class="r-flow" d="M13 0 V420" stroke="#3A4352" stroke-width="4" stroke-linecap="round"/></svg>
+
+<div class="r-step r-in" style="background: #5A3E00"><div class="r-dot" style="background: #F2B62E">1</div><div style="flex: 1; min-width: 0"><div class="r-k" style="color: #FFD77A">WHEN</div><div class="r-t">The sun sets</div><div style="font-size: 13px; line-height: 18px; color: #FFE7B0">20 minutes before</div></div><button type="button" class="r-more" aria-label="Step actions"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#FFFFFF"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+<button type="button" class="r-add">Add another trigger</button>
+
+<div class="r-step r-in" style="animation-delay: .08s; background: #3A1F66"><div class="r-dot" style="background: #B9A2FF">2</div><div style="flex: 1; min-width: 0"><div class="r-k" style="color: #DCC6FF">ONLY IF</div><div class="r-t">Somebody is home</div><div style="font-size: 13px; line-height: 18px; color: #E9DCFF">True right now</div></div><button type="button" class="r-more" aria-label="Step actions"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#FFFFFF"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+
+<div class="r-step r-in" style="animation-delay: .16s; background: #0F4A2A"><div class="r-dot" style="background: #7FE0A2">3</div><div style="flex: 1; min-width: 0"><div class="r-k" style="color: #A8F5C2">THEN</div><div class="r-t">Turn on Hallway light</div><div style="font-size: 13px; line-height: 18px; color: #CFF9DD">At 62%, warm white</div></div><button type="button" class="r-more" aria-label="Step actions"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#FFFFFF"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+<button type="button" class="r-add">Add another action</button>
+</div>
+
+<div style="position: absolute; left: 12px; right: 12px; bottom: 12px; height: 68px; box-sizing: border-box; border-radius: 34px; background: #1B212B; box-shadow: 0 12px 30px rgba(0,0,0,.6); padding: 6px 6px 6px 20px; display: flex; align-items: center; gap: 8px">
+<div style="flex: 1; min-width: 0; font-size: 13px; line-height: 18px; color: #B9C0CC">1 change not saved</div>
+<button type="button" style="height: 56px; border: 0; border-radius: 28px; background: transparent; color: #E6E9EF; padding: 0 14px; font-family: inherit; font-size: 15px; font-weight: 700">Undo</button>
+<button type="button" style="height: 56px; border: 0; border-radius: 28px; background: {{accent}}; color: #06203A; padding: 0 26px; font-family: inherit; font-size: 16px; font-weight: 900">Save</button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#9CC8FF","options":["#9CC8FF","#7FE0A2","#F2B62E","#B9A2FF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return { accent: this.props.accent ?? '#9CC8FF', motionClass: (this.props.motion ?? true) ? '' : 'r-still' };
+}
+}
+</script>
+</body>
+</html>

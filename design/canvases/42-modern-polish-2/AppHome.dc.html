@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Front door</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&display=swap">
+<style>
+body{margin:0;background:#0C1016}
+@keyframes h-in{from{opacity:0;transform:translateY(40px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes h-spin{from{transform:rotate(-140deg) scale(.2);opacity:0}to{transform:none;opacity:1}}
+@keyframes h-glow{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes h-turn{to{transform:rotate(360deg)}}
+.h-in{animation:h-in .6s cubic-bezier(.2,1.4,.3,1) both}
+.h-spin{animation:h-spin 1s cubic-bezier(.2,1.4,.3,1) .15s both}
+.h-glow{animation:h-glow 3s ease-in-out infinite}
+.h-turn{animation:h-turn 30s linear infinite}
+.h-still *{animation:none !important}
+@media (prefers-reduced-motion:reduce){*{animation:none !important}}
+.h-area{border:0;border-radius:30px;padding:14px;height:132px;text-align:left;font-family:inherit;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.h-area b{font-size:38px;line-height:36px;font-weight:900;font-stretch:118%;letter-spacing:-.03em}
+.h-area span{font-size:14px;font-weight:700}
+.h-area small{font-size:12px;opacity:.85}
+.h-chip{flex:none;height:48px;border:0;border-radius:24px;padding:0 18px;font-family:inherit;font-size:14px;font-weight:800}
+.h-nav{position:absolute;left:12px;right:12px;bottom:12px;height:68px;box-sizing:border-box;border-radius:34px;background:#1B212B;box-shadow:0 12px 30px rgba(0,0,0,.6);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:6px}
+.h-nav a{display:grid;justify-items:center;align-content:center;gap:1px;color:#B9C0CC;text-decoration:none;font-size:12px;font-weight:600;border-radius:28px}
+</style>
+</helmet>
+<div class="{{motionClass}}" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0C1016; color: #E6E9EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 15px; line-height: 22px">
+
+<section class="h-in" style="margin: 10px 10px 0; height: 300px; border-radius: 48px; background: #10245C; position: relative; overflow: hidden">
+<svg aria-hidden="true" width="370" height="300" viewBox="0 0 370 300" style="position: absolute; inset: 0">
+<g class="h-spin" style="transform-origin: 318px 128px"><g class="h-turn" style="transform-origin: 318px 128px"><circle cx="318" cy="128" r="30" fill="#F2B62E" stroke="#F2B62E" stroke-width="16" stroke-dasharray="0 15.7" stroke-linecap="round"/></g></g>
+<path d="M0 250 C70 214 120 262 190 236 S310 214 370 246 V300 H0 Z" fill="#0F4A2A"/>
+<path d="M0 272 C80 246 150 286 230 262 S330 250 370 268 V300 H0 Z" fill="#1C7A45"/>
+<g transform="translate(196 132)"><path d="M0 60 L62 10 L124 60 V124 H0 Z" fill="#1B3F99"/><path d="M-10 64 L62 4 L134 64" fill="none" stroke="{{accent}}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><rect class="h-glow" x="20" y="72" width="34" height="34" rx="9" fill="#FFE08B"/><rect x="74" y="78" width="30" height="46" rx="8" fill="#0C1A44"/></g>
+</svg>
+<div style="position: absolute; right: 10px; top: 10px; display: flex; gap: 6px">
+<button type="button" aria-label="Search" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: rgba(6,16,40,.5); display: grid; place-items: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+</div>
+<div style="position: absolute; left: 22px; top: 22px; right: 150px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .1em; color: #C9D8FF">19:42 · 21° INSIDE</div>
+<h1 style="margin: 6px 0 0; font-size: 44px; line-height: 42px; font-weight: 900; font-stretch: 120%; letter-spacing: -0.03em; color: #FFFFFF">Good evening, Alex</h1>
+<p style="margin: 8px 0 0; font-size: 14px; line-height: 20px; color: #C9D8FF">3 lights on. Front door locked.</p>
+</div>
+</section>
+
+<div style="display: flex; gap: 8px; padding: 10px 10px 0; overflow: hidden">
+<button type="button" class="h-chip" style="background: {{accent}}; color: #06203A">All lights off</button>
+<button type="button" class="h-chip" style="background: #3A1F66; color: #DCC6FF">Night mode</button>
+<button type="button" class="h-chip" style="background: #1B212B; color: #E6E9EF">Away</button>
+</div>
+
+<button type="button" class="h-in" style="animation-delay: .1s; margin: 10px 10px 0; width: 370px; box-sizing: border-box; border: 0; border-radius: 30px; background: #5A3E00; color: #FFD77A; padding: 14px 16px; display: flex; align-items: center; gap: 14px; text-align: left; font-family: inherit">
+<div style="font-size: 56px; line-height: 48px; font-weight: 900; font-stretch: 118%">1</div>
+<div style="flex: 1; min-width: 0"><div style="font-size: 17px; font-weight: 800">thing needs you</div><div style="font-size: 13px; line-height: 18px">A door sensor has not answered since 14:02</div></div>
+<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFD77A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+</button>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 10px 10px 0">
+<button type="button" class="h-area h-in" style="animation-delay: .18s; background: #5A2A14; color: #FFD0BD"><svg aria-hidden="true" width="90" height="90" viewBox="0 0 90 90" style="position: absolute; right: -18px; top: -18px"><rect x="14" y="14" width="62" height="62" rx="22" fill="#FF8A65" transform="rotate(14 45 45)"/></svg><b>2</b><span>Living room</span><small>2 lights on · 21.4°</small></button>
+<button type="button" class="h-area h-in" style="animation-delay: .24s; background: #0F4A2A; color: #A8F5C2"><svg aria-hidden="true" width="90" height="90" viewBox="0 0 90 90" style="position: absolute; right: -20px; top: -20px"><circle cx="45" cy="45" r="34" fill="#1C7A45"/><circle cx="45" cy="45" r="14" fill="#0F4A2A"/></svg><b>1</b><span>Kitchen</span><small>1 light on · quiet</small></button>
+<button type="button" class="h-area h-in" style="animation-delay: .3s; height: 104px; background: #3A1F66; color: #DCC6FF"><svg aria-hidden="true" width="90" height="90" viewBox="0 0 90 90" style="position: absolute; right: -22px; top: -14px"><rect x="8" y="24" width="74" height="42" rx="21" fill="#B9A2FF" transform="rotate(-20 45 45)"/></svg><b>0</b><span>Bedroom</span><small>Dark · 19.8°</small></button>
+<button type="button" class="h-area h-in" style="animation-delay: .36s; height: 104px; background: #13337F; color: #C9D8FF"><svg aria-hidden="true" width="90" height="90" viewBox="0 0 90 90" style="position: absolute; right: -20px; top: -20px"><path d="M45 8 L82 45 L45 82 L8 45 Z" fill="#9CC8FF" stroke="#9CC8FF" stroke-width="10" stroke-linejoin="round"/></svg><b>0</b><span>Garden</span><small>Gate closed</small></button>
+</div>
+
+<nav class="h-nav" aria-label="Main">
+<a href="#" style="background: #13337F; color: #FFFFFF"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/></svg>Home</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M4 10h16"/></svg>Pages</a>
+<a href="#"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="8.5"/></svg>Settings</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#9CC8FF","options":["#9CC8FF","#7FE0A2","#F2B62E","#B9A2FF"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return { accent: this.props.accent ?? '#9CC8FF', motionClass: (this.props.motion ?? true) ? '' : 'h-still' };
+}
+}
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # Canvas 42: modern polish 2
 
-Eight boards for the next modernising pass. They keep the app's own bold look (colour blocks, big numerals, floating pill bar) and push it further with shaped icons, pictures and bigger motion, while fixing how pages scroll and fit.
+Thirteen boards for the next modernising pass. They keep the app's own bold look (colour blocks, big numerals, floating pill bar) and push it further with shaped icons, pictures and bigger motion, while fixing how pages scroll and fit.
 
 | Board | Page | What it shows |
 | --- | --- | --- |
@@ -12,6 +12,15 @@ Eight boards for the next modernising pass. They keep the app's own bold look (c
 | `Wide.dc.html` | Wide window | The list page on a wide window: sticky title bar, a table that scrolls inside its card, a 1200 px content limit |
 | `Drama.dc.html` | Motion | Interactive. Five moments with pictures: arriving, an update finished, something failed, deleted, nothing here yet |
 | `Pills.dc.html` | Motion | Interactive. Floating pills for page tools, selection actions and create. On a desktop they widen on hover and Filter opens its menu on hover |
+| `AppHome.dc.html` | Whole app | The front door: the greeting in a tall colour scene with a lit window, scenes as coloured pills, areas as coloured tiles with a huge count |
+| `AppEntity.dc.html` | Whole app | The sheet for one thing (a light): a header in the thing's colour, one giant slider, colour swatches, one main button |
+| `AppEditor.dc.html` | Whole app | The automation editor as a path of colour blocks: When, Only if, Then, with a floating save pill |
+| `AppUpdates.dc.html` | Whole app | Updates and backups: a run as a big ring with the percent, steps with ticks, backups and going back as colour tiles |
+| `AppDashboard.dc.html` | Whole app | Dashboard cards: each kind in its own colour with a moving picture of its data and one large main button |
+
+On the list boards the create button sits beside the floating bar, not above it, so it can never cover a row or a switch.
+
+Review pictures of the boards are in `design/frames/42-modern-polish-2/`. They were rendered from the board markup with the default accent and are a still of each board after its arrival motion.
 
 ## Rules the boards agree on
 
@@ -45,4 +54,4 @@ Spring easing: `cubic-bezier(.2, 1.4, .3, 1)`.
 
 ## Status
 
-Drawn on 20 November 2026. Not built yet. The boards were not rendered to pictures in this pass, so they are reviewed on the canvas itself.
+Drawn on 20 November 2026. Building has started; nothing from this canvas has been seen in a browser yet.
