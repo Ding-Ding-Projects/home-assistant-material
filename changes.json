@@ -1,15 +1,38 @@
 {
  "format": 1,
- "generated": "2026-11-20T13:16:33Z",
+ "generated": "2026-11-20T13:44:37Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 535,
+ "newest_build": 536,
  "releases": [
+  {
+   "build": 536,
+   "core": "2026.11.2.536",
+   "supervisor": "2026.11.0.536",
+   "os": "18.5.536",
+   "tag": null,
+   "source": "37b882b19",
+   "date": "2026-11-20T08:04:33-05:00",
+   "previous_build": 535,
+   "changes": [
+    {
+     "sha": "37b882b19",
+     "date": "2026-11-20T08:04:33-05:00",
+     "title": "An update run keeps its start time across a restart, empty lists wrap on phones [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "Four small things from the build 535 browser check.\n\n- Update run record: the watching browser said a run \"started at 07:18\" when it had started at 07:14. Core restarts in the middle of its own update, the in-memory record goes with it, and the next report made a new record with a new start. The driving browser now sends the run's start time with every report and the server keeps it when it is plausible (has a timezone, not older than a day, not in the future). - Saving space: a place already shown as \"could not be reached\" stays that way while a later check runs, instead of flicking back to \"still checking\" for a few seconds. It changes only when a check ends with a different answer. - Empty list pages on phones: the headline wraps inside the screen. A narrow row rule was winning over the empty-state cell and keeping it on one line. Where a page has a floating create button, the second create button under the headline is hidden on narrow screens. - Cantonese mode: the automatic breadcrumb on plain subpages follows the language mode, and the count lines on the automations and devices lists use each language's own punctuation.\n\nTests: Core auto_update 155 passed. One new test first ",
+     "detail_yue": "更新進度過咗重新啟動都記得幾時開始，空清單喺手機識轉行。\n\n更新進度記錄：Core 更新自己嗰陣會重新啟動，記憶體嘅記錄冇咗，之後 開始時間就變咗做後嚟嗰刻。而家負責推進嘅瀏覽器每次都報埋開始時間， 合理嘅伺服器就照用。 慳位頁：已經顯示連唔到嘅地方，再檢查嗰陣唔會彈返去「檢查緊」。 空嘅清單頁喺手機：標題識轉行，有浮動新增掣嗰陣唔再出多一個掣。 廣東話模式：普通分頁嘅路徑跟語言模式，自動化同裝置清單嘅數量句子 用返各自語言嘅標點。 呢批改動仲未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 535,
    "core": "2026.11.2.535",
    "supervisor": "2026.11.0.535",
    "os": "18.5.535",
-   "tag": null,
+   "tag": "v2026.11.2.535",
    "source": "73a735503",
    "date": "2026-11-20T06:20:22-05:00",
    "previous_build": 534,
