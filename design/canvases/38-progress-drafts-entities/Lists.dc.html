@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Export and import the list of installed integrations</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..900&family=Roboto+Mono:wght@500;700&display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+</style>
+</helmet>
+<div style="min-height: 1180px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1660px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #C4C6D0">Asked for by the owner: the Integrations page can export the list of what is installed and import such a list. The file names what is here and what kinds of entity each one makes, so editors can be designed for the real set. It carries no sign-in and no settings.</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
+
+<section aria-label="Export" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">INTEGRATIONS · MORE · EXPORT THE LIST</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="font-weight: 600; font-size: 16px">Export the list</div>
+<div style="font-size: 13px; color: #C4C6D0">23 integrations · 61 kinds of entity · no sign-ins, no settings</div>
+</div>
+
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Names you gave</div><div style="font-size: 12px; color: #C4C6D0">Entry titles such as "Kitchen hub". Off: only the integration's own name.</div></div><span style="width: 52px; height: 32px; border-radius: 16px; box-shadow: inset 0 0 0 2px #8E9099; position: relative; flex: none"><span style="position: absolute; left: 8px; top: 8px; width: 16px; height: 16px; border-radius: 50%; background: #8E9099"></span></span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1; min-width: 0"><div style="font-weight: 600">How many of each</div><div style="font-size: 12px; color: #C4C6D0">Counts of devices and entities per kind. No names, no states.</div></div><span style="width: 52px; height: 32px; border-radius: 16px; background: #B4C5FF; position: relative; flex: none"><span style="position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #152E66"></span></span></div>
+</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">WHAT GOES IN THE FILE</div>
+<div style="border-radius: 16px; background: #14161B; padding: 12px; font-family: 'Roboto Mono', monospace; font-size: 12px; line-height: 18px; color: #C4C6D0; overflow-wrap: anywhere">
+<div><span style="color: #B4C5FF">build</span> 2026.11.2.529</div>
+<div><span style="color: #B4C5FF">made</span> 19 Nov 2026 19:40</div>
+<div style="margin-top: 6px"><span style="color: #E3E2E9">mqtt</span> · built in · 1 entry</div>
+<div style="padding-left: 12px">light 6 · sensor 41 · switch 9 · cover 2</div>
+<div style="margin-top: 4px"><span style="color: #E3E2E9">met</span> · built in · 1 entry</div>
+<div style="padding-left: 12px">weather 1</div>
+<div style="margin-top: 4px"><span style="color: #E3E2E9">my_heater</span> · added by you · 1.4.0</div>
+<div style="padding-left: 12px">climate 2 · sensor 4</div>
+<div style="margin-top: 6px; color: #8E9099">20 more</div>
+</div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 48px; border-radius: 24px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Save file</span><span style="flex: 1; height: 48px; border-radius: 24px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: grid; place-items: center; font-weight: 700">Copy as text</span></div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 4px">The preview is the whole truth: what you see here is what the file holds.</div>
+</section>
+
+<section aria-label="Import" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">INTEGRATIONS · MORE · IMPORT A LIST</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="font-weight: 600; font-size: 16px">integrations-list.json</div>
+<div style="font-size: 13px; color: #C4C6D0">From build 2026.11.2.529 · made <span style="font-family: 'Roboto Mono', monospace">19 Nov 19:40</span> · 23 integrations</div>
+</div>
+
+<div style="display: flex; gap: 8px; overflow-x: auto">
+<span style="height: 36px; padding: 0 14px; border-radius: 18px; background: #B4C5FF; color: #152E66; display: inline-grid; place-items: center; font-weight: 700; flex: none">Not here yet 4</span>
+<span style="height: 36px; padding: 0 14px; border-radius: 18px; box-shadow: inset 0 0 0 1px #44474F; display: inline-grid; place-items: center; flex: none">Already here 17</span>
+<span style="height: 36px; padding: 0 14px; border-radius: 18px; box-shadow: inset 0 0 0 1px #44474F; display: inline-grid; place-items: center; flex: none">Cannot add 2</span>
+</div>
+
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 64px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #262933; display: grid; place-items: center; flex: none; font-weight: 700; color: #B4C5FF">M</span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">MQTT</div><div style="font-size: 12px; color: #C4C6D0">light · sensor · switch · cover</div></div><span style="height: 48px; padding: 0 16px; border-radius: 24px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: grid; place-items: center; font-weight: 700; flex: none">Set up</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 64px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #262933; display: grid; place-items: center; flex: none; font-weight: 700; color: #B4C5FF">W</span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Weather</div><div style="font-size: 12px; color: #C4C6D0">weather</div></div><span style="height: 48px; padding: 0 16px; border-radius: 24px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: grid; place-items: center; font-weight: 700; flex: none">Set up</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 64px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: #3A2F12; display: grid; place-items: center; flex: none; font-weight: 700; color: #FFDF9E">?</span><div style="flex: 1; min-width: 0"><div style="font-weight: 600">my_heater</div><div style="font-size: 12px; color: #FFDF9E">Added by hand on the other system. Not installed here, so it cannot be set up.</div></div></div>
+</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #B4C5FF; flex: none; margin-top: 6px"></span><div style="font-size: 13px; color: #C4C6D0">Nothing is added by importing. Each Set up opens that integration's own setup, where you sign in or choose the device yourself.</div></div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">A FILE THAT IS NOT A LIST</div>
+<div style="border-radius: 16px; background: #3B1512; padding: 12px; display: flex; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFB4AB; flex: none; margin-top: 6px"></span><div><div style="font-weight: 600; color: #FFDAD6">This file is not an integrations list</div><div style="font-size: 13px; color: #FFB4AB">Nothing was read from it. Choose a file saved by Export the list.</div></div></div>
+</section>
+
+<section aria-label="One integration's settings" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">ONE INTEGRATION · MORE · EXPORT ITS SETTINGS</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="font-weight: 600; font-size: 16px">MQTT · Kitchen hub</div>
+<div style="font-size: 13px; color: #C4C6D0">14 settings · 3 of them are sign-ins</div>
+</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="flex: 1">Options</span><span style="font-family: 'Roboto Mono', monospace; font-size: 13px; color: #C4C6D0">9 · included</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="flex: 1">Address and port</span><span style="font-family: 'Roboto Mono', monospace; font-size: 13px; color: #C4C6D0">2 · included</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Sign-ins</div><div style="font-size: 12px; color: #C4C6D0">User name, password, key. Left out unless you turn this on.</div></div><span style="width: 52px; height: 32px; border-radius: 16px; box-shadow: inset 0 0 0 2px #8E9099; position: relative; flex: none"><span style="position: absolute; left: 8px; top: 8px; width: 16px; height: 16px; border-radius: 50%; background: #8E9099"></span></span></div>
+</div>
+<div style="border-radius: 16px; background: #3A2F12; padding: 12px; display: flex; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FFDF9E; flex: none; margin-top: 6px"></span><div><div style="font-weight: 600; color: #FFEFC9">With sign-ins, the file is locked</div><div style="font-size: 13px; color: #FFDF9E">Needs the two keys and the slider, then a password of 14 characters or more typed twice. The password is never stored. Values are never shown on the page.</div></div></div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 48px; border-radius: 24px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Save file</span></div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">IMPORT ITS SETTINGS</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="flex: 1; color: #C4C6D0">File is for</span><span style="font-weight: 600">MQTT</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="flex: 1; color: #C4C6D0">Will change</span><span style="font-weight: 600">4 options</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="flex: 1; color: #C4C6D0">Sign-ins in the file</span><span style="font-weight: 600">None: you will sign in again</span></div>
+</div>
+<div style="border-radius: 16px; background: #14161B; padding: 12px; font-family: 'Roboto Mono', monospace; font-size: 12px; line-height: 18px; color: #C4C6D0; overflow-wrap: anywhere">
+<div><span style="color: #E3E2E9">discovery</span> on <span style="color: #8E9099">to</span> off</div>
+<div><span style="color: #E3E2E9">birth message</span> changed</div>
+<div><span style="color: #E3E2E9">keep alive</span> 60 <span style="color: #8E9099">to</span> 30</div>
+<div><span style="color: #E3E2E9">password</span> <span style="color: #8E9099">kept as it is here</span></div>
+</div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 48px; border-radius: 24px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: grid; place-items: center; font-weight: 700">Cancel</span><span style="flex: 1; height: 48px; border-radius: 24px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Apply 4 changes</span></div>
+<div style="font-size: 12px; color: #C4C6D0; padding: 0 4px">Apply needs the two keys and the slider. The settings as they were are saved first, so Undo puts them back.</div>
+</section>
+
+<section aria-label="Rules" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">RULES</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 4px 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">1</span><span>The file holds names of integrations, where each came from, and the kinds of entity it makes. Never a sign-in, a key, an address, an option or a state.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">2</span><span>Names the owner gave are left out unless the owner turns them on. Counts can be turned off.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">3</span><span>The preview shows exactly what will be saved. Saving is a download in the browser; nothing is sent anywhere.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">4</span><span>Importing only compares. It installs nothing, sets up nothing and downloads nothing by itself.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">5</span><span>Set up opens the integration's own setup, one at a time. A row moves to Already here only when that setup really finished.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">6</span><span>An imported file is data. Unknown names are shown as text and never run, fetched or trusted; a file over 1 MB or of another shape is refused whole.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">7</span><span>Admins only, both ways. Buttons are 48 px tall and the three groups scroll sideways on a phone.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">8</span><span>One integration's settings: sign-ins are left out by default. With them, the file is always locked with the owner's password, behind the two keys. Values are never shown, logged or sent.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">9</span><span>A settings file only fits the integration it names. Importing shows every change first, names only, and applies nothing until the two keys and the slider.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">10</span><span>Before applying, the settings as they were are kept so Undo works. An import that the integration refuses changes nothing.</span></div>
+</div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1700,"height":1180}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
