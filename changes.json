@@ -1,15 +1,38 @@
 {
  "format": 1,
- "generated": "2026-11-20T07:09:03Z",
+ "generated": "2026-11-20T07:53:34Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 532,
+ "newest_build": 533,
  "releases": [
+  {
+   "build": 533,
+   "core": "2026.11.2.533",
+   "supervisor": "2026.11.0.533",
+   "os": "18.5.533",
+   "tag": null,
+   "source": "6978140c2",
+   "date": "2026-11-20T02:24:28-05:00",
+   "previous_build": 532,
+   "changes": [
+    {
+     "sha": "6978140c2",
+     "date": "2026-11-20T02:24:28-05:00",
+     "title": "Escape works at once in the super confirmation, page names follow the language mode [skip ci]",
+     "areas": [
+      "docs",
+      "interface"
+     ],
+     "detail": "The build 532 browser check found one more thing: the super confirmation listened for Escape on itself while focus was still out on the page, so the key was pressed and politely ignored until someone pressed Tab.\n\n- Super confirmation: focus moves to the first key when it opens, and Escape is heard on the window for as long as it is open. - Page names in the top strip and the phone bar now follow the language mode. The strings were all there; the strip built its names from the plain English lookup and never asked which mode was on. The default order still sorts by the English name, so nothing moves between modes. - A bilingual page title breaks at its separator on narrow screens instead of in the middle of a word. - Saving space: while the backup list is still loading, the list shows a loading state rather than the pointer row alone, which read as \"you have no whole backups\". Showing local backups at once needs the pointer info command to carry their names and sizes; not done here. - ROADMAP: a section for what was seen in a browser on builds 531 and 532, and what is still open, including the update run's \"N of M\" line that only the browser which started the run can show.\n\nFrontend",
+     "detail_yue": "超級確認一開就聽到 Escape，頁面名跟返語言模式。\n\n超級確認：一開焦點就落喺第一條鑰匙，Escape 喺成個視窗都聽到。 頂部頁籤同手機底欄嘅頁面名之前淨係攞英文，冇問過而家係咩模式； 字串其實一早齊晒。預設次序照舊跟英文名排，轉模式唔會亂。 雙語標題喺窄螢幕會喺分隔號度斷行，唔會斷開一個字。 慳位頁：備份清單未載入完會顯示載入中，唔再得一行指標喺度嚇人。 ROADMAP 加咗 531 同 532 版喺瀏覽器睇過嘅項目，同埋仲未做嘅嘢。 呢批改動仲未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 532,
    "core": "2026.11.2.532",
    "supervisor": "2026.11.0.532",
    "os": "18.5.532",
-   "tag": null,
+   "tag": "v2026.11.2.532",
    "source": "9c1c5a66b",
    "date": "2026-11-20T00:35:37-05:00",
    "previous_build": 531,
