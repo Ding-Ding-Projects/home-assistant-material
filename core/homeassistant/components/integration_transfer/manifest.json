@@ -1,0 +1,11 @@
+{
+  "domain": "integration_transfer",
+  "name": "Integration export and import",
+  "after_dependencies": ["registry_storage"],
+  "codeowners": [],
+  "dependencies": ["websocket_api"],
+  "documentation": "https://www.home-assistant.io/docs/configuration/",
+  "integration_type": "system",
+  "iot_class": "calculated",
+  "quality_scale": "internal"
+}

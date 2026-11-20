@@ -14,6 +14,7 @@ is the older row-by-row record (10 to 13 November 2026), kept for its history.
 | [`language-and-voice/`](language-and-voice/README.md) | Language modes, playfulness, narrator and read aloud, School mode, attention modes, schedules and shared defaults, settings saved on the instance |
 | [`help-and-privacy/`](help-and-privacy/README.md) | Offline help, the problem log, link confirmation |
 | [`backups/`](backups/README.md) | Restoring official Home Assistant backups and the version rule |
+| [`integrations/`](integrations/README.md) | Exporting and importing the list of integrations and one integration's settings |
 | [`tools/`](tools/README.md) | File converter and drawing board |
 | [`automations/`](automations/README.md) | Testing and running a Choose step, the automation and script editors |
 | [`history/`](history/README.md) | Bounded comparison with earlier numeric history, missing data and export behavior |

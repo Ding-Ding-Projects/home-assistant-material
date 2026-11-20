@@ -7,7 +7,9 @@ import {
   mdiDevices,
   mdiDotsVertical,
   mdiDownload,
+  mdiExport,
   mdiHandExtendedOutline,
+  mdiImport,
   mdiPlayCircleOutline,
   mdiPlus,
   mdiProgressHelper,
@@ -79,6 +81,10 @@ import {
 } from "./ha-config-integration-page";
 import "./ha-config-sub-entry-row";
 import { offerMarketplaceUninstall } from "./offer-marketplace-uninstall";
+import {
+  showEntrySettingsExportDialog,
+  showEntrySettingsImportDialog,
+} from "./transfer/show-transfer-dialogs";
 
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import type { LocalizeFunc } from "../../../common/translations/localize";
@@ -451,6 +457,24 @@ export class HaConfigEntryRow extends LitElement {
                 `
               : nothing
           }
+          ${
+            this.hass.user?.is_admin && item.source !== "system"
+              ? html`
+                  <ha-dropdown-item value="export_settings">
+                    <ha-svg-icon slot="icon" .path=${mdiExport}></ha-svg-icon>
+                    ${this._modeLocalize(
+                      "ui.panel.config.integrations.transfer.menu_export_settings"
+                    )}
+                  </ha-dropdown-item>
+                  <ha-dropdown-item value="import_settings">
+                    <ha-svg-icon slot="icon" .path=${mdiImport}></ha-svg-icon>
+                    ${this._modeLocalize(
+                      "ui.panel.config.integrations.transfer.menu_import_settings"
+                    )}
+                  </ha-dropdown-item>
+                `
+              : nothing
+          }
 
           <ha-dropdown-item value="system_options">
             <ha-svg-icon slot="icon" .path=${mdiCogOutline}></ha-svg-icon>
@@ -676,6 +700,22 @@ export class HaConfigEntryRow extends LitElement {
     }
     if (value === "reconfigure") {
       this._handleReconfigure();
+      return;
+    }
+    if (value === "export_settings" || value === "import_settings") {
+      const params = {
+        entry: this.data.entry,
+        integrationName: domainToName(
+          this.hass.localize,
+          this.data.entry.domain,
+          this.manifest
+        ),
+      };
+      if (value === "export_settings") {
+        showEntrySettingsExportDialog(this, params);
+      } else {
+        showEntrySettingsImportDialog(this, params);
+      }
       return;
     }
     if (value === "system_options") {

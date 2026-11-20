@@ -229,6 +229,7 @@ DEFAULT_INTEGRATIONS = {
     "google_setup",
     "guided_setup",
     "hardware",
+    "integration_transfer",
     "labs",
     "logger",
     "marketplace",
