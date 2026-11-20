@@ -1,15 +1,59 @@
 {
  "format": 1,
- "generated": "2026-11-20T02:53:15Z",
+ "generated": "2026-11-20T03:36:56Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 530,
+ "newest_build": 531,
  "releases": [
+  {
+   "build": 531,
+   "core": "2026.11.2.531",
+   "supervisor": "2026.11.0.531",
+   "os": "18.5.531",
+   "tag": null,
+   "source": "738b1243e",
+   "date": "2026-11-19T22:14:25-05:00",
+   "previous_build": 530,
+   "changes": [
+    {
+     "sha": "738b1243e",
+     "date": "2026-11-19T22:14:25-05:00",
+     "title": "Fix the integrations list on core 2026.11.2; keep a sign-in out of backups [skip ci]",
+     "areas": [
+      "core"
+     ],
+     "detail": "The Python suites finally ran, and earned their keep at once. The new \"export the list\" command asked the device registry for devices in a way core 2026.11.2 now refuses, so the command failed whenever counts were on, which is the default. It now walks the devices and reads each one's single config entry. Its tests were also brought in line with current core: a mock integration needs a registered config flow, and setup and unload return nothing rather than a boolean.\n\nThe problem log's stored sign-in is now left out of backups, next to its wording store. After a restore, the owner signs in again.\n\nResults: core suites for today's changes all pass (pointers 38, export and import 59, automatic updates 130, hassio 149, problem log 77, registry storage 246, recordings 210, linked media 63, config entries 74, config validation 233). Backup 632 passed with one failure in a test whose own layout cannot pass; bootstrap has 20 to 24 failures that are the same without today's changes. Supervisor: 763 passed, none failed. The problem log tests ran before its latest change, so the newest websocket tests there are still unrun.",
+     "detail_yue": "修好整合清單喺 core 2026.11.2 嘅問題；登入資料唔入備份。\n\nPython 測試終於行到，一行就即刻有貢獻。新嘅「匯出清單」指令問裝置 登記冊攞裝置嘅方法，core 2026.11.2 已經唔准用，所以只要開咗數量 （預設係開）指令就會失敗。而家改為逐部裝置行一次，讀返每部裝置 唯一嘅設定項目。測試亦跟返現時嘅 core：模擬整合要有登記咗嘅設定 流程，設定同卸載要回傳空值而唔係布林值。\n\n問題記錄儲存嘅登入資料而家同用字儲存一樣唔入備份；還原之後擁有人 要再登入一次。\n\n結果：今日改動相關嘅 core 測試全部通過（指標 38、匯出匯入 59、 自動更新 130、hassio 149、問題記錄 77、登記處儲存 246、錄影 210、 連結媒體 63、設定項目 74、設定驗證 233）。備份 632 個通過，一個 失敗係測試本身嘅佈局冇可能過；bootstrap 有 20 至 24 個失敗，冇咗 今日嘅改動都係一樣。Supervisor：763 個通過，冇失敗。問題記錄嘅 測試係喺佢最新改動之前行嘅，所以嗰度最新嘅 websocket 測試仲未行。"
+    },
+    {
+     "sha": "623f898a8",
+     "date": "2026-11-19T21:34:31-05:00",
+     "title": "Problem log: choose or create the repository, wording, and a hiding repair [skip ci]",
+     "areas": [
+      "core",
+      "docs",
+      "interface"
+     ],
+     "detail": "Built from the board, after reading a real sent log.\n\nWhere to send: after signing in, the page lists the owner's repositories in a searchable list. Private ones can be chosen; public ones are shown as unusable and are refused by the server as well. A new private repository can be made behind the two keys, and is read back to be private before it is used. A repository that already holds other files gets the log in its own folder.\n\nSign-in: no client ID is built in. The setting now explains what one is and where to get it, and the page repeats that GitHub names the app that asks.\n\nWording: an owner switch, off by default, lets the owner's own wording file be used in the log's own headings and labels. Log lines, logger names, code and anything in a fenced block stay exact. The stored copy is private, left out of backups, and deleted when the switch goes off.\n\nHiding repair: the step that hides names given to things was matching them anywhere, so a thing named like the product rewrote every logger name and a thing named \"sun\" rewrote an integration. Program text is now set aside before hiding and put back after. In the other direction, entity ids inside condition dumps were only hidde",
+     "detail_yue": "問題記錄：揀或者開儲存庫、用字，同埋修好遮名。照設計板起，仲睇過 一份真正傳送咗嘅記錄。\n\n傳去邊：登入之後，頁面會用有搜尋嘅清單列出擁有人嘅儲存庫。私人 嘅可以揀；公開嘅會顯示為用唔到，伺服器亦一樣拒絕。可以過兩條鑰匙 開一個新嘅私人儲存庫，開完會讀返確認係私人先用。本身有其他檔案 嘅儲存庫，記錄會放喺自己個資料夾。\n\n登入：冇內置任何 client ID。設定而家會解釋佢係乜、喺邊度攞，頁面 亦會再講一次：GitHub 會講明係邊個應用程式要求授權。\n\n用字：擁有人開關，預設關閉，開咗之後記錄自己嘅標題同標籤會用 擁有人嘅用字檔案。記錄行、logger 名、程式碼同圍欄入面嘅嘢一律 原封不動。儲存嘅副本係私人嘅，唔入備份，熄咗開關就刪除。\n\n修好遮名：之前遮「幫嘢改嘅名」係喺任何位置都配對，所以一樣同產品 同名嘅嘢改寫晒所有 logger 名，一樣叫「sun」嘅嘢改寫咗一個整合。 而家會先將程式文字抽起，遮完再放返。另一邊，條件內容入面嘅實體 ID 之前只會遮仲存在嘅實體；而家所有實體 ID 都會換成標籤。\n\n檢查：純模組測試架 94 個個案全過；前端型別得返兩個已知錯誤；前端 測試 9694 個通過，三個已知失敗。websocket 測試冇行到，冇向真正 服務發過請求，亦未喺瀏覽器睇過。"
+    },
+    {
+     "sha": "111cf5bae",
+     "date": "2026-11-19T21:02:35-05:00",
+     "title": "Design board: problem log sign-in, choosing a repository, wording [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "The problem log board grows a column, drawn before the code. After signing in with a code, the owner picks a private repository from a searchable list, or has a new private one made behind the two keys. Public repositories are shown as unusable rather than offered, and privacy is checked again before every send.\n\nTwo more rules joined the list. The owner's own wording file can be used in what is sent, only when the owner turns that on, and it never lands in the repository as a list. And hiding names must stop rewriting the names of programs: a log where the product's own module name has been swapped for a label is a crossword, not a log.",
+     "detail_yue": "設計板：問題記錄嘅登入、揀儲存庫同用字。未寫程式先畫板，問題記錄 塊板多咗一欄。用代碼登入之後，擁有人可以喺有搜尋嘅清單揀一個 私人儲存庫，或者過兩條鑰匙之後開一個新嘅私人儲存庫。公開嘅 儲存庫會顯示為用唔到，唔會畀你揀；每次傳送之前都會再查一次係咪 私人。\n\n規則多咗兩條。擁有人自己嘅用字檔案可以用喺傳送嘅內容度，但要 擁有人開咗先用，亦唔會以清單形式放入儲存庫。另外，遮名唔可以再 改寫程式嘅名：連產品自己個模組名都換成標籤嘅記錄，係填字遊戲， 唔係記錄。"
+    }
+   ]
+  },
   {
    "build": 530,
    "core": "2026.11.2.530",
    "supervisor": "2026.11.0.530",
    "os": "18.5.530",
-   "tag": null,
+   "tag": "v2026.11.2.530",
    "source": "d020d1276",
    "date": "2026-11-19T20:07:35-05:00",
    "previous_build": 529,
