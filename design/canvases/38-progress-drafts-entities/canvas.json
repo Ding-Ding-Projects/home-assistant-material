@@ -199,8 +199,8 @@
   "Logs.dc.html": {
    "x": 0,
    "y": 0,
-   "w": 1280,
-   "h": 1040,
+   "w": 1700,
+   "h": 1320,
    "title": "Send the problem log to a private repository",
    "page": "logs",
    "expand": "fill"

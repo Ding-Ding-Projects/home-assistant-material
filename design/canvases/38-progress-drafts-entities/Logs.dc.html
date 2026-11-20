@@ -13,8 +13,8 @@
 body{margin:0;background:#0C0D10}
 </style>
 </helmet>
-<div style="min-height: 1040px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
-<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+<div style="min-height: 1320px; box-sizing: border-box; background: #0C0D10; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 14px; line-height: 20px; padding: 24px">
+<div style="max-width: 1660px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
 <div style="font-size: 13px; color: #C4C6D0">Asked for by the owner: let the problem log be sent to a repository, so whoever helps with this home can read what went wrong without being given a way into the home itself.</div>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 20px; align-items: start; justify-items: center">
@@ -66,6 +66,40 @@ body{margin:0;background:#0C0D10}
 </div>
 </section>
 
+<section aria-label="Sign in and choose where" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">SIGN IN WITH A CODE</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-weight: 600">1. Open GitHub and type this code</div>
+<div style="height: 56px; border-radius: 12px; background: #14161B; display: grid; place-items: center; font-family: 'Roboto Mono', monospace; font-size: 24px; font-weight: 700; letter-spacing: .12em">WDJB-MJHT</div>
+<div style="display: flex; gap: 8px"><span style="flex: 1; height: 48px; border-radius: 24px; background: #B4C5FF; color: #152E66; display: grid; place-items: center; font-weight: 700">Open GitHub</span><span style="flex: 1; height: 48px; border-radius: 24px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: grid; place-items: center; font-weight: 700">Copy code</span></div>
+<div style="font-size: 12px; color: #C4C6D0">Waiting for you to approve · the code ends at <span style="font-family: 'Roboto Mono', monospace">21:14</span></div>
+</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 56px; display: flex; align-items: center; gap: 12px"><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Signing in as</div><div style="font-size: 12px; color: #C4C6D0">GitHub will name the app that asks. Check it is the one you expect before approving.</div></div><span style="font-family: 'Roboto Mono', monospace; font-size: 12px; color: #C4C6D0; flex: none">app ID set</span></div>
+</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">2. WHERE TO SEND</div>
+<div style="height: 48px; border-radius: 24px; background: #1D1F26; display: flex; align-items: center; gap: 10px; padding: 0 16px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4C6D0" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span style="color: #E3E2E9">home</span><span style="flex: 1"></span><span style="font-size: 12px; color: #C4C6D0">3 private</span></div>
+<div role="listbox" aria-label="Your private repositories" style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div role="option" aria-selected="true" style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span style="width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 2px #B4C5FF; display: grid; place-items: center; flex: none"><span style="width: 10px; height: 10px; border-radius: 50%; background: #B4C5FF"></span></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; overflow-wrap: anywhere">you/home-problem-log</div><div style="font-size: 12px; color: #C4C6D0">Private · last changed 19 Nov 20:58</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div role="option" aria-selected="false" style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span style="width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 2px #8E9099; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; overflow-wrap: anywhere">you/home-notes</div><div style="font-size: 12px; color: #C4C6D0">Private · has other files: the log goes in its own folder</div></div></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div role="option" aria-disabled="true" style="min-height: 56px; display: flex; align-items: center; gap: 12px; opacity: .6"><span style="width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 2px #44474F; flex: none"></span><div style="flex: 1; min-width: 0"><div style="font-weight: 600; overflow-wrap: anywhere">you/home-site</div><div style="font-size: 12px; color: #FFB4AB">Public · cannot be used</div></div></div>
+</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-weight: 600">Or make a new one</div>
+<div style="height: 48px; border-radius: 12px; box-shadow: inset 0 0 0 1px #44474F; display: flex; align-items: center; padding: 0 12px; font-family: 'Roboto Mono', monospace; font-size: 13px">home-problem-log</div>
+<div style="font-size: 12px; color: #C4C6D0">Made private, on your account, with a short note saying what writes there. Needs the two keys.</div>
+<span style="height: 48px; border-radius: 24px; box-shadow: inset 0 0 0 1px #44474F; color: #B4C5FF; display: grid; place-items: center; font-weight: 700">Create private repository</span>
+</div>
+
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 6px 4px 0">3. WORDING</div>
+<div style="border-radius: 16px; background: #1D1F26; padding: 0 12px">
+<div style="min-height: 60px; display: flex; align-items: center; gap: 12px"><div style="flex: 1; min-width: 0"><div style="font-weight: 600">Use my wording file in what is sent</div><div style="font-size: 12px; color: #C4C6D0">Only offered when you have loaded one. The page's own words are swapped; log lines, names of programs and code stay exact.</div></div><span style="width: 52px; height: 32px; border-radius: 16px; box-shadow: inset 0 0 0 2px #8E9099; position: relative; flex: none"><span style="position: absolute; left: 8px; top: 8px; width: 16px; height: 16px; border-radius: 50%; background: #8E9099"></span></span></div>
+</div>
+</section>
+
 <section aria-label="In the repository, and rules" style="width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 8px">
 <div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #C4C6D0; padding: 0 4px">WHAT ARRIVES IN THE REPOSITORY</div>
 <div style="border-radius: 16px; background: #1D1F26; padding: 12px; font-family: 'Roboto Mono', monospace; font-size: 12px; line-height: 20px; color: #C4C6D0">README.md<br>latest.md<br>problems/2026-11-18.md<br>problems/2026-11-17.md<br>problems/index.json<br>system.md</div>
@@ -85,6 +119,14 @@ body{margin:0;background:#0C0D10}
 <div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">5</span><span>It only ever sends. Nothing in the repository is read back as an instruction or changes the home.</span></div>
 <div style="height: 1px; background: #2A2D36"></div>
 <div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">6</span><span>Sign-in is guided with a code the owner approves on GitHub; the sign-in is kept hidden and used only to send there. At most one send an hour.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">7</span><span>After signing in, the owner picks a private repository from a searchable list or makes a new private one. Public ones are shown as unusable, never offered.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">8</span><span>Making a repository needs the two keys. It is created private, and is checked to be private again before every send.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">9</span><span>The owner's wording file is used in the sent log only when the owner turns that on. It is kept on this system, never placed in the repository as a list, and hiding of names runs first.</span></div>
+<div style="height: 1px; background: #2A2D36"></div>
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="font-family: 'Roboto Mono', monospace; color: #B4C5FF; width: 20px">10</span><span>Hiding names never rewrites the names of programs: "homeassistant", an integration's own name or a library stays exact, so the log can be read.</span></div>
 </div>
 </section>
 
@@ -92,7 +134,7 @@ body{margin:0;background:#0C0D10}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1040}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1700,"height":1320}}'>
 class Component extends DCLogic {
 renderVals() { return {}; }
 }
