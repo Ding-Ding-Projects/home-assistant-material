@@ -2092,8 +2092,11 @@ export class EntityRegistrySettingsEditor extends LitElement {
           color: var(--secondary-text-color);
           font-size: var(--ha-font-size-s);
         }
-        .unique-id {
+        /* Identifiers break anywhere and never push the card wider. */
+        .unique-id,
+        .entityId {
           overflow-wrap: anywhere;
+          word-break: break-word;
         }
         .input-prefix {
           color: var(--secondary-text-color);
@@ -2121,8 +2124,20 @@ export class EntityRegistrySettingsEditor extends LitElement {
         ha-row-item {
           --ha-row-item-padding-inline: 0;
         }
+        /* A value column shrinks before its label does. */
         ha-row-item ha-select {
           width: auto;
+          min-width: 0;
+          max-width: 55%;
+          flex-shrink: 1;
+        }
+        ha-row-item::part(headline) {
+          overflow-wrap: anywhere;
+        }
+        ha-labels-picker {
+          display: block;
+          min-width: 0;
+          max-width: 100%;
         }
         ha-input,
         ha-icon-picker,

@@ -14,9 +14,12 @@ import {
   mdiFilterVariantRemove,
   mdiFormatListChecks,
   mdiInboxOutline,
+  mdiMagnify,
   mdiMenuDown,
   mdiPlus,
+  mdiSort,
   mdiTableCog,
+  mdiViewAgendaOutline,
   mdiUnfoldLessHorizontal,
   mdiUnfoldMoreHorizontal,
 } from "@mdi/js";
@@ -29,6 +32,7 @@ import { searchCountText } from "../components/ha-top-bar-search";
 import { canShowPage } from "../common/config/can_show_page";
 import { QueryParamsController } from "../common/controllers/query-params-controller";
 import { consume } from "../common/decorators/consume";
+import { deepActiveElement } from "../common/dom/deep-active-element";
 import { fireEvent, type HASSDomTargetEvent } from "../common/dom/fire_event";
 import {
   dataTableQueryParamConfig,
@@ -53,7 +57,10 @@ import "../components/ha-button";
 import "../components/ha-dialog-footer";
 import "../components/ha-dropdown";
 import "../components/ha-empty-state";
-import type { HaDropdownSelectEvent } from "../components/ha-dropdown";
+import type {
+  HaDropdown,
+  HaDropdownSelectEvent,
+} from "../components/ha-dropdown";
 import "../components/ha-dropdown-item";
 import "../components/ha-filter-pane-chip";
 import "../components/ha-icon-button";
@@ -88,6 +95,9 @@ import { withLanguageMode } from "../common/language-mode/language-mode";
 import type { HomeAssistant, Route } from "../types";
 import "./hass-tabs-subpage";
 import type { HassTabsSubpage, PageNavigation } from "./hass-tabs-subpage";
+import { listEndSpace, shouldStackDock, STACK_GAP_PX } from "./list-end-space";
+import type { MoreToolId, PillToolId } from "./pill-tools";
+import { HoverMenuIntent, pillTools } from "./pill-tools";
 
 // The filter pane can be dragged between these widths (pixels)
 const PANE_DEFAULT_WIDTH = 250;
@@ -413,6 +423,17 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
   @state() private _selectMode = false;
 
+  /** Height of the floating pill dock, measured. */
+  @state() private _dockHeight = 0;
+
+  /** Size of the floating create button, measured. */
+  @state() private _fabHeight = 0;
+
+  @state() private _fabWidth = 0;
+
+  /** The dock sits above the create button instead of beside it. */
+  @state() private _dockStacked = false;
+
   @query("ha-data-table", true) private _dataTable!: HaDataTable;
 
   @query("hass-tabs-subpage") private _layout?: HassTabsSubpage;
@@ -564,7 +585,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
   protected updated(changedProperties: PropertyValues) {
     this._watchChipRow();
-    this._watchTableHeader();
+    this._watchFloating();
     const typed = this.filter === this._typedSearch;
     this._typedSearch = undefined;
     if (!this.syncUrl || !this._urlRead) {
@@ -589,32 +610,6 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     const rawLocalize = this._i18n.localize;
     const localize = withLanguageMode(rawLocalize);
     const showPane = this._showPaneController.value ?? !this.narrow;
-    const filterButton = this.hasFilters
-      ? html`<ha-filter-pane-chip
-          .label=${localize("ui.components.subpage-data-table.filters")}
-          .path=${mdiFilterVariant}
-          .count=${this.filters}
-          .active=${!!this.filters}
-          @click=${this._toggleFilters}
-        ></ha-filter-pane-chip>`
-      : nothing;
-
-    const selectModeBtn =
-      this.selectable &&
-      !this.narrow &&
-      !this._selectMode &&
-      !this.alwaysShowCheckboxes
-        ? html`<ha-assist-chip
-            class="has-dropdown select-mode-chip"
-            .active=${this._selectMode}
-            @click=${this._enableSelectMode}
-            .title=${localize(
-              "ui.components.subpage-data-table.enter_selection_mode"
-            )}
-          >
-            <ha-svg-icon slot="icon" .path=${mdiFormatListChecks}></ha-svg-icon>
-          </ha-assist-chip>`
-        : nothing;
 
     const searchBar = html`<ha-input-search
       appearance="outlined"
@@ -632,251 +627,265 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
     const titleRow = !!this._pageTitle;
 
-    const sortByMenu = Object.values(this.columns).find((col) => col.sortable)
-      ? html`
-          <ha-dropdown @wa-select=${this._handleSortBy}>
-            <ha-assist-chip
-              slot="trigger"
-              .label=${localize("ui.components.subpage-data-table.sort_by", {
-                sortColumn:
-                  this._sortColumn && this.columns[this._sortColumn]
-                    ? ` ${this.columns[this._sortColumn].title || this.columns[this._sortColumn].label}`
-                    : "",
-              })}
-            >
-              <ha-svg-icon
-                slot="trailing-icon"
-                .path=${mdiMenuDown}
-              ></ha-svg-icon>
-            </ha-assist-chip>
-            ${Object.entries(this.columns).map(([id, column]) =>
-              column.sortable
-                ? html`
-                    <ha-dropdown-item
-                      .value=${id}
-                      class=${classMap({ selected: id === this._sortColumn })}
-                    >
-                      ${
-                        this._sortColumn === id
-                          ? html`
-                              <ha-svg-icon
-                                slot="end"
-                                .path=${
-                                  this._sortDirection === "desc"
-                                    ? mdiArrowDown
-                                    : mdiArrowUp
-                                }
-                              ></ha-svg-icon>
-                            `
-                          : nothing
-                      }
-                      ${column.title || column.label}
-                    </ha-dropdown-item>
-                  `
-                : nothing
-            )}
-          </ha-dropdown>
-        `
-      : nothing;
-
-    const groupByMenu = Object.values(this.columns).find((col) => col.groupable)
-      ? html`
-          <ha-dropdown @wa-select=${this._handleGroupBy}>
-            <ha-assist-chip
-              .label=${localize("ui.components.subpage-data-table.group_by", {
-                groupColumn:
-                  this._groupColumn && this.columns[this._groupColumn]
-                    ? ` ${this.columns[this._groupColumn].title || this.columns[this._groupColumn].label}`
-                    : "",
-              })}
-              slot="trigger"
-            >
-              <ha-svg-icon
-                slot="trailing-icon"
-                .path=${mdiMenuDown}
-              ></ha-svg-icon
-            ></ha-assist-chip>
-            ${Object.entries(this.columns).map(([id, column]) =>
-              column.groupable
-                ? html`
-                    <ha-dropdown-item
-                      .value=${id}
-                      .selected=${id === this._groupColumn}
-                      class=${classMap({ selected: id === this._groupColumn })}
-                    >
-                      ${column.title || column.label}
-                    </ha-dropdown-item>
-                  `
-                : nothing
-            )}
-            <ha-dropdown-item
-              value="reset"
-              class=${classMap({ selected: !this._groupColumn })}
-            >
-              ${localize("ui.components.subpage-data-table.dont_group_by")}
-            </ha-dropdown-item>
-            <wa-divider></wa-divider>
-            <ha-dropdown-item
-              value="collapse_all"
-              .disabled=${!this._groupColumn}
-            >
-              <ha-svg-icon
-                slot="icon"
-                .path=${mdiUnfoldLessHorizontal}
-              ></ha-svg-icon>
-              ${localize(
-                "ui.components.subpage-data-table.collapse_all_groups"
-              )}
-            </ha-dropdown-item>
-            <ha-dropdown-item
-              value="expand_all"
-              .disabled=${!this._groupColumn}
-            >
-              <ha-svg-icon
-                slot="icon"
-                .path=${mdiUnfoldMoreHorizontal}
-              ></ha-svg-icon>
-              ${localize("ui.components.subpage-data-table.expand_all_groups")}
-            </ha-dropdown-item>
-          </ha-dropdown>
-        `
-      : nothing;
-
-    const settingsButton = html`<ha-assist-chip
-      class="has-dropdown select-mode-chip"
-      @click=${this._openSettings}
-      .title=${localize("ui.components.subpage-data-table.settings")}
-    >
-      <ha-svg-icon slot="icon" .path=${mdiTableCog}></ha-svg-icon>
-    </ha-assist-chip>`;
-
-    const exportButton = html`<ha-assist-chip
-      class="has-dropdown select-mode-chip"
-      @click=${this._openExport}
-      .title=${localize("ui.components.subpage-data-table.export")}
-    >
-      <ha-svg-icon slot="icon" .path=${mdiExportVariant}></ha-svg-icon>
-    </ha-assist-chip>`;
-
-    // On a phone sorting, grouping, the table settings and export sit behind
-    // one More button, so the tool row stays one line and nothing is removed.
+    // With no rows at all, and nothing searched or filtered, there is nothing
+    // for sorting, grouping, columns or export to act on, so they are left out.
+    const noData = !this.data.length && !this.filters && !this.filter;
+    const showSelectionBar = this._showSelectionBar;
     const sortableColumns = Object.entries(this.columns).filter(
       ([, column]) => column.sortable
     );
     const groupableColumns = Object.entries(this.columns).filter(
       ([, column]) => column.groupable
     );
-    // On a phone "Select" lives here too, so the screen has no extra button
-    // for it.
-    const canEnterSelect =
-      this.narrow &&
-      this.selectable &&
-      !this._selectMode &&
-      !this._showSelectionBar;
-    const moreMenu = html`<ha-dropdown
-      placement="bottom-end"
-      @wa-select=${this._handleMore}
-    >
-      ${
-        canEnterSelect
-          ? html`<ha-dropdown-item value="select_mode">
-                <ha-svg-icon
-                  slot="icon"
-                  .path=${mdiFormatListChecks}
-                ></ha-svg-icon>
-                ${localize("ui.components.subpage-data-table.select")}
-              </ha-dropdown-item>
-              <wa-divider></wa-divider>`
-          : nothing
-      }
-      <ha-assist-chip
-        slot="trigger"
-        class="more-chip"
-        .label=${localize("ui.components.subpage-data-table.more")}
+    // The page tools float in one pill at the bottom of the list. What the
+    // pill holds and what waits in its More tools menu follows the old tool
+    // row exactly, so every tool stays at the same number of presses.
+    const tools = pillTools({
+      narrow: this.narrow,
+      compact: this._compactTools,
+      searchable: barSearch,
+      hasFilters: this.hasFilters,
+      selectable: this.selectable,
+      alwaysShowCheckboxes: this.alwaysShowCheckboxes,
+      selecting: this._selectMode || showSelectionBar,
+      sortable: sortableColumns.length > 0,
+      groupable: groupableColumns.length > 0,
+      noData,
+    });
+    const columnName = (id: string | undefined) =>
+      id && this.columns[id]
+        ? ` ${this.columns[id].title || this.columns[id].label}`
+        : "";
+    const sortLabel = localize("ui.components.subpage-data-table.sort_by", {
+      sortColumn: columnName(this._sortColumn),
+    });
+    const groupLabel = localize("ui.components.subpage-data-table.group_by", {
+      groupColumn: columnName(this._groupColumn),
+    });
+
+    const sortItems = sortableColumns.map(
+      ([id, column]) => html`
+        <ha-dropdown-item
+          .value=${`sort:${id}`}
+          class=${classMap({ selected: id === this._sortColumn })}
+        >
+          ${
+            this._sortColumn === id
+              ? html`<ha-svg-icon
+                  slot="end"
+                  .path=${this._sortDirection === "desc" ? mdiArrowDown : mdiArrowUp}
+                ></ha-svg-icon>`
+              : nothing
+          }
+          ${column.title || column.label}
+        </ha-dropdown-item>
+      `
+    );
+    const groupItems = html`${groupableColumns.map(
+        ([id, column]) => html`
+          <ha-dropdown-item
+            .value=${`group:${id}`}
+            .selected=${id === this._groupColumn}
+            class=${classMap({ selected: id === this._groupColumn })}
+          >
+            ${column.title || column.label}
+          </ha-dropdown-item>
+        `
+      )}
+      <ha-dropdown-item
+        value="reset"
+        class=${classMap({ selected: !this._groupColumn })}
       >
-        <ha-svg-icon slot="icon" .path=${mdiDotsHorizontal}></ha-svg-icon>
-      </ha-assist-chip>
-      ${
-        sortableColumns.length
-          ? html`<ha-dropdown-item disabled class="menu-heading">
-                ${localize("ui.components.subpage-data-table.sort_by", {
-                  sortColumn: "",
-                })}
-              </ha-dropdown-item>
-              ${sortableColumns.map(
-                ([id, column]) => html`
-                  <ha-dropdown-item
-                    .value=${`sort:${id}`}
-                    class=${classMap({ selected: id === this._sortColumn })}
-                  >
-                    ${
-                      this._sortColumn === id
-                        ? html`<ha-svg-icon
-                            slot="end"
-                            .path=${
-                              this._sortDirection === "desc"
-                                ? mdiArrowDown
-                                : mdiArrowUp
-                            }
-                          ></ha-svg-icon>`
-                        : nothing
-                    }
-                    ${column.title || column.label}
-                  </ha-dropdown-item>
-                `
-              )}`
-          : nothing
-      }
-      ${
-        groupableColumns.length
-          ? html`<wa-divider></wa-divider>
-              <ha-dropdown-item disabled class="menu-heading">
-                ${localize("ui.components.subpage-data-table.group_by", {
-                  groupColumn: "",
-                })}
-              </ha-dropdown-item>
-              ${groupableColumns.map(
-                ([id, column]) => html`
-                  <ha-dropdown-item
-                    .value=${`group:${id}`}
-                    class=${classMap({ selected: id === this._groupColumn })}
-                  >
-                    ${column.title || column.label}
-                  </ha-dropdown-item>
-                `
-              )}
-              <ha-dropdown-item
-                value="reset"
-                class=${classMap({ selected: !this._groupColumn })}
-              >
-                ${localize("ui.components.subpage-data-table.dont_group_by")}
-              </ha-dropdown-item>
-              <ha-dropdown-item
-                value="collapse_all"
-                .disabled=${!this._groupColumn}
-              >
-                ${localize(
-                  "ui.components.subpage-data-table.collapse_all_groups"
-                )}
-              </ha-dropdown-item>
-              <ha-dropdown-item
-                value="expand_all"
-                .disabled=${!this._groupColumn}
-              >
-                ${localize("ui.components.subpage-data-table.expand_all_groups")}
-              </ha-dropdown-item>`
-          : nothing
-      }
+        ${localize("ui.components.subpage-data-table.dont_group_by")}
+      </ha-dropdown-item>
       <wa-divider></wa-divider>
-      <ha-dropdown-item value="settings">
-        <ha-svg-icon slot="icon" .path=${mdiTableCog}></ha-svg-icon>
-        ${localize("ui.components.subpage-data-table.settings")}
+      <ha-dropdown-item value="collapse_all" .disabled=${!this._groupColumn}>
+        <ha-svg-icon slot="icon" .path=${mdiUnfoldLessHorizontal}></ha-svg-icon>
+        ${localize("ui.components.subpage-data-table.collapse_all_groups")}
       </ha-dropdown-item>
-      <ha-dropdown-item value="export">
-        <ha-svg-icon slot="icon" .path=${mdiExportVariant}></ha-svg-icon>
-        ${localize("ui.components.subpage-data-table.export")}
-      </ha-dropdown-item>
-    </ha-dropdown>`;
+      <ha-dropdown-item value="expand_all" .disabled=${!this._groupColumn}>
+        <ha-svg-icon slot="icon" .path=${mdiUnfoldMoreHorizontal}></ha-svg-icon>
+        ${localize("ui.components.subpage-data-table.expand_all_groups")}
+      </ha-dropdown-item>`;
+
+    const pillItem = (
+      id: PillToolId,
+      label: string,
+      path: string,
+      options: {
+        active?: boolean;
+        badge?: number;
+        trigger?: boolean;
+        click?: (ev: Event) => void;
+      } = {}
+    ) =>
+      html`<button
+        type="button"
+        class=${classMap({ "pill-item": true, active: !!options.active })}
+        slot=${options.trigger ? "trigger" : nothing}
+        data-tool=${id}
+        aria-pressed=${
+          options.active !== undefined && !options.trigger
+            ? String(options.active)
+            : nothing
+        }
+        @click=${options.click}
+      >
+        <ha-svg-icon .path=${path}></ha-svg-icon>
+        <span class="pill-label">${label}</span>
+        ${
+          options.badge
+            ? html`<span class="pill-badge" aria-hidden="true"
+                >${options.badge}</span
+              >`
+            : nothing
+        }
+      </button>`;
+
+    // A menu in the pill opens when a mouse rests on its item, and on a
+    // click, a tap or the keyboard as before.
+    const pillMenu = (
+      trigger: TemplateResult,
+      items: unknown,
+      onSelect: (ev: HaDropdownSelectEvent) => void
+    ) =>
+      html`<ha-dropdown
+        class="pill-menu"
+        placement=${this.narrow ? "top-start" : "top"}
+        @pointerenter=${this._menuPointerEnter}
+        @pointerleave=${this._menuPointerLeave}
+        @click=${this._menuClickCapture}
+        @wa-after-show=${this._menuShown}
+        @wa-after-hide=${this._menuHidden}
+        @wa-select=${onSelect}
+      >
+        ${trigger}${items}
+      </ha-dropdown>`;
+
+    const moreEntry = (id: MoreToolId) => {
+      switch (id) {
+        case "select":
+          return html`<ha-dropdown-item value="select_mode">
+              <ha-svg-icon
+                slot="icon"
+                .path=${mdiFormatListChecks}
+              ></ha-svg-icon>
+              ${localize("ui.components.subpage-data-table.select")}
+            </ha-dropdown-item>
+            <wa-divider></wa-divider>`;
+        case "sort":
+          return html`<ha-dropdown-item disabled class="menu-heading">
+              ${localize("ui.components.subpage-data-table.sort_by", {
+                sortColumn: "",
+              })}
+            </ha-dropdown-item>
+            ${sortItems}`;
+        case "group":
+          return html`<wa-divider></wa-divider>
+            <ha-dropdown-item disabled class="menu-heading">
+              ${localize("ui.components.subpage-data-table.group_by", {
+                groupColumn: "",
+              })}
+            </ha-dropdown-item>
+            ${groupItems}`;
+        case "columns":
+          return html`<wa-divider></wa-divider>
+            <ha-dropdown-item value="settings">
+              <ha-svg-icon slot="icon" .path=${mdiTableCog}></ha-svg-icon>
+              ${localize("ui.components.subpage-data-table.settings")}
+            </ha-dropdown-item>`;
+        case "export":
+          return html`<ha-dropdown-item value="export">
+            <ha-svg-icon slot="icon" .path=${mdiExportVariant}></ha-svg-icon>
+            ${localize("ui.components.subpage-data-table.export")}
+          </ha-dropdown-item>`;
+      }
+      return nothing;
+    };
+
+    const renderTool = (id: PillToolId) => {
+      switch (id) {
+        case "search":
+          return pillItem(
+            id,
+            localize("ui.components.subpage-data-table.open_search"),
+            mdiMagnify,
+            { click: this._openBarSearch }
+          );
+        case "filter":
+          return pillItem(
+            id,
+            localize("ui.components.subpage-data-table.filters"),
+            mdiFilterVariant,
+            {
+              active: this.showFilters || !!this.filters,
+              badge: this.filters || undefined,
+              click: this._toggleFilters,
+            }
+          );
+        case "select":
+          return pillItem(
+            id,
+            localize("ui.components.subpage-data-table.enter_selection_mode"),
+            mdiFormatListChecks,
+            { click: this._enableSelectMode }
+          );
+        case "group":
+          return pillMenu(
+            pillItem(id, groupLabel, mdiViewAgendaOutline, {
+              trigger: true,
+              active: !!this._groupColumn,
+            }),
+            groupItems,
+            this._handleMore
+          );
+        case "sort":
+          return pillMenu(
+            pillItem(id, sortLabel, mdiSort, {
+              trigger: true,
+              active: !!this._sortColumn,
+            }),
+            sortItems,
+            this._handleSortBy
+          );
+        case "columns":
+          return pillItem(
+            id,
+            localize("ui.components.subpage-data-table.settings"),
+            mdiTableCog,
+            { click: this._openSettings }
+          );
+        case "export":
+          return pillItem(
+            id,
+            localize("ui.components.subpage-data-table.export"),
+            mdiExportVariant,
+            { click: this._openExport }
+          );
+        case "more":
+          return pillMenu(
+            pillItem(
+              id,
+              localize("ui.components.subpage-data-table.more_tools"),
+              mdiDotsHorizontal,
+              { trigger: true }
+            ),
+            tools.more.map(moreEntry),
+            this._handleMore
+          );
+      }
+      return nothing;
+    };
+
+    const toolPill = tools.pill.length
+      ? html`<div
+          class="page-pill"
+          role="toolbar"
+          aria-label=${localize("ui.components.subpage-data-table.page_tools")}
+        >
+          ${tools.pill.map(renderTool)}
+        </div>`
+      : nothing;
 
     // The page title is shown once, in the page header. The count line sits
     // right under it, in the header's `subtitle` slot.
@@ -978,12 +987,16 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         </div>`
       : nothing;
 
-    // While rows are ticked this row takes the place of the tool row, at the
-    // same height, so it never covers a row.
-    const showSelectionBar = this._showSelectionBar;
+    // While rows are ticked the selection actions float in a second pill in
+    // place of the page tools. A page that floats its own bulk bar keeps the
+    // selection row in the list header instead, so the two never overlap.
+    const floatSelection = showSelectionBar && !this.bulkBar;
     const selectionBar = showSelectionBar
       ? html`<div
-          class="selection-bar"
+          class=${classMap({
+            "selection-bar": true,
+            floating: floatSelection,
+          })}
           role="toolbar"
           aria-label=${localize("ui.components.subpage-data-table.selected", {
             selected: this.selected || "0",
@@ -1043,18 +1056,44 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         </div>`
       : nothing;
 
-    // With no rows at all, and nothing searched or filtered, there is nothing
-    // for sorting, grouping, columns or export to act on, so they are left out.
-    // A phone's tool row that would then hold nothing is not drawn at all.
-    const noData = !this.data.length && !this.filters && !this.filter;
-    const narrowRowEmpty =
-      noData &&
-      !showSelectionBar &&
-      !(this.hasFilters && !this.showFilters) &&
-      !this._hasFilterChips;
+    // The phone's row under the bar now holds only the page's filter chips,
+    // or the selection row when the page floats its own bulk bar; with
+    // neither it is not drawn at all.
+    const inFlowSelection = showSelectionBar && !floatSelection;
+    const narrowRowEmpty = !inFlowSelection && !this._hasFilterChips;
+
+    // The floating pills: the page tools, or the selection actions while rows
+    // are ticked. Hidden while a page floats its own bulk bar.
+    const tableShown = !(this.empty && !this.loading);
+    const dock =
+      tableShown && !this.bulkBar && (floatSelection || toolPill !== nothing)
+        ? html`<div
+            class=${classMap({
+              "pill-dock": true,
+              stacked: this.narrow && this._dockStacked,
+            })}
+            style=${styleMap({
+              "--_fab-width": `${this._fabWidth}px`,
+              "--_fab-height": `${this._fabHeight + STACK_GAP_PX}px`,
+            })}
+          >
+            ${floatSelection ? selectionBar : toolPill}
+          </div>`
+        : nothing;
+
+    // The end of the list clears the floating pills, the create button and a
+    // page's bulk bar, measured from their real sizes, plus the bottom safe
+    // area (which holds the phone bar).
+    const endSpace = listEndSpace({
+      dock: dock === nothing ? 0 : this._dockHeight,
+      fab: this._fabHeight,
+      bulkBar: this.bulkBar ? (this.narrow ? 176 : 112) : 0,
+      stacked: this.narrow && this._dockStacked,
+    });
 
     return html`
       <hass-tabs-subpage
+        inner-scroll
         style=${styleMap({
           "--sidepane-width": this._paneWidth
             ? `${this._clampedPaneWidth(this._paneWidth)}px`
@@ -1181,6 +1220,9 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                 <ha-data-table
                   .narrow=${this.narrow}
                   row-cards
+                  style=${styleMap({
+                    "--data-table-empty-row-height": `calc(var(--safe-area-inset-bottom, 0px) + ${endSpace}px)`,
+                  })}
                   .columns=${this.columns}
                   .data=${this.data}
                   .loading=${this.loading}
@@ -1215,30 +1257,18 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                           <div slot="header">
                             ${heading}${statisticsStrip}
                             <slot name="top-header"></slot>
-                            ${selectionBar}
-                            <slot name="header" ?hidden=${showSelectionBar}>
+                            ${inFlowSelection ? selectionBar : nothing}
+                            <slot name="header" ?hidden=${inFlowSelection}>
                               <div
                                 class=${classMap({
                                   "table-header": true,
-                                  "tool-row": true,
+                                  "chip-row": true,
                                   "with-chips": this._hasFilterChips,
+                                  "no-chips":
+                                    !this._hasFilterChips && barSearch,
                                 })}
                               >
-                                ${
-                                  this.hasFilters && !this.showFilters
-                                    ? html`${filterButton}`
-                                    : nothing
-                                }${selectModeBtn}${barSearch ? nothing : searchBar}${chipsSlot}${
-                                  this._hasFilterChips
-                                    ? html`<div class="chips-spacer"></div>`
-                                    : nothing
-                                }${
-                                  noData
-                                    ? nothing
-                                    : this._compactTools
-                                      ? moreMenu
-                                      : html`${groupByMenu}${sortByMenu}${settingsButton}${exportButton}`
-                                }
+                                ${barSearch ? nothing : searchBar}${chipsSlot}
                               </div>
                             </slot>
                           </div>
@@ -1252,21 +1282,15 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                             slot="header-row"
                             class=${classMap({
                               "narrow-header-row": true,
-                              "has-selection": showSelectionBar,
+                              "has-selection": inFlowSelection,
                               "no-tools": narrowRowEmpty,
                             })}
                           >
                             ${
-                              showSelectionBar
+                              inFlowSelection
                                 ? selectionBar
-                                : html`${
-                                      this.hasFilters && !this.showFilters
-                                        ? html`${filterButton}`
-                                        : nothing
-                                    }
-                                    ${selectModeBtn}${chipsSlot}
-                                    <div class="flex"></div>
-                                    ${noData ? nothing : moreMenu}`
+                                : html`${chipsSlot}
+                                    <div class="flex"></div>`
                             }
                           </div>
                         `
@@ -1274,8 +1298,9 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                 </ha-data-table>
                 ${footer}`
         }
-        <div slot="fab"><slot name="fab"></slot></div>
+        <div slot="fab" class="fab-measure"><slot name="fab"></slot></div>
       </hass-tabs-subpage>
+      ${dock}
       ${
         this._ruleOpen
           ? html`<ha-data-table-select-rules
@@ -1535,13 +1560,87 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     this._sortColumn = this._sortDirection ? ev.detail.column : undefined;
   }
 
-  private _handleSortBy(ev: HaDropdownSelectEvent) {
+  // The pill's own sort menu stays open, so the direction can be flipped
+  private _handleSortBy = (ev: HaDropdownSelectEvent) => {
     ev.preventDefault(); // keep the dropdown open
-    this._applySort(ev.detail.item.value);
+    const value = String(ev.detail.item.value);
+    this._applySort(value.startsWith("sort:") ? value.slice(5) : value);
+  };
+
+  private _openBarSearch = () => {
+    this._layout?.openSearch();
+  };
+
+  private _menuIntents = new WeakMap<HaDropdown, HoverMenuIntent>();
+
+  /** The element that had focus before a menu opened by hovering. */
+  private _hoverFocus?: HTMLElement;
+
+  private _intent(dropdown: HaDropdown): HoverMenuIntent {
+    let intent = this._menuIntents.get(dropdown);
+    if (!intent) {
+      intent = new HoverMenuIntent(
+        () => {
+          const active = deepActiveElement();
+          this._hoverFocus =
+            active instanceof HTMLElement && active !== document.body
+              ? active
+              : undefined;
+          dropdown.open = true;
+        },
+        () => {
+          dropdown.open = false;
+        }
+      );
+      this._menuIntents.set(dropdown, intent);
+    }
+    return intent;
   }
 
-  // One menu on a phone holds sorting, grouping, the table settings and export
-  private _handleMore(ev: HaDropdownSelectEvent) {
+  // Only a mouse that can hover opens a menu by hovering
+  private _menuPointerEnter = (ev: PointerEvent) => {
+    const dropdown = ev.currentTarget as HaDropdown;
+    this._intent(dropdown).enter(ev.pointerType, dropdown.open);
+  };
+
+  private _menuPointerLeave = (ev: PointerEvent) => {
+    this._intent(ev.currentTarget as HaDropdown).leave(ev.pointerType);
+  };
+
+  // A click on an item whose menu is already open from hovering keeps it
+  // open, instead of the dropdown's own toggle closing it again.
+  private _menuClickCapture = {
+    handleEvent: (ev: MouseEvent) => {
+      const dropdown = ev.currentTarget as HaDropdown;
+      const onTrigger = (ev.target as HTMLElement | null)?.closest?.(
+        '[slot="trigger"]'
+      );
+      if (onTrigger && this._intent(dropdown).click(dropdown.open)) {
+        ev.stopPropagation();
+        this._hoverFocus = undefined;
+      }
+    },
+    capture: true,
+  };
+
+  // A menu opened by hovering does not take the keyboard focus away from
+  // where it was; a menu opened by a click or a key keeps the usual focus.
+  private _menuShown = (ev: Event) => {
+    const dropdown = ev.currentTarget as HaDropdown;
+    const intent = this._menuIntents.get(dropdown);
+    const previous = this._hoverFocus;
+    this._hoverFocus = undefined;
+    if (intent && !intent.pinned && previous?.isConnected) {
+      previous.focus({ preventScroll: true });
+    }
+  };
+
+  private _menuHidden = (ev: Event) => {
+    this._menuIntents.get(ev.currentTarget as HaDropdown)?.closed();
+  };
+
+  // The More tools menu, and the pill's group menu, which uses the same values
+  private _handleMore = (ev: HaDropdownSelectEvent) => {
     const value = String(ev.detail.item.value);
     if (value.startsWith("sort:")) {
       this._applySort(value.slice(5));
@@ -1558,7 +1657,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     } else if (value === "export") {
       this._openExportFrom(this);
     }
-  }
+  };
 
   private _applySort(columnId: string) {
     if (!this._sortDirection || this._sortColumn !== columnId) {
@@ -1574,10 +1673,6 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       column: columnId,
       direction: this._sortDirection,
     });
-  }
-
-  private _handleGroupBy(ev: HaDropdownSelectEvent) {
-    this._handleGroupValue(ev.detail.item.value);
   }
 
   private _handleGroupValue(group: string) {
@@ -1600,8 +1695,9 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     this._chipRowObserver?.disconnect();
-    this._headerObserver?.disconnect();
-    this._tableHeader = undefined;
+    this._dockObserver?.disconnect();
+    this._observedDock = undefined;
+    this._observedFab = undefined;
     this._chipRow?.removeEventListener("scroll", this._updateChipRowFade);
     this._chipRow = undefined;
   }
@@ -1609,44 +1705,106 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   /** Wide pages: grouping, sorting, columns and export fold into More. */
   @state() private _compactTools = false;
 
-  /** How much room the whole wide tool row needs, measured while it is whole. */
+  /** How much room the whole wide pill needs, measured while it is whole. */
   private _fullToolsWidth = 0;
 
-  @query(".tool-row") private _tableHeaderEl?: HTMLElement | null;
+  @query(".pill-dock") private _dockEl?: HTMLElement | null;
 
-  private _tableHeader?: HTMLElement;
+  @query(".page-pill") private _pillEl?: HTMLElement | null;
 
-  private _headerObserver?: ResizeObserver;
+  @query(".fab-measure") private _fabEl?: HTMLElement | null;
+
+  private _dockObserver?: ResizeObserver;
+
+  private _observedDock?: HTMLElement;
+
+  private _observedFab?: HTMLElement;
+
+  private _observedPill?: HTMLElement;
 
   /**
-   * Keeps the wide tool row on one line. While the row is whole and does not
-   * fit, the grouping, sorting, column and export controls move behind the
-   * More button; they return when there is room again.
+   * Follows the floating dock and the create button: their sizes set the
+   * room kept free at the end of the list, and the room the dock has decides
+   * whether the wide pill shows every tool or folds some into More.
    */
-  private _watchTableHeader() {
-    const header = this._tableHeaderEl ?? undefined;
-    if (header !== this._tableHeader) {
-      this._headerObserver?.disconnect();
-      this._tableHeader = header;
-      if (header && typeof ResizeObserver !== "undefined") {
-        this._headerObserver ??= new ResizeObserver(() => this._fitTools());
-        this._headerObserver.observe(header);
+  private _watchFloating() {
+    const dock = this._dockEl ?? undefined;
+    const fab = this._fabEl ?? undefined;
+    const pill = this._pillEl ?? undefined;
+    if (
+      dock !== this._observedDock ||
+      fab !== this._observedFab ||
+      pill !== this._observedPill
+    ) {
+      this._dockObserver?.disconnect();
+      this._observedDock = dock;
+      this._observedFab = fab;
+      this._observedPill = pill;
+      if (typeof ResizeObserver !== "undefined") {
+        this._dockObserver ??= new ResizeObserver(this._measureFloating);
+        for (const element of [dock, fab, pill]) {
+          if (element) {
+            this._dockObserver.observe(element);
+          }
+        }
       }
     }
-    this._fitTools();
+    this._measureFloating();
   }
 
+  private _measureFloating = () => {
+    const dockHeight = this._observedDock?.offsetHeight ?? 0;
+    const fabHeight = this._observedFab?.offsetHeight ?? 0;
+    const fabWidth = this._observedFab?.offsetWidth ?? 0;
+    if (dockHeight !== this._dockHeight) {
+      this._dockHeight = dockHeight;
+    }
+    if (fabHeight !== this._fabHeight) {
+      this._fabHeight = fabHeight;
+    }
+    if (fabWidth !== this._fabWidth) {
+      this._fabWidth = fabWidth;
+    }
+    // A narrow phone: the pills ride above the create button when the two
+    // do not fit side by side.
+    const pillWidth =
+      (this._observedDock?.firstElementChild as HTMLElement | null)
+        ?.scrollWidth ?? 0;
+    const stacked =
+      this.narrow && shouldStackDock(this.clientWidth, pillWidth, fabWidth);
+    if (stacked !== this._dockStacked) {
+      this._dockStacked = stacked;
+    }
+    this._fitTools();
+  };
+
+  /**
+   * Keeps the wide pill to the room the dock has. While the pill is whole
+   * and does not fit, grouping, sorting, columns and export move into More;
+   * they return when there is room again. Nothing is measured while a label
+   * is open under the pointer or the keyboard, so a label never folds the
+   * tool it belongs to.
+   */
   private _fitTools = () => {
-    const header = this._tableHeader;
-    if (!header || this.narrow) {
+    const dock = this._observedDock;
+    const pill = this._observedPill;
+    if (!dock || !pill || this.narrow) {
       return;
     }
+    if (pill.matches(":hover, :focus-within")) {
+      return;
+    }
+    const style = getComputedStyle(dock);
+    const room =
+      dock.clientWidth -
+      (Number.parseFloat(style.paddingLeft) || 0) -
+      (Number.parseFloat(style.paddingRight) || 0);
     if (!this._compactTools) {
-      if (header.scrollWidth > header.clientWidth + 1) {
-        this._fullToolsWidth = header.scrollWidth;
+      if (pill.scrollWidth > room + 1) {
+        this._fullToolsWidth = pill.scrollWidth;
         this._compactTools = true;
       }
-    } else if (header.clientWidth >= this._fullToolsWidth) {
+    } else if (room >= this._fullToolsWidth) {
       this._compactTools = false;
     }
   };
@@ -2022,41 +2180,236 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     ::slotted([slot="filter-chips"]) {
       flex-shrink: 0;
     }
-    /* Last content row should keep the same padding above the fab as the fab
-       has to the bottom (16px standard fab bottom padding) + the safe-area inset. */
-    :host([has-fab]) ha-data-table {
-      --data-table-empty-row-height: calc(
-        48px + 16px * 2 + var(--safe-area-inset-bottom, 0px)
-      );
+    /* The room at the end of the list is set on the table itself, from the
+       measured sizes of the floating pills, the create button and a page's
+       bulk bar (see listEndSpace), so the last row always scrolls clear of
+       them. */
+
+    /* One scroller per page: the list scrolls, the page around it does not.
+       The list takes the room the header and footer leave. */
+    ha-data-table {
+      flex: 1 1 0;
+      min-height: 0;
     }
-    /* In narrow view with tabs shown at the bottom, the tab bar already
-       accounts for safe-area-inset-bottom. No extra empty-row height is needed. */
-    :host([narrow][show-tabs]:not([has-fab])) ha-data-table {
-      --data-table-empty-row-height: 0px;
+    .list-footer {
+      flex: none;
     }
-    /* Reserve space for fab + doubled narrow-mode bottom padding (28px * 2)
-       when using narrow layout with bottom tabs. */
-    :host([narrow][show-tabs][has-fab]) ha-data-table {
-      /* The button (56 px), its margins and a row of air, so the last row can
-         always scroll clear of it and of the phone bar below. */
-      --data-table-empty-row-height: calc(
-        56px + 28px * 2 + var(--ha-space-2, 8px)
-      );
+    .center {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    /* A wide window: the list is centred and never wider than 1200 px, so
+       rows do not stretch across a very wide screen. A table wider than its
+       card scrolls sideways inside the card. */
+    :host(:not([narrow])) ha-data-table,
+    :host(:not([narrow])) .list-footer {
+      width: min(1200px, calc(100% - 2 * var(--ha-space-8)));
+      max-width: 1200px;
+      margin-inline: auto;
     }
 
-    /* The bulk bar floats over the bottom of the list: leave room under the
-       last row for the bar, and for the bar to wrap to more lines on a phone. */
-    :host([bulk-bar]) ha-data-table {
-      --data-table-empty-row-height: calc(
-        112px + var(--ha-phone-bar-height, 0px) +
+    /* The floating pills: the page tools, or the selection actions while rows
+       are ticked. On a wide window they sit centred over the bottom of the
+       list, clear of the create button; on a phone they sit at the start,
+       above the phone bar, beside the create button. */
+    .pill-dock {
+      position: absolute;
+      z-index: 3;
+      inset-inline: 0;
+      /* Clear of the create button on both sides, so the pills stay centred. */
+      padding-inline: calc(var(--_fab-width, 0px) + var(--ha-space-6));
+      bottom: calc(
+        16px + var(--ha-page-footer-height, 40px) +
           var(--safe-area-inset-bottom, 0px)
-      ) !important;
+      );
+      display: flex;
+      flex-wrap: wrap-reverse;
+      align-items: flex-end;
+      justify-content: center;
+      gap: var(--ha-space-3);
+      pointer-events: none;
     }
-    :host([bulk-bar][narrow]) ha-data-table {
-      --data-table-empty-row-height: calc(
-        176px + var(--ha-phone-bar-height, 0px) +
-          var(--safe-area-inset-bottom, 0px)
-      ) !important;
+    :host([narrow]) .pill-dock {
+      padding-inline: 0 calc(var(--_fab-width, 0px) + var(--ha-space-3));
+      position: fixed;
+      inset-inline-start: calc(
+        var(--ha-space-3) + var(--safe-area-inset-left, 0px)
+      );
+      inset-inline-end: calc(
+        var(--ha-space-3) + var(--safe-area-inset-right, 0px)
+      );
+      bottom: calc(16px + var(--safe-area-inset-bottom, 0px));
+      justify-content: flex-start;
+    }
+    :host([narrow]) .pill-dock.stacked {
+      padding-inline: 0;
+      justify-content: flex-end;
+      bottom: calc(
+        16px + var(--safe-area-inset-bottom, 0px) + var(--_fab-height, 0px)
+      );
+    }
+    .pill-dock > * {
+      pointer-events: auto;
+    }
+    .page-pill {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-1);
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 6px;
+      border-radius: 36px;
+      background: var(
+        --md-sys-color-surface-container-high,
+        var(--card-background-color)
+      );
+      color: var(--primary-text-color);
+      box-shadow: var(--ha-box-shadow-l, 0 10px 28px rgba(0, 0, 0, 0.35));
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      animation: pill-rise
+        var(--ha-motion-menus-duration, var(--ha-animation-duration-slow))
+        var(--ha-motion-menus-curve, cubic-bezier(0.2, 1.4, 0.3, 1)) backwards;
+    }
+    .page-pill::-webkit-scrollbar {
+      display: none;
+    }
+    .pill-item {
+      position: relative;
+      display: inline-flex;
+      flex: none;
+      align-items: center;
+      height: 48px;
+      min-width: 48px;
+      box-sizing: border-box;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 24px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      --mdc-icon-size: 24px;
+      transition:
+        background-color var(--ha-animation-duration-fast, 150ms) ease,
+        padding
+          var(--ha-motion-buttons-duration, var(--ha-animation-duration-slow))
+          var(--ha-motion-buttons-curve, cubic-bezier(0.2, 1.3, 0.3, 1));
+    }
+    .pill-item ha-svg-icon {
+      flex: none;
+    }
+    /* The name is hidden until the item is hovered or reached with the
+       keyboard; it is always there for assistive technology. */
+    .pill-label {
+      max-width: 0;
+      opacity: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      transition:
+        max-width
+          var(--ha-motion-buttons-duration, var(--ha-animation-duration-slow))
+          var(--ha-motion-buttons-curve, cubic-bezier(0.2, 1.3, 0.3, 1)),
+        opacity var(--ha-animation-duration-fast, 150ms) ease,
+        margin
+          var(--ha-motion-buttons-duration, var(--ha-animation-duration-slow))
+          var(--ha-motion-buttons-curve, cubic-bezier(0.2, 1.3, 0.3, 1));
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .pill-item:hover {
+        background: color-mix(in srgb, currentColor 10%, transparent);
+      }
+      .pill-item:hover .pill-label,
+      ha-dropdown[open] > .pill-item .pill-label {
+        max-width: 220px;
+        opacity: 1;
+        margin-inline-start: 10px;
+      }
+    }
+    .pill-item:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: -2px;
+    }
+    .pill-item:focus-visible .pill-label {
+      max-width: 220px;
+      opacity: 1;
+      margin-inline-start: 10px;
+    }
+    .pill-item.active {
+      background: var(
+        --md-sys-color-secondary-container,
+        var(--ha-color-fill-primary-quiet-resting)
+      );
+      color: var(
+        --md-sys-color-on-secondary-container,
+        var(--primary-text-color)
+      );
+    }
+    .pill-badge {
+      position: absolute;
+      top: 4px;
+      inset-inline-end: 4px;
+      min-width: 18px;
+      height: 18px;
+      box-sizing: border-box;
+      padding: 0 5px;
+      border-radius: 9px;
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+      font-size: 11px;
+      line-height: 18px;
+      text-align: center;
+    }
+    /* The selection actions as a second floating pill. */
+    .selection-bar.floating {
+      max-width: 100%;
+      width: auto;
+      min-height: 60px;
+      margin: 0;
+      border-radius: 36px;
+      padding: 6px var(--ha-space-3) 6px 6px;
+      background: var(
+        --md-sys-color-secondary-container,
+        color-mix(
+          in srgb,
+          var(--primary-color) 22%,
+          var(--card-background-color)
+        )
+      );
+      color: var(
+        --md-sys-color-on-secondary-container,
+        var(--primary-text-color)
+      );
+      box-shadow: var(--ha-box-shadow-l, 0 10px 28px rgba(0, 0, 0, 0.35));
+      animation: pill-rise
+        var(--ha-motion-menus-duration, var(--ha-animation-duration-slow))
+        var(--ha-motion-menus-curve, cubic-bezier(0.2, 1.4, 0.3, 1)) backwards;
+    }
+    @keyframes pill-rise {
+      from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.92);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .page-pill,
+      .selection-bar.floating {
+        animation: none;
+      }
+      .pill-item,
+      .pill-label {
+        transition: none;
+      }
+    }
+    /* The wide row under the statistics holds only the page's filter chips. */
+    .chip-row.no-chips {
+      display: none;
     }
 
     .pane-content {

@@ -76,6 +76,46 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Labels in the filter pane of a list",
   },
   {
+    file: "components/ha-filter-blueprints.ts",
+    searches:
+      "Blueprints in the filter pane of the automation and script lists, by name and identifier",
+  },
+  {
+    file: "components/ha-filter-categories.ts",
+    searches: "Categories in the filter pane of a list, by name",
+  },
+  {
+    file: "components/ha-filter-floor-areas.ts",
+    searches:
+      "Floors and areas in the filter pane of a list. A matching floor keeps all its areas; otherwise a floor keeps only its matching areas",
+  },
+  {
+    file: "components/ha-filter-logbook-causes.ts",
+    searches: "People and cause groups in the cause filter of the activity log",
+  },
+  {
+    file: "panels/config/core/ha-config-system-navigation.ts",
+    searches:
+      "The pages of the System page by name and description, and by the words inside each page (its own interface text), saying where a match was found",
+    matcher: "panels/config/settings-page-search.ts",
+  },
+  {
+    file: "panels/config/connectivity/ha-config-connectivity.ts",
+    searches:
+      "The pages of the Connectivity page by name, description and the words inside each page, plus the settings pages one step further in",
+    matcher: "panels/config/dashboard/ha-config-navigation.ts",
+  },
+  {
+    file: "panels/config/zone/ha-config-zone.ts",
+    searches:
+      "Zones in the zone list, by name, shown from more than eight zones. The map keeps every zone",
+  },
+  {
+    file: "panels/config/person/ha-config-person.ts",
+    searches:
+      "People on the people page, by name, shown from more than eight people",
+  },
+  {
     file: "components/ha-selector/ha-selector-select.ts",
     searches:
       "The options of a select field shown as a list of radio buttons or checkboxes, from eight options on",

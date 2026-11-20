@@ -1,7 +1,7 @@
 import { mdiPalette } from "@mdi/js";
-import type { CSSResultGroup, TemplateResult } from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
 import {
@@ -16,6 +16,7 @@ import {
   textParts,
 } from "../../../common/language-mode/language-mode";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import { playArrival } from "../../../common/motion/drama";
 import { formatNumber } from "../../../common/number/format_number";
 import "../../../components/ha-state-icon";
 import "../../../components/ha-svg-icon";
@@ -36,12 +37,29 @@ export class HuiHomeGreetingCard extends LitElement implements LovelaceCard {
   /** The scene a person just started, shown as chosen. */
   @state() private _started?: string;
 
+  @query(".text") private _text?: HTMLElement;
+
+  @query(".scenes") private _scenesRow?: HTMLElement;
+
+  private _arrived = false;
+
   public setConfig(config: HomeGreetingCardConfig): void {
     this._config = config;
   }
 
   public getCardSize(): number {
     return 2;
+  }
+
+  protected updated(changed: PropertyValues<this>): void {
+    super.updated(changed);
+    // The greeting and then the scene buttons rise in once, the first time
+    // they are drawn, following the Arriving motion kind. Nothing moves under
+    // reduced motion or low stimulation.
+    if (!this._arrived && this._text) {
+      this._arrived = true;
+      playArrival({ rows: [this._text, this._scenesRow] });
+    }
   }
 
   private _facts = memoizeOne(homeFacts);
@@ -162,7 +180,7 @@ export class HuiHomeGreetingCard extends LitElement implements LovelaceCard {
                         ></ha-state-icon>`
                       : html`<ha-svg-icon .path=${mdiPalette}></ha-svg-icon>`
                   }
-                  ${computeStateName(stateObj)}
+                  <span class="label">${computeStateName(stateObj)}</span>
                 </button>`;
               })}
             </div>`
@@ -192,14 +210,18 @@ export class HuiHomeGreetingCard extends LitElement implements LovelaceCard {
       justify-content: space-between;
       gap: var(--ha-space-4) var(--ha-space-6);
       padding: var(--ha-space-2) 0 var(--ha-space-4);
+      min-width: 0;
     }
     .text {
       min-width: 0;
+      max-width: 100%;
     }
     h1,
     p {
       /* The greeting and summary can be in another language than the page. */
       unicode-bidi: plaintext;
+      /* Long names and words wrap instead of being cut on a narrow phone. */
+      overflow-wrap: anywhere;
     }
     h1 {
       margin: 0;
@@ -220,12 +242,17 @@ export class HuiHomeGreetingCard extends LitElement implements LovelaceCard {
       display: flex;
       flex-wrap: wrap;
       gap: var(--ha-space-2);
+      max-width: 100%;
     }
+    /* Hover and press follow the Buttons motion kind, so the person's motion
+       settings, reduced motion and low stimulation all apply. */
     .scene {
       display: inline-flex;
       align-items: center;
       gap: var(--ha-space-2);
       min-height: var(--ha-space-12);
+      max-width: 100%;
+      box-sizing: border-box;
       padding: 0 var(--ha-space-5);
       border: 1px solid var(--outline-color);
       border-radius: var(--ha-border-radius-pill);
@@ -234,11 +261,30 @@ export class HuiHomeGreetingCard extends LitElement implements LovelaceCard {
       font: inherit;
       font-size: var(--ha-font-size-l);
       font-weight: var(--ha-font-weight-medium);
+      text-align: start;
       cursor: pointer;
+      transition:
+        background-color
+          var(--ha-motion-buttons-duration, var(--ha-animation-duration-normal))
+          var(--ha-motion-ease, ease-out),
+        transform
+          var(--ha-motion-buttons-duration, var(--ha-animation-duration-normal))
+          var(--ha-motion-buttons-curve, var(--ha-motion-spring, ease-out));
       --mdc-icon-size: 20px;
+    }
+    .scene ha-svg-icon,
+    .scene ha-state-icon {
+      flex: none;
+    }
+    .label {
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
     .scene:hover {
       background: var(--ha-color-fill-neutral-quiet-hover);
+    }
+    .scene:active {
+      transform: scale(0.97);
     }
     .scene.on {
       border-color: transparent;

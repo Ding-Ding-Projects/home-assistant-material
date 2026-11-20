@@ -7,12 +7,21 @@ import {
   mdiNewBox,
   mdiSkipNextCircle,
 } from "@mdi/js";
-import type { CSSResultGroup, TemplateResult } from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
-import { customElement, property, query, state } from "lit/decorators";
+import {
+  customElement,
+  property,
+  query,
+  queryAll,
+  state,
+} from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
 import { formatElapsed } from "../../../../common/app-jobs/app-job-logic";
-import { playRingFlash, playShake } from "../../../../common/motion/moments";
+import { playTickDraw } from "../../../../common/motion/moments";
+import { motionKindTiming } from "../../../../common/motion/page-entry";
 import { LanguageModeController } from "../../../../common/language-mode/language-mode-controller";
+import "../../../../components/graphics/ha-drama-badge";
 import "../../../../components/ha-button";
 import "../../../../components/ha-spinner";
 import "../../../../components/ha-svg-icon";
@@ -21,6 +30,7 @@ import type { UpdateRunRecord } from "../../../../data/auto-update";
 import { formatAutoUpdateTime } from "../../../../data/auto-update";
 import { notesPageUrlForVersion } from "../../../../data/build-notes";
 import type { UpdateEntity } from "../../../../data/update";
+import { haMotionKeyframes } from "../../../../resources/motion-styles";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
 import type { QueueState, QueueStep } from "./update-queue";
@@ -29,12 +39,16 @@ import {
   queueProgress,
   roleRestartsSystem,
 } from "./update-queue";
+import { ringFromSteps, ringOffset } from "./update-glance";
 import { queueOrderOf, queuePositionOf } from "./update-progress-model";
 import type { UpdateQueueController } from "./update-queue-controller";
 import type { SharedStepState } from "./update-run-share";
 import { sharedRunView } from "./update-run-share";
 
 const PREFIX = "ui.panel.config.updates.queue";
+
+// The arc is drawn with a path length of 100, so the offset is a percentage.
+const RING_LENGTH = 100;
 
 /** The name an update is shown under. */
 export const updateDisplayName = (
@@ -94,14 +108,26 @@ class HaUpdateQueueCard extends LitElement {
 
   private _lang = new LanguageModeController(this);
 
-  @query(".ring") private _ring?: SVGElement;
+  @query(".ring-arc") private _arc?: SVGCircleElement;
 
   @query(".card") private _card?: HTMLElement;
+
+  @queryAll(".tick-path") private _ticks?: NodeListOf<SVGPathElement>;
 
   // What the card showed last, so the finish and the failure play once.
   private _wasActive = false;
 
   private _wasFailed = false;
+
+  // The finished or failed moment that plays: set only when the state changed
+  // while the page was open, so a reload does not replay it.
+  private _moment?: "finished" | "failed";
+
+  // How full the ring was at the last render, so it eases from there.
+  private _shownFraction?: number;
+
+  // The ticks already drawn, so each step's tick draws once.
+  private _drawnTicks = new Set<string>();
 
   // The clock the elapsed times are measured against; it only ticks while a
   // queue is running.
@@ -133,31 +159,141 @@ class HaUpdateQueueCard extends LitElement {
     return this._lang.text(this.hass.localize, `${PREFIX}.${key}`, values);
   }
 
-  protected updated(): void {
-    const queue = this.controller.queue;
+  // Decides, before the render, whether the finished or the failed moment
+  // plays: only for a change seen on this page, never on a reload.
+  protected willUpdate(changedProps: PropertyValues<this>): void {
+    super.willUpdate(changedProps);
+    const queue = this.controller?.queue;
     if (!queue) {
       this._wasActive = false;
       this._wasFailed = false;
-      this._stopClock();
+      this._moment = undefined;
       return;
     }
     const active = queueIsActive(queue);
-    if (active && this._clock === undefined) {
-      this._clock = window.setInterval(() => {
-        this._now = Date.now();
-      }, 1000);
-    } else if (!active) {
-      this._stopClock();
-    }
     const failed = !!queue.failure && !this.controller.checking;
     if (this._wasActive && !active && !failed && !queue.stopRequested) {
-      playRingFlash(this._ring);
-    }
-    if (failed && !this._wasFailed) {
-      playShake(this._card);
+      this._moment = "finished";
+    } else if (failed && !this._wasFailed) {
+      this._moment = "failed";
+    } else if (active || (!failed && this._moment === "failed")) {
+      this._moment = undefined;
     }
     this._wasActive = active;
     this._wasFailed = failed;
+  }
+
+  protected updated(): void {
+    const queue = this.controller.queue;
+    if (!queue) {
+      this._stopClock();
+    } else {
+      const active = queueIsActive(queue);
+      if (active && this._clock === undefined) {
+        this._clock = window.setInterval(() => {
+          this._now = Date.now();
+        }, 1000);
+      } else if (!active) {
+        this._stopClock();
+      }
+    }
+    this._easeRing();
+    this._drawTicks();
+  }
+
+  // The ring eases from where it stood to its new value, once per change,
+  // with the duration and curve of the Arrivals motion kind.
+  private _easeRing(): void {
+    const arc = this._arc;
+    if (!arc) {
+      this._shownFraction = undefined;
+      return;
+    }
+    const target = Number(arc.dataset.fraction ?? "0");
+    const from = this._shownFraction ?? 0;
+    this._shownFraction = target;
+    if (from === target || typeof arc.animate !== "function") {
+      return;
+    }
+    const timing = motionKindTiming("arrivals");
+    if (!timing.enabled) {
+      return;
+    }
+    arc.animate(
+      [
+        { strokeDashoffset: String(ringOffset(from, RING_LENGTH)) },
+        { strokeDashoffset: String(ringOffset(target, RING_LENGTH)) },
+      ],
+      { duration: timing.duration, easing: timing.easing }
+    );
+  }
+
+  // A finished step's tick draws once, the first time it shows.
+  private _drawTicks(): void {
+    this._ticks?.forEach((path) => {
+      const key = path.dataset.key ?? "";
+      if (this._drawnTicks.has(key)) {
+        return;
+      }
+      this._drawnTicks.add(key);
+      playTickDraw(path);
+    });
+  }
+
+  // The ring of a run, the size of the one it replaces, filled to the steps
+  // that finished. A finished run shows a tick, a moment plays its badge.
+  private _renderRing(
+    finished: number,
+    total: number,
+    finishedOk: boolean,
+    failed: boolean
+  ): TemplateResult {
+    if (this._moment === "finished" && finishedOk) {
+      return html`<ha-drama-badge
+        class="ring moment"
+        kind="finished"
+      ></ha-drama-badge>`;
+    }
+    if (this._moment === "failed" && failed) {
+      return html`<ha-drama-badge
+        class="ring moment"
+        kind="failed"
+        .shakeTarget=${this._card}
+      ></ha-drama-badge>`;
+    }
+    if (finishedOk) {
+      return html`<ha-svg-icon
+        class="ring tick"
+        .path=${mdiCheckCircle}
+      ></ha-svg-icon>`;
+    }
+    const ring = ringFromSteps(finished, total);
+    return html`<svg
+      class="ring ${failed ? "failed" : ""}"
+      viewBox="0 0 36 36"
+      aria-hidden="true"
+    >
+      <circle class="ring-track" cx="18" cy="18" r="15" />
+      <circle
+        class="ring-arc"
+        cx="18"
+        cy="18"
+        r="15"
+        pathLength=${RING_LENGTH}
+        stroke-dasharray=${RING_LENGTH}
+        stroke-dashoffset=${ringOffset(ring.fraction, RING_LENGTH)}
+        data-fraction=${String(ring.fraction)}
+        transform="rotate(-90 18 18)"
+      />
+    </svg>`;
+  }
+
+  private _cardClasses(shared: boolean) {
+    return classMap({
+      card: true,
+      shared,
+      rise: motionKindTiming("cards").enabled,
+    });
   }
 
   protected render(): TemplateResult | typeof nothing {
@@ -247,34 +383,14 @@ class HaUpdateQueueCard extends LitElement {
     });
 
     return html`
-      <section class="card" aria-labelledby="queue-title">
+      <section class=${this._cardClasses(false)} aria-labelledby="queue-title">
         <div class="title-row">
-          ${
-            finishedOk
-              ? html`<ha-svg-icon
-                  class="ring tick"
-                  .path=${mdiCheckCircle}
-                ></ha-svg-icon>`
-              : nothing
-          }
-          <svg
-            class="ring"
-            viewBox="0 0 36 36"
-            aria-hidden="true"
-            ?hidden=${finishedOk}
-          >
-            <g transform="rotate(-90 18 18)">
-              <circle class="ring-track" cx="18" cy="18" r="15" />
-              <circle
-                class="ring-arc"
-                cx="18"
-                cy="18"
-                r="15"
-                pathLength="100"
-                stroke-dasharray="${Math.max(0, Math.min(100, progress.percent))} 100"
-              />
-            </g>
-          </svg>
+          ${this._renderRing(
+            progress.finished,
+            progress.total,
+            finishedOk,
+            !!queue.failure && !checking
+          )}
           <h2
             id="queue-title"
             class=${queue.failure && !checking ? "failed" : ""}
@@ -383,35 +499,14 @@ class HaUpdateQueueCard extends LitElement {
       total: view.total,
     });
     return html`
-      <section class="card shared" aria-labelledby="queue-title">
+      <section class=${this._cardClasses(true)} aria-labelledby="queue-title">
         <div class="title-row">
-          ${
-            // The same finished tick the driving browser shows, never a ring.
-            finishedOk
-              ? html`<ha-svg-icon
-                  class="ring tick"
-                  .path=${mdiCheckCircle}
-                ></ha-svg-icon>`
-              : nothing
-          }
-          <svg
-            class="ring"
-            viewBox="0 0 36 36"
-            aria-hidden="true"
-            ?hidden=${finishedOk}
-          >
-            <g transform="rotate(-90 18 18)">
-              <circle class="ring-track" cx="18" cy="18" r="15" />
-              <circle
-                class="ring-arc"
-                cx="18"
-                cy="18"
-                r="15"
-                pathLength="100"
-                stroke-dasharray="${Math.max(0, Math.min(100, view.percent))} 100"
-              />
-            </g>
-          </svg>
+          ${this._renderRing(
+            view.finished,
+            view.total,
+            finishedOk,
+            view.state === "failed"
+          )}
           <h2 id="queue-title" class=${view.state === "failed" ? "failed" : ""}>
             ${title}
           </h2>
@@ -520,9 +615,18 @@ class HaUpdateQueueCard extends LitElement {
           ${
             shownState === "updating" || shownState === "checking"
               ? html`<ha-spinner size="small"></ha-spinner>`
-              : icon
-                ? html`<ha-svg-icon .path=${icon}></ha-svg-icon>`
-                : nothing
+              : shownState === "done"
+                ? html`<svg class="done-tick" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path
+                      class="tick-path"
+                      data-key=${`${this.controller.queue?.startedAt ?? ""}:${step.entityId}`}
+                      d="M7.5 12.5l3 3 6-6.5"
+                    ></path>
+                  </svg>`
+                : icon
+                  ? html`<ha-svg-icon .path=${icon}></ha-svg-icon>`
+                  : nothing
           }
         </span>
         <span class="step-name"
@@ -638,6 +742,7 @@ class HaUpdateQueueCard extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      haMotionKeyframes,
       css`
         /* The shared heading style keeps an h2 on one line and cuts it with an
            ellipsis. Headings on this page are long and must wrap. */
@@ -704,12 +809,32 @@ class HaUpdateQueueCard extends LitElement {
         .ring-arc {
           stroke: var(--primary-color);
           stroke-linecap: round;
-          transition: stroke-dasharray 400ms ease-out;
         }
-        @media (prefers-reduced-motion: reduce) {
-          .ring-arc {
-            transition: none;
-          }
+        .ring.failed .ring-arc {
+          stroke: var(--error-color);
+        }
+        /* The finished and failed moments play in the ring's place, at its size. */
+        .ring.moment {
+          --ha-drama-badge-size: 36px;
+        }
+        /* The card rises once when it appears, with the Cards motion kind. */
+        .card.rise {
+          animation: ha-rise var(--ha-animation-duration-enter, 450ms)
+            var(--ha-motion-spring, ease) both;
+        }
+        .done-tick {
+          width: 24px;
+          height: 24px;
+        }
+        .done-tick circle {
+          fill: var(--success-color);
+        }
+        .done-tick path {
+          fill: none;
+          stroke: var(--card-background-color);
+          stroke-width: 2.6;
+          stroke-linecap: round;
+          stroke-linejoin: round;
         }
         .lead {
           margin: 0 0 var(--ha-space-3);
@@ -824,6 +949,8 @@ class HaUpdateQueueCard extends LitElement {
         }
         .step-state {
           flex: none;
+          max-width: 100%;
+          overflow-wrap: anywhere;
           font-size: var(--ha-font-size-s);
           color: var(--secondary-text-color);
         }
@@ -848,6 +975,9 @@ class HaUpdateQueueCard extends LitElement {
           color: var(--secondary-text-color);
         }
         @media (prefers-reduced-motion: reduce) {
+          .card.rise {
+            animation: none;
+          }
           ha-progress-bar {
             --ha-progress-bar-animation-duration: 0s;
           }

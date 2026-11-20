@@ -631,8 +631,8 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
           }
           :host([type="standard"]:not([fullscreen])) wa-dialog::part(dialog) {
             min-height: var(--ha-dialog-min-height, 0);
-            max-height: var(--ha-dialog-max-height, 92vh);
-            max-height: var(--ha-dialog-max-height, 92dvh);
+            max-height: var(--ha-dialog-max-height, 88vh);
+            max-height: var(--ha-dialog-max-height, 88dvh);
             margin: auto 0 0 0;
             padding-bottom: var(--safe-area-inset-bottom);
             padding-left: var(--safe-area-inset-left);
@@ -801,12 +801,30 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
           flex-direction: column;
         }
 
+        /* The title, the tools and the buttons stay put; only the middle
+           scrolls, and a scroll that reaches its end never moves the page
+           behind the dialog. */
         wa-dialog::part(footer) {
           padding: 0;
+          flex: none;
+        }
+        wa-dialog::part(dialog) {
+          overscroll-behavior: contain;
+        }
+        .handle,
+        ha-dialog-header,
+        ha-dialog-tools,
+        slot[name="header"] {
+          flex: none;
+        }
+        .body {
+          overscroll-behavior: contain;
         }
 
         ::slotted([slot="footer"]) {
           display: flex;
+          flex-wrap: wrap;
+          box-sizing: border-box;
           padding: var(--ha-space-3) var(--ha-space-6) var(--ha-space-6)
             var(--ha-space-6);
           gap: var(--ha-space-3);

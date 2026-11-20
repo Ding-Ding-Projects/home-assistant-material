@@ -3529,9 +3529,15 @@
           },
           "row_more": "顯示摘要、說明同自動更新",
           "row_less": "收埋摘要、說明同自動更新",
+          "glance": {
+            "auto_plain_on": "開咗。你開咗嘅更新會自己安裝。",
+            "auto_plain_off": "熄咗。唔撳就乜都唔會安裝。"
+          },
           "no_area": "冇區域"
         },
         "system_dashboard": {
+          "search": "搜尋系統頁",
+          "search_empty": "呢度冇頁符合呢個搜尋。",
           "restart_homeassistant": "重新啟動 Home Assistant"
         },
         "areas": {
@@ -7616,7 +7622,9 @@
           "read_aloud_description": "喺成個應用程式開關朗讀功能。會讀出你移到嘅控制項名稱。",
           "tab_details": "詳情",
           "tabs": "呢個視窗嘅分頁",
-          "tools_title": "呢個視窗嘅工具"
+          "tools_title": "呢個視窗嘅工具",
+          "turn_off": "關閉",
+          "turn_on": "開啟"
         },
         "group": {
           "all_off": "全部關",
@@ -8271,6 +8279,8 @@
       "subpage-data-table": {
         "filters": "篩選",
         "more": "更多",
+        "more_tools": "更多工具",
+        "page_tools": "頁面工具",
         "summary": "{count} 項",
         "export": "匯出呢個清單",
         "show_results": "顯示 {number} 個結果",
@@ -8405,7 +8415,15 @@
         "next": "下一個結果",
         "no_matches": "搵唔到",
         "count": "第 {current} 個，共 {total} 個",
-        "found_in": "喺呢度搵到：{places}"
+        "found_in": "喺呢度搵到：{places}",
+        "page_count": "共 {total} 頁。",
+        "page_matches": "共 {total} 頁，{shown} 頁搵到「{query}」。",
+        "found_in_page": "喺頁入面搵到：{text}",
+        "found_in_page_label": "喺頁入面搵到：",
+        "pages_hidden": "搜尋收埋咗 {hidden} 頁。清除搜尋就會見返全部 {total} 頁，冇嘢刪走。",
+        "options_hidden": "搜尋收埋咗 {hidden} 個選項。清除搜尋就會見返全部 {total} 個。",
+        "items_hidden": "搜尋收埋咗 {hidden} 項。清除搜尋就會見返全部 {total} 項。",
+        "search_pages": "搜尋呢啲頁"
       },
       "string_builder": {
         "composition_heading": "你嘅文字",

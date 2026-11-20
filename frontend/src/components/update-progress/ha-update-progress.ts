@@ -36,6 +36,7 @@ import type {
   HomeAssistantConfig,
 } from "../../types";
 import "../activity/ha-recovery-card";
+import "../graphics/ha-drama-badge";
 import "../ha-alert";
 import "../ha-button";
 import "../progress/ha-progress-bar";
@@ -354,12 +355,15 @@ export class HaUpdateProgress extends LitElement {
       class="card"
       aria-label=${this._l("heading", { name: run.title })}
     >
-      <p class="stage" role="status">
-        ${this._l("done", {
-          name: run.title,
-          version: this.stateObj?.attributes.installed_version ?? "",
-        })}
-      </p>
+      <div class="done-head">
+        <ha-drama-badge kind="finished"></ha-drama-badge>
+        <p class="stage" role="status">
+          ${this._l("done", {
+            name: run.title,
+            version: this.stateObj?.attributes.installed_version ?? "",
+          })}
+        </p>
+      </div>
       <div class="actions">
         <ha-button appearance="plain" @click=${this._dismiss}
           >${this._l("dismiss")}</ha-button
@@ -597,6 +601,19 @@ export class HaUpdateProgress extends LitElement {
       }
       .stage {
         font-weight: var(--ha-font-weight-medium);
+      }
+      .done-head {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3);
+      }
+      .done-head .stage {
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+      }
+      .done-head ha-drama-badge {
+        --ha-drama-badge-size: 48px;
       }
       .percent {
         color: var(--secondary-text-color);

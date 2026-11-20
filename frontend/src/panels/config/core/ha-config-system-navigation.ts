@@ -1,7 +1,8 @@
 import { mdiPower, mdiServer } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { styleMap } from "lit/directives/style-map";
 import { canShowPage } from "../../../common/config/can_show_page";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { relativeTime } from "../../../common/datetime/relative_time";
@@ -9,6 +10,11 @@ import { blankBeforePercent } from "../../../common/translations/blank_before_pe
 import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-svg-icon";
+import "../../../components/ha-icon-next";
+import "../../../components/input/ha-input-search";
+import type { HaInputSearch } from "../../../components/input/ha-input-search";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import type { PageNavigation } from "../../../layouts/hass-tabs-subpage";
 import type { BackupContent } from "../../../data/backup";
 import { fetchBackupInfo } from "../../../data/backup";
 import type { CloudStatus } from "../../../data/cloud";
@@ -30,6 +36,13 @@ import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import "../../../components/ha-config-navigation-list";
 import { configSections } from "../config-sections";
+import type { FlatStrings } from "../settings-page-search";
+import {
+  loadPageStrings,
+  pageWords,
+  renderHighlighted,
+  searchPages,
+} from "../settings-page-search";
 
 @customElement("ha-config-system-navigation")
 class HaConfigSystemNavigation extends LitElement {
@@ -50,6 +63,18 @@ class HaConfigSystemNavigation extends LitElement {
   @state() private _externalAccess = false;
 
   @state() private _labFeatures?: LabPreviewFeature[];
+
+  /** The text of this page's own search field. */
+  @state() private _filter = "";
+
+  /** The interface text of the listed pages, loaded when a search needs it. */
+  @state() private _pageStrings?: FlatStrings;
+
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  private _t = (key: string, values?: Record<string, string | number>) =>
+    this._lang.text(this.hass.localize, key, values);
 
   protected render(): TemplateResult {
     const pages = configSections.general
@@ -156,16 +181,125 @@ class HaConfigSystemNavigation extends LitElement {
               )}
             </ha-button>
           </section>
-          <ha-config-navigation-list
-            grid
-            .narrow=${this.narrow}
-            .pages=${pages}
-            has-secondary
-            .label=${this.hass.localize("ui.panel.config.dashboard.system.main")}
-          ></ha-config-navigation-list>
+          ${this._renderSearch(pages)}
         </div>
       </hass-subpage>
     `;
+  }
+
+  /**
+   * The search field over the listed pages, then either every page as tiles
+   * or the pages the search shows, with their matches marked. Hidden pages
+   * are counted; clearing the field shows every page again.
+   */
+  private _renderSearch(pages: PageNavigation[]): TemplateResult {
+    const label = this.hass.localize("ui.panel.config.dashboard.system.main");
+    const query = this._filter;
+    const cantonese = this._lang.mode !== "english";
+    const strings = this._pageStrings;
+    const result = searchPages(
+      pages,
+      query,
+      (page) => ({ name: page.name ?? "", description: page.description }),
+      (page) =>
+        strings && page.translationKey
+          ? pageWords(strings, page.translationKey, cantonese)
+          : []
+    );
+    const shown = result.shown.length;
+
+    return html`
+      <section class="search">
+        <ha-input-search
+          appearance="outlined"
+          .label=${this._t("ui.panel.config.system_dashboard.search")}
+          .value=${query}
+          .patternSamples=${pages.map((page) => page.name ?? "")}
+          @input=${this._handleSearchChange}
+        ></ha-input-search>
+        <p class="count" role="status">
+          ${
+            query
+              ? this._t("ui.components.top_bar_search.page_matches", {
+                  total: result.total,
+                  shown,
+                  query,
+                })
+              : this._t("ui.components.top_bar_search.page_count", {
+                  total: result.total,
+                })
+          }
+        </p>
+      </section>
+      ${
+        !query
+          ? html`<ha-config-navigation-list
+              grid
+              .narrow=${this.narrow}
+              .pages=${pages}
+              has-secondary
+              .label=${label}
+            ></ha-config-navigation-list>`
+          : shown
+            ? html`<nav class="results" aria-label=${label}>
+                ${result.shown.map(
+                  ({ page, foundIn }) =>
+                    html`<a class="row" href=${page.path}>
+                      <span
+                        class="icon"
+                        style=${styleMap({
+                          "--page-color": page.iconColor ?? null,
+                        })}
+                      >
+                        <ha-svg-icon
+                          .path=${page.iconPath}
+                          .secondaryPath=${page.iconSecondaryPath}
+                          .viewBox=${page.iconViewBox}
+                        ></ha-svg-icon>
+                      </span>
+                      <span class="text">
+                        <span class="name"
+                          >${renderHighlighted(query, page.name ?? "")}</span
+                        >
+                        <span class="summary"
+                          >${
+                            foundIn
+                              ? html`${this._t(
+                                  "ui.components.top_bar_search.found_in_page_label"
+                                )}
+                                ${renderHighlighted(query, foundIn)}`
+                              : renderHighlighted(query, page.description ?? "")
+                          }</span
+                        >
+                      </span>
+                      <ha-icon-next></ha-icon-next>
+                    </a>`
+                )}
+              </nav>`
+            : html`<p class="empty" role="status">
+                ${this._t("ui.panel.config.system_dashboard.search_empty")}
+              </p>`
+      }
+      ${
+        query && result.hidden
+          ? html`<p class="hidden-count">
+              ${this._t("ui.components.top_bar_search.pages_hidden", {
+                hidden: result.hidden,
+                total: result.total,
+              })}
+            </p>`
+          : nothing
+      }
+    `;
+  }
+
+  private _handleSearchChange(ev: InputEvent): void {
+    this._filter = (ev.target as HaInputSearch).value ?? "";
+    if (this._filter && !this._pageStrings) {
+      loadPageStrings().then((strings) => {
+        this._pageStrings = strings;
+      });
+    }
   }
 
   /** What is running, and whether it is running normally. */
@@ -339,6 +473,94 @@ class HaConfigSystemNavigation extends LitElement {
         }
         ha-config-navigation-list {
           --navigation-grid-columns: 2;
+        }
+        .search {
+          margin-bottom: var(--ha-space-4);
+          padding: var(--ha-space-4);
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--ha-color-fill-primary-normal-resting);
+          color: var(--ha-color-on-primary-normal, var(--primary-text-color));
+        }
+        .search ha-input-search {
+          display: block;
+        }
+        .count {
+          margin: var(--ha-space-2) var(--ha-space-1) 0;
+          font-size: var(--ha-font-size-s);
+          line-height: var(--ha-line-height-normal);
+        }
+        .results {
+          display: flex;
+          flex-direction: column;
+          padding: var(--ha-space-1) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--card-background-color);
+        }
+        .row {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
+          min-height: 60px;
+          box-sizing: border-box;
+          padding: var(--ha-space-2) var(--ha-space-1);
+          border-top: 1px solid var(--divider-color);
+          color: var(--primary-text-color);
+          text-decoration: none;
+          border-radius: var(--ha-border-radius-lg);
+        }
+        .row:first-child {
+          border-top: none;
+        }
+        .row:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+        .row .icon {
+          flex: none;
+          display: grid;
+          place-items: center;
+          width: 40px;
+          height: 40px;
+          border-radius: 14px;
+          background: color-mix(
+            in srgb,
+            var(--page-color, var(--primary-color)) 28%,
+            var(--card-background-color)
+          );
+          --mdc-icon-size: 20px;
+        }
+        .row .text {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+        }
+        .row .name {
+          font-weight: var(--ha-font-weight-medium);
+          overflow-wrap: anywhere;
+        }
+        .row .summary {
+          font-size: var(--ha-font-size-s);
+          line-height: var(--ha-line-height-normal);
+          color: var(--secondary-text-color);
+          overflow-wrap: anywhere;
+        }
+        .row ha-icon-next {
+          flex: none;
+          color: var(--secondary-text-color);
+        }
+        mark {
+          border-radius: 4px;
+          padding: 0 2px;
+          background: var(--ha-color-fill-warning-normal-resting);
+          color: var(--ha-color-on-warning-normal, inherit);
+        }
+        .empty,
+        .hidden-count {
+          margin: var(--ha-space-3) var(--ha-space-1) 0;
+          font-size: var(--ha-font-size-s);
+          line-height: var(--ha-line-height-normal);
+          color: var(--secondary-text-color);
         }
       `,
     ];

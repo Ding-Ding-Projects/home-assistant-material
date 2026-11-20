@@ -14,7 +14,7 @@ import {
 import type { HassEntity, UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
@@ -26,6 +26,7 @@ import {
   lockFacts,
   playingMedia,
 } from "../../../common/home/home-hero";
+import { playArrival } from "../../../common/motion/drama";
 import { navigate } from "../../../common/navigate";
 import { formatNumber } from "../../../common/number/format_number";
 import "../../../components/ha-control-slider";
@@ -58,6 +59,11 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
 
   private _unsubRepairs?: UnsubscribeFunc;
 
+  @query(".heroes") private _heroes?: HTMLElement;
+
+  /** Whether the cards have already risen in since they last appeared. */
+  private _arrived = false;
+
   public connectedCallback(): void {
     super.connectedCallback();
     this._subscribeRepairs();
@@ -73,6 +79,17 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
     super.updated(changed);
     if (changed.has("hass")) {
       this._subscribeRepairs();
+    }
+    // The cards rise in one after another the first time they are drawn,
+    // following the Arriving motion kind. Nothing moves under reduced motion
+    // or low stimulation.
+    if (this._heroes && !this._arrived) {
+      this._arrived = true;
+      playArrival({
+        rows: Array.from(this._heroes.children),
+      });
+    } else if (!this._heroes) {
+      this._arrived = false;
     }
   }
 
@@ -687,6 +704,8 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
       font-weight: var(--ha-font-weight-medium);
     }
     .action {
+      max-width: 100%;
+      text-align: start;
       display: inline-flex;
       align-items: center;
       gap: var(--ha-space-2);
@@ -733,6 +752,7 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
     .heading span,
     .name {
       unicode-bidi: plaintext;
+      overflow-wrap: anywhere;
     }
     h2 {
       margin: 0;
@@ -806,9 +826,30 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
       font: inherit;
       color: inherit;
       cursor: pointer;
+      transition:
+        background-color
+          var(--ha-motion-buttons-duration, var(--ha-animation-duration-normal))
+          var(--ha-motion-ease, ease-out),
+        filter
+          var(--ha-motion-buttons-duration, var(--ha-animation-duration-normal))
+          var(--ha-motion-ease, ease-out),
+        transform
+          var(--ha-motion-buttons-duration, var(--ha-animation-duration-normal))
+          var(--ha-motion-buttons-curve, var(--ha-motion-spring, ease-out));
+    }
+    .action:hover,
+    .chip:hover {
+      filter: brightness(1.08);
+    }
+    .action:active,
+    .chip:active {
+      transform: scale(0.97);
     }
     .chip {
       align-self: flex-start;
+      max-width: 100%;
+      text-align: start;
+      overflow-wrap: anywhere;
       min-height: var(--ha-space-9);
       padding: 0 var(--ha-space-4);
       border: 1px solid var(--outline-color);

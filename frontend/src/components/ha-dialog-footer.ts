@@ -55,9 +55,13 @@ export class HaDialogFooter extends LitElement {
         ::slotted([slot="secondaryAction"]) {
           --ha-button-border-radius: var(--ha-border-radius-pill);
           --ha-button-height: 48px;
+          max-width: 100%;
         }
+        /* At 320 px or with a large font the buttons wrap onto a new line
+           instead of running off the dialog. */
         footer {
           display: flex;
+          flex-wrap: wrap;
           gap: var(--ha-space-3);
           justify-content: flex-end;
           align-items: center;

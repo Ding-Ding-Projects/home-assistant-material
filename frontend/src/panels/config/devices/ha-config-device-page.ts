@@ -21,7 +21,7 @@ import {
 import type { HassEntity } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { ifDefined } from "lit/directives/if-defined";
 import memoizeOne from "memoize-one";
 import { consume } from "../../../common/decorators/consume";
@@ -35,6 +35,7 @@ import { getDeviceArea } from "../../../common/entity/context/get_device_context
 import { navigate } from "../../../common/navigate";
 import { stringCompare } from "../../../common/string/compare";
 import { slugify } from "../../../common/string/slugify";
+import { modeText } from "../../../common/language-mode/language-mode";
 import { computeRTL } from "../../../common/util/compute_rtl";
 import { groupBy } from "../../../common/util/group-by";
 import { createColumnsController } from "../../../common/util/responsive-columns";
@@ -207,6 +208,14 @@ export class HaConfigDevicePage extends LitElement {
 
   @state() private _related?: RelatedResult;
 
+  /** The full device name is shown instead of two lines and three dots. */
+  @state() private _fullName = false;
+
+  /** The device name does not fit in two lines. */
+  @state() private _nameClamped = false;
+
+  @query("h1.heading-title") private _headingTitle?: HTMLElement;
+
   @state() private _diagnosticDownloadLinks: DeviceAction[] = [];
 
   @state() private _deleteButtons: DeviceAction[] = [];
@@ -362,7 +371,9 @@ export class HaConfigDevicePage extends LitElement {
 
   protected updated(changedProps: PropertyValues<this>) {
     super.updated(changedProps);
+    this._measureName();
     if (changedProps.has("deviceId")) {
+      this._fullName = false;
       this._findRelated();
       fireRelatedContext(this, {
         itemType: "device",
@@ -374,6 +385,25 @@ export class HaConfigDevicePage extends LitElement {
   public disconnectedCallback() {
     super.disconnectedCallback();
     clearTimeout(this._deviceAlertsActionsTimeout);
+  }
+
+  /**
+   * A long device name wraps to two lines and ends in three dots; the button
+   * under it shows the full name. It is only offered when the name is cut.
+   */
+  private _measureName(): void {
+    const title = this._headingTitle;
+    if (!title || this._fullName) {
+      return;
+    }
+    const clamped = title.scrollHeight > title.clientHeight + 1;
+    if (clamped !== this._nameClamped) {
+      this._nameClamped = clamped;
+    }
+  }
+
+  private _toggleFullName(): void {
+    this._fullName = !this._fullName;
   }
 
   protected render() {
@@ -1023,7 +1053,30 @@ export class HaConfigDevicePage extends LitElement {
             }
           </div>
           <div class="heading-text">
-            <h1 class="heading-title">${deviceName}</h1>
+            <h1
+              class="heading-title ${this._fullName ? "" : "clamped"}"
+              id="device-heading-title"
+            >
+              ${deviceName}
+            </h1>
+            ${
+              this._nameClamped || this._fullName
+                ? html`<button
+                    type="button"
+                    class="name-toggle"
+                    aria-controls="device-heading-title"
+                    aria-expanded=${this._fullName ? "true" : "false"}
+                    @click=${this._toggleFullName}
+                  >
+                    ${modeText(
+                      this.hass.localize,
+                      this._fullName
+                        ? "ui.panel.config.devices.page.show_short_name"
+                        : "ui.panel.config.devices.page.show_full_name"
+                    )}
+                  </button>`
+                : nothing
+            }
             ${
               headingSummary
                 ? html`<p class="heading-summary">${headingSummary}</p>`
@@ -1832,7 +1885,10 @@ export class HaConfigDevicePage extends LitElement {
 
         .header {
           display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
           justify-content: space-between;
+          min-width: 0;
         }
 
         .page-heading {
@@ -1870,7 +1926,33 @@ export class HaConfigDevicePage extends LitElement {
           opacity: 1;
           overflow-wrap: anywhere;
         }
+        /* Two lines, then three dots; the button under it shows the rest. */
+        h1.heading-title.clamped {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
+          overflow: hidden;
+        }
+        .name-toggle {
+          min-height: 48px;
+          margin: 0;
+          padding: 0;
+          border: 0;
+          background: none;
+          color: var(--primary-color);
+          font: inherit;
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-bold);
+          cursor: pointer;
+        }
+        .name-toggle:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+          border-radius: var(--ha-border-radius-sm);
+        }
         .heading-summary {
+          overflow-wrap: anywhere;
           margin: var(--ha-space-1) 0 0;
           font-size: var(--ha-font-size-l);
           line-height: var(--ha-line-height-normal);
@@ -1898,6 +1980,9 @@ export class HaConfigDevicePage extends LitElement {
         .header-name {
           display: flex;
           align-items: center;
+          min-width: 0;
+          max-width: 100%;
+          overflow-wrap: anywhere;
           direction: var(--direction);
         }
 
@@ -1929,6 +2014,9 @@ export class HaConfigDevicePage extends LitElement {
 
         .header-right {
           display: flex;
+          flex-wrap: wrap;
+          row-gap: var(--ha-space-2);
+          min-width: 0;
         }
 
         .header-right:first-child {

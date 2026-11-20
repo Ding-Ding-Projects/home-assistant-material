@@ -29,6 +29,9 @@ import "../../../state-control/ha-state-control-toggle";
 import { apiContext, formattersContext } from "../../../data/context";
 import "../components/ha-more-info-control-select-container";
 import "../components/ha-more-info-state-header";
+import { consumeLocalize } from "../../../common/decorators/consume-context-entry";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+import { withLanguageMode } from "../../../common/language-mode/language-mode";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
@@ -42,6 +45,15 @@ class MoreInfoFan extends LitElement {
   @state()
   @consume({ context: apiContext, subscribe: true })
   private _api!: ContextType<typeof apiContext>;
+
+  @state()
+  @consumeLocalize()
+  private _ctxLocalize!: LocalizeFunc;
+
+  /** The consumed localize, following the language mode. */
+  private get _localize(): LocalizeFunc {
+    return withLanguageMode(this._ctxLocalize) as unknown as LocalizeFunc;
+  }
 
   @property({ attribute: false }) public stateObj?: FanEntity;
 
@@ -185,6 +197,11 @@ class MoreInfoFan extends LitElement {
                 <div class="buttons">
                   <ha-outlined-icon-button
                     .disabled=${this.stateObj.state === UNAVAILABLE}
+                    .label=${this._localize(
+                      this.stateObj.state === "on"
+                        ? "ui.dialogs.more_info_control.frame.turn_off"
+                        : "ui.dialogs.more_info_control.frame.turn_on"
+                    )}
                     @click=${this._toggle}
                   >
                     <ha-svg-icon .path=${mdiPower}></ha-svg-icon>

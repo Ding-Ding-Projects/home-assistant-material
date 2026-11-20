@@ -16,6 +16,9 @@ import "../../../components/ha-list";
 import "../../../components/ha-list-item";
 import "../../../components/ha-svg-icon";
 import "../../../components/user/ha-person-badge";
+import "../../../components/input/ha-input-search";
+import type { HaInputSearch } from "../../../components/input/ha-input-search";
+import { searchMatcher } from "../../../common/regex/filter";
 import type { Person } from "../../../data/person";
 import {
   createPerson,
@@ -65,6 +68,9 @@ export class HaConfigPerson extends LitElement {
 
   @state() private _configItems?: Person[];
 
+  /** The text of the search over the people, shown from nine people on. */
+  @state() private _filter = "";
+
   private _usersLoad?: Promise<User[]>;
 
   /** The person entity of every person, keyed by the person's id. */
@@ -95,6 +101,18 @@ export class HaConfigPerson extends LitElement {
     const hasSignInlessPerson = this._storageItems.some(
       (person) => !person.user_id
     );
+    // From more than eight people a search sits under the header. It only
+    // hides people and says how many it hides.
+    const total = this._storageItems.length + this._configItems.length;
+    const searchable = total > 8;
+    const matches = searchMatcher(searchable ? this._filter : "");
+    const storageItems = this._storageItems.filter((person) =>
+      matches(person.name, person.id)
+    );
+    const configItems = this._configItems.filter((person) =>
+      matches(person.name, person.id)
+    );
+    const hidden = total - storageItems.length - configItems.length;
     return html`
       <hass-tabs-subpage
         .hass=${this.hass}
@@ -122,6 +140,26 @@ export class HaConfigPerson extends LitElement {
             </ha-button>
           </header>
           ${
+            searchable
+              ? html`<ha-input-search
+                    class="person-search"
+                    appearance="outlined"
+                    .value=${this._filter}
+                    @input=${this._handleSearchChange}
+                  ></ha-input-search>
+                  ${
+                    hidden
+                      ? html`<p class="hidden-count" role="status">
+                          ${this._modeLocalize(
+                            "ui.components.top_bar_search.items_hidden",
+                            { hidden, total }
+                          )}
+                        </p>`
+                      : nothing
+                  }`
+              : nothing
+          }
+          ${
             this._storageItems.length === 0
               ? html`<div class="empty">
                   <p>
@@ -135,13 +173,13 @@ export class HaConfigPerson extends LitElement {
                   </ha-button>
                 </div>`
               : html`<div class="cards">
-                  ${this._storageItems.map((person, index) =>
+                  ${storageItems.map((person, index) =>
                     this._renderPerson(person, index)
                   )}
                 </div>`
           }
           ${
-            this._configItems.length > 0
+            configItems.length > 0
               ? html`<section class="yaml">
                   <h2>
                     ${this._modeLocalize("ui.panel.config.person.yaml_persons")}
@@ -153,7 +191,7 @@ export class HaConfigPerson extends LitElement {
                   </p>
                   <ha-card outlined>
                     <ha-list>
-                      ${this._configItems.map(
+                      ${configItems.map(
                         (entry) => html`
                           <ha-list-item graphic="avatar">
                             <ha-person-badge
@@ -184,6 +222,10 @@ export class HaConfigPerson extends LitElement {
         </div>
       </hass-tabs-subpage>
     `;
+  }
+
+  private _handleSearchChange(ev: InputEvent): void {
+    this._filter = (ev.target as HaInputSearch).value ?? "";
   }
 
   private _renderPerson(person: Person, index: number) {
@@ -377,6 +419,16 @@ export class HaConfigPerson extends LitElement {
   static styles = [
     haStyle,
     css`
+      .person-search {
+        display: block;
+        margin-bottom: var(--ha-space-3);
+      }
+      .hidden-count {
+        margin: 0 0 var(--ha-space-3);
+        font-size: var(--ha-font-size-s);
+        line-height: var(--ha-line-height-normal);
+        color: var(--secondary-text-color);
+      }
       /* Fills the page area so the footer sits at the bottom, not under the content. */
       :host {
         display: block;

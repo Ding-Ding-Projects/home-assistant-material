@@ -1,4 +1,5 @@
 import type { ConfirmationDrama } from "../confirm/two-key-drama";
+import { fallRow } from "./drama";
 import { isReduced, readDrama } from "./page-entry";
 
 /**
@@ -176,14 +177,23 @@ export const playRingFlash = (
 };
 
 /**
- * A deleted row closes: it shudders, slides away and its height closes, so
- * the rows below move up. Resolves once it is gone, so the caller can remove
- * it from its data afterwards. With no motion it resolves at once.
+ * A deleted row closes and the rows below move up. Resolves once it is gone,
+ * so the caller can remove it from its data afterwards. With no motion it
+ * resolves at once.
+ *
+ * Without a profile it follows the person's settings through `fallRow`:
+ * the Removals kind of the motion settings and the drama choice, where
+ * Dramatic makes the row tip and fall. With a profile it plays the shorter
+ * shudder-and-slide of that profile.
  */
 export const collapseRow = async (
   row: HTMLElement | null | undefined,
-  profile: MomentProfile = currentMomentProfile()
+  profile?: MomentProfile
 ): Promise<void> => {
+  if (!profile) {
+    await fallRow(row);
+    return;
+  }
   if (!canAnimate(row) || profile.mode === "none") {
     return;
   }

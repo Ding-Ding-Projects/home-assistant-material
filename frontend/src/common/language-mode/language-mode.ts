@@ -97,7 +97,9 @@ export const YUE_PREFIXES = [
   "ui.panel.config.updates.usb.",
   "ui.panel.config.updates.build_notes.",
   "ui.panel.config.updates.recovery.",
+  "ui.panel.config.updates.glance.",
   "ui.panel.config.system_dashboard.restart_homeassistant",
+  "ui.panel.config.system_dashboard.search",
   "ui.panel.config.areas.room_wizard.",
   // The navigation rail, the panel names and the notification drawer.
   "ui.sidebar.",

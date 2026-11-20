@@ -13,6 +13,8 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { createRef, ref } from "lit/directives/ref";
 import { repeat } from "lit/directives/repeat";
+import memoizeOne from "memoize-one";
+import { normalizeSearchText, searchMatcher } from "../common/regex/filter";
 import {
   FilterPanelController,
   filterPanelStyles,
@@ -44,6 +46,9 @@ import "./ha-icon";
 import "./ha-list-item";
 import "./item/ha-list-item-option";
 import "./list/ha-list-selectable";
+import "./ha-filter-hidden-count";
+import "./input/ha-input-search";
+import type { HaInputSearch } from "./input/ha-input-search";
 
 @customElement("ha-filter-categories")
 export class HaFilterCategories extends LitElement {
@@ -69,6 +74,19 @@ export class HaFilterCategories extends LitElement {
   @property({ type: Boolean, reflect: true }) public expanded = false;
 
   @state() private _categories: CategoryRegistryEntry[] = [];
+
+  @state() private _filter?: string;
+
+  // The categories the search shows. The search only hides categories;
+  // chosen ones it hides stay chosen.
+  private _shown = memoizeOne(
+    (categories: CategoryRegistryEntry[], filter: string | undefined) => {
+      const matches = searchMatcher(filter);
+      return categories.filter((category) =>
+        matches(category.name, category.category_id)
+      );
+    }
+  );
 
   private _content = createRef<HTMLElement>();
 
@@ -160,6 +178,11 @@ export class HaFilterCategories extends LitElement {
         this._panel.showContent
           ? html`
               <div class="content" ${ref(this._content)}>
+                <ha-input-search
+                  appearance="outlined"
+                  .value=${this._filter}
+                  @input=${this._handleSearchChange}
+                ></ha-input-search>
                 <ha-list-selectable
                   class="ha-scrollbar"
                   multi
@@ -170,7 +193,7 @@ export class HaFilterCategories extends LitElement {
                   @ha-list-item-deselected=${this._categoryRemoved}
                 >
                   ${repeat(
-                    this._categories,
+                    this._shown(this._categories, this._filter),
                     (category) => category.category_id,
                     (category) =>
                       html`<ha-list-item-option
@@ -227,6 +250,13 @@ export class HaFilterCategories extends LitElement {
                       </ha-list-item-option>`
                   )}
                 </ha-list-selectable>
+                <ha-filter-hidden-count
+                  .hiddenCount=${
+                    this._categories.length -
+                    this._shown(this._categories, this._filter).length
+                  }
+                  .total=${this._categories.length}
+                ></ha-filter-hidden-count>
                 <ha-list-item graphic="icon" @click=${this._addCategory}>
                   <ha-svg-icon slot="graphic" .path=${mdiPlus}></ha-svg-icon>
                   ${this._localize("ui.panel.config.category.editor.add")}
@@ -296,6 +326,10 @@ export class HaFilterCategories extends LitElement {
       createEntry: (values) =>
         createCategoryRegistryEntry(this._api.callWS, this.scope!, values),
     });
+  }
+
+  private _handleSearchChange(ev: InputEvent) {
+    this._filter = normalizeSearchText((ev.target as HaInputSearch).value);
   }
 
   private _expandedChanged(ev) {
@@ -378,6 +412,10 @@ export class HaFilterCategories extends LitElement {
           color: var(--text-primary-color);
         }
         /* The list scrolls through its own container, not through the host. */
+        ha-input-search {
+          display: block;
+          padding: var(--ha-space-1) var(--ha-space-2) 0;
+        }
         ha-list-selectable {
           display: flex;
           flex: 1;

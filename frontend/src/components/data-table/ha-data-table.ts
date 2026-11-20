@@ -1620,8 +1620,21 @@ export class HaDataTable extends LitElement {
   };
 
   private _setTitle(ev: HASSDomCurrentTargetEvent<HTMLElement>) {
-    if (ev.currentTarget.scrollWidth > ev.currentTarget.offsetWidth) {
-      ev.currentTarget.setAttribute("title", ev.currentTarget.innerText);
+    const target = ev.currentTarget;
+    // Cut short sideways, or after its last allowed line on a phone: the
+    // full text is one hover or focus away.
+    const cut = (element: Element | null) =>
+      !!element &&
+      (element.scrollWidth > element.clientWidth + 1 ||
+        element.scrollHeight > element.clientHeight + 1);
+    const primary = target.querySelector<HTMLElement>(".primary");
+    if (cut(primary)) {
+      target.setAttribute("title", primary!.innerText);
+    } else if (
+      target.scrollWidth > target.offsetWidth ||
+      (target.classList.contains("row-button") && cut(target))
+    ) {
+      target.setAttribute("title", target.innerText);
     }
   }
 
@@ -1656,6 +1669,14 @@ export class HaDataTable extends LitElement {
   @eventOptions({ passive: true })
   private _saveScrollPos(e: HASSDomTargetEvent<HTMLDivElement>) {
     this._savedScrollPos = e.target.scrollTop;
+    // The list is the page's only scroller: the layout around it follows it,
+    // for example to fold its large title.
+    fireEvent(
+      this,
+      "data-table-scrolled",
+      { top: e.target.scrollTop },
+      { bubbles: false }
+    );
 
     // Only write when it differs: a write invalidates layout on every scroll.
     if (this._headerRow && this._headerRow.scrollLeft !== e.target.scrollLeft) {
@@ -2542,6 +2563,20 @@ export class HaDataTable extends LitElement {
           max-width: 100% !important;
           white-space: normal;
         }
+        /* On a phone a row's name wraps to a second line before it ends in
+           three dots; the full name is in its title, one hover or focus
+           away. A long word or identifier breaks instead of widening the
+           row. */
+        :host([narrow]) .primary,
+        :host([narrow]) .primary .row-button,
+        :host([narrow]) .mdc-data-table__cell[role="rowheader"] > .row-button {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          white-space: normal;
+          overflow: hidden;
+          overflow-wrap: anywhere;
+        }
         :host([row-cards][narrow]) .primary {
           font-size: var(--ha-list-row-title-size, var(--ha-font-size-m));
           font-weight: var(--ha-list-row-title-weight, 600);
@@ -2873,5 +2908,6 @@ declare global {
     "row-click": RowClickedEvent;
     "sorting-changed": SortingChangedEvent;
     "collapsed-changed": CollapsedChangedEvent;
+    "data-table-scrolled": { top: number };
   }
 }

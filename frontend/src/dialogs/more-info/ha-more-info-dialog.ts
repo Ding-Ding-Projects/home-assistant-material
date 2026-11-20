@@ -1098,7 +1098,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                     `
                 : nothing
             }
-            <p class="main">${title}</p>
+            <p class="main" title=${title}>${title}</p>
             ${
               isDefaultView && stateObj
                 ? html`<p class="state-line">
@@ -1570,6 +1570,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
 
     this._observeInfoHeight();
     this._observeContentGrowth();
+    this.toggleAttribute("still", isReduced());
   }
 
   // Keeps the sheet from jumping between tabs: while the Details tab is
@@ -1796,6 +1797,12 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
             var(--tile-color, var(--ha-color-primary-container)) 18%,
             var(--card-background-color)
           );
+          /* When the state changes, the tint cross-fades. */
+          transition:
+            background-color var(--ha-motion-cards-duration, 250ms)
+              var(--ha-motion-cards-curve, ease),
+            color var(--ha-motion-cards-duration, 250ms)
+              var(--ha-motion-cards-curve, ease);
         }
 
         .title .state-line {
@@ -1820,10 +1827,35 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           align-items: center;
           justify-content: center;
           line-height: var(--ha-line-height-condensed);
+          transition:
+            background-color var(--ha-motion-buttons-duration, 150ms)
+              var(--ha-motion-buttons-curve, ease),
+            color var(--ha-motion-buttons-duration, 150ms)
+              var(--ha-motion-buttons-curve, ease),
+            transform var(--ha-motion-buttons-duration, 150ms)
+              var(--ha-motion-buttons-curve, ease);
         }
 
         .tab:hover {
           background: var(--secondary-background-color);
+        }
+
+        .tab:active {
+          transform: scale(0.97);
+        }
+
+        /* The system setting, the accessibility tool and low stimulation
+           all stop these transitions (see "still" in updated()). */
+        :host([still]) .tab,
+        :host([still]) .icon-tile {
+          transition: none;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .tab,
+          .icon-tile {
+            transition: none;
+          }
         }
 
         .tab.active {

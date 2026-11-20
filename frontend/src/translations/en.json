@@ -1422,7 +1422,15 @@
         "next": "Next match",
         "no_matches": "No matches",
         "count": "{current} of {total}",
-        "found_in": "Found in: {places}"
+        "found_in": "Found in: {places}",
+        "page_count": "{total, plural, one {# page.} other {# pages.}}",
+        "page_matches": "{total, plural, one {# page.} other {# pages.}} {shown} match “{query}”.",
+        "found_in_page": "Found in the page: {text}",
+        "found_in_page_label": "Found in the page:",
+        "pages_hidden": "{hidden, plural, one {# page is hidden by the search.} other {# pages are hidden by the search.}} Clear it to see all {total}. Nothing is removed.",
+        "options_hidden": "{hidden, plural, one {# option is hidden by the search.} other {# options are hidden by the search.}} Clear it to see all {total}.",
+        "items_hidden": "{hidden, plural, one {# item is hidden by the search.} other {# items are hidden by the search.}} Clear it to see all {total}.",
+        "search_pages": "Search these pages"
       },
       "subpage-data-table": {
         "filters": "Filters",
@@ -1445,6 +1453,8 @@
         "select_none": "Select none",
         "settings": "Customize table",
         "more": "More",
+        "more_tools": "More tools",
+        "page_tools": "Page tools",
         "resize_filters": "Resize the filter pane",
         "hide_summary": "Hide the summary",
         "show_summary": "Show the summary",
@@ -5112,7 +5122,9 @@
           "export_json": "JSON",
           "export_markdown": "Markdown",
           "export_text": "Text",
-          "exported": "Saved {name}"
+          "exported": "Saved {name}",
+          "turn_on": "Turn on",
+          "turn_off": "Turn off"
         },
         "settings": "Settings",
         "edit": "Edit entity",
@@ -9358,7 +9370,11 @@
             }
           },
           "row_more": "Show summary, notes and automatic updates",
-          "row_less": "Hide summary, notes and automatic updates"
+          "row_less": "Hide summary, notes and automatic updates",
+          "glance": {
+            "auto_plain_on": "On. Updates you turned on install by themselves.",
+            "auto_plain_off": "Off. Nothing installs without a press."
+          }
         },
         "repairs": {
           "caption": "Repairs",
@@ -17025,7 +17041,9 @@
             "made_by": "Made by {manufacturer}.",
             "area_and_integration": "In the {area}, through {integration}.",
             "in_area": "In the {area}.",
-            "through_integration": "Through {integration}."
+            "through_integration": "Through {integration}.",
+            "show_full_name": "Show the full name",
+            "show_short_name": "Show less"
           },
           "unknown_error": "Unknown error",
           "name": "Name",
@@ -19747,6 +19765,16 @@
           "kind_lists": "List rows highlighting",
           "kind_pages": "Page and panel changes",
           "kind_toasts": "Toasts",
+          "kind_arrivals": "Action moment: arriving",
+          "kind_celebrations": "Action moment: something finished",
+          "kind_failures": "Action moment: something failed",
+          "kind_removals": "Action moment: a row is deleted",
+          "kind_pictures": "Empty-state pictures (opt-in)",
+          "kind_arrivals_help": "An action moment. It plays once when something first appears. Nothing moves while a page rests.",
+          "kind_celebrations_help": "An action moment. It plays once when an action finishes, for example an update or a restore. Nothing moves while a page rests.",
+          "kind_failures_help": "An action moment. It plays once when an action fails: one flash and one shake. Nothing moves while a page rests.",
+          "kind_removals_help": "An action moment. It plays once when you delete a row: the row falls away and the rows below close the gap.",
+          "kind_pictures_help": "Empty pages show a plain icon by default, so no page uses this unless it asks for a picture. It is kept for pages that opt in, where the picture floats a few times and then rests.",
           "animate_kind": "Animate {kind}",
           "ms": "{ms} ms",
           "off": "Off",
@@ -21889,6 +21917,8 @@
           "rendered_note": "Shown exactly as the project wrote it, as formatted text. Links to other sites are not opened and scripts never run."
         },
         "system_dashboard": {
+          "search": "Search System pages",
+          "search_empty": "No page here matches that search.",
           "this_machine": "This system",
           "product": "Home Assistant Material {version}",
           "state_running": "{name}, running",

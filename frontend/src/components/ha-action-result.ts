@@ -1,6 +1,8 @@
 import { mdiAlertOctagram, mdiCheckBold } from "@mdi/js";
+import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, state } from "lit/decorators";
+import { customElement, query, state } from "lit/decorators";
+import { playFailed, playFinished } from "../common/motion/drama";
 import "./ha-spinner";
 import "./ha-svg-icon";
 
@@ -36,6 +38,8 @@ export class HaActionResult extends LitElement {
 
   private _spinnerTimeout?: number;
 
+  @query(".indicator ha-svg-icon") private _resultIcon?: HTMLElement;
+
   public get busy(): boolean {
     return this._loading;
   }
@@ -69,6 +73,19 @@ export class HaActionResult extends LitElement {
     clearTimeout(this._spinnerTimeout);
     this._showSpinner = false;
     this._result = undefined;
+  }
+
+  protected updated(changedProps: PropertyValues): void {
+    super.updated(changedProps);
+    // The result lands with the finished or failed moment, once, following
+    // the motion settings and the drama choice.
+    if (changedProps.has("_result") && this._result) {
+      if (this._result === "success") {
+        playFinished({ badge: this._resultIcon });
+      } else {
+        playFailed({ target: this._resultIcon });
+      }
+    }
   }
 
   protected render() {

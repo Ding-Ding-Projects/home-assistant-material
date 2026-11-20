@@ -1,22 +1,27 @@
 import {
+  mdiAlertOctagonOutline,
   mdiAlertOutline,
   mdiBellOutline,
   mdiCardOutline,
+  mdiCheckDecagram,
   mdiChevronLeft,
   mdiDelete,
+  mdiDeleteSweepOutline,
   mdiDockBottom,
   mdiFormatListBulleted,
   mdiGestureTapButton,
+  mdiImageFilterHdr,
   mdiMenu,
   mdiPlay,
   mdiRestore,
+  mdiShapeOutline,
   mdiSwapHorizontal,
   mdiToggleSwitchOutline,
   mdiWindowMaximize,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { keyed } from "lit/directives/keyed";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
@@ -63,11 +68,15 @@ import {
   subscribeMotionSettings,
   withKind,
 } from "../../common/appearance/motion-profiles";
+import { fallRow } from "../../common/motion/drama";
 import { haMotionKeyframes } from "../../resources/motion-styles";
 import { showConfirmationDialog } from "../../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../../types";
 import "../chips/ha-filter-chip";
+import "../graphics/ha-drama-badge";
+import "../graphics/ha-shaped-icon";
 import "../ha-button";
+import "../ha-empty-state";
 import "../ha-card";
 import "../ha-slider";
 import type { HaSlider } from "../ha-slider";
@@ -88,7 +97,24 @@ const KIND_ICONS: Record<MotionKindId, string> = {
   lists: mdiFormatListBulleted,
   pages: mdiSwapHorizontal,
   toasts: mdiBellOutline,
+  arrivals: mdiShapeOutline,
+  celebrations: mdiCheckDecagram,
+  failures: mdiAlertOctagonOutline,
+  removals: mdiDeleteSweepOutline,
+  pictures: mdiImageFilterHdr,
 };
+
+/**
+ * Kinds that only play for an action (something arrived, finished, failed or
+ * was deleted) or for an opt-in caller. Each has a line of help saying so.
+ */
+const KINDS_WITH_HELP: MotionKindId[] = [
+  "arrivals",
+  "celebrations",
+  "failures",
+  "removals",
+  "pictures",
+];
 
 const CURVE_FIELDS = [
   { index: 0, key: "curve_x1" },
@@ -117,6 +143,8 @@ export class HaMotionEditor extends LitElement {
   @state() private _view: "list" | "detail" = "list";
 
   @state() private _replay = 0;
+
+  @query(".sample-fall") private _sampleFall?: HTMLElement;
 
   @state() private _switchOn = true;
 
@@ -159,6 +187,17 @@ export class HaMotionEditor extends LitElement {
 
   protected firstUpdated(_changed: PropertyValues) {
     this._playSample();
+  }
+
+  protected updated(changed: PropertyValues) {
+    super.updated(changed);
+    // The removal sample plays through the same helper a list uses.
+    if (
+      this._kind === "removals" &&
+      (changed.has("_replay") || changed.has("_kind"))
+    ) {
+      fallRow(this._sampleFall);
+    }
   }
 
   private _t(key: string, values?: Record<string, string | number>): string {
@@ -363,6 +402,11 @@ export class HaMotionEditor extends LitElement {
         }
         <h2>${name}</h2>
         ${
+          KINDS_WITH_HELP.includes(id)
+            ? html`<p class="note">${this._t(`kind_${id}_help`)}</p>`
+            : nothing
+        }
+        ${
           definition.adjustableCurve
             ? html`
                 <ha-motion-curve-editor
@@ -525,6 +569,60 @@ export class HaMotionEditor extends LitElement {
           html`<div class="sample-page">
             <span class="strong">${text}</span>
           </div>`
+        );
+      case "arrivals":
+        return keyed(
+          this._replay,
+          html`<div class="sample-shapes">
+            <ha-shaped-icon
+              shape="scallop"
+              tone="warning"
+              arrive
+              .path=${mdiShapeOutline}
+            ></ha-shaped-icon>
+            <ha-shaped-icon
+              shape="tilted-square"
+              tone="tertiary"
+              arrive
+              arrive-delay="120"
+              .path=${mdiShapeOutline}
+            ></ha-shaped-icon>
+            <ha-shaped-icon
+              shape="pill"
+              tone="primary"
+              arrive
+              arrive-delay="240"
+              .path=${mdiShapeOutline}
+            ></ha-shaped-icon>
+          </div>`
+        );
+      case "celebrations":
+        return keyed(
+          this._replay,
+          html`<ha-drama-badge kind="finished"></ha-drama-badge>`
+        );
+      case "failures":
+        return keyed(
+          this._replay,
+          html`<ha-drama-badge kind="failed"></ha-drama-badge>`
+        );
+      case "removals":
+        return keyed(
+          this._replay,
+          html`<div class="sample-list">
+            <div class="sample-row">${text} 1</div>
+            <div class="sample-row sample-fall">${text} 2</div>
+            <div class="sample-row">${text} 3</div>
+          </div>`
+        );
+      case "pictures":
+        return keyed(
+          this._replay,
+          html`<ha-empty-state
+            picture="shelf"
+            float
+            .heading=${text}
+          ></ha-empty-state>`
         );
       default:
         return keyed(
@@ -857,6 +955,10 @@ export class HaMotionEditor extends LitElement {
         .fields {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: var(--ha-space-3);
+        }
+        .sample-shapes {
+          display: flex;
           gap: var(--ha-space-3);
         }
         .stage {

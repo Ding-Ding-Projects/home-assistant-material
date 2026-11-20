@@ -31,7 +31,12 @@ export type MotionKindId =
   | "switches"
   | "lists"
   | "pages"
-  | "toasts";
+  | "toasts"
+  | "arrivals"
+  | "celebrations"
+  | "failures"
+  | "removals"
+  | "pictures";
 
 export type NamedCurveId = "linear" | "ease" | "soft" | "smooth" | "spring";
 
@@ -186,6 +191,54 @@ export const MOTION_KINDS: MotionKindDefinition[] = [
     adjustableCurve: true,
     durationVars: ["--ha-motion-toasts-duration"],
     curveVar: "--ha-motion-toasts-curve",
+  },
+  // The dramatic moments in common/motion/moments.ts. They play once through
+  // the Web Animations API and read these settings directly; the variables
+  // are written too so a stylesheet can follow them.
+  {
+    // Action moment: something first appears; it plays once.
+    id: "arrivals",
+    duration: 1100,
+    curve: "spring",
+    adjustableCurve: true,
+    durationVars: ["--ha-motion-arrivals-duration"],
+    curveVar: "--ha-motion-arrivals-curve",
+  },
+  {
+    // Action moment, something finished: the badge pops, the tick draws, rings and rays.
+    id: "celebrations",
+    duration: 1400,
+    curve: "spring",
+    adjustableCurve: true,
+    durationVars: ["--ha-motion-celebrations-duration"],
+    curveVar: "--ha-motion-celebrations-curve",
+  },
+  {
+    // Action moment, something failed: one red flash and one firm shake.
+    id: "failures",
+    duration: 550,
+    curve: "ease",
+    adjustableCurve: false,
+    durationVars: ["--ha-motion-failures-duration"],
+  },
+  {
+    // Action moment: a deleted row tips and falls, the rows below close the gap.
+    id: "removals",
+    duration: 1150,
+    curve: "smooth",
+    adjustableCurve: true,
+    durationVars: ["--ha-motion-removals-duration"],
+    curveVar: "--ha-motion-removals-curve",
+  },
+  {
+    // Opt-in only: an empty-state picture floats when its page asks for it;
+    // this is one float, played three times. No page uses it by default.
+    id: "pictures",
+    duration: 2400,
+    curve: "soft",
+    adjustableCurve: true,
+    durationVars: ["--ha-motion-pictures-duration"],
+    curveVar: "--ha-motion-pictures-curve",
   },
 ];
 

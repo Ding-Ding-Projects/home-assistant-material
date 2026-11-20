@@ -21,6 +21,7 @@ import { consumeLocalize } from "../common/decorators/consume-context-entry";
 import { fireEvent } from "../common/dom/fire_event";
 import { computeStateDomain } from "../common/entity/compute_state_domain";
 import { stringCompare } from "../common/string/compare";
+import { normalizeSearchText, searchMatcher } from "../common/regex/filter";
 import type { LocalizeFunc } from "../common/translations/localize";
 import {
   formattersContext,
@@ -38,6 +39,9 @@ import type { HaListItemOption } from "./item/ha-list-item-option";
 import "./list/ha-list-selectable";
 import type { HaListSelectable } from "./list/ha-list-selectable";
 import "./user/ha-user-badge";
+import "./ha-filter-hidden-count";
+import "./input/ha-input-search";
+import type { HaInputSearch } from "./input/ha-input-search";
 
 interface PersonUser {
   id: string;
@@ -74,6 +78,8 @@ export class HaFilterLogbookCauses extends LitElement {
   @property({ type: Boolean, reflect: true }) public expanded = false;
 
   @query("ha-list-selectable") private _list?: HaListSelectable;
+
+  @state() private _filter?: string;
 
   private _content = createRef<HTMLElement>();
 
@@ -115,8 +121,22 @@ export class HaFilterLogbookCauses extends LitElement {
       this._i18n.locale.language
     );
     const value = this.value ?? [];
+    // The search only hides causes; chosen ones it hides stay chosen.
+    const matches = searchMatcher(this._filter);
+    const shownUsers = users.filter((user) => matches(user.name));
+    const groupLabel = (group: LogbookCauseGroup) =>
+      this._localize(`ui.components.logbook.cause_filter.${group}`);
+    const shownGroups = LOGBOOK_CAUSE_GROUPS.filter((group) =>
+      matches(groupLabel(group), group)
+    );
+    const total = users.length + LOGBOOK_CAUSE_GROUPS.length;
 
     return html`<div class="content" ${ref(this._content)}>
+      <ha-input-search
+        appearance="outlined"
+        .value=${this._filter}
+        @input=${this._handleSearchChange}
+      ></ha-input-search>
       <ha-list-selectable
         multi
         controlled
@@ -125,7 +145,7 @@ export class HaFilterLogbookCauses extends LitElement {
         @ha-list-item-deselected=${this._handleItemToggled}
       >
         ${repeat(
-          users,
+          shownUsers,
           (user) => user.id,
           (user) => {
             const key = logbookUserCauseKey(user.id);
@@ -140,7 +160,7 @@ export class HaFilterLogbookCauses extends LitElement {
             </ha-list-item-option>`;
           }
         )}
-        ${LOGBOOK_CAUSE_GROUPS.map(
+        ${shownGroups.map(
           (group) =>
             html`<ha-list-item-option
               appearance="checkbox"
@@ -152,14 +172,14 @@ export class HaFilterLogbookCauses extends LitElement {
                 slot="start"
                 .path=${GROUP_ICONS[group]}
               ></ha-svg-icon>
-              <span slot="headline"
-                >${this._localize(
-                  `ui.components.logbook.cause_filter.${group}`
-                )}</span
-              >
+              <span slot="headline">${groupLabel(group)}</span>
             </ha-list-item-option>`
         )}
       </ha-list-selectable>
+      <ha-filter-hidden-count
+        .hiddenCount=${total - shownUsers.length - shownGroups.length}
+        .total=${total}
+      ></ha-filter-hidden-count>
     </div>`;
   }
 
@@ -181,6 +201,10 @@ export class HaFilterLogbookCauses extends LitElement {
         }))
         .sort((a, b) => stringCompare(a.name, b.name, language))
   );
+
+  private _handleSearchChange(ev: InputEvent) {
+    this._filter = normalizeSearchText((ev.target as HaInputSearch).value);
+  }
 
   private _expandedChanged(ev) {
     this.expanded = ev.detail.expanded;
@@ -216,6 +240,10 @@ export class HaFilterLogbookCauses extends LitElement {
     return [
       filterPanelStyles,
       css`
+        ha-input-search {
+          display: block;
+          padding: var(--ha-space-1) var(--ha-space-2) 0;
+        }
         ha-list-selectable {
           display: flex;
           flex: 1;

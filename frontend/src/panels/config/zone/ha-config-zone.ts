@@ -55,6 +55,9 @@ import "../../../layouts/hass-tabs-subpage";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import type { HomeAssistant, Route } from "../../../types";
 import "../ha-config-section";
+import "../../../components/input/ha-input-search";
+import type { HaInputSearch } from "../../../components/input/ha-input-search";
+import { searchMatcher } from "../../../common/regex/filter";
 import { configSections } from "../config-sections";
 import { showHomeZoneDetailDialog } from "./show-dialog-home-zone-detail";
 import { showZoneDetailDialog } from "./show-dialog-zone-detail";
@@ -122,6 +125,9 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
   @state() private _draft: FormDraft = {};
 
   @state() private _saving = false;
+
+  /** The text of the search over the zone list. */
+  @state() private _filter = "";
 
   @query("ha-locations-editor") private _map?: HaLocationsEditor;
 
@@ -400,6 +406,59 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
     ];
   }
 
+  /**
+   * The zone list. From more than eight zones a search field sits above it;
+   * the search only hides zones, says how many, and the map keeps them all.
+   */
+  private _renderList(
+    items: ({ entry: Zone } | { stateObject: HassEntity })[]
+  ): TemplateResult {
+    const searchable = items.length > 8;
+    const matches = searchMatcher(searchable ? this._filter : "");
+    const shown = items.filter((item) =>
+      "entry" in item
+        ? matches(item.entry.name, item.entry.id)
+        : matches(
+            this.hass.formatEntityName(item.stateObject),
+            item.stateObject.entity_id
+          )
+    );
+    const hidden = items.length - shown.length;
+    return html`
+      ${
+        searchable
+          ? html`<ha-input-search
+              class="zone-search"
+              appearance="outlined"
+              .value=${this._filter}
+              @input=${this._handleSearchChange}
+            ></ha-input-search>`
+          : nothing
+      }
+      <ha-list>
+        ${shown.map((item) =>
+          "entry" in item
+            ? this._renderStorageItem(item.entry)
+            : this._renderStateItem(item.stateObject)
+        )}
+      </ha-list>
+      ${
+        hidden
+          ? html`<p class="hidden-count" role="status">
+              ${this.hass.localize(
+                "ui.components.top_bar_search.items_hidden",
+                { hidden, total: items.length }
+              )}
+            </p>`
+          : nothing
+      }
+    `;
+  }
+
+  private _handleSearchChange(ev: InputEvent): void {
+    this._filter = (ev.target as HaInputSearch).value ?? "";
+  }
+
   protected render(): TemplateResult {
     if (
       !this.hass ||
@@ -427,18 +486,14 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
             </div>
           `
         : html`
-            <ha-list>
-              ${this._sortedItems(
+            ${this._renderList(
+              this._sortedItems(
                 this._storageItems,
                 this._stateItems,
                 hass.formatEntityName,
                 hass.locale.language
-              ).map((item) =>
-                "entry" in item
-                  ? this._renderStorageItem(item.entry)
-                  : this._renderStateItem(item.stateObject)
-              )}
-            </ha-list>
+              )
+            )}
             ${
               this.narrow
                 ? nothing
@@ -1135,6 +1190,17 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
   }
 
   static styles = css`
+    .zone-search {
+      display: block;
+      padding: var(--ha-space-2) var(--ha-space-2) 0;
+    }
+    .hidden-count {
+      margin: 0;
+      padding: var(--ha-space-1) var(--ha-space-4) var(--ha-space-2);
+      font-size: var(--ha-font-size-s);
+      line-height: var(--ha-line-height-normal);
+      color: var(--secondary-text-color);
+    }
     hass-loading-screen {
       --app-header-background-color: var(--sidebar-background-color);
       --app-header-text-color: var(--sidebar-text-color);

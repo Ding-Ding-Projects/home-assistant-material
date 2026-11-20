@@ -174,6 +174,15 @@ export class HassTabsSubpage extends LitElement {
   @property({ type: Boolean }) public pane = false;
 
   /**
+   * The page's content scrolls itself (a list does), so the content area
+   * does not scroll as well: one scroller per page, never a scroller inside
+   * a scroller on the same axis. The content then lays out as a column and
+   * the page's own scroller takes the room that is left.
+   */
+  @property({ type: Boolean, reflect: true, attribute: "inner-scroll" })
+  public innerScroll = false;
+
+  /**
    * Do we need to add padding for a fab.
    * @type {Boolean}
    */
@@ -1134,6 +1143,25 @@ export class HassTabsSubpage extends LitElement {
         }
         :host([narrow]) .content {
           padding-left: var(--safe-area-inset-left);
+        }
+
+        :host([inner-scroll]) .content {
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        /* A phone page that scrolls here ends clear of the phone bar, the
+           bottom safe area and a toast, so its last line is never under
+           them. */
+        :host([narrow]:not([inner-scroll])) .content {
+          padding-bottom: calc(
+            var(--safe-area-inset-bottom, 0px) +
+              var(--ha-toast-reserved-height, 0px)
+          );
+        }
+        /* The padding above already clears the safe area and the toast. */
+        :host([narrow]:not([inner-scroll])) .content .fab-bottom-space {
+          height: 88px;
         }
 
         .content .fab-bottom-space {

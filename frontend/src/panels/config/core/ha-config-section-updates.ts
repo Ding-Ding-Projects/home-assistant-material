@@ -1192,6 +1192,12 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     const systemOn = info.system
       ? AUTO_SYSTEM_PARTS.filter((part) => info.system!.enabled[part]).length
       : 0;
+    // Anything that may install by itself: the switch for everything, an
+    // update turned on of its own, or a part of the system.
+    const anyOn =
+      info.all ||
+      systemOn > 0 ||
+      info.entities.some((item) => item.enabled && item.allowed);
     const summary = info.system
       ? localize("ui.panel.config.updates.auto_summary_system", {
           apps: localize(
@@ -1223,6 +1229,13 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
           <span class="text">
             <span class="name" id="auto-title"
               >${localize("ui.panel.config.updates.auto_title")}</span
+            >
+            <span class="plain"
+              >${localize(
+                anyOn
+                  ? "ui.panel.config.updates.glance.auto_plain_on"
+                  : "ui.panel.config.updates.glance.auto_plain_off"
+              )}</span
             >
             <span class="sub">${summary}</span>
           </span>
@@ -2193,6 +2206,10 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         font-size: var(--ha-font-size-l);
         font-weight: var(--ha-font-weight-medium);
       }
+      .auto-summary .plain {
+        font-size: var(--ha-font-size-m, 14px);
+        overflow-wrap: anywhere;
+      }
       .auto-card.open .auto-summary {
         margin-bottom: var(--ha-space-2);
       }
@@ -2253,6 +2270,8 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         padding: var(--ha-space-5) var(--ha-space-6);
         border-radius: calc(var(--ha-border-radius-6xl) + 4px);
         background: var(--card-background-color);
+        animation: ha-rise var(--ha-animation-duration-enter, 450ms)
+          var(--ha-motion-spring, ease) both;
       }
       .link-row {
         display: flex;
@@ -2293,7 +2312,8 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       }
       @media (prefers-reduced-motion: reduce) {
         .ready,
-        .row {
+        .row,
+        .card {
           animation: none;
         }
       }

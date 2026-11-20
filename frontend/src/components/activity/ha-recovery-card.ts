@@ -1,4 +1,3 @@
-import { mdiAlertCircle } from "@mdi/js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -9,7 +8,7 @@ import { copyToClipboard } from "../../common/util/copy-clipboard";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
 import "../ha-button";
-import "../ha-svg-icon";
+import "../graphics/ha-drama-badge";
 
 declare global {
   interface HASSDomEvents {
@@ -79,7 +78,7 @@ export class HaRecoveryCard extends LitElement {
     const details = this._redacted;
     return html`<div class="card">
       <div class="head">
-        <ha-svg-icon .path=${mdiAlertCircle}></ha-svg-icon>
+        <ha-drama-badge kind="failed" .shakeTarget=${this}></ha-drama-badge>
         <h3>${this.heading}</h3>
       </div>
       ${this.message ? html`<p>${this.message}</p>` : nothing}
@@ -174,8 +173,11 @@ export class HaRecoveryCard extends LitElement {
       .head {
         display: flex;
         align-items: center;
-        gap: var(--ha-space-2);
+        gap: var(--ha-space-3);
         color: var(--error-color);
+      }
+      .head ha-drama-badge {
+        --ha-drama-badge-size: 40px;
       }
       h3 {
         margin: 0;

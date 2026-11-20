@@ -383,11 +383,11 @@ export class HaBottomSheet extends ScrollableFadeMixin(LitElement) {
         }
         wa-drawer::part(dialog) {
           max-height: min(
-            var(--ha-bottom-sheet-max-height, 90vh),
+            var(--ha-bottom-sheet-max-height, 88vh),
             calc(100vh - max(var(--safe-area-inset-top), 48px))
           );
           max-height: min(
-            var(--ha-bottom-sheet-max-height, 90dvh),
+            var(--ha-bottom-sheet-max-height, 88dvh),
             calc(100dvh - max(var(--safe-area-inset-top), 48px))
           );
           align-items: center;
@@ -419,12 +419,17 @@ export class HaBottomSheet extends ScrollableFadeMixin(LitElement) {
             var(--mdc-dialog-scrim-color, none)
           );
         }
+        /* The header and the footer stay put; only the middle scrolls. A
+           scroll that reaches its end never moves the page behind. */
         wa-drawer::part(body) {
           max-width: var(--ha-bottom-sheet-max-width);
           width: 100%;
           position: relative;
           display: flex;
           flex-direction: column;
+          min-height: 0;
+          overflow: hidden;
+          overscroll-behavior: contain;
           border-top-left-radius: var(
             --ha-bottom-sheet-border-radius,
             var(--ha-dialog-border-radius, var(--ha-border-radius-2xl))
@@ -489,6 +494,13 @@ export class HaBottomSheet extends ScrollableFadeMixin(LitElement) {
         .body {
           padding: var(--ha-bottom-sheet-content-padding, 0);
           box-sizing: border-box;
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow: auto;
+          overscroll-behavior: contain;
+        }
+        ::slotted([slot="header"]) {
+          flex: none;
         }
         :host([flexcontent]) .body {
           flex: 1;
@@ -507,10 +519,12 @@ export class HaBottomSheet extends ScrollableFadeMixin(LitElement) {
         }
         slot[name="footer"] {
           display: block;
+          flex: none;
           padding: 0;
         }
         ::slotted([slot="footer"]) {
           display: flex;
+          flex-wrap: wrap;
           padding: var(--ha-space-3) var(--ha-space-4) var(--ha-space-4)
             var(--ha-space-4);
           gap: var(--ha-space-3);

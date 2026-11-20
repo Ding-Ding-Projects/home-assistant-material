@@ -8,6 +8,13 @@ import { fireEvent } from "../../../common/dom/fire_event";
 import { filterNavigationPages } from "../../../common/config/filter_navigation_pages";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { searchMatcher } from "../../../common/regex/filter";
+import type { FlatStrings } from "../settings-page-search";
+import {
+  loadPageStrings,
+  pageWords,
+  renderHighlighted,
+  searchPages,
+} from "../settings-page-search";
 import "../../../components/ha-card";
 import "../../../components/ha-icon-next";
 import "../../../components/ha-svg-icon";
@@ -58,6 +65,11 @@ class HaConfigNavigation extends LitElement {
 
   @state() private _visiblePages?: PageNavigation[];
 
+  /** The interface text of the pages, loaded when a search needs it. */
+  @state() private _pageStrings?: FlatStrings;
+
+  private _loadingStrings = false;
+
   // What the search shows now is told to the page after each draw, so its top
   // bar can say "n of total".
   private _reportedMatches = "";
@@ -93,6 +105,7 @@ class HaConfigNavigation extends LitElement {
 
   protected override updated(changedProps: Map<PropertyKey, unknown>) {
     super.updated(changedProps);
+    this._loadPageStrings();
 
     const pagesOrHassChanged =
       changedProps.has("pages") || changedProps.has("hass");
@@ -151,7 +164,25 @@ class HaConfigNavigation extends LitElement {
               `,
     }));
     const matches = searchMatcher(this.filter);
-    const shown = pages.filter((page) => matches(page.name, page.description));
+    const words = (page: PageNavigation): string[] =>
+      this.filter && this._pageStrings && page.translationKey
+        ? pageWords(
+            this._pageStrings,
+            page.translationKey,
+            this._lang.mode !== "english"
+          )
+        : [];
+    const foundInText = (text: string) =>
+      this._t("ui.components.top_bar_search.found_in_page", { text });
+    const top = searchPages(
+      pages,
+      this.filter,
+      (page) => ({ name: page.name ?? "", description: page.description }),
+      words
+    );
+    const shown = top.shown.map(({ page, foundIn }) =>
+      foundIn ? { ...page, description: foundInText(foundIn) } : page
+    );
     let total = pages.length;
     // A search also looks inside the cards: pages that are one step further
     // in, such as those under System, are offered directly.
@@ -176,18 +207,67 @@ class HaConfigNavigation extends LitElement {
       }
       known.add(page.path);
       total++;
-      if (this.filter && matches(name, description)) {
+      if (!this.filter) {
+        continue;
+      }
+      if (matches(name, description)) {
         shown.push({ ...page, name, description });
+        continue;
+      }
+      const found = searchPages(
+        [page],
+        this.filter,
+        () => ({ name, description }),
+        words
+      ).shown[0];
+      if (found?.foundIn) {
+        shown.push({ ...page, name, description: foundInText(found.foundIn) });
       }
     }
-    return { shown, total };
+    // Pages listed here that the search hides; pages found one step further
+    // in are extra and never counted as hidden.
+    return { shown, total, hidden: top.hidden, listed: top.total };
+  }
+
+  /** A name or summary with the search's matches marked. */
+  private _mark(text: string | undefined) {
+    return this.filter
+      ? renderHighlighted(this.filter, text ?? "")
+      : (text ?? "");
+  }
+
+  /** Loads the words inside the pages the first time a search needs them. */
+  private _loadPageStrings(): void {
+    if (!this.filter || this._pageStrings || this._loadingStrings) {
+      return;
+    }
+    this._loadingStrings = true;
+    loadPageStrings().then((strings) => {
+      this._pageStrings = strings;
+      this._loadingStrings = false;
+    });
+  }
+
+  private _renderHiddenCount(
+    hidden: number,
+    listed: number
+  ): TemplateResult | typeof nothing {
+    return this.filter && hidden
+      ? html`<p class="hidden-count">
+          ${this._t("ui.components.top_bar_search.pages_hidden", {
+            hidden,
+            total: listed,
+          })}
+        </p>`
+      : nothing;
   }
 
   protected render(): TemplateResult {
     const label = this.label ?? this._t("panel.config");
-    const { shown } = this._search();
+    const { shown, hidden, listed } = this._search();
     if (this.grid && !(this.filter && !shown.length)) {
-      return this._renderFront(shown, label);
+      return html`${this._renderFront(shown, label)}
+      ${this._renderHiddenCount(hidden, listed)}`;
     }
     return html`
       <div class="visually-hidden" role="heading" aria-level="2">${label}</div>
@@ -204,6 +284,7 @@ class HaConfigNavigation extends LitElement {
               .label=${label}
             ></ha-config-navigation-list>`
       }
+      ${this._renderHiddenCount(hidden, listed)}
     `;
   }
 
@@ -271,7 +352,7 @@ class HaConfigNavigation extends LitElement {
                       count === undefined
                         ? nothing
                         : html`<span class="numeral">${count}</span>`
-                    } <span class="name">${page.name}</span>`
+                    } <span class="name">${this._mark(page.name)}</span>`
                 );
               })}
             </nav>`
@@ -295,8 +376,10 @@ class HaConfigNavigation extends LitElement {
                     tiles.length + index + 1,
                     html`${this._renderIcon(page)}
                       <span class="text">
-                        <span class="name">${page.name}</span>
-                        <span class="summary">${page.description}</span>
+                        <span class="name">${this._mark(page.name)}</span>
+                        <span class="summary"
+                          >${this._mark(page.description)}</span
+                        >
                       </span>
                       <ha-icon-next></ha-icon-next>`
                   )
@@ -502,6 +585,18 @@ class HaConfigNavigation extends LitElement {
       }
       .row ha-icon-next {
         flex: none;
+        color: var(--secondary-text-color);
+      }
+      mark {
+        border-radius: 4px;
+        padding: 0 2px;
+        background: var(--ha-color-fill-warning-normal-resting);
+        color: var(--ha-color-on-warning-normal, inherit);
+      }
+      .hidden-count {
+        margin: var(--ha-space-3) var(--ha-space-2) 0;
+        font-size: var(--ha-font-size-s);
+        line-height: var(--ha-line-height-normal);
         color: var(--secondary-text-color);
       }
       .empty {

@@ -1,5 +1,14 @@
 import { css } from "lit";
-import { currentMotionLock } from "../appearance/motion-profiles";
+import type { MotionKindId } from "../appearance/motion-profiles";
+import {
+  activeProfile,
+  curveToCss,
+  currentMotionLock,
+  DURATION_MIN,
+  effectiveCurve,
+  effectiveDuration,
+  getMotionSettings,
+} from "../appearance/motion-profiles";
 import type { ConfirmationDrama } from "../confirm/two-key-drama";
 import { normalizeConfirmationDrama } from "../confirm/two-key-drama";
 import { getPersonalPreferences } from "../preferences/personal-preferences";
@@ -60,6 +69,42 @@ export const isReduced = (): boolean => {
     return currentMotionLock() !== undefined;
   } catch (_err) {
     return false;
+  }
+};
+
+export interface MotionKindTiming {
+  /** False when motion is off for this kind, as a whole or by a lock. */
+  enabled: boolean;
+  /** The duration the person's motion profile gives this kind, in ms. */
+  duration: number;
+  /** The curve the profile gives this kind, as CSS. */
+  easing: string;
+}
+
+/**
+ * How long, and with which curve, a kind of motion plays under the person's
+ * animation settings. Reduced motion, the accessibility tool and low
+ * stimulation switch every kind off, as does a kind switched off in the
+ * motion editor.
+ */
+export const motionKindTiming = (
+  kind: MotionKindId,
+  reducedMotion: boolean = isReduced()
+): MotionKindTiming => {
+  try {
+    const profile = activeProfile(getMotionSettings());
+    const duration = effectiveDuration(profile, kind);
+    return {
+      enabled: !reducedMotion && duration > DURATION_MIN,
+      duration,
+      easing: curveToCss(effectiveCurve(profile, kind)),
+    };
+  } catch (_err) {
+    return {
+      enabled: !reducedMotion,
+      duration: 450,
+      easing: PAGE_ENTRY_EASING,
+    };
   }
 };
 

@@ -321,9 +321,14 @@ export class EntityRegistrySettings extends SubscribeMixin(LitElement) {
         ha-registry-notes-card {
           margin-top: var(--ha-space-4);
         }
+        /* The buttons wrap onto a second line at 320 px or with a large
+           font, so every one stays on screen. */
         .buttons {
           box-sizing: border-box;
           display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+          align-items: center;
           padding: var(--ha-space-4);
           justify-content: space-between;
           padding-bottom: max(var(--safe-area-inset-bottom), var(--ha-space-4));
@@ -334,7 +339,19 @@ export class EntityRegistrySettings extends SubscribeMixin(LitElement) {
         }
         .end-buttons {
           display: flex;
+          flex-wrap: wrap;
           gap: var(--ha-space-2);
+          margin-inline-start: auto;
+          min-width: 0;
+          max-width: 100%;
+        }
+        .buttons ha-button {
+          max-width: 100%;
+        }
+        @media (max-width: 600px) {
+          .container {
+            padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-4);
+          }
         }
         ha-alert ha-button {
           width: max-content;

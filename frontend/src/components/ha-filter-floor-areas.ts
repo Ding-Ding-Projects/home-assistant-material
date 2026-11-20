@@ -15,6 +15,7 @@ import {
 import { consumeLocalize } from "../common/decorators/consume-context-entry";
 import { fireEvent } from "../common/dom/fire_event";
 import { computeRTL } from "../common/util/compute_rtl";
+import { normalizeSearchText, searchMatcher } from "../common/regex/filter";
 import { deepEqual } from "../common/util/deep-equal";
 import type { LocalizeFunc } from "../common/translations/localize";
 import {
@@ -23,6 +24,8 @@ import {
   floorsContext,
   internationalizationContext,
 } from "../data/context";
+import type { AreaRegistryEntry } from "../data/area/area_registry";
+import type { FloorRegistryEntry } from "../data/floor_registry";
 import { getFloorAreaLookup } from "../data/floor_registry";
 import type { RelatedResult } from "../data/search";
 import { findRelated } from "../data/search";
@@ -36,7 +39,23 @@ import "./ha-tree-indicator";
 import "./item/ha-list-item-option";
 import type { HaListItemOption } from "./item/ha-list-item-option";
 import "./list/ha-list-selectable";
+import "./ha-filter-hidden-count";
+import "./input/ha-input-search";
+import type { HaInputSearch } from "./input/ha-input-search";
 import type { HaListSelectable } from "./list/ha-list-selectable";
+
+interface FloorAreas {
+  floors: (FloorRegistryEntry & { areas: AreaRegistryEntry[] })[];
+  unassisgnedAreas: AreaRegistryEntry[];
+}
+
+/** How many options a floor and area list has: every floor and every area. */
+const optionCount = (areas: {
+  floors?: { areas: unknown[] }[];
+  unassisgnedAreas: unknown[];
+}): number =>
+  (areas.floors || []).reduce((sum, floor) => sum + 1 + floor.areas.length, 0) +
+  areas.unassisgnedAreas.length;
 
 @customElement("ha-filter-floor-areas")
 export class HaFilterFloorAreas extends LitElement {
@@ -66,6 +85,8 @@ export class HaFilterFloorAreas extends LitElement {
 
   @property() public type?: keyof RelatedResult;
 
+  @state() private _filter?: string;
+
   @property({ type: Boolean, attribute: "include-disabled-entities" })
   public includeDisabledEntities = false;
 
@@ -93,7 +114,8 @@ export class HaFilterFloorAreas extends LitElement {
   }
 
   protected render() {
-    const areas = this._areas(this._areasReg, this._floorsReg);
+    const all = this._areas(this._areasReg, this._floorsReg);
+    const areas = this._searched(all, this._filter);
 
     return html`
       <ha-expansion-panel
@@ -124,6 +146,11 @@ export class HaFilterFloorAreas extends LitElement {
         this._panel.showContent
           ? html`
               <div class="content" ${ref(this._content)}>
+                <ha-input-search
+                  appearance="outlined"
+                  .value=${this._filter}
+                  @input=${this._handleSearchChange}
+                ></ha-input-search>
                 <ha-list-selectable
                   class="ha-scrollbar"
                   multi
@@ -168,6 +195,10 @@ export class HaFilterFloorAreas extends LitElement {
                     (area) => this._renderArea(area)
                   )}
                 </ha-list-selectable>
+                <ha-filter-hidden-count
+                  .hiddenCount=${optionCount(all) - optionCount(areas)}
+                  .total=${optionCount(all)}
+                ></ha-filter-hidden-count>
               </div>
             `
           : nothing
@@ -256,6 +287,36 @@ export class HaFilterFloorAreas extends LitElement {
       ),
     };
   }
+
+  private _handleSearchChange(ev: InputEvent) {
+    this._filter = normalizeSearchText((ev.target as HaInputSearch).value);
+  }
+
+  // What the search shows: a floor whose name matches keeps all its areas; a
+  // floor with a matching area keeps only its matching areas. The search only
+  // hides options; chosen ones it hides stay chosen.
+  private _searched = memoizeOne(
+    (areas: FloorAreas, filter: string | undefined): FloorAreas => {
+      if (!filter) {
+        return areas;
+      }
+      const matches = searchMatcher(filter);
+      return {
+        floors: (areas.floors || []).flatMap((floor) => {
+          if (matches(floor.name, floor.floor_id)) {
+            return [floor];
+          }
+          const floorAreas = floor.areas.filter((area) =>
+            matches(area.name, area.area_id)
+          );
+          return floorAreas.length ? [{ ...floor, areas: floorAreas }] : [];
+        }),
+        unassisgnedAreas: areas.unassisgnedAreas.filter((area) =>
+          matches(area.name, area.area_id)
+        ),
+      };
+    }
+  );
 
   private _expandedChanged(ev) {
     this.expanded = ev.detail.expanded;
@@ -366,6 +427,10 @@ export class HaFilterFloorAreas extends LitElement {
       haStyleScrollbar,
       filterPanelStyles,
       css`
+        ha-input-search {
+          display: block;
+          padding: var(--ha-space-1) var(--ha-space-2) 0;
+        }
         ha-list-selectable {
           flex: 1;
           min-height: 0;
