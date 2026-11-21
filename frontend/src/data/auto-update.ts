@@ -232,6 +232,12 @@ export const subscribeUpdateRun = (
     { type: "auto_update/run/subscribe" }
   );
 
+/** The current run record, or null; a display record only. */
+export const fetchUpdateRun = (
+  hass: HomeAssistant
+): Promise<UpdateRunRecord | null> =>
+  hass.callWS<UpdateRunRecord | null>({ type: "auto_update/run/get" });
+
 export const setUpdateRun = (
   hass: HomeAssistant,
   report: UpdateRunReport

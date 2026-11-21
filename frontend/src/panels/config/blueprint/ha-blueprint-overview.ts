@@ -280,6 +280,25 @@ class HaBlueprintOverview extends LitElement {
     ])
   );
 
+  private _renderUseButton(blueprint: BlueprintMetaDataPath, narrow: boolean) {
+    return blueprint.error
+      ? ""
+      : html`<ha-button
+          appearance="filled"
+          variant="neutral"
+          size="s"
+          style=${styleMap({
+            // A finger needs a 44 px target, the small button is 32 px.
+            "--ha-button-height": narrow ? "44px" : undefined,
+          })}
+          data-fullpath=${blueprint.fullpath}
+          @click=${this._handleUseClick}
+        >
+          <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+          ${this.hass.localize("ui.panel.config.blueprint.overview.use")}
+        </ha-button>`;
+  }
+
   private _columns = memoizeOne(
     (
       localize: LocalizeFunc,
@@ -362,41 +381,42 @@ class HaBlueprintOverview extends LitElement {
       use: {
         title: "",
         label: this.hass.localize("ui.panel.config.blueprint.overview.use"),
-        // On a phone the button stays its own cell at the end of the row and
-        // moves to a line of its own when the name needs the width, instead
-        // of sitting inside the name's second line.
+        // On a phone the button and "Show more details" share one cell at the
+        // end of the row, so they move together to a line of their own when
+        // the name would get narrower than the table's minimum (see the
+        // page styles), instead of the button staying beside a narrow name.
         showNarrow: true,
         narrowWrap: true,
         minWidth: "110px",
         maxWidth: "110px",
         template: (blueprint) =>
-          blueprint.error
-            ? ""
-            : html`<ha-button
-                appearance="filled"
-                variant="neutral"
-                size="s"
-                style=${styleMap({
-                  // A finger needs a 44 px target, the small button is 32 px.
-                  "--ha-button-height": narrow ? "44px" : undefined,
-                })}
-                data-fullpath=${blueprint.fullpath}
-                @click=${this._handleUseClick}
+          narrow
+            ? html`<div
+                style="display: flex; align-items: center; justify-content: flex-end; gap: 4px"
               >
-                <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-                ${this.hass.localize("ui.panel.config.blueprint.overview.use")}
-              </ha-button>`,
+                ${this._renderUseButton(blueprint, narrow)}
+                <ha-row-details-toggle
+                  .hass=${this.hass}
+                  .rowId=${blueprint.fullpath}
+                  .name=${blueprint.name}
+                ></ha-row-details-toggle>
+              </div>`
+            : this._renderUseButton(blueprint, narrow),
       },
       fullpath: {
         title: "fullpath",
         hidden: true,
       },
-      details: rowDetailsColumn<BlueprintMetaDataPath>(
-        localize("ui.components.quick_control.details_column"),
-        this,
-        (blueprint) => blueprint.fullpath,
-        (blueprint) => blueprint.name
-      ),
+      details: {
+        ...rowDetailsColumn<BlueprintMetaDataPath>(
+          localize("ui.components.quick_control.details_column"),
+          this,
+          (blueprint) => blueprint.fullpath,
+          (blueprint) => blueprint.name
+        ),
+        // On a phone the button is drawn in the "Use" cell instead.
+        hidden: narrow,
+      },
       actions: {
         lastFixed: true,
         title: "",
@@ -1141,6 +1161,12 @@ class HaBlueprintOverview extends LitElement {
       css`
         .filter-chips {
           padding: var(--ha-space-2) var(--ha-space-4);
+        }
+        /* On a phone the "Use" cell holds two buttons: the name keeps at
+           least 170 px of text, otherwise the buttons move to a line of their
+           own at the end of the row. */
+        hass-tabs-subpage-data-table {
+          --ha-data-table-narrow-name-min-width: 170px;
         }
         .bulk {
           position: fixed;

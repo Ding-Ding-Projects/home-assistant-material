@@ -157,6 +157,65 @@ export class RetryingSubscription {
 }
 
 /**
+ * Whether the page keeps a live subscription that needs an administrator and
+ * a part of Home Assistant: only while connected, once the user is known to
+ * be an administrator and once that part is loaded. Each of these can become
+ * true late (after a reload while Home Assistant restarts), so the page asks
+ * again on every change instead of only once when it first connects.
+ */
+export const liveSubscriptionWanted = (opts: {
+  connected: boolean;
+  isAdmin: boolean | undefined;
+  componentLoaded: boolean;
+}): boolean => opts.connected && opts.isAdmin === true && opts.componentLoaded;
+
+/**
+ * Keeps a `RetryingSubscription` open exactly while it is wanted. Started
+ * when it becomes wanted, however late; stopped when the connection goes
+ * away, so a reconnect always subscribes afresh instead of relying on a
+ * silent resubscribe; a refused or failed subscribe is tried again with the
+ * subscription's own pauses.
+ */
+export class LiveSubscriptionGate {
+  public readonly subscription: RetryingSubscription;
+
+  constructor(
+    subscribe: () => Promise<() => void>,
+    changed: () => void,
+    timeoutMs: number = CALL_TIMEOUT_MS,
+    pauses: readonly number[] = RETRY_PAUSES_MS
+  ) {
+    this.subscription = new RetryingSubscription(
+      subscribe,
+      changed,
+      timeoutMs,
+      pauses
+    );
+  }
+
+  public get status(): LoadStatus {
+    return this.subscription.status;
+  }
+
+  /** Called on every change of the page's inputs. */
+  public sync(wanted: boolean): void {
+    if (!wanted) {
+      if (this.subscription.status !== "idle") {
+        this.subscription.stop();
+      }
+      return;
+    }
+    if (this.subscription.status === "idle") {
+      this.subscription.start();
+    }
+  }
+
+  public stop(): void {
+    this.subscription.stop();
+  }
+}
+
+/**
  * One call that loads a block of the page on its own. It never throws, ends
  * in "ready" or "error", and tries again by itself after a failure.
  */

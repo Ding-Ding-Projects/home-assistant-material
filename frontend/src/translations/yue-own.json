@@ -3048,13 +3048,15 @@
             "shared_state_failed": "失敗",
             "shared_state_waiting": "等緊",
             "shared_silent_title": "開始呢次更新嘅瀏覽器冇晒反應",
-            "shared_silent_note": "佢唔會再安裝任何嘢。如果嗰個瀏覽器再打開呢頁，就會繼續落去。",
+            "shared_silent_note": "佢唔會再安裝任何嘢。如果同一個瀏覽器分頁再打開呢頁，就會喺嗰度繼續落去；其他分頁或者瀏覽器唔會接手。",
             "shared_silent_seen": "最後喺 {time} 收到佢嘅消息。",
-            "shared_state_stalled": "安裝緊，會自己做完",
+            "shared_state_stalled": "仲安裝緊，會自己做完",
             "shared_state_not_started": "唔會開始",
             "shared_clear": "清除呢次更新",
             "shared_clear_note": "清除只會移走呢個通知。而家安裝緊嘅更新會繼續做完。",
-            "shared_clear_failed": "清除唔到呢次更新，請再試一次。"
+            "shared_clear_failed": "清除唔到呢次更新，請再試一次。",
+            "shared_update_rest": "更新剩低嘅",
+            "shared_update_rest_note": "經過平時嘅確認之後，由呢個瀏覽器為仲等緊嘅更新開始一次新嘅「全部更新」。你確認咗先會清除呢次更新。"
           },
           "build_data": {
             "retry": "再試一次",
@@ -3529,7 +3531,7 @@
               "copied": "已複製",
               "follow": "跟住最尾",
               "empty": "暫時未有記錄。",
-              "none": "呢種更新冇記錄可以顯示。",
+              "none": "呢一步冇記錄。",
               "unavailable": "而家讀唔到記錄，Home Assistant 返嚟之後就會見返。",
               "masked_note": "密碼同令牌已經隱藏。",
               "last_lines": "記錄最後幾行",

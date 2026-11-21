@@ -48,6 +48,18 @@ export class HuiCreateDialogCard
 
   @state() private _narrow = false;
 
+  // Both tabs have a search of their own (the entity search and the card
+  // search), so the dialog's shared search is left out, except while a
+  // phone shows the suggestions for a picked entity and the entity search
+  // is hidden.
+  @state() private _suggestionSearchShown = true;
+
+  private _handleSuggestionSearchShown(
+    ev: CustomEvent<{ shown: boolean }>
+  ): void {
+    this._suggestionSearchShown = ev.detail.shown;
+  }
+
   @state()
   @storage({
     key: "dashboardCardClipboard",
@@ -96,6 +108,7 @@ export class HuiCreateDialogCard
     this._open = false;
     this._params = undefined;
     this._currTab = "entity";
+    this._suggestionSearchShown = true;
     fireEvent(this, "dialog-closed", { dialog: this.localName });
   }
 
@@ -116,6 +129,7 @@ export class HuiCreateDialogCard
         .open=${this._open}
         flexcontent
         width="large"
+        .ownSearch=${this._currTab === "card" || this._suggestionSearchShown}
         @keydown=${this._ignoreKeydown}
         @closed=${this._dialogClosed}
       >
@@ -158,6 +172,7 @@ export class HuiCreateDialogCard
                     .hass=${this.hass}
                     .prioritizedCardTypes=${this._params.suggestedCards}
                     @suggestion-picked=${this._handleSuggestionPicked}
+                    @suggestion-search-shown=${this._handleSuggestionSearchShown}
                     @browse-cards=${this._handleBrowseCards}
                   >
                     ${this._renderPasteBar()}

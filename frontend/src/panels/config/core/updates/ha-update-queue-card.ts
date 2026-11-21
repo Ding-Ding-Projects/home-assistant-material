@@ -18,6 +18,7 @@ import {
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { formatElapsed } from "../../../../common/app-jobs/app-job-logic";
+import { fireEvent } from "../../../../common/dom/fire_event";
 import { playTickDraw } from "../../../../common/motion/moments";
 import { motionKindTiming } from "../../../../common/motion/page-entry";
 import { LanguageModeController } from "../../../../common/language-mode/language-mode-controller";
@@ -115,6 +116,13 @@ class HaUpdateQueueCard extends LitElement {
    * reported. A run not heard from for a while is shown as stranded.
    */
   @property({ attribute: false }) public sharedSeenAt?: number;
+
+  /**
+   * Whether the page could start a new "Update everything" now (enough
+   * updates ready, nothing installing). Only then does a stranded run offer
+   * to update the rest.
+   */
+  @property({ attribute: false }) public canUpdateRest = false;
 
   // The ended shared run this browser closed, by its last change time.
   @state() private _hiddenShared?: string;
@@ -517,7 +525,13 @@ class HaUpdateQueueCard extends LitElement {
   // that could change it. Only an ended run can be closed, and only here.
   private _renderShared(): TemplateResult | typeof nothing {
     const run = this.sharedRun;
-    const view = sharedRunView(run);
+    // The browser driving the run has not reported for a while: say so, and
+    // let an administrator remove the stranded record. Nothing here installs.
+    const silent =
+      sharedRunPhase(run, this.sharedSeenAt, this._now) === "driver_silent";
+    // The record is corrected with what this browser sees of each update, so
+    // a step that finished meanwhile is not shown as still installing.
+    const view = sharedRunView(run, this.hass.states, silent);
     if (!run || !view) {
       return nothing;
     }
@@ -526,10 +540,6 @@ class HaUpdateQueueCard extends LitElement {
     if (ended && this._hiddenShared === run.updated) {
       return nothing;
     }
-    // The browser driving the run has not reported for a while: say so, and
-    // let an administrator remove the stranded record. Nothing here installs.
-    const silent =
-      sharedRunPhase(run, this.sharedSeenAt, this._now) === "driver_silent";
     const currentName = view.current
       ? updateDisplayName(this.hass, view.current)
       : "";
@@ -616,17 +626,13 @@ class HaUpdateQueueCard extends LitElement {
               <li class="step ${SHARED_STEP_CLASS[step.state]}">
                 <span class="step-icon" aria-hidden="true">
                   ${
-                    silent && step.state === "current"
-                      ? html`<ha-svg-icon
-                          .path=${mdiClockOutline}
-                        ></ha-svg-icon>`
-                      : step.state === "current"
-                        ? html`<ha-spinner size="small"></ha-spinner>`
-                        : SHARED_STEP_ICON[step.state]
-                          ? html`<ha-svg-icon
-                              .path=${SHARED_STEP_ICON[step.state]}
-                            ></ha-svg-icon>`
-                          : nothing
+                    step.state === "current"
+                      ? html`<ha-spinner size="small"></ha-spinner>`
+                      : SHARED_STEP_ICON[step.state]
+                        ? html`<ha-svg-icon
+                            .path=${SHARED_STEP_ICON[step.state]}
+                          ></ha-svg-icon>`
+                        : nothing
                   }
                 </span>
                 <span class="step-name"
@@ -645,7 +651,10 @@ class HaUpdateQueueCard extends LitElement {
         </ol>
         ${
           silent
-            ? this._renderClearStranded()
+            ? this._renderClearStranded(
+                view.steps.some((step) => step.state === "waiting") &&
+                  !view.steps.some((step) => step.state === "current")
+              )
             : ended
               ? html`<div class="actions">
                   <ha-button appearance="outlined" @click=${this._hideShared}>
@@ -664,11 +673,28 @@ class HaUpdateQueueCard extends LitElement {
 
   // Only an administrator may clear the record; for anyone else the button is
   // left out rather than shown disabled.
-  private _renderClearStranded(): TemplateResult | typeof nothing {
+  private _renderClearStranded(
+    restWaiting: boolean
+  ): TemplateResult | typeof nothing {
     if (!this.hass.user?.is_admin) {
       return nothing;
     }
+    // The steps left have not started and nothing is installing: offer to
+    // update them as a new run. The page asks for the usual confirmation
+    // before anything is installed; this button only asks the page.
+    const offerRest = restWaiting && this.canUpdateRest;
     return html`<div class="actions">
+        ${
+          offerRest
+            ? html`<ha-button
+                appearance="filled"
+                .disabled=${this._clearing}
+                @click=${this._updateRest}
+              >
+                ${this._t("shared_update_rest")}
+              </ha-button>`
+            : nothing
+        }
         <ha-button
           appearance="outlined"
           .loading=${this._clearing}
@@ -680,12 +706,24 @@ class HaUpdateQueueCard extends LitElement {
         <span class="note">${this._t("shared_clear_note")}</span>
       </div>
       ${
+        offerRest
+          ? html`<p class="note">${this._t("shared_update_rest_note")}</p>`
+          : nothing
+      }
+      ${
         this._clearFailed
           ? html`<p class="note" role="alert">
               ${this._t("shared_clear_failed")}
             </p>`
           : nothing
       }`;
+  }
+
+  // Asks the page to start a new "Update everything" for what is still
+  // waiting. The page shows its usual confirmation first and clears the
+  // stranded record only after the person confirms.
+  private _updateRest(): void {
+    fireEvent(this, "update-rest");
   }
 
   // Removes only the shared display record. An install that is running is not
@@ -1126,5 +1164,8 @@ class HaUpdateQueueCard extends LitElement {
 declare global {
   interface HTMLElementTagNameMap {
     "ha-update-queue-card": HaUpdateQueueCard;
+  }
+  interface HASSDomEvents {
+    "update-rest": undefined;
   }
 }

@@ -153,12 +153,75 @@ export interface SharedRunView {
   steps: { entityId: string; state: SharedStepState }[];
 }
 
+/** What this browser itself sees of an update entity. */
+export interface SharedStepEntity {
+  state: string;
+  /** `in_progress` is read: true or a percentage while installing. */
+  attributes: Readonly<Record<string, unknown>>;
+}
+
 /**
- * What a browser that did not start the run shows. It is derived only from
- * the shared record, so a step is never called installed: the record says
- * where the run is, not how each earlier step ended.
+ * What a browser that did not start the run shows. It starts from the shared
+ * record, which says where the run is, not how each step ended; a step is
+ * never called installed. When this browser's own view of the update
+ * entities is given (`entities`), it corrects the record with what it sees:
+ * an update that is installing now is shown as installing, one with nothing
+ * left to install is shown as finished, and, when the driving browser has
+ * stopped responding (`silent`), the step it was on is no longer shown as
+ * installing unless it really is. The finished count follows the same steps.
  */
 export const sharedRunView = (
+  record: UpdateRunRecord | null | undefined,
+  entities?: Readonly<Record<string, SharedStepEntity | undefined>>,
+  silent = false
+): SharedRunView | undefined => {
+  const base = recordRunView(record);
+  if (!base || !entities) {
+    return base;
+  }
+  const steps = base.steps.map(({ entityId, state }) => ({
+    entityId,
+    state: correctedStepState(state, entities[entityId], silent),
+  }));
+  const finished =
+    base.state === "done"
+      ? base.total
+      : steps.filter((step) => step.state === "finished").length;
+  const current =
+    steps.find((step) => step.state === "current")?.entityId ??
+    (silent ? null : base.current);
+  return {
+    ...base,
+    finished,
+    percent: Math.round((finished / base.total) * 100),
+    current,
+    steps,
+  };
+};
+
+const correctedStepState = (
+  fromRecord: SharedStepState,
+  entity: SharedStepEntity | undefined,
+  silent: boolean
+): SharedStepState => {
+  if (!entity) {
+    return silent && fromRecord === "current" ? "waiting" : fromRecord;
+  }
+  if (entity.attributes.in_progress) {
+    return "current";
+  }
+  if (entity.state === "off") {
+    return "finished";
+  }
+  // Still something to install and nothing installing: the step the silent
+  // browser was on is not going on by itself.
+  if (silent && fromRecord === "current") {
+    return "waiting";
+  }
+  return fromRecord;
+};
+
+const recordRunView = (
   record: UpdateRunRecord | null | undefined
 ): SharedRunView | undefined => {
   if (!record?.entity_ids.length) {

@@ -1,5 +1,5 @@
 import { mdiClose, mdiViewGridPlus } from "@mdi/js";
-import type { CSSResultGroup, TemplateResult } from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
@@ -280,6 +280,20 @@ export class HuiSuggestionPicker extends LitElement {
     fireEvent(this, "browse-cards", undefined);
   }
 
+  private _searchShown?: boolean;
+
+  // Tells the dialog whether the entity search is on screen, so the dialog
+  // offers its own shared search only while this one is hidden (a phone
+  // showing the suggestions for a picked entity).
+  protected updated(changedProps: PropertyValues): void {
+    super.updated(changedProps);
+    const shown = !this._narrow || !this._entityId;
+    if (shown !== this._searchShown) {
+      this._searchShown = shown;
+      fireEvent(this, "suggestion-search-shown", { shown });
+    }
+  }
+
   private _handleEntityPicked(ev: CustomEvent<{ entityId: string }>): void {
     this._entityId = ev.detail.entityId;
   }
@@ -402,5 +416,6 @@ declare global {
   interface HASSDomEvents {
     "browse-cards": undefined;
     "suggestion-picked": { config: LovelaceCardConfig };
+    "suggestion-search-shown": { shown: boolean };
   }
 }

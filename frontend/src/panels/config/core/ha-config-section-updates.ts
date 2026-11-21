@@ -10,10 +10,7 @@ import {
   mdiRefresh,
   mdiUpdate,
 } from "@mdi/js";
-import type {
-  HassEntities,
-  UnsubscribeFunc,
-} from "home-assistant-js-websocket";
+import type { HassEntities } from "home-assistant-js-websocket";
 import { STATE_RUNNING } from "home-assistant-js-websocket";
 import type { TemplateResult, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
@@ -55,8 +52,10 @@ import type {
 import {
   AUTO_SYSTEM_PARTS,
   autoUpdateRowState,
+  clearUpdateRun,
   formatAutoUpdateTime,
   setAutoUpdateAll,
+  fetchUpdateRun,
   setAutoUpdateEntity,
   subscribeAutoUpdate,
   subscribeUpdateRun,
@@ -141,6 +140,8 @@ import { driverSeenAt } from "./updates/update-run-share";
 import { showJoinBetaDialog } from "./updates/show-dialog-join-beta";
 import {
   BACKUP_WAIT_MS,
+  LiveSubscriptionGate,
+  liveSubscriptionWanted,
   MISSING_NOTICE_MS,
   missingNoticeDue,
   pageShowsSpinner,
@@ -230,6 +231,52 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       }),
     () => this.requestUpdate()
   );
+
+  // The automatic updates settings. Subscribed to whenever an administrator
+  // has the page open and the automatic updates part is loaded, however late
+  // either becomes true, and afresh after every reconnect.
+  private _autoSubscription = new LiveSubscriptionGate(
+    () =>
+      subscribeAutoUpdate(this.hass, (info) => {
+        this._autoInfo = info;
+      }),
+    () => this.requestUpdate()
+  );
+
+  // The display record of an "Update everything" run another browser drives.
+  // Subscribed to under the same rules; on becoming subscribed the page also
+  // reads the record once, so a record that already exists shows at once.
+  // This record is display only and never starts or orders an install.
+  private _runSubscription = new LiveSubscriptionGate(
+    () =>
+      subscribeUpdateRun(this.hass, (run) => {
+        this._applySharedRun(run);
+      }).then((unsub) => {
+        fetchUpdateRun(this.hass).then(
+          (run) => this._applySharedRun(run),
+          () => undefined
+        );
+        return unsub;
+      }),
+    () => this.requestUpdate()
+  );
+
+  private _applySharedRun(run: UpdateRunRecord | null): void {
+    this._sharedRun = run ?? undefined;
+    this._sharedRunSeenAt = driverSeenAt(run, Date.now());
+  }
+
+  private _syncLiveSubscriptions(): void {
+    const wanted = liveSubscriptionWanted({
+      connected: this.isConnected && this.hass?.connected !== false,
+      isAdmin: this.hass?.user?.is_admin,
+      componentLoaded:
+        !!this.hass?.config &&
+        isComponentLoaded(this.hass.config, "auto_update"),
+    });
+    this._autoSubscription.sync(wanted);
+    this._runSubscription.sync(wanted);
+  }
 
   // Something the page needs has not arrived within the wait: it says so.
   @state() private _missingWaitOver = false;
@@ -347,6 +394,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       if (this.hasUpdated) {
         this._startLoads();
       }
+      this._syncLiveSubscriptions();
       this._updateRecovery();
     }
   }
@@ -475,6 +523,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
 
   public connectedCallback(): void {
     super.connectedCallback();
+    if (this.hass) {
+      this._syncLiveSubscriptions();
+    }
     if (this.hasUpdated && this.hass) {
       this._startLoads();
       if (!this._backupWaitOver && this._backupWaitTimer === undefined) {
@@ -494,6 +545,8 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     super.disconnectedCallback();
     this._supervisorLoad.stop();
     this._backupSubscription.stop();
+    this._autoSubscription.stop();
+    this._runSubscription.stop();
     this._loadsStopped = true;
     clearTimeout(this._backupWaitTimer);
     this._backupWaitTimer = undefined;
@@ -503,38 +556,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     this._missingTimer = undefined;
   }
 
-  protected hassSubscribe(): Promise<UnsubscribeFunc>[] {
-    const subscriptions: Promise<UnsubscribeFunc>[] = [];
-
-    if (this.hass.user?.is_admin) {
-      subscriptions.push(
-        subscribeAutoUpdate(this.hass, (info) => {
-          this._autoInfo = info;
-        }).catch(() => {
-          // An older server has no automatic updates; the page works without.
-          this._autoInfo = undefined;
-
-          return () => undefined;
-        })
-      );
-      subscriptions.push(
-        subscribeUpdateRun(this.hass, (run) => {
-          this._sharedRun = run ?? undefined;
-          this._sharedRunSeenAt = driverSeenAt(run, Date.now());
-        }).catch(() => {
-          // An older server keeps no shared run; only this browser's queue shows.
-          this._sharedRun = undefined;
-          this._sharedRunSeenAt = undefined;
-
-          return () => undefined;
-        })
-      );
-    }
-
-    // The backup state is subscribed to by `_backupSubscription`, which
-    // starts when the backup part is loaded and tries again after a failure.
-    return subscriptions;
-  }
+  // The automatic updates settings and the shared run record are subscribed
+  // to by `_autoSubscription` and `_runSubscription`, the backup state by
+  // `_backupSubscription`: each starts when its part is loaded and tries
+  // again after a failure. An older server without the automatic updates
+  // part subscribes to neither, and the page works without them.
 
   // The Supervisor only holds back the updates it manages.
   private _watchesBackups(): boolean {
@@ -1245,19 +1271,26 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     const sharedRunning =
       this._sharedRun?.state === "running" ||
       this._sharedRun?.state === "failed";
+    const ready = orderUpdateQueue(installable);
+    const running = installable.find((entity) => updateIsInstalling(entity));
+    // A run whose browser stopped responding may offer to update the rest;
+    // only when a new run could start now, and always through the same
+    // confirmation as "Update everything".
+    const canUpdateRest =
+      ready.length >= 2 && !running && !this._usbRunning && !this._queue.active;
     const shared = this._sharedRun
       ? html`<ha-update-queue-card
           .hass=${this.hass}
           .controller=${this._queue}
           .sharedRun=${this._sharedRun}
           .sharedSeenAt=${this._sharedRunSeenAt}
+          .canUpdateRest=${canUpdateRest}
+          @update-rest=${this._updateRest}
         ></ha-update-queue-card>`
       : nothing;
-    const ready = orderUpdateQueue(installable);
     if (ready.length < 2 || sharedRunning) {
       return shared;
     }
-    const running = installable.find((entity) => updateIsInstalling(entity));
     const reason = this._usbRunning
       ? this._text("waiting_usb")
       : running
@@ -1621,7 +1654,28 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     return this._text(`role_${updateRole(entity)}`);
   }
 
-  private async _confirmQueue(): Promise<void> {
+  private _confirmQueue(): Promise<void> {
+    return this._confirmAndStartQueue();
+  }
+
+  // "Update the rest" of a run whose browser stopped responding: the same
+  // confirmation as "Update everything"; only after it is confirmed is the
+  // stranded display record cleared and the new run started from here.
+  private _updateRest(): Promise<void> {
+    return this._confirmAndStartQueue(async () => {
+      try {
+        await clearUpdateRun(this.hass);
+        return true;
+      } catch (_err) {
+        showAlertDialog(this, { text: this._text("shared_clear_failed") });
+        return false;
+      }
+    });
+  }
+
+  private async _confirmAndStartQueue(
+    beforeStart?: () => Promise<boolean>
+  ): Promise<void> {
     const updates = this._filterInstallableUpdateEntities(
       this.hass.states,
       this.hass.formatEntityName
@@ -1657,6 +1711,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       destructive: true,
     });
     if (!confirmed) {
+      return;
+    }
+    if (beforeStart && !(await beforeStart())) {
       return;
     }
     // The list may have changed while the dialog was open.

@@ -16,6 +16,7 @@ import {
   queueIsActive,
   roleRestartsSystem,
   stepDone,
+  stepEndedAt,
   storeQueue,
   SYSTEM_STEP_SETTLE_MS,
 } from "./update-queue";
@@ -68,6 +69,10 @@ export class UpdateQueueController implements ReactiveController {
 
   private _restoredAt = 0;
 
+  // Whether this page has been looking at the queue with real data since it
+  // was shown, so a step seen ending now really ended now.
+  private _watching = true;
+
   /** Steps whose install call has not answered yet. */
   private _calling = new Set<string>();
 
@@ -90,6 +95,9 @@ export class UpdateQueueController implements ReactiveController {
 
   hostConnected() {
     this.queue = loadStoredQueue();
+    // A restored queue's steps may have ended while the page was away; until
+    // the first full look with real data their end time is not "now".
+    this._watching = false;
     this._beginChecking();
     // After a reload onto a new build the stored queue may already be done:
     // settle that before the card first shows anything.
@@ -378,6 +386,10 @@ export class UpdateQueueController implements ReactiveController {
       this.announcement = announcement;
       this._commit({ ...queue, steps, failure });
     }
+    if (connected) {
+      // From here on the page watches every step as it ends.
+      this._watching = true;
+    }
     if (toStart) {
       this._install(toStart.entityId, queue);
     }
@@ -458,17 +470,28 @@ export class UpdateQueueController implements ReactiveController {
     return (
       (step.state === "done" || step.state === "failed") &&
       typeof step.startedAt === "number" &&
-      typeof step.endedAt !== "number"
+      step.endedAt === undefined
     );
   }
 
   private _commit(queue: QueueState | undefined): void {
     const now = Date.now();
     if (queue?.steps.some((step) => this._endedWithoutTime(step))) {
+      const states = this._getHass()?.states;
       queue = {
         ...queue,
         steps: queue.steps.map((step) =>
-          this._endedWithoutTime(step) ? { ...step, endedAt: now } : step
+          this._endedWithoutTime(step)
+            ? {
+                ...step,
+                endedAt: stepEndedAt(
+                  step,
+                  states?.[step.entityId] as UpdateEntity | undefined,
+                  now,
+                  this._watching
+                ),
+              }
+            : step
         ),
       };
     }

@@ -256,11 +256,20 @@ export class UpdateProgressFeed implements ReactiveController {
     try {
       let text: string;
       if (provider) {
+        // The same range the Supervisor builds for "lines": the last
+        // LOG_TAIL entries, with the count given.
         const response = await fetchHassioLogs(
           hass,
           provider,
-          `entries=:-${LOG_TAIL}:`
+          `entries=:-${LOG_TAIL - 1}:${LOG_TAIL}`
         );
+        if (response.status === 400) {
+          // The Supervisor refuses the request itself, for instance on a
+          // system without a readable journal: there is no log for this
+          // step, which is not an error of the update.
+          slot.state = "none";
+          return slot.lines;
+        }
         if (!response.ok) {
           throw new Error("log not available");
         }

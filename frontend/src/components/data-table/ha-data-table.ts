@@ -2950,8 +2950,12 @@ export class HaDataTable extends LitElement {
         :host([narrow])
           .mdc-data-table__row.has-wrap-cell
           .mdc-data-table__cell[role="rowheader"] {
-          /* 150 px for the name's text, inside the cell's own padding. */
-          min-width: calc(150px + 2 * var(--_cell-padding-inline)) !important;
+          /* 150 px for the name's text, inside the cell's own padding. A page
+             whose row cells are wider sets a larger minimum. */
+          min-width: calc(
+            var(--ha-data-table-narrow-name-min-width, 150px) + 2 *
+              var(--_cell-padding-inline)
+          ) !important;
         }
         /* The cell is as wide as its content and never shrinks, so its
            controls are never cut. */
@@ -2969,6 +2973,15 @@ export class HaDataTable extends LitElement {
           padding-inline: 0 var(--ha-space-1);
           /* Room for the controls' hit areas and focus rings. */
           overflow: visible;
+        }
+        /* Only the first of several such cells pushes them to the end: with
+           an automatic margin on each, the free space was shared out between
+           them and the first one sat at the start of its line. */
+        :host([narrow])
+          .mdc-data-table__row
+          .mdc-data-table__cell.mdc-data-table__cell--wrap[role="cell"]
+          ~ .mdc-data-table__cell.mdc-data-table__cell--wrap[role="cell"] {
+          margin-inline-start: 0;
         }
         :host([narrow])
           .mdc-data-table__cell:not(.mdc-data-table__cell--icon):not(

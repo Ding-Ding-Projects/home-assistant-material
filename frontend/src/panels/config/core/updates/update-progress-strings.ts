@@ -59,7 +59,7 @@ export const PROGRESS_FALLBACK: Record<string, string> = {
   "output.copied": "Copied",
   "output.follow": "Follow the end",
   "output.empty": "Nothing has been logged yet.",
-  "output.none": "This kind of update has no log to show.",
+  "output.none": "No log for this step.",
   "output.unavailable":
     "The log cannot be read right now. It returns when Home Assistant is back.",
   "output.masked_note": "Passwords and tokens are hidden.",

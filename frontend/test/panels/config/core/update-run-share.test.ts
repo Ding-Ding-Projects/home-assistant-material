@@ -169,3 +169,69 @@ describe("sharedRunView", () => {
     expect(sharedRunView(record({ entity_ids: [] }))).toBeUndefined();
   });
 });
+
+// Protects the view of a run whose browser stopped responding: five minutes
+// after an install had finished it still said "Was installing" and "0 of 2
+// finished" while the row below said the update was done. The record is now
+// corrected with what this browser sees of each update entity.
+describe("sharedRunView with the update entities", () => {
+  const entity = (state: string, inProgress = false) => ({
+    state,
+    attributes: { in_progress: inProgress },
+  });
+  const stranded = record({ position: 1, current: A });
+
+  it("shows a step whose update finished as finished, and counts it", () => {
+    const view = sharedRunView(
+      stranded,
+      { [A]: entity("off"), [B]: entity("on") },
+      true
+    );
+    expect(view?.steps.map((item) => item.state)).toEqual([
+      "finished",
+      "waiting",
+    ]);
+    expect(view?.finished).toBe(1);
+    expect(view?.percent).toBe(50);
+    expect(view?.current).toBeNull();
+  });
+
+  it("keeps a step that is really installing as installing", () => {
+    const view = sharedRunView(
+      stranded,
+      { [A]: entity("on", true), [B]: entity("on") },
+      true
+    );
+    expect(view?.steps[0].state).toBe("current");
+    expect(view?.current).toBe(A);
+    expect(view?.finished).toBe(0);
+  });
+
+  it("does not call a step installing when its browser is silent and nothing runs", () => {
+    const view = sharedRunView(
+      stranded,
+      { [A]: entity("on"), [B]: entity("on") },
+      true
+    );
+    expect(view?.steps.map((item) => item.state)).toEqual([
+      "waiting",
+      "waiting",
+    ]);
+    expect(view?.current).toBeNull();
+  });
+
+  it("keeps the step a driven run is starting as current", () => {
+    const view = sharedRunView(
+      stranded,
+      { [A]: entity("on"), [B]: entity("on") },
+      false
+    );
+    expect(view?.steps[0].state).toBe("current");
+    expect(view?.current).toBe(A);
+  });
+
+  it("gives the record alone when no entities are given", () => {
+    expect(sharedRunView(stranded)).toEqual(sharedRunView(stranded, undefined));
+    expect(sharedRunView(stranded)?.steps[0].state).toBe("current");
+  });
+});

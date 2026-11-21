@@ -9124,13 +9124,15 @@
             "shared_state_failed": "Failed",
             "shared_state_waiting": "Waiting",
             "shared_silent_title": "The browser that started this run stopped responding",
-            "shared_silent_note": "Nothing more will be installed by it. If that browser opens this page again, the run carries on.",
+            "shared_silent_note": "Nothing more will be installed by it. If the same browser tab opens this page again, the run carries on there; another tab or browser does not continue it.",
             "shared_silent_seen": "Last heard from at {time}.",
-            "shared_state_stalled": "Was installing, finishes by itself",
+            "shared_state_stalled": "Still installing, finishes by itself",
             "shared_state_not_started": "Will not start",
             "shared_clear": "Clear this run",
             "shared_clear_note": "Clearing removes only this notice. An update that is installing now carries on.",
-            "shared_clear_failed": "The run could not be cleared. Try again."
+            "shared_clear_failed": "The run could not be cleared. Try again.",
+            "shared_update_rest": "Update the rest",
+            "shared_update_rest_note": "Starts a new \"Update everything\" from this browser for the updates still waiting, after the usual confirmation. This run is cleared only once you confirm."
           },
           "build_data": {
             "retry": "Try again",
@@ -9616,7 +9618,7 @@
               "copied": "Copied",
               "follow": "Follow the end",
               "empty": "Nothing has been logged yet.",
-              "none": "This kind of update has no log to show.",
+              "none": "No log for this step.",
               "unavailable": "The log cannot be read right now. It returns when Home Assistant is back.",
               "masked_note": "Passwords and tokens are hidden.",
               "last_lines": "Last lines of the log",

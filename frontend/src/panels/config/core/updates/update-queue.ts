@@ -173,6 +173,38 @@ export type StepOutcome =
   | { kind: "failed"; reason: "failed" | "timeout" | "not_started" };
 
 /**
+ * When a step ended, as far as this browser can tell. While the page watched
+ * the step, the end is the moment it was seen (`now`). When the step ended
+ * while the page was away (the tab came back, or the page was reloaded),
+ * `now` would count the time away, so the update's own last change is used
+ * when it falls between the start and now; otherwise the end is unknown
+ * (null) and no duration is shown.
+ */
+export const stepEndedAt = (
+  step: Pick<QueueStep, "startedAt">,
+  entity: Pick<UpdateEntity, "last_updated" | "last_changed"> | undefined,
+  now: number,
+  watched: boolean
+): number | null => {
+  if (watched) {
+    return now;
+  }
+  const start = step.startedAt;
+  if (typeof start !== "number" || !entity) {
+    return null;
+  }
+  // The state turns from "on" to "off" when the install finishes; any later
+  // attribute change only moves `last_updated`.
+  for (const value of [entity.last_changed, entity.last_updated]) {
+    const at = typeof value === "string" ? Date.parse(value) : NaN;
+    if (Number.isFinite(at) && at >= start && at <= now) {
+      return at;
+    }
+  }
+  return null;
+};
+
+/**
  * What a started step is doing. `connected` is false while the connection is
  * down, which is what a Supervisor, Core or operating system update looks
  * like from the browser; nothing is concluded then.
@@ -359,7 +391,13 @@ export const parseStoredQueue = (
           : "other",
         seenInProgress: step.seenInProgress === true,
         startedAt: typeof step.startedAt === "number" ? step.startedAt : null,
-        endedAt: typeof step.endedAt === "number" ? step.endedAt : undefined,
+        // null keeps "ended, time unknown" apart from "not ended yet".
+        endedAt:
+          typeof step.endedAt === "number"
+            ? step.endedAt
+            : step.endedAt === null
+              ? null
+              : undefined,
         idleSince: typeof step.idleSince === "number" ? step.idleSince : null,
         title:
           typeof step.title === "string" ? step.title.slice(0, 200) : undefined,
