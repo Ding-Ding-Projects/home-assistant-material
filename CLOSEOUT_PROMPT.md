@@ -13,7 +13,8 @@ Everything is on `main`. The remote also has `channel`, the update feed that ins
 ## What is running where
 
 - The owner's instance runs build 2026.11.2.547 (Core) and 2026.11.0.547 (Supervisor), moved there on 21 November 2026 at 09:50 Toronto time after build 547 passed a browser check on a test copy. Supervisor self-update is off.
-- The newest commit repairs the small faults that check left. It carries `[skip ci]`; a release build was started by hand for it. That build has not been checked in a browser.
+- Build 548 (source 7650c522a) is published and holds the repairs for the small faults that check left. Its browser check was started on 21 November 2026 and stopped a few minutes in, at the owner's request to close the session. It produced no verdict. Build 548 has NOT been checked in a browser and must not be put on the owner's instance until it has.
+- The full test copy `ham-full-queue` is stopped on Supervisor 2026.11.0.548 and Core 2026.11.2.548. The throwaway check copy was removed.
 
 ## How a build reaches the owner's instance
 
