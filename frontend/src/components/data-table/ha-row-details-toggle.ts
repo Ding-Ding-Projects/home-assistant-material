@@ -1,13 +1,13 @@
 import { mdiChevronDown } from "@mdi/js";
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { consume } from "../../common/decorators/consume";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import type { HomeAssistant } from "../../types";
 import "../ha-svg-icon";
-import type { RowDetailsControl } from "./row-details";
-import { rowDetailsContext } from "./row-details";
+import type { RowDetailsControl, RowDetailsToggleElement } from "./row-details";
+import { closeRowDetailsOnKey, rowDetailsContext } from "./row-details";
 
 /**
  * "Show more details" for a table row that is not an entity. It opens and
@@ -15,7 +15,10 @@ import { rowDetailsContext } from "./row-details";
  * and draws nothing in a table without one.
  */
 @customElement("ha-row-details-toggle")
-export class HaRowDetailsToggle extends LitElement {
+export class HaRowDetailsToggle
+  extends LitElement
+  implements Pick<RowDetailsToggleElement, "focusRowDetailsToggle">
+{
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public rowId?: string;
@@ -72,9 +75,30 @@ export class HaRowDetailsToggle extends LitElement {
     </button>`;
   }
 
+  @query("button") private _button?: HTMLButtonElement;
+
+  public focusRowDetailsToggle(): boolean {
+    const button = this._button;
+    if (!button) {
+      return false;
+    }
+    button.focus();
+    return true;
+  }
+
   private _stopActivationKeys(ev: KeyboardEvent) {
     if (ev.key === "Enter" || ev.key === " ") {
       ev.stopPropagation();
+      return;
+    }
+    // Escape on the button closes the open details; focus stays here.
+    if (
+      this._rowDetails &&
+      this.rowId !== undefined &&
+      closeRowDetailsOnKey(ev.key, this._rowDetails.open, this.rowId)
+    ) {
+      ev.stopPropagation();
+      this._rowDetails.toggle(this.rowId);
     }
   }
 

@@ -107,7 +107,8 @@ describe("sentence builder", () => {
 
   it("uses the sentence when something could be described", () => {
     const parts = buildSentenceParts({ triggers: [{ id: 1 }] }, describers);
-    expect(heroText(parts, "x", () => "sentence")).toBe("sentence");
+    // The sentence always starts with a capital letter.
+    expect(heroText(parts, "x", () => "sentence")).toBe("Sentence");
   });
 
   it("recognises a localized describe error by its prefix", () => {

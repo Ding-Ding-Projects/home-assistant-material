@@ -1474,7 +1474,9 @@
         "details_title": "Details of {name}",
         "column": "Quick control",
         "actions_column": "Quick actions",
-        "details_column": "Details"
+        "details_column": "Details",
+        "states_linked": "Showing {entity}",
+        "states_show_all": "Show all entities"
       },
       "top_bar_search": {
         "open": "Search this page",
@@ -9031,6 +9033,7 @@
           "recovery": {
             "disconnected": "The connection to Home Assistant has not come back yet. Reload the page to see the latest state.",
             "newer_build": "Home Assistant now serves a newer version of this page. Reload the page to see the latest state.",
+            "still_loading": "Some information has not arrived yet, so parts of this page may be missing. The page keeps trying; reload it to start again.",
             "reload": "Reload"
           },
           "auto_system_confirm_title": "Update {name} automatically?",

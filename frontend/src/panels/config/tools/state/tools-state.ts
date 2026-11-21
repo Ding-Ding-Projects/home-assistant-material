@@ -12,6 +12,7 @@ import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { searchCountText } from "../../../../components/ha-top-bar-search";
 import { regexQuery } from "../../../../common/regex/filter";
+import { modeText } from "../../../../common/language-mode/language-mode";
 import { consume } from "../../../../common/decorators/consume";
 import { formatDateTimeWithSeconds } from "../../../../common/datetime/format_date_time";
 import { storage } from "../../../../common/decorators/storage";
@@ -137,6 +138,10 @@ class HaPanelDevState extends LitElement {
   // An entity a link asked for, chosen once the states are known.
   private _linkedEntityId?: string;
 
+  // The list was narrowed to the entity a link asked for; cleared when the
+  // person changes the search or asks for every entity again.
+  @state() private _linkedFilter?: string;
+
   // Scroll the form into view after a link chose an entity.
   private _scrollToForm = false;
 
@@ -173,6 +178,9 @@ class HaPanelDevState extends LitElement {
         this._entityId = entityId;
         this._updateEntity();
         this._scrollToForm = true;
+        // The list shows that entity too, with a way back to all of them.
+        this._entityFilter = entityId;
+        this._linkedFilter = entityId;
       }
     }
   }
@@ -300,6 +308,28 @@ ${this._i18n.locale.language}`;
                   { count: entities.length }
                 )}
               </p>
+              ${
+                this._linkedFilter && this._entityFilter === this._linkedFilter
+                  ? html`<p class="linked">
+                      <span
+                        >${modeText(
+                          this._i18n.localize,
+                          "ui.components.quick_control.states_linked",
+                          { entity: this._linkedFilter }
+                        )}</span
+                      >
+                      <ha-button
+                        size="s"
+                        appearance="outlined"
+                        @click=${this._showAllEntities}
+                        >${modeText(
+                          this._i18n.localize,
+                          "ui.components.quick_control.states_show_all"
+                        )}</ha-button
+                      >
+                    </p>`
+                  : nothing
+              }
             </div>
             ${
               !this.narrow
@@ -524,6 +554,11 @@ ${this._i18n.locale.language}`;
 
   private _updateEditor() {
     this._yamlEditor?.setValue(this._stateAttributes);
+  }
+
+  private _showAllEntities() {
+    this._entityFilter = "";
+    this._linkedFilter = undefined;
   }
 
   private _entityIdChanged(ev: CustomEvent) {
@@ -849,6 +884,16 @@ ${this._i18n.locale.language}`;
 
         .hint {
           font-size: var(--ha-font-size-s);
+        }
+
+        .linked {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-2);
+          margin: var(--ha-space-2) 0 0;
+          color: var(--secondary-text-color);
+          overflow-wrap: anywhere;
         }
 
         .filters-toggles {

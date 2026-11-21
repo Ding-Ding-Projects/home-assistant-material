@@ -387,9 +387,10 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
     }
   );
 
-  // Opens an automation's details in the row right under it.
-  private _rowDetails = memoizeOne((hass: HomeAssistant) =>
-    entityRowDetailsRenderer(hass)
+  // Opens an automation's details in the row right under it. On a phone the
+  // details also hold "Run a quick action", which the row leaves out.
+  private _rowDetails = memoizeOne((hass: HomeAssistant, narrow: boolean) =>
+    entityRowDetailsRenderer(hass, undefined, narrow)
   );
 
   private _columns = memoizeOne(
@@ -843,7 +844,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         .narrow=${this.narrow}
         back-path="/config"
         id="entity_id"
-        .renderRowDetails=${this._rowDetails(this.hass)}
+        .renderRowDetails=${this._rowDetails(this.hass, this.narrow)}
         .route=${this.route}
         .tabs=${configSections.automations}
         .searchLabel=${this._modeLocalize(

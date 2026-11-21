@@ -1,14 +1,17 @@
 import { mdiChevronDown, mdiLightningBolt } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { consume } from "../../common/decorators/consume";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { quickControlFor } from "../../data/quick-control";
 import { showQuickActionDialog } from "../../dialogs/quick-action/show-dialog-quick-action";
 import type { HomeAssistant } from "../../types";
 import type { RowDetailsControl } from "../data-table/row-details";
-import { rowDetailsContext } from "../data-table/row-details";
+import {
+  closeRowDetailsOnKey,
+  rowDetailsContext,
+} from "../data-table/row-details";
 import "../ha-adaptive-dialog";
 import "../ha-svg-icon";
 
@@ -77,8 +80,54 @@ export class HaEntityQuickRowActions extends LitElement {
   private _stopActivationKeys = (ev: KeyboardEvent) => {
     if (ev.key === "Enter" || ev.key === " ") {
       ev.stopPropagation();
+      return;
+    }
+    if (ev.key === "Escape" && this._closeDetailsOnEscape(ev)) {
+      ev.stopPropagation();
     }
   };
+
+  /**
+   * Escape on "Show more details", or inside details opened in place, closes
+   * them and leaves focus on the button. The sheet handles its own Escape.
+   */
+  private _closeDetailsOnEscape(ev: KeyboardEvent): boolean {
+    if (this.details === "row" && this._rowDetails) {
+      const onToggle = ev
+        .composedPath()
+        .some(
+          (target) =>
+            target instanceof HTMLElement &&
+            target.classList.contains("details-toggle")
+        );
+      if (!onToggle) {
+        return false;
+      }
+      const rowId = this._detailsRowId;
+      if (!closeRowDetailsOnKey("Escape", this._rowDetails.open, rowId)) {
+        return false;
+      }
+      this._rowDetails.toggle(rowId);
+      return true;
+    }
+    if (this.details === "inline" && this._expanded) {
+      this._expanded = false;
+      this.focusRowDetailsToggle();
+      return true;
+    }
+    return false;
+  }
+
+  @query(".details-toggle") private _detailsButton?: HTMLButtonElement;
+
+  public focusRowDetailsToggle(): boolean {
+    const button = this._detailsButton;
+    if (!button) {
+      return false;
+    }
+    button.focus();
+    return true;
+  }
 
   private _t(key: string, values?: Record<string, string | number>): string {
     return this._lang.text(this.hass.localize, `${BLOCK}.${key}`, values);
@@ -175,7 +224,7 @@ export class HaEntityQuickRowActions extends LitElement {
   ): TemplateResult {
     return html`<button
       type="button"
-      class="act"
+      class="act details-toggle"
       aria-expanded=${expanded ? "true" : "false"}
       aria-controls=${inline ? this._detailsId : nothing}
       aria-haspopup=${inline || inRow ? nothing : "dialog"}

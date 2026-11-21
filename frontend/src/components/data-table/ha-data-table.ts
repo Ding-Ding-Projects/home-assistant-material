@@ -19,6 +19,7 @@ import {
   eventOptions,
   property,
   query,
+  queryAll,
   state,
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
@@ -59,7 +60,9 @@ import "../input/ha-input-search";
 import { tablePatternSamples } from "./pattern-samples";
 import { filterData, sortData } from "./sort-filter";
 import {
+  closeRowDetailsOnKey,
   isRowDetailsItem,
+  isRowDetailsToggleElement,
   pruneRowDetails,
   rowDetailsContext,
   toggleRowDetails,
@@ -1127,15 +1130,42 @@ export class HaDataTable extends LitElement {
     );
   };
 
+  // Escape inside a row's details closes them and puts focus back on the
+  // button that opened them, so focus never falls to the page.
   private _closeRowDetailsOnEscape = (ev: KeyboardEvent) => {
-    if (ev.key !== "Escape") {
-      return;
-    }
     const rowId = (ev.currentTarget as HTMLElement & { detailsFor: string })
       .detailsFor;
+    const open = closeRowDetailsOnKey(ev.key, this._openRowDetails, rowId);
+    if (!open) {
+      return;
+    }
     ev.stopPropagation();
-    this._openRowDetails = this._openRowDetails.filter((id) => id !== rowId);
+    this._openRowDetails = open;
+    this._focusRowDetailsToggle(rowId);
   };
+
+  @queryAll(".mdc-data-table__row[role='row']")
+  private _rowElements?: NodeListOf<HTMLElement & { rowId?: unknown }>;
+
+  private async _focusRowDetailsToggle(rowId: string) {
+    await this.updateComplete;
+    const row = Array.from(this._rowElements ?? []).find(
+      (item) => item.rowId !== undefined && String(item.rowId) === rowId
+    );
+    if (!row) {
+      return;
+    }
+    for (const element of row.querySelectorAll(
+      "ha-row-details-toggle, ha-entity-quick-row-actions"
+    )) {
+      if (
+        isRowDetailsToggleElement(element) &&
+        element.focusRowDetailsToggle()
+      ) {
+        return;
+      }
+    }
+  }
 
   private _renderRowDetails(rowId: string, index: number) {
     const row = this._filteredData?.find(
@@ -2896,11 +2926,16 @@ export class HaDataTable extends LitElement {
            width. */
         :host([narrow]) .mdc-data-table__row.has-wrap-cell {
           flex-wrap: wrap;
+          /* The name grows to fill the first line, so this only places the
+             controls that moved to a line of their own: at the end of the
+             row, where they were. */
+          justify-content: flex-end;
         }
         :host([narrow])
           .mdc-data-table__row.has-wrap-cell
           .mdc-data-table__cell[role="rowheader"] {
-          min-width: 150px !important;
+          /* 150 px for the name's text, inside the cell's own padding. */
+          min-width: calc(150px + 2 * var(--_cell-padding-inline)) !important;
         }
         /* The cell is as wide as its content and never shrinks, so its
            controls are never cut. */
@@ -2910,8 +2945,10 @@ export class HaDataTable extends LitElement {
             .mdc-data-table__cell--icon
           ):not(.mdc-data-table__cell--checkbox) {
           flex: 0 0 auto !important;
-          min-width: 0;
-          max-width: none;
+          /* A column's wide-screen width (a page's minWidth / maxWidth) does
+             not hold on a phone, where the cell may show fewer buttons. */
+          min-width: 0 !important;
+          max-width: none !important;
           margin-inline-start: auto;
           padding-inline: 0 var(--ha-space-1);
           /* Room for the controls' hit areas and focus rings. */

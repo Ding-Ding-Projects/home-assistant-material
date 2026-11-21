@@ -49,6 +49,23 @@ describe("formatTime", () => {
       )
     ).toBe("23:12");
   });
+
+  it("writes a 24-hour morning time with two digits for the hour", () => {
+    expect(
+      formatTime(
+        new Date(2017, 10, 18, 3, 10, 0),
+        {
+          language: "en",
+          number_format: NumberFormat.language,
+          time_format: TimeFormat.twenty_four,
+          date_format: DateFormat.language,
+          time_zone: TimeZone.local,
+          first_weekday: FirstWeekday.language,
+        },
+        demoConfig
+      )
+    ).toBe("03:10");
+  });
 });
 
 describe("formatTimeWithSeconds", () => {

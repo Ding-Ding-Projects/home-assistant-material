@@ -660,12 +660,14 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       id && this.columns[id]
         ? ` ${this.columns[id].title || this.columns[id].label}`
         : "";
+    // Without a chosen column the label ends after "Sort by" / "Group by",
+    // with no trailing space for a screen reader to read.
     const sortLabel = localize("ui.components.subpage-data-table.sort_by", {
       sortColumn: columnName(this._sortColumn),
-    });
+    }).trim();
     const groupLabel = localize("ui.components.subpage-data-table.group_by", {
       groupColumn: columnName(this._groupColumn),
-    });
+    }).trim();
 
     const sortItems = sortableColumns.map(
       ([id, column]) => html`
@@ -791,7 +793,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
           return html`<ha-dropdown-item disabled class="menu-heading">
               ${localize("ui.components.subpage-data-table.sort_by", {
                 sortColumn: "",
-              })}
+              }).trim()}
             </ha-dropdown-item>
             ${sortItems}`;
         case "group":
@@ -799,7 +801,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
             <ha-dropdown-item disabled class="menu-heading">
               ${localize("ui.components.subpage-data-table.group_by", {
                 groupColumn: "",
-              })}
+              }).trim()}
             </ha-dropdown-item>
             ${groupItems}`;
         case "columns":

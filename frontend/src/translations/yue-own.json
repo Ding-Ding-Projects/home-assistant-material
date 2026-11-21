@@ -2934,6 +2934,7 @@
           "recovery": {
             "disconnected": "同 Home Assistant 嘅連線仲未恢復。重新載入頁面就會見到最新狀態。",
             "newer_build": "Home Assistant 而家用緊呢個頁面嘅新版本。重新載入頁面就會見到最新狀態。",
+            "still_loading": "有啲資料仲未收到，所以呢頁可能有部分未顯示。頁面會繼續再試；重新載入就會由頭開始。",
             "reload": "重新載入"
           },
           "auto_system_confirm_title": "自動更新 {name}？",
@@ -8531,7 +8532,9 @@
         "details_title": "{name} 嘅詳情",
         "column": "快捷控制",
         "actions_column": "快捷動作",
-        "details_column": "詳情"
+        "details_column": "詳情",
+        "states_linked": "淨係顯示 {entity}",
+        "states_show_all": "顯示全部實體"
       },
       "top_bar_search": {
         "open": "搜尋呢一頁",

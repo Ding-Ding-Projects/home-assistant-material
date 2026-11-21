@@ -34,6 +34,7 @@ import {
   progressKindOf,
   RECORD_KEEP_MS,
   storeRecords,
+  versionArrival,
 } from "./update-progress-model";
 import {
   loadStoredQueue,
@@ -435,10 +436,11 @@ export class UpdateProgressFeed implements ReactiveController {
     run: ReturnType<typeof updateInstallTracker.get>,
     now: number
   ): void {
-    const reached =
-      entity.state === "off" ||
-      (!!record.toVersion &&
-        entity.attributes.installed_version === record.toVersion);
+    const arrival = versionArrival(record, {
+      state: entity.state,
+      installedVersion: entity.attributes.installed_version,
+    });
+    const reached = arrival.arrived;
     const jobError = root?.done ? hasErrors(root) : undefined;
     let result: "done" | "failed" | undefined;
     let error: string | undefined;
@@ -476,6 +478,10 @@ export class UpdateProgressFeed implements ReactiveController {
     record.finishedAt = now;
     if (result === "done") {
       record.samples = undefined;
+      // Going back ends at an older version than the record started for.
+      if (reached && arrival.version) {
+        record.toVersion = arrival.version;
+      }
     } else if (error) {
       record.error = redactDetails(error).slice(0, 1000);
     }

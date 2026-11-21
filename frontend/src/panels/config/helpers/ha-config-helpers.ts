@@ -414,9 +414,13 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
   }
 
   // Opens a helper's details in the row right under it.
-  private _rowDetails = memoizeOne((hass: HomeAssistant) =>
-    entityRowDetailsRenderer(hass, (helper) =>
-      helper.entity ? helper.entity_id : undefined
+  // On a phone the details also hold "Run a quick action", which the row
+  // leaves out.
+  private _rowDetails = memoizeOne((hass: HomeAssistant, narrow: boolean) =>
+    entityRowDetailsRenderer(
+      hass,
+      (helper) => (helper.entity ? helper.entity_id : undefined),
+      narrow
     )
   );
 
@@ -793,7 +797,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.devices}
-        .renderRowDetails=${this._rowDetails(this.hass)}
+        .renderRowDetails=${this._rowDetails(this.hass, this.narrow)}
         .searchLabel=${this._modeLocalize(
           "ui.panel.config.helpers.picker.search",
           { number: helpers.length }

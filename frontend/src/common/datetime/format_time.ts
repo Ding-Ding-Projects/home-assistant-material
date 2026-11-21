@@ -4,7 +4,7 @@ import type { FrontendLocaleData } from "../../data/translation";
 import { resolveTimeZone } from "./resolve-time-zone";
 import { useAmPm } from "./use_am_pm";
 
-// 9:15 PM || 21:15
+// 9:15 PM || 21:15 || 03:10
 export const formatTime = (
   dateObj: Date,
   locale: FrontendLocaleData,
@@ -14,7 +14,9 @@ export const formatTime = (
 const formatTimeMem = memoizeOne(
   (locale: FrontendLocaleData, serverTimeZone: string) =>
     new Intl.DateTimeFormat(locale.language, {
-      hour: "numeric",
+      // A 24-hour time always has two digits for the hour, as it does with
+      // seconds, so "03:10" never shows as "3:10".
+      hour: useAmPm(locale) ? "numeric" : "2-digit",
       minute: "2-digit",
       hourCycle: useAmPm(locale) ? "h12" : "h23",
       timeZone: resolveTimeZone(locale.time_zone, serverTimeZone),

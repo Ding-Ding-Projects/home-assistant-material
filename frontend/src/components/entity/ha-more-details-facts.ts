@@ -13,6 +13,7 @@ import type { DetailFact } from "../../data/entity-details";
 import { factsCopyText } from "../../data/entity-details";
 import type { HomeAssistant } from "../../types";
 import { bytesToString } from "../../util/bytes-to-string";
+import { detailsLabelFit } from "./details-label-fit";
 import { showToast } from "../../util/toast";
 import "../ha-button";
 import "../ha-icon-button";
@@ -61,6 +62,9 @@ export const detailsStyles = css`
     flex-direction: column;
     min-width: 0;
     container: more-details / inline-size;
+    /* A table keeps its rows on one line; details opened inside a table row
+       must still wrap their labels and values. */
+    white-space: normal;
   }
   .heading {
     margin: var(--ha-space-3) 0 var(--ha-space-1);
@@ -86,7 +90,23 @@ export const detailsStyles = css`
     font-size: var(--ha-font-size-s, 12px);
     line-height: 18px;
     color: var(--secondary-text-color);
+    /* The label wraps inside its own column and never runs into the value. */
+    white-space: normal;
     overflow-wrap: anywhere;
+    overflow: hidden;
+  }
+  /* A label wider than its column (often one written in both languages)
+     goes on a line of its own above its value. */
+  .row.label-over-narrow {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+  .row.label-over-narrow .label {
+    flex: 1 0 100%;
+    padding-top: var(--ha-space-2);
+  }
+  .row.label-over-narrow .value {
+    padding-top: 0;
   }
   .value {
     flex: 1;
@@ -163,11 +183,23 @@ export const detailsStyles = css`
     .label {
       flex-basis: 168px;
     }
+    /* A wide panel's label column holds labels up to 168 px beside their
+       value. */
+    .row.label-over-narrow:not(.label-over-wide) {
+      flex-wrap: nowrap;
+    }
+    .row.label-over-narrow:not(.label-over-wide) .label {
+      flex: 0 0 168px;
+      padding-top: 13px;
+    }
+    .row.label-over-narrow:not(.label-over-wide) .value {
+      padding-top: 13px;
+    }
   }
-  /* A narrow panel (a quick bar row, a card) puts the label above its
-     value, so the value keeps the full width and never breaks a letter at
-     a time. */
-  @container more-details (max-width: 279px) {
+  /* A narrow panel (a phone, a quick bar row, a card) puts the label above
+     its value, so the value keeps the full width and never breaks a letter
+     at a time. */
+  @container more-details (max-width: 319px) {
     .row {
       flex-wrap: wrap;
       row-gap: 0;
@@ -303,7 +335,9 @@ export class HaMoreDetailsFacts extends LitElement {
     const label = this._label(item);
     const written = this._written(item);
     const external = item.href?.startsWith("http");
-    return html`<div class="row">
+    return html`<div
+      class=${classMap({ row: true, ...detailsLabelFit(label) })}
+    >
       <span class="label">${label}</span>
       <span
         class=${classMap({

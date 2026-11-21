@@ -2,7 +2,7 @@ import { mdiMinus, mdiPlus } from "@mdi/js";
 import type { HassEntity } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import type {
@@ -319,7 +319,10 @@ export class HaEntityQuickControls extends LitElement {
       header-title=${this._t("colour_title", { name: this._name })}
       @closed=${this._colourClosed}
     >
-      <light-color-rgb-picker .stateObj=${stateObj}></light-color-rgb-picker>
+      <light-color-rgb-picker
+        class="colour-picker"
+        .stateObj=${stateObj}
+      ></light-color-rgb-picker>
     </ha-adaptive-dialog>`;
   }
 
@@ -577,9 +580,18 @@ export class HaEntityQuickControls extends LitElement {
     this._colourOpen = true;
   }
 
-  private _colourClosed() {
+  // Focus goes back to the colour button. A sheet gives focus back to what
+  // had it when it opened, which in a list that keeps focus in its search
+  // field (the search drop-down) is that field, not this button.
+  private async _colourClosed() {
     this._colourOpen = false;
+    await this.updateComplete;
+    requestAnimationFrame(() => {
+      this._colourButton?.focus();
+    });
   }
+
+  @query("button.colour") private _colourButton?: HTMLButtonElement;
 
   private _control(): QuickControl | undefined {
     return this._stateObj ? quickControlFor(this._stateObj) : undefined;
@@ -672,6 +684,14 @@ export class HaEntityQuickControls extends LitElement {
     .colour:focus-visible {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
+    }
+    /* The sheet's content keeps the sheet's side margins, so the brightness
+       labels sit off the edge and the sliders' end thumbs are never cut. */
+    .colour-picker {
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+      padding: 0 var(--ha-space-6) var(--ha-space-4);
     }
     .stepper {
       display: flex;

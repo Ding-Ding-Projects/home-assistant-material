@@ -85,6 +85,38 @@ export interface RowDetailsControl {
   toggle: (rowId: string) => void;
 }
 
+/**
+ * The open rows after a key press on a row's details button or inside its
+ * details: Escape closes that row's details. Returns undefined when the key
+ * changes nothing, so the event is left to others (a dialog, a menu).
+ */
+export const closeRowDetailsOnKey = (
+  key: string,
+  open: Iterable<string>,
+  rowId: string
+): string[] | undefined => {
+  const list = [...open];
+  return key === "Escape" && list.includes(rowId)
+    ? list.filter((id) => id !== rowId)
+    : undefined;
+};
+
+/**
+ * An element in a table row that opens the row's details. The table moves
+ * focus back to it when the details close from the keyboard, so focus never
+ * falls to the page.
+ */
+export interface RowDetailsToggleElement extends HTMLElement {
+  /** Focuses the details button. False when the element shows none. */
+  focusRowDetailsToggle(): boolean;
+}
+
+export const isRowDetailsToggleElement = (
+  element: Element
+): element is RowDetailsToggleElement =>
+  typeof (element as Partial<RowDetailsToggleElement>).focusRowDetailsToggle ===
+  "function";
+
 export const rowDetailsContext = createContext<RowDetailsControl | undefined>(
   "dataTableRowDetails"
 );

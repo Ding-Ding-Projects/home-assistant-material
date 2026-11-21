@@ -32,6 +32,7 @@ import "../ha-alert";
 import "../ha-button";
 import "../ha-icon-button";
 import "../ha-svg-icon";
+import { detailsLabelFit } from "./details-label-fit";
 import {
   detailsStyles,
   detailsText,
@@ -348,7 +349,9 @@ export class HaEntityMoreDetails extends LitElement {
     }
     const foldable = !!options.fold && isLongValue(value);
     const unfolded = this._openValues.has(label);
-    return html`<div class="row">
+    return html`<div
+      class=${classMap({ row: true, ...detailsLabelFit(label) })}
+    >
       <span
         class=${classMap({ label: true, "mono-label": !!options.monoLabel })}
         >${label}</span

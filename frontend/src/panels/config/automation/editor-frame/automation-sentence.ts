@@ -90,7 +90,25 @@ export const heroText = (
   const described =
     parts.when.length || parts.onlyIf.length || parts.then.length;
   if (described) {
-    return compose(parts);
+    return capitalizeSentence(compose(parts));
   }
   return alias?.trim() || "";
+};
+
+/**
+ * The sentence with a capital first letter. A script has no "When" part, so
+ * its sentence starts with the joining word of the "then" part ("then turn
+ * off the light."), which must still read as the start of a sentence.
+ * Scripts without letter case are returned unchanged.
+ */
+export const capitalizeSentence = (text: string, language?: string): string => {
+  const start = text.search(/\S/u);
+  if (start === -1) {
+    return text;
+  }
+  const [first] = text.slice(start);
+  const upper = first.toLocaleUpperCase(language);
+  return upper === first
+    ? text
+    : text.slice(0, start) + upper + text.slice(start + first.length);
 };

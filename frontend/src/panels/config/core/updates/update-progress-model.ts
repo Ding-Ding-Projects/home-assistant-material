@@ -534,6 +534,38 @@ export const storeRecords = (records: readonly ProgressRecord[]): void => {
   }
 };
 
+/**
+ * Whether an update that stopped installing has arrived, and at which
+ * version. It arrived when the entity says nothing is left to install, when
+ * the version it was installing to is installed, or when the installed
+ * version is no longer the one it started from: going back installs an older
+ * version than the newest one, which the record could not know. A changed
+ * version alone never ends a record while the entity is unavailable (a
+ * restart).
+ */
+export const versionArrival = (
+  record: Pick<ProgressRecord, "fromVersion" | "toVersion">,
+  entity: { state: string; installedVersion?: string | null }
+): { arrived: boolean; version?: string } => {
+  const installed = entity.installedVersion ?? undefined;
+  if (record.toVersion && installed === record.toVersion) {
+    return { arrived: true, version: installed };
+  }
+  if (entity.state === "off") {
+    return {
+      arrived: true,
+      version: installed ?? record.toVersion ?? undefined,
+    };
+  }
+  if (entity.state === "unavailable" || entity.state === "unknown") {
+    return { arrived: false };
+  }
+  if (record.fromVersion && installed && installed !== record.fromVersion) {
+    return { arrived: true, version: installed };
+  }
+  return { arrived: false };
+};
+
 /** Shortens a long version text for a narrow row; the full text stays in the label. */
 export const shortSystemName = (title: string): string =>
   title

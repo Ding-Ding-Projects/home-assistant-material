@@ -140,8 +140,11 @@ import {
 import { showJoinBetaDialog } from "./updates/show-dialog-join-beta";
 import {
   BACKUP_WAIT_MS,
+  MISSING_NOTICE_MS,
+  missingNoticeDue,
   pageShowsSpinner,
   RetryingLoad,
+  RetryingSubscription,
 } from "./updates/update-page-loading";
 import {
   DISCONNECT_NOTICE_MS,
@@ -207,8 +210,29 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       if (this._supervisorLoad.status === "ready") {
         this._supervisorInfo = this._supervisorLoad.value;
       }
+      this.requestUpdate();
     }
   );
+
+  // The backup state is subscribed to on its own as well, with a time limit
+  // and retries. After a reload while Home Assistant and the Supervisor
+  // restart, the backup and Supervisor parts may only be loaded later; the
+  // page then starts these as soon as they are there, instead of only once
+  // when it first showed.
+  private _backupSubscription = new RetryingSubscription(
+    () =>
+      subscribeBackupEvents(this.hass, (event) => {
+        this._backupState = event.manager_state;
+      }),
+    () => this.requestUpdate()
+  );
+
+  // Something the page needs has not arrived within the wait: it says so.
+  @state() private _missingWaitOver = false;
+
+  private _missingTimer?: ReturnType<typeof setTimeout>;
+
+  private _loadsStopped = false;
 
   // After a restart of Home Assistant the page checks once whether the server
   // still serves the build it runs, reloads itself once when it does not, and
@@ -314,9 +338,57 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       const old = changedProps.get("hass") as HomeAssistant | undefined;
       if (old && old.connected === false && this.hass.connected !== false) {
         this._supervisorLoad.retryNow();
+        this._backupSubscription.retryNow();
+      }
+      if (this.hasUpdated) {
+        this._startLoads();
       }
       this._updateRecovery();
     }
+  }
+
+  // Starts each block's own load once the part of Home Assistant it reads
+  // from is loaded. Called again on every change, so a part that loads late
+  // (Home Assistant still starting after a reload) is picked up then.
+  private _startLoads(): void {
+    if (this.hass.connected === false) {
+      return;
+    }
+    if (isComponentLoaded(this.hass.config, "hassio")) {
+      if (this._loadsStopped && this._supervisorLoad.status !== "ready") {
+        this._supervisorLoad.start();
+      } else if (this._supervisorLoad.status === "idle") {
+        this._supervisorLoad.start();
+      }
+    }
+    if (this._watchesBackups()) {
+      this._backupSubscription.start();
+    }
+    this._loadsStopped = false;
+  }
+
+  // The blocks the page still waits for.
+  private _missingBlocks(): boolean[] {
+    return [
+      this._watchesBackups() && this._backupState === undefined,
+      isComponentLoaded(this.hass.config, "hassio") &&
+        this._supervisorInfo === undefined,
+    ];
+  }
+
+  private _renderMissingNotice() {
+    if (
+      this._recovery.noticeDue() ||
+      !missingNoticeDue(this._missingWaitOver, this._missingBlocks())
+    ) {
+      return nothing;
+    }
+    return html`<ha-alert alert-type="info" class="recovery">
+      ${this._ui("recovery.still_loading")}
+      <ha-button slot="action" @click=${this._reloadPage}>
+        ${this._ui("recovery.reload")}
+      </ha-button>
+    </ha-alert>`;
   }
 
   private _updateRecovery(): void {
@@ -383,23 +455,48 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
 
-    if (isComponentLoaded(this.hass.config, "hassio")) {
-      this._supervisorLoad.start();
-    }
-    if (this._backupState === undefined && this._watchesBackups()) {
+    this._startLoads();
+    // The short wait for the backup state always runs, also when the backup
+    // part of Home Assistant is only loaded later: the page then never stays
+    // on its spinner.
+    if (this._backupState === undefined) {
       this._backupWaitTimer = setTimeout(() => {
         this._backupWaitOver = true;
       }, BACKUP_WAIT_MS);
+    }
+    this._missingTimer = setTimeout(() => {
+      this._missingWaitOver = true;
+    }, MISSING_NOTICE_MS);
+  }
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    if (this.hasUpdated && this.hass) {
+      this._startLoads();
+      if (!this._backupWaitOver && this._backupWaitTimer === undefined) {
+        this._backupWaitTimer = setTimeout(() => {
+          this._backupWaitOver = true;
+        }, BACKUP_WAIT_MS);
+      }
+      if (!this._missingWaitOver && this._missingTimer === undefined) {
+        this._missingTimer = setTimeout(() => {
+          this._missingWaitOver = true;
+        }, MISSING_NOTICE_MS);
+      }
     }
   }
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     this._supervisorLoad.stop();
+    this._backupSubscription.stop();
+    this._loadsStopped = true;
     clearTimeout(this._backupWaitTimer);
     this._backupWaitTimer = undefined;
     clearTimeout(this._noticeTimer);
     this._noticeTimer = undefined;
+    clearTimeout(this._missingTimer);
+    this._missingTimer = undefined;
   }
 
   protected hassSubscribe(): Promise<UnsubscribeFunc>[] {
@@ -428,20 +525,8 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       );
     }
 
-    if (!this._watchesBackups()) {
-      return subscriptions;
-    }
-
-    subscriptions.push(
-      subscribeBackupEvents(this.hass, (event) => {
-        this._backupState = event.manager_state;
-      }).catch(() => {
-        // Show the page anyway; a blocked update reports its own error.
-        this._backupState = "idle";
-
-        return () => undefined;
-      })
-    );
+    // The backup state is subscribed to by `_backupSubscription`, which
+    // starts when the backup part is loaded and tries again after a failure.
     return subscriptions;
   }
 
@@ -582,7 +667,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
             }
           </ha-dropdown>
         </div>
-        ${this._renderRecoveryNotice()}
+        ${this._renderRecoveryNotice()} ${this._renderMissingNotice()}
         ${
           this._backupStateLoading()
             ? html`

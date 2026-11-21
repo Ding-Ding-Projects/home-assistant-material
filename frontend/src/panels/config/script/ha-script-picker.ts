@@ -333,8 +333,10 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
   );
 
   // Opens a script's details in the row right under it.
-  private _rowDetails = memoizeOne((hass: HomeAssistant) =>
-    entityRowDetailsRenderer(hass)
+  // On a phone the details also hold "Run a quick action", which the row
+  // leaves out.
+  private _rowDetails = memoizeOne((hass: HomeAssistant, narrow: boolean) =>
+    entityRowDetailsRenderer(hass, undefined, narrow)
   );
 
   private _columns = memoizeOne(
@@ -612,7 +614,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
         .empty=${!this.scripts.length}
         .activeFilters=${this._activeFilters}
         id="entity_id"
-        .renderRowDetails=${this._rowDetails(this.hass)}
+        .renderRowDetails=${this._rowDetails(this.hass, this.narrow)}
         .noDataText=${this._modeLocalize(
           "ui.panel.config.script.picker.no_scripts"
         )}

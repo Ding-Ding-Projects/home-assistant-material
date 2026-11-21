@@ -8,7 +8,9 @@ import "./ha-row-details-toggle";
 /**
  * A table column with the "Show more details" button for rows that are not
  * entities. The table must also set `renderRowDetails`, for example with
- * `factsRowDetails`. `host.hass` is read when a row is drawn.
+ * `factsRowDetails`. `host.hass` is read when a row is drawn. On a phone the
+ * button may move to a line of its own under the name (`narrowWrap`), so the
+ * name keeps its width.
  */
 export const rowDetailsColumn = <T>(
   label: string,
@@ -23,6 +25,7 @@ export const rowDetailsColumn = <T>(
   hideable: true,
   moveable: true,
   showNarrow: true,
+  narrowWrap: true,
   template: (row) =>
     html`<ha-row-details-toggle
       .hass=${host.hass}
