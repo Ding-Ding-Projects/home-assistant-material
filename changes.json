@@ -1,15 +1,37 @@
 {
  "format": 1,
- "generated": "2026-11-21T07:11:57Z",
+ "generated": "2026-11-21T07:36:55Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 543,
+ "newest_build": 544,
  "releases": [
+  {
+   "build": 544,
+   "core": "2026.11.2.544",
+   "supervisor": "2026.11.0.544",
+   "os": "18.5.544",
+   "tag": null,
+   "source": "f762c285c",
+   "date": "2026-11-21T01:55:57-05:00",
+   "previous_build": 543,
+   "changes": [
+    {
+     "sha": "f762c285c",
+     "date": "2026-11-21T01:55:57-05:00",
+     "title": "Repairs from the build 542 browser check: entity names on phones, search drop-down [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "A browser check of build 542 said no to moving the owner's instance. These are the repairs. The look does not change and no control was removed.\n\nBlockers - Entities list on a phone: the new quick-control column crushed names to a few letters at 390 px and to nothing at 320 px. The row now keeps at least 150 px for the name; when the control does not fit beside it, the control moves to its own line. The slider, colour button and quick action live in the row's detail row on a phone. - Search drop-down: pressing a light's slider or colour button emptied the whole list, and the colour picker never opened. The drop-down reacted to show and close events bubbling up from overlays inside it. It now acts only on its own events, and it closes when the app moves to another page.\n\nSmaller - Details no longer break one letter per line in narrow places: the label stacks above the value when the panel is narrow. - On wide list pages the remaining filter chips sit at the start again, and the group and sort pills show the current choice without hover. - Escape cancels a confirmation, as its text says. The two-key confirmation itself is untouched. - Phone search rows put the slider and buttons on t",
+     "detail_yue": "542 版瀏覽器檢查之後嘅修正：手機上嘅實體名同搜尋下拉。 樣冇變，冇減任何掣。 手機實體清單：新加嗰欄控制掣之前將個名迫到得返幾個字，320 闊度 直頭睇唔到。而家個名最少有 150 像素；控制掣擺唔落就自己落一行。 搜尋下拉：撳盞燈嘅滑桿或者揀色掣會成個清單冇晒，揀色器又開唔到， 因為下拉連入面浮層嘅開關事件都當係自己嘅。而家只理自己嘅事件， 轉頁亦會自己收埋。 其他：詳細資料唔再一個字一行；闊螢幕嘅篩選標籤返返去開頭； Escape 真係取消確認；更新頁每一行都有「顯示更多資料」。 仲未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 543,
    "core": "2026.11.2.543",
    "supervisor": "2026.11.0.543",
    "os": "18.5.543",
-   "tag": null,
+   "tag": "v2026.11.2.543",
    "source": "16eeae26e",
    "date": "2026-11-21T00:23:35-05:00",
    "previous_build": 542,
