@@ -1,15 +1,37 @@
 {
  "format": 1,
- "generated": "2026-11-21T09:09:37Z",
+ "generated": "2026-11-21T09:35:59Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 544,
+ "newest_build": 545,
  "releases": [
+  {
+   "build": 545,
+   "core": "2026.11.2.545",
+   "supervisor": "2026.11.0.545",
+   "os": "18.5.545",
+   "tag": null,
+   "source": "775a96382",
+   "date": "2026-11-21T04:06:41-05:00",
+   "previous_build": 544,
+   "changes": [
+    {
+     "sha": "775a96382",
+     "date": "2026-11-21T04:06:41-05:00",
+     "title": "Repairs from the build 544 browser check: names on phone lists, Updates page loading [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Build 544 passed its browser check and runs on the owner's instance. These repair what that check still found. The look does not change and no control was removed.\n\n- Names on phone lists: Scripts, Automations, Dashboards, Backups, Labels, Helpers, Blueprints, Tags and Users lost most of the name's width to the new action and details columns. The shared column helpers now wrap by default, so a table that uses them cannot forget: the name keeps 150 px of text and the buttons move to their own line. Both row buttons stay one press away on a phone. - Updates page: after a run that updated the Supervisor and Core together, the reloaded page could sit on a spinner. Its loads only started if the backup and Supervisor parts were already there, and after such a reload they arrive later. The loads now start whenever those parts appear, with a time limit and retries, and after 30 seconds a plain line with a Reload button says what is still missing. A run that went back to an older build no longer shows as running. - Detail rows: Escape closes the row from its own toggle too, and focus returns to the toggle. - Details: a long label goes above its value and no longer runs into it. - The colour",
+     "detail_yue": "544 版瀏覽器檢查之後嘅修正：手機清單嘅名同更新頁載入。 544 版過咗檢查，而家喺屋主部機行緊。樣冇變，冇減任何掣。 手機清單：腳本、自動化、儀表板、備份、標籤、輔助工具等，個名俾 新加嘅掣迫到好窄。共用欄位而家預設識轉行：個名最少有 150 像素， 啲掣自己落一行，兩個掣喺手機都係一撳就到。 更新頁：Supervisor 同 Core 一齊更新之後，頁面重新載入可能係咁轉圈。 而家啲資料幾時到就幾時開始載入，有時限同重試，三十秒仲未齊就 出一句說明同重新載入掣。返去舊版之後唔會再顯示「行緊」。 詳細資料行撳 Escape 會收埋兼焦點返去個掣；標籤長就擺上面； 揀色板有返邊距；二十四小時制時間全部兩位數。 仲未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 544,
    "core": "2026.11.2.544",
    "supervisor": "2026.11.0.544",
    "os": "18.5.544",
-   "tag": null,
+   "tag": "v2026.11.2.544",
    "source": "f762c285c",
    "date": "2026-11-21T01:55:57-05:00",
    "previous_build": 543,

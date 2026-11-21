@@ -1,29 +1,29 @@
 {
   "channel": "stable",
-  "supervisor": "2026.11.0.544",
+  "supervisor": "2026.11.0.545",
   "homeassistant": {
-    "default": "2026.11.2.544",
+    "default": "2026.11.2.545",
     "qemux86": "2025.11.3",
-    "qemux86-64": "2026.11.2.544",
+    "qemux86-64": "2026.11.2.545",
     "qemuarm": "2025.11.3",
-    "qemuarm-64": "2026.11.2.544",
-    "generic-x86-64": "2026.11.2.544",
+    "qemuarm-64": "2026.11.2.545",
+    "generic-x86-64": "2026.11.2.545",
     "intel-nuc": "2026.11.2",
-    "khadas-vim3": "2026.11.2.544",
+    "khadas-vim3": "2026.11.2.545",
     "raspberrypi": "2025.11.3",
     "raspberrypi2": "2025.11.3",
     "raspberrypi3": "2025.11.3",
-    "raspberrypi3-64": "2026.11.2.544",
+    "raspberrypi3-64": "2026.11.2.545",
     "raspberrypi4": "2025.11.3",
-    "raspberrypi4-64": "2026.11.2.544",
-    "raspberrypi5-64": "2026.11.2.544",
-    "yellow": "2026.11.2.544",
-    "green": "2026.11.2.544",
+    "raspberrypi4-64": "2026.11.2.545",
+    "raspberrypi5-64": "2026.11.2.545",
+    "yellow": "2026.11.2.545",
+    "green": "2026.11.2.545",
     "tinker": "2025.11.3",
-    "odroid-c2": "2026.11.2.544",
-    "odroid-c4": "2026.11.2.544",
-    "odroid-m1": "2026.11.2.544",
-    "odroid-n2": "2026.11.2.544",
+    "odroid-c2": "2026.11.2.545",
+    "odroid-c4": "2026.11.2.545",
+    "odroid-m1": "2026.11.2.545",
+    "odroid-n2": "2026.11.2.545",
     "odroid-xu": "2025.11.3"
   },
   "hassos": {
@@ -73,7 +73,7 @@
     "multicast": "ghcr.io/home-assistant/{arch}-hassio-multicast"
   },
   "material": {
-    "build": 544,
+    "build": 545,
     "os_build": 544
   }
 }
