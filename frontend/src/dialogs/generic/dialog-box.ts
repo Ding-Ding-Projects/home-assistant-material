@@ -126,6 +126,7 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
         type=${confirmPrompt ? "alert" : "standard"}
         .preventScrimClose=${!!this._params.confirmation || this.isDirtyState}
         @closed=${this._dialogClosed}
+        @keydown=${this._escapeLeaves}
         .accessibleLabel=${this._accessibleLabel(dialogTitle)}
         aria-describedby="dialog-box-description"
       >
@@ -305,6 +306,30 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
       </ha-dialog>
     `;
   }
+
+  /**
+   * Escape leaves a confirmation, as its text says and as Cancel does. The
+   * dialog guards against closing by Escape or a click outside (nothing may
+   * be confirmed by accident), and that guard also kept Escape from leaving.
+   * This runs before the dialog itself sees the key. A prompt with typed
+   * text keeps its guard, so typed text is never lost.
+   */
+  private _escapeLeaves = {
+    capture: true,
+    handleEvent: (ev: KeyboardEvent) => {
+      if (
+        ev.key !== "Escape" ||
+        ev.defaultPrevented ||
+        !this._open ||
+        !this._params?.confirmation ||
+        this._params.prompt ||
+        this._loading
+      ) {
+        return;
+      }
+      this._dismiss();
+    },
+  };
 
   private _typedInput(ev: Event): void {
     this._typed = (ev.target as HaInput).value ?? "";

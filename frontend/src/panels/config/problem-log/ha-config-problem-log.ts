@@ -3,6 +3,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { searchCountText } from "../../../components/ha-top-bar-search";
 import { searchMatcher } from "../../../common/regex/filter";
+import { formatDateTime } from "../../../common/datetime/format_date_time";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-spinner";
@@ -80,6 +81,18 @@ class HaConfigProblemLog extends LitElement {
       `ui.panel.config.problem_log.${key}` as any,
       values
     );
+  }
+
+  // A recorded time in the person's own date and time format; a value that
+  // is not a time is shown as it was recorded.
+  private _when(value: string | undefined): string {
+    if (!value) {
+      return "";
+    }
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? value
+      : formatDateTime(date, this.hass.locale, this.hass.config);
   }
 
   private _filterChanged(ev: CustomEvent<{ value: string }>): void {
@@ -273,7 +286,7 @@ class HaConfigProblemLog extends LitElement {
           <span class="meta"
             >${this._l("count", { count: problem.count })} ·
             ${this._l("last_seen")}
-            ${problem.last_seen}${
+            ${this._when(problem.last_seen)}${
               held ? html` · ${this._l("send.held_by_you")}` : nothing
             }</span
           >
@@ -292,7 +305,7 @@ class HaConfigProblemLog extends LitElement {
         }
         <dl>
           <dt>${this._l("first_seen")}</dt>
-          <dd>${problem.first_seen}</dd>
+          <dd>${this._when(problem.first_seen)}</dd>
           ${
             problem.logger
               ? html`<dt>${this._l("logger")}</dt>

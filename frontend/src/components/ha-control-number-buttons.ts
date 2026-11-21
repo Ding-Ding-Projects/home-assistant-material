@@ -274,7 +274,9 @@ export class HaControlNumberButton extends LitElement {
       top: 0;
       bottom: 0;
       padding: 0;
-      width: 35px;
+      /* 44 px wide: the minus and plus are easy to hit with a finger; the
+         buttons draw nothing of their own, so nothing looks bigger. */
+      width: 44px;
       height: 100%;
       border: none;
       border-radius: var(--control-number-buttons-border-radius);

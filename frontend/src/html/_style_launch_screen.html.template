@@ -39,6 +39,17 @@
   #ha-launch-screen .ohf-logo {
     animation: launch-lockup-in var(--ha-animation-duration-normal, 250ms) ease-out both;
   }
+  /* Reduced motion: the screen appears and leaves without a fade. */
+  @media (prefers-reduced-motion: reduce) {
+    body #ha-launch-screen {
+      transition: none;
+    }
+    body #ha-launch-screen .ha-lockup,
+    body #ha-launch-screen-info-box > *,
+    body #ha-launch-screen .ohf-logo {
+      animation: none;
+    }
+  }
   #ha-launch-screen .ha-logo {
     width: 96px;
     height: 96px;

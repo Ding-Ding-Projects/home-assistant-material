@@ -130,6 +130,10 @@ export interface DataTableColumnData<T = any> extends DataTableSortColumnData {
   forceLTR?: boolean;
   hidden?: boolean;
   lastFixed?: boolean;
+  // On a phone the cell keeps its own width at the end of the row, and on a
+  // table too narrow to hold it beside the name it moves to a line of its
+  // own under the name, so the name keeps the width of the row.
+  narrowWrap?: boolean;
 }
 
 export type ClonedDataTableColumnData = Omit<DataTableColumnData, "title"> & {
@@ -1216,6 +1220,7 @@ export class HaDataTable extends LitElement {
         )}
         @click=${this._handleRowClick}
         class="mdc-data-table__row ${classMap({
+          "has-wrap-cell": narrow && this._hasWrapColumn(columns),
           "mdc-data-table__row--selected": this._checkedRows.includes(
             String(row[this.id])
           ),
@@ -1321,6 +1326,10 @@ export class HaDataTable extends LitElement {
     `;
   };
 
+  private _hasWrapColumn = memoizeOne((columns: DataTableColumnContainer) =>
+    Object.values(columns).some((column) => column.narrowWrap)
+  );
+
   private _isColumnVisible(key: string, column: DataTableColumnData): boolean {
     if (column.hidden) {
       return false;
@@ -1362,6 +1371,7 @@ export class HaDataTable extends LitElement {
     "mdc-data-table__cell--icon-button": column.type === "icon-button",
     "mdc-data-table__cell--overflow-menu": column.type === "overflow-menu",
     "mdc-data-table__cell--overflow": column.type === "overflow",
+    "mdc-data-table__cell--wrap": Boolean(column.narrowWrap),
     forceLTR: Boolean(column.forceLTR),
   });
 
@@ -2845,8 +2855,9 @@ export class HaDataTable extends LitElement {
         }
         /* On a phone a row's name wraps to a second line before it ends in
            three dots; the full name is in its title, one hover or focus
-           away. A long word or identifier breaks instead of widening the
-           row. */
+           away. It wraps at spaces; only a word longer than the cell breaks,
+           with a hyphen where the language allows one, instead of widening
+           the row. */
         :host([narrow]) .primary,
         :host([narrow]) .primary .row-button,
         :host([narrow]) .mdc-data-table__cell[role="rowheader"] > .row-button {
@@ -2855,7 +2866,8 @@ export class HaDataTable extends LitElement {
           -webkit-line-clamp: 2;
           white-space: normal;
           overflow: hidden;
-          overflow-wrap: anywhere;
+          overflow-wrap: break-word;
+          hyphens: auto;
         }
         :host([row-cards][narrow]) .primary {
           font-size: var(--ha-list-row-title-size, var(--ha-font-size-m));
@@ -2875,6 +2887,35 @@ export class HaDataTable extends LitElement {
            too wide must not add a sideways scroll to the page. */
         :host([narrow]) .scroller {
           overflow-x: hidden !important;
+        }
+        /* A row with a cell that may move under the name (row controls):
+           the name never gets narrower than 150 px. When the name and the
+           cell do not fit side by side (a 320 or 360 px phone, or a wide
+           control such as an option list), the cell takes a line of its own
+           under the name, at the end of the row, and the name keeps the full
+           width. */
+        :host([narrow]) .mdc-data-table__row.has-wrap-cell {
+          flex-wrap: wrap;
+        }
+        :host([narrow])
+          .mdc-data-table__row.has-wrap-cell
+          .mdc-data-table__cell[role="rowheader"] {
+          min-width: 150px !important;
+        }
+        /* The cell is as wide as its content and never shrinks, so its
+           controls are never cut. */
+        :host([narrow])
+          .mdc-data-table__row
+          .mdc-data-table__cell.mdc-data-table__cell--wrap[role="cell"]:not(
+            .mdc-data-table__cell--icon
+          ):not(.mdc-data-table__cell--checkbox) {
+          flex: 0 0 auto !important;
+          min-width: 0;
+          max-width: none;
+          margin-inline-start: auto;
+          padding-inline: 0 var(--ha-space-1);
+          /* Room for the controls' hit areas and focus rings. */
+          overflow: visible;
         }
         :host([narrow])
           .mdc-data-table__cell:not(.mdc-data-table__cell--icon):not(

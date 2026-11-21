@@ -23,6 +23,8 @@ import { HaRowItem } from "./item/ha-row-item";
  * @slot supporting-text - Secondary text. Multiple elements stack as lines.
  * @slot trailing-supporting-text - Meta text between the content and `end`.
  * @slot end - Trailing content (icons, buttons).
+ * @slot below - Content on a line of its own under the row, as wide as the
+ *   row from the start of the text (controls that need the width).
  *
  * @csspart base - The outer container.
  * @csspart start - The leading slot wrapper.
@@ -59,7 +61,8 @@ export class HaComboBoxItem extends HaRowItem {
     "[default]",
     "overline",
     "headline",
-    "supporting-text"
+    "supporting-text",
+    "below"
   );
 
   private _isTwoLine(): boolean {
@@ -76,7 +79,11 @@ export class HaComboBoxItem extends HaRowItem {
   protected _renderBase(inner: TemplateResult): TemplateResult {
     return html`<div
       part="base"
-      class=${classMap({ base: true, "two-line": this._isTwoLine() })}
+      class=${classMap({
+        base: true,
+        "two-line": this._isTwoLine(),
+        "has-below": this._textSlots.test("below"),
+      })}
     >
       ${inner}
     </div>`;
@@ -95,6 +102,7 @@ export class HaComboBoxItem extends HaRowItem {
         <slot name="trailing-supporting-text"></slot>
       </div>
       ${this._renderEnd()}
+      <div part="below" class="below"><slot name="below"></slot></div>
     `;
   }
 
@@ -138,6 +146,23 @@ export class HaComboBoxItem extends HaRowItem {
       .start,
       .end {
         gap: inherit;
+      }
+      /* The below slot takes a line of its own under the row. It is always
+         there, so a recycled row picks up new content; without content it
+         takes no room. */
+      .below {
+        display: none;
+      }
+      .base.has-below {
+        flex-wrap: wrap;
+        row-gap: 0;
+      }
+      .base.has-below .below {
+        display: block;
+        flex: 1 0 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        padding-inline-start: var(--ha-combo-box-item-below-indent, 0px);
       }
       .start {
         color: var(
@@ -222,6 +247,13 @@ export class HaComboBoxItem extends HaRowItem {
       ::slotted(.code) {
         font-family: var(--ha-font-family-code);
         font-size: var(--ha-font-size-xs);
+      }
+      /* Text that is only extra information leaves a phone row before it
+         would be cut to a letter or two. */
+      @media (max-width: 600px) {
+        ::slotted(.domain.hide-narrow) {
+          display: none;
+        }
       }
       ::slotted(.domain) {
         font-size: var(--ha-font-size-s);

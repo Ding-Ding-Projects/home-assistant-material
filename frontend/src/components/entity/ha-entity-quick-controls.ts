@@ -626,6 +626,16 @@ export class HaEntityQuickControls extends LitElement {
     ha-button.risky {
       --ha-button-border-color: var(--ha-color-border-warning-normal);
     }
+    /* The small press buttons keep a 48 px tall hit area without growing
+       the row they sit in. */
+    ha-button {
+      position: relative;
+    }
+    ha-button::after {
+      content: "";
+      position: absolute;
+      inset: -8px 0;
+    }
     .level {
       display: flex;
       align-items: center;

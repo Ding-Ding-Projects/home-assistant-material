@@ -3,6 +3,7 @@ import type HlsType from "hls.js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { ifDefined } from "lit/directives/if-defined";
 import { styleMap } from "lit/directives/style-map";
 import { consume } from "../common/decorators/consume";
 import { isComponentLoaded } from "../common/config/is_component_loaded";
@@ -138,7 +139,7 @@ class HaHLSPlayer extends LitElement {
       ${
         !this._errorIsFatal
           ? html`<video
-              .poster=${this.posterUrl}
+              poster=${ifDefined(this.posterUrl || undefined)}
               ?autoplay=${this.autoPlay}
               .muted=${this.muted}
               ?playsinline=${this.playsInline}

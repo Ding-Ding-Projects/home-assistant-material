@@ -721,6 +721,8 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         badge?: number;
         trigger?: boolean;
         click?: (ev: Event) => void;
+        // The current choice, shown as text beside the icon on a wide page.
+        current?: string;
       } = {}
     ) =>
       html`<button
@@ -728,6 +730,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         class=${classMap({ "pill-item": true, active: !!options.active })}
         slot=${options.trigger ? "trigger" : nothing}
         data-tool=${id}
+        aria-label=${label}
         aria-pressed=${
           options.active !== undefined && !options.trigger
             ? String(options.active)
@@ -737,6 +740,13 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       >
         <ha-svg-icon .path=${path}></ha-svg-icon>
         <span class="pill-label">${label}</span>
+        ${
+          options.current
+            ? html`<span class="pill-current" aria-hidden="true"
+                >${options.current}</span
+              >`
+            : nothing
+        }
         ${
           options.badge
             ? html`<span class="pill-badge" aria-hidden="true"
@@ -839,6 +849,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
             pillItem(id, groupLabel, mdiViewAgendaOutline, {
               trigger: true,
               active: !!this._groupColumn,
+              current: columnName(this._groupColumn).trim(),
             }),
             groupItems,
             this._handleMore
@@ -848,6 +859,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
             pillItem(id, sortLabel, mdiSort, {
               trigger: true,
               active: !!this._sortColumn,
+              current: columnName(this._sortColumn).trim(),
             }),
             sortItems,
             this._handleSortBy
@@ -2333,6 +2345,26 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         margin-inline-start: 10px;
       }
     }
+    /* The current group or sort column stays readable without hovering on
+       a wide page; the full name replaces it while it shows. */
+    .pill-current {
+      margin-inline-start: 8px;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: var(--ha-font-weight-medium, 500);
+    }
+    :host([narrow]) .pill-current,
+    .pill-item:focus-visible .pill-current,
+    ha-dropdown[open] > .pill-item .pill-current {
+      display: none;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .pill-item:hover .pill-current {
+        display: none;
+      }
+    }
     .pill-item:focus-visible {
       outline: 2px solid var(--primary-color);
       outline-offset: -2px;
@@ -2436,7 +2468,8 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       --mdc-shape-small: 0;
       min-height: 56px;
       width: 100%;
-      justify-content: space-between;
+      /* The chips pack at the start of the row. */
+      justify-content: flex-start;
       /* On a wide page the tool row stays on one line: what does not fit
          folds behind the More button, and the chips scroll sideways. */
       flex-wrap: nowrap;

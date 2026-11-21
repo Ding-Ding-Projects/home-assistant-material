@@ -54,10 +54,13 @@ export const playDetailsOpen = (element: Element | null | undefined) => {
 
 /** Rows, section headings and actions shared by every details panel. */
 export const detailsStyles = css`
+  /* The details are their own size container: the label and the value sit
+     side by side or stacked by the width of the panel, not of the window. */
   .details {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    container: more-details / inline-size;
   }
   .heading {
     margin: var(--ha-space-3) 0 var(--ha-space-1);
@@ -77,7 +80,7 @@ export const detailsStyles = css`
     box-sizing: border-box;
   }
   .label {
-    flex: 0 0 96px;
+    flex: 0 0 104px;
     min-width: 0;
     padding-top: 13px;
     font-size: var(--ha-font-size-s, 12px);
@@ -156,9 +159,25 @@ export const detailsStyles = css`
     flex: none;
     --mdc-icon-size: 18px;
   }
-  @media (min-width: 600px) {
+  @container more-details (min-width: 520px) {
     .label {
       flex-basis: 168px;
+    }
+  }
+  /* A narrow panel (a quick bar row, a card) puts the label above its
+     value, so the value keeps the full width and never breaks a letter at
+     a time. */
+  @container more-details (max-width: 279px) {
+    .row {
+      flex-wrap: wrap;
+      row-gap: 0;
+    }
+    .label {
+      flex: 1 0 100%;
+      padding-top: var(--ha-space-2);
+    }
+    .value {
+      padding-top: 0;
     }
   }
 `;

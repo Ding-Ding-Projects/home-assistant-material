@@ -1696,6 +1696,8 @@
             "create_title": "建立輔助項目",
             "see_all_kinds": "睇晒全部 {count} 種",
             "see_all_kinds_unknown": "睇晒全部種類",
+            "show_common_kinds": "顯示常用種類",
+            "hide_common_kinds": "收埋常用種類",
             "kinds": {
               "input_boolean": "一個由你控制嘅開關",
               "counter": "向上同向下數",

@@ -2,6 +2,8 @@ import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
   mdiAlertCircle,
   mdiCancel,
+  mdiChevronDown,
+  mdiChevronUp,
   mdiCog,
   mdiContentDuplicate,
   mdiCounter,
@@ -67,6 +69,7 @@ import {
   entityRowDetailsRenderer,
 } from "../../../components/entity/entity-row-details";
 import "../../../components/ha-button";
+import "../../../components/ha-icon-button";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
@@ -295,6 +298,9 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
     subscribe: false,
   })
   private _activeHiddenColumns?: string[];
+
+  // On a phone the create card rests on one line; its kinds open on a press.
+  @state() private _createOpen = false;
 
   @state() private _helperEntities?: HassEntity[];
 
@@ -997,7 +1003,27 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
       <h2 id="create-card-title">
         ${this._modeLocalize("ui.panel.config.helpers.picker.create_title")}
       </h2>
-      <ul class="kinds">
+      ${
+        this.narrow
+          ? html`<ha-icon-button
+              class="kinds-toggle"
+              .path=${this._createOpen ? mdiChevronUp : mdiChevronDown}
+              .label=${this._modeLocalize(
+                this._createOpen
+                  ? "ui.panel.config.helpers.picker.hide_common_kinds"
+                  : "ui.panel.config.helpers.picker.show_common_kinds"
+              )}
+              aria-expanded=${this._createOpen ? "true" : "false"}
+              aria-controls="create-card-kinds"
+              @click=${this._toggleCreateKinds}
+            ></ha-icon-button>`
+          : nothing
+      }
+      <ul
+        class="kinds"
+        id="create-card-kinds"
+        ?hidden=${this.narrow && !this._createOpen}
+      >
         ${kinds.map(
           (kind) =>
             html`<li>
@@ -1759,6 +1785,10 @@ ${rejected
     });
   }
 
+  private _toggleCreateKinds() {
+    this._createOpen = !this._createOpen;
+  }
+
   private _createHelper() {
     showHelperDetailDialog(this, {});
   }
@@ -1990,8 +2020,12 @@ ${rejected
           font-size: var(--ha-font-size-m);
           overflow-wrap: anywhere;
         }
-        hass-tabs-subpage-data-table.narrow .create-card ha-button {
+        hass-tabs-subpage-data-table.narrow .create-card ha-button,
+        hass-tabs-subpage-data-table.narrow .create-card .kinds-toggle {
           flex: none;
+        }
+        .kinds[hidden] {
+          display: none !important;
         }
         hass-tabs-subpage-data-table.narrow .kinds {
           order: 1;

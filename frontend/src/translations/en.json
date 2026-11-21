@@ -12662,6 +12662,8 @@
             "create_title": "Create a helper",
             "see_all_kinds": "See all {count} kinds",
             "see_all_kinds_unknown": "See all kinds",
+            "show_common_kinds": "Show common kinds",
+            "hide_common_kinds": "Hide common kinds",
             "kinds": {
               "input_boolean": "An on or off you control",
               "counter": "Counts up and down",

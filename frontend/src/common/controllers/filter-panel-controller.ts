@@ -27,6 +27,9 @@ export const filterPanelStyles = css`
   :host([expanded]) {
     flex: 1;
     height: 0;
+    /* An open filter keeps room for its search field and a useful part of
+       its list on a short screen; the pane around it scrolls instead. */
+    min-height: min(360px, 70dvh);
   }
   ha-expansion-panel {
     flex: none;
@@ -40,6 +43,10 @@ export const filterPanelStyles = css`
     flex-direction: column;
     flex: 1;
     min-height: 0;
+  }
+  /* The list under the search field never shrinks to a sliver. */
+  .content :is(ha-list, ha-list-selectable, ha-list-selectable-virtualized) {
+    min-height: 160px;
   }
 `;
 

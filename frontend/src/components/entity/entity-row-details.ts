@@ -4,6 +4,7 @@ import type {
   DataTableRowData,
 } from "../data-table/ha-data-table";
 import type { HomeAssistant } from "../../types";
+import "./ha-entity-quick-controls";
 import "./ha-entity-quick-row-actions";
 
 /**
@@ -47,19 +48,44 @@ export const entityQuickActionsColumn = <T>(
  * "Show more details" panel that opens in place everywhere else. The element
  * is loaded by `ha-entity-quick-row-actions` before the row opens. Pages call
  * this once per `hass` (through memoizeOne), so open details stay current.
+ *
+ * With `controls` (a phone list, whose row keeps only its main control and
+ * the details button) the details start with the rest of the entity's
+ * controls: its slider, its colour button and "Run a quick action".
  */
 export const entityRowDetailsRenderer =
   (
     hass: HomeAssistant,
     entityIdOf: (row: DataTableRowData) => string | undefined = (row) =>
-      row.entity_id
+      row.entity_id,
+    controls = false
   ) =>
   (row: DataTableRowData) => {
     const entityId = entityIdOf(row);
-    return entityId
-      ? html`<ha-entity-more-details
+    if (!entityId) {
+      return nothing;
+    }
+    const details = html`<ha-entity-more-details
+      .hass=${hass}
+      .entityId=${entityId}
+    ></ha-entity-more-details>`;
+    if (!controls || !hass.states[entityId]) {
+      return details;
+    }
+    return html`<div
+        style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-block: 4px 8px"
+      >
+        <ha-entity-quick-controls
+          section="level"
+          style="flex: 1 1 200px; min-width: 0"
           .hass=${hass}
           .entityId=${entityId}
-        ></ha-entity-more-details>`
-      : nothing;
+        ></ha-entity-quick-controls>
+        <ha-entity-quick-row-actions
+          buttons="action"
+          .hass=${hass}
+          .entityId=${entityId}
+        ></ha-entity-quick-row-actions>
+      </div>
+      ${details}`;
   };

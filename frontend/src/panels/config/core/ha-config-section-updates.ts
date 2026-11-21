@@ -35,6 +35,7 @@ import { withLanguageMode } from "../../../common/language-mode/language-mode";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { navigate } from "../../../common/navigate";
 import "../../../components/animation/ha-fade-in";
+import "../../../components/entity/ha-more-details-facts";
 import "../../../components/entity/state-badge";
 import "../../../components/ha-alert";
 import { installUpdatesTracked } from "../../../components/update-progress/update-install-tracker";
@@ -76,6 +77,7 @@ import {
   reloadSupervisor,
   setSupervisorOption,
 } from "../../../data/hassio/supervisor";
+import { updateFacts } from "../../../data/entity-details";
 import type { UpdateEntity } from "../../../data/update";
 import {
   checkForEntityUpdates,
@@ -931,6 +933,10 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
               </div>`
             : nothing
         }
+        <ha-more-details-facts
+          class="row-facts"
+          .facts=${updateFacts(entity)}
+        ></ha-more-details-facts>
         ${
           view
             ? html`<ha-update-progress-block
@@ -2147,6 +2153,12 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         gap: var(--ha-space-2);
         padding: var(--ha-space-2) var(--ha-space-1);
         border-top: 1px solid var(--divider-color);
+      }
+      /* "Show more details" under the row, as wide as the row. */
+      .row-facts {
+        flex: 1 1 100%;
+        min-width: 0;
+        padding-bottom: var(--ha-space-1);
       }
       .row-detail-actions {
         display: flex;

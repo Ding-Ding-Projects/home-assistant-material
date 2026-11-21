@@ -401,14 +401,17 @@ export class HaConfigEntities extends LitElement {
   }
 
   // Opens an entity's details in the row right under it.
-  private _rowDetails = memoize((hass: HomeAssistant) =>
-    entityRowDetailsRenderer(hass)
+  // On a phone the details also hold the controls that do not fit in the
+  // row: the slider, the colour button and "Run a quick action".
+  private _rowDetails = memoize((hass: HomeAssistant, narrow: boolean) =>
+    entityRowDetailsRenderer(hass, undefined, narrow)
   );
 
   private _columns = memoize(
     (
       localize: LocalizeFunc,
-      entitiesToCheck?: any[]
+      entitiesToCheck?: any[],
+      narrow = false
     ): DataTableColumnContainer<EntityRow> => ({
       icon: {
         title: "",
@@ -456,13 +459,21 @@ export class HaConfigEntities extends LitElement {
       quick_control: {
         title: localize("ui.components.quick_control.column"),
         sortable: false,
-        // On a phone it stays at the end of the row, beside the name.
+        // On a phone the row keeps only the main control (a switch, a press
+        // button, a stepper or an option list) and the details button; the
+        // slider, the colour button and "Run a quick action" open in the
+        // details under the row. On a phone too narrow for the name and the
+        // control side by side, they move to a line under the name.
         showNarrow: true,
-        minWidth: "200px",
+        narrowWrap: true,
+        // On a wide page the column is only as wide as its controls; the
+        // name keeps the rest of the row.
+        minWidth: narrow ? undefined : "196px",
+        maxWidth: narrow ? undefined : "236px",
         template: (entry) =>
           this.hass.states[entry.entity_id]
             ? html`<div
-                style="display: flex; align-items: center; gap: 4px; min-width: 0"
+                style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; min-width: 0"
               >
                 <ha-entity-quick-controls
                   compact
@@ -474,6 +485,7 @@ export class HaConfigEntities extends LitElement {
                 <ha-entity-quick-row-actions
                   compact
                   details="row"
+                  buttons=${this.narrow ? "details" : "both"}
                   .hass=${this.hass}
                   .entityId=${entry.entity_id}
                 ></ha-entity-quick-row-actions>
@@ -1037,7 +1049,11 @@ export class HaConfigEntities extends LitElement {
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.devices}
-        .columns=${this._columns(this._modeLocalize, filteredEntities)}
+        .columns=${this._columns(
+          this._modeLocalize,
+          filteredEntities,
+          this.narrow
+        )}
         .data=${filteredEntities}
         .searchLabel=${this._modeLocalize(
           "ui.panel.config.entities.picker.search",
@@ -1108,7 +1124,7 @@ export class HaConfigEntities extends LitElement {
         @row-click=${this._openEditEntry}
         id="entity_id"
         entity-rows
-        .renderRowDetails=${this._rowDetails(this.hass)}
+        .renderRowDetails=${this._rowDetails(this.hass, this.narrow)}
         .hasFab=${includeAddDeviceFab}
         class=${this.narrow ? "narrow" : ""}
       >

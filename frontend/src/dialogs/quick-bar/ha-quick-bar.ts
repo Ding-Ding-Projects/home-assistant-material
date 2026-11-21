@@ -32,6 +32,8 @@ import {
 import { fireEvent } from "../../common/dom/fire_event";
 import { ctrlOrCmdLabel } from "../../common/keyboard/ctrl-or-cmd";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
+import { mainWindow } from "../../common/dom/get_main_window";
+import { isOwnEvent } from "../../common/dom/is-own-event";
 import { navigate } from "../../common/navigate";
 import { caseInsensitiveStringCompare } from "../../common/string/compare";
 import "../../components/entity/ha-entity-quick-controls";
@@ -226,6 +228,9 @@ export class QuickBar extends LitElement {
 
   private _itemSelected = false;
 
+  // The page the quick bar was opened on.
+  private _openedPath?: string;
+
   // Command that is being run after it was picked, shown with a spinner.
   @state() private _runningCommandId?: string;
 
@@ -276,6 +281,10 @@ export class QuickBar extends LitElement {
       this._memory = memory;
     });
 
+    this._openedPath = mainWindow.location.pathname;
+    mainWindow.removeEventListener("location-changed", this._locationChanged);
+    mainWindow.addEventListener("location-changed", this._locationChanged);
+
     this._open = true;
   }
 
@@ -324,7 +333,23 @@ export class QuickBar extends LitElement {
     }
   }
 
-  private _dialogOpened = async () => {
+  // Below, the quick bar reacts only to its own dialog's show and close
+  // events (isOwnEvent), never to the same events bubbling up from an
+  // overlay opened inside a row (a slider's tooltip, the colour picker, the
+  // details sheet).
+
+  // Leaving the page (a result that opens an editor, "Keep as a script")
+  // closes the quick bar, so it never stays open over the new page.
+  private _locationChanged = () => {
+    if (this._open && mainWindow.location.pathname !== this._openedPath) {
+      this.closeDialog();
+    }
+  };
+
+  private _dialogOpened = async (ev: Event) => {
+    if (!isOwnEvent(ev)) {
+      return;
+    }
     this._opened = true;
     requestAnimationFrame(() => {
       if (this.hass && isIosApp(this.hass.auth.external)) {
@@ -345,7 +370,10 @@ export class QuickBar extends LitElement {
   };
 
   // be sure to reload ha-picker-combo-box when adaptive-dialog mode changes
-  private _showTriggered = () => {
+  private _showTriggered = (ev: Event) => {
+    if (!isOwnEvent(ev)) {
+      return;
+    }
     this._opened = false;
   };
 
@@ -354,7 +382,11 @@ export class QuickBar extends LitElement {
     return true;
   }
 
-  private _dialogClosed = () => {
+  private _dialogClosed = (ev: Event) => {
+    if (!isOwnEvent(ev)) {
+      return;
+    }
+    mainWindow.removeEventListener("location-changed", this._locationChanged);
     stopTypeAhead();
     this._selectedSection = undefined;
     this._opened = false;
@@ -677,6 +709,8 @@ export class QuickBar extends LitElement {
       <ha-combo-box-item
         style=${styleMap({
           "--mdc-icon-size": "24px",
+          // The controls under the name start where the name starts.
+          "--ha-combo-box-item-below-indent": "48px",
           backgroundColor: running
             ? "var(--ha-color-fill-primary-normal-resting)"
             : undefined,
@@ -785,7 +819,7 @@ export class QuickBar extends LitElement {
             ? html`
                 <div
                   slot="trailing-supporting-text"
-                  class="domain"
+                  class=${"stateObj" in item ? "domain hide-narrow" : "domain"}
                   style="align-self: center;"
                 >
                   ${(item as EntityComboBoxItem).domain_name}
@@ -795,9 +829,14 @@ export class QuickBar extends LitElement {
         }
         ${
           "stateObj" in item && item.stateObj
-            ? html`<div slot="supporting-text" class="quick-extra">
+            ? html`<div
+                slot="below"
+                class="quick-extra"
+                style="display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; min-width: 0; white-space: normal; padding: 0 4px 4px"
+              >
                 <ha-entity-quick-controls
                   section="level"
+                  style="flex: 1 1 200px; min-width: 0"
                   .hass=${this.hass}
                   .entityId=${item.stateObj.entity_id}
                 ></ha-entity-quick-controls>
@@ -1637,14 +1676,17 @@ export class QuickBar extends LitElement {
           white-space: nowrap;
         }
 
-        /* The slider, colour button and the two row buttons under the name. */
+        /* The slider, colour button and the two row buttons on a line of
+           their own under the name, as wide as the row. */
         .quick-extra {
           display: flex;
-          flex-direction: column;
+          flex-wrap: wrap;
+          align-items: center;
+          column-gap: var(--ha-space-2);
           min-width: 0;
           white-space: normal;
-          /* Room for focus rings inside the row's clipped text column. */
-          padding: var(--ha-space-1) var(--ha-space-1) var(--ha-space-2);
+          /* Room for focus rings inside the row. */
+          padding: 0 var(--ha-space-1) var(--ha-space-1);
         }
 
         @media all and (max-width: 450px), all and (max-height: 690px) {
