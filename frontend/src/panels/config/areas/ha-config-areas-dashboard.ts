@@ -68,6 +68,8 @@ import {
 } from "./room-wizard/show-dialog-room-wizard";
 
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import "../../../components/entity/ha-more-details-facts";
+import { listFacts } from "../../../data/entity-details";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 
 const UNASSIGNED_FLOOR = "__unassigned__";
@@ -301,6 +303,16 @@ export class HaConfigAreasDashboard extends LitElement {
                       </ha-dropdown>
                     </div>
                   </div>
+                  <ha-more-details-facts
+                    class="floor-facts"
+                    .facts=${listFacts([
+                      ["floor_id", floor.floor_id],
+                      ["name", floor.name, "text"],
+                      ["level", floor.level],
+                      ["icon", floor.icon],
+                      ["aliases", floor.aliases, "text"],
+                    ])}
+                  ></ha-more-details-facts>
                   <ha-sortable
                     handle-selector="a"
                     draggable-selector="a"
@@ -763,6 +775,9 @@ export class HaConfigAreasDashboard extends LitElement {
       align-items: center;
       justify-content: space-between;
       padding-inline-start: var(--ha-space-1);
+    }
+    .floor-facts {
+      margin: 0 var(--ha-space-1) var(--ha-space-3);
     }
     .header h2 {
       display: flex;

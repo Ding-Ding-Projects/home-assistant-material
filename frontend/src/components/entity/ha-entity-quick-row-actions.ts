@@ -2,10 +2,13 @@ import { mdiChevronDown, mdiLightningBolt } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { consume } from "../../common/decorators/consume";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { quickControlFor } from "../../data/quick-control";
 import { showQuickActionDialog } from "../../dialogs/quick-action/show-dialog-quick-action";
 import type { HomeAssistant } from "../../types";
+import type { RowDetailsControl } from "../data-table/row-details";
+import { rowDetailsContext } from "../data-table/row-details";
 import "../ha-adaptive-dialog";
 import "../ha-svg-icon";
 
@@ -15,8 +18,10 @@ let detailsId = 0;
 
 /**
  * The two small buttons under an entity's name: "Run a quick action" and
- * "Show more details". The details open in place under the buttons, or in a
- * sheet where the row has no room to grow (`details="dialog"`, for tables).
+ * "Show more details". The details open in place under the buttons, in a
+ * sheet (`details="dialog"`), or in the table's detail row right under the
+ * row (`details="row"`, for tables that set `renderRowDetails`; a table
+ * without one falls back to the sheet).
  */
 @customElement("ha-entity-quick-row-actions")
 export class HaEntityQuickRowActions extends LitElement {
@@ -24,8 +29,15 @@ export class HaEntityQuickRowActions extends LitElement {
 
   @property({ attribute: false }) public entityId?: string;
 
-  /** Where "Show more details" opens: under the buttons or in a sheet. */
-  @property() public details: "inline" | "dialog" = "inline";
+  /** Where "Show more details" opens: under the buttons, a sheet or a table row. */
+  @property() public details: "inline" | "dialog" | "row" = "inline";
+
+  /** The table row whose details open, when it is not the entity id. */
+  @property({ attribute: false }) public rowId?: string;
+
+  @state()
+  @consume({ context: rowDetailsContext, subscribe: true })
+  private _rowDetails?: RowDetailsControl;
 
   /** Icon-only buttons on one line, for table rows. */
   @property({ type: Boolean, reflect: true }) public compact = false;
@@ -75,7 +87,12 @@ export class HaEntityQuickRowActions extends LitElement {
     // Read-only things report a value only: there is nothing to run.
     const canAct = !!stateObj && quickControlFor(stateObj).kind !== "value";
     const name = stateObj ? this.hass.formatEntityName(stateObj) : "";
+    // Inside a table with detail rows, the details open in the row below.
+    const inRow = this.details === "row" && !!this._rowDetails;
     const inline = this.details === "inline";
+    const expanded = inRow
+      ? this._rowDetails!.open.has(this._detailsRowId)
+      : this._expanded;
 
     return html`
       <div class="actions">
@@ -101,16 +118,16 @@ export class HaEntityQuickRowActions extends LitElement {
         <button
           type="button"
           class="act"
-          aria-expanded=${this._expanded ? "true" : "false"}
+          aria-expanded=${expanded ? "true" : "false"}
           aria-controls=${inline ? this._detailsId : nothing}
-          aria-haspopup=${inline ? nothing : "dialog"}
+          aria-haspopup=${inline || inRow ? nothing : "dialog"}
           aria-label=${this._t(
-            this._expanded ? "less_details_label" : "more_details_label",
+            expanded ? "less_details_label" : "more_details_label",
             { name }
           )}
           title=${
             this.compact
-              ? this._t(this._expanded ? "less_details" : "more_details")
+              ? this._t(expanded ? "less_details" : "more_details")
               : nothing
           }
           @click=${this._toggleDetails}
@@ -119,19 +136,17 @@ export class HaEntityQuickRowActions extends LitElement {
             this.compact
               ? nothing
               : html`<span
-                  >${this._t(
-                    this._expanded ? "less_details" : "more_details"
-                  )}</span
+                  >${this._t(expanded ? "less_details" : "more_details")}</span
                 >`
           }
           <ha-svg-icon
-            class=${this._expanded ? "chevron open" : "chevron"}
+            class=${expanded ? "chevron open" : "chevron"}
             .path=${mdiChevronDown}
           ></ha-svg-icon>
         </button>
       </div>
       ${
-        this._detailsLoaded
+        this._detailsLoaded && !inRow
           ? inline
             ? html`<div
                 id=${this._detailsId}
@@ -170,7 +185,17 @@ export class HaEntityQuickRowActions extends LitElement {
     showQuickActionDialog(this, { entityId: this.entityId });
   }
 
+  private get _detailsRowId(): string {
+    return this.rowId ?? this.entityId ?? "";
+  }
+
   private async _toggleDetails() {
+    if (this.details === "row" && this._rowDetails) {
+      // The table draws the details in its own row under this one.
+      await import("./ha-entity-more-details");
+      this._rowDetails.toggle(this._detailsRowId);
+      return;
+    }
     if (!this._detailsLoaded) {
       // The details are loaded only when someone opens them.
       await import("./ha-entity-more-details");

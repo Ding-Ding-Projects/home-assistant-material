@@ -185,10 +185,13 @@ export class HaMoreDetailsFacts extends LitElement {
   /** Starts open, for pages where the details have a section of their own. */
   @property({ type: Boolean }) public open = false;
 
+  /** Always open, without its own button, where something else opens it. */
+  @property({ type: Boolean, attribute: "no-toggle" }) public noToggle = false;
+
   @state() private _open?: boolean;
 
   private get _isOpen() {
-    return this._open ?? this.open;
+    return this.noToggle || (this._open ?? this.open);
   }
 
   protected render() {
@@ -201,25 +204,33 @@ export class HaMoreDetailsFacts extends LitElement {
       isOpen ? "show_fewer" : "show_more"
     );
     return html`
-      <button
-        type="button"
-        class="details-toggle"
-        aria-expanded=${isOpen ? "true" : "false"}
-        aria-controls="facts"
-        @click=${this._toggle}
-      >
-        ${toggleText}
-        <ha-svg-icon
-          .path=${isOpen ? mdiChevronUp : mdiChevronDown}
-        ></ha-svg-icon>
-      </button>
+      ${
+        this.noToggle
+          ? nothing
+          : html`<button
+              type="button"
+              class="details-toggle"
+              aria-expanded=${isOpen ? "true" : "false"}
+              aria-controls="facts"
+              @click=${this._toggle}
+            >
+              ${toggleText}
+              <ha-svg-icon
+                .path=${isOpen ? mdiChevronUp : mdiChevronDown}
+              ></ha-svg-icon>
+            </button>`
+      }
       ${
         isOpen
           ? html`<div
               class="details"
               id="facts"
               role="region"
-              aria-label=${toggleText}
+              aria-label=${
+                this.noToggle
+                  ? detailsText(this._i18n, "section.facts")
+                  : toggleText
+              }
             >
               ${this.facts.map((item) => this._renderFact(item))}
               <div class="actions">

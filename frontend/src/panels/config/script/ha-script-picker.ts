@@ -56,6 +56,11 @@ import type {
   SelectionChangedEvent,
 } from "../../../components/data-table/ha-data-table";
 import "../../../components/data-table/ha-data-table-labels";
+import { modeText } from "../../../common/language-mode/language-mode";
+import {
+  entityQuickActionsColumn,
+  entityRowDetailsRenderer,
+} from "../../../components/entity/entity-row-details";
 import "../../../components/chips/ha-assist-chip";
 import "../../../components/ha-button";
 import "../../../components/ha-dropdown";
@@ -327,6 +332,11 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
     }
   );
 
+  // Opens a script's details in the row right under it.
+  private _rowDetails = memoizeOne((hass: HomeAssistant) =>
+    entityRowDetailsRenderer(hass)
+  );
+
   private _columns = memoizeOne(
     (
       localize: LocalizeFunc,
@@ -413,6 +423,13 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
                   ${localize("ui.panel.config.script.picker.run")}
                 </ha-button>`,
         },
+        quick_actions: entityQuickActionsColumn<ScriptItem>(
+          modeText(
+            this.hass.localize,
+            "ui.components.quick_control.actions_column"
+          ),
+          this
+        ),
         actions: {
           lastFixed: true,
           title: "",
@@ -595,6 +612,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
         .empty=${!this.scripts.length}
         .activeFilters=${this._activeFilters}
         id="entity_id"
+        .renderRowDetails=${this._rowDetails(this.hass)}
         .noDataText=${this._modeLocalize(
           "ui.panel.config.script.picker.no_scripts"
         )}

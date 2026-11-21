@@ -208,12 +208,10 @@ class HaConfigBackupDetails extends LitElement {
                         ? html`<div
                             style="display:flex;flex-wrap:wrap;gap:var(--ha-space-2)"
                           >
-                            <ha-button
-                              @click=${() => showHostBackupDialog(this, { backup: this._backup!, kind: "docker" })}
+                            <ha-button @click=${this._hostInContainer}
                               >${modeText(this.hass.localize, "ui.panel.config.backup.hosting.container")}</ha-button
                             >
-                            <ha-button
-                              @click=${() => showHostBackupDialog(this, { backup: this._backup!, kind: "appliance" })}
+                            <ha-button @click=${this._hostAsAppliance}
                               >${modeText(this.hass.localize, "ui.panel.config.backup.hosting.appliance")}</ha-button
                             >
                           </div>`
@@ -393,6 +391,14 @@ class HaConfigBackupDetails extends LitElement {
       return;
     }
     this._backup = { ...this._backup, delete_proof: ev.detail.deleteProof };
+  }
+
+  private _hostInContainer() {
+    showHostBackupDialog(this, { backup: this._backup!, kind: "docker" });
+  }
+
+  private _hostAsAppliance() {
+    showHostBackupDialog(this, { backup: this._backup!, kind: "appliance" });
   }
 
   private _selfCheckUpdated(ev: CustomEvent) {

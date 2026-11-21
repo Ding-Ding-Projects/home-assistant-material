@@ -114,6 +114,7 @@ import "../../../layouts/hass-tabs-subpage";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../types";
+import "../../../components/entity/ha-entity-quick-row-actions";
 import { documentationUrl } from "../../../util/documentation-url";
 import { showToast } from "../../../util/toast";
 import { showAreaRegistryDetailDialog } from "../areas/show-dialog-area-registry-detail";
@@ -1272,6 +1273,15 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
           ${this._modeLocalize("ui.panel.config.scene.picker.turn_on")}
         </ha-button>
+        ${
+          this.hass.states[scene.entity_id]
+            ? html`<ha-entity-quick-row-actions
+                class="quick"
+                .hass=${this.hass}
+                .entityId=${scene.entity_id}
+              ></ha-entity-quick-row-actions>`
+            : nothing
+        }
       </div>
     `;
   }
@@ -2079,9 +2089,14 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         }
         .card-top,
         .card-text,
-        .turn-on {
+        .turn-on,
+        .quick {
           position: relative;
           z-index: 1;
+        }
+        /* The details open inside the card, which grows to hold them */
+        .quick {
+          margin-top: calc(-1 * var(--ha-space-2));
         }
         .card-top {
           display: flex;

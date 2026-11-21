@@ -73,6 +73,11 @@ import type { HomeAssistant, Route } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
 import { showToast } from "../../../util/toast";
 import { configSections } from "../config-sections";
+import {
+  factsRowDetails,
+  rowDetailsColumn,
+} from "../../../components/data-table/row-details-column";
+import { listFacts } from "../../../data/entity-details";
 import type {
   BlueprintBulkPlan,
   BulkBlueprintItem,
@@ -258,6 +263,23 @@ class HaBlueprintOverview extends LitElement {
     }
   );
 
+  // The blueprint's facts, in the row right under it.
+  private _rowDetails = factsRowDetails((blueprint) =>
+    listFacts([
+      ["path", blueprint.path],
+      ["domain", blueprint.domain],
+      [
+        "source_url",
+        blueprint.source_url,
+        "link",
+        typeof blueprint.source_url === "string" &&
+        /^https?:\/\//i.test(blueprint.source_url)
+          ? blueprint.source_url
+          : undefined,
+      ],
+    ])
+  );
+
   private _columns = memoizeOne(
     (
       localize: LocalizeFunc,
@@ -365,6 +387,12 @@ class HaBlueprintOverview extends LitElement {
         title: "fullpath",
         hidden: true,
       },
+      details: rowDetailsColumn<BlueprintMetaDataPath>(
+        localize("ui.components.quick_control.details_column"),
+        this,
+        (blueprint) => blueprint.fullpath,
+        (blueprint) => blueprint.name
+      ),
       actions: {
         lastFixed: true,
         title: "",
@@ -499,6 +527,7 @@ class HaBlueprintOverview extends LitElement {
           this._filters
         )}
         id="fullpath"
+        .renderRowDetails=${this._rowDetails}
         .noDataText=${this.hass.localize(
           this._filters.length
             ? "ui.panel.config.blueprint.overview.no_match"

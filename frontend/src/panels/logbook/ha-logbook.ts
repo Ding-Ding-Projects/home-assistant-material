@@ -75,6 +75,10 @@ export class HaLogbook extends LitElement {
   @property({ type: Boolean, attribute: "show-cause" }) public showCause =
     false;
 
+  /** Quick action and details buttons on entries about an entity. */
+  @property({ type: Boolean, attribute: "quick-actions" })
+  public quickActions = false;
+
   // How much naming detail an entity row shows; `none` also hides the name when
   // the surface already implies the subject.
   @property({ type: String, attribute: "name-detail" })
@@ -156,6 +160,7 @@ export class HaLogbook extends LitElement {
         .noIcon=${this.noIcon}
         .graphColor=${this.graphColor}
         .showCause=${this.showCause}
+        .quickActions=${this.quickActions}
         .nameDetail=${this.nameDetail}
         .entries=${this._limitEntries(entries, this.maxEntries)}
         .traceContexts=${this._traceContexts}

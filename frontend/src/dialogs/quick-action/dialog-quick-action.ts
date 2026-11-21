@@ -6,9 +6,13 @@ import {
   mdiDotsVertical,
   mdiPlay,
   mdiPlus,
+  mdiStop,
 } from "@mdi/js";
 import { dump } from "js-yaml";
-import type { HassServiceTarget } from "home-assistant-js-websocket";
+import type {
+  HassServiceTarget,
+  UnsubscribeFunc,
+} from "home-assistant-js-websocket";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import {
@@ -47,23 +51,32 @@ import type { HaYamlEditor } from "../../components/ha-yaml-editor";
 import { computeServiceLabel } from "../../data/compute-service-info";
 import type {
   QuickActionProblem,
+  QuickActionRun,
+  QuickRunState,
   QuickServiceStep,
   QuickStep,
 } from "../../data/quick-action";
 import {
+  canTrackQuickActions,
   delaySeconds,
   duplicateStep,
   firstStepFor,
   isRiskySequence,
   moveStep,
+  QuickActionStopped,
   RISKY_ACTION_DOMAINS,
   removeStep,
+  runQuickAction,
+  runStateFromServer,
   secondsToParts,
   sequenceToSteps,
+  sleepUnlessStopped,
   stepDomain,
   stepEntityId,
   stepsAreComplete,
   stepsToSequence,
+  stopQuickAction,
+  subscribeQuickActions,
   validateSequence,
   waitStep,
 } from "../../data/quick-action";
@@ -74,15 +87,10 @@ import { callExecuteScript } from "../../data/service";
 import type { HomeAssistant } from "../../types";
 import { showConfirmationDialog } from "../generic/show-dialog-box";
 import type { HassDialog } from "../make-dialog-manager";
+import "./ha-quick-action-runs";
 import type { QuickActionDialogParams } from "./show-dialog-quick-action";
 
 type QuickTab = "guided" | "yaml";
-
-type RunState =
-  | { phase: "idle" }
-  | { phase: "running"; step?: number; total?: number; waiting?: boolean }
-  | { phase: "done" }
-  | { phase: "failed"; reason: string; step?: number };
 
 interface QuickActionDraft {
   tab: QuickTab;
@@ -97,11 +105,6 @@ interface QuickActionDraft {
 const DRAFTS = new Map<string, QuickActionDraft>();
 
 const PREFIX = "ui.dialogs.quick_action";
-
-const sleep = (ms: number) =>
-  new Promise<void>((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
 
 const errorText = (err: unknown): string => {
   if (err && typeof err === "object" && "message" in err) {
@@ -135,7 +138,25 @@ export class DialogQuickAction
 
   @state() private _problem?: { problem: QuickActionProblem; step?: number };
 
-  @state() private _run: RunState = { phase: "idle" };
+  @state() private _run: QuickRunState = { phase: "idle" };
+
+  /** The server run this dialog started and follows, if any. */
+  @state() private _serverRunId?: string;
+
+  @state() private _stopping = false;
+
+  private _serverRuns: QuickActionRun[] = [];
+
+  private _serverUnsub?: Promise<UnsubscribeFunc>;
+
+  /** Settles the promise of a server run once the server reports its end. */
+  private _serverWaiter?: {
+    resolve: () => void;
+    reject: (err: Error) => void;
+  };
+
+  /** Stops a run from the page between steps or during a wait. */
+  private _pageAbort?: AbortController;
 
   @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
 
@@ -179,6 +200,13 @@ export class DialogQuickAction
         firstStepFor(params.entityId, stateObj?.state, this.hass.services),
       ]);
     }
+    this._serverRunId = undefined;
+    this._stopping = false;
+    if (canTrackQuickActions(this.hass) && !this._serverUnsub) {
+      this._serverUnsub = subscribeQuickActions(this.hass, (runs) =>
+        this._serverRunsChanged(runs)
+      );
+    }
     this._open = true;
   }
 
@@ -189,6 +217,15 @@ export class DialogQuickAction
 
   private _dialogClosed(): void {
     this._saveDraft();
+    // A server run keeps going on the server; this dialog only stops
+    // following it. It stays listed under "Running quick actions".
+    this._serverUnsub?.then((unsub) => unsub()).catch(() => undefined);
+    this._serverUnsub = undefined;
+    this._serverRunId = undefined;
+    this._open = false;
+    const waiter = this._serverWaiter;
+    this._serverWaiter = undefined;
+    waiter?.resolve();
     this._params = undefined;
     fireEvent(this, "dialog-closed", { dialog: this.localName });
   }
@@ -415,17 +452,105 @@ export class DialogQuickAction
     }
     try {
       await run;
-      this._run = { phase: "done" };
-      DRAFTS.delete(this._key);
+      if (!this._open) {
+        return;
+      }
+      if (this._run.phase === "running") {
+        this._run = { phase: "done" };
+      }
+      if (this._run.phase === "done") {
+        DRAFTS.delete(this._key);
+      }
     } catch (err) {
+      if (!this._open) {
+        return;
+      }
+      if (err instanceof QuickActionStopped) {
+        this._run = { phase: "stopped" };
+        return;
+      }
       const step = (err as { quickStep?: number }).quickStep;
       this._run = { phase: "failed", reason: errorText(err), step };
+    } finally {
+      this._stopping = false;
+      this._pageAbort = undefined;
     }
   }
 
   private async _runOnServer(sequence: unknown[]) {
-    this._run = { phase: "running" };
-    await callExecuteScript(this.hass, sequence as Action[]);
+    this._run = { phase: "running", total: sequence.length };
+    if (!canTrackQuickActions(this.hass)) {
+      // An older server without quick action tracking: run it the old way,
+      // which cannot be listed or stopped.
+      await callExecuteScript(this.hass, sequence as Action[]);
+      return;
+    }
+    const entityId = this._params?.entityId;
+    const ended = new Promise<void>((resolve, reject) => {
+      this._serverWaiter = { resolve, reject };
+    });
+    let id: string;
+    try {
+      ({ id } = await runQuickAction(this.hass, sequence, {
+        entityId,
+        label: entityId ? this._entityName(entityId) : this._t("title"),
+      }));
+    } catch (err) {
+      this._serverWaiter = undefined;
+      throw err;
+    }
+    this._serverRunId = id;
+    // The list may already hold the run, for example when it ended at once.
+    this._serverRunsChanged(this._serverRuns);
+    await ended;
+  }
+
+  /** Follow the run this dialog started and settle it when it ends. */
+  private _serverRunsChanged(runs: QuickActionRun[]) {
+    this._serverRuns = runs;
+    const runId = this._serverRunId;
+    if (!runId || !this._serverWaiter) {
+      return;
+    }
+    const run = runs.find((item) => item.id === runId);
+    if (!run) {
+      return;
+    }
+    const next = runStateFromServer(run);
+    this._run = next;
+    if (next.phase === "running" || next.phase === "idle") {
+      return;
+    }
+    const waiter = this._serverWaiter;
+    this._serverWaiter = undefined;
+    if (next.phase === "done") {
+      waiter.resolve();
+    } else if (next.phase === "stopped") {
+      waiter.reject(new QuickActionStopped());
+    } else {
+      waiter.reject(new Error(next.reason));
+    }
+  }
+
+  private async _stopClicked() {
+    if (this._run.phase !== "running" || this._stopping) {
+      return;
+    }
+    this._stopping = true;
+    if (this._pageAbort) {
+      this._pageAbort.abort();
+      return;
+    }
+    if (!this._serverRunId) {
+      this._stopping = false;
+      return;
+    }
+    try {
+      await stopQuickAction(this.hass, this._serverRunId);
+    } catch (err) {
+      this._stopping = false;
+      this._run = { phase: "failed", reason: errorText(err) };
+    }
   }
 
   /**
@@ -435,7 +560,12 @@ export class DialogQuickAction
    */
   private async _runFromPage(steps: QuickStep[]) {
     const total = steps.length;
+    const abort = new AbortController();
+    this._pageAbort = abort;
     for (let index = 0; index < total; index++) {
+      if (abort.signal.aborted) {
+        throw new QuickActionStopped();
+      }
       const step = steps[index];
       this._run = {
         phase: "running",
@@ -446,7 +576,9 @@ export class DialogQuickAction
       try {
         if (step.kind === "wait") {
           // eslint-disable-next-line no-await-in-loop
-          await sleep(step.seconds * 1000);
+          if (!(await sleepUnlessStopped(step.seconds * 1000, abort.signal))) {
+            throw new QuickActionStopped();
+          }
         } else {
           const [domain, service] = step.action.split(".", 2);
           // eslint-disable-next-line no-await-in-loop
@@ -459,6 +591,9 @@ export class DialogQuickAction
           );
         }
       } catch (err) {
+        if (err instanceof QuickActionStopped) {
+          throw err;
+        }
         throw Object.assign(new Error(errorText(err)), {
           quickStep: index + 1,
         });
@@ -681,7 +816,18 @@ export class DialogQuickAction
                 })
               : this._t("running")
           }
+          ${
+            run.now
+              ? html`<span class="now"
+                  >${this._t("runs.now", { step: run.now })}</span
+                >`
+              : nothing
+          }
         </p>`;
+      case "stopped":
+        return html`<ha-alert alert-type="warning" role="status"
+          >${this._t("stopped")}</ha-alert
+        >`;
       case "done":
         return html`<ha-alert alert-type="success" role="status"
           >${this._t("done")}</ha-alert
@@ -713,7 +859,11 @@ export class DialogQuickAction
       ? this._t("subtitle_entity", { name: this._entityName(entityId) })
       : this._t("subtitle");
     const admin = this._isAdmin;
+    const tracked = canTrackQuickActions(this.hass);
     const tab = admin ? this._tab : "guided";
+    const canStop =
+      this._run.phase === "running" &&
+      (!!this._pageAbort || !!this._serverRunId);
     return html`
       <ha-adaptive-dialog
         .open=${this._open}
@@ -747,13 +897,22 @@ export class DialogQuickAction
               </div>`
             : nothing
         }
+        ${
+          tracked
+            ? html`<ha-quick-action-runs
+                .hass=${this.hass}
+              ></ha-quick-action-runs>`
+            : nothing
+        }
         <div class="body" role=${admin ? "tabpanel" : nothing}>
           ${tab === "yaml" ? this._renderYaml() : this._renderGuided()}
         </div>
         ${this._renderStatus()}
         <ha-dialog-footer slot="footer">
           <p class="note" slot="secondaryAction">
-            ${this._t(admin ? "note_server" : "note_page")}
+            ${this._t(
+              tracked ? "note_tracked" : admin ? "note_server" : "note_page"
+            )}
           </p>
           ${
             admin
@@ -768,6 +927,19 @@ export class DialogQuickAction
                   @click=${this._keepAsScript}
                 >
                   ${this._t("keep_as_script")}
+                </ha-button>`
+              : nothing
+          }
+          ${
+            canStop
+              ? html`<ha-button
+                  slot="primaryAction"
+                  appearance="outlined"
+                  .disabled=${this._stopping}
+                  @click=${this._stopClicked}
+                >
+                  <ha-svg-icon slot="start" .path=${mdiStop}></ha-svg-icon>
+                  ${this._stopping ? this._t("runs.stopping") : this._t("runs.stop")}
                 </ha-button>`
               : nothing
           }
@@ -874,6 +1046,11 @@ export class DialogQuickAction
     .status {
       margin: var(--ha-space-3) 0 0;
       color: var(--secondary-text-color);
+    }
+    .now {
+      display: block;
+      font-size: var(--ha-font-size-s);
+      overflow-wrap: anywhere;
     }
     .note {
       margin: 0;

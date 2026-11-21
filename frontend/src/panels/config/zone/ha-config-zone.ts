@@ -17,6 +17,7 @@ import "../../../components/ha-form/ha-form";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-list";
 import "../../../components/ha-list-item";
+import "../../../components/entity/ha-entity-quick-row-actions";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-tooltip";
 import "../../../components/map/ha-locations-editor";
@@ -217,7 +218,21 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
             : ""
         }
       </ha-list-item>
+      ${this._renderZoneDetails(
+        this._zoneEntityIds[entry.id] ?? `zone.${entry.id}`
+      )}
     `;
+  }
+
+  // "Show more details" for a zone, opening under its row.
+  private _renderZoneDetails(entityId: string) {
+    return this.hass.states[entityId]
+      ? html`<ha-entity-quick-row-actions
+          class="zone-details"
+          .hass=${this.hass}
+          .entityId=${entityId}
+        ></ha-entity-quick-row-actions>`
+      : nothing;
   }
 
   private _renderStateItem(stateObject: HassEntity) {
@@ -280,6 +295,7 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
                 </ha-tooltip>`
         }
       </ha-list-item>
+      ${this._renderZoneDetails(stateObject.entity_id)}
     `;
   }
 
@@ -1204,6 +1220,10 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
     hass-loading-screen {
       --app-header-background-color: var(--sidebar-background-color);
       --app-header-text-color: var(--sidebar-text-color);
+    }
+    .zone-details {
+      padding-block: 0 var(--ha-space-2);
+      padding-inline: calc(var(--ha-space-4) + 56px) var(--ha-space-4);
     }
     ha-list-item {
       --mdc-list-item-meta-size: 48px;

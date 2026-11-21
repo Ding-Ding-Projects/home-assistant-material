@@ -44,6 +44,9 @@ import {
 } from "./show-dialog-person-detail";
 
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import { stopPropagation } from "../../../common/dom/stop_propagation";
+import "../../../components/entity/ha-more-details-facts";
+import { listFacts } from "../../../data/entity-details";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 
 const AVATAR_TONES = 4;
@@ -273,6 +276,16 @@ export class HaConfigPerson extends LitElement {
             )}
           </span>
           ${trackers ? html`<span class="chip">${trackers}</span>` : nothing}
+        </div>
+        <div class="facts" @click=${stopPropagation}>
+          <ha-more-details-facts
+            .facts=${listFacts([
+              ["id", person.id],
+              ["name", person.name, "text"],
+              ["user_id", person.user_id],
+              ["device_trackers", person.device_trackers],
+            ])}
+          ></ha-more-details-facts>
         </div>
       </ha-card>
     `;
@@ -520,6 +533,11 @@ export class HaConfigPerson extends LitElement {
       }
       .where {
         color: var(--secondary-text-color);
+      }
+      .facts {
+        margin-top: var(--ha-space-2);
+        min-width: 0;
+        cursor: auto;
       }
       .chips {
         display: flex;

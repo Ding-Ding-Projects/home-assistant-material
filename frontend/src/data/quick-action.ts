@@ -1,6 +1,11 @@
-import type { HassServiceTarget } from "home-assistant-js-websocket";
+import type {
+  HassServiceTarget,
+  UnsubscribeFunc,
+} from "home-assistant-js-websocket";
 import { ensureArray } from "../common/array/ensure-array";
+import { isComponentLoaded } from "../common/config/is_component_loaded";
 import { isValidEntityId } from "../common/entity/valid_entity_id";
+import type { HomeAssistant } from "../types";
 
 /**
  * A quick action is a short sequence that runs once and is then thrown away.
@@ -516,3 +521,135 @@ export const duplicateStep = (
 
 export const removeStep = <T>(steps: T[], index: number): T[] =>
   steps.filter((_step, position) => position !== index);
+
+/**
+ * Where the dialog shows a run: before it starts, while it runs, and how it
+ * ended. `now` is the server's description of the action it is on; the server
+ * reports no step number, so `step` is only set for runs from the page.
+ */
+export type QuickRunState =
+  | { phase: "idle" }
+  | {
+      phase: "running";
+      step?: number;
+      total?: number;
+      waiting?: boolean;
+      now?: string;
+    }
+  | { phase: "done" }
+  | { phase: "stopped" }
+  | { phase: "failed"; reason: string; step?: number };
+
+export type QuickActionRunStatus =
+  "running" | "finished" | "failed" | "stopped";
+
+/** A quick action the server runs, as `quick_action/list` reports it. */
+export interface QuickActionRun {
+  id: string;
+  label: string;
+  entity_id: string | null;
+  user_id: string | null;
+  started: string;
+  ended: string | null;
+  state: QuickActionRunStatus;
+  total_steps: number;
+  current_step: string | null;
+  error: string | null;
+}
+
+/** The server keeps labels to this length. */
+export const QUICK_ACTION_LABEL_LENGTH = 100;
+
+/** The label sent with a run, cut to the length the server accepts. */
+export const runLabel = (name: string | undefined): string =>
+  (name ?? "").trim().slice(0, QUICK_ACTION_LABEL_LENGTH);
+
+/** The dialog's view of a server run; idle while the run is not listed yet. */
+export const runStateFromServer = (
+  run: QuickActionRun | undefined
+): QuickRunState => {
+  if (!run) {
+    return { phase: "idle" };
+  }
+  switch (run.state) {
+    case "running":
+      return {
+        phase: "running",
+        total: run.total_steps,
+        now: run.current_step ?? undefined,
+      };
+    case "finished":
+      return { phase: "done" };
+    case "stopped":
+      return { phase: "stopped" };
+    case "failed":
+      return { phase: "failed", reason: run.error ?? "" };
+  }
+  return { phase: "idle" };
+};
+
+/** Runs that are still going, oldest first, so a list does not jump. */
+export const activeRuns = (runs: QuickActionRun[]): QuickActionRun[] =>
+  runs
+    .filter((run) => run.state === "running")
+    .sort((a, b) => a.started.localeCompare(b.started));
+
+/** Raised by a run from the page when the person stops it. */
+export class QuickActionStopped extends Error {
+  constructor() {
+    super("stopped");
+    this.name = "QuickActionStopped";
+  }
+}
+
+/**
+ * Wait unless the signal stops it first. Resolves true when the full time
+ * passed and false when it was stopped, so a run can skip what follows.
+ */
+export const sleepUnlessStopped = (
+  ms: number,
+  signal: AbortSignal
+): Promise<boolean> =>
+  new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve(false);
+      return;
+    }
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      resolve(false);
+    };
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve(true);
+    }, ms);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+
+/** Whether this instance can run, list and stop quick actions on the server. */
+export const canTrackQuickActions = (hass: HomeAssistant): boolean =>
+  !!hass.user?.is_admin && isComponentLoaded(hass.config, "quick_action");
+
+export const runQuickAction = (
+  hass: HomeAssistant,
+  sequence: unknown[],
+  options: { entityId?: string; label?: string } = {}
+) =>
+  hass.callWS<{ id: string }>({
+    type: "quick_action/run",
+    sequence,
+    ...(options.entityId ? { entity_id: options.entityId } : {}),
+    label: runLabel(options.label),
+  });
+
+export const stopQuickAction = (hass: HomeAssistant, runId: string) =>
+  hass.callWS<null>({ type: "quick_action/stop", run_id: runId });
+
+export const subscribeQuickActions = (
+  hass: HomeAssistant,
+  onChange: (runs: QuickActionRun[]) => void
+): Promise<UnsubscribeFunc> =>
+  hass.connection.subscribeMessage<{ runs: QuickActionRun[] }>(
+    (message) => onChange(message.runs),
+    { type: "quick_action/subscribe" }
+  );

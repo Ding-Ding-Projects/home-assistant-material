@@ -31,6 +31,8 @@ import "./ha-config-entry-device-row";
 import type { SubEntryData } from "./ha-config-integration-page";
 
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import "../../../components/entity/ha-more-details-facts";
+import { listFacts } from "../../../data/entity-details";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 
 @customElement("ha-config-sub-entry-row")
@@ -202,6 +204,17 @@ class HaConfigSubEntryRow extends LitElement {
           </ha-dropdown-item>
         </ha-dropdown>
       </ha-list-item-base>
+      <ha-more-details-facts
+        class="facts"
+        .facts=${listFacts([
+          ["subentry_id", subEntry.subentry_id],
+          ["subentry_type", subEntry.subentry_type],
+          ["title", subEntry.title, "text"],
+          ["unique_id", subEntry.unique_id],
+          ["entry_id", configEntry.entry_id],
+          ["domain", configEntry.domain],
+        ])}
+      ></ha-more-details-facts>
       ${
         this._expanded
           ? html`
@@ -317,6 +330,10 @@ class HaConfigSubEntryRow extends LitElement {
     }
     .expand-button.expanded {
       transform: rotate(180deg);
+    }
+    .facts {
+      display: block;
+      padding: 0 var(--ha-space-4) var(--ha-space-3);
     }
     .sub-entry-card {
       border: 1px solid var(--divider-color);

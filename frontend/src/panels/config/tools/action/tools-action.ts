@@ -37,6 +37,7 @@ import "../../../../components/ha-service-control";
 import "../../../../components/ha-service-picker";
 import "../../../../components/ha-svg-icon";
 import "../../../../components/ha-yaml-editor";
+import "../../../../dialogs/quick-action/ha-quick-action-runs";
 import type { HaYamlEditor } from "../../../../components/ha-yaml-editor";
 import { forwardHaptic } from "../../../../data/haptics";
 import type { Action, ServiceAction } from "../../../../data/script";
@@ -173,6 +174,7 @@ class HaPanelDevAction extends MatchMinHeightMixin(
     return html`
       <div class="content layout">
         <div class="main-col">
+          <ha-quick-action-runs .hass=${this.hass}></ha-quick-action-runs>
           <ha-card class="run-card">
             <div class="card-header">
               <div class="header-row">

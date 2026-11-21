@@ -1,5 +1,26 @@
 # Handoff
 
+## State at the stop on 20 November 2026
+
+Stopped at 23:45 Toronto time. All work is on `main`; there is no other branch, linked working tree or stash.
+
+**Running:** the owner's instance is on build 536 (moved 20 November, 10:16 Toronto time, after a browser check). Builds 537 and 538 are published and unchecked. A build of the later source may or may not have finished; the last commit is not built.
+
+**In source since build 536, none of it seen in a browser:**
+
+- Polish pass (`77a7687e5`): one scroller on list pages, measured end space, wrapping names, fixed title and buttons on dialogs and sheets, floating tool pills, more search bars, action moments.
+- Fourteen repairs from a browser hunt of build 536 (`b46466d28`). The hunt covered 82 pages and 656 page loads. Its worst findings were blank area pages (a template was passed where the title code expected text) and page titles stacking one letter per line on phones.
+- Controls in place, "Run a quick action", "Show more details" (`33e099f91`).
+- This commit: an expandable detail row in the shared data table; details and quick buttons in more lists; the states tool opening on one entity; a stop control for running quick actions backed by a small in-memory server component, `quick_action`, loaded through `default_config`.
+
+**Not run:** the Python tests under `core/tests/components/quick_action` and `core/tests/components/default_config`. They compile. The container engine on the workstation stopped answering before they could run. Run them first; a fault in a default-loaded component affects start-up.
+
+**Owner's decisions recorded on design canvas 42:** today's look with a polish, not a new look; dramatic motion and graphics for actions only; nothing removed; dashboard cards unchanged; controls in place everywhere an entity is listed; risky things ask first; details everywhere, with edit behind the two-key confirmation.
+
+**A habit to keep:** a commit without `[skip ci]` starts a release run, and a new run cancels the one that is waiting. Mark commits that are not code, and start the build by hand once.
+
+`CLOSEOUT_PROMPT.md` lists the next steps in order.
+
 ## Running the Python test suites, 20 November 2026
 
 The Home Assistant and Supervisor test suites do not run on the Windows workstation directly.

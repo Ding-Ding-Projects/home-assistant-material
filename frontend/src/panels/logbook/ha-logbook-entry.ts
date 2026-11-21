@@ -1,6 +1,7 @@
-import type { CSSResultGroup, TemplateResult } from "lit";
+import { ContextProvider } from "@lit/context";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property } from "lit/decorators";
+import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { ifDefined } from "lit/directives/if-defined";
 import { styleMap } from "lit/directives/style-map";
@@ -9,6 +10,8 @@ import { computeDomain } from "../../common/entity/compute_domain";
 import { formatTimeWithSeconds } from "../../common/datetime/format_time";
 import { useAmPm } from "../../common/datetime/use_am_pm";
 import { fireEvent } from "../../common/dom/fire_event";
+import { rowDetailsContext } from "../../components/data-table/row-details";
+import "../../components/entity/ha-entity-quick-row-actions";
 import "../../components/ha-icon-next";
 import "../../components/ha-tooltip";
 import { UNAVAILABLE } from "../../data/entity/entity";
@@ -82,6 +85,59 @@ class HaLogbookEntry extends LitElement {
   @property({ type: Boolean, attribute: "show-cause" }) public showCause =
     false;
 
+  /**
+   * Adds "Run a quick action" and "Show more details" for the entry's entity,
+   * with the details opening right under the entry.
+   */
+  @property({ type: Boolean, attribute: "quick-actions" })
+  public quickActions = false;
+
+  @state() private _detailsOpen = false;
+
+  private _detailsProvider = new ContextProvider(this, {
+    context: rowDetailsContext,
+    initialValue: undefined,
+  });
+
+  protected willUpdate(changedProps: PropertyValues) {
+    super.willUpdate(changedProps);
+    const oldItem = changedProps.get("item") as LogbookEntry | undefined;
+    if (
+      oldItem &&
+      (oldItem.entity_id !== this.item?.entity_id ||
+        oldItem.when !== this.item?.when)
+    ) {
+      // A recycled row shows another entry, closed.
+      this._detailsOpen = false;
+    }
+    if (
+      changedProps.has("item") ||
+      changedProps.has("_detailsOpen") ||
+      changedProps.has("quickActions")
+    ) {
+      const entityId = this.item?.entity_id;
+      this._detailsProvider.setValue(
+        this.quickActions && entityId
+          ? {
+              open: new Set(this._detailsOpen ? [entityId] : []),
+              toggle: this._toggleDetails,
+            }
+          : undefined
+      );
+    }
+  }
+
+  private _toggleDetails = () => {
+    this._detailsOpen = !this._detailsOpen;
+  };
+
+  private _quickEntityId(): string | undefined {
+    const entityId = this.item?.entity_id;
+    return this.quickActions && entityId && this.hass.states[entityId]
+      ? entityId
+      : undefined;
+  }
+
   // Reading custom properties forces a style recalc, costly to repeat per row
   // while scrolling — resolve once and cache.
   private _computedStyle?: CSSStyleDeclaration;
@@ -117,50 +173,74 @@ class HaLogbookEntry extends LitElement {
     // On wide screens the hover state carries the affordance; a chevron would
     // sit far away from the text it belongs to.
     const chevron = clickable && layout !== "timeline";
+    const quickEntityId = this._quickEntityId();
 
     return html`
-      <div
-        class="entry ${classMap({
-          [`layout-${layout}`]: true,
-          [`node-${node}`]: true,
-          "last-of-day": this.lastOfDay,
-          [`category-${ctx.category}`]: true,
-          "time-am-pm": useAmPm(this.hass.locale),
-          clickable,
-        })}"
-        role=${ifDefined(clickable ? "button" : undefined)}
-        tabindex=${ifDefined(clickable ? "0" : undefined)}
-        @click=${this._rowClicked}
-        @keydown=${this._rowKeydown}
-      >
+      <div class="line">
+        <div
+          class="entry ${classMap({
+            [`layout-${layout}`]: true,
+            [`node-${node}`]: true,
+            "last-of-day": this.lastOfDay,
+            [`category-${ctx.category}`]: true,
+            "time-am-pm": useAmPm(this.hass.locale),
+            clickable,
+          })}"
+          role=${ifDefined(clickable ? "button" : undefined)}
+          tabindex=${ifDefined(clickable ? "0" : undefined)}
+          @click=${this._rowClicked}
+          @keydown=${this._rowKeydown}
+        >
+          ${
+            layout === "timeline"
+              ? html`<div class="time">
+                  <span class="time-content">${renderedTime}</span>
+                </div>`
+              : nothing
+          }
+          <div
+            class="node ${classMap({
+              "rail-trim-top": this.firstOfDay,
+              "rail-trim-bottom": this.lastOfDay,
+            })}"
+          >
+            ${this._renderNode(ctx, layout)}
+          </div>
+          <div class="body">
+            <div class="content">
+              ${
+                layout === "timeline"
+                  ? this._renderTimeline(ctx)
+                  : layout === "list"
+                    ? this._renderList(ctx)
+                    : this._renderInline(ctx)
+              }
+            </div>
+            ${chevron ? html`<ha-icon-next class="chevron"></ha-icon-next>` : nothing}
+          </div>
+        </div>
         ${
-          layout === "timeline"
-            ? html`<div class="time">
-                <span class="time-content">${renderedTime}</span>
-              </div>`
+          quickEntityId
+            ? html`<ha-entity-quick-row-actions
+                class="quick"
+                compact
+                details="row"
+                .hass=${this.hass}
+                .entityId=${quickEntityId}
+              ></ha-entity-quick-row-actions>`
             : nothing
         }
-        <div
-          class="node ${classMap({
-            "rail-trim-top": this.firstOfDay,
-            "rail-trim-bottom": this.lastOfDay,
-          })}"
-        >
-          ${this._renderNode(ctx, layout)}
-        </div>
-        <div class="body">
-          <div class="content">
-            ${
-              layout === "timeline"
-                ? this._renderTimeline(ctx)
-                : layout === "list"
-                  ? this._renderList(ctx)
-                  : this._renderInline(ctx)
-            }
-          </div>
-          ${chevron ? html`<ha-icon-next class="chevron"></ha-icon-next>` : nothing}
-        </div>
       </div>
+      ${
+        quickEntityId && this._detailsOpen
+          ? html`<div class="details">
+              <ha-entity-more-details
+                .hass=${this.hass}
+                .entityId=${quickEntityId}
+              ></ha-entity-more-details>
+            </div>`
+          : nothing
+      }
     `;
   }
 
@@ -386,6 +466,33 @@ class HaLogbookEntry extends LitElement {
         :host {
           display: block;
           --cause-icon-size: 20px;
+        }
+
+        .line {
+          display: flex;
+          align-items: center;
+          min-width: 0;
+        }
+        .line > .entry {
+          flex: 1;
+          min-width: 0;
+        }
+        .quick {
+          flex: none;
+          padding-inline-end: var(
+            --logbook-horizontal-padding,
+            var(--ha-space-4)
+          );
+        }
+        .details {
+          margin: 0 var(--logbook-horizontal-padding, var(--ha-space-4))
+            var(--ha-space-3);
+          padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-lg, 12px);
+          background: var(
+            --ha-color-fill-neutral-quiet-resting,
+            var(--secondary-background-color)
+          );
         }
 
         .entry {

@@ -71,6 +71,11 @@ import type { HomeAssistant, Route } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
 import { showToast } from "../../../util/toast";
 import { configSections } from "../config-sections";
+import {
+  factsRowDetails,
+  rowDetailsColumn,
+} from "../../../components/data-table/row-details-column";
+import { listFacts } from "../../../data/entity-details";
 import { showTagDetailDialog } from "./show-dialog-tag-detail";
 import {
   buildTagDeletePreview,
@@ -148,6 +153,16 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
   private _tableSettings = new DataTableSettingsController(this, {
     search: "tags-table-search",
   });
+
+  // The tag's facts, in the row right under it.
+  private _rowDetails = factsRowDetails((tag) =>
+    listFacts([
+      ["id", tag.id],
+      ["name", tag.name, "text"],
+      ["description", tag.description, "text"],
+      ["last_scanned", tag.last_scanned, "time"],
+    ])
+  );
 
   private _columns = memoizeOne((localize: LocalizeFunc) => {
     const columns: DataTableColumnContainer<TagRowData> = {
@@ -250,6 +265,13 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
           ></ha-icon-button>`,
       };
     }
+    columns.details = rowDetailsColumn<TagRowData>(
+      localize("ui.components.quick_control.details_column"),
+      this,
+      (tag) => tag.id,
+      (tag) => tag.display_name
+    );
+
     columns.actions = {
       title: "",
       label: localize("ui.panel.config.generic.headers.actions"),
@@ -526,6 +548,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
         clickable
         @row-click=${this._editTag}
         id="id"
+        .renderRowDetails=${this._rowDetails}
       >
         <ha-icon-button
           slot="toolbar-icon"

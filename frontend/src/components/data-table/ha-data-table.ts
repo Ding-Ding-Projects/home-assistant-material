@@ -3,6 +3,7 @@ import type {
   VisibilityChangedEvent,
 } from "@lit-labs/virtualizer";
 import type { ContextType } from "@lit/context";
+import { ContextProvider } from "@lit/context";
 import {
   mdiArrowDown,
   mdiArrowUp,
@@ -57,6 +58,13 @@ import { emptyTone } from "../empty-state-logic";
 import "../input/ha-input-search";
 import { tablePatternSamples } from "./pattern-samples";
 import { filterData, sortData } from "./sort-filter";
+import {
+  isRowDetailsItem,
+  pruneRowDetails,
+  rowDetailsContext,
+  toggleRowDetails,
+  withRowDetails,
+} from "./row-details";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 
 export interface RowClickedEvent {
@@ -312,6 +320,28 @@ export class HaDataTable extends LitElement {
   @property({ attribute: false }) public hiddenColumns?: string[];
 
   @property({ attribute: false }) public columnOrder?: string[];
+
+  /**
+   * The details of a row, shown in a full-width row right under it while they
+   * are open. Elements inside a row open and close them through
+   * `rowDetailsContext`. Tables without it are unchanged.
+   */
+  @property({ attribute: false })
+  public renderRowDetails?: (
+    row: DataTableRowData
+  ) => TemplateResult | typeof nothing;
+
+  /** Lets more than one row show its details at the same time. */
+  @property({ type: Boolean, attribute: "multiple-row-details" })
+  public multipleRowDetails = false;
+
+  // Rows whose details are open, by row id.
+  @state() private _openRowDetails: readonly string[] = [];
+
+  private _rowDetailsProvider = new ContextProvider(this, {
+    context: rowDetailsContext,
+    initialValue: undefined,
+  });
 
   @state() private _filterable = false;
 
@@ -613,6 +643,27 @@ export class HaDataTable extends LitElement {
           this._checkedRowsChanged();
         }
       }
+      // A row that is gone does not stay open.
+      if (this._openRowDetails.length) {
+        this._openRowDetails = pruneRowDetails(
+          this._openRowDetails,
+          new Set(this.data.map((row) => String(row[this.id])))
+        );
+      }
+    }
+
+    if (
+      properties.has("renderRowDetails") ||
+      properties.has("_openRowDetails")
+    ) {
+      this._rowDetailsProvider.setValue(
+        this.renderRowDetails
+          ? {
+              open: new Set(this._openRowDetails),
+              toggle: this._toggleRowDetails,
+            }
+          : undefined
+      );
     }
 
     if (!this.hasUpdated && this.initialCollapsedGroups) {
@@ -707,7 +758,7 @@ export class HaDataTable extends LitElement {
       !this.loadError &&
       !(this.data.length && !this._filteredDataSourceLength);
 
-    const items = this._filteredData
+    const groupedItems = this._filteredData
       ? this._groupData(
           this._filteredData,
           this._modeLocalize,
@@ -721,6 +772,16 @@ export class HaDataTable extends LitElement {
           this.renderGroupActions
         )
       : [];
+
+    // Open details sit in their own row right under the row they belong to.
+    const items = this.renderRowDetails
+      ? this._withRowDetails(
+          groupedItems,
+          this._openRowDetails,
+          this.id,
+          this.renderRowDetails
+        )
+      : groupedItems;
 
     // The header checkbox covers the rows the table shows, like the bulk bar
     const headerCheckState = this._headerCheckState();
@@ -1032,11 +1093,65 @@ export class HaDataTable extends LitElement {
   // Group headers are keyed by their group, so they keep their actions' state
   // when the data changes. The prefixes keep them apart from row ids.
   private _keyFunction = (row: DataTableRowData) =>
-    row?.[this.id]
-      ? `row-${row[this.id]}`
-      : row?.groupHeader !== undefined
-        ? `group-${row.groupHeader}`
-        : row;
+    isRowDetailsItem(row)
+      ? `details-${row.detailsFor}`
+      : row?.[this.id]
+        ? `row-${row[this.id]}`
+        : row?.groupHeader !== undefined
+          ? `group-${row.groupHeader}`
+          : row;
+
+  // A new details template (a page passes one per state change) draws the
+  // open details again, so they never show stale values.
+  private _withRowDetails = memoizeOne(
+    (
+      items: DataTableRowData[],
+      open: readonly string[],
+      idKey: string,
+      _template: unknown
+    ): DataTableRowData[] =>
+      open.length
+        ? ([...withRowDetails(items, open, idKey)] as DataTableRowData[])
+        : items
+  );
+
+  private _toggleRowDetails = (rowId: string) => {
+    this._openRowDetails = toggleRowDetails(
+      this._openRowDetails,
+      rowId,
+      this.multipleRowDetails
+    );
+  };
+
+  private _closeRowDetailsOnEscape = (ev: KeyboardEvent) => {
+    if (ev.key !== "Escape") {
+      return;
+    }
+    const rowId = (ev.currentTarget as HTMLElement & { detailsFor: string })
+      .detailsFor;
+    ev.stopPropagation();
+    this._openRowDetails = this._openRowDetails.filter((id) => id !== rowId);
+  };
+
+  private _renderRowDetails(rowId: string, index: number) {
+    const row = this._filteredData?.find(
+      (item) => String(item[this.id]) === rowId
+    );
+    if (!row || !this.renderRowDetails) {
+      return nothing;
+    }
+    return html`<div
+      role="row"
+      aria-rowindex=${index + (this.loadError ? 3 : 2)}
+      class="row-details"
+      .detailsFor=${rowId}
+      @keydown=${this._closeRowDetailsOnEscape}
+    >
+      <div role="cell" class="row-details-cell">
+        ${this.renderRowDetails(row)}
+      </div>
+    </div>`;
+  }
 
   private _renderMainValue(value: unknown) {
     return this.clickable
@@ -1068,6 +1183,9 @@ export class HaDataTable extends LitElement {
     // not sure how this happens...
     if (!row) {
       return nothing;
+    }
+    if (isRowDetailsItem(row)) {
+      return this._renderRowDetails(row.detailsFor, index);
     }
     if (row.append) {
       const isGroupHeader = row.groupHeader !== undefined;
@@ -2453,6 +2571,29 @@ export class HaDataTable extends LitElement {
         .mdc-data-table__row.append-row {
           height: auto;
           min-height: var(--data-table-row-height, 52px);
+        }
+
+        /* The open details of the row above, as tall as their content. They
+           stay on screen when the table scrolls sideways. */
+        .row-details {
+          display: block;
+          width: 100%;
+          box-sizing: border-box;
+          padding: 0 var(--ha-space-2) var(--ha-space-3);
+        }
+        .row-details-cell {
+          position: sticky;
+          inset-inline-start: 0;
+          box-sizing: border-box;
+          max-width: min(100%, 100vw);
+          padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-lg, 12px);
+          background: var(
+            --ha-color-fill-neutral-quiet-resting,
+            var(--secondary-background-color)
+          );
+          color: var(--primary-text-color);
+          overflow-wrap: anywhere;
         }
 
         .group-header {

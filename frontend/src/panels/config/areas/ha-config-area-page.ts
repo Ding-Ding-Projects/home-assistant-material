@@ -706,6 +706,7 @@ class HaConfigAreaPage extends LitElement {
                         .entityIds=${this._allEntities(memberships)}
                         .deviceIds=${this._allDeviceIds(memberships.devices)}
                         name-detail="device"
+                        quick-actions
                         virtualize
                         narrow
                         no-icon
@@ -818,7 +819,7 @@ class HaConfigAreaPage extends LitElement {
         ? `/config/script/edit/${entry.unique_id}`
         : `/config/script/show/${entityState.entity_id}`;
     }
-    return this._renderRow({
+    const row = this._renderRow({
       icon,
       name,
       secondary,
@@ -827,6 +828,25 @@ class HaConfigAreaPage extends LitElement {
         ? undefined
         : this.hass.localize("ui.panel.config.devices.cant_edit"),
     });
+    if (!this.hass.states[entityState.entity_id]) {
+      return row;
+    }
+    // The switch or run button, then the quick action and details, under
+    // the row and outside its link.
+    return html`${row}
+      <div class="row-quick">
+        <ha-entity-quick-controls
+          compact
+          no-value
+          section="main"
+          .hass=${this.hass}
+          .entityId=${entityState.entity_id}
+        ></ha-entity-quick-controls>
+        <ha-entity-quick-row-actions
+          .hass=${this.hass}
+          .entityId=${entityState.entity_id}
+        ></ha-entity-quick-row-actions>
+      </div>`;
   }
 
   private _toggleShowAllDevices() {
@@ -1008,6 +1028,19 @@ class HaConfigAreaPage extends LitElement {
         .entity-quick {
           padding: 0 var(--ha-space-4) var(--ha-space-2);
           min-width: 0;
+        }
+        /* Lines up with the row's text, past its 40 px icon. */
+        .row-quick {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: var(--ha-space-1);
+          min-width: 0;
+          padding-block: 0 var(--ha-space-2);
+          padding-inline: calc(var(--ha-space-3) * 2 + 40px) var(--ha-space-3);
+        }
+        .row-quick ha-entity-quick-row-actions {
+          align-self: stretch;
         }
         .page {
           box-sizing: border-box;

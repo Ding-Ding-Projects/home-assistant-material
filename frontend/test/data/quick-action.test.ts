@@ -1,18 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  activeRuns,
   defaultActionFor,
   delaySeconds,
   duplicateStep,
   firstStepFor,
   isRiskySequence,
   moveStep,
+  QUICK_ACTION_LABEL_LENGTH,
+  runLabel,
+  runStateFromServer,
   sequenceToSteps,
+  sleepUnlessStopped,
   stepsAreComplete,
   stepsToSequence,
   validateSequence,
   waitStep,
 } from "../../src/data/quick-action";
-import type { QuickStep } from "../../src/data/quick-action";
+import type { QuickActionRun, QuickStep } from "../../src/data/quick-action";
 
 const services = {
   light: { turn_on: {}, turn_off: {}, toggle: {} },
@@ -246,5 +251,100 @@ describe("step list edits", () => {
     expect(copy).toHaveLength(4);
     expect(copy[2]).toEqual(list[1]);
     expect(copy[2]).not.toBe(list[1]);
+  });
+});
+
+const serverRun = (
+  overrides: Partial<QuickActionRun> = {}
+): QuickActionRun => ({
+  id: "a",
+  label: "Front door",
+  entity_id: "lock.front",
+  user_id: "user",
+  started: "2026-11-20T10:00:00+00:00",
+  ended: null,
+  state: "running",
+  total_steps: 2,
+  current_step: null,
+  error: null,
+  ...overrides,
+});
+
+// The dialog's progress, its Stop button and its result all follow these.
+describe("server runs", () => {
+  it("shows a run that is still going as running, with what it is doing", () => {
+    expect(
+      runStateFromServer(serverRun({ current_step: "delay 0:10:00" }))
+    ).toEqual({ phase: "running", total: 2, now: "delay 0:10:00" });
+    expect(runStateFromServer(serverRun())).toEqual({
+      phase: "running",
+      total: 2,
+      now: undefined,
+    });
+  });
+
+  it("tells a stopped run apart from a finished or failed one", () => {
+    expect(runStateFromServer(serverRun({ state: "finished" }))).toEqual({
+      phase: "done",
+    });
+    expect(runStateFromServer(serverRun({ state: "stopped" }))).toEqual({
+      phase: "stopped",
+    });
+    expect(
+      runStateFromServer(serverRun({ state: "failed", error: "Jammed" }))
+    ).toEqual({ phase: "failed", reason: "Jammed" });
+  });
+
+  it("treats a run that is not listed yet as not started", () => {
+    expect(runStateFromServer(undefined)).toEqual({ phase: "idle" });
+  });
+
+  it("lists only runs that are still going, oldest first", () => {
+    const runs = [
+      serverRun({ id: "late", started: "2026-11-20T10:05:00+00:00" }),
+      serverRun({ id: "done", state: "finished" }),
+      serverRun({ id: "early", started: "2026-11-20T09:55:00+00:00" }),
+      serverRun({ id: "stopped", state: "stopped" }),
+    ];
+    expect(activeRuns(runs).map((run) => run.id)).toEqual(["early", "late"]);
+  });
+
+  it("cuts a label to the length the server accepts", () => {
+    expect(runLabel("  Kitchen  ")).toBe("Kitchen");
+    expect(runLabel(undefined)).toBe("");
+    expect(runLabel("x".repeat(250))).toHaveLength(QUICK_ACTION_LABEL_LENGTH);
+  });
+});
+
+// A run from the page relies on this to skip the steps after a stopped wait.
+describe("sleepUnlessStopped", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("resolves true when the full time passes", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const done = sleepUnlessStopped(1000, controller.signal);
+    vi.advanceTimersByTime(1000);
+    await expect(done).resolves.toBe(true);
+  });
+
+  it("resolves false as soon as it is stopped", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const done = sleepUnlessStopped(60_000, controller.signal);
+    vi.advanceTimersByTime(10);
+    controller.abort();
+    await expect(done).resolves.toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("does not wait at all when already stopped", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(sleepUnlessStopped(60_000, controller.signal)).resolves.toBe(
+      false
+    );
   });
 });

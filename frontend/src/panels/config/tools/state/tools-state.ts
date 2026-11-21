@@ -21,6 +21,11 @@ import { computeEntitySearchLabels } from "../../../../common/entity/compute_ent
 import { computeAreaName } from "../../../../common/entity/compute_area_name";
 import { computeDeviceName } from "../../../../common/entity/compute_device_name";
 import { copyToClipboard } from "../../../../common/util/copy-clipboard";
+import { QueryParamsController } from "../../../../common/controllers/query-params-controller";
+import {
+  decodeStatesToolQueryParams,
+  statesToolQueryParamConfig,
+} from "../../../../common/url/states-tool-query-params";
 import "../../../../components/entity/ha-entity-picker";
 import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
@@ -127,6 +132,51 @@ class HaPanelDevState extends LitElement {
 
   @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
 
+  @query(".set-card") private _setCard?: HTMLElement;
+
+  // An entity a link asked for, chosen once the states are known.
+  private _linkedEntityId?: string;
+
+  // Scroll the form into view after a link chose an entity.
+  private _scrollToForm = false;
+
+  private _queryParams = new QueryParamsController(
+    this,
+    statesToolQueryParamConfig,
+    {
+      enabled: () => true,
+      navigated: () => this._readUrl(),
+    }
+  );
+
+  private _readUrl() {
+    const params = this._queryParams.searchParams();
+    if (!params) {
+      return;
+    }
+    const { entity_id: entityId } = decodeStatesToolQueryParams(params);
+    if (entityId) {
+      this._linkedEntityId = entityId;
+      this.requestUpdate();
+    }
+  }
+
+  protected willUpdate(changedProps: PropertyValues<this>) {
+    super.willUpdate(changedProps);
+    if (!this.hasUpdated) {
+      this._readUrl();
+    }
+    if (this._linkedEntityId && this._states) {
+      const entityId = this._linkedEntityId;
+      this._linkedEntityId = undefined;
+      if (this._states[entityId]) {
+        this._entityId = entityId;
+        this._updateEntity();
+        this._scrollToForm = true;
+      }
+    }
+  }
+
   private _filteredEntities = memoizeOne(
     (
       entityFilter: string,
@@ -158,6 +208,12 @@ class HaPanelDevState extends LitElement {
   protected updated(changedProps: PropertyValues<this>) {
     super.updated(changedProps);
     this._reportSearch();
+    if (this._scrollToForm && this._setCard) {
+      this._scrollToForm = false;
+      // The yaml editor is drawn by now, so it can take the attributes.
+      this._updateEditor();
+      this._setCard.scrollIntoView({ block: "start" });
+    }
   }
 
   // The main entity search lives in the tools page top bar. The state, device,
@@ -461,6 +517,7 @@ ${this._i18n.locale.language}`;
     this._stateAttributes = entityState.attributes;
     this._updateEditor();
     this._stateSet = false;
+    this._queryParams.write({ entity_id: this._entityId });
     ev.preventDefault();
     window.scrollTo({ top: 0 });
   }
@@ -472,6 +529,7 @@ ${this._i18n.locale.language}`;
   private _entityIdChanged(ev: CustomEvent) {
     this._entityId = ev.detail.value;
     this._updateEntity();
+    this._queryParams.write({ entity_id: this._entityId || undefined });
   }
 
   private _updateEntity() {

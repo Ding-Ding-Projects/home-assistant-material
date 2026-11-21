@@ -1,0 +1,9 @@
+{
+  "domain": "quick_action",
+  "name": "Quick actions",
+  "codeowners": [],
+  "dependencies": ["websocket_api"],
+  "documentation": "https://github.com/Ding-Ding-Projects/home-assistant-material",
+  "integration_type": "system",
+  "quality_scale": "internal"
+}

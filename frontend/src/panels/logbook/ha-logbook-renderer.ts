@@ -52,6 +52,10 @@ class HaLogbookRenderer extends LitElement {
   @property({ type: Boolean, attribute: "show-cause" }) public showCause =
     false;
 
+  /** Quick action and details buttons on entries about an entity. */
+  @property({ type: Boolean, attribute: "quick-actions" })
+  public quickActions = false;
+
   @property({ type: Boolean, attribute: "no-detail" }) public noDetail = false;
 
   @property({ type: String, attribute: "name-detail" })
@@ -177,6 +181,7 @@ class HaLogbookRenderer extends LitElement {
           .lastOfDay=${lastOfDay}
           .showCause=${this.showCause}
           .noDetail=${this.noDetail}
+          .quickActions=${this.quickActions}
         ></ha-logbook-entry>
       </div>
     `;

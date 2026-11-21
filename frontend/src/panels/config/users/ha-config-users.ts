@@ -26,6 +26,11 @@ import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HomeAssistant, Route } from "../../../types";
 import { configSections } from "../config-sections";
+import {
+  factsRowDetails,
+  rowDetailsColumn,
+} from "../../../components/data-table/row-details-column";
+import { userFacts } from "../../../data/entity-details";
 import { showAddUserDialog } from "./show-dialog-add-user";
 import { showUserDetailDialog } from "./show-dialog-user-detail";
 import { storage } from "../../../common/decorators/storage";
@@ -82,6 +87,20 @@ export class HaConfigUsers extends LitElement {
     subscribe: false,
   })
   private _activeCollapsed?: string;
+
+  // The user's facts, in the row right under it. Never a password,
+  // token, credential or two-factor value: userFacts lists only safe fields.
+  private _rowDetails = factsRowDetails((user) =>
+    userFacts({
+      id: user.id,
+      name: user.name,
+      group_ids: user.group_ids,
+      is_owner: user.is_owner,
+      is_active: user.is_active,
+      local_only: user.local_only,
+      system_generated: user.system_generated,
+    })
+  );
 
   private _columns = memoizeOne(
     (narrow: boolean, localize: LocalizeFunc): DataTableColumnContainer => {
@@ -189,6 +208,12 @@ export class HaConfigUsers extends LitElement {
             )}`;
           },
         },
+        details: rowDetailsColumn<User & { group: string }>(
+          localize("ui.components.quick_control.details_column"),
+          this,
+          (user) => user.id,
+          (user) => user.name
+        ),
       };
 
       return columns;
@@ -211,6 +236,7 @@ export class HaConfigUsers extends LitElement {
         .columns=${this._columns(this.narrow, this._modeLocalize)}
         .loading=${this._loading}
         .data=${this._userData(this._users, this._modeLocalize)}
+        .renderRowDetails=${this._rowDetails}
         .loadError=${
           this._loadFailed
             ? this._modeLocalize("ui.panel.config.users.picker.load_failed")

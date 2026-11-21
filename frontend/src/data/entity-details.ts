@@ -271,7 +271,38 @@ export type DetailFactKey =
   | "installed_version"
   | "latest_version"
   | "release_url"
-  | "skipped_version";
+  | "skipped_version"
+  | "id"
+  | "name"
+  | "icon"
+  | "color"
+  | "description"
+  | "label_id"
+  | "floor_id"
+  | "level"
+  | "latitude"
+  | "longitude"
+  | "radius"
+  | "passive"
+  | "user_id"
+  | "device_trackers"
+  | "groups"
+  | "is_owner"
+  | "is_active"
+  | "local_only"
+  | "system_generated"
+  | "url_path"
+  | "require_admin"
+  | "show_in_sidebar"
+  | "path"
+  | "source_url"
+  | "last_scanned"
+  | "issue_id"
+  | "severity"
+  | "breaks_in_version"
+  | "subentry_id"
+  | "subentry_type"
+  | "modified";
 
 const fact = (
   key: DetailFactKey,
@@ -445,6 +476,54 @@ export const updateFacts = (stateObj: HassEntity): DetailFact[] => {
     fact("skipped_version", attributes.skipped_version),
   ]);
 };
+
+/** One fact to list: its name, its raw value and how it is shown. */
+export type FactSpec = [
+  key: DetailFactKey,
+  value: unknown,
+  kind?: DetailFactKind,
+  href?: string,
+];
+
+/**
+ * Facts from a list of values the page already has. Empty values are left
+ * out; yes/no values are written "true" or "false" for the "yesno" kind.
+ */
+export const listFacts = (specs: FactSpec[]): DetailFact[] =>
+  present(
+    specs.map(([key, value, kind, href]) =>
+      kind === "yesno" && typeof value === "boolean"
+        ? fact(key, String(value), kind)
+        : fact(key, value, kind, href)
+    )
+  );
+
+/** The fields of a user that may be shown. */
+export interface UserFactsInput {
+  id: string;
+  name?: string;
+  group_ids?: string[];
+  is_owner?: boolean;
+  is_active?: boolean;
+  local_only?: boolean;
+  system_generated?: boolean;
+}
+
+/**
+ * Facts for a user. Only the id, name, groups and the four switches are ever
+ * shown: never a password, an access token, a credential or anything about
+ * two-factor authentication, whatever else the record holds.
+ */
+export const userFacts = (user: UserFactsInput): DetailFact[] =>
+  listFacts([
+    ["user_id", user.id],
+    ["name", user.name, "text"],
+    ["groups", user.group_ids],
+    ["is_owner", user.is_owner ?? false, "yesno"],
+    ["is_active", user.is_active ?? false, "yesno"],
+    ["local_only", user.local_only ?? false, "yesno"],
+    ["system_generated", user.system_generated ?? false, "yesno"],
+  ]);
 
 /** A plain-text block of facts, using the raw field names. */
 export const factsCopyText = (facts: DetailFact[]): string =>

@@ -3,6 +3,8 @@ import { customElement, property } from "lit/decorators";
 import { relativeTime } from "../../../common/datetime/relative_time";
 import { capitalizeFirstLetter } from "../../../common/string/capitalize-first-letter";
 import "../../../components/ha-button";
+import "../../../components/entity/ha-more-details-facts";
+import { listFacts } from "../../../data/entity-details";
 import { domainToName } from "../../../data/integration";
 import type { StatisticsValidationResult } from "../../../data/recorder";
 import {
@@ -140,6 +142,15 @@ class HaConfigRepairs extends LitElement {
               )}
             </ha-button>
           </div>
+          <ha-more-details-facts
+            .facts=${listFacts([
+              ["issue_id", issue.issue_id],
+              ["domain", issue.domain],
+              ["severity", issue.severity],
+              ["created", issue.created, "time"],
+              ["breaks_in_version", issue.breaks_in_ha_version],
+            ])}
+          ></ha-more-details-facts>
         </div>
       </li>
     `;

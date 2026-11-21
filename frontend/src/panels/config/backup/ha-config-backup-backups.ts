@@ -108,6 +108,11 @@ import {
   showConfirmationDialog,
 } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-tabs-subpage-data-table";
+import {
+  factsRowDetails,
+  rowDetailsColumn,
+} from "../../../components/data-table/row-details-column";
+import { backupFacts } from "../../../data/entity-details";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import { haStyle } from "../../../resources/styles";
@@ -227,6 +232,15 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
       this._deleteProofInfo = undefined;
     }
   }
+
+  // The backup's facts, in the row right under it.
+  private _rowDetails = factsRowDetails((backup) =>
+    backupFacts({
+      backup_id: backup.backup_id,
+      date: backup.date,
+      agents: backup.agents,
+    })
+  );
 
   private _columns = memoizeOne(
     (
@@ -422,25 +436,29 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
                     .path=${mdiServerNetwork}
                     .disabled=${hostingBackups.has(backup.backup_id)}
                     .label=${modeText(this.hass.localize, "ui.panel.config.backup.hosting.container")}
-                    @click=${(ev: Event) => {
-                      ev.stopPropagation();
-                      this._hostBackup(backup, "docker");
-                    }}
+                    .backup=${backup}
+                    data-kind="docker"
+                    @click=${this._hostBackupClicked}
                   ></ha-icon-button>
                   <ha-icon-button
                     .path=${mdiMonitor}
                     .disabled=${hostingBackups.has(backup.backup_id)}
                     .label=${modeText(this.hass.localize, "ui.panel.config.backup.hosting.appliance")}
-                    @click=${(ev: Event) => {
-                      ev.stopPropagation();
-                      this._hostBackup(backup, "appliance");
-                    }}
+                    .backup=${backup}
+                    data-kind="appliance"
+                    @click=${this._hostBackupClicked}
                   ></ha-icon-button>
                 `
               : nothing
           }
         `,
       },
+      details: rowDetailsColumn<BackupRow>(
+        localize("ui.components.quick_control.details_column"),
+        this,
+        (backup) => backup.backup_id,
+        (backup) => backup.name
+      ),
       actions: {
         lastFixed: true,
         title: "",
@@ -617,6 +635,7 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
         back-path="/config/backup/overview"
         clickable
         id="backup_id"
+        .renderRowDetails=${this._rowDetails}
         has-filters
         .filters=${
           Object.values(this._filters).filter((filter) =>
@@ -964,6 +983,15 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
   private _showBackupDetails(ev: CustomEvent): void {
     const id = (ev.detail as RowClickedEvent).id;
     navigate(`/config/backup/details/${id}`);
+  }
+
+  private _hostBackupClicked(ev: Event) {
+    ev.stopPropagation();
+    const button = ev.currentTarget as HTMLElement & { backup: BackupContent };
+    this._hostBackup(
+      button.backup,
+      button.dataset.kind === "appliance" ? "appliance" : "docker"
+    );
   }
 
   private _hostBackup(backup: BackupContent, kind: "docker" | "appliance") {

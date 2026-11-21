@@ -252,6 +252,7 @@ export class HaPanelLogbook extends LitElement {
                 .narrow=${this.narrow}
                 @logbook-entries-changed=${this._entriesChanged}
                 show-cause
+                quick-actions
                 virtualize
               >
                 ${

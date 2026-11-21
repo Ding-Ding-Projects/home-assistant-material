@@ -45,6 +45,8 @@ import {
 } from "./integration-card-summary";
 
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import "../../../components/entity/ha-more-details-facts";
+import { listFacts } from "../../../data/entity-details";
 
 interface IntegrationCardStatus {
   level: IntegrationCardStatusLevel;
@@ -165,6 +167,15 @@ export class HaIntegrationCard extends LitElement {
           </ha-row-item>
           ${this._renderPill(status)}
         </a>
+        <ha-more-details-facts
+          class="facts"
+          .facts=${listFacts([
+            ["domain", this.domain],
+            ["config_entries", this.items.map((entry) => entry.entry_id)],
+            ["entry_state", entryState],
+            ["source", [...new Set(this.items.map((entry) => entry.source))]],
+          ])}
+        ></ha-more-details-facts>
       </ha-card>
     `;
   }
@@ -409,6 +420,10 @@ export class HaIntegrationCard extends LitElement {
     return [
       haStyle,
       css`
+        .facts {
+          padding: 0 var(--ha-space-4) var(--ha-space-3);
+          cursor: auto;
+        }
         ha-card {
           display: flex;
           flex-direction: column;

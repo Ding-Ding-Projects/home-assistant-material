@@ -118,6 +118,8 @@ import "./device-detail/ha-device-entities-card";
 import "./device-detail/ha-device-info-card";
 import "../../../components/ha-registry-notes-card";
 import "../../../components/entity/ha-more-details-facts";
+import "../../../components/entity/ha-entity-quick-controls";
+import "../../../components/entity/ha-entity-quick-row-actions";
 import { deviceFacts } from "../../../data/entity-details";
 import type { ESPHomeSetupController } from "./device-detail/integration-elements/esphome/esphome-setup-controller";
 import "./device-detail/ha-device-linked-devices-card";
@@ -596,16 +598,20 @@ export class HaConfigDevicePage extends LitElement {
                             ${this._getRelated(this._related).automation.map(
                               (automation) =>
                                 automation
-                                  ? html`<ha-list-item-button
-                                      .headline=${this.hass.formatEntityName(automation)}
-                                      .href=${
-                                        automation.attributes.id
-                                          ? `/config/automation/edit/${encodeURIComponent(automation.attributes.id)}`
-                                          : `/config/automation/show/${automation.entity_id}`
-                                      }
-                                    >
-                                      <ha-icon-next slot="end"></ha-icon-next>
-                                    </ha-list-item-button>`
+                                  ? this._relatedWithQuick(
+                                      automation.entity_id,
+                                      html`<ha-list-item-button
+                                        role="none"
+                                        .headline=${this.hass.formatEntityName(automation)}
+                                        .href=${
+                                          automation.attributes.id
+                                            ? `/config/automation/edit/${encodeURIComponent(automation.attributes.id)}`
+                                            : `/config/automation/show/${automation.entity_id}`
+                                        }
+                                      >
+                                        <ha-icon-next slot="end"></ha-icon-next>
+                                      </ha-list-item-button>`
+                                    )
                                   : nothing
                             )}
                           </ha-list-nav>
@@ -637,14 +643,16 @@ export class HaConfigDevicePage extends LitElement {
                                 const url = entry
                                   ? `/config/script/edit/${entry.unique_id}`
                                   : `/config/script/show/${script.entity_id}`;
-                                return html`
-                                  <ha-list-item-button
+                                return this._relatedWithQuick(
+                                  script.entity_id,
+                                  html`<ha-list-item-button
+                                    role="none"
                                     .headline=${this.hass.formatEntityName(script)}
                                     .href=${url}
                                   >
                                     <ha-icon-next slot="end"></ha-icon-next>
-                                  </ha-list-item-button>
-                                `;
+                                  </ha-list-item-button>`
+                                );
                               }
                             )}
                           </ha-list-nav>
@@ -675,38 +683,46 @@ export class HaConfigDevicePage extends LitElement {
                                 )}`;
 
                                 return scene.attributes.id
-                                  ? html`
-                                      <ha-list-item-button
+                                  ? this._relatedWithQuick(
+                                      scene.entity_id,
+                                      html`<ha-list-item-button
+                                        role="none"
                                         .headline=${this.hass.formatEntityName(scene)}
                                         .href=${`/config/scene/edit/${scene.attributes.id}`}
                                       >
                                         <ha-icon-next slot="end"></ha-icon-next>
-                                      </ha-list-item-button>
-                                    `
-                                  : html`
-                                      <ha-list-item-base
-                                        id=${sceneId}
-                                        .headline=${this.hass.formatEntityName(scene)}
-                                      >
-                                        <ha-icon-next slot="end"></ha-icon-next>
-                                      </ha-list-item-base>
-                                      <ha-tooltip
-                                        .for=${sceneId}
-                                        placement=${
-                                          computeRTL(
-                                            this.hass.language,
-                                            this.hass.translationMetadata
-                                              .translations
-                                          )
-                                            ? "left"
-                                            : "right"
-                                        }
-                                      >
-                                        ${this.hass.localize(
-                                          "ui.panel.config.devices.cant_edit"
-                                        )}
-                                      </ha-tooltip>
-                                    `;
+                                      </ha-list-item-button>`
+                                    )
+                                  : this._relatedWithQuick(
+                                      scene.entity_id,
+                                      html`
+                                        <ha-list-item-base
+                                          role="none"
+                                          id=${sceneId}
+                                          .headline=${this.hass.formatEntityName(scene)}
+                                        >
+                                          <ha-icon-next
+                                            slot="end"
+                                          ></ha-icon-next>
+                                        </ha-list-item-base>
+                                        <ha-tooltip
+                                          .for=${sceneId}
+                                          placement=${
+                                            computeRTL(
+                                              this.hass.language,
+                                              this.hass.translationMetadata
+                                                .translations
+                                            )
+                                              ? "left"
+                                              : "right"
+                                          }
+                                        >
+                                          ${this.hass.localize(
+                                            "ui.panel.config.devices.cant_edit"
+                                          )}
+                                        </ha-tooltip>
+                                      `
+                                    );
                               }
                             )}
                           </ha-list-nav>
@@ -945,6 +961,7 @@ export class HaConfigDevicePage extends LitElement {
               .entityIds=${this._entityIds(entities)}
               .deviceIds=${this._deviceIdInList(this.deviceId)}
               name-detail="entity"
+              quick-actions
               virtualize
               narrow
               no-icon
@@ -1592,6 +1609,32 @@ export class HaConfigDevicePage extends LitElement {
     ev.target.style.display = "inline-block";
   }
 
+  /**
+   * A related automation, script or scene with its control in place and the
+   * quick action and details buttons, beside the row's link, never in it.
+   */
+  private _relatedWithQuick(entityId: string, item: TemplateResult) {
+    if (!this.hass.states[entityId]) {
+      return item;
+    }
+    return html`<div role="listitem" class="quick-row">
+      ${item}
+      <div class="quick">
+        <ha-entity-quick-controls
+          compact
+          no-value
+          section="main"
+          .hass=${this.hass}
+          .entityId=${entityId}
+        ></ha-entity-quick-controls>
+        <ha-entity-quick-row-actions
+          .hass=${this.hass}
+          .entityId=${entityId}
+        ></ha-entity-quick-row-actions>
+      </div>
+    </div>`;
+  }
+
   private _onImageError(ev) {
     ev.target.style.display = "none";
   }
@@ -2073,6 +2116,18 @@ export class HaConfigDevicePage extends LitElement {
           height: 18px;
         }
 
+        .quick-row .quick {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: var(--ha-space-1);
+          min-width: 0;
+          padding-block: 0 var(--ha-space-2);
+          padding-inline: var(--ha-space-4);
+        }
+        .quick-row ha-entity-quick-row-actions {
+          align-self: stretch;
+        }
         ha-list-item-base ha-icon-next,
         ha-list-item-button ha-icon-next {
           color: var(--secondary-text-color);

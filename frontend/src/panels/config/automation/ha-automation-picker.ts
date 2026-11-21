@@ -65,6 +65,11 @@ import type {
   SelectionChangedEvent,
 } from "../../../components/data-table/ha-data-table";
 import "../../../components/data-table/ha-data-table-labels";
+import { modeText } from "../../../common/language-mode/language-mode";
+import {
+  entityQuickActionsColumn,
+  entityRowDetailsRenderer,
+} from "../../../components/entity/entity-row-details";
 import "../../../components/ha-button";
 import "../../../components/ha-checkbox";
 import "../../../components/ha-dropdown";
@@ -382,6 +387,11 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
     }
   );
 
+  // Opens an automation's details in the row right under it.
+  private _rowDetails = memoizeOne((hass: HomeAssistant) =>
+    entityRowDetailsRenderer(hass)
+  );
+
   private _columns = memoizeOne(
     (
       narrow: boolean,
@@ -491,6 +501,13 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
                   ></ha-switch>
                 `,
         },
+        quick_actions: entityQuickActionsColumn<AutomationItem>(
+          modeText(
+            this.hass.localize,
+            "ui.components.quick_control.actions_column"
+          ),
+          this
+        ),
         actions: {
           lastFixed: true,
           title: "",
@@ -826,6 +843,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         .narrow=${this.narrow}
         back-path="/config"
         id="entity_id"
+        .renderRowDetails=${this._rowDetails(this.hass)}
         .route=${this.route}
         .tabs=${configSections.automations}
         .searchLabel=${this._modeLocalize(

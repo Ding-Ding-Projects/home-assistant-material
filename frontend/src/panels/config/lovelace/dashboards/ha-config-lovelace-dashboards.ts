@@ -83,6 +83,11 @@ import {
 import type { WindowWithPreloads } from "../../../../data/preloads";
 import "../../../../layouts/hass-loading-screen";
 import "../../../../layouts/hass-tabs-subpage-data-table";
+import {
+  factsRowDetails,
+  rowDetailsColumn,
+} from "../../../../components/data-table/row-details-column";
+import { listFacts } from "../../../../data/entity-details";
 import type { HaTabsSubpageDataTable } from "../../../../layouts/hass-tabs-subpage-data-table";
 import type { HomeAssistant, Route } from "../../../../types";
 import {
@@ -198,6 +203,17 @@ export class HaConfigLovelaceDashboards extends LitElement {
       this.hass.loadFragmentTranslation("lovelace");
     }
   }
+
+  // The dashboard's facts, in the row right under it.
+  private _rowDetails = factsRowDetails((dashboard) =>
+    listFacts([
+      ["url_path", dashboard.url_path],
+      ["id", dashboard.id],
+      ["mode", dashboard.mode],
+      ["require_admin", Boolean(dashboard.require_admin), "yesno"],
+      ["show_in_sidebar", Boolean(dashboard.show_in_sidebar), "yesno"],
+    ])
+  );
 
   private _columns = memoize(
     (
@@ -353,6 +369,13 @@ export class HaConfigLovelaceDashboards extends LitElement {
           ></ha-switch>
         `,
       };
+
+      columns.details = rowDetailsColumn<DataTableItem>(
+        localize("ui.components.quick_control.details_column"),
+        this,
+        (dashboard) => dashboard.url_path,
+        (dashboard) => dashboard.title
+      );
 
       columns.actions = {
         title: "",
@@ -588,6 +611,7 @@ export class HaConfigLovelaceDashboards extends LitElement {
         }
         @retry-load=${this._retryGetDashboards}
         id="url_path"
+        .renderRowDetails=${this._rowDetails}
         .summary=${this.hass.localize(
           "ui.panel.config.lovelace.dashboards.picker.summary"
         )}

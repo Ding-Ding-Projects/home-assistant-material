@@ -61,6 +61,11 @@ import type {
   SelectionChangedEvent,
 } from "../../../components/data-table/ha-data-table";
 import "../../../components/data-table/ha-data-table-labels";
+import { modeText } from "../../../common/language-mode/language-mode";
+import {
+  entityQuickActionsColumn,
+  entityRowDetailsRenderer,
+} from "../../../components/entity/entity-row-details";
 import "../../../components/ha-button";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
@@ -402,6 +407,13 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
     ];
   }
 
+  // Opens a helper's details in the row right under it.
+  private _rowDetails = memoizeOne((hass: HomeAssistant) =>
+    entityRowDetailsRenderer(hass, (helper) =>
+      helper.entity ? helper.entity_id : undefined
+    )
+  );
+
   private _columns = memoizeOne(
     (
       localize: LocalizeFunc,
@@ -478,6 +490,15 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
       editable: getEditableTableColumn(
         localize,
         localize("ui.panel.config.entities.picker.status.unmanageable")
+      ),
+      quick_actions: entityQuickActionsColumn<HelperItem>(
+        modeText(
+          this.hass.localize,
+          "ui.components.quick_control.actions_column"
+        ),
+        this,
+        (helper) => (helper.entity ? helper.entity_id : undefined),
+        (helper) => helper.id
       ),
       actions: {
         lastFixed: true,
@@ -766,6 +787,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.devices}
+        .renderRowDetails=${this._rowDetails(this.hass)}
         .searchLabel=${this._modeLocalize(
           "ui.panel.config.helpers.picker.search",
           { number: helpers.length }

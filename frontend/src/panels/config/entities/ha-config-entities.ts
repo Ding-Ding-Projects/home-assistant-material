@@ -58,6 +58,7 @@ import type {
 import "../../../components/data-table/ha-data-table-labels";
 import "../../../components/entity/ha-entity-quick-controls";
 import "../../../components/entity/ha-entity-quick-row-actions";
+import { entityRowDetailsRenderer } from "../../../components/entity/entity-row-details";
 import "../../../components/chips/ha-assist-chip";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
@@ -399,6 +400,11 @@ export class HaConfigEntities extends LitElement {
     >`;
   }
 
+  // Opens an entity's details in the row right under it.
+  private _rowDetails = memoize((hass: HomeAssistant) =>
+    entityRowDetailsRenderer(hass)
+  );
+
   private _columns = memoize(
     (
       localize: LocalizeFunc,
@@ -467,7 +473,7 @@ export class HaConfigEntities extends LitElement {
                 ></ha-entity-quick-controls>
                 <ha-entity-quick-row-actions
                   compact
-                  details="dialog"
+                  details="row"
                   .hass=${this.hass}
                   .entityId=${entry.entity_id}
                 ></ha-entity-quick-row-actions>
@@ -1102,6 +1108,7 @@ export class HaConfigEntities extends LitElement {
         @row-click=${this._openEditEntry}
         id="entity_id"
         entity-rows
+        .renderRowDetails=${this._rowDetails(this.hass)}
         .hasFab=${includeAddDeviceFab}
         class=${this.narrow ? "narrow" : ""}
       >

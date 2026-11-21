@@ -8,6 +8,7 @@ import { formatDateTimeWithSeconds } from "../../common/datetime/format_date_tim
 import { formatTimeWithSeconds } from "../../common/datetime/format_time";
 import { computeDeviceName } from "../../common/entity/compute_device_name";
 import { modeText } from "../../common/language-mode/language-mode";
+import { statesToolUrl } from "../../common/url/states-tool-query-params";
 import { copyToClipboard } from "../../common/util/copy-clipboard";
 import type { ExtEntityRegistryEntry } from "../../data/entity/entity_registry";
 import { getExtendedEntityRegistryEntry } from "../../data/entity/entity_registry";
@@ -240,7 +241,10 @@ export class HaEntityMoreDetails extends LitElement {
         </ha-button>
         ${
           isAdmin
-            ? html`<ha-button appearance="outlined" href="/config/tools/state">
+            ? html`<ha-button
+                appearance="outlined"
+                href=${statesToolUrl(this.entityId)}
+              >
                 <ha-svg-icon slot="start" .path=${mdiOpenInNew}></ha-svg-icon>
                 ${this._t("open_tools")}
               </ha-button>`

@@ -391,6 +391,10 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   @property({ attribute: false })
   public renderGroupActions?: DataTableGroupActions;
 
+  /** The details of a row, shown in a full-width row under it when opened. */
+  @property({ attribute: false })
+  public renderRowDetails?: HaDataTable["renderRowDetails"];
+
   @property({ attribute: false }) public columnOrder?: string[];
 
   @property({ attribute: false }) public hiddenColumns?: string[];
@@ -1243,6 +1247,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                   .groupColumn=${this._groupColumn}
                   .groupOrder=${this.groupOrder}
                   .renderGroupActions=${this.renderGroupActions}
+                  .renderRowDetails=${this.renderRowDetails}
                   .initialCollapsedGroups=${this.initialCollapsedGroups}
                   .columnOrder=${this.columnOrder}
                   .hiddenColumns=${this.hiddenColumns}

@@ -1,85 +1,56 @@
 # Continuation handoff
 
-## Objective and current scope
-## Recovery snapshot, 13 November 2026
+Written 20 November 2026, 23:45 Toronto time. This replaces the earlier copy. `HANDOFF.md` has the long record; its newest section is "State at the stop on 20 November 2026".
 
-The latest request adds detailed progress to backup upload and restore in first-run setup
-and Settings. The backup work is at source audit only. Start with `HANDOFF.md`, including
-the measured upload bytes, server confirmation boundary, restore stages, reconnect
-behavior, and the five Supervisor-to-Core stage names that need regression coverage.
+## Objective
 
-Commit `d25b21b1de60f35f6da79b18baa4025bdad19ea6` on
-`recovery/raspberry-pi-first-boot-20261113` carries the Raspberry Pi first-boot source.
-Release-pinned Pi 3, 4, and 5 builds select their ARM64 Core image and retain the preparation
-image as a fallback.
-Deploy Assistant saves the card read-back result before LAN discovery. A new check can
-reuse that result without rewriting the card. The source and mocked checks passed. The
-full appliance build, packaged desktop flow, and physical Pi startup are pending. Keep
-owner-account creation or restore in the normal onboarding flow.
+Home Assistant Material: keep today's look with a modern polish, repair scrolling and cut-off text, add controls in place, a run-once quick action and "show more details", and keep the public site current. Nothing is removed. Dramatic motion is for actions only. Dashboard cards stay as they are.
 
-The full frontend suite ran against tree `7ef9b9d59dad858404dabb639609600623434846`.
-It passed 7,925 tests and reproduced the same three Windows build-management failures.
-The recovery branch contains no frontend source changes. The 29 Deploy Assistant tests passed.
+## Where the source is
 
-The recovery branch is based on `69f0bbfc3c4f3b0ac14f8faefd9c6b6293fe331d`. That revision
-published the demo with 120 verified guide and wiki routes. Isolated browser checks passed
-for the to-do item picker, speech options, typed number and date inputs, and receiver
-choices. Manual controls remain where an integration provides no usable choices.
+Everything is on `main`. There is no other branch, linked working tree or stash in this repository.
 
-The last verified live Core is `2026.11.1.431`, started on 13 November 2026 at 21:45:08
-UTC. Its normal release has 25 checked downloads. Builds 434 and 436 had not completed
-release verification at this snapshot. Leave the release channel in place. Build first,
-test the exact published image on an isolated instance, and verify a fresh backup before
-updating the live instance. The tunnel and successor rollout remain pending.
+## What is running where
 
-## Latest recovery point, 13 November 2026
+- The owner's instance runs build 2026.11.2.536 (Core) and 2026.11.0.536 (Supervisor). It was moved there on 20 November 2026 at 10:16 Toronto time after a browser check.
+- Build 537 (Updates page fails soft after a restart) and build 538 (polish pass) are published. Neither has been checked in a browser.
+- A release run was queued for the source that holds the hunt repairs and the three new features. Whether it finished is not known; check the release list.
+- The last commit of this session carries `[skip ci]`. It has not been built. Start a build with `gh workflow run release.yml --ref main`.
 
-Complete the everyday interface workflows and the subsequently requested backup-hosting feature. The later owner request explicitly adds the desktop assistant and appliance targets to the earlier everyday-only scope. Keep tests after coherent implementation, preserve work promptly, integrate completed source into main and deliver only verified updates.
+## Built in source, never seen in a browser
 
-Required behavior: each selected backup offers an independent hosted web copy and an appliance copy. The desktop assistant accepts an uploaded native archive or ZIP and offers Docker, SSH, VirtualBox, VMware and Raspberry Pi. Preserve original active automation state. Return a checked destination link with truthful restore/authentication state. Do not alter the source installation, expose credentials, disable authentication or initiate a Windows power/login action.
+1. Polish pass: one scroller on list pages, a measured end space, wrapping names, dialogs and sheets with fixed title and buttons, floating tool pills, search on more pages and filter panels, action moments.
+2. Fourteen repairs from the browser hunt on build 536, including the blank area pages and the page titles that stacked one letter per line.
+3. Controls in place on listed entities, "Run a quick action", "Show more details".
+4. Second pass: an expandable detail row in the shared data table, details and quick buttons in more lists, the states tool opening on one entity.
+5. A stop control for a running quick action, with a small server component `quick_action`.
 
-## Delivered baseline
+## Not verified, said plainly
 
-The last verified published and installed Core is 2026.11.1.441, source 394771b0f4b4afbd8562777c9abfb47c9c1d97ad; Supervisor is 2026.11.0.439. The normal scoped release is v2026.11.1.441 and its three assets were downloaded and hash-verified. The supported updater applied it after authorization for normal building. This does not claim an in-interface update-button click.
+- Nothing after build 536 has been seen in a browser.
+- The Python tests for `core/tests/components/quick_action` and for `default_config` were written and compile, but were NOT run: the container engine on the workstation stopped answering. Run them before trusting the server part. `quick_action` is loaded by default, so a fault there affects start-up.
+- The operating system update step cannot be exercised in a container copy.
+- The public site was looked at from local files at 320, 390 and 1440 px. It was not checked on its published address after the last change, and its hero picture is still the old one. The files a capture pass must provide are `docs/site/img/hero-light.webp` and `docs/site/img/hero-dark.webp`.
 
-History lifecycle checks passed, including a deliberate old-source red result and exact restoration. Guided setup save/reload/resume and account preference persistence were exercised in the isolated fixture. Script condition results have zero measured summary overlaps in the retained published-build matrix. Populated comparison, native keyboard coverage and broader physical display-scale proof remain incomplete.
+## Checks at the stop
 
-## Current local implementation
+- Frontend: 9889 tests pass, with the 3 long-standing failures in `test/build-scripts/build-management.test.js`. Type check at its 2 long-standing gallery errors.
+- Wording scan of every added line: clean.
 
-All current task code is preserved in local commits and integrated into local main, except any explicitly identified active repair branch. The public main remains at the delivered baseline because the full publication check is blocked. A local commit is not remote preservation or delivery.
+## Next safe steps, in order
 
-The backup feature contains bounded archive intake, upload/job admission, pairing authority excluded from both archive paths, approved native pairing, HTTPS bridge ownership, strict SSH identity, protected restore transport, separate job-owned provisioning, offline appliance media preparation and original automation activity. The helper builds locally and prepared a real checksum-verified published appliance disk, but its immutable registry descriptor is not published. Appliance availability remains false until that delivery is verified.
+1. Start the container engine (the owner's decision), then run the two Python test folders named above with the recipe at the top of `HANDOFF.md`. Run them detached and one at a time.
+2. Start a release build and wait for its image.
+3. Browser check of that build on a throwaway copy: the 80-page pass, each of the fourteen hunt findings, the quick controls (a lock must ask first), a quick action with a wait that is then stopped, the detail row in tables, and a comparison with pictures of build 536 so the look has not drifted.
+4. Only on a pass, move the owner's instance, Supervisor first, and read back versions and that Supervisor self-update is off.
+5. Write the notes for each new build in the updates log repository.
 
-Core and Supervisor 444 candidates build. The repaired Core dialog from 70cada969a2130d7d09999c09a5ebeafa1ced5e2 passed 24 real list/details, container/appliance, width and language cases. The native 1.6.0 candidate packages through the root Squirrel entrypoint. Native caption protection, real ZIP intake, selected image/port preservation and same-job cold-start waiting have actual runtime evidence.
+## Known open items
 
-Focused results: Core hosting 57 passed; Supervisor exclusion 29 passed with 10 deselected; frontend helpers/lifecycle nine passed; native renderer 12 passed. Latest native diagnostic/readiness selection passes 99 tests on Node 22.14.0. The retained-upload expiry repair has 110 passing focused tests and independent source approval. It is integrated as an explicitly incomplete local recovery checkpoint; its rebuilt runtime check remains unrun. These selections are not an entire-project green verdict.
+- History page and the states tool's own rows have no quick buttons. Tags cards view and area cards have no details expander.
+- The empty space beside automation names at 320 px is only partly recovered.
+- Design canvas 42 records the owner's decisions; its boards are in `design/canvases/42-modern-polish-2`.
 
-## Existing synthetic restore, incomplete
+## Rules that must hold
 
-Exactly one synthetic native restore job and Docker instance exist. The original synthetic automation was enabled before backup. Real ZIP import and target provisioning succeeded. Startup waiting and same-job Resume succeeded. The first upload returned an unrecorded non-2xx response, before any backup identifier or restore submission. No cause was inferred from that missing status.
-
-The diagnostic candidate records only numeric HTTP status and a fixed operation stage, requires an idle backup manager and adds no automatic POST retry. Its next Resume was blocked locally because the retained upload handle expired while its unfinished-job file remained. That source repair must permit only the exact existing authenticated unfinished job to use retained input; new/cross-owner/mismatched requests retain expiry rejection. Never edit the fixture expiry or create another job to hide the gap.
-
-Read the private local run receipts before any action. Revalidate exact process, window, container and volume identities. Resume the same job only after the repair and package are verified. Preserve the selected image/port and original archive. Never replay a restore whose phase is restore_submitted or restore_accepted. No restore POST or restored-automation-state proof has been recorded yet.
-
-## Publication and evidence blockers
-
-The full scan at 0185886eba7dab95154f208bdfd49d68a2f4469e returned 8,731 findings: 7,328 source-language matches, 477 path matches and 926 unsupported encodings. Independent changed-line review confirmed no new language leak in that scanned change range; its one added-line match was a functional filesystem command. That does not clear the baseline or later revisions. No blanket exception or protected-algorithm rewrite is authorized.
-
-A structured scope choice is pending: expand the separate baseline review before publication, or retain this feature scope with publication blocked. No new Core/Supervisor/native release, registry descriptor or accepted installation update has been claimed. Do not force-push or weaken a check to manufacture delivery.
-
-Private native images displaying a storage path are withheld. The browser runtime retains one exact page plus its causally related worker; the strict one-entry website-promotion check remains unverified. A proposed headless automation HTTP service was automatically rejected and was not retried through another route. Genuine captures and missing-proof boundaries remain recorded separately.
-
-## Preservation and next steps
-
-Preserve the six pre-existing frontend/zz-seen-f-*.cjs files, the Raspberry Pi recovery branch, unrelated worktrees and every ignored announcement variant. No cleanup authorization has been exercised and no completed-and-pushed ancestry proof exists for the new feature.
-
-1. On a supported resumed allowance, build the retained-upload expiry repair and perform one controlled same-job diagnostic Resume. At the verified 10% remaining boundary, no new build or target request is authorized by this handoff.
-2. If upload is rejected, retain safe HTTP status/stage and stop before another POST; diagnose from actual evidence. If accepted, observe the existing automatic restore once and independently verify automation state and the intended LAN URL.
-3. Verify native/Core pairing on synthetic fixtures without creating an unintended second host. Appliance helper publication and non-Docker runtime acceptance remain separate.
-4. Resolve the pending publication scope, then complete source checks, main remote proof, immutable registry/release delivery, matching Core/Supervisor update and current documentation/evidence.
-5. Preserve all unfinished state before stopping. Only after the actual task and required remote proofs finish may exact task-owned cleanup proceed. Report missing hardware, consent, authentication or evidence explicitly.
-
-## Allowance-boundary state
-
-The account reported 90% used, 10% remaining during preservation. The goal remains unfinished and active; no unsupported pause, completion or fabricated blocked-turn count is claimed. The native expiry repair is source-verified but not packaged or exercised. The structured publication-scope choice remains pending. Keep every unfinished branch and working tree; no deletion pass is appropriate.
+No confirmation is weakened: the two keys and the slider stay. Nothing installs by itself. Going back to an older build makes a backup first. No data leaves the home except what the owner turned on. No private wording, machine path or address in any file here.

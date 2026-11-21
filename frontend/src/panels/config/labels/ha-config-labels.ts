@@ -74,6 +74,11 @@ import {
   getModifiedAtTableColumn,
 } from "../common/data-table-columns";
 import { configSections } from "../config-sections";
+import {
+  factsRowDetails,
+  rowDetailsColumn,
+} from "../../../components/data-table/row-details-column";
+import { listFacts } from "../../../data/entity-details";
 import { showLabelDetailDialog } from "./show-dialog-label-detail";
 
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
@@ -166,6 +171,31 @@ export class HaConfigLabels extends LitElement {
   @query("hass-tabs-subpage-data-table", true)
   private _dataTable!: HaTabsSubpageDataTable;
 
+  // The label's own facts, in the row right under it.
+  private _rowDetails = factsRowDetails((label) =>
+    listFacts([
+      ["label_id", label.label_id],
+      ["name", label.name, "text"],
+      ["icon", label.icon],
+      ["color", label.color],
+      ["description", label.description, "text"],
+      [
+        "created",
+        label.created_at
+          ? new Date(label.created_at * 1000).toISOString()
+          : undefined,
+        "time",
+      ],
+      [
+        "modified",
+        label.modified_at
+          ? new Date(label.modified_at * 1000).toISOString()
+          : undefined,
+        "time",
+      ],
+    ])
+  );
+
   private _columns = memoizeOne((localize: LocalizeFunc) => {
     const columns: DataTableColumnContainer<LabelRegistryEntry> = {
       icon: {
@@ -201,6 +231,12 @@ export class HaConfigLabels extends LitElement {
       },
       created_at: getCreatedAtTableColumn(localize, this.hass),
       modified_at: getModifiedAtTableColumn(localize, this.hass),
+      details: rowDetailsColumn<LabelRegistryEntry>(
+        localize("ui.components.quick_control.details_column"),
+        this,
+        (label) => label.label_id,
+        (label) => label.name
+      ),
       actions: {
         lastFixed: true,
         title: "",
@@ -285,6 +321,7 @@ export class HaConfigLabels extends LitElement {
         @row-click=${this._editLabel}
         clickable
         id="label_id"
+        .renderRowDetails=${this._rowDetails}
         selectable
         keep-hidden-selection
         .selected=${this._selected.length}
