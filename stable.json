@@ -27,10 +27,10 @@
     "odroid-xu": "2025.11.3"
   },
   "hassos": {
-    "ova": "18.5.547",
-    "rpi3-64": "18.5.547",
-    "rpi4-64": "18.5.547",
-    "rpi5-64": "18.5.547",
+    "ova": "18.5.548",
+    "rpi3-64": "18.5.548",
+    "rpi4-64": "18.5.548",
+    "rpi5-64": "18.5.548",
     "yellow": "18.5",
     "green": "18.4",
     "odroid-c2": "18.4",
@@ -57,7 +57,7 @@
     "4": "4.20",
     "3": "3.13"
   },
-  "ota": "https://github.com/Ding-Ding-Projects/home-assistant-material/releases/download/v2026.11.2.547/{os_name}_{board}-{version}.raucb",
+  "ota": "https://github.com/Ding-Ding-Projects/home-assistant-material/releases/download/v2026.11.2.548/{os_name}_{board}-{version}.raucb",
   "cli": "2026.10.1",
   "dns": "2026.10.0",
   "audio": "2026.10.0",
@@ -74,6 +74,6 @@
   },
   "material": {
     "build": 548,
-    "os_build": 547
+    "os_build": 548
   }
 }
