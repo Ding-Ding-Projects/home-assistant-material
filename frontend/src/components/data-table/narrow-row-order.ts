@@ -11,6 +11,27 @@ export type NarrowRowEntry = [
 ];
 
 /**
+ * A phone row with controls that may move under the name is drawn in two
+ * parts: the cells up to and including the name, and the cells after it.
+ * The cells after the name are kept together as one group, so they move to
+ * the line under the name all at once, stay at the end of the row in their
+ * own order, and never leave a single button on a line by itself while its
+ * neighbours stay above. Without a name column everything is in `lead`.
+ */
+export const splitNarrowRow = <T extends NarrowRowEntry>(
+  entries: readonly T[]
+): { lead: T[]; trail: T[] } => {
+  const mainIndex = entries.findIndex(([, column]) => column.main);
+  if (mainIndex === -1) {
+    return { lead: [...entries], trail: [] };
+  }
+  return {
+    lead: entries.slice(0, mainIndex + 1),
+    trail: entries.slice(mainIndex + 1),
+  };
+};
+
+/**
  * The order in which a row's cells are drawn. On a phone in selection mode
  * the checkbox takes room at the start of the row, so the columns marked
  * `narrowSelectAfterName` that stand before the name move to just after it.

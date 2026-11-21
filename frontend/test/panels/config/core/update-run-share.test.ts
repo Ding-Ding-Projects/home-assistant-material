@@ -235,3 +235,34 @@ describe("sharedRunView with the update entities", () => {
     expect(sharedRunView(stranded)?.steps[0].state).toBe("current");
   });
 });
+
+// A browser that watches a run saw "Updates finished" for a few seconds while
+// the Core row still said "Updating": the record had ended before this
+// browser's own view of Core caught up. The summary follows the rows.
+describe("sharedRunView while a row still installs", () => {
+  it("does not call a run finished while a row shows an update installing", () => {
+    const view = sharedRunView(
+      record({ state: "done", position: 2, current: null }),
+      {
+        [A]: { state: "off", attributes: {} },
+        [B]: { state: "on", attributes: { in_progress: true } },
+      }
+    );
+    expect(view?.state).toBe("running");
+    expect(view?.position).toBe(2);
+    expect(view?.finished).toBe(1);
+    expect(view?.current).toBe(B);
+  });
+
+  it("shows the run finished once no row installs", () => {
+    const view = sharedRunView(
+      record({ state: "done", position: 2, current: null }),
+      {
+        [A]: { state: "off", attributes: {} },
+        [B]: { state: "off", attributes: {} },
+      }
+    );
+    expect(view?.state).toBe("done");
+    expect(view?.finished).toBe(2);
+  });
+});

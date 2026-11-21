@@ -24,8 +24,18 @@ export interface QueueStep {
   seenInProgress: boolean;
   /** When the step was started, in milliseconds. */
   startedAt: number | null;
-  /** When the step ended, done or failed, in milliseconds. */
+  /**
+   * When the step ended, done or failed, in milliseconds. Null means it ended
+   * at a time this browser cannot know; undefined, that no time was set yet.
+   */
   endedAt?: number | null;
+  /** The end time is an estimate (shown as "about"). */
+  endedApprox?: boolean;
+  /**
+   * When this page saw the connection drop while the step ran: the step
+   * restarted the system, so the page itself may be reloaded before it ends.
+   */
+  connectionLostAt?: number;
   /**
    * Since when the update has been sitting at "available, not running" after
    * it was seen running. A real update reports "not running" for a while
@@ -202,6 +212,128 @@ export const stepEndedAt = (
     }
   }
   return null;
+};
+
+/**
+ * How far the server's clock may run ahead of this browser's before one of
+ * its times is no longer trusted. A time a little ahead is taken as "now",
+ * marked as approximate.
+ */
+export const CLOCK_SKEW_MS = 60_000;
+
+export interface StepEnd {
+  /** The end in milliseconds, or null when it cannot be known. */
+  at: number | null;
+  /** The end is an estimate. */
+  approximate: boolean;
+}
+
+/**
+ * The best true end time this browser has for a step that finished.
+ *
+ * 1. While the page watched the step, the moment it was seen.
+ * 2. Otherwise the update's own last change, when it lies between the start
+ *    and now (a little past now counts as now, approximately, because the
+ *    server's clock may run ahead).
+ * 3. Otherwise, when the page saw the connection drop during the step (the
+ *    update restarted the system and the page reloaded when it came back),
+ *    the moment the connection was back with the new version, as an
+ *    approximation.
+ * 4. Otherwise unknown. The time the person happened to look is never used.
+ */
+export const resolveStepEnd = (
+  step: Pick<QueueStep, "startedAt" | "connectionLostAt">,
+  entity: Pick<UpdateEntity, "last_updated" | "last_changed"> | undefined,
+  now: number,
+  watched: boolean,
+  /** When this page first had a working connection with real data. */
+  backAt?: number
+): StepEnd => {
+  const exact = stepEndedAt(step, entity, now, watched);
+  if (exact !== null) {
+    return { at: exact, approximate: false };
+  }
+  const start = step.startedAt;
+  if (typeof start !== "number") {
+    return { at: null, approximate: false };
+  }
+  if (entity) {
+    for (const value of [entity.last_changed, entity.last_updated]) {
+      const at = typeof value === "string" ? Date.parse(value) : NaN;
+      if (Number.isFinite(at) && at > now && at - now <= CLOCK_SKEW_MS) {
+        return { at: now, approximate: true };
+      }
+    }
+  }
+  if (
+    typeof step.connectionLostAt === "number" &&
+    typeof backAt === "number" &&
+    backAt >= start &&
+    backAt >= step.connectionLostAt &&
+    backAt - step.connectionLostAt <= STEP_TIMEOUT_MS &&
+    backAt <= now
+  ) {
+    return { at: backAt, approximate: true };
+  }
+  return { at: null, approximate: false };
+};
+
+export interface RunTime {
+  /** From the first step's start to the last known end. */
+  ms: number;
+  /** The last end is an estimate. */
+  approximate: boolean;
+  /**
+   * A step ended at an unknown time, so the run took at least this long.
+   */
+  atLeast: boolean;
+}
+
+/**
+ * How long a finished run took, from its first start to its last end. A step
+ * whose end is still being worked out (undefined) holds the answer back. A
+ * step whose end is unknown (null) is never dropped silently: the result
+ * then says "at least". Undefined when there is nothing honest to say.
+ */
+export const queueRunTime = (
+  steps: Pick<QueueStep, "state" | "startedAt" | "endedAt" | "endedApprox">[]
+): RunTime | undefined => {
+  const started = steps.filter(
+    (step) =>
+      typeof step.startedAt === "number" && Number.isFinite(step.startedAt)
+  );
+  if (!started.length) {
+    return undefined;
+  }
+  const ended = started.filter(
+    (step) => step.state === "done" || step.state === "failed"
+  );
+  if (ended.some((step) => step.endedAt === undefined)) {
+    return undefined;
+  }
+  const start = Math.min(...started.map((step) => step.startedAt as number));
+  const known = ended.filter(
+    (step): step is typeof step & { endedAt: number } =>
+      typeof step.endedAt === "number"
+  );
+  const unknown = ended.filter((step) => step.endedAt === null);
+  if (!known.length) {
+    return undefined;
+  }
+  let end = Math.max(...known.map((step) => step.endedAt));
+  // A step with no known end still ran after it started.
+  for (const step of unknown) {
+    end = Math.max(end, step.startedAt as number);
+  }
+  if (end <= start) {
+    return undefined;
+  }
+  const last = known.filter((step) => step.endedAt === end);
+  return {
+    ms: end - start,
+    approximate: last.length > 0 && last.every((step) => !!step.endedApprox),
+    atLeast: unknown.length > 0,
+  };
 };
 
 /**
@@ -398,6 +530,11 @@ export const parseStoredQueue = (
             : step.endedAt === null
               ? null
               : undefined,
+        ...(step.endedApprox === true ? { endedApprox: true } : {}),
+        ...(typeof step.connectionLostAt === "number" &&
+        Number.isFinite(step.connectionLostAt)
+          ? { connectionLostAt: step.connectionLostAt }
+          : {}),
         idleSince: typeof step.idleSince === "number" ? step.idleSince : null,
         title:
           typeof step.title === "string" ? step.title.slice(0, 200) : undefined,

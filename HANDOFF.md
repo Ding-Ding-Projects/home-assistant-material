@@ -1,5 +1,33 @@
 # Handoff
 
+## State on 21 November 2026
+
+Written at 11:20 Toronto time. All work is on `main`.
+
+**Running:** the owner's instance is on build 547, moved on 21 November at 09:50 Toronto time after that build passed a browser check on a test copy. A backup was taken before each move.
+
+**Builds since the section below was written, each checked in a browser on throwaway copies:**
+
+| Build | Source | Verdict | Why |
+| --- | --- | --- | --- |
+| 542, 543 | 33e099f91, 16eeae26e | No | Entity names squeezed on a phone by the new control column; the search drop-down emptied when a light's slider or colour button was pressed |
+| 544 | f762c285c | Yes | Both repaired; 80 pages, no page errors |
+| 545 | 775a96382 | No | A run stranded for two hours when the starting browser closed; a watching browser lost the finished summary |
+| 546 | c2e5b0256 | No | The watching browser still showed an empty card until reloaded by hand; a new tab did not carry a run on |
+| 547 | bb1702e32 | Yes | A watching browser shows the summary by itself; a stranded run frees itself and shows real states |
+
+**This commit** repairs what the 547 check left: the run time in the summary after a Core update, a way forward for a stranded run with one step left, wrapped buttons kept together at the row end on phone lists, and three small display faults. Not yet seen in a browser.
+
+**What the checks taught, worth keeping:**
+
+- The confirmation's slider starts the run once both keys are turned. There is no separate start button.
+- While Core runs the newest build only the two pretend apps offer updates on the full test copy; they offer again after a Core restart. Going back with a backup makes Core offer an update again, but the page is then served by the older frontend, which proves nothing about the newer one.
+- The update queue lives in the tab's session storage. Only the same tab can carry a run on.
+- A check that re-finds a button by its name after pressing it can read the wrong row, because the name changes when the row opens. Keep the element handle.
+- Python tests must run detached and one at a time in the test container; the source copy alone takes about twenty minutes.
+
+`CLOSEOUT_PROMPT.md` lists how a build reaches the owner's instance and what is open.
+
 ## State at the stop on 20 November 2026
 
 Stopped at 23:45 Toronto time. All work is on `main`; there is no other branch, linked working tree or stash.

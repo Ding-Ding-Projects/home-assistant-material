@@ -302,7 +302,10 @@ class HaBlueprintOverview extends LitElement {
   private _columns = memoizeOne(
     (
       localize: LocalizeFunc,
-      narrow: boolean
+      narrow: boolean,
+      // The details column was hidden in the column settings; the phone
+      // layout, which draws its button in the "Use" cell, follows that.
+      detailsHidden: boolean
     ): DataTableColumnContainer<BlueprintMetaDataPath> => ({
       icon: {
         title: "",
@@ -390,7 +393,7 @@ class HaBlueprintOverview extends LitElement {
         minWidth: "110px",
         maxWidth: "110px",
         template: (blueprint) =>
-          narrow
+          narrow && !detailsHidden
             ? html`<div
                 style="display: flex; align-items: center; justify-content: flex-end; gap: 4px"
               >
@@ -542,7 +545,11 @@ class HaBlueprintOverview extends LitElement {
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.automations}
-        .columns=${this._columns(this.hass.localize, this.narrow)}
+        .columns=${this._columns(
+          this.hass.localize,
+          this.narrow,
+          !!this._activeHiddenColumns?.includes("details")
+        )}
         .data=${this._processedBlueprints(
           this.blueprints,
           this.hass.localize,
@@ -1153,6 +1160,9 @@ class HaBlueprintOverview extends LitElement {
   private _handleColumnsChanged(ev: CustomEvent) {
     this._activeColumnOrder = ev.detail.columnOrder;
     this._activeHiddenColumns = ev.detail.hiddenColumns;
+    // The phone layout draws the details button itself, so it has to follow
+    // a change to the hidden columns.
+    this.requestUpdate();
   }
 
   static get styles(): CSSResultGroup {

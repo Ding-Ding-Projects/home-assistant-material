@@ -183,8 +183,16 @@ export const sharedRunView = (
     entityId,
     state: correctedStepState(state, entities[entityId], silent),
   }));
+  // The record can say the run ended a moment before this browser sees the
+  // last update stop installing. The summary follows the rows: it is not
+  // "finished" while a row still shows an update installing.
+  const installingIndex = steps.findIndex((step) => step.state === "current");
+  const heldOpen =
+    installingIndex >= 0 &&
+    (base.state === "done" || base.state === "cancelled");
+  const state = heldOpen ? "running" : base.state;
   const finished =
-    base.state === "done"
+    state === "done"
       ? base.total
       : steps.filter((step) => step.state === "finished").length;
   const current =
@@ -192,6 +200,8 @@ export const sharedRunView = (
     (silent ? null : base.current);
   return {
     ...base,
+    state,
+    position: heldOpen ? installingIndex + 1 : base.position,
     finished,
     percent: Math.round((finished / base.total) * 100),
     current,

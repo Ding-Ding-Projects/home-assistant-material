@@ -3020,6 +3020,10 @@
             "finished_title": "更新全部完成",
             "finished_text": "{total} 個更新之中，有 {done} 個已經安裝。",
             "finished_took": "成次更新用咗 {time}。",
+            "finished_took_about": "成次更新用咗大約 {time}。",
+            "finished_took_at_least": "成次更新最少用咗 {time}。有一個更新喺呢頁唔喺度嗰陣做完，所以唔知佢幾時完成。",
+            "took_about": "大約 {time}",
+            "took_at_least": "最少 {time}",
             "failed_title": "{name} 更新唔成功",
             "failed_text_failed": "更新返回到「有更新」嘅狀態，冇安裝到。剩低嘅更新未有開始。",
             "failed_text_timeout": "呢個更新用咗超過 30 分鐘。剩低嘅更新未有開始。",
@@ -3056,7 +3060,9 @@
             "shared_clear_note": "清除只會移走呢個通知。而家安裝緊嘅更新會繼續做完。",
             "shared_clear_failed": "清除唔到呢次更新，請再試一次。",
             "shared_update_rest": "更新剩低嘅",
-            "shared_update_rest_note": "經過平時嘅確認之後，由呢個瀏覽器為仲等緊嘅更新開始一次新嘅「全部更新」。你確認咗先會清除呢次更新。"
+            "shared_update_rest_note": "經過平時嘅確認之後，由呢個瀏覽器為仲等緊嘅更新開始一次新嘅「全部更新」。你確認咗先會清除呢次更新。",
+            "shared_update_one": "更新 {name}",
+            "shared_update_one_note": "會先清除呢次更新，然後做嘅嘢同下面呢個更新嘅「更新」掣完全一樣。"
           },
           "build_data": {
             "retry": "再試一次",

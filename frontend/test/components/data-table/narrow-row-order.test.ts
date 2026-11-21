@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { DataTableColumnContainer } from "../../../src/components/data-table/ha-data-table";
-import { narrowRowEntries } from "../../../src/components/data-table/narrow-row-order";
+import {
+  narrowRowEntries,
+  splitNarrowRow,
+} from "../../../src/components/data-table/narrow-row-order";
 
 // Protects the Labels list on a 320 px phone in selection mode: the checkbox
 // takes room at the start of the row, so the colour moves after the name and
@@ -55,5 +58,28 @@ describe("narrow row order", () => {
       "a",
       "b",
     ]);
+  });
+});
+
+// Protects the phone rows whose controls move under the name: the cells after
+// the name are kept together, so they move as one group at the end of the row
+// in their own order and no single button is left on a line by itself.
+describe("splitNarrowRow", () => {
+  it("keeps the cells after the name together, in order", () => {
+    const { lead, trail } = splitNarrowRow(narrowRowEntries(columns, false));
+    expect(lead.map(([key]) => key)).toEqual(["icon", "color", "name"]);
+    expect(trail.map(([key]) => key)).toEqual(["details", "actions"]);
+  });
+
+  it("puts a cell moved after the name in the group, first", () => {
+    const { trail } = splitNarrowRow(narrowRowEntries(columns, true));
+    expect(trail.map(([key]) => key)).toEqual(["color", "details", "actions"]);
+  });
+
+  it("leaves a table without a name column whole", () => {
+    const plain: DataTableColumnContainer = { a: { title: "A" } };
+    const { lead, trail } = splitNarrowRow(narrowRowEntries(plain, false));
+    expect(lead.map(([key]) => key)).toEqual(["a"]);
+    expect(trail).toEqual([]);
   });
 });

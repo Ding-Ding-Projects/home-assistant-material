@@ -58,7 +58,8 @@ import "../ha-empty-state";
 import { emptyTone } from "../empty-state-logic";
 import "../input/ha-input-search";
 import { tablePatternSamples } from "./pattern-samples";
-import { narrowRowEntries } from "./narrow-row-order";
+import type { NarrowRowEntry } from "./narrow-row-order";
+import { narrowRowEntries, splitNarrowRow } from "./narrow-row-order";
 import { filterData, sortData } from "./sort-filter";
 import {
   closeRowDetailsOnKey,
@@ -1285,89 +1286,99 @@ export class HaDataTable extends LitElement {
               `
             : ""
         }
-        ${narrowRowEntries(columns, narrow && this.selectable).map(
-          ([key, column, movedAfterName]) => {
-            if (
-              (narrow && !column.main && !column.showNarrow) ||
-              !this._isColumnVisible(key, column)
-            ) {
-              return nothing;
-            }
-            const templated =
-              column.template && !column.main
-                ? column.template(row)
-                : undefined;
-            // On a phone a cell with nothing in it still took its width
-            // and showed as an empty box (or a lone dash) at the end of the row.
-            if (
-              narrow &&
-              column.template &&
-              !column.main &&
-              !this._hasCellValue(templated)
-            ) {
-              return nothing;
-            }
-            return html`
-              <div
-                @mouseover=${this._setTitle}
-                @focus=${this._setTitle}
-                @pointerdown=${this._namePressStart}
-                @pointerup=${this._namePressEnd}
-                @pointercancel=${this._namePressEnd}
-                @pointerleave=${this._namePressEnd}
-                @contextmenu=${this._nameContextMenu}
-                role=${column.main ? "rowheader" : "cell"}
-                class="mdc-data-table__cell ${classMap(
-                  this._cellClasses(column, movedAfterName)
-                )}"
-                style=${styleMap(this._cellStyles(column))}
-              >
-                ${
-                  column.template
-                    ? column.main
-                      ? this._renderMainValue(column.template(row))
-                      : templated
-                    : narrow && column.main
-                      ? html`<div class="primary">
-                            ${this._renderMainValue(row[key])}
-                          </div>
-                          <div class="secondary">
-                            ${join(
-                              Object.entries(columns)
-                                .filter(([key2, column2]) =>
-                                  this._isSecondaryColumnVisible(key2, column2)
-                                )
-                                .map(([key2, column2]) =>
-                                  column2.template
-                                    ? column2.template(row)
-                                    : row[key2]
-                                )
-                                .filter(this._hasCellValue),
-                              STRINGS_SEPARATOR_DOT
-                            )}
-                          </div>
-                          ${
-                            column.extraTemplate
-                              ? column.extraTemplate(row)
-                              : nothing
-                          }`
-                      : html`${
-                          column.main
-                            ? this._renderMainValue(row[key])
-                            : row[key]
-                        }${
-                          column.extraTemplate
-                            ? column.extraTemplate(row)
-                            : nothing
-                        }`
-                }
-              </div>
-            `;
-          }
-        )}
+        ${this._renderRowCells(columns, narrow, row)}
       </div>
     `;
   };
+
+  private _renderRowCells(
+    columns: DataTableColumnContainer,
+    narrow: boolean,
+    row: DataTableRowData
+  ) {
+    const entries = narrowRowEntries(columns, narrow && this.selectable);
+    const renderCell = ([key, column, movedAfterName]: NarrowRowEntry) => {
+      if (
+        (narrow && !column.main && !column.showNarrow) ||
+        !this._isColumnVisible(key, column)
+      ) {
+        return nothing;
+      }
+      const templated =
+        column.template && !column.main ? column.template(row) : undefined;
+      // On a phone a cell with nothing in it still took its width
+      // and showed as an empty box (or a lone dash) at the end of the row.
+      if (
+        narrow &&
+        column.template &&
+        !column.main &&
+        !this._hasCellValue(templated)
+      ) {
+        return nothing;
+      }
+      return html`
+        <div
+          @mouseover=${this._setTitle}
+          @focus=${this._setTitle}
+          @pointerdown=${this._namePressStart}
+          @pointerup=${this._namePressEnd}
+          @pointercancel=${this._namePressEnd}
+          @pointerleave=${this._namePressEnd}
+          @contextmenu=${this._nameContextMenu}
+          role=${column.main ? "rowheader" : "cell"}
+          class="mdc-data-table__cell ${classMap(
+            this._cellClasses(column, movedAfterName)
+          )}"
+          style=${styleMap(this._cellStyles(column))}
+        >
+          ${
+            column.template
+              ? column.main
+                ? this._renderMainValue(column.template(row))
+                : templated
+              : narrow && column.main
+                ? html`<div class="primary">
+                      ${this._renderMainValue(row[key])}
+                    </div>
+                    <div class="secondary">
+                      ${join(
+                        Object.entries(columns)
+                          .filter(([key2, column2]) =>
+                            this._isSecondaryColumnVisible(key2, column2)
+                          )
+                          .map(([key2, column2]) =>
+                            column2.template ? column2.template(row) : row[key2]
+                          )
+                          .filter(this._hasCellValue),
+                        STRINGS_SEPARATOR_DOT
+                      )}
+                    </div>
+                    ${
+                      column.extraTemplate ? column.extraTemplate(row) : nothing
+                    }`
+                : html`${
+                    column.main ? this._renderMainValue(row[key]) : row[key]
+                  }${
+                    column.extraTemplate ? column.extraTemplate(row) : nothing
+                  }`
+          }
+        </div>
+      `;
+    };
+    if (!(narrow && this._hasWrapColumn(columns))) {
+      return entries.map(renderCell);
+    }
+    // On a phone the cells after the name stay together: they move under
+    // the name as one group, at the end of the row, in their own order.
+    const { lead, trail } = splitNarrowRow(entries);
+    return html`${lead.map(renderCell)}${
+      trail.length
+        ? html`<div class="narrow-trail" role="none">
+            ${trail.map(renderCell)}
+          </div>`
+        : nothing
+    }`;
+  }
 
   private _hasWrapColumn = memoizeOne((columns: DataTableColumnContainer) =>
     Object.values(columns).some((column) => column.narrowWrap)
@@ -2969,18 +2980,46 @@ export class HaDataTable extends LitElement {
              not hold on a phone, where the cell may show fewer buttons. */
           min-width: 0 !important;
           max-width: none !important;
-          margin-inline-start: auto;
           padding-inline: 0 var(--ha-space-1);
           /* Room for the controls' hit areas and focus rings. */
           overflow: visible;
         }
-        /* Only the first of several such cells pushes them to the end: with
-           an automatic margin on each, the free space was shared out between
-           them and the first one sat at the start of its line. */
+        /* The cells after the name, kept together. The group is as wide as
+           its cells and sits at the end of the row: beside the name when the
+           name keeps its minimum width, otherwise on the line under it, all
+           of it. Inside, the cells keep their wide-screen order. Only a group
+           wider than the whole row wraps inside itself, still at the end. */
+        :host([narrow]) .mdc-data-table__row.has-wrap-cell .narrow-trail {
+          display: flex;
+          flex: 0 0 auto;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: flex-end;
+          min-width: 0;
+          max-width: 100%;
+          margin-inline-start: auto;
+          align-self: center;
+        }
+        /* The group's first cell is not the first of the row: it keeps the
+           spacing it had before the group existed. */
+        :host([narrow]:not([row-cards]))
+          .narrow-trail
+          > .mdc-data-table__cell--icon-button:first-child,
+        :host([narrow]:not([row-cards]))
+          .narrow-trail
+          > .mdc-data-table__cell--overflow-menu:first-child {
+          padding-inline-start: 8px;
+        }
+        :host([narrow]:not([row-cards]))
+          .narrow-trail
+          > .mdc-data-table__cell--icon-button:first-child:not(:last-child) {
+          width: 56px;
+        }
         :host([narrow])
-          .mdc-data-table__row
-          .mdc-data-table__cell.mdc-data-table__cell--wrap[role="cell"]
-          ~ .mdc-data-table__cell.mdc-data-table__cell--wrap[role="cell"] {
+          .narrow-trail
+          > .mdc-data-table__cell--icon:first-child
+          > * {
+          margin-left: 0;
           margin-inline-start: 0;
         }
         :host([narrow])

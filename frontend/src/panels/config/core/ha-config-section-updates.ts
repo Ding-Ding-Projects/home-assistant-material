@@ -1278,6 +1278,16 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     // confirmation as "Update everything".
     const canUpdateRest =
       ready.length >= 2 && !running && !this._usbRunning && !this._queue.active;
+    // With a single update left, the run offers that one update through the
+    // same path as its own row's Update button.
+    const restSingle =
+      ready.length === 1 &&
+      !running &&
+      !this._usbRunning &&
+      !this._queue.active &&
+      this._singleUpdateAllowed(ready[0])
+        ? ready[0].entity_id
+        : undefined;
     const shared = this._sharedRun
       ? html`<ha-update-queue-card
           .hass=${this.hass}
@@ -1285,7 +1295,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
           .sharedRun=${this._sharedRun}
           .sharedSeenAt=${this._sharedRunSeenAt}
           .canUpdateRest=${canUpdateRest}
+          .restSingle=${restSingle}
           @update-rest=${this._updateRest}
+          @update-rest-single=${this._updateRestSingle}
         ></ha-update-queue-card>`
       : nothing;
     if (ready.length < 2 || sharedRunning) {
@@ -1732,12 +1744,62 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     this._queue.start(ordered, !!plan?.carriers.length, plan?.carriers ?? []);
   }
 
+  // Whether this update's own row offers a working Update button now: the
+  // same conditions that leave that button enabled.
+  private _singleUpdateAllowed(entity: UpdateEntity): boolean {
+    const updates = this._filterInstallableUpdateEntities(
+      this.hass.states,
+      this.hass.formatEntityName
+    );
+    return (
+      updates.some((item) => item.entity_id === entity.entity_id) &&
+      !updateIsInstalling(entity) &&
+      !supervisorUpdateFirst(entity, updates) &&
+      !updateBlockReason(entity, updates, this._queue.active) &&
+      !(this._backupInProgress() && this._isAppUpdate(entity))
+    );
+  }
+
+  // "Update <name>" of a run whose browser stopped responding, when one
+  // update is left: the stranded display record is cleared the same way
+  // "Update the rest" clears it, then the update goes through exactly what
+  // its own row's Update button does.
+  private async _updateRestSingle(): Promise<void> {
+    const updates = this._filterInstallableUpdateEntities(
+      this.hass.states,
+      this.hass.formatEntityName
+    );
+    const ready = orderUpdateQueue(updates);
+    if (ready.length !== 1 || !this._singleUpdateAllowed(ready[0])) {
+      return;
+    }
+    const entityId = ready[0].entity_id;
+    try {
+      await clearUpdateRun(this.hass);
+    } catch (_err) {
+      showAlertDialog(this, { text: this._text("shared_clear_failed") });
+      return;
+    }
+    const entity = this.hass.states[entityId] as UpdateEntity | undefined;
+    if (!entity) {
+      return;
+    }
+    if (isSystemUpdate(entity)) {
+      this._openSystemUpdateFor(entityId);
+    } else {
+      await this._updateOneFor(entityId);
+    }
+  }
+
   private _openSystemUpdate(ev: Event): void {
-    const entityId = (ev.currentTarget as any).entityId as string;
+    this._openSystemUpdateFor((ev.currentTarget as any).entityId as string);
+  }
+
+  private _openSystemUpdateFor(entityId: string): void {
     if (this._isBlockedNow(entityId)) {
       return;
     }
-    this._openMoreInfo(ev);
+    fireEvent(this, "hass-more-info", { entityId });
   }
 
   private _openMoreInfo(ev: Event): void {
@@ -1798,8 +1860,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     checkForEntityUpdates(this, this.hass);
   }
 
-  private async _updateOne(ev: Event): Promise<void> {
-    const entityId = (ev.currentTarget as any).entityId as string;
+  private _updateOne(ev: Event): Promise<void> {
+    return this._updateOneFor((ev.currentTarget as any).entityId as string);
+  }
+
+  private async _updateOneFor(entityId: string): Promise<void> {
     if (this._isBlockedNow(entityId)) {
       return;
     }

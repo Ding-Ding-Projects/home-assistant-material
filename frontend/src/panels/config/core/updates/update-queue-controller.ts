@@ -14,9 +14,9 @@ import {
   evaluateStep,
   loadStoredQueue,
   queueIsActive,
+  resolveStepEnd,
   roleRestartsSystem,
   stepDone,
-  stepEndedAt,
   storeQueue,
   SYSTEM_STEP_SETTLE_MS,
 } from "./update-queue";
@@ -24,6 +24,15 @@ import { runReportFromQueue, shareDue } from "./update-run-share";
 
 /** How often a running step is looked at when no state change arrives. */
 const TICK_MS = 5000;
+
+/**
+ * How long a step that ended across a reload waits for its update entity to
+ * come back before its end time is settled without it.
+ */
+const ENTITY_WAIT_MS = 60_000;
+
+/** A page loaded within this time counts as freshly loaded. */
+const FRESH_LOAD_MS = 2 * 60_000;
 
 /**
  * How often in a row a refused report is sent again, one look apart: about
@@ -73,6 +82,15 @@ export class UpdateQueueController implements ReactiveController {
   // was shown, so a step seen ending now really ended now.
   private _watching = true;
 
+  // When this page was shown, and when it first had a working connection
+  // with real data: after a restart, the moment the system was back.
+  private _shownAt = Date.now();
+
+  private _backAt?: number;
+
+  // Steps that ended while the page was away and still wait for an end time.
+  private _awaitingEnd = new Set<string>();
+
   /** Steps whose install call has not answered yet. */
   private _calling = new Set<string>();
 
@@ -98,6 +116,9 @@ export class UpdateQueueController implements ReactiveController {
     // A restored queue's steps may have ended while the page was away; until
     // the first full look with real data their end time is not "now".
     this._watching = false;
+    this._shownAt = Date.now();
+    this._backAt = undefined;
+    this._awaitingEnd.clear();
     this._beginChecking();
     // After a reload onto a new build the stored queue may already be done:
     // settle that before the card first shows anything.
@@ -136,6 +157,21 @@ export class UpdateQueueController implements ReactiveController {
     };
   }
 
+  // Whether the whole page was loaded moments ago, rather than this view
+  // being opened again inside a page that has been open for a while.
+  private _freshlyLoaded(): boolean {
+    try {
+      const origin = window.performance?.timeOrigin;
+      return (
+        typeof origin === "number" &&
+        Number.isFinite(origin) &&
+        Date.now() - origin < FRESH_LOAD_MS
+      );
+    } catch (_err) {
+      return false;
+    }
+  }
+
   // Whether the page now knows enough to judge the restored step.
   private _hasRealData(hass: HomeAssistant): boolean {
     if (hass.connected === false) {
@@ -163,6 +199,7 @@ export class UpdateQueueController implements ReactiveController {
       return;
     }
     this.failureMessage = undefined;
+    this._awaitingEnd.clear();
     this._commit(queue);
     this.tick();
   }
@@ -184,6 +221,7 @@ export class UpdateQueueController implements ReactiveController {
     }
     const { entityId } = queue.failure;
     this.failureMessage = undefined;
+    this._awaitingEnd.delete(entityId);
     this._commit({
       ...queue,
       failure: undefined,
@@ -194,6 +232,9 @@ export class UpdateQueueController implements ReactiveController {
               state: "waiting",
               seenInProgress: false,
               startedAt: null,
+              endedAt: undefined,
+              endedApprox: undefined,
+              connectionLostAt: undefined,
               idleSince: null,
             }
           : step
@@ -238,6 +279,16 @@ export class UpdateQueueController implements ReactiveController {
       return;
     }
     const connected = hass.connected !== false;
+    if (
+      connected &&
+      this._backAt === undefined &&
+      this._hasRealData(hass) &&
+      this._freshlyLoaded()
+    ) {
+      // Only a page that was itself just loaded, as after the reload that a
+      // restart brings, may take this moment as "the system was back".
+      this._backAt = Date.now();
+    }
     if (this.checking) {
       const timedOut = Date.now() - this._restoredAt > SYSTEM_STEP_SETTLE_MS;
       if (!this._hasRealData(hass) && !timedOut) {
@@ -297,6 +348,11 @@ export class UpdateQueueController implements ReactiveController {
           announcement = { kind: "done", entityId: current.entityId };
           changed = true;
           continue;
+        }
+        if (!connected && current.connectionLostAt === undefined) {
+          // The step restarts the system this page talks to.
+          current.connectionLostAt = Date.now();
+          changed = true;
         }
         if (entity?.attributes.in_progress && !current.seenInProgress) {
           current.seenInProgress = true;
@@ -385,6 +441,13 @@ export class UpdateQueueController implements ReactiveController {
     if (changed) {
       this.announcement = announcement;
       this._commit({ ...queue, steps, failure });
+    } else {
+      const current = this.queue;
+      const resolved = current ? this._withEnds(current) : current;
+      if (resolved && resolved !== current) {
+        // An end time that waited for its update entity can be set now.
+        this._commit(resolved);
+      }
     }
     if (connected) {
       // From here on the page watches every step as it ends.
@@ -474,26 +537,55 @@ export class UpdateQueueController implements ReactiveController {
     );
   }
 
-  private _commit(queue: QueueState | undefined): void {
+  /**
+   * Sets the end time of every step that ended without one. A step whose
+   * update entity has not come back yet after a restart (Core counts as done
+   * from its own version before its update entity is loaded) is left open
+   * for a while, so its own last change can still be read.
+   */
+  private _withEnds(queue: QueueState): QueueState {
+    if (!queue.steps.some((step) => this._endedWithoutTime(step))) {
+      return queue;
+    }
     const now = Date.now();
-    if (queue?.steps.some((step) => this._endedWithoutTime(step))) {
-      const states = this._getHass()?.states;
-      queue = {
-        ...queue,
-        steps: queue.steps.map((step) =>
-          this._endedWithoutTime(step)
-            ? {
-                ...step,
-                endedAt: stepEndedAt(
-                  step,
-                  states?.[step.entityId] as UpdateEntity | undefined,
-                  now,
-                  this._watching
-                ),
-              }
-            : step
-        ),
+    const states = this._getHass()?.states;
+    const anchor = this._backAt ?? this._shownAt;
+    const mayWait = now - anchor < ENTITY_WAIT_MS;
+    let changed = false;
+    const steps = queue.steps.map((step) => {
+      if (!this._endedWithoutTime(step)) {
+        return step;
+      }
+      // A step that ended while the page was away keeps counting as unseen
+      // while its end time waits, even once the page watches again.
+      const watched = this._watching && !this._awaitingEnd.has(step.entityId);
+      const entity = states?.[step.entityId] as UpdateEntity | undefined;
+      const end = resolveStepEnd(step, entity, now, watched, this._backAt);
+      // Until the update entity is back, an estimate is held back too: the
+      // entity's own change is the better time.
+      if (
+        (end.at === null || end.approximate) &&
+        !entity &&
+        !watched &&
+        mayWait
+      ) {
+        this._awaitingEnd.add(step.entityId);
+        return step;
+      }
+      this._awaitingEnd.delete(step.entityId);
+      changed = true;
+      return {
+        ...step,
+        endedAt: end.at,
+        ...(end.approximate ? { endedApprox: true } : {}),
       };
+    });
+    return changed ? { ...queue, steps } : queue;
+  }
+
+  private _commit(queue: QueueState | undefined): void {
+    if (queue) {
+      queue = this._withEnds(queue);
     }
     this.queue = queue;
     storeQueue(queue);

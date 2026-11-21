@@ -9096,6 +9096,10 @@
             "finished_title": "Updates finished",
             "finished_text": "{done} of {total} updates were installed.",
             "finished_took": "The whole run took {time}.",
+            "finished_took_about": "The whole run took about {time}.",
+            "finished_took_at_least": "The whole run took at least {time}. One update finished while this page was away, so its end time is not known.",
+            "took_about": "About {time}",
+            "took_at_least": "At least {time}",
             "failed_title": "{name} did not update",
             "failed_text_failed": "The update went back to available without installing. The rest were not started.",
             "failed_text_timeout": "The update took longer than 30 minutes. The rest were not started.",
@@ -9132,7 +9136,9 @@
             "shared_clear_note": "Clearing removes only this notice. An update that is installing now carries on.",
             "shared_clear_failed": "The run could not be cleared. Try again.",
             "shared_update_rest": "Update the rest",
-            "shared_update_rest_note": "Starts a new \"Update everything\" from this browser for the updates still waiting, after the usual confirmation. This run is cleared only once you confirm."
+            "shared_update_rest_note": "Starts a new \"Update everything\" from this browser for the updates still waiting, after the usual confirmation. This run is cleared only once you confirm.",
+            "shared_update_one": "Update {name}",
+            "shared_update_one_note": "Clears this run, then does exactly what the Update button of this update does below."
           },
           "build_data": {
             "retry": "Try again",

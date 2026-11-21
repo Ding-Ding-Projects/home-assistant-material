@@ -41,6 +41,7 @@ import type { QueueState, QueueStep } from "./update-queue";
 import {
   queueIsActive,
   queueProgress,
+  queueRunTime,
   roleRestartsSystem,
 } from "./update-queue";
 import { ringFromSteps, ringOffset } from "./update-glance";
@@ -123,6 +124,13 @@ class HaUpdateQueueCard extends LitElement {
    * to update the rest.
    */
   @property({ attribute: false }) public canUpdateRest = false;
+
+  /**
+   * The one update that is ready, when exactly one is and its own Update
+   * button could be pressed now. A stranded run with that single step left
+   * offers it by name.
+   */
+  @property({ attribute: false }) public restSingle?: string;
 
   // The ended shared run this browser closed, by its last change time.
   @state() private _hiddenShared?: string;
@@ -383,6 +391,9 @@ class HaUpdateQueueCard extends LitElement {
     let title: string;
     let text: string | undefined;
     const checking = this.controller.checking;
+    // The whole run, from its first start to its last end. A step whose end
+    // is unknown makes it "at least", never a shorter number.
+    const runTime = active ? undefined : queueRunTime(queue.steps);
     if (checking) {
       title = this._t("checking_title");
       text = this._t("checking_text");
@@ -404,15 +415,16 @@ class HaUpdateQueueCard extends LitElement {
       title = queue.stopRequested
         ? this._t("stopped_title")
         : this._t("finished_title");
-      const startedAt = Math.min(
-        ...queue.steps.map((step) => step.startedAt ?? Infinity)
-      );
-      const endedAt = Math.max(...queue.steps.map((step) => step.endedAt ?? 0));
       text = this._t("finished_text", { done, total: progress.total });
-      if (Number.isFinite(startedAt) && endedAt > startedAt) {
-        text += ` ${this._t("finished_took", {
-          time: formatElapsed(endedAt - startedAt),
-        })}`;
+      if (runTime) {
+        text += ` ${this._t(
+          runTime.atLeast
+            ? "finished_took_at_least"
+            : runTime.approximate
+              ? "finished_took_about"
+              : "finished_took",
+          { time: formatElapsed(runTime.ms) }
+        )}`;
       }
     }
 
@@ -435,11 +447,12 @@ class HaUpdateQueueCard extends LitElement {
         ? undefined
         : active
           ? this._progressText("elapsed", this._now - queueStart)
-          : queue.finishedAt !== undefined
-            ? this._progressText(
-                "result_duration",
-                queue.finishedAt - queueStart
-              )
+          : runTime
+            ? runTime.atLeast || runTime.approximate
+              ? this._t(runTime.atLeast ? "took_at_least" : "took_about", {
+                  time: formatElapsed(runTime.ms),
+                })
+              : this._progressText("result_duration", runTime.ms)
             : undefined;
 
     const progressText = this._t("progress_text", {
@@ -537,6 +550,7 @@ class HaUpdateQueueCard extends LitElement {
     }
     const ended = view.state !== "running" && view.state !== "failed";
     const finishedOk = view.state === "done";
+    const installingNow = view.steps.some((step) => step.state === "current");
     if (ended && this._hiddenShared === run.updated) {
       return nothing;
     }
@@ -591,12 +605,21 @@ class HaUpdateQueueCard extends LitElement {
     return html`
       <section class=${this._cardClasses(true)} aria-labelledby="queue-title">
         <div class="title-row">
-          ${this._renderRing(
-            view.finished,
-            view.total,
-            finishedOk,
-            view.state === "failed"
-          )}
+          ${
+            // A run whose browser went silent with nothing installing shows a
+            // still warning sign; the ring would read as work going on.
+            silent && !installingNow
+              ? html`<ha-svg-icon
+                  class="ring stalled"
+                  .path=${mdiAlertCircle}
+                ></ha-svg-icon>`
+              : this._renderRing(
+                  view.finished,
+                  view.total,
+                  finishedOk,
+                  view.state === "failed"
+                )
+          }
           <h2
             id="queue-title"
             class=${view.state === "failed" || silent ? "failed" : ""}
@@ -652,8 +675,8 @@ class HaUpdateQueueCard extends LitElement {
         ${
           silent
             ? this._renderClearStranded(
-                view.steps.some((step) => step.state === "waiting") &&
-                  !view.steps.some((step) => step.state === "current")
+                view.steps.filter((step) => step.state === "waiting"),
+                installingNow
               )
             : ended
               ? html`<div class="actions">
@@ -674,7 +697,8 @@ class HaUpdateQueueCard extends LitElement {
   // Only an administrator may clear the record; for anyone else the button is
   // left out rather than shown disabled.
   private _renderClearStranded(
-    restWaiting: boolean
+    waiting: { entityId: string }[],
+    installingNow: boolean
   ): TemplateResult | typeof nothing {
     if (!this.hass.user?.is_admin) {
       return nothing;
@@ -682,7 +706,17 @@ class HaUpdateQueueCard extends LitElement {
     // The steps left have not started and nothing is installing: offer to
     // update them as a new run. The page asks for the usual confirmation
     // before anything is installed; this button only asks the page.
+    const restWaiting = waiting.length > 0 && !installingNow;
     const offerRest = restWaiting && this.canUpdateRest;
+    // A single step left is offered by name, through what its own row's
+    // Update button does; the page decides whether that is possible now.
+    const single =
+      !offerRest &&
+      restWaiting &&
+      waiting.length === 1 &&
+      this.restSingle === waiting[0].entityId
+        ? waiting[0].entityId
+        : undefined;
     return html`<div class="actions">
         ${
           offerRest
@@ -693,7 +727,17 @@ class HaUpdateQueueCard extends LitElement {
               >
                 ${this._t("shared_update_rest")}
               </ha-button>`
-            : nothing
+            : single
+              ? html`<ha-button
+                  appearance="filled"
+                  .disabled=${this._clearing}
+                  @click=${this._updateRestSingle}
+                >
+                  ${this._t("shared_update_one", {
+                    name: updateDisplayName(this.hass, single),
+                  })}
+                </ha-button>`
+              : nothing
         }
         <ha-button
           appearance="outlined"
@@ -708,7 +752,9 @@ class HaUpdateQueueCard extends LitElement {
       ${
         offerRest
           ? html`<p class="note">${this._t("shared_update_rest_note")}</p>`
-          : nothing
+          : single
+            ? html`<p class="note">${this._t("shared_update_one_note")}</p>`
+            : nothing
       }
       ${
         this._clearFailed
@@ -724,6 +770,11 @@ class HaUpdateQueueCard extends LitElement {
   // stranded record only after the person confirms.
   private _updateRest(): void {
     fireEvent(this, "update-rest");
+  }
+
+  // Asks the page to update the single step left, the way its own row does.
+  private _updateRestSingle(): void {
+    fireEvent(this, "update-rest-single");
   }
 
   // Removes only the shared display record. An install that is running is not
@@ -868,10 +919,14 @@ class HaUpdateQueueCard extends LitElement {
     if (!to && !url) {
       return nothing;
     }
-    const took =
+    const elapsed =
       typeof step.startedAt === "number" && typeof step.endedAt === "number"
         ? formatElapsed(Math.max(0, step.endedAt - step.startedAt))
         : undefined;
+    const took =
+      elapsed && step.endedApprox
+        ? this._t("took_about", { time: elapsed })
+        : elapsed;
     return html`<span class="step-detail">
       ${took ? html`<span class="took">${took}</span>` : nothing}
       ${
@@ -1118,6 +1173,9 @@ class HaUpdateQueueCard extends LitElement {
         .ring.tick {
           color: var(--success-color);
         }
+        .ring.stalled {
+          color: var(--error-color);
+        }
         .ring[hidden] {
           display: none;
         }
@@ -1167,5 +1225,6 @@ declare global {
   }
   interface HASSDomEvents {
     "update-rest": undefined;
+    "update-rest-single": undefined;
   }
 }
