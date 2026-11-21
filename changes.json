@@ -1,15 +1,60 @@
 {
  "format": 1,
- "generated": "2026-11-20T21:40:58Z",
+ "generated": "2026-11-21T05:47:08Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 542,
+ "newest_build": 543,
  "releases": [
+  {
+   "build": 543,
+   "core": "2026.11.2.543",
+   "supervisor": "2026.11.0.543",
+   "os": "18.5.543",
+   "tag": null,
+   "source": "16eeae26e",
+   "date": "2026-11-21T00:23:35-05:00",
+   "previous_build": 542,
+   "changes": [
+    {
+     "sha": "16eeae26e",
+     "date": "2026-11-21T00:23:35-05:00",
+     "title": "Handoff: the wall_tablet translation message is a test-copy artifact [skip ci]",
+     "areas": [
+      "docs"
+     ],
+     "detail": "The last note called a missing translation in wall_tablet an open fault. It is not one. strings.json has the string; the generated translations file is ignored on purpose and was absent in the test copy. The handoff and the closeout now say how to generate it before running that test folder.",
+     "detail_yue": "交接更正：wall_tablet 欠翻譯嗰句唔係源碼出錯。 strings.json 本身有嗰句；產生出嚟嘅翻譯檔係特登唔入庫，測試副本 啱啱冇產生到。交接同收工提示而家寫明行測試之前點樣產生。"
+    },
+    {
+     "sha": "7f4e4fe0a",
+     "date": "2026-11-21T00:21:21-05:00",
+     "title": "Quick action server tests run: 12 pass after one test is corrected [skip ci]",
+     "areas": [
+      "docs",
+      "core"
+     ],
+     "detail": "The tests that could not run at the last checkpoint have now run.\n\n- core/tests/components/quick_action: 12 passed. One test fired the stop event and then kept using its websocket, which that event had just closed. It now reads the runner directly. The feature did not change. - core/tests/components/default_config: the start-up test passes with quick_action loaded. Its teardown reports a missing translation, services.wake.name, in the older wall_tablet component. That is not from this work and is left open, recorded in the handoff.\n\nHANDOFF.md and CLOSEOUT_PROMPT.md now say this instead of \"not run\".",
+     "detail_yue": "快速動作嘅伺服器測試行咗：改正一個測試之後十二個全過。 上次存檔嗰陣行唔到嘅測試，而家行咗。 有一個測試發出「停止」事件之後仲用緊個已經俾事件關咗嘅連線， 而家改為直接讀返執行器。功能本身冇改。 預設載入嘅啟動測試，載入埋新元件都過；收尾嗰陣報舊元件 wall_tablet 欠一句翻譯，唔關今次事，寫咗落交接度，未修。"
+    },
+    {
+     "sha": "a3346c646",
+     "date": "2026-11-21T00:02:49-05:00",
+     "title": "Checkpoint: stop a running quick action, details in more places; server tests not run [skip ci]",
+     "areas": [
+      "docs",
+      "core",
+      "interface"
+     ],
+     "detail": "A recovery checkpoint at the end of a session. The work below is written and passes the frontend checks. It is NOT finished: the new server tests were never run and nothing here has been seen in a browser.\n\n- A running quick action can be listed and stopped. A small in-memory server component, quick_action, tracks each run: run, list, stop and subscribe, administrators only, at most 20 runs, nothing written to disk, and no run survives a restart. The dialog has a Stop button and a \"Running quick actions\" list, also shown in the Actions tool. - The shared data table can open a detail row under a row. Automations, scripts, helpers and entities use it for \"Show more details\". - Quick buttons and details in more lists: logbook rows, the area and device pages' automation, script and scene lists, labels, floors, zones, people, users, dashboards, blueprints, tags, repairs and backups. A user's details show only safe fields, and a test proves no password or credential can appear. - The states tool opens on one entity when the link names it. - HANDOFF.md and CLOSEOUT_PROMPT.md describe the state at the stop.\n\nNot run: core/tests/components/quick_action and default_config. The container engi",
+     "detail_yue": "收工存檔：行緊嘅快速動作可以停，更多地方有詳細資料；伺服器測試未行。 呢個係收工前嘅存檔。下面嘅嘢寫好咗，介面檢查都過，但係未完： 新嘅伺服器測試一次都未行過，亦未喺瀏覽器睇過。 行緊嘅快速動作而家列得出、停得到：有個細嘅伺服器元件喺記憶體 記住每次執行，只限管理員，最多二十個，唔寫入硬碟，重新啟動就冇。 共用表格可以喺一行下面打開詳細資料；記錄、區域同裝置頁、標籤、 樓層、區域、成員、用戶、儀表板、藍圖、標籤卡、維修同備份都有。 用戶資料只顯示安全欄位，有測試證明密碼同憑證唔會出現。 未行：伺服器嗰兩個測試資料夾，因為部機嘅容器引擎冇反應。 起版之前一定要行咗先。"
+    }
+   ]
+  },
   {
    "build": 542,
    "core": "2026.11.2.542",
    "supervisor": "2026.11.0.542",
    "os": "18.5.542",
-   "tag": null,
+   "tag": "v2026.11.2.542",
    "source": "33e099f91",
    "date": "2026-11-20T13:45:29-05:00",
    "previous_build": 538,
