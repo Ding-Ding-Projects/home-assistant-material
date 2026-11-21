@@ -458,6 +458,7 @@ export class QuickBar extends LitElement {
       <ha-adaptive-dialog
         without-header
         flexcontent
+        own-search
         aria-label=${this._t("ui.dialogs.quick-bar.title")}
         .open=${this._open}
         hideActions

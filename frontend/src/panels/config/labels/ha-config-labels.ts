@@ -214,6 +214,9 @@ export class HaConfigLabels extends LitElement {
         showNarrow: true,
         label: localize("ui.panel.config.labels.headers.color"),
         type: "icon",
+        // With the checkbox shown on a phone, the colour goes after the name
+        // so the name keeps the first line.
+        narrowSelectAfterName: true,
         template: (label) => renderLabelColorBadge(label.color ?? undefined),
       },
       name: {

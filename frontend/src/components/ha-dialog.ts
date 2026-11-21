@@ -301,7 +301,11 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
 
   /** Looks for a search of the dialog's own at the top of its content. */
   private _contentChanged(ev: Event): void {
-    const first = (ev.target as HTMLSlotElement).assignedElements()[0];
+    // Flattened, so a dialog that passes its content on through a slot of its
+    // own (ha-adaptive-dialog) is looked at too.
+    const first = (ev.target as HTMLSlotElement).assignedElements({
+      flatten: true,
+    })[0];
     this._ownSearch =
       first !== undefined &&
       (first.localName === "ha-input-search" ||

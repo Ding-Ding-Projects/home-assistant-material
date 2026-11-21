@@ -17,8 +17,10 @@ from homeassistant.auth.models import User
 from homeassistant.components.auto_update import DOMAIN
 from homeassistant.components.auto_update.run_record import (
     DATA_RUN_RECORD,
+    DRIVER_SILENT_EXPIRE_AFTER,
     MAX_RUN_STEPS,
     RUN_EXPIRE_AFTER,
+    SILENT_RECHECK,
 )
 from homeassistant.components.update import DOMAIN as UPDATE_DOMAIN
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -342,3 +344,152 @@ async def test_expired_record_not_returned(
     record.async_set([UPDATE_A], 1, "running", UPDATE_A)
     freezer.tick(RUN_EXPIRE_AFTER)
     assert record.async_get() is None
+
+
+async def test_heartbeat_moves_last_seen_only(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """A repeated report moves `last_seen` but not `updated`.
+
+    Watching browsers tell a driven run from a stranded one by how long ago
+    the driving browser was seen, while a closed ended run stays closed
+    because `updated` did not move.
+    """
+    await _setup(hass)
+    record = hass.data[DATA_RUN_RECORD]
+    record.async_set([UPDATE_A, UPDATE_B], 1, "running", UPDATE_A)
+    first = record.async_get()
+    assert first["seen_ago"] == 0
+    assert first["last_seen"] == first["updated"]
+
+    freezer.tick(timedelta(seconds=30))
+    record.async_set([UPDATE_A, UPDATE_B], 1, "running", UPDATE_A)
+    beat = record.async_get()
+    assert beat["updated"] == first["updated"]
+    assert beat["last_seen"] != first["last_seen"]
+    assert beat["seen_ago"] == 0
+
+    freezer.tick(timedelta(seconds=40))
+    assert record.async_get()["seen_ago"] == 40
+
+    record.async_set([UPDATE_A, UPDATE_B], 2, "running", UPDATE_B)
+    moved = record.async_get()
+    assert moved["updated"] == moved["last_seen"]
+    assert moved["updated"] != first["updated"]
+
+
+async def test_silent_driver_frees_the_record(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """A running record whose browser went quiet goes away by itself.
+
+    Nothing installs: the record is only removed, so other browsers get their
+    "Update everything" button back without anyone pressing anything.
+    """
+    calls = await _setup(hass)
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "auto_update/run/subscribe"})
+    assert (await client.receive_json())["success"]
+    assert (await client.receive_json())["event"] == {"run": None}
+
+    hass.data[DATA_RUN_RECORD].async_set(
+        [UPDATE_A, UPDATE_B], 1, "running", UPDATE_A
+    )
+    assert (await client.receive_json())["event"]["run"]["state"] == "running"
+
+    freezer.tick(DRIVER_SILENT_EXPIRE_AFTER + timedelta(seconds=1))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert (await client.receive_json())["event"] == {"run": None}
+    assert hass.data[DATA_RUN_RECORD].async_get() is None
+    assert calls == []
+
+
+async def test_silent_driver_kept_while_an_update_installs(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """A silent record stays while one of its updates is still installing."""
+    await _setup(hass)
+    hass.states.async_set(
+        UPDATE_A,
+        "on",
+        {"installed_version": "1.0", "latest_version": "2.0", "in_progress": True},
+    )
+    record = hass.data[DATA_RUN_RECORD]
+    record.async_set([UPDATE_A, UPDATE_B], 1, "running", UPDATE_A)
+
+    freezer.tick(DRIVER_SILENT_EXPIRE_AFTER + timedelta(seconds=1))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert record.async_get() is not None
+
+    hass.states.async_set(
+        UPDATE_A,
+        "off",
+        {"installed_version": "2.0", "latest_version": "2.0", "in_progress": False},
+    )
+    freezer.tick(SILENT_RECHECK + timedelta(seconds=1))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert record.async_get() is None
+
+
+@pytest.mark.parametrize("state", ["done", "cancelled"])
+async def test_ended_run_not_freed_by_silence(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory, state: str
+) -> None:
+    """An ended run keeps its summary for the record's whole life."""
+    await _setup(hass)
+    record = hass.data[DATA_RUN_RECORD]
+    record.async_set([UPDATE_A, UPDATE_B], 2, state)
+
+    freezer.tick(DRIVER_SILENT_EXPIRE_AFTER + timedelta(seconds=1))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert record.async_get()["state"] == state
+
+    freezer.tick(RUN_EXPIRE_AFTER)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert record.async_get() is None
+
+
+async def test_clear_leaves_a_running_install_alone(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """Clearing a stranded run removes only the record.
+
+    The update that is installing keeps its state and no service is called.
+    """
+    calls = await _setup(hass)
+    hass.states.async_set(
+        UPDATE_A,
+        "on",
+        {"installed_version": "1.0", "latest_version": "2.0", "in_progress": True},
+    )
+    hass.data[DATA_RUN_RECORD].async_set([UPDATE_A, UPDATE_B], 1, "running", UPDATE_A)
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "auto_update/run/clear"})
+    assert (await client.receive_json())["success"]
+    await hass.async_block_till_done()
+    assert hass.data[DATA_RUN_RECORD].async_get() is None
+    assert calls == []
+    assert hass.states.get(UPDATE_A).attributes["in_progress"] is True
+
+
+async def test_non_admin_cannot_clear(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    hass_admin_user: User,
+) -> None:
+    """A user who is not an administrator cannot remove the run."""
+    await _setup(hass)
+    hass.data[DATA_RUN_RECORD].async_set([UPDATE_A], 1, "running", UPDATE_A)
+    hass_admin_user.groups = []
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "auto_update/run/clear"})
+    result = await client.receive_json()
+    assert result["error"]["code"] == "unauthorized"
+    assert hass.data[DATA_RUN_RECORD].async_get() is not None

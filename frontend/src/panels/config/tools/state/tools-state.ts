@@ -303,7 +303,8 @@ ${this._i18n.locale.language}`;
                 )}
               </h1>
               <p class="summary">
-                ${this._i18n.localize(
+                ${modeText(
+                  this._i18n.localize,
                   "ui.panel.config.tools.tabs.states.entity_count",
                   { count: entities.length }
                 )}

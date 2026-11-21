@@ -137,6 +137,7 @@ import {
   updateBlockReason,
   updateRole,
 } from "./updates/update-queue";
+import { driverSeenAt } from "./updates/update-run-share";
 import { showJoinBetaDialog } from "./updates/show-dialog-join-beta";
 import {
   BACKUP_WAIT_MS,
@@ -189,6 +190,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
 
   // An "Update everything" run another browser is driving, shown read-only.
   @state() private _sharedRun?: UpdateRunRecord;
+
+  // When, on this browser's clock, the browser driving that run last reported.
+  @state() private _sharedRunSeenAt?: number;
 
   // The automatic updates card rests as one summary row and opens its settings.
   @state() private _autoOpen = false;
@@ -516,9 +520,11 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       subscriptions.push(
         subscribeUpdateRun(this.hass, (run) => {
           this._sharedRun = run ?? undefined;
+          this._sharedRunSeenAt = driverSeenAt(run, Date.now());
         }).catch(() => {
           // An older server keeps no shared run; only this browser's queue shows.
           this._sharedRun = undefined;
+          this._sharedRunSeenAt = undefined;
 
           return () => undefined;
         })
@@ -1244,6 +1250,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
           .hass=${this.hass}
           .controller=${this._queue}
           .sharedRun=${this._sharedRun}
+          .sharedSeenAt=${this._sharedRunSeenAt}
         ></ha-update-queue-card>`
       : nothing;
     const ready = orderUpdateQueue(installable);

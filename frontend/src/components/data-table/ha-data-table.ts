@@ -58,6 +58,7 @@ import "../ha-empty-state";
 import { emptyTone } from "../empty-state-logic";
 import "../input/ha-input-search";
 import { tablePatternSamples } from "./pattern-samples";
+import { narrowRowEntries } from "./narrow-row-order";
 import { filterData, sortData } from "./sort-filter";
 import {
   closeRowDetailsOnKey,
@@ -137,6 +138,10 @@ export interface DataTableColumnData<T = any> extends DataTableSortColumnData {
   // table too narrow to hold it beside the name it moves to a line of its
   // own under the name, so the name keeps the width of the row.
   narrowWrap?: boolean;
+  // On a phone in selection mode a cell that stands before the name moves to
+  // just after it and is placed like `narrowWrap`, so the name keeps the
+  // first line beside the checkbox (see `narrowRowEntries`).
+  narrowSelectAfterName?: boolean;
 }
 
 export type ClonedDataTableColumnData = Omit<DataTableColumnData, "title"> & {
@@ -1280,78 +1285,86 @@ export class HaDataTable extends LitElement {
               `
             : ""
         }
-        ${Object.entries(columns).map(([key, column]) => {
-          if (
-            (narrow && !column.main && !column.showNarrow) ||
-            !this._isColumnVisible(key, column)
-          ) {
-            return nothing;
-          }
-          const templated =
-            column.template && !column.main ? column.template(row) : undefined;
-          // On a phone a cell with nothing in it still took its width
-          // and showed as an empty box (or a lone dash) at the end of the row.
-          if (
-            narrow &&
-            column.template &&
-            !column.main &&
-            !this._hasCellValue(templated)
-          ) {
-            return nothing;
-          }
-          return html`
-            <div
-              @mouseover=${this._setTitle}
-              @focus=${this._setTitle}
-              @pointerdown=${this._namePressStart}
-              @pointerup=${this._namePressEnd}
-              @pointercancel=${this._namePressEnd}
-              @pointerleave=${this._namePressEnd}
-              @contextmenu=${this._nameContextMenu}
-              role=${column.main ? "rowheader" : "cell"}
-              class="mdc-data-table__cell ${classMap(this._cellClasses(column))}"
-              style=${styleMap(this._cellStyles(column))}
-            >
-              ${
-                column.template
-                  ? column.main
-                    ? this._renderMainValue(column.template(row))
-                    : templated
-                  : narrow && column.main
-                    ? html`<div class="primary">
-                          ${this._renderMainValue(row[key])}
-                        </div>
-                        <div class="secondary">
-                          ${join(
-                            Object.entries(columns)
-                              .filter(([key2, column2]) =>
-                                this._isSecondaryColumnVisible(key2, column2)
-                              )
-                              .map(([key2, column2]) =>
-                                column2.template
-                                  ? column2.template(row)
-                                  : row[key2]
-                              )
-                              .filter(this._hasCellValue),
-                            STRINGS_SEPARATOR_DOT
-                          )}
-                        </div>
-                        ${
+        ${narrowRowEntries(columns, narrow && this.selectable).map(
+          ([key, column, movedAfterName]) => {
+            if (
+              (narrow && !column.main && !column.showNarrow) ||
+              !this._isColumnVisible(key, column)
+            ) {
+              return nothing;
+            }
+            const templated =
+              column.template && !column.main
+                ? column.template(row)
+                : undefined;
+            // On a phone a cell with nothing in it still took its width
+            // and showed as an empty box (or a lone dash) at the end of the row.
+            if (
+              narrow &&
+              column.template &&
+              !column.main &&
+              !this._hasCellValue(templated)
+            ) {
+              return nothing;
+            }
+            return html`
+              <div
+                @mouseover=${this._setTitle}
+                @focus=${this._setTitle}
+                @pointerdown=${this._namePressStart}
+                @pointerup=${this._namePressEnd}
+                @pointercancel=${this._namePressEnd}
+                @pointerleave=${this._namePressEnd}
+                @contextmenu=${this._nameContextMenu}
+                role=${column.main ? "rowheader" : "cell"}
+                class="mdc-data-table__cell ${classMap(
+                  this._cellClasses(column, movedAfterName)
+                )}"
+                style=${styleMap(this._cellStyles(column))}
+              >
+                ${
+                  column.template
+                    ? column.main
+                      ? this._renderMainValue(column.template(row))
+                      : templated
+                    : narrow && column.main
+                      ? html`<div class="primary">
+                            ${this._renderMainValue(row[key])}
+                          </div>
+                          <div class="secondary">
+                            ${join(
+                              Object.entries(columns)
+                                .filter(([key2, column2]) =>
+                                  this._isSecondaryColumnVisible(key2, column2)
+                                )
+                                .map(([key2, column2]) =>
+                                  column2.template
+                                    ? column2.template(row)
+                                    : row[key2]
+                                )
+                                .filter(this._hasCellValue),
+                              STRINGS_SEPARATOR_DOT
+                            )}
+                          </div>
+                          ${
+                            column.extraTemplate
+                              ? column.extraTemplate(row)
+                              : nothing
+                          }`
+                      : html`${
+                          column.main
+                            ? this._renderMainValue(row[key])
+                            : row[key]
+                        }${
                           column.extraTemplate
                             ? column.extraTemplate(row)
                             : nothing
                         }`
-                    : html`${
-                        column.main ? this._renderMainValue(row[key]) : row[key]
-                      }${
-                        column.extraTemplate
-                          ? column.extraTemplate(row)
-                          : nothing
-                      }`
-              }
-            </div>
-          `;
-        })}
+                }
+              </div>
+            `;
+          }
+        )}
       </div>
     `;
   };
@@ -1394,14 +1407,17 @@ export class HaDataTable extends LitElement {
     value !== "—" &&
     value !== nothing;
 
-  private _cellClasses = (column: DataTableColumnData) => ({
+  private _cellClasses = (
+    column: DataTableColumnData,
+    movedAfterName = false
+  ) => ({
     "mdc-data-table__cell--flex": column.type === "flex",
     "mdc-data-table__cell--numeric": column.type === "numeric",
     "mdc-data-table__cell--icon": column.type === "icon",
     "mdc-data-table__cell--icon-button": column.type === "icon-button",
     "mdc-data-table__cell--overflow-menu": column.type === "overflow-menu",
     "mdc-data-table__cell--overflow": column.type === "overflow",
-    "mdc-data-table__cell--wrap": Boolean(column.narrowWrap),
+    "mdc-data-table__cell--wrap": Boolean(column.narrowWrap) || movedAfterName,
     forceLTR: Boolean(column.forceLTR),
   });
 

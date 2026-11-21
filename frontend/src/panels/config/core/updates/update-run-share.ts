@@ -16,6 +16,79 @@ import { queueIsActive, queueProgress } from "./update-queue";
 /** The server refuses longer runs, so a longer one is simply not shared. */
 export const MAX_SHARED_STEPS = 50;
 
+/**
+ * How often the driving browser reports a run that is going or waiting on a
+ * failure, even when nothing changed, so other browsers know it is there.
+ * A background tab may only manage once a minute.
+ */
+export const SHARE_HEARTBEAT_MS = 30_000;
+
+/**
+ * How long other browsers wait without a report before they say the driving
+ * browser stopped responding. A Core restart empties the server's record, so
+ * it never counts towards this; the wait covers a reload onto a new build, a
+ * background tab that reports only once a minute and a short network loss.
+ */
+export const DRIVER_SILENT_MS = 5 * 60_000;
+
+/**
+ * When, on this browser's own clock, the driving browser last reported. The
+ * server says how many seconds ago that was when it sent the record, so the
+ * two clocks never have to agree. Undefined for an older server.
+ */
+export const driverSeenAt = (
+  record: UpdateRunRecord | null | undefined,
+  receivedAt: number
+): number | undefined =>
+  typeof record?.seen_ago === "number" && Number.isFinite(record.seen_ago)
+    ? receivedAt - Math.max(0, record.seen_ago) * 1000
+    : undefined;
+
+export type SharedRunPhase = "running" | "driver_silent" | "finished";
+
+/**
+ * Whether a run another browser drives is still being driven, has lost its
+ * browser, or has ended. Only a running or failed run can lose its browser;
+ * an ended run is simply finished. Without a time of last report (an older
+ * server) the run counts as driven.
+ */
+export const sharedRunPhase = (
+  record: UpdateRunRecord | null | undefined,
+  seenAt: number | undefined,
+  now: number
+): SharedRunPhase | undefined => {
+  if (!record?.entity_ids.length) {
+    return undefined;
+  }
+  if (record.state !== "running" && record.state !== "failed") {
+    return "finished";
+  }
+  if (seenAt !== undefined && now - seenAt >= DRIVER_SILENT_MS) {
+    return "driver_silent";
+  }
+  return "running";
+};
+
+/**
+ * Whether the driving browser sends its report although it has not changed:
+ * a report that was refused is sent again (a restarting Core refuses updates
+ * it has not loaded yet), and a run that is going is reported at a steady
+ * pace so other browsers can tell it from one whose browser was closed.
+ */
+export const shareDue = (opts: {
+  key: string;
+  sentKey: string | undefined;
+  state: UpdateRunState;
+  lastSentAt: number;
+  now: number;
+}): boolean => {
+  if (opts.key !== opts.sentKey) {
+    return true;
+  }
+  const driven = opts.state === "running" || opts.state === "failed";
+  return driven && opts.now - opts.lastSentAt >= SHARE_HEARTBEAT_MS;
+};
+
 /** What the driving browser reports for its queue, or undefined for none. */
 export const runReportFromQueue = (
   queue: QueueState | undefined

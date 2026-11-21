@@ -27,7 +27,10 @@ import "../../../../components/ha-spinner";
 import "../../../../components/ha-svg-icon";
 import "../../../../components/progress/ha-progress-bar";
 import type { UpdateRunRecord } from "../../../../data/auto-update";
-import { formatAutoUpdateTime } from "../../../../data/auto-update";
+import {
+  clearUpdateRun,
+  formatAutoUpdateTime,
+} from "../../../../data/auto-update";
 import { notesPageUrlForVersion } from "../../../../data/build-notes";
 import type { UpdateEntity } from "../../../../data/update";
 import { haMotionKeyframes } from "../../../../resources/motion-styles";
@@ -43,7 +46,11 @@ import { ringFromSteps, ringOffset } from "./update-glance";
 import { queueOrderOf, queuePositionOf } from "./update-progress-model";
 import type { UpdateQueueController } from "./update-queue-controller";
 import type { SharedStepState } from "./update-run-share";
-import { sharedRunView } from "./update-run-share";
+import {
+  DRIVER_SILENT_MS,
+  sharedRunPhase,
+  sharedRunView,
+} from "./update-run-share";
 
 const PREFIX = "ui.panel.config.updates.queue";
 
@@ -103,8 +110,22 @@ class HaUpdateQueueCard extends LitElement {
    */
   @property({ attribute: false }) public sharedRun?: UpdateRunRecord;
 
+  /**
+   * When, on this browser's clock, the browser driving the shared run last
+   * reported. A run not heard from for a while is shown as stranded.
+   */
+  @property({ attribute: false }) public sharedSeenAt?: number;
+
   // The ended shared run this browser closed, by its last change time.
   @state() private _hiddenShared?: string;
+
+  // Clearing a stranded run is on its way, or was refused.
+  @state() private _clearing = false;
+
+  @state() private _clearFailed = false;
+
+  // Wakes the card when a driven shared run would turn silent.
+  private _silentTimer?: number;
 
   private _lang = new LanguageModeController(this);
 
@@ -138,6 +159,34 @@ class HaUpdateQueueCard extends LitElement {
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     this._stopClock();
+    this._stopSilentTimer();
+  }
+
+  private _stopSilentTimer(): void {
+    if (this._silentTimer !== undefined) {
+      window.clearTimeout(this._silentTimer);
+      this._silentTimer = undefined;
+    }
+  }
+
+  // A shared run that is still driven turns silent at a known time: the card
+  // renders again then, without a clock ticking every second.
+  private _planSilentCheck(): void {
+    this._stopSilentTimer();
+    if (this.controller?.queue || this.sharedSeenAt === undefined) {
+      return;
+    }
+    if (
+      sharedRunPhase(this.sharedRun, this.sharedSeenAt, Date.now()) !==
+      "running"
+    ) {
+      return;
+    }
+    const wait = Math.max(0, this.sharedSeenAt + DRIVER_SILENT_MS - Date.now());
+    this._silentTimer = window.setTimeout(() => {
+      this._silentTimer = undefined;
+      this._now = Date.now();
+    }, wait + 50);
   }
 
   private _stopClock(): void {
@@ -163,6 +212,13 @@ class HaUpdateQueueCard extends LitElement {
   // plays: only for a change seen on this page, never on a reload.
   protected willUpdate(changedProps: PropertyValues<this>): void {
     super.willUpdate(changedProps);
+    if (changedProps.has("sharedRun") || changedProps.has("sharedSeenAt")) {
+      // Judge the shared run against the time it arrived, not a stale clock.
+      this._now = Date.now();
+      if (changedProps.has("sharedRun")) {
+        this._clearFailed = false;
+      }
+    }
     const queue = this.controller?.queue;
     if (!queue) {
       this._wasActive = false;
@@ -197,6 +253,7 @@ class HaUpdateQueueCard extends LitElement {
         this._stopClock();
       }
     }
+    this._planSilentCheck();
     this._easeRing();
     this._drawTicks();
   }
@@ -469,11 +526,17 @@ class HaUpdateQueueCard extends LitElement {
     if (ended && this._hiddenShared === run.updated) {
       return nothing;
     }
+    // The browser driving the run has not reported for a while: say so, and
+    // let an administrator remove the stranded record. Nothing here installs.
+    const silent =
+      sharedRunPhase(run, this.sharedSeenAt, this._now) === "driver_silent";
     const currentName = view.current
       ? updateDisplayName(this.hass, view.current)
       : "";
     let title: string;
-    if (view.state === "running") {
+    if (silent) {
+      title = this._t("shared_silent_title");
+    } else if (view.state === "running") {
       title = this._t("progress_title", {
         position: view.position,
         total: view.total,
@@ -490,10 +553,27 @@ class HaUpdateQueueCard extends LitElement {
       run.started,
       this.hass.locale?.language
     );
-    const note =
-      view.state === "running" || view.state === "failed"
+    const note = silent
+      ? this._t("shared_silent_note")
+      : view.state === "running" || view.state === "failed"
         ? this._t("shared_note_running")
         : this._t("shared_note_ended");
+    const seenAt =
+      silent && this.sharedSeenAt !== undefined
+        ? formatAutoUpdateTime(
+            new Date(this.sharedSeenAt).toISOString(),
+            this.hass.locale?.language
+          )
+        : undefined;
+    const stepText = (stepState: SharedStepState): string => {
+      if (silent && stepState === "current") {
+        return this._t("shared_state_stalled");
+      }
+      if (silent && stepState === "waiting") {
+        return this._t("shared_state_not_started");
+      }
+      return this._t(`shared_state_${stepState}`);
+    };
     const progressText = this._t("progress_text", {
       finished: view.finished,
       total: view.total,
@@ -507,7 +587,10 @@ class HaUpdateQueueCard extends LitElement {
             finishedOk,
             view.state === "failed"
           )}
-          <h2 id="queue-title" class=${view.state === "failed" ? "failed" : ""}>
+          <h2
+            id="queue-title"
+            class=${view.state === "failed" || silent ? "failed" : ""}
+          >
             ${title}
           </h2>
         </div>
@@ -515,6 +598,10 @@ class HaUpdateQueueCard extends LitElement {
           ${note}${
             startedAt
               ? html` ${this._t("shared_started", { time: startedAt })}`
+              : nothing
+          }${
+            seenAt
+              ? html` ${this._t("shared_silent_seen", { time: seenAt })}`
               : nothing
           }
         </p>
@@ -529,13 +616,17 @@ class HaUpdateQueueCard extends LitElement {
               <li class="step ${SHARED_STEP_CLASS[step.state]}">
                 <span class="step-icon" aria-hidden="true">
                   ${
-                    step.state === "current"
-                      ? html`<ha-spinner size="small"></ha-spinner>`
-                      : SHARED_STEP_ICON[step.state]
-                        ? html`<ha-svg-icon
-                            .path=${SHARED_STEP_ICON[step.state]}
-                          ></ha-svg-icon>`
-                        : nothing
+                    silent && step.state === "current"
+                      ? html`<ha-svg-icon
+                          .path=${mdiClockOutline}
+                        ></ha-svg-icon>`
+                      : step.state === "current"
+                        ? html`<ha-spinner size="small"></ha-spinner>`
+                        : SHARED_STEP_ICON[step.state]
+                          ? html`<ha-svg-icon
+                              .path=${SHARED_STEP_ICON[step.state]}
+                            ></ha-svg-icon>`
+                          : nothing
                   }
                 </span>
                 <span class="step-name"
@@ -545,7 +636,7 @@ class HaUpdateQueueCard extends LitElement {
                   step.state === "unknown"
                     ? nothing
                     : html`<span class="step-state"
-                        >${this._t(`shared_state_${step.state}`)}</span
+                        >${stepText(step.state)}</span
                       >`
                 }
               </li>
@@ -553,13 +644,15 @@ class HaUpdateQueueCard extends LitElement {
           )}
         </ol>
         ${
-          ended
-            ? html`<div class="actions">
-                <ha-button appearance="outlined" @click=${this._hideShared}>
-                  ${this._t("dismiss")}
-                </ha-button>
-              </div>`
-            : nothing
+          silent
+            ? this._renderClearStranded()
+            : ended
+              ? html`<div class="actions">
+                  <ha-button appearance="outlined" @click=${this._hideShared}>
+                    ${this._t("dismiss")}
+                  </ha-button>
+                </div>`
+              : nothing
         }
       </section>
     `;
@@ -567,6 +660,49 @@ class HaUpdateQueueCard extends LitElement {
 
   private _hideShared(): void {
     this._hiddenShared = this.sharedRun?.updated;
+  }
+
+  // Only an administrator may clear the record; for anyone else the button is
+  // left out rather than shown disabled.
+  private _renderClearStranded(): TemplateResult | typeof nothing {
+    if (!this.hass.user?.is_admin) {
+      return nothing;
+    }
+    return html`<div class="actions">
+        <ha-button
+          appearance="outlined"
+          .loading=${this._clearing}
+          .disabled=${this._clearing}
+          @click=${this._clearStranded}
+        >
+          ${this._t("shared_clear")}
+        </ha-button>
+        <span class="note">${this._t("shared_clear_note")}</span>
+      </div>
+      ${
+        this._clearFailed
+          ? html`<p class="note" role="alert">
+              ${this._t("shared_clear_failed")}
+            </p>`
+          : nothing
+      }`;
+  }
+
+  // Removes only the shared display record. An install that is running is not
+  // touched, and the driving browser, if it comes back, reports the run again.
+  private async _clearStranded(): Promise<void> {
+    if (this._clearing) {
+      return;
+    }
+    this._clearing = true;
+    this._clearFailed = false;
+    try {
+      await clearUpdateRun(this.hass);
+    } catch (_err) {
+      this._clearFailed = true;
+    } finally {
+      this._clearing = false;
+    }
   }
 
   // Where the run makes its backups, in plain words.

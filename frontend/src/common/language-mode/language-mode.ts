@@ -239,6 +239,7 @@ export const YUE_PREFIXES = [
   "ui.components.string_builder.insert_help",
   "ui.panel.config.tools.tabs.converter.error_image_timeout",
   "ui.panel.config.tools.tabs.action_history.search",
+  "ui.panel.config.tools.tabs.states.entity_count",
   "ui.components.starting_points.",
   "ui.components.collapsible-statistics.",
   "ui.components.draft_recovery.",

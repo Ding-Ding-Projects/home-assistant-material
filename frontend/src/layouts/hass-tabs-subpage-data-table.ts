@@ -658,16 +658,22 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     });
     const columnName = (id: string | undefined) =>
       id && this.columns[id]
-        ? ` ${this.columns[id].title || this.columns[id].label}`
+        ? `${this.columns[id].title || this.columns[id].label}`
         : "";
-    // Without a chosen column the label ends after "Sort by" / "Group by",
-    // with no trailing space for a screen reader to read.
-    const sortLabel = localize("ui.components.subpage-data-table.sort_by", {
-      sortColumn: columnName(this._sortColumn),
-    }).trim();
-    const groupLabel = localize("ui.components.subpage-data-table.group_by", {
-      groupColumn: columnName(this._groupColumn),
-    }).trim();
+    // The sentence already has a space before the column name. Without a
+    // chosen column the label ends after "Sort by" / "Group by", with no
+    // trailing space, and never two spaces in a row, for a screen reader.
+    const tidy = (text: string) => text.replace(/\s{2,}/g, " ").trim();
+    const sortLabel = tidy(
+      localize("ui.components.subpage-data-table.sort_by", {
+        sortColumn: columnName(this._sortColumn),
+      })
+    );
+    const groupLabel = tidy(
+      localize("ui.components.subpage-data-table.group_by", {
+        groupColumn: columnName(this._groupColumn),
+      })
+    );
 
     const sortItems = sortableColumns.map(
       ([id, column]) => html`

@@ -200,7 +200,15 @@ export interface UpdateRunRecord {
   state: UpdateRunState;
   current: string | null;
   started: string;
+  /** When the reported run last changed. */
   updated: string;
+  /** When the driving browser last reported, stamped by the server. */
+  last_seen?: string;
+  /**
+   * How many seconds ago the driving browser last reported, measured on the
+   * server clock when this message was sent. Absent on an older server.
+   */
+  seen_ago?: number;
 }
 
 export interface UpdateRunReport {

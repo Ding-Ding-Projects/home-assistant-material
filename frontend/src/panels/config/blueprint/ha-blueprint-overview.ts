@@ -362,7 +362,11 @@ class HaBlueprintOverview extends LitElement {
       use: {
         title: "",
         label: this.hass.localize("ui.panel.config.blueprint.overview.use"),
-        showNarrow: false,
+        // On a phone the button stays its own cell at the end of the row and
+        // moves to a line of its own when the name needs the width, instead
+        // of sitting inside the name's second line.
+        showNarrow: true,
+        narrowWrap: true,
         minWidth: "110px",
         maxWidth: "110px",
         template: (blueprint) =>

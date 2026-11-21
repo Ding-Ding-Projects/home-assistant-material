@@ -3,8 +3,13 @@
 The browser that starts the run keeps driving it: it installs one update at a
 time and decides the order. This record only lets other browsers show the same
 progress. It never starts, orders or cancels an install, it lives in memory
-only, so it is simply absent after Core starts, and it removes itself when it
-has not changed for a while.
+only, so it is simply absent after Core starts, and it removes itself when the
+driving browser has not reported for a while.
+
+The driving browser reports on every change and, while the run is going, at a
+short interval as well. The server stamps each report itself as `last_seen`,
+so other browsers can tell a run that is still being driven from one whose
+browser was closed.
 """
 
 from collections.abc import Callable
@@ -14,12 +19,24 @@ from typing import Any
 import probatio
 
 from homeassistant.components import websocket_api
+from homeassistant.components.update.const import ATTR_IN_PROGRESS
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.event import async_call_later
 from homeassistant.util import dt as dt_util
 from homeassistant.util.hass_dict import HassKey
 
 RUN_EXPIRE_AFTER = timedelta(hours=2)
+# A running or failed run whose browser has not reported for this long, and
+# none of whose updates is still installing, is removed. The driving browser
+# reports every 30 seconds while the run goes (once a minute when its tab is in
+# the background), and other browsers call it silent after 5 minutes; this is
+# three times that, so a browser that only reloads or wakes up never loses
+# its run, and a closed one frees the record within a quarter of an hour.
+DRIVER_SILENT_EXPIRE_AFTER = timedelta(minutes=15)
+# How often a silent record is looked at again while an update in it installs.
+SILENT_RECHECK = timedelta(minutes=1)
+# States in which the run still waits for its driving browser.
+DRIVEN_STATES = ("running", "failed")
 MAX_RUN_STEPS = 50
 RUN_STATES = ("running", "done", "failed", "cancelled")
 # A reported start older than this, or later than now, is ignored.
@@ -42,12 +59,22 @@ class UpdateRunRecord:
 
     @callback
     def async_get(self) -> dict[str, Any] | None:
-        """Return the record, or None when there is none or it has expired."""
-        if self._record is not None and self._expired(dt_util.utcnow()):
+        """Return the record, or None when there is none or it has expired.
+
+        `seen_ago` is how many whole seconds ago the driving browser last
+        reported, measured on the server clock when the record is read.
+        """
+        now = dt_util.utcnow()
+        if self._record is not None and self._expired(now):
             self._drop()
         if self._record is None:
             return None
-        return {**self._record, "entity_ids": list(self._record["entity_ids"])}
+        last_seen = datetime.fromisoformat(self._record["last_seen"])
+        return {
+            **self._record,
+            "entity_ids": list(self._record["entity_ids"]),
+            "seen_ago": max(0, int((now - last_seen).total_seconds())),
+        }
 
     @callback
     def async_set(
@@ -62,34 +89,41 @@ class UpdateRunRecord:
 
         The driving browser's own start time wins when it is plausible, so a
         Core restart in the middle of a run, which empties this record, does not
-        move the start to the next report.
+        move the start to the next report. `updated` moves only when the
+        reported run changed; `last_seen` moves with every report.
         """
         now = dt_util.utcnow()
+        previous = (
+            self._record
+            if self._record is not None and not self._expired(now)
+            else None
+        )
         started = now
         if reported_started is not None and _plausible_start(reported_started, now):
             started = min(reported_started, now)
-        elif (
-            self._record is not None
-            and not self._expired(now)
-            and self._record["entity_ids"] == entity_ids
-        ):
-            started = datetime.fromisoformat(self._record["started"])
+        elif previous is not None and previous["entity_ids"] == entity_ids:
+            started = datetime.fromisoformat(previous["started"])
         started = dt_util.as_utc(started)
-        self._record = {
+        record: dict[str, Any] = {
             "entity_ids": list(entity_ids),
             "position": position,
             "total": len(entity_ids),
             "state": state,
             "current": current,
             "started": started.isoformat(),
-            "updated": now.isoformat(),
         }
+        unchanged = previous is not None and all(
+            previous[key] == value for key, value in record.items()
+        )
+        record["updated"] = previous["updated"] if unchanged else now.isoformat()
+        record["last_seen"] = now.isoformat()
+        self._record = record
         self._schedule_expiry()
         self._notify()
 
     @callback
     def async_clear(self) -> None:
-        """Remove the record."""
+        """Remove the record. Installs that are running are not touched."""
         if self._record is None:
             return
         self._drop()
@@ -106,11 +140,42 @@ class UpdateRunRecord:
 
         return _remove
 
+    def _installing(self) -> bool:
+        """Return whether an update of the run is still installing."""
+        if self._record is None:
+            return False
+        for entity_id in self._record["entity_ids"]:
+            state = self._hass.states.get(entity_id)
+            if state is not None and state.attributes.get(ATTR_IN_PROGRESS):
+                return True
+        return False
+
     def _expired(self, now: datetime) -> bool:
         if self._record is None:
             return False
-        updated = datetime.fromisoformat(self._record["updated"])
-        return now - updated >= RUN_EXPIRE_AFTER
+        silent_for = now - datetime.fromisoformat(self._record["last_seen"])
+        if silent_for >= RUN_EXPIRE_AFTER:
+            return True
+        return (
+            self._record["state"] in DRIVEN_STATES
+            and silent_for >= DRIVER_SILENT_EXPIRE_AFTER
+            and not self._installing()
+        )
+
+    def _next_check(self, now: datetime) -> timedelta:
+        """Return how long until the record may have expired."""
+        record = self._record
+        if record is None:
+            return RUN_EXPIRE_AFTER
+        last_seen = datetime.fromisoformat(record["last_seen"])
+        deadline = last_seen + RUN_EXPIRE_AFTER
+        if record["state"] in DRIVEN_STATES:
+            silent_deadline = last_seen + DRIVER_SILENT_EXPIRE_AFTER
+            if silent_deadline <= now:
+                # Silent, but an update still installs: look again later.
+                silent_deadline = now + SILENT_RECHECK
+            deadline = min(deadline, silent_deadline)
+        return max(deadline - now, timedelta(0))
 
     @callback
     def _drop(self) -> None:
@@ -124,16 +189,24 @@ class UpdateRunRecord:
     def _schedule_expiry(self) -> None:
         if self._unsub_expire is not None:
             self._unsub_expire()
+            self._unsub_expire = None
+        if self._record is None:
+            return
 
         @callback
         def _expire(_now: datetime) -> None:
             self._unsub_expire = None
-            if self._record is not None:
+            if self._record is None:
+                return
+            if self._expired(dt_util.utcnow()):
                 self._drop()
+            else:
+                self._schedule_expiry()
 
         self._unsub_expire = async_call_later(
-            self._hass, RUN_EXPIRE_AFTER, _expire
+            self._hass, self._next_check(dt_util.utcnow()), _expire
         )
+
 
     @callback
     def _notify(self) -> None:

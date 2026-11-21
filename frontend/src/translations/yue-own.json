@@ -615,6 +615,9 @@
             },
             "converter": {
               "error_image_timeout": "圖片處理等候太耐。請試用較細嘅圖片或另一個瀏覽器。"
+            },
+            "states": {
+              "entity_count": "{count} 個實體。"
             }
           }
         },
@@ -3043,7 +3046,15 @@
             "shared_state_finished": "已完成",
             "shared_state_current": "更新緊",
             "shared_state_failed": "失敗",
-            "shared_state_waiting": "等緊"
+            "shared_state_waiting": "等緊",
+            "shared_silent_title": "開始呢次更新嘅瀏覽器冇晒反應",
+            "shared_silent_note": "佢唔會再安裝任何嘢。如果嗰個瀏覽器再打開呢頁，就會繼續落去。",
+            "shared_silent_seen": "最後喺 {time} 收到佢嘅消息。",
+            "shared_state_stalled": "安裝緊，會自己做完",
+            "shared_state_not_started": "唔會開始",
+            "shared_clear": "清除呢次更新",
+            "shared_clear_note": "清除只會移走呢個通知。而家安裝緊嘅更新會繼續做完。",
+            "shared_clear_failed": "清除唔到呢次更新，請再試一次。"
           },
           "build_data": {
             "retry": "再試一次",

@@ -19,10 +19,16 @@ import {
   storeQueue,
   SYSTEM_STEP_SETTLE_MS,
 } from "./update-queue";
-import { runReportFromQueue } from "./update-run-share";
+import { runReportFromQueue, shareDue } from "./update-run-share";
 
 /** How often a running step is looked at when no state change arrives. */
 const TICK_MS = 5000;
+
+/**
+ * How often in a row a refused report is sent again, one look apart: about
+ * five minutes, long enough for a Core that is still starting.
+ */
+export const MAX_SHARE_RETRIES = 60;
 
 export type QueueAnnouncement =
   | { kind: "start"; entityId: string }
@@ -67,6 +73,14 @@ export class UpdateQueueController implements ReactiveController {
 
   /** The last report sent for other browsers, to send each change once. */
   private _sharedKey?: string;
+
+  /** When a report was last sent, for the steady report of a going run. */
+  private _sharedAt = 0;
+
+  /** The report that was refused, and how often in a row. */
+  private _refusedKey?: string;
+
+  private _refusals = 0;
 
   constructor(host: ReactiveControllerHost, getHass: () => HomeAssistant) {
     this._host = host;
@@ -467,8 +481,11 @@ export class UpdateQueueController implements ReactiveController {
   /**
    * Reports this browser's queue so that other browsers can show it. Only the
    * browser that holds the queue reports, and the report changes nothing on
-   * the server but the shared display record. A failed report is not retried
-   * until the queue changes or the connection comes back.
+   * the server but the shared display record. A going run is reported again
+   * every half minute so other browsers can tell it is still driven. A
+   * refused report is sent again on the next look, for a few minutes: a Core
+   * that is still starting refuses updates it has not loaded yet, and that is
+   * exactly when the last report of a run that restarted Core is sent.
    */
   private _share(): void {
     const hass = this._getHass();
@@ -486,20 +503,52 @@ export class UpdateQueueController implements ReactiveController {
       return;
     }
     const key = JSON.stringify(report);
-    if (key === this._sharedKey) {
+    const now = Date.now();
+    if (
+      !shareDue({
+        key,
+        sentKey: this._sharedKey,
+        state: report.state,
+        lastSentAt: this._sharedAt,
+        now,
+      })
+    ) {
       return;
     }
+    if (key !== this._refusedKey) {
+      this._refusedKey = undefined;
+      this._refusals = 0;
+    }
     this._sharedKey = key;
-    this._sendShare(() => setUpdateRun(hass, report));
+    this._sharedAt = now;
+    this._sendShare(() => setUpdateRun(hass, report), key);
   }
 
-  private _sendShare(send: () => Promise<void>): void {
+  private _sendShare(send: () => Promise<void>, key?: string): void {
+    const refused = () => {
+      // The record is for display only; the run goes on without it.
+      if (
+        key === undefined ||
+        this._sharedKey !== key ||
+        this._refusals >= MAX_SHARE_RETRIES
+      ) {
+        return;
+      }
+      this._refusedKey = key;
+      this._refusals++;
+      // Sent again on the next look.
+      this._sharedKey = undefined;
+    };
     try {
-      send().catch(() => {
-        // The record is for display only; the run goes on without it.
-      });
+      send().then(() => {
+        if (key !== undefined && key === this._refusedKey) {
+          this._refusedKey = undefined;
+          this._refusals = 0;
+        }
+      }, refused);
     } catch (_err) {
-      // No connection to send on; the run goes on without the record.
+      // No connection to send on.
+      refused();
     }
   }
 }

@@ -121,6 +121,13 @@ export class HaAdaptiveDialog extends LitElement {
   @property({ type: Boolean, reflect: true, attribute: "flexcontent" })
   public flexContent = false;
 
+  /**
+   * The dialog has a search of its own, so the shared "Search this dialog"
+   * field is left out (passed on to `ha-dialog`).
+   */
+  @property({ type: Boolean, attribute: "own-search" })
+  public ownSearch = false;
+
   @state() public mode: DialogSheetMode = "dialog";
 
   @state()
@@ -235,6 +242,7 @@ export class HaAdaptiveDialog extends LitElement {
         .headerSubtitlePosition=${this.headerSubtitlePosition}
         .flexContent=${this.flexContent}
         .withoutHeader=${this.withoutHeader}
+        .ownSearch=${this.ownSearch}
       >
         ${this._renderCloseButton("headerNavigationIcon")}
         <slot name="headerTitle" slot="headerTitle"></slot>

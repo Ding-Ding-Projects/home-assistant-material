@@ -9122,7 +9122,15 @@
             "shared_state_finished": "Finished",
             "shared_state_current": "Updating",
             "shared_state_failed": "Failed",
-            "shared_state_waiting": "Waiting"
+            "shared_state_waiting": "Waiting",
+            "shared_silent_title": "The browser that started this run stopped responding",
+            "shared_silent_note": "Nothing more will be installed by it. If that browser opens this page again, the run carries on.",
+            "shared_silent_seen": "Last heard from at {time}.",
+            "shared_state_stalled": "Was installing, finishes by itself",
+            "shared_state_not_started": "Will not start",
+            "shared_clear": "Clear this run",
+            "shared_clear_note": "Clearing removes only this notice. An update that is installing now carries on.",
+            "shared_clear_failed": "The run could not be cleared. Try again."
           },
           "build_data": {
             "retry": "Try again",
@@ -12057,7 +12065,7 @@
               "last_updated": "[%key:ui::dialogs::more_info_control::last_updated%]",
               "last_changed": "[%key:ui::dialogs::more_info_control::last_changed%]",
               "copy_id": "Copy ID to clipboard",
-              "entity_count": "{count} entities.",
+              "entity_count": "{count, plural,\n one {# entity.}\n other {# entities.}\n}",
               "select_hint": "Select an entity to load it into the form.",
               "state_set": "State set. Home Assistant reports the new value until the next real update."
             },
