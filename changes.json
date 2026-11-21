@@ -1,15 +1,38 @@
 {
  "format": 1,
- "generated": "2026-11-21T14:57:16Z",
+ "generated": "2026-11-21T15:33:08Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 547,
+ "newest_build": 548,
  "releases": [
+  {
+   "build": 548,
+   "core": "2026.11.2.548",
+   "supervisor": "2026.11.0.548",
+   "os": "18.5.548",
+   "tag": null,
+   "source": "7650c522a",
+   "date": "2026-11-21T10:10:29-05:00",
+   "previous_build": 547,
+   "changes": [
+    {
+     "sha": "7650c522a",
+     "date": "2026-11-21T10:10:29-05:00",
+     "title": "Updates: true run time, one step left, buttons kept together on phone rows [skip ci]",
+     "areas": [
+      "docs",
+      "interface"
+     ],
+     "detail": "Build 547 passed its browser check and runs on the owner's instance. These repair the small faults that check left. No confirmation changed and the run record is still display only.\n\n- Run time: after an update that included Core, the summary said the whole run took 0:43 when it took about 2:34, and the Core row showed no time. Core's end was read before its entity had come back after the reload, came out empty, and was dropped from the total. The end now comes from the entity's own change time, or from the moment the connection came back, marked \"about\". If an end is truly unknown the line says \"at least\", never a wrong number. - One step left: a stranded run with a single waiting step offered only \"Clear this run\". It now offers \"Update <name>\", which does exactly what that row's own Update button does. That row has no confirmation today and none was added or removed. - Phone lists: the buttons after a name move as one group to the row end, in their wide-screen order. Before, one could sit at the left while the rest sat at the right, or one could drop alone to a line. - A watching browser no longer says \"finished\" while a row still says \"updating\". A stranded run with nothing ins",
+     "detail_yue": "更新頁：真實嘅執行時間、淨返一步點算、手機行尾啲掣擺埋一齊。 547 版過咗瀏覽器檢查，而家喺屋主部機行緊。呢批修正檢查留低嘅 細毛病。冇改任何確認步驟。 執行時間：更新入面有 Core 嗰陣，摘要話成個過程用咗 0:43，其實 大約 2:34。原因係重新載入之後讀唔到 Core 幾時做完，就成個漏咗。 而家用返實體自己嘅改變時間，或者連線返嚟嗰刻（寫明「大約」）； 真係唔知就寫「最少」，絕對唔會寫錯數。 淨返一步：卡住嘅更新淨返一步，而家有「更新某某」，做嘅嘢同嗰行 自己個更新掣一模一樣。 手機清單：名後面啲掣當一組擺去行尾，次序同闊螢幕一樣。 交接同收工提示寫返而家嘅實況。 仲未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 547,
    "core": "2026.11.2.547",
    "supervisor": "2026.11.0.547",
    "os": "18.5.547",
-   "tag": null,
+   "tag": "v2026.11.2.547",
    "source": "bb1702e32",
    "date": "2026-11-21T08:27:38-05:00",
    "previous_build": 546,
