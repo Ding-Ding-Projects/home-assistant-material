@@ -1,15 +1,38 @@
 {
  "format": 1,
- "generated": "2026-11-21T11:16:32Z",
+ "generated": "2026-11-21T11:54:07Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 545,
+ "newest_build": 546,
  "releases": [
+  {
+   "build": 546,
+   "core": "2026.11.2.546",
+   "supervisor": "2026.11.0.546",
+   "os": "18.5.546",
+   "tag": null,
+   "source": "c2e5b0256",
+   "date": "2026-11-21T06:26:04-05:00",
+   "previous_build": 545,
+   "changes": [
+    {
+     "sha": "c2e5b0256",
+     "date": "2026-11-21T06:26:04-05:00",
+     "title": "Updates: a stranded run frees itself, watchers keep the finished summary [skip ci]",
+     "areas": [
+      "core",
+      "interface"
+     ],
+     "detail": "A browser check of build 545 said no because of the Updates page. These are the repairs. No confirmation changed, and the run record is still display only: it cannot start, order or cancel an install.\n\n- Stranded run: if the browser that started \"Update everything\" closed mid-run, every other browser showed \"Updating\" for up to two hours with no way out. The driving browser now sends a heartbeat every 30 seconds, and the server stamps when it last heard from it. After five minutes of silence a watching browser says so plainly, shows what finished and what will not start, and offers \"Clear this run\" to administrators. Clearing removes only the notice; an install in progress carries on. The server frees a silent record by itself after fifteen minutes once nothing in it is still installing. If the same browser comes back it carries on. - Finished summary: after a run that restarted Core, a watching browser lost \"Updates finished\". The page now loads sooner after a reload, so the final report could arrive while the new Core was still starting and be refused, and it was never sent again. A refused report is now sent again until it is accepted. This cause is deduced from the code, not re",
+     "detail_yue": "更新頁：卡住嘅更新會自己解除，旁觀嘅瀏覽器睇得返完成摘要。 545 版瀏覽器檢查唔過，就係因為更新頁。冇改任何確認步驟， 記錄仍然只係畀人睇，唔可以開始、排次序或者取消安裝。 卡住：撳「全部更新」嗰個瀏覽器中途熄咗，其他瀏覽器會顯示「更新緊」 成兩個鐘，冇得走。而家負責嗰個瀏覽器每三十秒報到一次；靜咗五分鐘， 旁觀嗰邊就會老實講，仲有「清除呢次執行」畀管理員撳。清除只係收起 通知，安裝緊嘅嘢照做。靜足十五分鐘而冇嘢安裝緊，伺服器會自己放。 完成摘要：Core 重新啟動之後，旁觀嗰邊唔見咗「更新完成」。最後嗰次 匯報俾新 Core 拒絕之後冇再送，而家會重送到收到為止。 藍圖頁喺手機個掣自己一行；標籤頁揀選模式個名留喺第一行。 仲未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 545,
    "core": "2026.11.2.545",
    "supervisor": "2026.11.0.545",
    "os": "18.5.545",
-   "tag": null,
+   "tag": "v2026.11.2.545",
    "source": "775a96382",
    "date": "2026-11-21T04:06:41-05:00",
    "previous_build": 544,
