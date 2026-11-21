@@ -39,7 +39,7 @@ Everything is on `main`. There is no other branch, linked working tree or stash 
 
 ## Next safe steps, in order
 
-1. Add the missing `services.wake.name` string to `core/homeassistant/components/wall_tablet/strings.json`, regenerate its English translation, then run `core/tests/components/default_config` again with the recipe at the top of `HANDOFF.md`.
+1. The `wall_tablet` translation message in the `default_config` test is not a source fault: `strings.json` has the string, and the generated `translations/en.json` is ignored by design and was simply absent in the test copy. Generate it in the test container (`python3 -m script.translations develop --integration wall_tablet`) before running that test folder.
 2. Start a release build and wait for its image.
 3. Browser check of that build on a throwaway copy: the 80-page pass, each of the fourteen hunt findings, the quick controls (a lock must ask first), a quick action with a wait that is then stopped, the detail row in tables, and a comparison with pictures of build 536 so the look has not drifted.
 4. Only on a pass, move the owner's instance, Supervisor first, and read back versions and that Supervisor self-update is off.
