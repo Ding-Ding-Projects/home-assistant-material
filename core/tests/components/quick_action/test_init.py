@@ -22,6 +22,7 @@ from homeassistant.components.quick_action.runner import (
     DATA_RUNNER,
     KEEP_ENDED,
     MAX_RUNS,
+    ShuttingDownError,
 )
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Context, HomeAssistant, ServiceCall
@@ -267,12 +268,12 @@ async def test_stopping_home_assistant_stops_runs(
     hass.bus.async_fire(EVENT_HOMEASSISTANT_STOP)
     await hass.async_block_till_done()
 
-    assert (await _list(client))[0]["state"] == "stopped"
-    await client.send_json_auto_id(
-        {"type": "quick_action/run", "sequence": [RECORD]}
-    )
-    result = await client.receive_json()
-    assert result["error"]["code"] == "shutting_down"
+    # The stop event also closes every websocket connection, so the runner is
+    # read directly here instead of through the client.
+    runner = hass.data[DATA_RUNNER]
+    assert runner.async_runs()[0]["state"] == "stopped"
+    with pytest.raises(ShuttingDownError):
+        runner.async_start([RECORD], Context())
 
     freezer.tick(WAIT + timedelta(seconds=1))
     async_fire_time_changed(hass)

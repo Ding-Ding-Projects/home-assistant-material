@@ -28,7 +28,7 @@ Everything is on `main`. There is no other branch, linked working tree or stash 
 ## Not verified, said plainly
 
 - Nothing after build 536 has been seen in a browser.
-- The Python tests for `core/tests/components/quick_action` and for `default_config` were written and compile, but were NOT run: the container engine on the workstation stopped answering. Run them before trusting the server part. `quick_action` is loaded by default, so a fault there affects start-up.
+- Python tests were run once the container engine came back: `quick_action` 12 passed; the `default_config` start-up test passes with `quick_action` loaded, and its teardown reports a missing translation (`services.wake.name`) in the older `wall_tablet` component. That last fault is not from this work and is open.
 - The operating system update step cannot be exercised in a container copy.
 - The public site was looked at from local files at 320, 390 and 1440 px. It was not checked on its published address after the last change, and its hero picture is still the old one. The files a capture pass must provide are `docs/site/img/hero-light.webp` and `docs/site/img/hero-dark.webp`.
 
@@ -39,7 +39,7 @@ Everything is on `main`. There is no other branch, linked working tree or stash 
 
 ## Next safe steps, in order
 
-1. Start the container engine (the owner's decision), then run the two Python test folders named above with the recipe at the top of `HANDOFF.md`. Run them detached and one at a time.
+1. Add the missing `services.wake.name` string to `core/homeassistant/components/wall_tablet/strings.json`, regenerate its English translation, then run `core/tests/components/default_config` again with the recipe at the top of `HANDOFF.md`.
 2. Start a release build and wait for its image.
 3. Browser check of that build on a throwaway copy: the 80-page pass, each of the fourteen hunt findings, the quick controls (a lock must ask first), a quick action with a wait that is then stopped, the detail row in tables, and a comparison with pictures of build 536 so the look has not drifted.
 4. Only on a pass, move the owner's instance, Supervisor first, and read back versions and that Supervisor self-update is off.

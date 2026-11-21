@@ -13,7 +13,7 @@ Stopped at 23:45 Toronto time. All work is on `main`; there is no other branch, 
 - Controls in place, "Run a quick action", "Show more details" (`33e099f91`).
 - This commit: an expandable detail row in the shared data table; details and quick buttons in more lists; the states tool opening on one entity; a stop control for running quick actions backed by a small in-memory server component, `quick_action`, loaded through `default_config`.
 
-**Not run:** the Python tests under `core/tests/components/quick_action` and `core/tests/components/default_config`. They compile. The container engine on the workstation stopped answering before they could run. Run them first; a fault in a default-loaded component affects start-up.
+**Python tests, run after the container engine came back:** `core/tests/components/quick_action`: 12 passed (one test was corrected: it used the websocket after the stop event had closed it). `core/tests/components/default_config`: the start-up test passes with `quick_action` loaded; its teardown then reports a missing translation `services.wake.name` for the older `wall_tablet` component, which is not from this work and is still open.
 
 **Owner's decisions recorded on design canvas 42:** today's look with a polish, not a new look; dramatic motion and graphics for actions only; nothing removed; dashboard cards unchanged; controls in place everywhere an entity is listed; risky things ask first; details everywhere, with edit behind the two-key confirmation.
 
