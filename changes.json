@@ -1,15 +1,37 @@
 {
  "format": 1,
- "generated": "2026-11-21T13:15:13Z",
+ "generated": "2026-11-21T13:50:50Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 546,
+ "newest_build": 547,
  "releases": [
+  {
+   "build": 547,
+   "core": "2026.11.2.547",
+   "supervisor": "2026.11.0.547",
+   "os": "18.5.547",
+   "tag": null,
+   "source": "bb1702e32",
+   "date": "2026-11-21T08:27:38-05:00",
+   "previous_build": 546,
+   "changes": [
+    {
+     "sha": "bb1702e32",
+     "date": "2026-11-21T08:27:38-05:00",
+     "title": "Updates: watchers see the finished summary, a stranded run shows real states [skip ci]",
+     "areas": [
+      "interface"
+     ],
+     "detail": "A browser check of build 546 said no. These are the repairs. No confirmation changed, the run record is still display only, and a browser that only watches never starts an install by itself.\n\n- Watching browser: after a run that restarted Core, a watching browser reloaded itself and showed an empty card until reloaded by hand. The page subscribed to the run once, only if the signed-in user was already known, and gave up for good otherwise. It now subscribes whenever an administrator has the page open and the component is loaded, however late, again after every reconnect, with retries, and reads the record once on subscribing. - New tab: the queue belongs to one tab. The notice now says so, instead of promising that the browser carries on. For a stranded run with steps still waiting, administrators get \"Update the rest\", which goes through the same two-key confirmation as \"Update everything\" and only then clears the old record and starts a normal run. - Stranded view: each step now shows its real state. It said \"was installing\" and \"0 of 2 finished\" minutes after the install had finished. - A step that finished while the tab was away no longer counts the time away as its duration. -",
+     "detail_yue": "更新頁：旁觀嘅瀏覽器睇到完成摘要，卡住嘅更新顯示真實狀態。 546 版瀏覽器檢查唔過，呢批係修正。冇改任何確認步驟，記錄仍然 只係畀人睇，旁觀嘅瀏覽器絕對唔會自己開始安裝。 旁觀：Core 重新啟動之後，旁觀嗰邊自己重新載入完會見到空白卡， 要人手再載入先有。原因係頁面只訂閱一次，嗰刻未知邊個登入就永遠 放棄。而家幾時齊條件就幾時訂閱，重新連線又訂閱，仲會重試。 新分頁：排隊清單係跟分頁嘅，通知而家照直講。卡住而仲有步驟未做， 管理員有「更新餘下嘅」，照樣要兩條鎖匙確認先會開始。 卡住嗰個畫面每一步顯示返真實狀態。 藍圖頁喺手機「使用」同詳細資料掣一齊擺喺行尾。 仲未喺瀏覽器睇過。"
+    }
+   ]
+  },
   {
    "build": 546,
    "core": "2026.11.2.546",
    "supervisor": "2026.11.0.546",
    "os": "18.5.546",
-   "tag": null,
+   "tag": "v2026.11.2.546",
    "source": "c2e5b0256",
    "date": "2026-11-21T06:26:04-05:00",
    "previous_build": 545,
