@@ -1,0 +1,22 @@
+{
+  "entity": {
+    "sensor": {
+      "next_change": {
+        "default": "mdi:clock-outline"
+      },
+      "status": {
+        "default": "mdi:sprout",
+        "state": {
+          "off_hours": "mdi:weather-night",
+          "paused": "mdi:door-open",
+          "schedule_off": "mdi:sprout-outline"
+        }
+      }
+    },
+    "switch": {
+      "schedule": {
+        "default": "mdi:sprout"
+      }
+    }
+  }
+}

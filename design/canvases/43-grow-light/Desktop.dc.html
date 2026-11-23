@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Grow light on a PC screen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#9ad0a0}a:hover{color:#c6ebc9}
+.gl-pulse{animation:glp 2.4s ease-in-out infinite}
+@keyframes glp{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion: reduce){.gl-pulse{animation:none}}
+</style>
+</helmet>
+<div style="box-sizing: border-box; min-height: 800px; background: #121412; color: #e3e6e1; font-family: Roboto, system-ui, sans-serif; padding: 24px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<h1 style="margin: 0; font-size: 24px; font-weight: 500; flex: 1 1 240px">Basil shelf</h1>
+<span style="font-size: 14px; color: #a9b0a7">Grow light · switch.basil_plug</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px">
+<div style="background: #1a1d1a; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #a9b0a7">Light now</span>
+<span class="{{pulseClass}}" style="font-size: 32px; font-weight: 500; color: {{stateColor}}">{{stateText}}</span>
+</div>
+<div style="background: #1a1d1a; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #a9b0a7">Status</span>
+<span style="font-size: 18px">{{statusText}}</span>
+</div>
+<div style="background: #1a1d1a; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #a9b0a7">Next change</span>
+<span style="font-size: 18px">{{nextChange}}</span>
+</div>
+<div style="background: #1a1d1a; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #a9b0a7">Light today</span>
+<span style="font-size: 18px">8 h 10 min of 14 h</span>
+</div>
+</div>
+<sc-if value="{{paused}}" hint-placeholder-val="{{ false }}">
+<div style="background: #3a2a14; color: #f5c98a; border-radius: 14px; padding: 12px 16px; font-size: 15px">Paused because Grow tent door is open. It comes back on when the door closes, if it is still inside the on hours.</div>
+</sc-if>
+<div style="background: #1a1d1a; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 15px">
+<span>On hours today</span>
+<span style="color: #a9b0a7">06:00 to 20:00 · 14 h</span>
+</div>
+<div style="position: relative; height: 28px; border-radius: 8px; background: #2a2e2a">
+<div style="position: absolute; left: 25%; width: 58.3%; top: 0; bottom: 0; border-radius: 8px; background: {{accent}}"></div>
+<div style="position: absolute; left: 41%; width: 2%; top: 0; bottom: 0; background: #e0a24a"></div>
+<div style="position: absolute; left: 58.3%; top: -6px; width: 3px; height: 40px; border-radius: 2px; background: #ffffff"></div>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #8d948b">
+<span>00:00</span><span>03:00</span><span>06:00</span><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span><span>24:00</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: #a9b0a7">
+<span>Green: light on</span><span>Amber: paused, door open (09:50 to 10:20)</span><span>White line: now, 14:00</span>
+</div>
+</div>
+<div style="background: #1a1d1a; border-radius: 20px; padding: 8px 20px; overflow-x: auto">
+<div style="display: grid; grid-template-columns: minmax(140px, 1fr) minmax(140px, 2fr) minmax(90px, 1fr); gap: 0; min-width: 420px; font-size: 14px">
+<span style="padding: 12px 0; color: #a9b0a7">Time</span><span style="padding: 12px 0; color: #a9b0a7">What happened</span><span style="padding: 12px 0; color: #a9b0a7">Plug</span>
+<span style="padding: 12px 0; border-top: 1px solid #2a2e2a">10:20</span><span style="padding: 12px 0; border-top: 1px solid #2a2e2a">Door closed, inside on hours</span><span style="padding: 12px 0; border-top: 1px solid #2a2e2a">Turned on</span>
+<span style="padding: 12px 0; border-top: 1px solid #2a2e2a">09:50</span><span style="padding: 12px 0; border-top: 1px solid #2a2e2a">Grow tent door opened</span><span style="padding: 12px 0; border-top: 1px solid #2a2e2a">Turned off</span>
+<span style="padding: 12px 0; border-top: 1px solid #2a2e2a">06:00</span><span style="padding: 12px 0; border-top: 1px solid #2a2e2a">On hours started</span><span style="padding: 12px 0; border-top: 1px solid #2a2e2a">Turned on</span>
+</div>
+</div>
+</div>
+<div style="flex: 1 1 300px; min-width: 0; background: #1a1d1a; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 500">Settings</h2>
+<div style="display: flex; align-items: center; justify-content: space-between; min-height: 48px">
+<label for="dsched" style="font-size: 15px">Schedule on</label>
+<input id="dsched" type="checkbox" checked="{{ scheduleOn }}" onChange="{{ toggleSchedule }}" style="width: 44px; height: 24px; accent-color: {{accent}}">
+</div>
+<div style="display: flex; gap: 12px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 120px">
+<label for="dst" style="font-size: 13px; color: #a9b0a7">Start time</label>
+<input id="dst" type="time" value="06:00" style="min-height: 44px; border-radius: 12px; border: 1px solid #4a514a; background: #121412; color: #e3e6e1; padding: 0 12px; font-size: 15px">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 120px">
+<label for="dhr" style="font-size: 13px; color: #a9b0a7">Hours per day</label>
+<input id="dhr" type="number" value="14" min="0.5" max="24" step="0.5" style="min-height: 44px; border-radius: 12px; border: 1px solid #4a514a; background: #121412; color: #e3e6e1; padding: 0 12px; font-size: 15px">
+</div>
+</div>
+<span style="font-size: 13px; color: #a9b0a7">Pause when open</span>
+<div style="display: flex; align-items: center; justify-content: space-between; min-height: 48px; border-top: 1px solid #2a2e2a">
+<span style="font-size: 15px">Grow tent door</span>
+<button onClick="{{ toggleDoor }}" style="min-width: 96px; min-height: 40px; border-radius: 20px; border: 1px solid #4a514a; background: transparent; color: #e3e6e1; font-size: 14px">{{doorText}}</button>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; min-height: 48px; border-top: 1px solid #2a2e2a">
+<span style="font-size: 15px">Closet door</span>
+<span style="font-size: 14px; color: #a9b0a7">Closed</span>
+</div>
+<button style="align-self: flex-end; min-height: 44px; padding: 0 24px; border-radius: 22px; border: none; background: {{accent}}; color: #0d1a0f; font-size: 15px; font-weight: 500">Save</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#7cc483","options":["#7cc483","#e0b04a","#8ab4f8","#d98cc4"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { door: false, scheduleOn: true }; }
+  renderVals() {
+    const accent = this.props.accent ?? '#7cc483';
+    const motion = this.props.motion ?? true;
+    const s = this.state;
+    const on = s.scheduleOn && !s.door;
+    const paused = s.scheduleOn && s.door;
+    return {
+      accent,
+      pulseClass: on && motion ? 'gl-pulse' : '',
+      stateText: on ? 'On' : 'Off',
+      stateColor: on ? accent : '#a9b0a7',
+      statusText: !s.scheduleOn ? 'Schedule off' : paused ? 'Paused, door open' : 'On',
+      nextChange: s.scheduleOn ? 'Off at 20:00' : 'None',
+      paused,
+      scheduleOn: s.scheduleOn,
+      doorText: s.door ? 'Open' : 'Closed',
+      toggleDoor: () => this.setState({ door: !s.door }),
+      toggleSchedule: () => this.setState({ scheduleOn: !s.scheduleOn })
+    };
+  }
+}
+</script>
+</body>
+</html>

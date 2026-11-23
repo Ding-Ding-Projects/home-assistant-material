@@ -10,6 +10,7 @@ FLOWS = {
         "generic_hygrostat",
         "generic_thermostat",
         "group",
+        "grow_light",
         "history_stats",
         "integration",
         "min_max",

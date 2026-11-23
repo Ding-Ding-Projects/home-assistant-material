@@ -1951,6 +1951,7 @@ NO_QUALITY_SCALE = [
     "frontend",
     "garage_door",
     "gate",
+    "grow_light",
     "hardkernel",
     "hardware",
     "history",

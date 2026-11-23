@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Add grow light</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#9ad0a0}a:hover{color:#c6ebc9}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #121412; color: #e3e6e1; font-family: Roboto, system-ui, sans-serif; padding: 20px 16px; display: flex; flex-direction: column; gap: 16px">
+<h1 style="margin: 0; font-size: 22px; font-weight: 500">Add grow light</h1>
+<p style="margin: 0; font-size: 14px; color: #a9b0a7; line-height: 1.45">The plug is on for a set number of hours each day. Opening a door pauses it, and closing the door turns it back on only inside those hours.</p>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="nm" style="font-size: 13px; color: #a9b0a7">Name</label>
+<input id="nm" value="Basil shelf" style="min-height: 48px; border-radius: 12px; border: 1px solid #4a514a; background: #1a1d1a; color: #e3e6e1; padding: 0 14px; font-size: 16px">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="pl" style="font-size: 13px; color: #a9b0a7">Plug or switch</label>
+<select id="pl" style="min-height: 48px; border-radius: 12px; border: 1px solid #4a514a; background: #1a1d1a; color: #e3e6e1; padding: 0 12px; font-size: 16px"><option>Basil plug (switch.basil_plug)</option></select>
+</div>
+<div style="display: flex; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 6px; flex: 1">
+<label for="st" style="font-size: 13px; color: #a9b0a7">Start time</label>
+<input id="st" type="time" value="06:00" style="min-height: 48px; border-radius: 12px; border: 1px solid #4a514a; background: #1a1d1a; color: #e3e6e1; padding: 0 12px; font-size: 16px">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; flex: 1">
+<label for="hr" style="font-size: 13px; color: #a9b0a7">Hours per day</label>
+<input id="hr" type="number" value="14" min="0.5" max="24" step="0.5" style="min-height: 48px; border-radius: 12px; border: 1px solid #4a514a; background: #1a1d1a; color: #e3e6e1; padding: 0 12px; font-size: 16px">
+</div>
+</div>
+<span style="font-size: 13px; color: #a9b0a7">Ends at 20:00. A window that passes midnight works too.</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #a9b0a7">Pause when open (optional)</span>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<span style="min-height: 36px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 18px; background: #24342a; color: #c6ebc9; font-size: 14px">Grow tent door</span>
+<span style="min-height: 36px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 18px; background: #24342a; color: #c6ebc9; font-size: 14px">Closet door</span>
+</div>
+</div>
+<div style="flex: 1"></div>
+<div style="display: flex; justify-content: flex-end; gap: 8px">
+<button style="min-height: 44px; padding: 0 20px; border-radius: 22px; border: none; background: transparent; color: {{accent}}; font-size: 15px">Cancel</button>
+<button style="min-height: 44px; padding: 0 24px; border-radius: 22px; border: none; background: {{accent}}; color: #0d1a0f; font-size: 15px; font-weight: 500">Submit</button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#7cc483","options":["#7cc483","#e0b04a","#8ab4f8","#d98cc4"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { accent: this.props.accent ?? '#7cc483' }; }
+}
+</script>
+</body>
+</html>

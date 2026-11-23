@@ -1,0 +1,68 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "doors": "Pause when open",
+          "hours": "Hours per day",
+          "name": "[%key:common::config_flow::data::name%]",
+          "plug": "Plug or switch",
+          "start": "Start time"
+        },
+        "data_description": {
+          "doors": "Door or window sensors. While any is open the light is off. When all are closed again it turns back on, but only inside the on hours.",
+          "hours": "How long the light stays on each day, counted from the start time. A window that passes midnight works.",
+          "plug": "The plug, switch or light that powers the grow light.",
+          "start": "When the light turns on each day."
+        },
+        "description": "Keep a plug on for a set number of hours each day, and switch it off while a door is open.",
+        "title": "Add grow light"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "next_change": {
+        "name": "Next change"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "off_hours": "Outside on hours",
+          "on": "[%key:common::state::on%]",
+          "paused": "Paused, door open",
+          "schedule_off": "Schedule off"
+        },
+        "state_attributes": {
+          "open_doors": {
+            "name": "Open doors"
+          }
+        }
+      }
+    },
+    "switch": {
+      "schedule": {
+        "name": "Schedule"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "doors": "[%key:component::grow_light::config::step::user::data::doors%]",
+          "hours": "[%key:component::grow_light::config::step::user::data::hours%]",
+          "plug": "[%key:component::grow_light::config::step::user::data::plug%]",
+          "start": "[%key:component::grow_light::config::step::user::data::start%]"
+        },
+        "data_description": {
+          "doors": "[%key:component::grow_light::config::step::user::data_description::doors%]",
+          "hours": "[%key:component::grow_light::config::step::user::data_description::hours%]",
+          "plug": "[%key:component::grow_light::config::step::user::data_description::plug%]",
+          "start": "[%key:component::grow_light::config::step::user::data_description::start%]"
+        }
+      }
+    }
+  },
+  "title": "Grow light"
+}

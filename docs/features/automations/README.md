@@ -13,6 +13,7 @@
 | [`event-type-picker-and-zone-map.md`](event-type-picker-and-zone-map.md) | Searchable event type picker, a small map on zone triggers and conditions, timer and threshold fixes, list descriptions, one test against the server's own descriptions | Written and tested; the tap and threshold fixes found in browser looks; map not seen |
 | [`quick-actions.md`](quick-actions.md) | Run a quick action once, stop it, see running quick actions; never saved, gone after a restart | Written; server tests not yet run; not yet seen in a browser |
 | [`drafts-import-export.md`](drafts-import-export.md) | Autosaved drafts in a scratch Git repository, export and import for automations, scripts and scenes | Written and tested; not yet seen in a browser |
+| [`grow-light.md`](grow-light.md) | Grow light helper: a plug on for set hours each day, paused while a door is open | Written; schedule tests pass; not yet seen in a browser |
 
 Related, documented elsewhere: [`../../automation-repositories.md`](../../automation-repositories.md)
 (a Git repository for every automation, the master repository, the history manager).

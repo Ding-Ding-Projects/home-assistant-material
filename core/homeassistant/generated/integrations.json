@@ -17523,6 +17523,14 @@
       "config_flow": true,
       "iot_class": "calculated"
     },
+    "grow_light": {
+      "integration_type": "helper",
+      "categories": [
+        "helpers"
+      ],
+      "config_flow": true,
+      "iot_class": "calculated"
+    },
     "history_stats": {
       "integration_type": "helper",
       "categories": [
@@ -17718,6 +17726,7 @@
     "generic_thermostat",
     "google_travel_time",
     "group",
+    "grow_light",
     "growatt_server",
     "history_stats",
     "holiday",

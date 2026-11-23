@@ -13,6 +13,17 @@ is being verified; `docs/feature-status.md` is the older row-by-row record up to
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
+## Grow light helper, 23 November 2026
+
+- [ ] Grow light helper: a plug on for set hours each day; any listed door turns it off, and
+      closing the door turns it back on only inside the on hours. Schedule switch, Status and
+      Next change sensors, setup and options steps
+      ([`grow-light.md`](docs/features/automations/grow-light.md), boards in
+      [`design/canvases/43-grow-light`](design/canvases/43-grow-light/README.md)). Window tests
+      pass; behaviour tests need the Linux test environment; not yet seen in a browser.
+- [ ] PC screen layout from the Desktop board: "Light today" total and the recent changes list
+      need history reading; not built.
+
 ## Fixes from the home problem log, 23 November 2026
 
 - [ ] Cast: a device that cannot connect back to Home Assistant no longer raises on every
