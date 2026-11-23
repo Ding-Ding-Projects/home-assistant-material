@@ -1,15 +1,61 @@
 {
  "format": 1,
- "generated": "2026-11-21T16:53:17Z",
+ "generated": "2026-11-23T17:42:37Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 548,
+ "newest_build": 549,
  "releases": [
+  {
+   "build": 549,
+   "core": "2026.11.2.549",
+   "supervisor": "2026.11.0.549",
+   "os": "18.5.549",
+   "tag": null,
+   "source": "aae14a050",
+   "date": "2026-11-23T12:19:44-05:00",
+   "previous_build": 548,
+   "changes": [
+    {
+     "sha": "7b6e49770",
+     "date": "2026-11-23T12:19:32-05:00",
+     "title": "Preserve history quick-controls work in progress",
+     "areas": [
+      "docs",
+      "interface"
+     ],
+     "detail": "This branch's history comparison work, kept so nothing is lost. main already carries a later superset of these same edits.",
+     "detail_yue": "歷史快捷掣嘅半成品先存低，唔好蒸發。main 已經有更新更齊嘅版本。"
+    },
+    {
+     "sha": "1659f312f",
+     "date": "2026-11-23T12:19:31-05:00",
+     "title": "Add hourly AC forecast, card details and history controls",
+     "areas": [
+      "build",
+      "docs",
+      "core",
+      "interface"
+     ],
+     "detail": "The AC defender now reads an hourly forecast, so the energy guard stops guessing tomorrow from today's mood. Area, tag, thread and state-row cards gain details with tests, history comparison gets quick controls, the build scripts gain a type check, and docs, roadmap and handoff catch up. Python bytecode caches are now ignored instead of loitering in git status.",
+     "detail_yue": "冷氣守衛而家識睇逐個鐘頭嘅天氣預報，唔使再靠今日心情估聽日。 區域、標籤、Thread 同狀態列卡片多咗詳情同測試，歷史比較加咗快捷掣， build 腳本多咗型別檢查，文件、路線圖同交接一齊追返上嚟。 Python 嘅 __pycache__ 以後乖乖被忽略，唔再喺 git status 度遊花園。"
+    },
+    {
+     "sha": "e86e70e1c",
+     "date": "2026-11-21T10:50:00-05:00",
+     "title": "Closeout: build 548 is published and unchecked [skip ci]",
+     "areas": [
+      "docs"
+     ],
+     "detail": "The session closed while the browser check of build 548 had only just started, so the check was stopped and gave no verdict. The closeout note now says so plainly: build 548 holds the last repairs, it has not been seen in a browser, and the owner's instance stays on build 547 until a check passes.",
+     "detail_yue": "收工記錄：548 版出咗，但係未檢查。 收工嗰陣 548 版嘅瀏覽器檢查啱啱開始，所以停咗，冇結論。 收工提示寫明：548 版有最後嗰批修正，但係未喺瀏覽器睇過， 屋主部機留喺 547 版，等檢查過咗先郁。"
+    }
+   ]
+  },
   {
    "build": 548,
    "core": "2026.11.2.548",
    "supervisor": "2026.11.0.548",
    "os": "18.5.548",
-   "tag": null,
+   "tag": "v2026.11.2.548",
    "source": "7650c522a",
    "date": "2026-11-21T10:10:29-05:00",
    "previous_build": 547,
