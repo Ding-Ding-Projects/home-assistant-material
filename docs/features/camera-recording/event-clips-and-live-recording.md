@@ -117,3 +117,22 @@ now composed per language.
   playback support. Disabling the isolated streaming program displayed **Not set up** and
   disabled the button. Re-enabling it restored **Set up and ready** without a restart.
   The test used generated video. Physical cameras and provider account limits remain unverified.
+
+## Cameras that need a data channel in the offer
+
+Some cloud cameras, Nest among them, accept a live offer only when its media sections come
+in the order audio, video, data channel, and only when a data channel is present. The
+streaming program's own offer has neither. Before this change a Nest doorbell refused every
+live offer, the streaming program then read the refusal as an answer with no ICE
+credentials, and each event ended as **No clip kept: failed**.
+
+The live offer endpoint now reshapes the offer for any camera whose WebRTC client
+configuration asks for a data channel: it orders the sections audio, video, other, adds a
+bundled data-channel section, and maps the camera's answer back to the original order
+without the added section. An answer that still has no ICE credentials is refused with a
+clear failure instead of being passed on. The first refusal from each camera is logged once
+with the camera's own reason.
+
+Verification: unit tests cover the offer order, the added data channel, the restored answer
+and the pass-through of an unexpected answer. A real Nest doorbell has not yet been tested
+with this build.

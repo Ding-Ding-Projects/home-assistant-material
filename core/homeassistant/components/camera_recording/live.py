@@ -41,6 +41,7 @@ from .const import (
     LOGGER,
 )
 from .events import ClipReason
+from .sdp import has_ice_credentials, prepare_offer, restore_answer
 
 MAX_OFFER_BYTES = 65536
 CANDIDATE_GRACE_SECONDS = 0.3
@@ -198,6 +199,17 @@ def camera_has_other_view(camera: Any, own: set[str]) -> bool:
     return any(session_id not in own for session_id in sessions)
 
 
+_REFUSALS_LOGGED: set[str] = set()
+
+
+def _warn_refusal_once(entity_id: str, detail: str) -> None:
+    """Say once per camera why it refused a live offer."""
+    if entity_id in _REFUSALS_LOGGED:
+        return
+    _REFUSALS_LOGGED.add(entity_id)
+    LOGGER.warning("%s refused a live recording offer: %s", entity_id, detail[:300])
+
+
 def classify_offer_failure(text: str) -> ClipReason:
     """The reason for a refused offer, from well-known words only."""
     return ClipReason.RATE_LIMITED if is_rate_limited(text) else ClipReason.FAILED
@@ -275,10 +287,14 @@ class LiveOfferView(HomeAssistantView):
             elif isinstance(message, WebRTCCandidate):
                 candidates.append(message.candidate)
 
+        offer = body.decode(errors="replace")
+        plan = None
+        if camera.async_get_webrtc_client_configuration().data_channel is not None:
+            offer, plan = prepare_offer(offer, needs_data_channel=True)
         session.camera_session = ulid()
         try:
             await camera.async_handle_async_webrtc_offer(
-                body.decode(errors="replace"), session.camera_session, send_message
+                offer, session.camera_session, send_message
             )
             sdp = await asyncio.wait_for(answer, LIVE_OFFER_TIMEOUT_SECONDS)
         except TimeoutError:
@@ -291,6 +307,7 @@ class LiveOfferView(HomeAssistantView):
             )
         except HomeAssistantError as err:
             session.failure = classify_offer_failure(str(err))
+            _warn_refusal_once(session.entity_id, str(err))
             return web.Response(
                 status=429 if session.failure is ClipReason.RATE_LIMITED else 502
             )
@@ -300,6 +317,12 @@ class LiveOfferView(HomeAssistantView):
                 session.entity_id,
                 type(err).__name__,
             )
+            session.failure = ClipReason.FAILED
+            return web.Response(status=502)
+        if plan is not None:
+            sdp = restore_answer(sdp, plan)
+        if not has_ice_credentials(sdp):
+            _warn_refusal_once(session.entity_id, "the answer has no ICE credentials")
             session.failure = ClipReason.FAILED
             return web.Response(status=502)
         await asyncio.sleep(CANDIDATE_GRACE_SECONDS)

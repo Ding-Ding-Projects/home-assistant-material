@@ -11,6 +11,7 @@ from uuid import UUID
 import attr
 import pychromecast
 from pychromecast.const import CAST_TYPE_CHROMECAST, CAST_TYPE_GROUP
+from pychromecast.error import PyChromecastError
 import pytest
 from pytest_homeassistant.common import (
     MockConfigEntry,
@@ -2567,6 +2568,40 @@ async def test_ha_cast(hass: HomeAssistant, ha_controller_mock) -> None:
     chromecast.unregister_handler.reset_mock()
     unregister_cb()
     chromecast.unregister_handler.assert_not_called()
+
+
+async def test_ha_cast_connect_failure(
+    hass: HomeAssistant, ha_controller_mock: MagicMock, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test a cast device that cannot reach Home Assistant drops its controller."""
+    entity_id = "media_player.speaker"
+    chromecast, _ = await async_setup_media_player_cast(
+        hass, get_fake_chromecast_info()
+    )
+    chromecast.cast_type = pychromecast.const.CAST_TYPE_CHROMECAST
+    ha_controller = MagicMock()
+    ha_controller.show_lovelace_view.side_effect = PyChromecastError()
+    ha_controller_mock.return_value = ha_controller
+    controller_data = HomeAssistantControllerData(
+        hass_url="url",
+        hass_uuid="12341234",
+        client_id="client_id_1234",
+        refresh_token="refresh_token_1234",
+    )
+
+    for _ in range(2):
+        async_dispatcher_send(
+            hass,
+            SIGNAL_HASS_CAST_SHOW_VIEW,
+            controller_data,
+            entity_id,
+            "view_path",
+            "url_path",
+        )
+        await hass.async_block_till_done()
+
+    assert ha_controller.unregister.call_count == 2
+    assert caplog.text.count("Could not show a dashboard") == 1
 
 
 async def test_entity_media_states_active_app_reported_idle(

@@ -328,6 +328,7 @@ class CastMediaPlayerEntity(CastDevice, MediaPlayerEntity):
         self.mz_media_status_received: dict[str, datetime] = {}
         self._attr_available = False
         self._hass_cast_controller: HomeAssistantController | None = None
+        self._show_view_failing = False
 
         self._cast_view_remove_handler: CALLBACK_TYPE | None = None
         self._attr_unique_id = str(cast_info.uuid)
@@ -1124,7 +1125,23 @@ class CastMediaPlayerEntity(CastDevice, MediaPlayerEntity):
             self._hass_cast_controller = controller
             self._chromecast.register_handler(controller)
 
-        self._hass_cast_controller.show_lovelace_view(view_path, url_path)
+        controller = self._hass_cast_controller
+        try:
+            controller.show_lovelace_view(view_path, url_path)
+        except PyChromecastError:
+            # A kept controller would retry this failed connect on every reconnect.
+            if not self._show_view_failing:
+                _LOGGER.warning(
+                    "[%s %s] Could not show a dashboard: the cast device did not"
+                    " connect back to Home Assistant at %s",
+                    self.entity_id,
+                    self._cast_info.friendly_name,
+                    controller_data["hass_url"],
+                )
+            self._show_view_failing = True
+            controller.unregister()
+            return
+        self._show_view_failing = False
 
 
 class DynamicCastGroup(CastDevice):

@@ -13,6 +13,18 @@ is being verified; `docs/feature-status.md` is the older row-by-row record up to
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
+## Fixes from the home problem log, 23 November 2026
+
+- [ ] Cast: a device that cannot connect back to Home Assistant no longer raises on every
+      dashboard request or retries on every reconnect; one warning per outage. Unit-tested;
+      not yet seen on the real Nest Hub.
+- [ ] Live clips for cameras that need a data channel (Nest): the offer is reordered and given a
+      data channel, and the answer is mapped back. Unit-tested; not yet seen on the real
+      doorbell ([`event-clips-and-live-recording.md`](docs/features/camera-recording/event-clips-and-live-recording.md)).
+- [ ] Not code: the TTC alert sensors over 16 KB, the renamed Proxmox integration in the
+      app-update automation, the HomeKit 150-device limit and the missing Nest Hub entity are
+      settings in the home's own configuration.
+
 ## Current checklist, 22 November 2026
 
 Work through these items in order. The existing roadmap below started this pass with 95 checked,
