@@ -20,6 +20,7 @@ import {
   state,
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { keyed } from "lit/directives/keyed";
 import memoizeOne from "memoize-one";
 import { ensureArray } from "../../common/array/ensure-array";
 import { storage } from "../../common/decorators/storage";
@@ -48,6 +49,7 @@ import "../../components/chart/ha-chart-zoom-slider";
 import "../../components/chart/state-history-charts";
 import type { StateHistoryCharts } from "../../components/chart/state-history-charts";
 import "../../components/date-picker/ha-date-range-nav";
+import "../../components/entity/ha-entity-quick-controls";
 import "../../components/ha-button";
 import "../../components/ha-card";
 import "../../components/ha-dropdown";
@@ -217,6 +219,13 @@ class HaPanelHistory extends LitElement {
   protected render() {
     const entityIds = this._getEntityIds();
     const targetCount = countTargets(this._targetPickerValue);
+    const selectedEntityId = ensureArray(this._targetPickerValue.entity_id ?? [])[0];
+    const currentEntity =
+      targetCount === 1 &&
+      entityIds.length === 1 &&
+      entityIds[0] === selectedEntityId
+        ? this.hass.states[selectedEntityId]
+        : undefined;
     const filterCount = countSourceFilters(this._filters);
     const sourceCount = targetCount + filterCount;
     const hasTargets = targetCount > 0;
@@ -347,6 +356,22 @@ class HaPanelHistory extends LitElement {
                   "has-zoom-bar": showZoomBar,
                 })}"
               >
+                ${currentEntity
+                  ? keyed(currentEntity.entity_id, html`<section
+                      class="current-controls"
+                      aria-labelledby="current-control-title"
+                    >
+                      <h2 id="current-control-title">${this._lang.text(
+                        this.hass.localize,
+                        "ui.panel.history.current_controls",
+                        { name: this.hass.formatEntityName(currentEntity) }
+                      )}</h2>
+                      <ha-entity-quick-controls
+                        .hass=${this.hass}
+                        .entityId=${currentEntity.entity_id}
+                      ></ha-entity-quick-controls>
+                    </section>`)
+                  : nothing}
                 ${
                   loading
                     ? html`<div class="progress-wrapper">
@@ -1161,6 +1186,15 @@ class HaPanelHistory extends LitElement {
         .toolbar > * {
           flex-shrink: 0;
           max-width: 100%;
+        }
+
+        .current-controls {
+          margin-block-end: var(--ha-space-4);
+        }
+        .current-controls h2 {
+          font-size: var(--ha-font-size-m);
+          white-space: normal;
+          overflow-wrap: anywhere;
         }
 
         .comparison-controls {

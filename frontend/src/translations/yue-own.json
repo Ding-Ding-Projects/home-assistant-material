@@ -508,6 +508,7 @@
         }
       },
       "history": {
+        "current_controls": "{name} 而家嘅狀態同控制",
         "comparison": {
           "label": "同之前嘅時段比較",
           "none": "唔比較",

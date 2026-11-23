@@ -50,6 +50,7 @@ export const YUE_PREFIXES = [
   "ui.panel.config.automation.caption",
   "ui.panel.config.lovelace.caption",
   "ui.panel.history.comparison.",
+  "ui.panel.history.current_controls",
   "ui.panel.config.personal.",
   "ui.panel.config.device_health.",
   "ui.panel.config.helpers.demo.",

@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { render, type TemplateResult } from "lit";
+import type { HassServiceTarget } from "home-assistant-js-websocket/dist/types";
 import type { HomeAssistant } from "../../../src/types";
 import type { HistoryResult, HistoryStates } from "../../../src/data/history";
 import {
@@ -81,6 +83,8 @@ const makeCard = () => {
 };
 
 interface PanelInternals {
+  _targetPickerValue: HassServiceTarget;
+  render(): TemplateResult;
   _startDate: Date;
   _endDate: Date;
   _comparePeriod: "none" | "previous" | "day" | "week";
@@ -296,5 +300,39 @@ describe("history panel comparison requests", () => {
     await state._getComparison();
     expect(state._comparison).toBeUndefined();
     expect(state._comparisonStatus).toBe("unavailable");
+  });
+});
+
+describe("History current controls", () => {
+  it("binds only one explicitly selected, still-live entity and replaces its control when the target changes", () => {
+    const { panel, state } = makePanel();
+    const host = document.createElement("div");
+    const a = "switch.first";
+    const b = "switch.second";
+    panel.hass = {
+      ...panel.hass,
+      formatEntityName: (entity) => entity.entity_id,
+      states: Object.fromEntries([a, b].map((id) => [
+        id, { entity_id: id, state: "off", attributes: {} },
+      ])),
+    } as HomeAssistant;
+
+    const draw = (target: HassServiceTarget, ids: string[]) => {
+      state._targetPickerValue = target;
+      vi.mocked(state._getEntityIds).mockReturnValue(ids);
+      render(state.render(), host);
+      return host.querySelector("ha-entity-quick-controls");
+    };
+    const first = draw({ entity_id: a }, [a]);
+    expect(first?.entityId).toBe(a);
+    expect(first?.hass).toBe(panel.hass);
+    const second = draw({ entity_id: b }, [b]);
+    expect(second?.entityId).toBe(b);
+    expect(second).not.toBe(first);
+    expect(draw({}, [])).toBeNull();
+    expect(draw({ entity_id: [a, b] }, [a])).toBeNull();
+    expect(draw({ area_id: "kitchen" }, [b])).toBeNull();
+    expect(draw({ entity_id: b }, [])).toBeNull();
+    expect(draw({ entity_id: "switch.deleted" }, ["switch.deleted"])).toBeNull();
   });
 });
