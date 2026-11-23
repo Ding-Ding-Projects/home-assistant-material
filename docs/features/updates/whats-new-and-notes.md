@@ -2,6 +2,18 @@
 
 Both open a build's own page on the public updates log.
 
+## Published link coverage on 22 November 2026
+
+Of the 130 Home Assistant Material release tags, 68 had a matching public build page. Each of
+those pages returned HTTP 200 at its original address and displayed the matching build number.
+The other 62 returned HTTP 404. Build 548 opens directly at its [build notes](https://ding-ding-projects.github.io/home-assistant-material-updates/releases/548/).
+
+The 130 product release descriptions and 19 Deploy Assistant release descriptions contained no
+links to those notes pages. Across all 149 descriptions, 129 linked to a build run, 16 linked to
+a photo and four contained no web link. Inside the product, all 258 entries in the bundled
+changelog have source links. Sixteen also offer a link to the screen named in the entry. The
+13 focused release-note tests passed. This inventory describes the links as published on that date.
+
 ## Notes on a system update
 
 The Notes button beside Core, Supervisor and the operating system used whatever link the update
@@ -44,4 +56,10 @@ The version-to-page rule is tested. In the integration look of 18 November, on a
 the tree (not a released build), at 390 px in dark theme and both-language mode, the Updates page
 showed exactly one "What's new" button both with the build list reachable and with every request
 off the host blocked; when blocked it shows the quiet line "You already have build 525" beside the
-button. The finished update card's link and the release link of the build on offer were not seen.
+button. The finished update card's link and the offered-build link were still unverified at that point.
+
+On 22 November, an isolated installation running stock Core 547 offered Core 548. The visible
+**Read release announcement** link in the update sheet pointed to the [548 notes](https://ding-ding-projects.github.io/home-assistant-material-updates/releases/548/).
+The **What's new in build 547** button on Updates linked to the [547 notes](https://ding-ding-projects.github.io/home-assistant-material-updates/releases/547/).
+After the separate backed-up update completed, the finished summary linked to 548. Both
+version pages returned HTTP 200 and displayed their matching build heading.

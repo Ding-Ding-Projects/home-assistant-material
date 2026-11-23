@@ -27,6 +27,7 @@ const REQUIRED = [
   "ui.panel.config.helpers.picker.create_helper",
   "ui.panel.config.helpers.types.timer",
   "ui.panel.config.areas.picker.add_area",
+  "ui.panel.config.lovelace.dashboards.caption",
   "ui.panel.config.labels.add_label",
   "ui.panel.config.logs.search",
   "ui.panel.config.release_notes.title",

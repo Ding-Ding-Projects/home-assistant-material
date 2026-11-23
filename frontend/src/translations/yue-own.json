@@ -508,6 +508,7 @@
         }
       },
       "history": {
+        "current_controls": "{name} 而家嘅狀態同控制",
         "comparison": {
           "label": "同之前嘅時段比較",
           "none": "唔比較",
@@ -1158,6 +1159,7 @@
             }
           },
           "dashboards": {
+            "caption": "儀表板",
             "dialog_new": {
               "header": "加儀表板",
               "create_empty": "由零開始嘅新儀表板",

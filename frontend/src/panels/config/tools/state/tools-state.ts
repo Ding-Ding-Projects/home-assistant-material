@@ -366,6 +366,7 @@ ${this._i18n.locale.language}`;
             }
           </div>
           <tools-state-renderer
+            .hass=${this.hass}
             .narrow=${this.narrow}
             .entities=${entities}
             .virtualize=${entities.length > VIRTUALIZE_THRESHOLD}

@@ -42,7 +42,7 @@ const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   ".."
 );
-const gulpBin = path.join(repoRoot, "node_modules", ".bin", "gulp");
+const gulpCli = path.join(repoRoot, "node_modules", "gulp", "bin", "gulp.js");
 const stateDir = path.join(buildCacheDir, "ha-build");
 const logFile = path.join(stateDir, "build.log");
 const lockFile = workflowLockFile;
@@ -183,8 +183,8 @@ const runForeground = async (modern) => {
   }
   try {
     return await spawnForeground({
-      cmd: gulpBin,
-      args: [taskFor(modern)],
+      cmd: process.execPath,
+      args: [gulpCli, taskFor(modern)],
       cwd: repoRoot,
       env: workflowLockEnv(lock.token),
       processGroup: true,
@@ -203,8 +203,8 @@ const runBackground = async (modern) => {
   let child;
   try {
     child = await spawnDetachedToLog({
-      cmd: gulpBin,
-      args: [taskFor(modern)],
+      cmd: process.execPath,
+      args: [gulpCli, taskFor(modern)],
       cwd: repoRoot,
       env: workflowLockEnv(lock.token),
       logFile,

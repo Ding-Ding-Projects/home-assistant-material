@@ -11,6 +11,7 @@ import {
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { repeat } from "lit/directives/repeat";
 import memoizeOne from "memoize-one";
 import { searchCountText } from "../../../components/ha-top-bar-search";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
@@ -33,10 +34,12 @@ import {
 } from "../../../components/bulk/table-selection";
 import type {
   DataTableColumnContainer,
+  DataTableRowData,
   RowClickedEvent,
   SelectionChangedEvent,
 } from "../../../components/data-table/ha-data-table";
 import { searchMatcher } from "../../../common/regex/filter";
+import "../../../components/entity/ha-more-details-facts";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
@@ -93,6 +96,14 @@ export interface TagRowData extends Tag {
   display_name: string;
   last_scanned_datetime: Date | null;
 }
+
+const tagFacts = (tag: DataTableRowData) =>
+  listFacts([
+    ["id", tag.id],
+    ["name", tag.name, "text"],
+    ["description", tag.description, "text"],
+    ["last_scanned", tag.last_scanned, "time"],
+  ]);
 
 const VIEW_STORAGE_KEY = "tags-view";
 
@@ -155,14 +166,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
   });
 
   // The tag's facts, in the row right under it.
-  private _rowDetails = factsRowDetails((tag) =>
-    listFacts([
-      ["id", tag.id],
-      ["name", tag.name, "text"],
-      ["description", tag.description, "text"],
-      ["last_scanned", tag.last_scanned, "time"],
-    ])
-  );
+  private _rowDetails = factsRowDetails(tagFacts);
 
   private _columns = memoizeOne((localize: LocalizeFunc) => {
     const columns: DataTableColumnContainer<TagRowData> = {
@@ -423,7 +427,11 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
                     ${
                       tags.length
                         ? html`<div class="cards">
-                            ${tags.map((tag) => this._renderTagCard(tag))}
+                            ${repeat(
+                              tags,
+                              (tag) => tag.id,
+                              (tag) => this._renderTagCard(tag)
+                            )}
                           </div>`
                         : html`<p class="empty">
                             ${localize("ui.panel.config.tag.no_tags")}
@@ -445,7 +453,12 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
     const device = tag.device_id ? this.hass.devices[tag.device_id] : undefined;
     const deviceName = device?.name_by_user || device?.name;
     return html`
-      <ha-card outlined class="tag-card">
+      <ha-card
+        outlined
+        class="tag-card"
+        role="group"
+        aria-label=${tag.display_name}
+      >
         <button
           class="tag-main"
           .tag=${tag}
@@ -500,6 +513,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
               : nothing
           }
         </div>
+        <ha-more-details-facts .facts=${tagFacts(tag)}></ha-more-details-facts>
       </ha-card>
     `;
   }

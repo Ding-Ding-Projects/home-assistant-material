@@ -18,10 +18,12 @@ and the AC Defender and Heat Defender integrations
 (see [`docs/features/updates/`](docs/features/updates/README.md) and
 [`docs/features/defenders/`](docs/features/defenders/README.md)). Much of that is
 checked only by lint, the type check and unit tests and has **not yet been seen in a running
-build**; a few server parts were run on a running copy. The hosted build is 2026.11.1.524, which a
-page-load pass and a real update run exercised before it went live. Build 2026.11.1.525 is
-published and being verified. A release for the newest main (`a3cb56d37`, 18 November) was
-dispatched and is being built and verified; it is not live. Several features on
+build**. The last recorded deployment is Core `2026.11.2.547` and Supervisor `2026.11.0.547`,
+on 21 November 2026. Build 548 is published and offered by the stable feed. Its isolated update
+and recovery checks passed. Both 547 and 548 reported two browser exceptions on the Thread settings
+screen of a fresh installation. The local repair passed all 82 standard routes in English,
+Cantonese and bilingual mode. The [current checklist](ROADMAP.md#current-checklist-22-november-2026)
+records the acceptance steps and remaining interface work. Several features on
 the boards are not built at all. [`ROADMAP.md`](ROADMAP.md) says, item by item, which is which,
 [`HANDOFF.md`](HANDOFF.md) says what is live, and [`docs/features/`](docs/features/README.md)
 documents each feature. [`docs/feature-status.md`](docs/feature-status.md) is the older
@@ -42,11 +44,20 @@ desktop app has its own [folder](deploy-assistant/README.md).
 
 ## Try the interactive demo
 
-The [History comparison guide](docs/features/history/README.md) describes the earlier-period selector and its limits. Focused tests pass, and published build 441 was exercised with a truthful empty earlier period. Populated-series acceptance remains pending. The script mode/condition layout repair was inspected in the same published build. Existing screenshots below remain evidence of their stated builds.
+The [History comparison guide](docs/features/history/README.md) describes the earlier-period
+selector and its limits. On an isolated installation, two consecutive windows contained
+different recorded readings. Selecting **Previous equal window** aligned the earlier trace
+without changing the current readings. The day and week choices correctly reported empty
+history for the new helper. Published build 441 was also exercised with an empty earlier
+period, and its script mode and condition layout were inspected. The screenshots below
+identify the builds they show.
 
-Selected-backup hosting and the desktop **Host a backup** upload workflow are under local verification. Core and Supervisor 444 and a native 1.6.0 candidate build, but this workflow has not been released or installed. The rebuilt web dialog passes 24 language/width/action combinations. The native synthetic restore uses one retained instance and remains incomplete at upload; see [the workflow limits](docs/features/backups/host-workflow.md), [roadmap](ROADMAP.md) and [handoff](HANDOFF.md). Current delivery remains the verified 441 release.
+Selected-backup hosting and the desktop **Host a backup** upload workflow are under local verification. Core and Supervisor 444 and a native 1.6.0 candidate build, but this workflow has not been released or installed. The rebuilt web dialog passes 24 language/width/action combinations. Build 441 is the reference for these backup-hosting checks. The native synthetic restore uses one retained instance and remains incomplete at upload; see [the workflow limits](docs/features/backups/host-workflow.md), [roadmap](ROADMAP.md) and [handoff](HANDOFF.md).
 
-The [screenshot gallery](https://ding-ding-projects.github.io/home-assistant-material-gallery/) shows two reviewed automation editor workflows from synthetic browser sessions, with source revisions and capture evidence.
+The [screenshot gallery](https://ding-ding-projects.github.io/home-assistant-material-gallery/)
+shows the automation editors, the accepted dashboard in light and dark themes, and the
+interactive sample dashboard at phone and desktop widths. Each published picture includes
+its source and capture evidence.
 
 Open the [browser demo](https://ding-ding-projects.github.io/home-assistant-material/demo/) to use the
 Home Assistant Material interface with a sample home. The [speech options example](https://ding-ding-projects.github.io/home-assistant-material/demo/#/config/automation/edit/demo_action_options)

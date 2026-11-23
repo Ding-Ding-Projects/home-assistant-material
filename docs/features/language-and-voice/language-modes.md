@@ -38,3 +38,11 @@ tabs at 1440 px in light theme, and the Automations tabs at 390 px in dark theme
 made from a second tab change the open page without a reload. Still English in Cantonese and both
 modes: the sidebar page names, the Backup Manager state "Idle", and the Automations top bar title at
 390 px. The release for `a3cb56d37` was dispatched and is not yet verified.
+
+On 22 November the installed test frontend displayed the Backups, Integrations, Entities,
+Devices, Scenes, Scripts, Areas, Helpers and Automations headings in all three modes. The
+Backups tile on Settings home also followed the mode. The Dashboards breadcrumb translated,
+but its main heading still read **Dashboards** because the subtab uses its own caption key.
+The repaired build reads **Dashboards**, **儀表板** or **Dashboards · 儀表板** as selected.
+All 33 page and tile checks passed and 168 served scripts matched frontend wheel `49ed6a6b8729`.
+Native-reader review of these and the remaining settings strings is still pending.

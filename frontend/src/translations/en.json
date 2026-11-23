@@ -26946,6 +26946,7 @@
         }
       },
       "history": {
+        "current_controls": "Current state and controls for {name}",
         "comparison": {
           "label": "Compare with an earlier period",
           "none": "Do not compare",

@@ -84,3 +84,18 @@ Unit-tested in `frontend/test/data/defenders.test.ts`; not seen in a browser.
 - Not proven: every command a defender sends to real hardware, the heating floor in real cold
   weather, cost figures against real power use, and a real air conditioner and heater sharing one
   unit. Only the owner can prove these.
+
+### Cool-outdoor shutdown and hourly weather
+
+When forecast checking is enabled, select an outdoor **weather** entity that supplies hourly
+forecasts. A temperature sensor alone cannot supply the forecast. The local repair reads
+hourly values through Home Assistant's weather service and converts temperatures to Celsius.
+It requires a valid reading in every hour of the configured lookahead. A missing, expired or
+incomplete forecast leaves shutdown ineligible. The coordinator refreshes at most once every
+15 minutes for the same provider and clears old readings when the source changes or is unavailable.
+
+An off decision that never reached the actuator is checked again against the current room,
+outdoor and forecast conditions. A synthetic service test confirmed a retry when the actuator
+returned and the conditions still qualified. A forecast warming from 17 °C to 27 °C withdrew
+the unsent decision. Existing dwell and manual-override handling still apply after a command is
+sent. No physical air conditioner was exercised.

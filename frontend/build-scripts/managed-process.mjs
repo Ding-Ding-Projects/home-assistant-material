@@ -159,15 +159,16 @@ export const waitFor = async (predicate, intervalMs, timeoutMs) => {
 };
 
 export const isProcessAlive = (pid) => {
-  if (!Number.isInteger(pid) || pid <= 0) {
+  if (!Number.isInteger(pid) || pid <= 0 || pid > 0x7fffffff) {
     return false;
   }
   try {
     process.kill(pid, 0);
     return true;
   } catch (err) {
-    // EPERM means the process exists but is owned by someone else.
-    return err.code === "EPERM";
+    if (err.code === "ESRCH") return false;
+    if (err.code === "EPERM" || err.code === "EACCES") return true;
+    throw err;
   }
 };
 
@@ -175,23 +176,74 @@ export const processStartTime = (pid) => {
   if (!isProcessAlive(pid)) {
     return undefined;
   }
+  if (process.platform === "win32") {
+    try {
+      const stamp = execFileSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          `(Get-Process -Id ${pid} -ErrorAction Stop).StartTime.ToUniversalTime().Ticks`,
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+          timeout: 5000,
+          windowsHide: true,
+        }
+      ).trim();
+      return /^\d+$/.test(stamp) ? `win:${stamp}` : undefined;
+    } catch {
+      return undefined;
+    }
+  }
   try {
     const stat = fs.readFileSync(`/proc/${pid}/stat`, "utf8");
     return stat.slice(stat.lastIndexOf(")") + 2).split(" ")[19];
   } catch {
     try {
-      return execFileSync("ps", ["-o", "lstart=", "-p", String(pid)], {
+      const stamp = execFileSync("ps", ["-o", "lstart=", "-p", String(pid)], {
         encoding: "utf8",
+        env: { ...process.env, LC_ALL: "C", TZ: "UTC" },
         stdio: ["ignore", "pipe", "ignore"],
       }).trim();
+      return stamp ? `ps-utc:${stamp}` : undefined;
     } catch {
       return undefined;
     }
   }
 };
 
-export const isProcessRecordAlive = ({ pid, startTime }) =>
-  Boolean(startTime) && processStartTime(pid) === startTime;
+const startTimeSource = (stamp) => {
+  if (typeof stamp !== "string") return undefined;
+  if (/^\d+$/.test(stamp)) return "proc";
+  if (/^win:\d+$/.test(stamp)) return "windows";
+  if (stamp.startsWith("ps-utc:")) return "ps";
+  return undefined;
+};
+
+export const isProcessRecordAlive = ({ pid, startTime }) => {
+  const observed = processStartTime(pid);
+  if (!observed && !isProcessAlive(pid)) {
+    return false;
+  }
+  // An older record can lack a comparable start time while its owner is live.
+  // Retain it until ownership can be established or the process exits.
+  const observedSource = startTimeSource(observed);
+  if (!observedSource || observedSource !== startTimeSource(startTime)) {
+    throw Error(
+      `Cannot verify the start time of process ${pid}. Its lock was retained.`
+    );
+  }
+  return observed === startTime;
+};
+
+// A multi-stage check keeps its coordinator and the active compiler in the
+// same lock. Either can outlive the other during cancellation or handover.
+const isProcessRecordOccupied = (record) =>
+  (record.coordinator && isProcessRecordAlive(record.coordinator)) ||
+  isProcessRecordAlive(record);
 
 export const readProcessRecord = (file) => {
   try {
@@ -236,7 +288,7 @@ export const acquireProcessRecord = (file, data) => {
         throw err;
       }
       const existing = readProcessRecord(file);
-      if (existing && isProcessRecordAlive(existing)) {
+      if (existing && isProcessRecordOccupied(existing)) {
         return { acquired: false, existing };
       }
       if (!existing && isRecentFile(file)) {
@@ -246,7 +298,8 @@ export const acquireProcessRecord = (file, data) => {
         const current = readProcessRecord(file);
         if (
           current &&
-          (current.token !== existing?.token || isProcessRecordAlive(current))
+          (current.token !== existing?.token ||
+            isProcessRecordOccupied(current))
         ) {
           return false;
         }
@@ -351,6 +404,7 @@ export const spawnForeground = ({
       detached: processGroup,
       env,
       stdio: "inherit",
+      windowsHide: true,
     });
     let settled = false;
     const forwardSigint = () =>
@@ -405,6 +459,7 @@ export const spawnDetachedToLog = ({ cmd, args, cwd, env, logFile }) =>
       child = spawn(cmd, args, {
         cwd,
         detached: true,
+        windowsHide: true,
         env,
         stdio: ["ignore", fd, fd],
       });

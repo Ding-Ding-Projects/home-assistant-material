@@ -672,6 +672,8 @@ jobs:
   publish:
     name: Publish the release
     needs: [prepare, frontend, translations, core, supervisor, container, full, os, assistant]
+    outputs:
+      refresh_project_page: ${{ steps.publish_release.outputs.refresh_project_page }}
     # Source pushes retain build outputs. Publication is an explicit delivery
     # action, so an automatic publisher cannot race a manually delivered update.
     if: needs.prepare.outputs.heavy == 'true' && github.event_name == 'workflow_dispatch'
@@ -726,8 +728,10 @@ jobs:
           merge-multiple: false
 
       - name: Create the release, read it back and move the update feed
+        id: publish_release
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || github.token }}
+          USES_WORKFLOW_TOKEN: ${{ secrets.RELEASE_TOKEN == '' && secrets.ORG_TOKEN == '' }}
         run: |
           set -euo pipefail
 
@@ -843,7 +847,7 @@ jobs:
           gh release create "${TAG}" "${files[@]}" --target "${GITHUB_SHA}" --title "Home Assistant Material ${CORE}" --notes-file notes.md
           armed=1
 
-          gh release view "${TAG}" --json isDraft,isPrerelease,assets > readback.json
+          gh release view "${TAG}" --json tagName,isDraft,isPrerelease,url,assets > readback.json
           python3 scripts/ci/check-release.py readback.json file-list.txt
 
           # The release is complete. Move the update feed. Operating system entries
@@ -858,7 +862,8 @@ jobs:
           done
           scripts/ci/publish-channel.sh "${BUILD}" "${os_args[@]}"
           armed=0
-          gh release view "${TAG}" --json tagName,isDraft,isPrerelease,url
+          jq '{tagName, isDraft, isPrerelease, url}' readback.json
+          printf 'refresh_project_page=%s\n' "$USES_WORKFLOW_TOKEN" >> "$GITHUB_OUTPUT"
 
       - name: Record release recovery information
         if: ${{ always() }}
@@ -895,6 +900,21 @@ jobs:
           path: recovery/
           if-no-files-found: warn
           retention-days: 14
+
+  # Releases created with GITHUB_TOKEN do not emit a release event. The other
+  # publishing credentials already notify the project page through that event.
+  refresh-project-page:
+    name: Refresh the project page after automatic publication
+    needs: publish
+    if: needs.publish.outputs.refresh_project_page == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    steps:
+      - name: Start the project page workflow on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main
 
   # Adds one offline update pack per board to the release the publish job created.
   # It runs only after that release exists and only for a manual run, like the

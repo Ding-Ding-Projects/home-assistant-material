@@ -83,6 +83,14 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
 
   @state() private _otbrInfo?: OTBRInfoDict;
 
+  // Core registers discovery and dataset commands when the integration loads.
+  // SubscribeMixin rechecks missing host properties on each hass update.
+  protected override hassSubscribeRequiredHostProps = ["threadDomain"];
+
+  protected get threadDomain() {
+    return this.hass.config.components.find((domain) => domain === "thread");
+  }
+
   protected render(): TemplateResult {
     const networks = this._groupRoutersByNetwork(this._routers, this._datasets);
 
@@ -637,6 +645,7 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
   }
 
   hassSubscribe() {
+    this._refresh();
     return [
       subscribeDiscoverThreadRouters(this.hass, (routers: ThreadRouter[]) => {
         this._routers = routers;
@@ -646,9 +655,6 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
 
   protected override firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
-
-    this._refresh();
-
     this._configEntryId = extractSearchParam("config_entry");
   }
 

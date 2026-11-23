@@ -4,6 +4,7 @@ import gulp from "gulp";
 import { load as loadYaml } from "js-yaml";
 import { marked } from "marked";
 import path from "path";
+import { pathToFileURL } from "node:url";
 import { createWorkflowLockTask } from "../output-lock.mjs";
 import paths from "../paths.cjs";
 import "./clean.js";
@@ -16,7 +17,11 @@ import "./rspack.js";
 
 gulp.task("gather-gallery-pages", async function gatherPages() {
   const pageDir = path.resolve(paths.gallery_dir, "src/pages");
-  const files = await glob(path.resolve(pageDir, "**/*"));
+  const files = await glob("**/*.{ts,markdown}", {
+    cwd: pageDir,
+    nodir: true,
+    posix: true,
+  });
 
   const galleryBuild = path.resolve(paths.gallery_dir, "build");
   fs.mkdirSync(galleryBuild, { recursive: true });
@@ -25,11 +30,8 @@ gulp.task("gather-gallery-pages", async function gatherPages() {
 
   const processed = new Set();
 
-  for (const file of files) {
-    if (fs.lstatSync(file).isDirectory()) {
-      continue;
-    }
-    const pageId = file.substring(pageDir.length + 1, file.lastIndexOf("."));
+  for (const file of files.sort()) {
+    const pageId = file.slice(0, -path.posix.extname(file).length);
 
     if (processed.has(pageId)) {
       continue;
@@ -87,7 +89,9 @@ gulp.task("gather-gallery-pages", async function gatherPages() {
 
   // Generate sidebar
   const sidebarPath = path.resolve(paths.gallery_dir, "sidebar.js");
-  const sidebar = (await import(sidebarPath)).default;
+  const sidebar = structuredClone(
+    (await import(pathToFileURL(sidebarPath).href)).default
+  );
 
   const pagesToProcess = {};
   for (const key of processed) {

@@ -17,6 +17,7 @@ import {
   type TemplateResult,
 } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { repeat } from "lit/directives/repeat";
 import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
 import {
@@ -69,7 +70,7 @@ import {
 
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import "../../../components/entity/ha-more-details-facts";
-import { listFacts } from "../../../data/entity-details";
+import { areaFacts, listFacts } from "../../../data/entity-details";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 
 const UNASSIGNED_FLOOR = "__unassigned__";
@@ -314,8 +315,8 @@ export class HaConfigAreasDashboard extends LitElement {
                     ])}
                   ></ha-more-details-facts>
                   <ha-sortable
-                    handle-selector="a"
-                    draggable-selector="a"
+                    handle-selector=".area-link"
+                    draggable-selector=".area-card"
                     @item-added=${this._areaAdded}
                     @item-moved=${this._areaMoved}
                     group="areas"
@@ -323,14 +324,7 @@ export class HaConfigAreasDashboard extends LitElement {
                     .floor=${floor.floor_id}
                   >
                     <div class="areas">
-                      ${areas.map((areaId) => {
-                        const area = this.hass.areas[areaId];
-                        if (!area) {
-                          return nothing;
-                        }
-                        const stats = areasStats.get(area.area_id);
-                        return this._renderArea(area, stats);
-                      })}
+                      ${this._renderAreas(areas, areasStats)}
                     </div>
                   </ha-sortable>
                 </div>
@@ -372,8 +366,8 @@ export class HaConfigAreasDashboard extends LitElement {
                       </div>
                     </div>
                     <ha-sortable
-                      handle-selector="a"
-                      draggable-selector="a"
+                      handle-selector=".area-link"
+                      draggable-selector=".area-card"
                       @item-added=${this._areaAdded}
                       @item-moved=${this._areaMoved}
                       group="areas"
@@ -381,14 +375,7 @@ export class HaConfigAreasDashboard extends LitElement {
                       .floor=${UNASSIGNED_FLOOR}
                     >
                       <div class="areas">
-                        ${this._hierarchy.areas.map((areaId) => {
-                          const area = this.hass.areas[areaId];
-                          if (!area) {
-                            return nothing;
-                          }
-                          const stats = areasStats.get(area.area_id);
-                          return this._renderArea(area, stats);
-                        })}
+                        ${this._renderAreas(this._hierarchy.areas, areasStats)}
                       </div>
                     </ha-sortable>
                   </div>
@@ -398,6 +385,17 @@ export class HaConfigAreasDashboard extends LitElement {
         </div>
       </hass-tabs-subpage>
     `;
+  }
+
+  private _renderAreas(ids: string[], stats: ReadonlyMap<string, AreaStats>) {
+    return repeat(
+      ids,
+      (id) => id,
+      (id) => {
+        const area = this.hass.areas[id];
+        return area ? this._renderArea(area, stats.get(id)) : nothing;
+      }
+    );
   }
 
   private _renderArea(
@@ -433,41 +431,61 @@ export class HaConfigAreasDashboard extends LitElement {
       ].filter((v): v is string => Boolean(v))
     );
     return html`
-      <a href=${`/config/areas/area/${area.area_id}`} .sortableData=${area}>
-        <ha-card outlined>
-          <div
-            style=${styleMap({
-              backgroundImage: area.picture
-                ? `url(${area.picture})`
-                : undefined,
-            })}
-            class="picture ${!area.picture ? "placeholder" : ""}"
-          >
-            ${
-              temperature
-                ? html`<span class="temperature">${temperature}</span>`
-                : nothing
-            }
-          </div>
-          <div class="card-body">
-            ${
-              area.icon
-                ? html`<ha-icon .icon=${area.icon}></ha-icon>`
-                : html`<ha-svg-icon .path=${mdiTextureBox}></ha-svg-icon>`
-            }
-            <div class="card-text">
-              <div class="name">${area.name}</div>
-              ${summary ? html`<div class="stats">${summary}</div>` : nothing}
+      <ha-card
+        outlined
+        class="area-card"
+        .sortableData=${area}
+        role="group"
+        aria-label=${area.name}
+      >
+        <div class="area-summary">
+          <a class="area-link" href=${`/config/areas/area/${area.area_id}`}>
+            <div
+              style=${styleMap({
+                backgroundImage: area.picture
+                  ? `url(${area.picture})`
+                  : undefined,
+              })}
+              class="picture ${!area.picture ? "placeholder" : ""}"
+            >
+              ${
+                temperature
+                  ? html`<span class="temperature">${temperature}</span>`
+                  : nothing
+              }
             </div>
-            <ha-icon-button
-              .area=${area}
-              .path=${mdiPencil}
-              .label=${this._modeLocalize("ui.panel.config.areas.edit_settings")}
-              @click=${this._openAreaDetails}
-            ></ha-icon-button>
-          </div>
-        </ha-card>
-      </a>
+            <div class="card-body">
+              ${
+                area.icon
+                  ? html`<ha-icon .icon=${area.icon}></ha-icon>`
+                  : html`<ha-svg-icon .path=${mdiTextureBox}></ha-svg-icon>`
+              }
+              <div class="card-text">
+                <div class="name">${area.name}</div>
+                ${summary ? html`<div class="stats">${summary}</div>` : nothing}
+              </div>
+            </div>
+          </a>
+          <ha-icon-button
+            class="area-edit"
+            .area=${area}
+            .path=${mdiPencil}
+            .label=${this._modeLocalize("ui.panel.config.areas.edit_settings")}
+            @click=${this._openAreaDetails}
+          ></ha-icon-button>
+        </div>
+        <ha-more-details-facts
+          class="area-facts"
+          .facts=${areaFacts({
+            area_id: area.area_id,
+            floor_id: area.floor_id,
+            floorName: area.floor_id
+              ? this.hass.floors[area.floor_id]?.name
+              : undefined,
+            aliases: area.aliases,
+          })}
+        ></ha-more-details-facts>
+      </ha-card>
     `;
   }
 
@@ -811,6 +829,27 @@ export class HaConfigAreasDashboard extends LitElement {
       text-decoration: none;
       color: inherit;
     }
+    .area-summary {
+      position: relative;
+    }
+    .area-link {
+      display: block;
+    }
+    .area-link:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: -2px;
+    }
+    .area-link .card-body {
+      padding-inline-end: calc(48px + var(--ha-space-2));
+    }
+    .area-edit {
+      position: absolute;
+      inset-inline-end: var(--ha-space-2);
+      bottom: var(--ha-space-1);
+    }
+    .area-facts {
+      margin: 0 var(--ha-space-3) var(--ha-space-3);
+    }
     .picture {
       height: 96px;
       width: 100%;
@@ -893,11 +932,18 @@ export class HaConfigAreasDashboard extends LitElement {
       .areas > * {
         max-width: none;
       }
-      .areas ha-card {
+      .areas .area-card {
+        --ha-card-border-radius: 20px;
+      }
+      .areas .area-link {
         display: flex;
         align-items: stretch;
         min-height: 72px;
-        --ha-card-border-radius: 20px;
+      }
+      .areas .area-edit {
+        bottom: auto;
+        top: 50%;
+        transform: translateY(-50%);
       }
       .areas .picture {
         flex: none;
@@ -916,6 +962,7 @@ export class HaConfigAreasDashboard extends LitElement {
         min-width: 0;
         padding: var(--ha-space-2) var(--ha-space-1) var(--ha-space-2)
           var(--ha-space-3);
+        padding-inline-end: calc(48px + var(--ha-space-2));
       }
       .areas .name {
         font-size: var(--ha-font-size-m);

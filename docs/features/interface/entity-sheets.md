@@ -5,6 +5,34 @@ for that kind. Three passes: `80af39d52`, `218279a85`, `d94590113`. Design: boar
 kind, with the first control named for twenty-four groups of kinds). Earlier groundwork was the
 rich editors in `a1312548c`.
 
+## Control a live entity from a list
+
+In **History**, open **Sources** and select one entity directly. Its current-state control is
+labelled with that entity's name. A switch changes the live entity through its normal service.
+The chart continues to show the samples recorded in the selected time range. Choosing another
+entity creates a fresh control. A device, area or multi-entity selection can still be graphed.
+Choose one entity as the source to operate it. [History guide](../history/README.md)
+
+In **Developer tools → States**, filter the results to the entity you want. The row control
+sends the entity's normal action, which can operate a connected device. The separate **Set state**
+form edits the state representation in Home Assistant. A sensor's value remains readable in the
+table. A removed or unavailable entity has no live action. Existing confirmations apply to
+actions that require them. On a narrow screen the control sits below the name and identifier.
+
+## Read a card without opening its editor
+
+In the **Tags** card view, use **Show more details** to read or copy the tag ID, name,
+description and last scan time when available. In **Areas**, the same button shows the area ID,
+floor and aliases. Use the area link to navigate and the pencil to edit. The link also acts as
+the drag handle when changing the order or moving an area between floors. Opening details sends
+no service call. Each card keeps its own open state while it remains in the list.
+
+The revised local frontend was exercised on a synthetic installation in English, Cantonese and
+bilingual mode at 360 and 1440 px. The 24 browser cases covered keyboard activation, live state,
+historical samples, filtering and card interactions. The width check measured each line of the
+entity ID against the switch. There were zero intersections in the revised build. See the
+[release and verification handoff](../../../HANDOFF.md#build-548-verification-22-november-2026).
+
 ## Pass 1: put every kind on screen and use it
 
 One entity of each of 60 kinds was put in front of a phone-size window and used with a real

@@ -1,5 +1,176 @@
 # Handoff
 
+## Build 548 verification, 22 November 2026
+
+The public tag `v2026.11.2.548` points to `7650c522a5e2bae90ac9f817e7853360cd78b2dd`. The
+normal release lists 29 attachments. The stable feed offers Core `2026.11.2.548` and Supervisor
+`2026.11.0.548`. On 22 November the installed Core and Supervisor both reported build 547,
+the Supervisor reported healthy, and its self-update setting was off.
+
+Two release-note suites passed 13 tests. Three suites covering elapsed time, shared update state
+and narrow row ordering passed 40 tests. Use the [current checklist](ROADMAP.md#current-checklist-22-november-2026)
+to record the evidence for each row. The [release](https://github.com/Ding-Ding-Projects/home-assistant-material/releases/tag/v2026.11.2.548)
+and [build notes](https://ding-ding-projects.github.io/home-assistant-material-updates/releases/548/) are public.
+
+Two isolated stock installations served 82 navigations each, covering 80 distinct destinations on
+both builds. The only page with uncaught JavaScript responses was Thread. Both 547 and 548 emitted
+two `unknown_command` responses with the integration absent. The new focused test failed on the
+original panel and passed when the panel waited for Core to register Thread.
+
+The local production wheel built from tree `4f088f3cec3573fa68e2021efafe0516760cf4cd`
+has SHA-256 `9bdfee2d19e7443f5ae2a7daeb9b01b6106533bd6e540416cc3d74229c4aaa3f`. On the same
+isolated 548 backend, the browser verified the entrypoint and three Thread chunks against the
+wheel. Thread rendered the three expected empty-network headings, sent zero Thread commands in
+49 outgoing WebSocket messages and raised zero exceptions. The candidate then served all 82
+navigations, reached the same 80 destinations with the same page titles and raised zero exceptions.
+The comparison receipt has SHA-256 `ed10f2ce3cf0486928263a17de936903925579f7e99550e4d773eeaf3a891576`.
+The repaired source has not been published. The existing installation remains on build 547.
+
+The complete local Core image `sha256:4a8f0e5978b1456dcce16b2614cdd98090e75c12e4e5fbd398fe93d7d1852a01`
+also passed an independent packaging check. Its own frontend and backend opened Thread settings
+after normal registration on a fresh configuration. The backend identified itself as local
+`2026.11.2`. Of 52 outgoing WebSocket messages, none requested the absent Thread service and
+the page raised zero exceptions. The package receipt has SHA-256
+`ebfed9bfe31c2b9bf57b5ef0b69fb4a3b606d39d84485c96eb8c9197f9927133`.
+
+In the backed-up update test, the two browsers served the published 548 frontend while the
+comparison backend upgraded from 547 to 548. The total was 144.759 seconds, including 132.743
+seconds for Core. Both browsers displayed three finished steps. The driver sent three install
+calls and the watcher sent zero. On a separate 548 fixture, closing the driver left one update
+waiting. At 322.99 seconds the observer offered it by name and completed it through its normal
+action. The 360 px checks passed on 13 entity rows and three Blueprint rows. The stock-build
+verification receipt has SHA-256 `66004a4272b421752afe732134117d68f0e46c4f346afa9120ff6e9fca93f719`.
+
+The frontend type-check command now generates its gallery index before checking both projects.
+The Windows generator uses portable page IDs and a file URL for its sidebar module. Both type
+checks passed and two consecutive generations covered the same 114 pages with identical output.
+The build-management and process suites passed all eleven tests after fixing Windows start-time
+identification. A legacy record whose live owner cannot be verified is retained. The graceful-exit
+and forced-exit cases were exercised separately. An independent Linux check covered live ownership,
+legacy retention, a changed start time and releasing the correct record.
+The type-check command also starts the native compiler directly. On Windows the recorded PID
+was matched to the installed `tsc.exe`. Stopping its coordinator left the live compiler holding
+the output lock. A competing invocation was rejected. The next invocation completed both
+TypeScript projects and removed its lock after the compiler exited.
+
+The combined local test tree `c271bec6dcd29fd95d0db5a1998a4547806c2c3f` produced frontend wheel
+SHA-256 `292158e19323c23ecc755305dc637d97fb403e32f86c557479e0392a01fa983c`. The browser used
+the normal History, States, Tags and Areas routes on a synthetic installation. Tests exercised
+360 and 1440 px in English, Cantonese and bilingual mode. History actions changed the live
+entity while preserving the same three recorded samples. Tag disclosures remained independent
+when filtered. Area disclosures opened without navigation, and edits and drag handles remained
+separate. Within-floor and cross-floor changes persisted after reload. States actions also
+worked in every case, but switch and identifier text overlapped at 360 px. Its source correction
+stacks those items. On the revised wheel, every text-line rectangle cleared the switch in all
+six combinations. All four normal workflows passed again, for 24 browser cases. Six cross-floor
+transfers persisted after reload; one initial narrow-screen attempt required a repeat. The
+browser verified 161 response hashes. The final wheel has SHA-256
+`71391348aae7a5b852b16b1ed1f26eb998518b00ad7240ad7adaa1190689175b`, built from local tree
+`480c0f7a27e2aeaeb2eeffd5532d79d2800f0c9c`. The final browser receipt has SHA-256
+`5e34b0235a212bcbf6fb0a4a8cd8ffa69c03f34d5ff7571c83516625c008ee2a`.
+
+The same wheel passed the 1440 px light-theme review on Dashboard, Entities, Settings home,
+Updates, Backups, Personal settings and AC Defender Now. The synthetic light's detail sheet
+fit at 580 × 615 px. Opening Personal search with the keyboard found five matches for
+`sound` at 1440 and 360 px. Its editable area measured 218 and 94 px respectively. The browser
+matched 166 frontend responses. The light-theme receipt has SHA-256
+`e14b8f6cf1a03d212ffc2254ff43422a2a0cc1f8fbcc6f7dd2f1d7bc6f24b6ba`.
+
+The local website preview served 162 guides. Its wiki index covers all three source pages at
+wiki revision `48c60874de30dc18fb22d61f4521e222baa465cb`. Both editor articles preserve all
+source paragraphs. The 11 internal links, including the two new workflow sections, worked at
+360 and 1440 px. The website regression checks passed at both widths. The public home page,
+demo and both editor guides returned HTTP 200. Both new lead-image URLs still returned 404.
+The live demo at `/home-assistant-material/demo/` identified its published source as
+`fc5d13aaead59052bae3cce0a00c26cf97e0c4c0`. Keyboard interaction at 360 and 1440 px
+toggled the sample floor lamp off and back to 70% and opened and closed the dashboard menu.
+At each width all 90 project scripts returned HTTP 200 and no page exception was observed.
+
+The full publication check compared the assembled 37-file draft, tree
+`944df3e879e1d48fdddbf8b588bd8f48798853f2`, with the published source `e86e70e1`.
+Both produced 8,796 findings with the same locations and categories. There were zero new
+occurrences on added lines. The full check still exits 1. Source publication, deployment
+and the owner update remain pending.
+
+The camera recording button saved a 10-second H.264 clip of generated colour bars. Its normal
+download returned 26,062 bytes and an independent decoder read all seven bands. Disabling the
+isolated recording service disabled the button. Re-enabling restored it. The headless browser
+fetched the segment but lacked an H.264 decoder. Physical camera compatibility remains open.
+
+The 548 release workflow succeeded on both translation build jobs. Reading the published
+x86-64 Core package found all 63,984 source-defined English strings across 1,161 integrations.
+The comparison used release source `7650c522a` and image
+`sha256:aecd6afdc54a53ad99a3cfbd8fcb6adf458140778a7004e45a3486e2e822ebd1`.
+
+Six real setup, reconfiguration and options dialogs across AC and Heat Defender displayed
+validation and accepted corrected values. The optional sensors were disabled by default,
+and four missing-entity Repairs entries cleared after restoration. The stock Core did not
+provide a forecast to the cool-outdoor guard. Its two validation alerts also remained English
+when queried for `zh-Hant`. The local coordinator now requests genuine hourly weather in the
+background and requires every configured hour. The isolated service registry confirmed that a
+previously unsent off action is retried while eligible and dropped if the forecast warms before
+the send. No physical unit was exercised.
+The unmodified Core package timed out waiting for the weather call under the new integration
+regression. With the repaired source mounted read-only, all 83 focused weather, control,
+cool-outdoor and reference-number checks passed on that same Core runtime.
+The normal `build.bat /s` entrypoint then produced Core image
+`sha256:cfadf6d312531335df04cc8c0ff966219b427c7e5d096302027a1682c1c47652`
+from source tree `61b7b783a0bb0f2f0cf79594c78cd75dc1fbf7ec`. All 83 checks passed again
+inside the new package using its own shipped modules. One existing HTTP server deprecation
+warning was reported. Its frontend wheel is byte-identical to the three-language browser
+candidate. The complete package is local and has no new public release.
+On the isolated running Defender page, a nested reason explained the 23.0 °C target and
+1.0 °C wall adjustment in each language mode. An owner pause, including its exact deadline,
+survived a supported restart of that test Core. The original fixture was restored. The
+reason-and-pause receipt has SHA-256
+`ae514f263c77f2ec0eed5eb4f28ee3e9d2b28361db7de1675afd03c9738b03fe`.
+
+The latest local frontend wheel is
+`49ed6a6b87298fc9a78ca4e2db750e65491d99de770dac15bc5c2ecfc81234d3`, built through
+`build.bat /s` from tree `e9b6b0b66e35b90938392124e0d9783f1dbc7445`. The Dashboard heading
+previously stayed English in both non-English modes despite the translated breadcrumb. The
+actual subtab key now supplies its Cantonese caption. The browser confirmed all 33 page and
+tile labels across three modes and matched 168 served scripts to the wheel. The caption
+receipt has SHA-256 `1bb464bff2bc560895a97e971c873a463f40963b8ce74d89d36e9d8cb5a804c1`.
+On that same wheel, all 82 standard navigations passed in each language mode. The three passes
+each reached 80 distinct destinations. All 246 were HTTP 200, all 306 observed script
+responses matched the wheel, and there were zero uncaught page exceptions. The route receipt
+has SHA-256 `47192b48ae6fb7f2c92950fd1634f9a3a538fee07064a5cea19dbebee97e44a5`.
+The four shortcuts in the installed web manifest also opened their intended destinations at
+360 px, including the initial Energy setup screen. Native phone launcher behavior is unverified.
+The History page compared real readings from an isolated numeric helper in two consecutive
+nine-second windows. The current readings and their timestamps remained unchanged in Off,
+Previous, Day and Week. The earlier series aligned by 9,000 ms. The day and week lookbacks
+showed their genuine empty state. The receipt has SHA-256
+`d1193eb2ca9574638093a6c60f05449a0c21d2a6b35ebc3f2bc7947854e85c88`.
+
+The public documentation serves 161 of the 162 guides now present on main. Each of the 813
+internal article links and all three article images resolved. The Quick actions guide is newer
+than the deployment and returns HTTP 404. The About URL points to the correct public home.
+The [548 documentation deployment](https://github.com/Ding-Ding-Projects/home-assistant-material/actions/runs/44927006063/job/136915185991)
+was rejected before any build step because only main can deploy to its environment. The local
+workflow requests a new run on main when a release is published. Only that branch can enter
+the deployment job. Five local event cases, the exact dispatch arguments and `actionlint`
+passed. The workflow repair and new pictures still require publication and live verification.
+When the product publishes with its built-in workflow token, the release event is suppressed.
+A separate job requests the same main-branch run in that case. The two other publisher choices
+use the normal release event. Four local credential-selection cases exercised one route per
+release. The authoritative release readback is reused after the feed advances.
+
+The [public wiki home](https://github.com/Ding-Ding-Projects/home-assistant-material/wiki)
+was updated independently with the interactive sample and direct links to both published editor
+articles. Its default branch and home file were read back at
+`52672e6b7f40c0a929cae88e671b0347be6a06c9`. The complete staged and outgoing wiki scans
+both passed with zero findings across all three files. The local site mirrors the ten home
+text blocks and both complete articles. Its 13 internal wiki links worked at both widths.
+All 824 internal article links and anchors and the three article images resolved locally.
+The separate public gallery published its four new dashboard pictures at
+`20d887625db72a51c8db5358e52238dac7534b76`. The gallery manifest and all four PNGs returned
+HTTP 200 and matched the published bytes. The source README's direct gallery link was verified.
+The final standalone Core package also served its home, manifest and first-run routes on port
+8123 in a fresh isolated instance. The test fixtures were then stopped with their data retained.
+The owner's instance kept running and remained healthy.
+
 ## State on 21 November 2026
 
 Written at 11:20 Toronto time. All work is on `main`.

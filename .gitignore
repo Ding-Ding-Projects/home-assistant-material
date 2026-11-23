@@ -9,3 +9,7 @@
 /operating-system/key.pem
 /operating-system/version-pinned.json
 /operating-system/.registry-auth.json
+
+# Python bytecode caches
+__pycache__/
+*.pyc

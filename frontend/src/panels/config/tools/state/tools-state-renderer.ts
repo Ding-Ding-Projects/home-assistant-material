@@ -10,6 +10,7 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { keyed } from "lit/directives/keyed";
 import { consume } from "../../../../common/decorators/consume";
 import { transform } from "../../../../common/decorators/transform";
 import { fireEvent } from "../../../../common/dom/fire_event";
@@ -17,19 +18,23 @@ import type { HASSDomCurrentTargetEvent } from "../../../../common/dom/fire_even
 import { computeAreaName } from "../../../../common/entity/compute_area_name";
 import { computeDeviceName } from "../../../../common/entity/compute_device_name";
 import { copyToClipboard } from "../../../../common/util/copy-clipboard";
+import "../../../../components/entity/ha-entity-quick-controls";
 import "../../../../components/ha-svg-icon";
 import {
   formattersContext,
   internationalizationContext,
   registriesContext,
 } from "../../../../data/context";
+import { quickControlFor } from "../../../../data/quick-control";
 import { haStyle } from "../../../../resources/styles";
 import { loadVirtualizer } from "../../../../resources/virtualizer";
 import { showToast } from "../../../../util/toast";
-import type { HomeAssistantFormatters } from "../../../../types";
+import type { HomeAssistant, HomeAssistantFormatters } from "../../../../types";
 
 @customElement("tools-state-renderer")
 class HaPanelDevStateRenderer extends LitElement {
+  @property({ attribute: false }) public hass?: HomeAssistant;
+
   @property({ attribute: false }) public entities: HassEntity[] = [];
 
   @property({ type: Boolean, attribute: "narrow", reflect: true })
@@ -185,6 +190,8 @@ class HaPanelDevStateRenderer extends LitElement {
     const areaName = area ? computeAreaName(area) : undefined;
 
     const attributeText = this._attributeString(item);
+    const live = this.hass?.states[item.entity_id];
+    const kind = live && quickControlFor(live).kind;
 
     return html`
       <div
@@ -196,8 +203,8 @@ class HaPanelDevStateRenderer extends LitElement {
         role="row"
         aria-rowindex=${index + 3}
       >
-        <div class="cell" role="cell">
-          <span class="padded">
+        <div class="cell entity-cell" role="cell">
+          <div class="padded">
             <div class="id-name-container">
               <div class="id-name-row">
                 <ha-svg-icon
@@ -235,7 +242,19 @@ class HaPanelDevStateRenderer extends LitElement {
                 >
               </div>
             </div>
-          </span>
+          </div>
+          ${
+            kind && kind !== "none" && kind !== "value"
+              ? keyed(
+                  item.entity_id,
+                  html`<ha-entity-quick-controls
+                    .hass=${this.hass}
+                    .entityId=${item.entity_id}
+                    no-value
+                  ></ha-entity-quick-controls>`
+                )
+              : nothing
+          }
         </div>
         <div class="cell" role="cell">
           <span class="padded">${item.state}</span>
@@ -420,6 +439,19 @@ class HaPanelDevStateRenderer extends LitElement {
 
         .cell .padded {
           padding: var(--ha-space-1);
+        }
+
+        .entity-cell > .padded {
+          min-inline-size: 0;
+        }
+
+        :host([narrow]) .entity-cell {
+          flex-direction: column;
+          justify-content: center;
+        }
+
+        :host([narrow]) .entity-cell > * {
+          align-self: stretch;
         }
 
         .entities .row .header:nth-child(1),

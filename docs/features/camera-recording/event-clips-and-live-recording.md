@@ -110,3 +110,10 @@ now composed per language.
   to 11, as designed. The slider and reason fixes were seen on the last build of that look. A saved
   test clip, the event rows and the camera sheet were not seen. A release carrying this was
   dispatched for `a3cb56d37` and is not yet verified.
+- On 22 November, **Record a 10 second test clip now** saved a video from a synthetic camera
+  streaming colour bars through its provider. The ordinary download returned a 26,062-byte
+  H.264 MP4. Frame decoding confirmed seven colour bands at 320 × 240, 15 fps, for 10.000
+  seconds. The normal player retrieved the segment, but that Chromium build lacked H.264
+  playback support. Disabling the isolated streaming program displayed **Not set up** and
+  disabled the button. Re-enabling it restored **Set up and ready** without a restart.
+  The test used generated video. Physical cameras and provider account limits remain unverified.

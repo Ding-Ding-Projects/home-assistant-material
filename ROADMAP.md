@@ -13,6 +13,80 @@ is being verified; `docs/feature-status.md` is the older row-by-row record up to
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
+## Current checklist, 22 November 2026
+
+Work through these items in order. The existing roadmap below started this pass with 95 checked,
+87 partial and 174 unchecked rows. Some rows describe the same behavior at different releases.
+For each visible change, record the build, the action taken and the observed result before ticking it.
+
+- [x] Verify the release and update feed. The published `v2026.11.2.548` tag resolves to
+  `7650c522a5e2bae90ac9f817e7853360cd78b2dd`. The normal release has 29 attachments and the stable
+  feed offers Core `2026.11.2.548` and Supervisor `2026.11.0.548`.
+- [x] Audit release-note links. All 149 release descriptions were inspected. None links to its
+  version page on the updates website. Of 130 product builds, 68 have a matching page that
+  returned HTTP 200 and 62 returned 404. The other 19 releases are for Deploy Assistant.
+  The bundled changelog has 258 source links and 16 links to product screens. This was a coverage review.
+- [x] Compare the two stock builds in a browser. On each build, 82 navigations returned HTTP 200
+  and reached 80 distinct screens. Thread settings emitted two uncaught `unknown_command` responses
+  on each build when the Thread integration was absent.
+- [x] Exercise the Core update and its watcher. The backed-up isolated Core went from 547 to 548.
+  The initiating browser displayed 2:24 for three steps. The independent watcher displayed the
+  finished summary and sent zero install calls. Both browsers ran the published 548 frontend.
+- [x] Recover a stranded run. After the initiating browser closed, the observer offered the
+  one remaining update by name after 322.99 seconds. Using that action completed the update.
+- [x] Check narrow rows on 548. At 360 px the trailing controls stayed together on 13 entity rows
+  and three Blueprint rows. Hiding Details preserved all three Use buttons. Restoring the column
+  brought all three Details buttons back.
+- [x] Verify the rebuilt Thread panel. The lifecycle test reproduced the premature request and
+  passed after the repair. On the isolated 548 backend, the candidate frontend rendered all three
+  empty-network headings and sent zero Thread commands in 49 outgoing WebSocket messages. The
+  candidate passed 82 navigations covering 80 distinct screens with zero uncaught exceptions.
+- [ ] Publish the repaired source through the normal release process and verify that release on
+  the isolated installation. The existing public 548 release predates the Thread repair.
+- [ ] After the candidate passes, verify a backup, update Supervisor then Core on the existing
+  installation, and read back both versions and the disabled Supervisor self-update setting.
+- [x] Offer quick controls in History for a directly selected live entity. On the local production
+  frontend, all six language/width combinations changed the synthetic switch by keyboard while
+  the recorder and chart kept the same three historical samples. The bilingual heading wraps at 360 px.
+- [x] Offer quick controls on the States tool's own entity rows. All six browser cases operated
+  the correct switch, filtered to a read-only sensor and restored the correct row. The original
+  360 px case overlapped the entity ID by 9.33 × 16 CSS pixels. On the revised wheel, the
+  identifier and switch had zero intersecting text lines in all six cases.
+- [x] Expand a Tags card to read its details. In all six language/width combinations, the keyboard
+  toggle opened one tag, filtering retained the other tag's independent disclosure state, and
+  neither card opened its editor.
+- [x] Expand an Areas card to read its details. All six browser cases checked the disclosure,
+  the edit button and normal navigation separately. Dragging an area within its floor and across
+  floors also persisted after reload on the synthetic installation.
+- [~] Refresh the public website's light and dark lead images. Both shots come from the accepted
+  547 package with synthetic household data. The isolated website preview served both themes at
+  360 and 1440 px and kept the keyboard-selected theme after reload. The published 547 English
+  and Cantonese release notes and their interactive watcher demo also passed. Deployment of
+  the new lead images and their public readback are pending. The local documentation build
+  produced 162 guides. All three published wiki pages were accounted for, including both full
+  editor articles. All 11 internal wiki links and their target sections worked at both widths.
+  The live deployment serves 161 guides. Its 813 internal article links resolve, but the newer
+  Quick actions guide returns 404. Release-tag deployment was rejected by the main-only
+  environment in run `44927006063`. The local workflow now requests publication on main.
+  Five routing cases and the workflow syntax passed locally. A successful hosted run is pending.
+  The wiki home was published separately at `52672e6b7f40c0a929cae88e671b0347be6a06c9`.
+  The updated local documentation contains that home and both full articles. Its 13 wiki
+  links were exercised at each width, and all 824 internal article links and anchors resolved.
+- [x] Repair the two gallery type diagnostics on Windows. The gallery page generator now resolves
+  the sidebar module and creates portable page IDs. `pnpm run lint:types` generated the missing
+  index and passed both TypeScript projects. Two generations in one process produced identical
+  output covering all 114 distinct pages.
+- [x] Verify build-process ownership on Windows. The native process creation time identifies the
+  actual owner. A live process with an older, unverifiable record retains its lock. Graceful
+  exit removes the lock and the next acquisition recovers a lock left by forced termination.
+  All eleven build-management and process tests passed, including a competing gallery build,
+  incomparable process clocks and ownership during compiler handover. The recorded PID matched
+  the native `tsc.exe`. After its coordinator was stopped a competing invocation was rejected.
+  Both type projects passed after the process exited and the next invocation released the lock.
+  The Linux ownership checks passed too.
+- [ ] Reconcile the remaining roadmap in its existing order, beginning with choosing the log
+  destination while signed in. Keep checks that need a real device open until the device is exercised.
+
 ## Seen in a browser on builds 531 and 532, 20 November 2026
 
 These items had no line in this file before. A box is ticked where the build it was seen on is
@@ -23,8 +97,9 @@ recorded; everything else stays unticked with its state.
       browser on build 531.
 - [x] Checking for updates installs nothing. Seen in a browser on build 531.
 - [x] Problem log: names hidden in the preview. Seen working in a browser on build 532.
-- [ ] Problem log: choosing the repository. The page was seen only without a sign-in, so the
-      choice itself was not seen.
+- [ ] Choose the private destination from the problem log. On stock 547 the isolated installation
+      reported signed out, device sign-in unavailable, the chooser absent and Save token disabled.
+      A genuine authorized test-provider sign-in is still needed to exercise the chooser.
 - [x] Saving space: bringing a pointer back to a whole backup. Seen working in a browser on build
       531.
 - [x] Saving space with the registry not reachable: the page shows the unreachable state, Bring
@@ -43,17 +118,17 @@ recorded; everything else stays unticked with its state.
 - [x] The import chips wrap instead of running off the screen. Seen in a browser on build 532.
 - [x] The Sign-ins switch of an export is disabled when there are no sign-ins. Seen in a browser
       on build 532.
-- [ ] Escape closes the super confirmation at once. Fault seen on build 531 or 532: focus stayed
-      on the page and Escape did nothing until one Tab. Focus now moves inside when it opens and
-      Escape works from anywhere (source only, not seen).
-- [ ] "Updating 2 of 2" during "Update everything" in a second browser that opens the page during
-      the run. The browser that started the run now reports a display-only record to the server
-      (`auto_update/run/*`), and other browsers show the same progress read-only, without controls
-      ([`docs/features/updates/README.md`](docs/features/updates/README.md)). Source and tests only;
-      the Python tests have not been run by the author, not seen in a browser.
-- [ ] A page title in both languages at 390 px ("Integrations · 整合") wrapped awkwardly. The
-      separator and the second language now wrap together and never inside a word (source only,
-      not seen).
+- [x] Escape closes the super confirmation at once. In stock 547 the first key button received
+      focus on opening. Escape was the first key pressed and closed the dialog within 14 ms.
+      The isolated test recorded zero install or backup calls.
+- [x] "Updating 2 of 2" during "Update everything" in a second browser that opens the page during
+      the run. On build 548 the observer opened Updates 92 ms after the driver started, while step
+      one was active. The observer showed the second item's name and "Updating 2 of 2" during its
+      actual installation. The driver sent two install calls and the observer sent zero. See
+      [update progress](docs/features/updates/README.md).
+- [x] The bilingual Integrations title wraps at 390 px. On stock 547 all 12 English letters
+      stayed on the first line. The separator, nonbreaking space and both Cantonese characters
+      shared the second line and fit inside the 178 px title.
 
 ## Integration pass and a release dispatched for `a3cb56d37`, 18 November 2026
 
@@ -85,27 +160,43 @@ commit); none of this is seen in a released build yet. Details in `HANDOFF.md`.
 - [x] AC Defender and Heat Defender set up through the config flow; the device page groups the
       guard switches by family; both Now pages open without cut text or errors. A test climate
       entity, not a real unit.
-- [~] Light theme and 1440 px: Dashboard, Entities, Settings home, Updates, Backups, Personal
-      settings and the AC Defender Now page passed the automatic scan (no overflow, cut text or page
-      errors). Only Entities at 1440 px was looked at by eye. Missing: a light sheet in light theme,
-      Personal settings with the top bar search open, the search field width at 360 px.
+- [x] Light theme at 1440 px. On the rebuilt 548 frontend, all seven screens were inspected:
+      Dashboard, Entities, Settings home, Updates, Backups, Personal settings and AC Defender Now.
+      The light detail sheet kept its brightness, power and colour controls inside the window.
+      On Personal settings, opening search by keyboard and entering `sound` found five matches
+      at both 1440 and 360 px. The input measured 360 and 248 px respectively, with 218 and
+      94 px available for text. Clear, Pattern workbench and Close were reachable at 360 px.
+      Escape closed search. All ten views had zero uncaught errors and zero horizontal page overflow.
 
-### Written, not yet seen working
+### Verification of the remaining items
 
-- [~] The test clip button. Pressed with a demo camera: the failure was reported with its reason,
-      and the clips left this hour went from 12 to 11 as designed. A saved test clip and the
-      "program not set up" reason were not seen; needs a real camera.
-- [~] Ten page captions in Cantonese (backups, integrations, entities, devices, scenes, scripts,
-      areas, helpers, automations, dashboards). "Entities · 實體" was seen; the others, including the
-      fixed Backups tile on Settings home, were not looked at one by one. Blueprint, energy, application credentials, roles and zone stay
-      English (no Cantonese block for them).
-- [ ] Cantonese on about 57 settings pages from the Cantonese lane. Opened pages showed no overflow
-      or cut text; the wording itself was not checked page by page, and no native reader has read it.
-- [ ] The defender quality scale items (flows fully tested, sensors that start disabled, translated
-      validation errors, repair issues for a missing climate entity or sensor) and the resent off
-      command of cool outdoor shutdown. Tested; not seen.
-- [ ] The defender reason line in both languages, a nested reason, pause, restart and a restored
-      pause reason. Not seen.
+- [x] The test clip button saved a real H.264 recording from an isolated synthetic camera
+      streaming colour bars. The downloaded MP4 contained 10.000 seconds at 320 × 240, 15 fps.
+      The normal recording card reported the saved clip. Disabling the test instance's streaming
+      program showed “Not set up” and disabled the button. Re-enabling restored “Set up and ready”
+      and the button without a restart. Physical doorbell compatibility is tracked separately.
+- [x] Ten page captions and the Settings home Backups tile passed in all three language modes
+      on the repaired local build. The Dashboard breadcrumb already read 儀表板, but the visible
+      heading used a separate untranslated key. The repaired heading now reads **儀表板** and
+      **Dashboards · 儀表板** in the corresponding modes. The browser checked 33 labels and matched
+      168 scripts to wheel `49ed6a6b8729`. Blueprints also has Cantonese text. Energy, Roles
+      and Zones displayed English. The empty Application credentials view displayed a summary.
+- [~] Cantonese across the settings screens. The original change added the language controller
+      to 58 source files in 26 settings directories, including nine dialogs. The reader checklist
+      identifies 625 distinct literal wording keys and 90 dynamic call sites. Individual screen
+      interactions, dynamic wording and review in context by a native reader are still outstanding.
+- [~] Defender quality checks. Both AC and Heat rejected invalid setup, reconfiguration and
+      options values and accepted corrected values in the six normal dialogs. Their Next check
+      and Who holds the room sensors started disabled. Removing each synthetic climate or room
+      sensor raised its own Repairs entry and restoring it cleared the warning. The two alerts
+      still read in English for `zh-Hant`. The local AC source now obtains real hourly weather,
+      retries an eligible off decision when its actuator returns and withdraws an unsent decision
+      when the forecast warms. Browser validation in the requested non-English language and
+      physical equipment checks remain open.
+- [x] The defender reason line and its nested explanation appeared in English, Cantonese and
+      bilingual mode. AC Defender reported a 23.0 °C target and the 1.0 °C wall adjustment.
+      Pausing for two hours saved the owner pause reason and its exact deadline. Both were
+      identical after the isolated Core service restarted. The fixture was restored.
 - [ ] Camera event rows, and a camera sheet that never offers Play without a clip. Not seen.
 - [ ] The transit cards and page, the problem log page, the registry pages and the linked media
       rows (other lanes in the same commit). Not seen. The registry place stays off until its
@@ -129,9 +220,9 @@ commit); none of this is seen in a released build yet. Details in `HANDOFF.md`.
 
 ### Release and process
 
-- [ ] The release for `a3cb56d37` read back as a normal release, verified on a throwaway full
-      hosting copy (a page-load pass in three modes and a real update run), then moved to the hosted
-      instance. Dispatched; being built and verified.
+- [~] Build 526 was published on 19 November for `a3cb56d37`. Its normal release was read back
+      with 29 attachments. A three-mode browser check, real update run and move to the hosted
+      instance for that exact build are unverified. Later builds have separate results.
 
 ## Build 524 live, build 525 being verified, Cantonese reaching entity words, 18 November 2026
 
@@ -156,9 +247,13 @@ and the verification sections of the files linked below.
 
 ### Not proven on 524 (need a newer build on offer; a verification of build 525 is running)
 
-- [ ] A page that did not start an update shows the update's real start time. Being verified.
+- [~] A page that did not start an update shows the update's real start time. On 548 a late
+      observer showed the shared run's start as 21:44 for a recorded start of 21:44:12.285 UTC.
+      The individual Supervisor job start and backup-choice attribution still need a separate check.
 - [ ] The Core row says "Update the Supervisor first". Being verified.
-- [ ] The release link in an update sheet points at the build on offer. Being verified.
+- [x] The Core update sheet links to the offered build. On stock 547 the offer was 548 and
+      the visible release announcement linked to 548. The installed-build button on the
+      same Updates page pointed to 547.
 
 ### Cantonese and both languages (build 525, published, being verified)
 
@@ -203,9 +298,14 @@ and the verification sections of the files linked below.
 
 ### Release and process
 
-- [ ] Build 525 read back as a normal release and verified on a throwaway copy, then moved to the
-      hosted instance. Published; being verified.
-- [ ] A build containing `6db767de3`, with a browser pass in all three language modes. Not built.
+- [~] Build 525 was published on 19 November for `44d5a60e5`. Its normal release was read back
+      with 29 attachments. The isolated check and move to the hosted instance for this exact
+      build are unverified.
+- [x] A build containing `6db767de3` completed a browser pass in all three language modes.
+      On wheel `49ed6a6b8729`, English, Cantonese and bilingual each passed 82 navigations
+      to 80 distinct destinations. The three documented redirects rendered the expected
+      components. All 246 page responses were HTTP 200, all 306 checked scripts matched the
+      tested wheel and there were zero uncaught page exceptions. The fixture returned to English.
 - The stray one-off helper script `frontend/fix-tmp.cjs` was removed from the repository in
   `44d5a60e5` (a repository change with nothing to see running, so it carries no box).
 - [ ] Cantonese from these three commits read by a native reader. Not done.
@@ -273,14 +373,17 @@ Designs: canvas 38 (the Events board) and canvas 40 (search from the top bar).
 
 ### Updates and backups (faults of 523, fixed in `c9e3a5e67`, which build 524 contains)
 
-- [ ] The automatic updates card rests as one summary row. Written; not recorded as seen.
+- [x] The automatic updates card rests as one summary row. The isolated Updates screen showed
+      the collapsed card with its Off state, category counts and one expand control. The next
+      visible action was Update everything. The 1440 px light-theme review and the independent
+      browser's accessibility record both confirmed this state.
 - [ ] A page opened in the middle of an update reads the job list, finds the real start time and no
       longer says the backup was skipped by the reader's choice. Not proven on 524; a verification
       of build 525 is running.
 - [ ] The Core row says "Update the Supervisor first" instead of trying and being refused. Not
       proven on 524; being verified on 525.
-- [ ] The release link in an update sheet points at the build on offer, not the installed one. Not
-      proven on 524; being verified on 525.
+- [x] The release link in the Core update sheet uses the offered build. The 22 November check
+      on stock 547 read the actual link to 548. This is the same observation recorded above.
 - [x] "Custom" on the backup choice stays selected (and no longer does nothing without a Supervisor).
       Seen in a real run of 524.
 - [x] The backup self-check card refreshes by itself when a new backup is checked. Seen in a real
@@ -363,7 +466,9 @@ was dispatched and is not yet verified or live. Feature documentation:
       run of 524. The 523 run found a missing start time on a second page opened mid-update (fixed in
       `c9e3a5e67`, in build 524, not proven there; being verified on 525). System update output was
       not recorded as seen.
-- [ ] "Update everything" shows the whole run's time. Written; not seen in a browser.
+- [x] "Update everything" shows the whole run's time. On 22 November the published 548 frontend
+      displayed 2:24 for a real three-step run lasting 144.759 seconds. The Core step took
+      132.743 seconds. Both browsers displayed the finished summary.
 - [x] Update rows 66 px tall instead of 145 px at 390 px (measured in a local build with template
       entities).
 - [~] "Update coming soon" card ([`update-coming-soon.md`](docs/features/updates/update-coming-soon.md)).
@@ -375,12 +480,10 @@ was dispatched and is not yet verified or live. Feature documentation:
       128 tests, frontend 398 tests. The per-app row was seen in a real run of 523, and Custom
       staying selected (a fault of 523) was seen in a real run of 524. Not seen: a real update that
       makes a backup of a chosen app.
-- [ ] Notes on a system update and "What's new in build N" open the updates log page
-      ([`whats-new-and-notes.md`](docs/features/updates/whats-new-and-notes.md)). One rule is
-      tested; not seen in a browser. The release link in an update sheet pointed at the installed
-      build in 523; from `c9e3a5e67` it points at the build on offer (in build 524, not proven
-      there; being verified on 525). `6db767de3` (not built) leaves one "What's new" button where the
-      Updates page showed two.
+- [~] Notes on a system update and "What's new in build N" open the updates log page.
+      The 22 November test observed Core's offer link to 548, the installed-build button to 547
+      and the completed-update link to 548. Supervisor and operating-system offers still need
+      their own browser checks. See [version links](docs/features/updates/whats-new-and-notes.md).
 - [ ] Automatic system update switches save (the `systemPart` fix). Not seen saving on a real
       build.
 - [ ] An automatic system update watched happening inside its window. Never seen.
@@ -455,17 +558,19 @@ was dispatched and is not yet verified or live. Feature documentation:
 
 ### Release and process
 
-- [ ] The release build merges this repository's English wording into every integration's text
-      ([`release-build-wording.md`](docs/features/hosting/release-build-wording.md)). The script
-      was proven against the real generator on the same input; the workflow step has not run and
-      no built image has been opened.
+- [x] The release build merges this repository's English wording into every integration's text
+      ([build wording](docs/features/hosting/release-build-wording.md)). The translation step
+      passed on both release architectures for build 548. The published x86-64 image contained
+      all 63,984 required English strings in 1,161 integrations, with zero missing or changed
+      strings. The check used the exact source revision recorded on that image.
 - [~] Every commit carries a skip marker and one build is dispatched per batch (the working rule).
       Most commits from `0e32f6ee9` onward carry the marker; `900ceccca`, `28e6e9e7d` and the
       earlier commits in the range (for example `a7f6196c6`) do not, because they asked for builds.
-- [~] Release for main after build 523 (`c9e3a5e67`): this became build 2026.11.1.524, verified
-      by a page-load pass and a real update run on a throwaway full hosting copy, and now live. A
-      read-back of it as a normal release is not in the records read for this update. (The earlier
-      release for main after 521 is inferred to be build 523.)
+- [x] Build 524 was published for `c9e3a5e67`. The 18 November handoff records its page-load
+      check, real isolated update and move to the hosted instance. The 22 November readback
+      confirmed [the normal release](https://github.com/Ding-Ding-Projects/home-assistant-material/releases/tag/v2026.11.1.524)
+      and its 29 attachments. The earlier build 523 release points to `02dd3f9b4`. The current
+      installed build is recorded at the top of this file.
 - [ ] Cantonese strings reviewed by a native reader. Not done.
 
 ### Deliberately not doing
@@ -490,12 +595,24 @@ was dispatched and is not yet verified or live. Feature documentation:
 
 ## Everyday workflow follow-up, 15 November 2026
 
-- [ ] History page comparison: off, previous window, one day and one week earlier. Source implemented in `8300184d2`; focused tests pass and published build 441 shows the earlier-period controls and truthful empty comparison. Populated comparison runtime verification remains pending.
+- [x] History comparison. The isolated 548 installation recorded 3, 11, 19 and 24 W in one
+      nine-second window, then 24, 62, 78 and 85 W in the next. Previous equal window aligned
+      the earlier trace by nine seconds and drew it dashed at 55% opacity. The day and week
+      choices showed the actual empty state for the new helper. Returning to Off removed the
+      comparison. The current series kept identical values and timestamps through all five
+      states. Populated day-old and week-old examples were unavailable.
 - [x] History chart request ownership: ignore stale statistics, subscriptions and comparison responses after reconfiguration or disconnect. Focused final tests pass; deliberate stale-response negative checks fail on the old implementation and pass after exact restoration.
 - [ ] Script mode controls remain reachable while scrolling; persistent condition results wrap below the summary. Published build 441 has zero measured summary/result overlaps in 60 script views. Native display-scale, keyboard and full condition-state evidence remain pending.
 - [x] Apply the accepted candidate through the supported normal updater, as authorized on 15 November. Core 2026.11.1.441, exact image/source and healthy Supervisor verified at 05:25 UTC. This does not claim an in-interface button click.
-- [ ] Independently exercise the update button, its progress view and recovery state.
-- [ ] Final workflow pass: real guided setup Save and close/reload/Resume and account language/theme persistence passed in the isolated 441 fixture. Backup extraction verified 344/344 files and three histories; a booted restored instance, populated comparison and broader keyboard/native display-scale acceptance remain pending.
+- [x] Independently exercise the update button, its progress view and recovery state. On the
+      published 548 frontend a second browser watched the backed-up upgrade from 547 to 548 and
+      displayed the finished summary without sending an install call. In a separate run, closing
+      the initiating browser left one step. The observer offered it by name after 322.99 seconds
+      and the normal recovery action completed it.
+- [~] Final workflow pass. Guided setup Save and close/reload/Resume and account language/theme
+      persistence passed on isolated 441. Backup extraction verified 344/344 files and three
+      histories. Populated History comparison passed on the isolated 548 installation. A booted
+      restored instance and broader keyboard and native display-scale acceptance remain pending.
 
 ## Backup hosting follow-up, 15 November 2026
 
@@ -542,8 +659,10 @@ was dispatched and is not yet verified or live. Feature documentation:
       between two accounts on one browser, fixed in batch 18; builds 102 and 105 were skipped on
       purpose too: 102 lacked the media folder safety fix and 105 had the first version of the
       activity record)
-- [ ] Observe a core update from one build to the next through Settings. Update install progress
-      and the recovery card are built and not yet seen
+- [x] Observe a Core update from one build to the next through Settings. On 22 November the
+      backed-up test installation upgraded from 547 to 548 through Update everything. The two
+      browsers used the published 548 frontend throughout. On a second 548 installation the
+      recovery card offered the one remaining update by name and completed it.
 - [x] Add the operating system signing secrets (set 10 November 2026)
 - [ ] Observe an over-the-air operating system update between two builds signed with them. No
       operating system image has been booted with an over-the-air update
@@ -562,8 +681,11 @@ was dispatched and is not yet verified or live. Feature documentation:
 - [~] `host.sh` and `host.bat`: pull, start, wait for health, print the address; a detached mode
       and a live log view. `host.sh` was run for real on Linux; `host.bat --detached` was run on
       Windows 11 with build 46. The interactive log view on Windows has not been run
-- [ ] A live demo of the interface on the web. The demo build expects to be served from the root
-      of a domain, so it needs its own domain or sub-path support first
+- [x] The [public dashboard demo](https://ding-ding-projects.github.io/home-assistant-material/demo/#/lovelace/home)
+      runs under the project's subpath. On 22 November, the published build from `fc5d13aa`
+      loaded 90 project scripts at both 360 and 1440 px. At both widths the keyboard toggled
+      the sample floor lamp from 70% to off and back to 70% and opened and dismissed the dashboard
+      menu. Neither browser reported an uncaught exception.
 - [ ] A setup wizard for Windows that performs the same steps
 - [ ] Test address through the tunnel: it still answers 502 until one proxy entry is added on
       the tunnel host (see `HANDOFF.md`)
@@ -901,7 +1023,11 @@ Design canvases 23 to 31. Details and the state of each feature are in
       entities, the editor's shortcut list (batch 52). Built, unit tested; not seen
 - [ ] Sidebar names and default pages, outside link choice, quick bar pins and recents, dark mode
       readability check (batch 52). Built, unit tested; not seen
-- [ ] Web app manifest shortcuts (batch 52). Run for real: four shortcuts listed
+- [x] All four web app manifest shortcuts opened from the running 548 installation in a
+      360 px browser. Overview opened the home overview, History showed its source picker,
+      Energy opened step one of setup, and Settings opened its dashboard. The manifest and
+      all four destinations returned HTTP 200 with zero uncaught page errors. Native phone
+      launcher behavior was outside this browser check.
 - [ ] Phone home-screen widgets and car actions. Not built: they need the native phone apps,
       which are not in this repository
 - [ ] A step total in setup forms, a per-field connection check, lazy loading switches. Not built

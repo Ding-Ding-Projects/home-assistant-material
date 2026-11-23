@@ -188,20 +188,23 @@ class CoolOutdoorShutdown(Guard):
         state = self.st(ctx)
         restore_at = c.below + c.restore_margin
         warm = ctx.outdoor is not None and ctx.outdoor >= restore_at
+        eligible = (
+            ctx.outdoor is not None
+            and ctx.outdoor < c.below
+            and not ctx.over_band(ROOM_BAND)
+            and (
+                not c.forecast_gate
+                or (ctx.forecast_peak is not None and ctx.forecast_peak < restore_at)
+            )
+        )
         if state.get("off"):
-            return self._episode(ctx, c, state, warm)
-        if ctx.outdoor is None:
-            return None
+            return self._episode(ctx, c, state, warm, eligible)
         if warm:
             state.clear()
             return None
-        if ctx.outdoor >= c.below or ctx.over_band(ROOM_BAND):
+        if not eligible:
             return None
         if state.get("reentry_until") and ctx.now < state["reentry_until"]:
-            return None
-        if c.forecast_gate and (
-            ctx.forecast_peak is None or ctx.forecast_peak >= restore_at
-        ):
             return None
         state.clear()
         state["since"] = ctx.now
@@ -211,7 +214,7 @@ class CoolOutdoorShutdown(Guard):
         return self._decision("turn_off", Reason("outdoor_cool_off"))
 
     def _episode(
-        self, ctx: Ctx, c: Any, state: dict[str, Any], warm: bool
+        self, ctx: Ctx, c: Any, state: dict[str, Any], warm: bool, eligible: bool
     ) -> Decision | None:
         """Hold, restore or stand aside during a cool episode."""
         if state.get("override"):
@@ -227,6 +230,9 @@ class CoolOutdoorShutdown(Guard):
             state["off_at"] = sent = ctx.off_command_at
         mode_off = ctx.hvac_mode == "off"
         if sent is None and not mode_off:
+            if not eligible:
+                state.clear()
+                return None
             return self._decision("turn_off", Reason("outdoor_cool_off"))
         if (
             sent is not None

@@ -53,7 +53,8 @@ const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   ".."
 );
-const gulpBin = path.join(repoRoot, "node_modules", ".bin", "gulp");
+const gulpCli = path.join(repoRoot, "node_modules", "gulp", "bin", "gulp.js");
+const gulpTask = (name) => ({ cmd: process.execPath, args: [gulpCli, name] });
 const developAndServeScript = path.join(
   repoRoot,
   "script",
@@ -71,7 +72,7 @@ const SUITES = new Map([
       alias: "test:e2e:app:dev",
       liveness: "health",
       port: 8095,
-      spawn: { cmd: gulpBin, args: ["develop-e2e-test-app"] },
+      spawn: gulpTask("develop-e2e-test-app"),
     },
   ],
   [
@@ -81,7 +82,7 @@ const SUITES = new Map([
       fetchTranslations: true,
       liveness: "health",
       port: 8090,
-      spawn: { cmd: gulpBin, args: ["develop-demo"] },
+      spawn: gulpTask("develop-demo"),
     },
   ],
   [
@@ -91,7 +92,7 @@ const SUITES = new Map([
       fetchTranslations: true,
       liveness: "health",
       port: 8100,
-      spawn: { cmd: gulpBin, args: ["develop-gallery"] },
+      spawn: gulpTask("develop-gallery"),
     },
   ],
   [
@@ -101,7 +102,7 @@ const SUITES = new Map([
       fetchTranslations: true,
       liveness: "process",
       readyLog: /Build done @/,
-      spawn: { cmd: gulpBin, args: ["develop-app"] },
+      spawn: gulpTask("develop-app"),
     },
   ],
   [
@@ -182,8 +183,7 @@ const suiteEnv = (token, fetchTranslations = false) => ({
 const runPrebuild = (token, fetchTranslations = false) =>
   fetchTranslations
     ? spawnForeground({
-        cmd: gulpBin,
-        args: ["setup-and-fetch-nightly-translations"],
+        ...gulpTask("setup-and-fetch-nightly-translations"),
         cwd: repoRoot,
         env: translationPrebuildEnv(token),
         processGroup: true,

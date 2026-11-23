@@ -22,9 +22,14 @@ Proof: run against the project's real generator on the same input, all 1,156 gen
 out byte-identical. Against the files in a published image it creates 3 and updates 31. Seven
 tests cover the merge rules.
 
-Not verified: the release workflow itself has not been seen running with this step, and no built
-image has been opened to see the text. Other languages for the integrations added here still fall
-back to English.
+On 22 November 2026, build 548's
+[release workflow](https://github.com/Ding-Ding-Projects/home-assistant-material/actions/runs/44917772790)
+showed successful translation collection and overlay on both x86-64 and arm64. The published
+x86-64 Core image identified its source as `7650c522a5e2bae90ac9f817e7853360cd78b2dd`.
+Regenerating the expected English from that revision and reading the installed files inside
+the image found all 63,984 required strings across 1,161 integrations. Every value matched.
+The shipped files retained one additional string. Other languages for the integrations added
+here still fall back to English. The package contents check covered x86-64.
 
 ## Commit and build rule
 

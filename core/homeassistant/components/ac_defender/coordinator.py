@@ -80,6 +80,7 @@ from .const import (
     STORAGE_VERSION,
 )
 from .cost import CostTracker, PriceTable
+from .forecast import OutdoorForecast, celsius
 from .guards import guards_for
 from .model import Command, Ctx, Decision, Standdown, Touch
 from .pipeline import build_runtime, clamp_floor, decide
@@ -156,6 +157,7 @@ class DefenderCoordinator:
         self.commands: list[Command] = []
         self.room_samples: list[tuple[datetime, float]] = []
         self.outdoor_samples: list[tuple[datetime, float]] = []
+        self._forecast = OutdoorForecast(hass, entry)
         self.reading_times: list[datetime] = []
         self.action_changes: list[tuple[datetime, str | None]] = []
         self.cooling_started: datetime | None = None
@@ -366,6 +368,7 @@ class DefenderCoordinator:
     @callback
     def async_stop(self) -> None:
         """Stop listening."""
+        self._forecast.clear()
         for unsub in self._unsubs:
             unsub()
         self._unsubs.clear()
@@ -421,7 +424,16 @@ class DefenderCoordinator:
         outdoor_id = option(self.entry, CONF_OUTDOOR)
         outdoor = None
         if outdoor_id and (outdoor_state := hass.states.get(outdoor_id)):
-            outdoor = _number(outdoor_state) or _number(outdoor_state, "temperature")
+            outdoor = _number(outdoor_state)
+            if outdoor is None:
+                outdoor = _number(outdoor_state, "temperature")
+            unit = outdoor_state.attributes.get(
+                "temperature_unit"
+                if outdoor_state.domain == "weather"
+                else "unit_of_measurement"
+            )
+            if unit is not None:
+                outdoor = celsius(outdoor, unit)
         door_id = option(self.entry, CONF_DOOR_SENSOR)
         door = hass.states.get(door_id) if door_id else None
         presence_id = option(self.entry, CONF_PRESENCE)
@@ -480,6 +492,13 @@ class DefenderCoordinator:
             action_changes=list(self.action_changes),
             cooling_started=self.cooling_started,
             outdoor=outdoor,
+            forecast_peak=(
+                self._forecast.peak(
+                    now, int(self.cfg["cool_outdoor_shutdown"].forecast_gate_hours)
+                )
+                if self.enabled.get("cool_outdoor_shutdown")
+                else None
+            ),
             presence_home=(presence.state in (STATE_ON, "home"))
             if presence and presence.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN)
             else None,
@@ -524,6 +543,13 @@ class DefenderCoordinator:
     async def async_evaluate(self) -> Decision:
         """Run the engine once and send what it decides."""
         now = dt_util.utcnow()
+        watch_forecast = (
+            self.enabled.get("cool_outdoor_shutdown")
+            and self.cfg["cool_outdoor_shutdown"].forecast_gate
+        )
+        self._forecast.refresh(
+            option(self.entry, CONF_OUTDOOR) if watch_forecast else None, now
+        )
         if self.pause and self.pause.until and now >= self.pause.until:
             self.pause = None
         ctx = self.build_ctx(now)
