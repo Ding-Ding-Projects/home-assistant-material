@@ -1,36 +1,65 @@
-"""Grow light: keep a plug on for set hours each day, paused while a door is open."""
+"""Grow light: light hours, door pauses and watering for one crop or plug."""
 
-from datetime import time
+from datetime import date, time
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_DOORS, CONF_HOURS, CONF_PLUG, CONF_START
-from .controller import GrowLightController
-from .schedule import OnHours
+from .const import (
+    CONF_DOORS,
+    CONF_HOURS,
+    CONF_PLANT,
+    CONF_PLANTED_ON,
+    CONF_PLUG,
+    CONF_START,
+    CONF_WATER_DAYS,
+    CONF_WATER_MINUTES,
+    CONF_WATER_SWITCH,
+    DEFAULT_HOURS,
+    DEFAULT_WATER_MINUTES,
+    PLANT_CUSTOM,
+)
+from .controller import GrowLightController, GrowLightSettings
+from .photos import async_register_photos
+from .plants import async_get_plants
 
-PLATFORMS = [Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [Platform.BUTTON, Platform.SENSOR, Platform.SWITCH]
 
 type GrowLightConfigEntry = ConfigEntry[GrowLightController]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: GrowLightConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: GrowLightConfigEntry) -> None:
     """Set up a grow light from a config entry."""
     options = entry.options
+    plant = None
+    planted_on = None
+    if (plant_id := options.get(CONF_PLANT, PLANT_CUSTOM)) != PLANT_CUSTOM:
+        plant = (await async_get_plants(hass)).get(plant_id)
+        planted = options.get(CONF_PLANTED_ON)
+        planted_on = date.fromisoformat(planted) if planted else entry.created_at.date()
+    await async_register_photos(hass)
     controller = GrowLightController(
         hass,
-        options[CONF_PLUG],
-        OnHours(time.fromisoformat(options[CONF_START]), float(options[CONF_HOURS])),
-        list(options.get(CONF_DOORS, [])),
+        GrowLightSettings(
+            plug=options[CONF_PLUG],
+            start=time.fromisoformat(options[CONF_START]),
+            hours=float(options.get(CONF_HOURS, DEFAULT_HOURS)),
+            doors=list(options.get(CONF_DOORS, [])),
+            plant=plant,
+            planted_on=planted_on,
+            water_days=int(options.get(CONF_WATER_DAYS, 0)),
+            water_switch=options.get(CONF_WATER_SWITCH),
+            water_minutes=float(options.get(CONF_WATER_MINUTES, DEFAULT_WATER_MINUTES)),
+        ),
     )
     entry.runtime_data = controller
-    # The schedule switch restores its state and starts the controller.
+    # Entities restore the schedule switch and last watering before the first run.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    controller.async_start()
     entry.async_on_unload(controller.async_stop)
-    return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: GrowLightConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: GrowLightConfigEntry) -> None:
     """Unload a config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    await hass.config_entries.async_unload_platforms_or_raise(entry, PLATFORMS)

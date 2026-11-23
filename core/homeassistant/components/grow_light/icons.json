@@ -1,8 +1,30 @@
 {
   "entity": {
+    "button": {
+      "watered": {
+        "default": "mdi:watering-can"
+      }
+    },
     "sensor": {
+      "last_watered": {
+        "default": "mdi:water-check"
+      },
       "next_change": {
         "default": "mdi:clock-outline"
+      },
+      "next_watering": {
+        "default": "mdi:watering-can-outline"
+      },
+      "stage": {
+        "default": "mdi:sprout",
+        "state": {
+          "flowering": "mdi:flower",
+          "fruiting": "mdi:fruit-cherries",
+          "germination": "mdi:seed",
+          "harvest": "mdi:basket",
+          "seedling": "mdi:sprout",
+          "vegetative": "mdi:leaf"
+        }
       },
       "status": {
         "default": "mdi:sprout",

@@ -81,6 +81,8 @@ export interface PickerComboBoxItem {
   sorting_label?: string;
   icon_path?: string;
   icon?: string;
+  /** Picture shown at the start of the row, for example a crop photo. */
+  image?: string;
   isRelated?: boolean;
 }
 
@@ -104,14 +106,22 @@ interface PickerComboBoxRow extends HaListVirtualizedItem {
 
 export const DEFAULT_ROW_RENDERER_CONTENT = (item: PickerComboBoxItem) =>
   html` ${
-      item.icon
-        ? html`<ha-icon slot="start" .icon=${item.icon}></ha-icon>`
-        : item.icon_path
-          ? html`<ha-svg-icon
-              slot="start"
-              .path=${item.icon_path}
-            ></ha-svg-icon>`
-          : nothing
+      item.image
+        ? html`<img
+            slot="start"
+            src=${item.image}
+            alt=""
+            loading="lazy"
+            style="width: 48px; height: 48px; border-radius: 12px; object-fit: cover; flex: none;"
+          />`
+        : item.icon
+          ? html`<ha-icon slot="start" .icon=${item.icon}></ha-icon>`
+          : item.icon_path
+            ? html`<ha-svg-icon
+                slot="start"
+                .path=${item.icon_path}
+              ></ha-svg-icon>`
+            : nothing
     }
     <span slot="headline">${item.primary}</span>
     ${

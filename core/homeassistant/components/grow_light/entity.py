@@ -1,5 +1,7 @@
 """Shared base for Grow light entities."""
 
+from typing import override
+
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
 
@@ -22,6 +24,7 @@ class GrowLightEntity(Entity):
             identifiers={(DOMAIN, entry.entry_id)}, name=entry.title
         )
 
+    @override
     async def async_added_to_hass(self) -> None:
         """Refresh whenever the grow light's status changes."""
         await super().async_added_to_hass()

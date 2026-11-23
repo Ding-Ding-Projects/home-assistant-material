@@ -1,0 +1,3858 @@
+[
+  {
+    "id": "adzuki_bean",
+    "name": "Adzuki bean",
+    "scientific": "Vigna angularis",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "short_day",
+    "note": "Warm-season bean that flowers when days shorten.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 12,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 30,
+        "light_hours": 16,
+        "water_every_days": 4,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Do not let the mix dry out now; water stress drops flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 35,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 15,
+        "light_hours": 12,
+        "water_every_days": 5,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/W_azuki1091.jpg/330px-W_azuki1091.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:W_azuki1091.jpg",
+      "author": "The original uploader was たね at Japanese Wikipedia.",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Adzuki_bean"
+    ]
+  },
+  {
+    "id": "arugula",
+    "name": "Arugula",
+    "scientific": "Eruca vesicaria",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "long_day",
+    "note": "Arugula bolts fast in long days, heat and dry soil, so 12 hours is a safe indoor level.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 5,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 10,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Keep moist with light, frequent watering."
+      },
+      {
+        "stage": "vegetative",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Keep the soil moist; dry soil encourages flowering."
+      },
+      {
+        "stage": "harvest",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Pick a few leaves from each plant. Remove plants once they flower."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/Eruca_sativa_1.JPG/330px-Eruca_sativa_1.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Eruca_sativa_1.JPG",
+      "author": "Ariel Palmon",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/rocket/grow-your-own"
+    ]
+  },
+  {
+    "id": "asparagus",
+    "name": "Asparagus",
+    "scientific": "Asparagus officinalis",
+    "group": "vegetable",
+    "family": "Asparagaceae",
+    "photoperiod": "day_neutral",
+    "note": "Asparagus is a perennial; plants grown from seed should not be harvested for about three years.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 21,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 60,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water new plants regularly during their first summer."
+      },
+      {
+        "stage": "vegetative",
+        "days": 300,
+        "light_hours": 14,
+        "water_every_days": 7,
+        "water_note": "Once established, plants tolerate drought and need water only in long dry spells."
+      },
+      {
+        "stage": "harvest",
+        "days": 56,
+        "light_hours": 12,
+        "water_every_days": 5,
+        "water_note": "Cut spears when about 18 cm tall; harvest every two to three days in warm weather."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ec/Asparagus_officinalis_plant.jpg/330px-Asparagus_officinalis_plant.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Asparagus_officinalis_plant.jpg",
+      "author": "Titantoma",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/asparagus/grow-your-own"
+    ]
+  },
+  {
+    "id": "beetroot",
+    "name": "Beetroot",
+    "scientific": "Beta vulgaris subsp. vulgaris",
+    "group": "vegetable",
+    "family": "Amaranthaceae",
+    "photoperiod": "day_neutral",
+    "note": "Beetroot makes roots in any day length; very long days after a cold spell can push it to bolt.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 12,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Soak seed for an hour first; keep moist. Light at 0 until shoots show."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Thin clusters to one seedling every 5 to 10 cm."
+      },
+      {
+        "stage": "vegetative",
+        "days": 21,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Keep soil evenly moist while leaves grow."
+      },
+      {
+        "stage": "fruiting",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 4,
+        "water_note": "Root bulking: steady water prevents tough rings and splitting."
+      },
+      {
+        "stage": "harvest",
+        "days": 7,
+        "light_hours": 12,
+        "water_every_days": 7,
+        "water_note": "Lift roots when 4 to 7 cm across."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Beetroot_Crop_-_geograph.org.uk_-_7199506.jpg/330px-Beetroot_Crop_-_geograph.org.uk_-_7199506.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Beetroot_Crop_-_geograph.org.uk_-_7199506.jpg",
+      "author": "kevin higgins",
+      "license": "CC BY-SA 2.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/beetroot",
+      "https://extension.umd.edu/resource/growing-beets-home-garden"
+    ]
+  },
+  {
+    "id": "bok_choy",
+    "name": "Bok choy",
+    "scientific": "Brassica rapa subsp. chinensis",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "long_day",
+    "note": "Bok choy bolts in long days, heat and cold snaps, so avoid more than 12 hours of light.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 5,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 10,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Keep moist, especially while young."
+      },
+      {
+        "stage": "vegetative",
+        "days": 20,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Keep the soil moist; water in the morning."
+      },
+      {
+        "stage": "harvest",
+        "days": 20,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Baby leaves are ready in about 30 days; full heads in about 45 to 75."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Brassica_rapa_chinensis_4610994.jpg/330px-Brassica_rapa_chinensis_4610994.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Brassica_rapa_chinensis_4610994.jpg",
+      "author": "Jon Sullivan",
+      "license": "CC BY 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/pak-choi/grow-your-own"
+    ]
+  },
+  {
+    "id": "broad_bean",
+    "name": "Broad bean (fava)",
+    "scientific": "Vicia faba",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "long_day",
+    "note": "Cool-season bean that likes long days and a deep soak at flowering.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 10,
+        "light_hours": 0,
+        "water_every_days": 3,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 15,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 40,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 14,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Do not let the mix dry out now; water stress drops flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 35,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 5,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/-2019-05-17_Broad_bean_plants%2C_Trimingham.JPG/330px--2019-05-17_Broad_bean_plants%2C_Trimingham.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:-2019-05-17_Broad_bean_plants,_Trimingham.JPG",
+      "author": "Kolforn",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/broad-beans/grow-your-own",
+      "https://hort.purdue.edu/newcrop/duke_energy/Vicia_faba.html"
+    ]
+  },
+  {
+    "id": "broccoli",
+    "name": "Broccoli",
+    "scientific": "Brassica oleracea var. italica",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "day_neutral",
+    "note": "Broccoli is not strongly day-length sensitive; heat and stress make the heads bolt.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 28,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water seedlings regularly in modules."
+      },
+      {
+        "stage": "vegetative",
+        "days": 60,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Water during dry spells and keep the root zone evenly moist."
+      },
+      {
+        "stage": "harvest",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Cut the main spear first, then pick the side shoots."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Broccoli_Plant%2C_High_Barn_-_geograph.org.uk_-_469368.jpg/330px-Broccoli_Plant%2C_High_Barn_-_geograph.org.uk_-_469368.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Broccoli_Plant,_High_Barn_-_geograph.org.uk_-_469368.jpg",
+      "author": "Dave Hitchborne",
+      "license": "CC BY-SA 2.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/broccoli/grow-your-own"
+    ]
+  },
+  {
+    "id": "brussels_sprouts",
+    "name": "Brussels sprouts",
+    "scientific": "Brassica oleracea var. gemmifera",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "day_neutral",
+    "note": "Brussels sprouts are a slow, cool-season crop and are not day-length sensitive.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 35,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Never let young plants dry out."
+      },
+      {
+        "stage": "vegetative",
+        "days": 90,
+        "light_hours": 14,
+        "water_every_days": 4,
+        "water_note": "Established plants need water mainly in dry weather."
+      },
+      {
+        "stage": "harvest",
+        "days": 60,
+        "light_hours": 12,
+        "water_every_days": 4,
+        "water_note": "Pick the lowest sprouts first, when they are walnut-sized and firm."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1a/Brassica_oleracea_var._gemmifera_Jade_Cross_1zz.jpg/330px-Brassica_oleracea_var._gemmifera_Jade_Cross_1zz.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Brassica_oleracea_var._gemmifera_Jade_Cross_1zz.jpg",
+      "author": "Photo by David J. Stang",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/brussels-sprouts/grow-your-own"
+    ]
+  },
+  {
+    "id": "bush_green_bean",
+    "name": "Bush green bean",
+    "scientific": "Phaseolus vulgaris",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "day_neutral",
+    "note": "Fast, compact snap bean that is ready about 7 to 8 weeks after sowing.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 10,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 20,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 10,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Do not let the mix dry out now; water stress drops flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 15,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 4,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Starr-081031-0362-Phaseolus_vulgaris-habit-Makawao-Maui_%2824808652592%29.jpg/330px-Starr-081031-0362-Phaseolus_vulgaris-habit-Makawao-Maui_%2824808652592%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Starr-081031-0362-Phaseolus_vulgaris-habit-Makawao-Maui_(24808652592).jpg",
+      "author": "Forest and Kim Starr",
+      "license": "CC BY 3.0 us"
+    },
+    "sources": [
+      "https://hort.purdue.edu/newcrop/duke_energy/Phaseolus_vulgaris.html"
+    ]
+  },
+  {
+    "id": "butternut_squash",
+    "name": "Butternut squash",
+    "scientific": "Cucurbita moschata",
+    "group": "vegetable",
+    "family": "Cucurbitaceae",
+    "photoperiod": "day_neutral",
+    "note": "Day length barely matters; it needs a long, hot season and lots of room.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist, not soggy."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Keep evenly moist."
+      },
+      {
+        "stage": "vegetative",
+        "days": 35,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Water generously at the base."
+      },
+      {
+        "stage": "flowering",
+        "days": 20,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Pollinate by hand indoors."
+      },
+      {
+        "stage": "fruiting",
+        "days": 60,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Water regularly while fruit swells."
+      },
+      {
+        "stage": "harvest",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 7,
+        "water_note": "Cut back watering as the skin hardens."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Starr-131002-2370-plant-Cucurbita_moschata-fruit_and_leaves-Hawea_Pl_Olinda.jpg/330px-Starr-131002-2370-plant-Cucurbita_moschata-fruit_and_leaves-Hawea_Pl_Olinda.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Starr-131002-2370-plant-Cucurbita_moschata-fruit_and_leaves-Hawea_Pl_Olinda.jpg",
+      "author": "Forest and Kim Starr",
+      "license": "CC BY 2.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/pumpkins/grow-your-own"
+    ]
+  },
+  {
+    "id": "cabbage",
+    "name": "Cabbage",
+    "scientific": "Brassica oleracea var. capitata",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "day_neutral",
+    "note": "Cabbage is a biennial; a long spell of cold, not day length, triggers flowering.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 28,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water young plants regularly while roots establish."
+      },
+      {
+        "stage": "vegetative",
+        "days": 60,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Soak the root zone well when the top feels dry."
+      },
+      {
+        "stage": "harvest",
+        "days": 60,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water more often once heads start to form."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/12/Cabbage_plants_growing_in_New_Jersey_in_April.jpg/330px-Cabbage_plants_growing_in_New_Jersey_in_April.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Cabbage_plants_growing_in_New_Jersey_in_April.jpg",
+      "author": "Tomwsulcer",
+      "license": "CC0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/cabbages/grow-your-own"
+    ]
+  },
+  {
+    "id": "cantaloupe",
+    "name": "Cantaloupe",
+    "scientific": "Cucumis melo",
+    "group": "vegetable",
+    "family": "Cucurbitaceae",
+    "photoperiod": "day_neutral",
+    "note": "Day length barely matters; it needs warmth and hand pollination indoors.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep at 18 to 21 C and evenly moist."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Keep evenly moist."
+      },
+      {
+        "stage": "vegetative",
+        "days": 25,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water evenly, avoiding the leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 15,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Hand-pollinate under cover."
+      },
+      {
+        "stage": "fruiting",
+        "days": 35,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water regularly while fruit forms."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 4,
+        "water_note": "Ease watering as fruit ripens for better flavour."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Cantaloupe_plant.JPG/330px-Cantaloupe_plant.JPG",
+      "page": "https://commons.wikimedia.org/wiki/File:Cantaloupe_plant.JPG",
+      "author": "Rob Duval",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/fruit/melons/grow-your-own"
+    ]
+  },
+  {
+    "id": "carrot",
+    "name": "Carrot",
+    "scientific": "Daucus carota subsp. sativus",
+    "group": "vegetable",
+    "family": "Apiaceae",
+    "photoperiod": "day_neutral",
+    "note": "Carrots are not sensitive to day length; roots swell steadily with 12 to 14 hours of light and cool, even moisture.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 14,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist; seed is slow to sprout. Hold light at 0 until shoots show."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Water gently and thin to about 5 to 7 cm apart."
+      },
+      {
+        "stage": "vegetative",
+        "days": 28,
+        "light_hours": 14,
+        "water_every_days": 4,
+        "water_note": "Water lightly and often in containers; the top grows fast."
+      },
+      {
+        "stage": "fruiting",
+        "days": 28,
+        "light_hours": 12,
+        "water_every_days": 5,
+        "water_note": "Root bulking: keep moisture even, since swings crack the roots."
+      },
+      {
+        "stage": "harvest",
+        "days": 7,
+        "light_hours": 12,
+        "water_every_days": 7,
+        "water_note": "Ease off watering before lifting to avoid splitting."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Follaje_de_la_zanahoria_%28Daucus_carota_sativa%29.jpg/330px-Follaje_de_la_zanahoria_%28Daucus_carota_sativa%29.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Follaje_de_la_zanahoria_(Daucus_carota_sativa).jpg",
+      "author": "Naturamano, Will Gomez",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/carrots/grow-your-own",
+      "https://extension.umd.edu/resource/growing-carrots-home-garden"
+    ]
+  },
+  {
+    "id": "cauliflower",
+    "name": "Cauliflower",
+    "scientific": "Brassica oleracea var. botrytis",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "day_neutral",
+    "note": "Cauliflower is fussy: dry spells, heat or cold checks cause small or loose heads.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 10,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 42,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Seeds sprout in about two weeks; keep seedlings moist."
+      },
+      {
+        "stage": "vegetative",
+        "days": 60,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Keep soil consistently moist but not waterlogged."
+      },
+      {
+        "stage": "harvest",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Keep watering steady while the curd forms."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Cauliflower_growing.jpg/330px-Cauliflower_growing.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Cauliflower_growing.jpg",
+      "author": "Buddy431",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/cauliflower/grow-your-own"
+    ]
+  },
+  {
+    "id": "celeriac",
+    "name": "Celeriac",
+    "scientific": "Apium graveolens var. rapaceum",
+    "group": "vegetable",
+    "family": "Apiaceae",
+    "photoperiod": "day_neutral",
+    "note": "Celeriac is a very long season crop; it bolts if the seedlings get cold, so keep them above about 10 C.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Sprouting is slow and erratic, up to three weeks; the seed likes light so leave it uncovered."
+      },
+      {
+        "stage": "seedling",
+        "days": 56,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Keep seedlings warm and above 10 C to stop bolting."
+      },
+      {
+        "stage": "vegetative",
+        "days": 60,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Keep soil consistently damp but not waterlogged."
+      },
+      {
+        "stage": "fruiting",
+        "days": 60,
+        "light_hours": 12,
+        "water_every_days": 4,
+        "water_note": "Root swelling: if soil dries, give a thorough soak rather than light sips."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 7,
+        "water_note": "Maturity takes at least six months from sowing."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/Celeriac_growing_at_RHS_Wisley.jpg/330px-Celeriac_growing_at_RHS_Wisley.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Celeriac_growing_at_RHS_Wisley.jpg",
+      "author": "Mrmatiko",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/celeriac/grow-your-own"
+    ]
+  },
+  {
+    "id": "celery",
+    "name": "Celery",
+    "scientific": "Apium graveolens var. dulce",
+    "group": "vegetable",
+    "family": "Apiaceae",
+    "photoperiod": "day_neutral",
+    "note": "Celery is a biennial: below about 10 C when young can cause bolting, and dry soil makes stems stringy.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 14,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Seeds need light to germinate; surface-sow and keep moist. It can take up to three weeks."
+      },
+      {
+        "stage": "seedling",
+        "days": 56,
+        "light_hours": 16,
+        "water_every_days": 1,
+        "water_note": "Keep the compost always moist. Warmth above 10 C reduces bolting risk."
+      },
+      {
+        "stage": "vegetative",
+        "days": 75,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "The soil should never dry out; water daily in warm weather."
+      },
+      {
+        "stage": "harvest",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Harvest before the leaves yellow, as the stems turn stringy with age."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/2023-06-22_Apium_graveolens_%28Wild_Celery%29%2C_Elswick%2C_Northumberland_4.jpg/330px-2023-06-22_Apium_graveolens_%28Wild_Celery%29%2C_Elswick%2C_Northumberland_4.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:2023-06-22_Apium_graveolens_(Wild_Celery),_Elswick,_Northumberland_4.jpg",
+      "author": "MPF",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/celery/grow-your-own"
+    ]
+  },
+  {
+    "id": "cherry_tomato",
+    "name": "Cherry tomato",
+    "scientific": "Solanum lycopersicum var. cerasiforme",
+    "group": "vegetable",
+    "family": "Solanaceae",
+    "photoperiod": "day_neutral",
+    "note": "Day length barely matters; cherry types ripen sooner than large tomatoes.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist, not soggy."
+      },
+      {
+        "stage": "seedling",
+        "days": 28,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water when the top of the compost feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 20,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water deeply and keep the soil evenly moist."
+      },
+      {
+        "stage": "flowering",
+        "days": 15,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Keep moisture steady and tap flowers to help pollination."
+      },
+      {
+        "stage": "fruiting",
+        "days": 35,
+        "light_hours": 14,
+        "water_every_days": 1,
+        "water_note": "Water regularly; uneven watering splits fruit."
+      },
+      {
+        "stage": "harvest",
+        "days": 45,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Pick often and keep watering evenly."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Santorini_Cherry_Tomato_Plant_%284567151555%29.jpg/330px-Santorini_Cherry_Tomato_Plant_%284567151555%29.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Santorini_Cherry_Tomato_Plant_(4567151555).jpg",
+      "author": "Klearchos Kapoutsis from Santorini, Greece",
+      "license": "CC BY 2.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/tomatoes/grow-your-own"
+    ]
+  },
+  {
+    "id": "chickpea",
+    "name": "Chickpea",
+    "scientific": "Cicer arietinum",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "long_day",
+    "note": "Fairly drought-tolerant legume that dislikes wet feet.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 3,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 15,
+        "water_every_days": 4,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 45,
+        "light_hours": 16,
+        "water_every_days": 4,
+        "water_note": "This crop tolerates some dryness; let the top 3 cm dry between waterings."
+      },
+      {
+        "stage": "flowering",
+        "days": 20,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water steadily at flowering; drought now cuts yield."
+      },
+      {
+        "stage": "fruiting",
+        "days": 40,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 15,
+        "light_hours": 14,
+        "water_every_days": 6,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Starr-120415-4658-Cicer_arietinum-habit-Hawea_Pl_Olinda-Maui_%2825046176741%29.jpg/330px-Starr-120415-4658-Cicer_arietinum-habit-Hawea_Pl_Olinda-Maui_%2825046176741%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Starr-120415-4658-Cicer_arietinum-habit-Hawea_Pl_Olinda-Maui_(25046176741).jpg",
+      "author": "Forest and Kim Starr",
+      "license": "CC BY 3.0 us"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Chickpea"
+    ]
+  },
+  {
+    "id": "chili_pepper",
+    "name": "Chili pepper",
+    "scientific": "Capsicum annuum",
+    "group": "vegetable",
+    "family": "Solanaceae",
+    "photoperiod": "day_neutral",
+    "note": "Day length barely matters; chilies are slow to germinate and need warmth.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 14,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep warm (about 21 C) and evenly moist."
+      },
+      {
+        "stage": "seedling",
+        "days": 45,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water when the top of the compost feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 35,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Let the top of the compost dry slightly between waterings."
+      },
+      {
+        "stage": "flowering",
+        "days": 25,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Keep moisture even; stress drops the flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 55,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Slightly drier soil often gives hotter fruit, but do not let plants wilt."
+      },
+      {
+        "stage": "harvest",
+        "days": 45,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Water moderately while picking."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Chili_pepper_plant_with_fruits_at_Rajbiraj%2C_Saptari%2C_Nepal_%281%29.jpg/330px-Chili_pepper_plant_with_fruits_at_Rajbiraj%2C_Saptari%2C_Nepal_%281%29.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Chili_pepper_plant_with_fruits_at_Rajbiraj,_Saptari,_Nepal_(1).jpg",
+      "author": "Tulsi Bhagat",
+      "license": "Public domain"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/aubergines/grow-your-own"
+    ]
+  },
+  {
+    "id": "collard_greens",
+    "name": "Collard greens",
+    "scientific": "Brassica oleracea var. viridis",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "day_neutral",
+    "note": "Collards are a loose-leaf cabbage relative; watering and light needs follow kale and cabbage.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water young plants regularly."
+      },
+      {
+        "stage": "vegetative",
+        "days": 45,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Water when the top of the compost feels dry."
+      },
+      {
+        "stage": "harvest",
+        "days": 60,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Pick leaves before they reach full size so they stay tender."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/36/Portuguese_kale_%28Brassica_oleracea_var._viridis%29_leaves_and_buds%2C_Ponte_de_Sor%2C_Portugal_%28approx._GPS_location%29_julesvernex2.jpg/330px-Portuguese_kale_%28Brassica_oleracea_var._viridis%29_leaves_and_buds%2C_Ponte_de_Sor%2C_Portugal_%28approx._GPS_location%29_julesvernex2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Portuguese_kale_(Brassica_oleracea_var._viridis)_leaves_and_buds,_Ponte_de_Sor,_Portugal_(approx._GPS_location)_julesvernex2.jpg",
+      "author": "Jules Verne Times Two",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/kale/grow-your-own",
+      "https://www.rhs.org.uk/vegetables/cabbages/grow-your-own"
+    ]
+  },
+  {
+    "id": "cowpea",
+    "name": "Cowpea (black-eyed pea)",
+    "scientific": "Vigna unguiculata",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "day_neutral",
+    "note": "Heat-loving and drought-tolerant; some varieties are short-day, so check yours.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 6,
+        "light_hours": 0,
+        "water_every_days": 3,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 10,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 25,
+        "light_hours": 16,
+        "water_every_days": 4,
+        "water_note": "This crop tolerates some dryness; let the top 3 cm dry between waterings."
+      },
+      {
+        "stage": "flowering",
+        "days": 12,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Water steadily at flowering; drought now cuts yield."
+      },
+      {
+        "stage": "fruiting",
+        "days": 25,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 6,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/Vigna_unguiculata_habit5.jpg/330px-Vigna_unguiculata_habit5.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Vigna_unguiculata_habit5.jpg",
+      "author": "Macleay Grass Man",
+      "license": "CC BY 2.0"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Cowpea"
+    ]
+  },
+  {
+    "id": "cucumber",
+    "name": "Cucumber",
+    "scientific": "Cucumis sativus",
+    "group": "vegetable",
+    "family": "Cucurbitaceae",
+    "photoperiod": "day_neutral",
+    "note": "Most varieties are day neutral; it grows fast and uses a lot of water.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist, not soggy."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 16,
+        "water_every_days": 1,
+        "water_note": "Keep evenly moist."
+      },
+      {
+        "stage": "vegetative",
+        "days": 21,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Keep soil evenly moist, watering at the base."
+      },
+      {
+        "stage": "flowering",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water at the base; never let the soil dry out."
+      },
+      {
+        "stage": "fruiting",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 1,
+        "water_note": "Water often, as fruit is mostly water."
+      },
+      {
+        "stage": "harvest",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 1,
+        "water_note": "Pick every few days and keep watering."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/Cucumis_sativus_0001.JPG/330px-Cucumis_sativus_0001.JPG",
+      "page": "https://commons.wikimedia.org/wiki/File:Cucumis_sativus_0001.JPG",
+      "author": "H. Zell",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/cucumbers/grow-your-own"
+    ]
+  },
+  {
+    "id": "daikon",
+    "name": "Daikon",
+    "scientific": "Raphanus sativus var. longipinnatus",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "long_day",
+    "note": "Daikon grows best in the short, cool days of autumn and tends to bolt in long, warm days, so keep light to about 11 to 12 hours.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 5,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Seeds sprout within about a week; keep moist."
+      },
+      {
+        "stage": "seedling",
+        "days": 10,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Thin to 10 to 15 cm apart."
+      },
+      {
+        "stage": "vegetative",
+        "days": 20,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Even, moderate moisture builds the leaf."
+      },
+      {
+        "stage": "fruiting",
+        "days": 30,
+        "light_hours": 11,
+        "water_every_days": 3,
+        "water_note": "Root bulking: steady moisture avoids forked or cracked roots."
+      },
+      {
+        "stage": "harvest",
+        "days": 7,
+        "light_hours": 11,
+        "water_every_days": 4,
+        "water_note": "Pull when roots reach the variety size, usually 40 to 70 days from sowing."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Daikon_in_field.jpg/330px-Daikon_in_field.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Daikon_in_field.jpg",
+      "author": "Ctg4Rahat",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://extension.umd.edu/resource/growing-radishes-home-garden"
+    ]
+  },
+  {
+    "id": "dry_common_bean",
+    "name": "Dry common bean (kidney, black, pinto)",
+    "scientific": "Phaseolus vulgaris",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "day_neutral",
+    "note": "Grown to full pod maturity so the seeds dry on the plant.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 12,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 30,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 12,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Do not let the mix dry out now; water stress drops flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 35,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 20,
+        "light_hours": 12,
+        "water_every_days": 6,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Starr-090421-6288-Phaseolus_vulgaris-crop-Pukalani-Maui_%2824926120406%29.jpg/330px-Starr-090421-6288-Phaseolus_vulgaris-crop-Pukalani-Maui_%2824926120406%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Starr-090421-6288-Phaseolus_vulgaris-crop-Pukalani-Maui_(24926120406).jpg",
+      "author": "Forest and Kim Starr",
+      "license": "CC BY 3.0 us"
+    },
+    "sources": [
+      "https://hort.purdue.edu/newcrop/duke_energy/Phaseolus_vulgaris.html"
+    ]
+  },
+  {
+    "id": "eggplant",
+    "name": "Eggplant",
+    "scientific": "Solanum melongena",
+    "group": "vegetable",
+    "family": "Solanaceae",
+    "photoperiod": "day_neutral",
+    "note": "Day length barely matters; it needs at least 21 C to germinate and a long warm season.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 12,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep at 21 C or warmer and evenly moist."
+      },
+      {
+        "stage": "seedling",
+        "days": 40,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water when the top of the compost feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 30,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Keep soil steadily moist; do not let it dry out."
+      },
+      {
+        "stage": "flowering",
+        "days": 25,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Keep moisture steady; hand-pollinate if there are no insects."
+      },
+      {
+        "stage": "fruiting",
+        "days": 50,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water regularly while fruit swells."
+      },
+      {
+        "stage": "harvest",
+        "days": 40,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Keep watering steadily; pick when glossy."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Solanum_melongena_24_08_2012_%281%29.JPG/330px-Solanum_melongena_24_08_2012_%281%29.JPG",
+      "page": "https://commons.wikimedia.org/wiki/File:Solanum_melongena_24_08_2012_(1).JPG",
+      "author": "Joydeep",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/aubergines/grow-your-own"
+    ]
+  },
+  {
+    "id": "endive",
+    "name": "Endive",
+    "scientific": "Cichorium endivia",
+    "group": "vegetable",
+    "family": "Asteraceae",
+    "photoperiod": "long_day",
+    "note": "Endive bolts after cold exposure when young and in dry or hot conditions.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Keep evenly moist; dry soil can trigger bolting."
+      },
+      {
+        "stage": "vegetative",
+        "days": 35,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water regularly, especially in warm weather."
+      },
+      {
+        "stage": "harvest",
+        "days": 35,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Cut leaves after about a month, or whole heads after about three months."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Cichorium_endivia_kz01.jpg/330px-Cichorium_endivia_kz01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Cichorium_endivia_kz01.jpg",
+      "author": "Krzysztof Ziarnek, Kenraiz",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/endive/grow-your-own"
+    ]
+  },
+  {
+    "id": "fennel",
+    "name": "Fennel (Florence)",
+    "scientific": "Foeniculum vulgare var. azoricum",
+    "group": "vegetable",
+    "family": "Apiaceae",
+    "photoperiod": "long_day",
+    "note": "Florence fennel tends to bolt when days lengthen, when roots are disturbed or when it is cold or dry, so keep light to about 12 hours.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 10,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Sow one seed per module and keep moist; seedlings do not like root disturbance."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Keep soil moist and avoid root disturbance."
+      },
+      {
+        "stage": "vegetative",
+        "days": 35,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Never let the soil dry out; water regularly and generously."
+      },
+      {
+        "stage": "fruiting",
+        "days": 28,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Bulb swelling at the stem base: steady moisture helps and a mulch holds it in."
+      },
+      {
+        "stage": "harvest",
+        "days": 7,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Cut when the bulb is 10 to 15 cm across, or from about 5 cm for small ones."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/Knollenfenchel_%28Foeniculum_vulgare_var._azoricum%29_Pflanzen%2C_Josef_Schlaghecken.jpg/330px-Knollenfenchel_%28Foeniculum_vulgare_var._azoricum%29_Pflanzen%2C_Josef_Schlaghecken.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Knollenfenchel_(Foeniculum_vulgare_var._azoricum)_Pflanzen,_Josef_Schlaghecken.jpg",
+      "author": "Schlaghecken Josef",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/florence-fennel/grow-your-own"
+    ]
+  },
+  {
+    "id": "garden_pea",
+    "name": "Garden pea",
+    "scientific": "Pisum sativum",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "long_day",
+    "note": "Cool-season climber that grows best in long days and mild temperatures.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 12,
+        "light_hours": 15,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 25,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 10,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Do not let the mix dry out now; water stress drops flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 20,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 10,
+        "light_hours": 14,
+        "water_every_days": 4,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Pisum_sativum_Kelvedon_Wonder_%28garden_pea%29_%28SaatPilot%29.jpg/330px-Pisum_sativum_Kelvedon_Wonder_%28garden_pea%29_%28SaatPilot%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Pisum_sativum_Kelvedon_Wonder_(garden_pea)_(SaatPilot).jpg",
+      "author": "Steffen Bauer (www.saatpilot.de)",
+      "license": "CC BY 4.0"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Photoperiodism"
+    ]
+  },
+  {
+    "id": "garlic",
+    "name": "Garlic",
+    "scientific": "Allium sativum",
+    "group": "vegetable",
+    "family": "Amaryllidaceae",
+    "photoperiod": "long_day",
+    "note": "Garlic bulbs swell as days lengthen after cloves have had about one to two months of cold at 0 to 10 C.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 21,
+        "light_hours": 0,
+        "water_every_days": 7,
+        "water_note": "Plant cloves pointed end up and keep just moist; use light only once shoots show."
+      },
+      {
+        "stage": "vegetative",
+        "days": 120,
+        "light_hours": 12,
+        "water_every_days": 7,
+        "water_note": "Slow cool-season leaf growth; water only in dry spells."
+      },
+      {
+        "stage": "fruiting",
+        "days": 90,
+        "light_hours": 14,
+        "water_every_days": 6,
+        "water_note": "Bulbing: long days drive bulb swelling. Water in dry spells to improve bulb size."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 14,
+        "water_note": "Stop watering once the leaves yellow, then lift and dry the bulbs."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/Aglio_aprile.jpg/330px-Aglio_aprile.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Aglio_aprile.jpg",
+      "author": "Perito Francesco",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/garlic/grow-your-own",
+      "https://extension.umd.edu/resource/growing-garlic-home-garden"
+    ]
+  },
+  {
+    "id": "globe_artichoke",
+    "name": "Globe artichoke",
+    "scientific": "Cynara cardunculus var. scolymus",
+    "group": "vegetable",
+    "family": "Asteraceae",
+    "photoperiod": "day_neutral",
+    "note": "Seed-grown plants usually need a cool spell before budding, and crop mainly from the second summer.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 14,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist, not soggy."
+      },
+      {
+        "stage": "seedling",
+        "days": 50,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Keep evenly moist."
+      },
+      {
+        "stage": "vegetative",
+        "days": 100,
+        "light_hours": 14,
+        "water_every_days": 4,
+        "water_note": "Water regularly in the first season."
+      },
+      {
+        "stage": "flowering",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 4,
+        "water_note": "Water more as flower buds form; drought gives small buds."
+      },
+      {
+        "stage": "fruiting",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 4,
+        "water_note": "Water during dry spells so buds reach full size."
+      },
+      {
+        "stage": "harvest",
+        "days": 60,
+        "light_hours": 14,
+        "water_every_days": 5,
+        "water_note": "Established plants cope with drier soil; water in prolonged heat."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/Globe_artichoke_Cynara_cardunculus_at_Riverside_Moorings%2C_Shoreham%2C_West_Sussex%2C_England.jpg/330px-Globe_artichoke_Cynara_cardunculus_at_Riverside_Moorings%2C_Shoreham%2C_West_Sussex%2C_England.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Globe_artichoke_Cynara_cardunculus_at_Riverside_Moorings,_Shoreham,_West_Sussex,_England.jpg",
+      "author": "Acabashi",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/globe-artichokes/grow-your-own"
+    ]
+  },
+  {
+    "id": "green_onion",
+    "name": "Green onion (scallion)",
+    "scientific": "Allium fistulosum",
+    "group": "vegetable",
+    "family": "Amaryllidaceae",
+    "photoperiod": "day_neutral",
+    "note": "Green onions are grown for their leaves and do not form bulbs, so day length matters little; about 12 to 14 hours suits them.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 10,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the seedbed moist; germination takes a few days when warm."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Thin to about 5 cm apart."
+      },
+      {
+        "stage": "vegetative",
+        "days": 28,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Roots are shallow, so water often and lightly."
+      },
+      {
+        "stage": "fruiting",
+        "days": 7,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Stems thicken a little; keep moisture even."
+      },
+      {
+        "stage": "harvest",
+        "days": 7,
+        "light_hours": 12,
+        "water_every_days": 4,
+        "water_note": "Cut or pull when stems are pencil thick, usually 60 to 70 days after sowing."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Allium_fistulosum_2017-06-06_2875.jpg/330px-Allium_fistulosum_2017-06-06_2875.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Allium_fistulosum_2017-06-06_2875.jpg",
+      "author": "Salicyna",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://extension.umd.edu/resource/growing-onions-home-garden",
+      "https://www.rhs.org.uk/vegetables/onions/grow-your-own"
+    ]
+  },
+  {
+    "id": "horseradish",
+    "name": "Horseradish",
+    "scientific": "Armoracia rusticana",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "day_neutral",
+    "note": "Horseradish is a hardy perennial grown from root cuttings; it needs a cool rest and is not driven by day length.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 21,
+        "light_hours": 0,
+        "water_every_days": 5,
+        "water_note": "Plant root cuttings with the top 5 cm below the surface; keep just moist. Light only once shoots show."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 4,
+        "water_note": "Water until the new leaves are established."
+      },
+      {
+        "stage": "vegetative",
+        "days": 90,
+        "light_hours": 14,
+        "water_every_days": 5,
+        "water_note": "Water containers through the season; in-ground plants need water only in dry spells in year one."
+      },
+      {
+        "stage": "fruiting",
+        "days": 90,
+        "light_hours": 12,
+        "water_every_days": 6,
+        "water_note": "Root thickening: moisture in dry spells; established plants need little extra."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 14,
+        "water_note": "Lift in autumn or early winter, after frost."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/20170404Armoracia_rusticana1.jpg/330px-20170404Armoracia_rusticana1.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:20170404Armoracia_rusticana1.jpg",
+      "author": "AnRo0002",
+      "license": "CC0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/horseradish/grow-your-own"
+    ]
+  },
+  {
+    "id": "kale",
+    "name": "Kale",
+    "scientific": "Brassica oleracea var. sabellica",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "day_neutral",
+    "note": "Kale is a biennial and does not bolt in its first season, so it tolerates any day length.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water seedlings regularly so the compost never dries out."
+      },
+      {
+        "stage": "vegetative",
+        "days": 45,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water when the top of the compost feels dry."
+      },
+      {
+        "stage": "harvest",
+        "days": 60,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Pick two or three lower leaves at a time."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/Kale-6498.jpg/330px-Kale-6498.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Kale-6498.jpg",
+      "author": "Loadmaster (David R. Tribble)",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/kale/grow-your-own"
+    ]
+  },
+  {
+    "id": "kohlrabi",
+    "name": "Kohlrabi",
+    "scientific": "Brassica oleracea var. gongylodes",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "day_neutral",
+    "note": "Kohlrabi is not day-length sensitive; cold below about 10 C or dry soil causes bolting and woody bulbs.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water seedlings regularly until well rooted."
+      },
+      {
+        "stage": "vegetative",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Keep the soil consistently moist, especially in warm weather."
+      },
+      {
+        "stage": "harvest",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Harvest at golf-ball to tennis-ball size; dry soil makes bulbs woody."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Brassica_oleracea_var._gongylodes_%28kohlrabi%29.jpg/330px-Brassica_oleracea_var._gongylodes_%28kohlrabi%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Brassica_oleracea_var._gongylodes_(kohlrabi).jpg",
+      "author": "Unknown",
+      "license": "CC0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/kohl-rabi/grow-your-own"
+    ]
+  },
+  {
+    "id": "leek",
+    "name": "Leek",
+    "scientific": "Allium ampeloprasum var. porrum",
+    "group": "vegetable",
+    "family": "Amaryllidaceae",
+    "photoperiod": "day_neutral",
+    "note": "Leeks are grown for their white shaft and are not sensitive to day length, but they are shallow rooted and need steady water.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 14,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Sow thinly and keep the seed tray moist."
+      },
+      {
+        "stage": "seedling",
+        "days": 56,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Plant out when about 20 cm tall and pencil thick, after about 8 weeks."
+      },
+      {
+        "stage": "vegetative",
+        "days": 90,
+        "light_hours": 14,
+        "water_every_days": 4,
+        "water_note": "Regular watering matters, since roots are shallow."
+      },
+      {
+        "stage": "fruiting",
+        "days": 30,
+        "light_hours": 12,
+        "water_every_days": 4,
+        "water_note": "Shaft thickening: keep moisture even."
+      },
+      {
+        "stage": "harvest",
+        "days": 7,
+        "light_hours": 12,
+        "water_every_days": 7,
+        "water_note": "Baby leeks take a couple of months; full size about 100 to 120 days after planting."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Leeks_plant_in_a_pot_15.jpg/330px-Leeks_plant_in_a_pot_15.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Leeks_plant_in_a_pot_15.jpg",
+      "author": "Netha Hussain",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/leeks/grow-your-own",
+      "https://extension.umd.edu/resource/growing-leeks-home-garden"
+    ]
+  },
+  {
+    "id": "lentil",
+    "name": "Lentil",
+    "scientific": "Lens culinaris",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "long_day",
+    "note": "Small cool-season legume that cannot stand waterlogged soil.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 3,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 15,
+        "water_every_days": 4,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 35,
+        "light_hours": 16,
+        "water_every_days": 4,
+        "water_note": "This crop tolerates some dryness; let the top 3 cm dry between waterings."
+      },
+      {
+        "stage": "flowering",
+        "days": 18,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water steadily at flowering; drought now cuts yield."
+      },
+      {
+        "stage": "fruiting",
+        "days": 30,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 6,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/Lentil_plants.jpg/330px-Lentil_plants.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Lentil_plants.jpg",
+      "author": "ChriKo",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Lentil"
+    ]
+  },
+  {
+    "id": "lettuce",
+    "name": "Lettuce",
+    "scientific": "Lactuca sativa",
+    "group": "vegetable",
+    "family": "Asteraceae",
+    "photoperiod": "long_day",
+    "note": "Long days and warmth push lettuce to bolt, so 14 hours is a sensible ceiling indoors.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 5,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water lightly every other day; never let seedlings dry out."
+      },
+      {
+        "stage": "vegetative",
+        "days": 21,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Keep the root zone steadily moist. Water early in the day."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Pick leaves or heads promptly; uneven watering and heat cause bitterness."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Lettuce_%28Lactuca_sativa%29_growing_in_a_pot.jpg/330px-Lettuce_%28Lactuca_sativa%29_growing_in_a_pot.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Lettuce_(Lactuca_sativa)_growing_in_a_pot.jpg",
+      "author": "999real",
+      "license": "CC0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/lettuce/grow-your-own"
+    ]
+  },
+  {
+    "id": "lima_bean",
+    "name": "Lima bean",
+    "scientific": "Phaseolus lunatus",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "day_neutral",
+    "note": "Needs more warmth than common beans and matures slowly.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 10,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 25,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 12,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Do not let the mix dry out now; water stress drops flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 20,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 10,
+        "light_hours": 12,
+        "water_every_days": 5,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Starr_060928-0434_Phaseolus_lunatus.jpg/330px-Starr_060928-0434_Phaseolus_lunatus.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Starr_060928-0434_Phaseolus_lunatus.jpg",
+      "author": "Forest &amp; Kim Starr",
+      "license": "CC BY 3.0"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Lima_bean"
+    ]
+  },
+  {
+    "id": "lupin_bean",
+    "name": "Lupin bean (white lupin)",
+    "scientific": "Lupinus albus",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "long_day",
+    "note": "Edible-seed lupin that likes cool conditions and well-drained mix.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 3,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 15,
+        "water_every_days": 4,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 50,
+        "light_hours": 16,
+        "water_every_days": 4,
+        "water_note": "This crop tolerates some dryness; let the top 3 cm dry between waterings."
+      },
+      {
+        "stage": "flowering",
+        "days": 20,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water steadily at flowering; drought now cuts yield."
+      },
+      {
+        "stage": "fruiting",
+        "days": 45,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 15,
+        "light_hours": 14,
+        "water_every_days": 6,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/Portrait_fleur_lupin86.JPG/330px-Portrait_fleur_lupin86.JPG",
+      "page": "https://commons.wikimedia.org/wiki/File:Portrait_fleur_lupin86.JPG",
+      "author": "Regissierra",
+      "license": "Public domain"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Lupinus_albus"
+    ]
+  },
+  {
+    "id": "mung_bean",
+    "name": "Mung bean",
+    "scientific": "Vigna radiata",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "short_day",
+    "note": "Quick warm-season bean that flowers best in shorter days.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 5,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 10,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 20,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 12,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Do not let the mix dry out now; water stress drops flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 25,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 10,
+        "light_hours": 12,
+        "water_every_days": 5,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Vigna_radiata20230627_20775.jpg/330px-Vigna_radiata20230627_20775.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Vigna_radiata20230627_20775.jpg",
+      "author": "Bff",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Photoperiodism"
+    ]
+  },
+  {
+    "id": "mustard_greens",
+    "name": "Mustard greens",
+    "scientific": "Brassica juncea",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "long_day",
+    "note": "Mustard greens bolt fast in long days and heat, so keep light short and the root zone moist.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 4,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 10,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Keep evenly moist."
+      },
+      {
+        "stage": "vegetative",
+        "days": 20,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Keep the soil moist; dry soil speeds bolting."
+      },
+      {
+        "stage": "harvest",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Cut young leaves often; mature leaves turn hot and tough."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Brassica_juncea_var._juncea.JPG/330px-Brassica_juncea_var._juncea.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Brassica_juncea_var._juncea.JPG",
+      "author": "Dalgial",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/pak-choi/grow-your-own"
+    ]
+  },
+  {
+    "id": "napa_cabbage",
+    "name": "Napa cabbage",
+    "scientific": "Brassica rapa subsp. pekinensis",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "long_day",
+    "note": "Napa cabbage bolts in long days and cold or heat stress, so use shorter light periods.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Keep the surface evenly moist."
+      },
+      {
+        "stage": "vegetative",
+        "days": 35,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Keep the soil moist to deter early flowering."
+      },
+      {
+        "stage": "harvest",
+        "days": 25,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Heads are ready about 10 weeks after sowing."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Brassica_rapa_subsp._pekinensis_%27Manoko%27_kz01.jpg/330px-Brassica_rapa_subsp._pekinensis_%27Manoko%27_kz01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Brassica_rapa_subsp._pekinensis_%27Manoko%27_kz01.jpg",
+      "author": "Krzysztof Ziarnek, Kenraiz",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/pak-choi/grow-your-own"
+    ]
+  },
+  {
+    "id": "okra",
+    "name": "Okra",
+    "scientific": "Abelmoschus esculentus",
+    "group": "vegetable",
+    "family": "Malvaceae",
+    "photoperiod": "short_day",
+    "note": "Many okra varieties flower sooner under shorter days; it needs heat and warm soil above 20 C.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Soak seeds overnight; keep warm and evenly moist."
+      },
+      {
+        "stage": "seedling",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water generously while young."
+      },
+      {
+        "stage": "vegetative",
+        "days": 30,
+        "light_hours": 13,
+        "water_every_days": 3,
+        "water_note": "Water when the top soil is dry; mature plants tolerate some drought."
+      },
+      {
+        "stage": "flowering",
+        "days": 20,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Keep moisture steady while flowers open."
+      },
+      {
+        "stage": "fruiting",
+        "days": 25,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Water regularly while pods form."
+      },
+      {
+        "stage": "harvest",
+        "days": 60,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Pick pods young (5 to 10 cm) and keep watering."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/26/Okra_%28Abelmoschus_esculentus%29_Feb_2019._DSC_0060_01.jpg/330px-Okra_%28Abelmoschus_esculentus%29_Feb_2019._DSC_0060_01.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Okra_(Abelmoschus_esculentus)_Feb_2019._DSC_0060_01.jpg",
+      "author": "ADARSHluck",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/okra/grow-your-own",
+      "https://en.wikipedia.org/wiki/Okra"
+    ]
+  },
+  {
+    "id": "onion",
+    "name": "Onion",
+    "scientific": "Allium cepa",
+    "group": "vegetable",
+    "family": "Amaryllidaceae",
+    "photoperiod": "long_day",
+    "note": "Onions come as long-day, intermediate and short-day varieties that start bulbing at roughly 15 to 16, 13 to 14 and 11 to 12 hours of daylight, so pick the type to match your light plan.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 14,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Seed sprouts in about two weeks when warm; keep the surface moist."
+      },
+      {
+        "stage": "seedling",
+        "days": 28,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Thin to about 5 cm apart and keep soil moist."
+      },
+      {
+        "stage": "vegetative",
+        "days": 56,
+        "light_hours": 14,
+        "water_every_days": 4,
+        "water_note": "Strong leafy growth now decides bulb size."
+      },
+      {
+        "stage": "fruiting",
+        "days": 56,
+        "light_hours": 14,
+        "water_every_days": 5,
+        "water_note": "Bulb enlargement: the longer day triggers bulbing. Bulb size follows the water given, so keep it ample."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 14,
+        "water_note": "Stop watering once tops fall over, then dry the bulbs."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/-2021-06-08_Onion_plants%2C_Trimingham.JPG/330px--2021-06-08_Onion_plants%2C_Trimingham.JPG",
+      "page": "https://commons.wikimedia.org/wiki/File:-2021-06-08_Onion_plants,_Trimingham.JPG",
+      "author": "Kolforn",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://extension.umd.edu/resource/growing-onions-home-garden",
+      "https://www.rhs.org.uk/vegetables/onions/grow-your-own"
+    ]
+  },
+  {
+    "id": "parsnip",
+    "name": "Parsnip",
+    "scientific": "Pastinaca sativa",
+    "group": "vegetable",
+    "family": "Apiaceae",
+    "photoperiod": "day_neutral",
+    "note": "Parsnips are slow to sprout and need a long, cool season; day length does not drive root formation.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 21,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Sprouting takes 14 to 30 days; keep the surface moist and use fresh seed."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Thin to about 15 cm apart."
+      },
+      {
+        "stage": "vegetative",
+        "days": 56,
+        "light_hours": 14,
+        "water_every_days": 5,
+        "water_note": "Water young plants in dry spells until established."
+      },
+      {
+        "stage": "fruiting",
+        "days": 70,
+        "light_hours": 12,
+        "water_every_days": 6,
+        "water_note": "Root bulking: keep soil evenly moist to stop roots splitting."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 10,
+        "water_note": "Lift after leaves die back; a frost improves flavour."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Pastinaca_sativa_%27wild_parsnip%27_2007-06-02_%28plant%29.JPG/330px-Pastinaca_sativa_%27wild_parsnip%27_2007-06-02_%28plant%29.JPG",
+      "page": "https://commons.wikimedia.org/wiki/File:Pastinaca_sativa_%27wild_parsnip%27_2007-06-02_(plant).JPG",
+      "author": "Magnus Manske",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/parsnips"
+    ]
+  },
+  {
+    "id": "peanut",
+    "name": "Peanut",
+    "scientific": "Arachis hypogaea",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "day_neutral",
+    "note": "Needs a long warm season; its pods form underground.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 3,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 35,
+        "light_hours": 16,
+        "water_every_days": 4,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 25,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Keep moist while flowers peg into the soil; loose, light mix helps."
+      },
+      {
+        "stage": "fruiting",
+        "days": 60,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Pods form underground, so keep the mix evenly moist but never waterlogged."
+      },
+      {
+        "stage": "harvest",
+        "days": 15,
+        "light_hours": 12,
+        "water_every_days": 6,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Arachis_hypogaea_003.JPG/330px-Arachis_hypogaea_003.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Arachis_hypogaea_003.JPG",
+      "author": "H. Zell",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Peanut"
+    ]
+  },
+  {
+    "id": "pigeon_pea",
+    "name": "Pigeon pea",
+    "scientific": "Cajanus cajan",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "short_day",
+    "note": "Very drought-tolerant shrub; many types flower only as days shorten.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 3,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 16,
+        "water_every_days": 4,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 60,
+        "light_hours": 16,
+        "water_every_days": 5,
+        "water_note": "This crop tolerates some dryness; let the top 3 cm dry between waterings."
+      },
+      {
+        "stage": "flowering",
+        "days": 30,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Water steadily at flowering; drought now cuts yield."
+      },
+      {
+        "stage": "fruiting",
+        "days": 60,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 20,
+        "light_hours": 12,
+        "water_every_days": 7,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/64/Cajanus_cajan_plant.jpg/330px-Cajanus_cajan_plant.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Cajanus_cajan_plant.jpg",
+      "author": "Vinayaraj",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Pigeon_pea"
+    ]
+  },
+  {
+    "id": "pole_bean",
+    "name": "Pole bean",
+    "scientific": "Phaseolus vulgaris",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "day_neutral",
+    "note": "Climbing snap bean that needs a trellis and crops for longer than bush types.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 12,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 30,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 12,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Do not let the mix dry out now; water stress drops flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 18,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 30,
+        "light_hours": 12,
+        "water_every_days": 4,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Climbing_beans_growing_in_the_North_Kivu_%284%29.jpg/330px-Climbing_beans_growing_in_the_North_Kivu_%284%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Climbing_beans_growing_in_the_North_Kivu_(4).jpg",
+      "author": "Neil Palmer (CIAT)",
+      "license": "CC BY-SA 2.0"
+    },
+    "sources": [
+      "https://hort.purdue.edu/newcrop/duke_energy/Phaseolus_vulgaris.html"
+    ]
+  },
+  {
+    "id": "potato",
+    "name": "Potato",
+    "scientific": "Solanum tuberosum",
+    "group": "vegetable",
+    "family": "Solanaceae",
+    "photoperiod": "short_day",
+    "note": "Potatoes form tubers best in shorter days, and very long days delay tuber formation; the exact limit depends on the variety.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 28,
+        "light_hours": 0,
+        "water_every_days": 5,
+        "water_note": "Sprout seed tubers in the dark at room temperature, then move to light so sprouts stay short."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Keep soil lightly moist; cold wet soil rots seed pieces."
+      },
+      {
+        "stage": "vegetative",
+        "days": 28,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Hill soil around the stems once the tops are well grown."
+      },
+      {
+        "stage": "flowering",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Flowering marks the start of heavy tuber growth; do not let the soil dry out."
+      },
+      {
+        "stage": "fruiting",
+        "days": 35,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Tuber bulking: even watering avoids cracks and misshapen tubers; keep soil below about 27 C."
+      },
+      {
+        "stage": "harvest",
+        "days": 7,
+        "light_hours": 12,
+        "water_every_days": 10,
+        "water_note": "Stop watering as the tops die back, then lift."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/-2018-09-04_Flowering_potato_plant%2C_Trimingham%2C_Norfolk.JPG/330px--2018-09-04_Flowering_potato_plant%2C_Trimingham%2C_Norfolk.JPG",
+      "page": "https://commons.wikimedia.org/wiki/File:-2018-09-04_Flowering_potato_plant,_Trimingham,_Norfolk.JPG",
+      "author": "Kolforn",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://extension.umd.edu/resource/growing-potatoes-home-garden",
+      "https://www.rhs.org.uk/vegetables/potatoes/grow-your-own"
+    ]
+  },
+  {
+    "id": "pumpkin",
+    "name": "Pumpkin",
+    "scientific": "Cucurbita pepo",
+    "group": "vegetable",
+    "family": "Cucurbitaceae",
+    "photoperiod": "day_neutral",
+    "note": "Day length barely matters; it needs a long, hot season and lots of room.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist, not soggy."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Keep evenly moist."
+      },
+      {
+        "stage": "vegetative",
+        "days": 35,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Water generously at the base."
+      },
+      {
+        "stage": "flowering",
+        "days": 20,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Pollinate by hand indoors."
+      },
+      {
+        "stage": "fruiting",
+        "days": 50,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Water generously, especially while fruit swells."
+      },
+      {
+        "stage": "harvest",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 7,
+        "water_note": "Cut back watering as fruits ripen and cure."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Growing_pumpkin_vegetable_%40home.jpg/330px-Growing_pumpkin_vegetable_%40home.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Growing_pumpkin_vegetable_@home.jpg",
+      "author": "IfeFavour",
+      "license": "CC0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/pumpkins/grow-your-own"
+    ]
+  },
+  {
+    "id": "radish",
+    "name": "Radish",
+    "scientific": "Raphanus sativus",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "long_day",
+    "note": "Radish roots form quickly, but long days and warmth make it bolt, so cap light at about 12 hours.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 4,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Seeds sprout in a few days; keep moist."
+      },
+      {
+        "stage": "seedling",
+        "days": 7,
+        "light_hours": 12,
+        "water_every_days": 1,
+        "water_note": "Water daily so the seedlings never dry out."
+      },
+      {
+        "stage": "vegetative",
+        "days": 10,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Even moisture keeps roots crisp."
+      },
+      {
+        "stage": "fruiting",
+        "days": 10,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Root bulking: dry spells make roots woody and hot."
+      },
+      {
+        "stage": "harvest",
+        "days": 3,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Pull at about 2.5 cm across, before they crack."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Radish_3371103037_4ab07db0bf_o.jpg/330px-Radish_3371103037_4ab07db0bf_o.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Radish_3371103037_4ab07db0bf_o.jpg",
+      "author": "Self, en:User:Jengod",
+      "license": "Public domain"
+    },
+    "sources": [
+      "https://extension.umd.edu/resource/growing-radishes-home-garden"
+    ]
+  },
+  {
+    "id": "runner_bean",
+    "name": "Runner bean",
+    "scientific": "Phaseolus coccineus",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "day_neutral",
+    "note": "Thirsty climbing bean that needs plenty of water once it flowers.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 10,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 35,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Do not let the mix dry out now; water stress drops flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 21,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 30,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/-2019-07-02_Runner_beans_plants_in_flower_%28Phaseolus_coccineus%29%2C_Trimingham%2C_Norfolk_%282%29.JPG/330px--2019-07-02_Runner_beans_plants_in_flower_%28Phaseolus_coccineus%29%2C_Trimingham%2C_Norfolk_%282%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:-2019-07-02_Runner_beans_plants_in_flower_(Phaseolus_coccineus),_Trimingham,_Norfolk_(2).JPG",
+      "author": "Kolforn",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/runner-beans/grow-your-own"
+    ]
+  },
+  {
+    "id": "rutabaga",
+    "name": "Rutabaga (swede)",
+    "scientific": "Brassica napus subsp. rapifera",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "day_neutral",
+    "note": "Rutabaga is a slow, cool-season root that does not depend on day length, but it dislikes drying out.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the seedbed moist; light at 0 until shoots show."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Water regularly until well rooted."
+      },
+      {
+        "stage": "vegetative",
+        "days": 42,
+        "light_hours": 13,
+        "water_every_days": 4,
+        "water_note": "Keep soil evenly moist so roots do not turn bitter."
+      },
+      {
+        "stage": "fruiting",
+        "days": 70,
+        "light_hours": 12,
+        "water_every_days": 4,
+        "water_note": "Root bulking: a dry spell can split or toughen roots."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 7,
+        "water_note": "Maturity can take up to about 6 months from sowing."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Swede_Crop_near_Peekhill_-_geograph.org.uk_-_1078846.jpg/330px-Swede_Crop_near_Peekhill_-_geograph.org.uk_-_1078846.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Swede_Crop_near_Peekhill_-_geograph.org.uk_-_1078846.jpg",
+      "author": "Tony Atkin",
+      "license": "CC BY-SA 2.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/swede/grow-your-own"
+    ]
+  },
+  {
+    "id": "shallot",
+    "name": "Shallot",
+    "scientific": "Allium cepa Aggregatum Group",
+    "group": "vegetable",
+    "family": "Amaryllidaceae",
+    "photoperiod": "long_day",
+    "note": "Shallots bulb like onions, triggered by lengthening days, and form a cluster of small bulbs from each planted set.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 14,
+        "light_hours": 0,
+        "water_every_days": 5,
+        "water_note": "Plant sets with the tip just showing; sprouting takes about two weeks. Light only once shoots show."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 4,
+        "water_note": "Keep soil lightly moist; established plants need little water."
+      },
+      {
+        "stage": "vegetative",
+        "days": 42,
+        "light_hours": 14,
+        "water_every_days": 5,
+        "water_note": "Leaf growth: water only in prolonged dry spells."
+      },
+      {
+        "stage": "fruiting",
+        "days": 42,
+        "light_hours": 14,
+        "water_every_days": 6,
+        "water_note": "Bulb swelling: water in dry spells, then stop once bulbs have swollen."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 14,
+        "water_note": "Harvest when the foliage yellows and flops over, then dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/A._cepa_var._aggregatum_conreu.JPG/330px-A._cepa_var._aggregatum_conreu.JPG",
+      "page": "https://commons.wikimedia.org/wiki/File:A._cepa_var._aggregatum_conreu.JPG",
+      "author": "Victor M. Vicente Selvas",
+      "license": "Public domain"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/shallots/grow-your-own"
+    ]
+  },
+  {
+    "id": "snow_pea",
+    "name": "Snow pea",
+    "scientific": "Pisum sativum var. saccharatum",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "long_day",
+    "note": "Flat-podded pea picked young, before the seeds swell.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 12,
+        "light_hours": 15,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 25,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 10,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Do not let the mix dry out now; water stress drops flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 12,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Snow_Pea_on_Plant.JPG/330px-Snow_Pea_on_Plant.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Snow_Pea_on_Plant.JPG",
+      "author": "JS",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Photoperiodism"
+    ]
+  },
+  {
+    "id": "soybean",
+    "name": "Soybean (edamame)",
+    "scientific": "Glycine max",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "short_day",
+    "note": "Short-day plant: flowering starts once days drop below about 13 hours.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 10,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 30,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Do not let the mix dry out now; water stress drops flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 45,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 20,
+        "light_hours": 12,
+        "water_every_days": 5,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Starr-090611-0628-Glycine_max-plants_in_garden-Olinda-Maui_%2824964132405%29.jpg/330px-Starr-090611-0628-Glycine_max-plants_in_garden-Olinda-Maui_%2824964132405%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Starr-090611-0628-Glycine_max-plants_in_garden-Olinda-Maui_(24964132405).jpg",
+      "author": "Forest and Kim Starr",
+      "license": "CC BY 3.0 us"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Soybean",
+      "https://en.wikipedia.org/wiki/Photoperiodism"
+    ]
+  },
+  {
+    "id": "spinach",
+    "name": "Spinach",
+    "scientific": "Spinacia oleracea",
+    "group": "vegetable",
+    "family": "Amaranthaceae",
+    "photoperiod": "long_day",
+    "note": "Spinach bolts quickly in long days and heat, so keep light to about 12 hours.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Keep evenly moist; dry spells trigger bolting."
+      },
+      {
+        "stage": "vegetative",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Water regularly and keep cool."
+      },
+      {
+        "stage": "harvest",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Cut leaves as needed; the plant regrows."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Spinacia_oleracea_bd-1.jpg/330px-Spinacia_oleracea_bd-1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Spinacia_oleracea_bd-1.jpg",
+      "author": "Kayser Ahmad",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/spinach/grow-your-own"
+    ]
+  },
+  {
+    "id": "sugar_snap_pea",
+    "name": "Sugar snap pea",
+    "scientific": "Pisum sativum var. macrocarpon",
+    "group": "legume",
+    "family": "Fabaceae",
+    "photoperiod": "long_day",
+    "note": "Tall pea with plump, crisp, edible pods.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 2,
+        "water_note": "Keep the mix lightly moist, never soggy, so seeds do not rot."
+      },
+      {
+        "stage": "seedling",
+        "days": 12,
+        "light_hours": 15,
+        "water_every_days": 3,
+        "water_note": "Water gently when the top of the mix feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 28,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."
+      },
+      {
+        "stage": "flowering",
+        "days": 10,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Do not let the mix dry out now; water stress drops flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 18,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water is critical during pod fill, so keep it even."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Ease off watering as pods ripen and dry."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ef/Starr-080914-9941-Pisum_sativum_var_macrocarpum-snow_snap_peas_in_garden-Makawao-Maui_%2824557997529%29.jpg/330px-Starr-080914-9941-Pisum_sativum_var_macrocarpum-snow_snap_peas_in_garden-Makawao-Maui_%2824557997529%29.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Starr-080914-9941-Pisum_sativum_var_macrocarpum-snow_snap_peas_in_garden-Makawao-Maui_(24557997529).jpg",
+      "author": "Forest and Kim Starr",
+      "license": "CC BY 3.0 us"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Photoperiodism"
+    ]
+  },
+  {
+    "id": "sweet_corn",
+    "name": "Sweet corn",
+    "scientific": "Zea mays",
+    "group": "vegetable",
+    "family": "Poaceae",
+    "photoperiod": "day_neutral",
+    "note": "Temperate sweet corn is mostly day neutral, but tropical types flower late under long days.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist, not soggy."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Keep slightly moist."
+      },
+      {
+        "stage": "vegetative",
+        "days": 35,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water young plants in dry spells until established."
+      },
+      {
+        "stage": "flowering",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water well once tassels open and silks appear."
+      },
+      {
+        "stage": "fruiting",
+        "days": 21,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water well while cobs swell."
+      },
+      {
+        "stage": "harvest",
+        "days": 10,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Pick when silks turn brown and kernels are creamy."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Sweet_corn_field_at_Zenxin_Organic_Park.jpg/330px-Sweet_corn_field_at_Zenxin_Organic_Park.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Sweet_corn_field_at_Zenxin_Organic_Park.jpg",
+      "author": "Wee Hong",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/sweetcorn/grow-your-own"
+    ]
+  },
+  {
+    "id": "sweet_pepper",
+    "name": "Sweet pepper",
+    "scientific": "Capsicum annuum",
+    "group": "vegetable",
+    "family": "Solanaceae",
+    "photoperiod": "day_neutral",
+    "note": "Day length barely matters; peppers are slow to germinate and need warmth.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 12,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep warm (about 21 C) and evenly moist."
+      },
+      {
+        "stage": "seedling",
+        "days": 40,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water when the top of the compost feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 30,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Let the top of the compost dry slightly between waterings."
+      },
+      {
+        "stage": "flowering",
+        "days": 25,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Keep moisture even; stress drops the flowers."
+      },
+      {
+        "stage": "fruiting",
+        "days": 50,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water regularly while fruit swells."
+      },
+      {
+        "stage": "harvest",
+        "days": 40,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Keep watering moderately while picking."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Bell_Pepper_Plant_from_Senegal_01.jpg/330px-Bell_Pepper_Plant_from_Senegal_01.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Bell_Pepper_Plant_from_Senegal_01.jpg",
+      "author": "Wuzyprod",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/aubergines/grow-your-own"
+    ]
+  },
+  {
+    "id": "sweet_potato",
+    "name": "Sweet potato",
+    "scientific": "Ipomoea batatas",
+    "group": "vegetable",
+    "family": "Convolvulaceae",
+    "photoperiod": "short_day",
+    "note": "Sweet potato is a warm-season vine that flowers under short days and needs steady warmth of about 21 to 26 C to make roots.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 21,
+        "light_hours": 0,
+        "water_every_days": 3,
+        "water_note": "Sprout tubers in warm, damp compost to make slips; give light once shoots show."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Root slips in water or compost and keep them warm and bright."
+      },
+      {
+        "stage": "vegetative",
+        "days": 42,
+        "light_hours": 13,
+        "water_every_days": 3,
+        "water_note": "Vines grow fast; keep soil consistently moist."
+      },
+      {
+        "stage": "fruiting",
+        "days": 60,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Root bulking: keep soil moist, and containers may need watering daily in heat."
+      },
+      {
+        "stage": "harvest",
+        "days": 7,
+        "light_hours": 12,
+        "water_every_days": 10,
+        "water_note": "Harvest before frost, after about 4 to 5 months."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Starr-121220-1364-Ipomoea_batatas-leaves-Lua_Makika-Kahoolawe_%2824831414489%29.jpg/330px-Starr-121220-1364-Ipomoea_batatas-leaves-Lua_Makika-Kahoolawe_%2824831414489%29.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Starr-121220-1364-Ipomoea_batatas-leaves-Lua_Makika-Kahoolawe_(24831414489).jpg",
+      "author": "Forest and Kim Starr",
+      "license": "CC BY 3.0 us"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/sweet-potatoes/grow-your-own"
+    ]
+  },
+  {
+    "id": "swiss_chard",
+    "name": "Swiss chard",
+    "scientific": "Beta vulgaris subsp. vulgaris",
+    "group": "vegetable",
+    "family": "Amaranthaceae",
+    "photoperiod": "day_neutral",
+    "note": "Chard bolts mainly in hot weather in its first year and is not strongly day-length sensitive.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 10,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water young plants regularly until established."
+      },
+      {
+        "stage": "vegetative",
+        "days": 35,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Mature plants cope with some dryness but crop best when watered."
+      },
+      {
+        "stage": "harvest",
+        "days": 60,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Pick outer leaves and let the centre regrow."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f8/M%C3%BCnster%2C_Botanischer_Garten%2C_Mangold_--_2019_--_7369.jpg/330px-M%C3%BCnster%2C_Botanischer_Garten%2C_Mangold_--_2019_--_7369.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:M%C3%BCnster,_Botanischer_Garten,_Mangold_--_2019_--_7369.jpg",
+      "author": "Dietmar Rabich",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/chard/grow-your-own"
+    ]
+  },
+  {
+    "id": "tomatillo",
+    "name": "Tomatillo",
+    "scientific": "Physalis philadelphica",
+    "group": "vegetable",
+    "family": "Solanaceae",
+    "photoperiod": "day_neutral",
+    "note": "Plants are mostly self-incompatible, so grow at least two to set fruit.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist, not soggy."
+      },
+      {
+        "stage": "seedling",
+        "days": 35,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water when the top of the compost feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 30,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water once or twice a week, more in heat."
+      },
+      {
+        "stage": "flowering",
+        "days": 20,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Keep moisture steady; grow two or more plants for pollination."
+      },
+      {
+        "stage": "fruiting",
+        "days": 50,
+        "light_hours": 14,
+        "water_every_days": 3,
+        "water_note": "Aim for about 25 to 38 mm of water per week."
+      },
+      {
+        "stage": "harvest",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 4,
+        "water_note": "Pick when the husk is full and splitting."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/Physalis_philadelphica_sl34.jpg/330px-Physalis_philadelphica_sl34.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Physalis_philadelphica_sl34.jpg",
+      "author": "Stefan.lefnaer",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Tomatillo"
+    ]
+  },
+  {
+    "id": "tomato",
+    "name": "Tomato",
+    "scientific": "Solanum lycopersicum",
+    "group": "vegetable",
+    "family": "Solanaceae",
+    "photoperiod": "day_neutral",
+    "note": "Day length barely matters; it needs plenty of light and steady warmth.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 8,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist, not soggy."
+      },
+      {
+        "stage": "seedling",
+        "days": 30,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water when the top of the compost feels dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 25,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Water deeply and keep the soil evenly moist to avoid blossom end rot."
+      },
+      {
+        "stage": "flowering",
+        "days": 20,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Keep moisture steady and tap flowers to help pollination."
+      },
+      {
+        "stage": "fruiting",
+        "days": 45,
+        "light_hours": 14,
+        "water_every_days": 1,
+        "water_note": "Water regularly; uneven watering splits fruit."
+      },
+      {
+        "stage": "harvest",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Keep watering evenly while you pick ripe fruit."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/A_tomato_plant_growing_very_well.jpg/330px-A_tomato_plant_growing_very_well.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:A_tomato_plant_growing_very_well.jpg",
+      "author": "Nana Fatimah oyiza jatto",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/tomatoes/grow-your-own"
+    ]
+  },
+  {
+    "id": "turnip",
+    "name": "Turnip",
+    "scientific": "Brassica rapa subsp. rapa",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "day_neutral",
+    "note": "Turnips are not sensitive to day length, but dry spells and heat can make them woody or bolt.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 5,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Seed sprouts quickly; keep the surface moist."
+      },
+      {
+        "stage": "seedling",
+        "days": 10,
+        "light_hours": 12,
+        "water_every_days": 2,
+        "water_note": "Thin to about 10 cm apart."
+      },
+      {
+        "stage": "vegetative",
+        "days": 18,
+        "light_hours": 13,
+        "water_every_days": 3,
+        "water_note": "Water in dry weather; drought gives small woody roots."
+      },
+      {
+        "stage": "fruiting",
+        "days": 21,
+        "light_hours": 12,
+        "water_every_days": 3,
+        "water_note": "Root bulking: keep moisture even."
+      },
+      {
+        "stage": "harvest",
+        "days": 7,
+        "light_hours": 12,
+        "water_every_days": 5,
+        "water_note": "Harvest early types from about 6 weeks and maincrops from about 10 weeks."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Brassica_rapa_var._rapa_%2801%29.jpg/330px-Brassica_rapa_var._rapa_%2801%29.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Brassica_rapa_var._rapa_(01).jpg",
+      "author": "Rasbak",
+      "license": "CC BY-SA 3.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/turnips/grow-your-own"
+    ]
+  },
+  {
+    "id": "watercress",
+    "name": "Watercress",
+    "scientific": "Nasturtium officinale",
+    "group": "vegetable",
+    "family": "Brassicaceae",
+    "photoperiod": "long_day",
+    "note": "Watercress flowers in long days and then gets bitter; it needs constantly wet roots.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist until seedlings appear."
+      },
+      {
+        "stage": "seedling",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 1,
+        "water_note": "Keep the tray standing in shallow water; never let it dry."
+      },
+      {
+        "stage": "vegetative",
+        "days": 28,
+        "light_hours": 14,
+        "water_every_days": 1,
+        "water_note": "Roots must stay wet. Use a water-filled tray and change the water often."
+      },
+      {
+        "stage": "harvest",
+        "days": 21,
+        "light_hours": 14,
+        "water_every_days": 1,
+        "water_note": "Snip shoot tips regularly to delay flowering."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Watercress_%282%29.JPG/330px-Watercress_%282%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "page": "https://commons.wikimedia.org/wiki/File:Watercress_(2).JPG",
+      "author": "Masparasol",
+      "license": "CC BY 3.0"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Watercress"
+    ]
+  },
+  {
+    "id": "watermelon",
+    "name": "Watermelon",
+    "scientific": "Citrullus lanatus",
+    "group": "vegetable",
+    "family": "Cucurbitaceae",
+    "photoperiod": "day_neutral",
+    "note": "Day length barely matters; it needs heat above 25 C and plenty of sun.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep warm (above 21 C) and moist."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Keep evenly moist."
+      },
+      {
+        "stage": "vegetative",
+        "days": 30,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water deeply but less often."
+      },
+      {
+        "stage": "flowering",
+        "days": 20,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water at the base; hand-pollinate indoors."
+      },
+      {
+        "stage": "fruiting",
+        "days": 45,
+        "light_hours": 16,
+        "water_every_days": 3,
+        "water_note": "Water regularly while fruit swells."
+      },
+      {
+        "stage": "harvest",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 5,
+        "water_note": "Ease watering as fruit ripens for sweeter flavour."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Citrullus_lanatus_plant.jpg/330px-Citrullus_lanatus_plant.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Citrullus_lanatus_plant.jpg",
+      "author": "Mark Marathon",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://en.wikipedia.org/wiki/Watermelon"
+    ]
+  },
+  {
+    "id": "zucchini",
+    "name": "Zucchini",
+    "scientific": "Cucurbita pepo",
+    "group": "vegetable",
+    "family": "Cucurbitaceae",
+    "photoperiod": "day_neutral",
+    "note": "Day length barely matters; plants are large and thirsty.",
+    "stages": [
+      {
+        "stage": "germination",
+        "days": 7,
+        "light_hours": 0,
+        "water_every_days": 1,
+        "water_note": "Keep the surface evenly moist, not soggy."
+      },
+      {
+        "stage": "seedling",
+        "days": 21,
+        "light_hours": 16,
+        "water_every_days": 2,
+        "water_note": "Keep evenly moist."
+      },
+      {
+        "stage": "vegetative",
+        "days": 21,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water at the base of the plant."
+      },
+      {
+        "stage": "flowering",
+        "days": 14,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Water at the base; pollinate by hand indoors."
+      },
+      {
+        "stage": "fruiting",
+        "days": 30,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Keep soil consistently moist while fruit grows."
+      },
+      {
+        "stage": "harvest",
+        "days": 40,
+        "light_hours": 14,
+        "water_every_days": 2,
+        "water_note": "Pick when fruits are about 10 to 12 cm long."
+      }
+    ],
+    "photo": {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Zucchini_Plant.jpg/330px-Zucchini_Plant.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Zucchini_Plant.jpg",
+      "author": "Kjmms1",
+      "license": "CC BY-SA 4.0"
+    },
+    "sources": [
+      "https://www.rhs.org.uk/vegetables/courgettes/grow-your-own"
+    ]
+  }
+]

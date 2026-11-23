@@ -1,6 +1,7 @@
 {
   "domain": "grow_light",
   "name": "Grow light",
+  "after_dependencies": ["http"],
   "categories": ["helpers"],
   "codeowners": [],
   "config_flow": true,

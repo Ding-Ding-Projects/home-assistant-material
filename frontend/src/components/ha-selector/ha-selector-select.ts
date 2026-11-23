@@ -255,7 +255,10 @@ export class HaSelectSelector extends LitElement {
       `;
     }
 
-    if (this.selector.select?.custom_value) {
+    if (
+      this.selector.select?.custom_value ||
+      options.some((option) => option.image)
+    ) {
       return html`
         <ha-generic-picker
           no-sort
@@ -265,9 +268,9 @@ export class HaSelectSelector extends LitElement {
           .required=${this.required}
           .getItems=${this._getItems(options)}
           .value=${typeof this.value === "string" ? this.value : undefined}
-          .valueRenderer=${this.valueRenderer}
+          .valueRenderer=${this.valueRenderer ?? this._optionValueRenderer(options)}
           @value-changed=${this._comboBoxValueChanged}
-          allow-custom-value
+          .allowCustomValue=${Boolean(this.selector.select?.custom_value)}
         ></ha-generic-picker>
       `;
     }
@@ -355,9 +358,31 @@ export class HaSelectSelector extends LitElement {
         filteredOptions.map((option) => ({
           id: option.value,
           primary: option.label,
+          secondary: option.description,
+          image:
+            typeof option.image === "string" ? option.image : option.image?.src,
           sorting_label: option.label,
         }));
     }
+  );
+
+  private _optionValueRenderer = memoizeOne(
+    (options: SelectOption[]): PickerValueRenderer =>
+      (value: string) => {
+        const option = options.find((item) => item.value === value);
+        const image =
+          typeof option?.image === "string" ? option.image : option?.image?.src;
+        return html`${
+            image
+              ? html`<img
+                  slot="start"
+                  src=${image}
+                  alt=""
+                  style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover;"
+                />`
+              : nothing
+          }<span slot="headline">${option?.label ?? value}</span>`;
+      }
   );
 
   private get _mode(): "list" | "dropdown" | "box" {

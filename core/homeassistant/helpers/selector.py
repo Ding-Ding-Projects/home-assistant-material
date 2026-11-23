@@ -5,7 +5,16 @@ from copy import deepcopy
 from enum import StrEnum
 from functools import cache
 import importlib
-from typing import TYPE_CHECKING, Any, Literal, Required, TypedDict, cast, override
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Literal,
+    NotRequired,
+    Required,
+    TypedDict,
+    cast,
+    override,
+)
 from uuid import UUID
 
 import probatio
@@ -1941,6 +1950,8 @@ select_option = probatio.All(
         {
             probatio.Required("value"): str,
             probatio.Required("label"): str,
+            probatio.Optional("description"): str,
+            probatio.Optional("image"): str,
         }
     ),
 )
@@ -1951,6 +1962,8 @@ class SelectOptionDict(TypedDict):
 
     value: str
     label: str
+    description: NotRequired[str]
+    image: NotRequired[str]
 
 
 class SelectSelectorMode(StrEnum):

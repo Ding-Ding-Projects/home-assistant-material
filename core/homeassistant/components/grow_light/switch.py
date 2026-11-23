@@ -1,6 +1,6 @@
 """Switch that turns the grow light schedule on or off."""
 
-from typing import Any
+from typing import Any, override
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import STATE_OFF
@@ -28,22 +28,25 @@ class GrowLightScheduleSwitch(GrowLightEntity, SwitchEntity, RestoreEntity):
         """Create the switch."""
         super().__init__(entry, "schedule")
 
+    @override
     async def async_added_to_hass(self) -> None:
-        """Restore the last state, then start the controller."""
+        """Restore the last state; setup starts the controller afterwards."""
         await super().async_added_to_hass()
         if (last := await self.async_get_last_state()) is not None:
             self.controller.enabled = last.state != STATE_OFF
-        self.controller.async_start()
 
     @property
+    @override
     def is_on(self) -> bool:
         """Whether the schedule is running."""
         return self.controller.enabled
 
+    @override
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Run the schedule."""
         self.controller.async_set_enabled(True)
 
+    @override
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Stop the schedule and switch the plug off."""
         self.controller.async_set_enabled(False)

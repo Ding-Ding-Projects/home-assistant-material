@@ -19,8 +19,19 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       closing the door turns it back on only inside the on hours. Schedule switch, Status and
       Next change sensors, setup and options steps
       ([`grow-light.md`](docs/features/automations/grow-light.md), boards in
-      [`design/canvases/43-grow-light`](design/canvases/43-grow-light/README.md)). Window tests
-      pass; behaviour tests need the Linux test environment; not yet seen in a browser.
+      [`design/canvases/43-grow-light`](design/canvases/43-grow-light/README.md)). Unit and
+      behaviour tests pass on Linux (23 November 2026); not yet seen in a browser or with a real
+      plug.
+- [ ] Crop catalogue for the grow light: vegetables and legumes with day-length type, growth
+      stages, light hours and watering interval per stage, and a bundled photo with credit for
+      each. Light hours and watering follow the crop's stage from the sowing date; optional pump
+      or valve waters by itself; Growth stage, Next watering and Last watered sensors and a Watered
+      button. Stage splits, light hours and watering intervals are estimates, not sourced figures.
+      Tests pass on Linux; not yet seen in a browser.
+- [ ] Crop picker search shows a photo and summary on each row (frontend select change). Type
+      check passes; not yet seen in a built frontend.
+- [ ] Crop card and "Crops on a PC screen" overview pages from the boards; not built. The helper's
+      entities carry the same values.
 - [ ] PC screen layout from the Desktop board: "Light today" total and the recent changes list
       need history reading; not built.
 
