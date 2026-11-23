@@ -1,19 +1,40 @@
 {
  "format": 1,
- "generated": "2026-11-23T17:42:37Z",
+ "generated": "2026-11-23T19:43:38Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 549,
+ "newest_build": 552,
  "releases": [
   {
-   "build": 549,
-   "core": "2026.11.2.549",
-   "supervisor": "2026.11.0.549",
-   "os": "18.5.549",
+   "build": 552,
+   "core": "2026.11.2.552",
+   "supervisor": "2026.11.0.552",
+   "os": "18.5.552",
    "tag": null,
-   "source": "aae14a050",
-   "date": "2026-11-23T12:19:44-05:00",
+   "source": "39eefc929",
+   "date": "2026-11-23T13:18:18-05:00",
    "previous_build": 548,
    "changes": [
+    {
+     "sha": "39eefc929",
+     "date": "2026-11-23T13:18:18-05:00",
+     "title": "Record the Cast and Nest clip fixes in the handoff",
+     "areas": [
+      "docs"
+     ],
+     "detail": "Notes what was fixed, what was tested and what still needs a Linux test run and a look at the real devices.",
+     "detail_yue": "交接寫低咗修咗乜、試過乜，同埋仲要喺 Linux 跑測試同睇真機。"
+    },
+    {
+     "sha": "002e5d33c",
+     "date": "2026-11-23T12:32:09-05:00",
+     "title": "Fix Cast dashboard crashes and live clips for Nest cameras",
+     "areas": [
+      "docs",
+      "core"
+     ],
+     "detail": "A Cast device that could not connect back to Home Assistant raised on every dashboard request and kept a dead controller that retried on every reconnect, which the home log counted over two thousand times. It now drops the controller and warns once per outage.\n\nNest refuses a live offer without a data channel in audio, video, data order, so every doorbell event ended with no clip and the streaming program complained about an answer with no ICE credentials. The offer is now reshaped for cameras that ask for a data channel, the answer is mapped back, and an answer without ICE credentials is refused cleanly.",
+     "detail_yue": "Cast 部機連唔返 Home Assistant，每次叫佢開儀表板都爆，仲留低條死咗嘅 controller 次次重連再撞牆，log 數到二千幾次。而家即刻放手，一次停電講一聲就算。\n\nNest 嘅 offer 冇 data channel、次序唔係音、影、資料就唔收貨，搞到門鐘次次 都冇片。而家 offer 先執靚先送，answer 再還原，冇 ICE 資料嘅 answer 直接拒收。"
+    },
     {
      "sha": "7b6e49770",
      "date": "2026-11-23T12:19:32-05:00",
