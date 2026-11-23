@@ -1,5 +1,22 @@
 # Continuation handoff
 
+## Update, 23 November 2026
+
+Commit `002e5d33c` on `main` fixes two problems from the home problem log:
+
+- Cast: a device that cannot connect back to Home Assistant no longer raises on every
+  dashboard request or keeps retrying on reconnect. A unit test was added but has not run:
+  the core test suite needs Linux, and the Ubuntu WSL test environment was not finished.
+- Live clips for Nest cameras: the offer is reordered and given a data channel, and the answer
+  is mapped back (`core/homeassistant/components/camera_recording/sdp.py`). Three unit tests
+  pass when run directly; the live endpoint test suite has not run. Neither fix has been seen
+  on the real Nest Hub or doorbell.
+
+Next: run `tests/components/cast` and `tests/components/camera_recording` on Linux, then
+check the next problem log for the Cast and doorbell entries. The TTC sensors over 16 KB, the
+renamed Proxmox integration in the app-update automation, the HomeKit 150-device limit and
+the missing Nest Hub entity are settings in the home's configuration, not code.
+
 Updated 22 November 2026. Start with the [current checklist](ROADMAP.md#current-checklist-22-november-2026) and the [build 548 verification handoff](HANDOFF.md#build-548-verification-22-november-2026). Work through the checklist in order and record the observed result before each item is marked complete.
 
 Of the 261 originally unchecked or partial rows, 19 have new evidence and are now checked. The
