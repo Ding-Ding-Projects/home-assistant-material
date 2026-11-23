@@ -1,15 +1,52 @@
 {
  "format": 1,
- "generated": "2026-11-23T21:27:19Z",
+ "generated": "2026-11-23T22:06:17Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 552,
+ "newest_build": 554,
  "releases": [
+  {
+   "build": 554,
+   "core": "2026.11.2.554",
+   "supervisor": "2026.11.0.554",
+   "os": "18.5.554",
+   "tag": null,
+   "source": "a3b5daa15",
+   "date": "2026-11-23T16:14:20-05:00",
+   "previous_build": 552,
+   "changes": [
+    {
+     "sha": "a3b5daa15",
+     "date": "2026-11-23T16:14:20-05:00",
+     "title": "Grow light follows 68 vegetables and legumes: stage light, watering and photos",
+     "areas": [
+      "docs",
+      "core",
+      "design",
+      "interface"
+     ],
+     "detail": "The Grow light helper can now follow a crop. Pick one of 68 vegetables and legumes, give the sowing date, and the light hours each day come from the crop's growth stage: germination keeps the light off, seedlings get their long day, short-day legumes drop to 12 hours when they flower. Each stage also sets a watering interval; an optional pump or valve waters by itself, or press Watered after doing it by hand. New entities: Growth stage (with the crop's photo), Next watering, Last watered and a Watered button.\n\nThe crop picker searches the whole catalogue and shows a photo of each plant with its group, day-length type, days to the end and photo credit. The 68 photos are Wikimedia Commons thumbnails bundled with the helper and served by Home Assistant, so the picker works offline. Select options may now carry an image and a description, and the searchable dropdown shows them. The stage splits, light hours and watering intervals are honest estimates, and the docs say so.\n\nAlso fixes the first version refusing to load at all: setup returned True, which this core now rejects. Boards: crop picker, crop card and a PC screen overview of the seven crops on the home shelf.",
+     "detail_yue": "種菜燈識跟住 68 種蔬菜同豆類行：揀咗乜菜、幾時落種，燈就自己知 發芽期要黑、苗仔要長日照、短日豆仔開花就縮返 12 個鐘。淋水都跟階段， 有水泵就自己淋，冇就淋完撳個「Watered」掣。揀菜嗰個搜尋框每行都有棵 菜嘅相，68 張相全部打包埋喺入面，冇網都照睇。之前嗰版連開都開唔到， 因為 setup 交咗個 True 返去，而家嘅 core 唔收，順手執埋。啲日數同 淋水間距係估嘅，文件寫到明，唔會扮專家。"
+    },
+    {
+     "sha": "c32213ddb",
+     "date": "2026-11-23T14:36:31-05:00",
+     "title": "Add the Grow light helper: set hours of light, paused while a door is open",
+     "areas": [
+      "docs",
+      "core",
+      "design"
+     ],
+     "detail": "A new helper keeps a plug on for a chosen number of hours each day from a start time, windows past midnight included. Any listed door sensor that opens switches the plug off at once; closing it switches the plug back on only if it is still inside the on hours, so a midnight fridge raid does not wake the basil. A Schedule switch, a Status sensor and a Next change sensor come with it, plus setup and options steps. Boards for phone and PC screens are in design/canvases/43-grow-light.",
+     "detail_yue": "新增「植物燈」幫手：揀幾點開、開幾多個鐘，插蘇自動幫你開關。有人開門就即刻熄燈， 門閂返先至再開，不過一定要喺開燈時間之內先會開，半夜去攞嘢食都唔會嘈醒啲羅勒。 另有排程開關、狀態同下次轉換感應器，手機同電腦版設計板都齊晒。"
+    }
+   ]
+  },
   {
    "build": 552,
    "core": "2026.11.2.552",
    "supervisor": "2026.11.0.552",
    "os": "18.5.552",
-   "tag": null,
+   "tag": "v2026.11.2.552",
    "source": "39eefc929",
    "date": "2026-11-23T13:18:18-05:00",
    "previous_build": 548,
