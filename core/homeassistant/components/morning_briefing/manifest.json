@@ -1,0 +1,12 @@
+{
+  "domain": "morning_briefing",
+  "name": "Morning briefing",
+  "categories": ["helpers"],
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/Ding-Ding-Projects/home-assistant-material/blob/main/docs/features/automations/morning-briefing.md",
+  "integration_type": "helper",
+  "iot_class": "calculated",
+  "quality_scale": "internal"
+}

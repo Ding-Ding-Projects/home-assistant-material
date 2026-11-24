@@ -1,0 +1,70 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "extra": "Extra entities",
+          "name": "[%key:common::config_flow::data::name%]",
+          "notify": "Send to",
+          "time": "Send at",
+          "transit": "Transit alerts",
+          "weather": "Weather"
+        },
+        "data_description": {
+          "extra": "Anything else worth a line. Each entity is listed as its name and state.",
+          "notify": "The notify actions that receive the briefing. Type a custom action such as notify.mobile_app_phone if it is not listed.",
+          "time": "When the briefing is sent each day, in 24-hour time.",
+          "transit": "Sensors that report delays or service alerts. Only those with something to report are listed.",
+          "weather": "Optional. Today's forecast is used, falling back to the current condition and temperature."
+        },
+        "description": "Send one notification each morning that summarizes the weather, transit alerts, your grow lights and anything else you pick. Every Grow light helper is included automatically.",
+        "title": "Add morning briefing"
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "send_now": {
+        "name": "Send now"
+      }
+    },
+    "sensor": {
+      "last_briefing": {
+        "name": "Last briefing",
+        "state_attributes": {
+          "message": {
+            "name": "Message"
+          }
+        }
+      },
+      "next_briefing": {
+        "name": "Next briefing"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Enabled"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "extra": "[%key:component::morning_briefing::config::step::user::data::extra%]",
+          "notify": "[%key:component::morning_briefing::config::step::user::data::notify%]",
+          "time": "[%key:component::morning_briefing::config::step::user::data::time%]",
+          "transit": "[%key:component::morning_briefing::config::step::user::data::transit%]",
+          "weather": "[%key:component::morning_briefing::config::step::user::data::weather%]"
+        },
+        "data_description": {
+          "extra": "[%key:component::morning_briefing::config::step::user::data_description::extra%]",
+          "notify": "[%key:component::morning_briefing::config::step::user::data_description::notify%]",
+          "time": "[%key:component::morning_briefing::config::step::user::data_description::time%]",
+          "transit": "[%key:component::morning_briefing::config::step::user::data_description::transit%]",
+          "weather": "[%key:component::morning_briefing::config::step::user::data_description::weather%]"
+        }
+      }
+    }
+  }
+}

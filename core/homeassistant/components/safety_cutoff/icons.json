@@ -1,0 +1,34 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "tripped": {
+        "default": "mdi:shield-check",
+        "state": {
+          "on": "mdi:shield-alert"
+        }
+      }
+    },
+    "button": {
+      "reset": {
+        "default": "mdi:restore-alert"
+      }
+    },
+    "sensor": {
+      "cause": {
+        "default": "mdi:shield-check",
+        "state": {
+          "leak": "mdi:water-alert",
+          "power": "mdi:flash-alert"
+        }
+      }
+    },
+    "switch": {
+      "armed": {
+        "default": "mdi:shield-lock",
+        "state": {
+          "off": "mdi:shield-off"
+        }
+      }
+    }
+  }
+}

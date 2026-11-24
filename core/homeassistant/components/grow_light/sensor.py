@@ -7,7 +7,9 @@ from homeassistant.components.sensor import (
     RestoreSensor,
     SensorDeviceClass,
     SensorEntity,
+    SensorStateClass,
 )
+from homeassistant.const import UnitOfEnergy
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -30,8 +32,15 @@ async def async_setup_entry(
         GrowLightNextWateringSensor(entry),
         GrowLightLastWateredSensor(entry),
     ]
-    if entry.runtime_data.plant is not None:
+    controller = entry.runtime_data
+    if controller.plant is not None:
         entities.append(GrowLightStageSensor(entry))
+    if controller.settings.resow_days and controller.settings.planted_on is not None:
+        entities.append(GrowLightNextSowingSensor(entry))
+    if controller.tracks_energy:
+        entities.append(GrowLightEnergySensor(entry))
+        if controller.settings.price > 0:
+            entities.append(GrowLightCostSensor(entry, hass.config.currency))
     async_add_entities(entities)
 
 
@@ -156,10 +165,14 @@ class GrowLightNextWateringSensor(GrowLightEntity, SensorEntity):
     @override
     def extra_state_attributes(self) -> dict[str, Any]:
         """Interval and whether a watering run is going now."""
-        return {
+        attributes: dict[str, Any] = {
             "water_every_days": self.controller.water_every_days(),
             "watering": self.controller.watering,
         }
+        if self.controller.settings.moisture is not None:
+            attributes["soil_moisture"] = self.controller.soil_moisture()
+            attributes["dry_below"] = self.controller.settings.dry_below
+        return attributes
 
 
 class GrowLightLastWateredSensor(GrowLightEntity, RestoreSensor):
@@ -187,3 +200,69 @@ class GrowLightLastWateredSensor(GrowLightEntity, RestoreSensor):
     def native_value(self) -> datetime | None:
         """Last watering."""
         return self.controller.last_watered
+
+
+class GrowLightNextSowingSensor(GrowLightEntity, SensorEntity):
+    """When the next batch is due to be sown."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, entry: GrowLightConfigEntry) -> None:
+        """Create the sensor."""
+        super().__init__(entry, "next_sowing")
+
+    @property
+    @override
+    def native_value(self) -> datetime | None:
+        """Next sowing reminder."""
+        return self.controller.next_sowing
+
+
+class GrowLightEnergySensor(GrowLightEntity, RestoreSensor):
+    """Energy the light has used, from its power sensor or its rated watts."""
+
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_suggested_display_precision = 3
+    # The total grows between plug changes, so it is read again now and then.
+    _attr_should_poll = True
+
+    def __init__(self, entry: GrowLightConfigEntry) -> None:
+        """Create the sensor."""
+        super().__init__(entry, "energy")
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Carry on from the total before a restart."""
+        await super().async_added_to_hass()
+        if (data := await self.async_get_last_sensor_data()) is not None and (
+            isinstance(data.native_value, (int, float))
+        ):
+            self.controller.async_restore_energy(float(data.native_value))
+
+    @property
+    @override
+    def native_value(self) -> float:
+        """Energy so far."""
+        return round(self.controller.energy_now(), 4)
+
+
+class GrowLightCostSensor(GrowLightEntity, SensorEntity):
+    """Cost of the light's energy at the set price."""
+
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.TOTAL
+    _attr_suggested_display_precision = 2
+    _attr_should_poll = True
+
+    def __init__(self, entry: GrowLightConfigEntry, currency: str) -> None:
+        """Create the sensor."""
+        super().__init__(entry, "cost")
+        self._attr_native_unit_of_measurement = currency
+
+    @property
+    @override
+    def native_value(self) -> float:
+        """Cost so far."""
+        return round(self.controller.cost_now(), 4)

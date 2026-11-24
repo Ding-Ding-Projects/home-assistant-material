@@ -4,26 +4,40 @@
       "user": {
         "data": {
           "doors": "Pause when open",
+          "dry_below": "Water when soil is below",
           "hours": "Hours per day",
+          "moisture": "Soil moisture sensor",
           "name": "[%key:common::config_flow::data::name%]",
+          "notify": "Send alerts to",
           "plant": "Crop",
           "planted_on": "Sown or planted on",
           "plug": "Plug or switch",
+          "power": "Plug power sensor",
+          "price": "Electricity price",
+          "resow_days": "Sow a new batch every",
           "start": "Start time",
           "water_days": "Water every",
           "water_minutes": "Watering run",
-          "water_switch": "Watering pump or valve"
+          "water_switch": "Watering pump or valve",
+          "watts": "Light power"
         },
         "data_description": {
           "doors": "Door or window sensors. While any is open the light is off. When all are closed again it turns back on, but only inside the on hours.",
+          "dry_below": "With a soil moisture sensor, watering is skipped while the soil reads at or above this, and starts (or you get a reminder) when it drops below.",
           "hours": "How long the light stays on each day, counted from the start time. Used only when no crop is picked; a crop sets its own hours for each growth stage.",
+          "moisture": "Optional. A soil moisture sensor in the pot or tray. Scheduled watering is skipped while the soil is still wet, and dry soil triggers watering or a reminder.",
+          "notify": "Optional. Notify actions, such as your phone, for stage changes, harvest, watering due, dry soil and sowing reminders.",
           "plant": "Search for the crop you are growing. Its light hours and watering follow its growth stage, counted from the sowing date.",
           "planted_on": "The day the seeds were sown or the plants went in. The growth stage is counted from this day.",
           "plug": "The plug, switch or light that powers the grow light.",
+          "power": "Optional. If the plug measures its own power, the energy count uses it instead of the light power above.",
+          "price": "Optional. Price per kWh, to show what the light costs to run. 0 hides the cost.",
+          "resow_days": "Optional. Days between sowings for crops grown in batches, such as radish, lettuce or mung beans. 0 means no reminder.",
           "start": "When the light turns on each day. Watering is due at this time too.",
           "water_days": "Days between waterings when no crop is picked. 0 means no watering schedule.",
           "water_minutes": "How long the pump or valve runs each time it waters.",
-          "water_switch": "Optional. A switch for a pump or valve. When set, the helper waters by itself when watering is due; without it, press Watered after watering by hand."
+          "water_switch": "Optional. A switch for a pump or valve. When set, the helper waters by itself when watering is due; without it, press Watered after watering by hand.",
+          "watts": "Optional. The grow light's rated power, used to count its energy. 0 means no energy count unless a power sensor is set."
         },
         "description": "Keep a plug on for set hours each day, pause it while a door is open, and follow a crop's growth stages for light and watering.",
         "title": "Add grow light"
@@ -32,20 +46,58 @@
   },
   "entity": {
     "button": {
+      "sown": {
+        "name": "Sown again"
+      },
       "watered": {
         "name": "Watered"
       }
     },
+    "event": {
+      "alerts": {
+        "name": "Alerts",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "ready_to_harvest": "Ready to harvest",
+              "soil_dry": "Soil dry",
+              "sow_next": "Sow the next batch",
+              "stage_changed": "Stage changed",
+              "water_due": "Water due",
+              "watered": "Watered"
+            }
+          },
+          "message": {
+            "name": "Message"
+          }
+        }
+      }
+    },
     "sensor": {
+      "cost": {
+        "name": "Light cost"
+      },
+      "energy": {
+        "name": "Light energy"
+      },
       "last_watered": {
         "name": "Last watered"
       },
       "next_change": {
         "name": "Next change"
       },
+      "next_sowing": {
+        "name": "Next sowing"
+      },
       "next_watering": {
         "name": "Next watering",
         "state_attributes": {
+          "dry_below": {
+            "name": "Water below (%)"
+          },
+          "soil_moisture": {
+            "name": "Soil moisture (%)"
+          },
           "water_every_days": {
             "name": "Water every (days)"
           },
@@ -132,25 +184,39 @@
       "init": {
         "data": {
           "doors": "[%key:component::grow_light::config::step::user::data::doors%]",
+          "dry_below": "[%key:component::grow_light::config::step::user::data::dry_below%]",
           "hours": "[%key:component::grow_light::config::step::user::data::hours%]",
+          "moisture": "[%key:component::grow_light::config::step::user::data::moisture%]",
+          "notify": "[%key:component::grow_light::config::step::user::data::notify%]",
           "plant": "[%key:component::grow_light::config::step::user::data::plant%]",
           "planted_on": "[%key:component::grow_light::config::step::user::data::planted_on%]",
           "plug": "[%key:component::grow_light::config::step::user::data::plug%]",
+          "power": "[%key:component::grow_light::config::step::user::data::power%]",
+          "price": "[%key:component::grow_light::config::step::user::data::price%]",
+          "resow_days": "[%key:component::grow_light::config::step::user::data::resow_days%]",
           "start": "[%key:component::grow_light::config::step::user::data::start%]",
           "water_days": "[%key:component::grow_light::config::step::user::data::water_days%]",
           "water_minutes": "[%key:component::grow_light::config::step::user::data::water_minutes%]",
-          "water_switch": "[%key:component::grow_light::config::step::user::data::water_switch%]"
+          "water_switch": "[%key:component::grow_light::config::step::user::data::water_switch%]",
+          "watts": "[%key:component::grow_light::config::step::user::data::watts%]"
         },
         "data_description": {
           "doors": "[%key:component::grow_light::config::step::user::data_description::doors%]",
+          "dry_below": "[%key:component::grow_light::config::step::user::data_description::dry_below%]",
           "hours": "[%key:component::grow_light::config::step::user::data_description::hours%]",
+          "moisture": "[%key:component::grow_light::config::step::user::data_description::moisture%]",
+          "notify": "[%key:component::grow_light::config::step::user::data_description::notify%]",
           "plant": "[%key:component::grow_light::config::step::user::data_description::plant%]",
           "planted_on": "[%key:component::grow_light::config::step::user::data_description::planted_on%]",
           "plug": "[%key:component::grow_light::config::step::user::data_description::plug%]",
+          "power": "[%key:component::grow_light::config::step::user::data_description::power%]",
+          "price": "[%key:component::grow_light::config::step::user::data_description::price%]",
+          "resow_days": "[%key:component::grow_light::config::step::user::data_description::resow_days%]",
           "start": "[%key:component::grow_light::config::step::user::data_description::start%]",
           "water_days": "[%key:component::grow_light::config::step::user::data_description::water_days%]",
           "water_minutes": "[%key:component::grow_light::config::step::user::data_description::water_minutes%]",
-          "water_switch": "[%key:component::grow_light::config::step::user::data_description::water_switch%]"
+          "water_switch": "[%key:component::grow_light::config::step::user::data_description::water_switch%]",
+          "watts": "[%key:component::grow_light::config::step::user::data_description::watts%]"
         }
       }
     }

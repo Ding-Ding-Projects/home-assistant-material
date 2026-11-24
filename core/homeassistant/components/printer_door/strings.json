@@ -1,0 +1,81 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]"
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "access_code": "LAN access code"
+        },
+        "data_description": {
+          "access_code": "The new LAN access code shown on the printer screen."
+        },
+        "description": "The printer refused the LAN access code. Enter the current one.",
+        "title": "[%key:common::config_flow::title::reauth%]"
+      },
+      "user": {
+        "data": {
+          "access_code": "LAN access code",
+          "host": "[%key:common::config_flow::data::host%]",
+          "name": "[%key:common::config_flow::data::name%]",
+          "serial": "Serial number"
+        },
+        "data_description": {
+          "access_code": "The LAN access code shown in the printer's network settings.",
+          "host": "The IP address of the printer on your network.",
+          "serial": "The printer's serial number, as shown in its device settings."
+        },
+        "description": "Watch a Bambu Lab printer's door and print status over your local network. The printer must be in LAN mode or have LAN access enabled.",
+        "title": "Add printer door"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "door": {
+        "name": "Door"
+      }
+    },
+    "event": {
+      "door_events": {
+        "name": "Door events",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "closed": "Closed",
+              "opened": "Opened",
+              "opened_while_printing": "Opened while printing"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "last_opened": {
+        "name": "Last opened"
+      },
+      "open_count_today": {
+        "name": "Door open count today",
+        "unit_of_measurement": "times"
+      },
+      "print_progress": {
+        "name": "Print progress"
+      },
+      "print_status": {
+        "name": "Print status",
+        "state": {
+          "failed": "Failed",
+          "finished": "Finished",
+          "idle": "Idle",
+          "paused": "Paused",
+          "printing": "Printing"
+        }
+      }
+    }
+  }
+}

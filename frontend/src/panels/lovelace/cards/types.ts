@@ -640,6 +640,17 @@ export interface PlantAttributeTarget extends EventTarget {
   value?: string;
 }
 
+export interface GrowLightCardConfig extends LovelaceCardConfig {
+  type: "grow-light-card";
+  entity: string;
+  name?: string;
+}
+
+export interface GrowLightOverviewCardConfig extends LovelaceCardConfig {
+  type: "grow-light-overview-card";
+  title?: string;
+}
+
 export interface PlantStatusCardConfig extends LovelaceCardConfig {
   name?: string | EntityNameItem | EntityNameItem[];
   entity: string;

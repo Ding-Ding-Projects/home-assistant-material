@@ -1,0 +1,22 @@
+{
+  "entity": {
+    "button": {
+      "send_now": {
+        "default": "mdi:send"
+      }
+    },
+    "sensor": {
+      "last_briefing": {
+        "default": "mdi:email-check-outline"
+      },
+      "next_briefing": {
+        "default": "mdi:clock-outline"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "default": "mdi:weather-sunset-up"
+      }
+    }
+  }
+}

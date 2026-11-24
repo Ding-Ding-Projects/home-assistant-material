@@ -116,6 +116,9 @@ const LAZY_LOAD_TYPES = {
   "picture-entity": () => import("../cards/hui-picture-entity-card"),
   "picture-glance": () => import("../cards/hui-picture-glance-card"),
   picture: () => import("../cards/hui-picture-card"),
+  "grow-light-card": () => import("../cards/hui-grow-light-card"),
+  "grow-light-overview-card": () =>
+    import("../cards/hui-grow-light-overview-card"),
   "plant-status": () => import("../cards/hui-plant-status-card"),
   "recovery-mode": () => import("../cards/hui-recovery-mode-card"),
   "toggle-group": () => import("../cards/hui-toggle-group-card"),

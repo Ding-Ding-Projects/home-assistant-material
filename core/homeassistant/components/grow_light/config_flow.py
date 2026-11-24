@@ -8,6 +8,7 @@ import probatio
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
 from homeassistant.components.input_boolean import DOMAIN as INPUT_BOOLEAN_DOMAIN
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
+from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN, SensorDeviceClass
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers import selector
@@ -20,18 +21,29 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_DOORS,
+    CONF_DRY_BELOW,
     CONF_HOURS,
+    CONF_MOISTURE,
+    CONF_NOTIFY,
     CONF_PLANT,
     CONF_PLANTED_ON,
     CONF_PLUG,
+    CONF_POWER,
+    CONF_PRICE,
+    CONF_RESOW_DAYS,
     CONF_START,
     CONF_WATER_DAYS,
     CONF_WATER_MINUTES,
     CONF_WATER_SWITCH,
+    CONF_WATTS,
+    DEFAULT_DRY_BELOW,
     DEFAULT_HOURS,
+    DEFAULT_PRICE,
+    DEFAULT_RESOW_DAYS,
     DEFAULT_START,
     DEFAULT_WATER_DAYS,
     DEFAULT_WATER_MINUTES,
+    DEFAULT_WATTS,
     DOMAIN,
     PLANT_CUSTOM,
 )
@@ -60,8 +72,24 @@ def _plant_option(plant: Plant) -> selector.SelectOptionDict:
     }
 
 
+def _number(low: float, high: float, step: float, unit: str) -> selector.NumberSelector:
+    return selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=low,
+            max=high,
+            step=step,
+            unit_of_measurement=unit,
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    )
+
+
 async def _options_schema(handler: SchemaCommonFlowHandler) -> probatio.Schema:
     hass = handler.parent_handler.hass
+    notify_options = sorted(
+        f"notify.{service}"
+        for service in hass.services.async_services_for_domain("notify")
+    )
     await async_register_photos(hass)
     plants = sorted((await async_get_plants(hass)).values(), key=lambda p: p.name)
     options: list[selector.SelectOptionDict] = [
@@ -130,6 +158,36 @@ async def _options_schema(handler: SchemaCommonFlowHandler) -> probatio.Schema:
                     unit_of_measurement="min",
                     mode=selector.NumberSelectorMode.BOX,
                 )
+            ),
+            probatio.Optional(CONF_MOISTURE): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=SENSOR_DOMAIN, device_class=SensorDeviceClass.MOISTURE
+                )
+            ),
+            probatio.Optional(CONF_DRY_BELOW, default=DEFAULT_DRY_BELOW): _number(
+                1, 99, 1, "%"
+            ),
+            probatio.Optional(CONF_NOTIFY, default=[]): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=notify_options,
+                    multiple=True,
+                    custom_value=True,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            probatio.Optional(CONF_RESOW_DAYS, default=DEFAULT_RESOW_DAYS): _number(
+                0, 120, 1, "d"
+            ),
+            probatio.Optional(CONF_WATTS, default=DEFAULT_WATTS): _number(
+                0, 5000, 1, "W"
+            ),
+            probatio.Optional(CONF_POWER): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=SENSOR_DOMAIN, device_class=SensorDeviceClass.POWER
+                )
+            ),
+            probatio.Optional(CONF_PRICE, default=DEFAULT_PRICE): _number(
+                0, 10, 0.001, f"{hass.config.currency}/kWh"
             ),
         }
     )

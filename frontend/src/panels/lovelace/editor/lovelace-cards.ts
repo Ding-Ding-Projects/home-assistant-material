@@ -94,6 +94,14 @@ export const coreCards: Card[] = [
     showElement: true,
   },
   {
+    type: "grow-light-card",
+    showElement: true,
+  },
+  {
+    type: "grow-light-overview-card",
+    showElement: true,
+  },
+  {
     type: "plant-status",
     showElement: true,
   },

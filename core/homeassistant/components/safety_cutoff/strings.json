@@ -1,0 +1,101 @@
+{
+  "config": {
+    "error": {
+      "leaks_required": "Pick at least one leak sensor.",
+      "switches_required": "Pick at least one switch to cut."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "cut_on_power": "Cut on power limit",
+          "leaks": "Leak sensors",
+          "name": "[%key:common::config_flow::data::name%]",
+          "notify": "Notify",
+          "power_limit": "Power limit",
+          "power_sensor": "Power sensor",
+          "power_seconds": "For longer than",
+          "switches": "Switches to cut"
+        },
+        "data_description": {
+          "cut_on_power": "Switch everything off when the power limit trips. When off, a power trip only latches and notifies.",
+          "leaks": "Leak sensors. When any turns on, the cutoff trips.",
+          "notify": "Notify services to call when the cutoff trips or is reset. You can type a service such as notify.mobile_app_phone.",
+          "power_limit": "Trip when the power sensor stays above this many watts.",
+          "power_sensor": "Optional. A power sensor to watch, for example the plug that feeds the pump and lights.",
+          "power_seconds": "How many seconds the power must stay above the limit before the cutoff trips. Short spikes are ignored.",
+          "switches": "Switches, lights or input booleans to turn off on a trip. They are turned off again if switched on while the cutoff is tripped."
+        },
+        "description": "Cut power to pumps and lights when a leak sensor trips or a load stays too high, and keep it cut until you press Reset.",
+        "title": "Add safety cutoff"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "tripped": {
+        "name": "Tripped",
+        "state_attributes": {
+          "cause": {
+            "name": "Cause"
+          },
+          "since": {
+            "name": "Since"
+          }
+        }
+      }
+    },
+    "button": {
+      "reset": {
+        "name": "Reset"
+      }
+    },
+    "sensor": {
+      "cause": {
+        "name": "Cause",
+        "state": {
+          "leak": "Leak",
+          "none": "None",
+          "power": "Power"
+        }
+      }
+    },
+    "switch": {
+      "armed": {
+        "name": "Armed"
+      }
+    }
+  },
+  "exceptions": {
+    "leak_still_wet": {
+      "message": "Cannot reset while a leak sensor is still on: {sensors}."
+    }
+  },
+  "options": {
+    "error": {
+      "leaks_required": "[%key:component::safety_cutoff::config::error::leaks_required%]",
+      "switches_required": "[%key:component::safety_cutoff::config::error::switches_required%]"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "cut_on_power": "[%key:component::safety_cutoff::config::step::user::data::cut_on_power%]",
+          "leaks": "[%key:component::safety_cutoff::config::step::user::data::leaks%]",
+          "notify": "[%key:component::safety_cutoff::config::step::user::data::notify%]",
+          "power_limit": "[%key:component::safety_cutoff::config::step::user::data::power_limit%]",
+          "power_sensor": "[%key:component::safety_cutoff::config::step::user::data::power_sensor%]",
+          "power_seconds": "[%key:component::safety_cutoff::config::step::user::data::power_seconds%]",
+          "switches": "[%key:component::safety_cutoff::config::step::user::data::switches%]"
+        },
+        "data_description": {
+          "cut_on_power": "[%key:component::safety_cutoff::config::step::user::data_description::cut_on_power%]",
+          "leaks": "[%key:component::safety_cutoff::config::step::user::data_description::leaks%]",
+          "notify": "[%key:component::safety_cutoff::config::step::user::data_description::notify%]",
+          "power_limit": "[%key:component::safety_cutoff::config::step::user::data_description::power_limit%]",
+          "power_sensor": "[%key:component::safety_cutoff::config::step::user::data_description::power_sensor%]",
+          "power_seconds": "[%key:component::safety_cutoff::config::step::user::data_description::power_seconds%]",
+          "switches": "[%key:component::safety_cutoff::config::step::user::data_description::switches%]"
+        }
+      }
+    }
+  }
+}

@@ -30,8 +30,29 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       Tests pass on Linux; not yet seen in a browser.
 - [ ] Crop picker search shows a photo and summary on each row (frontend select change). Type
       check passes; not yet seen in a built frontend.
-- [ ] Crop card and "Crops on a PC screen" overview pages from the boards; not built. The helper's
-      entities carry the same values.
+- [ ] Grow light card and grow light overview card (all crops side by side) from the boards, in the
+      card picker. Lint and type check pass; not yet seen in a browser.
+- [ ] Grow light alerts: stage change, harvest, watering due, pump run, dry soil and sowing
+      reminder, to notify actions, the `grow_light_alert` event and an Alerts event entity.
+- [ ] Soil moisture: wet soil puts a watering off a day, dry soil waters or reminds.
+- [ ] Light energy (from rated watts or the plug's power sensor) and light cost sensors, kept across
+      restarts; Next sowing sensor and Sown again button. Tests for all three items pass on Linux
+      (23 November 2026); not yet seen with real devices.
+
+## New helpers and an integration, 23 November 2026
+
+- [ ] Morning briefing helper: one daily notification with the weather, transit alerts, grow lights
+      due for water, new stages or paused, and chosen extra entities; Send now button
+      ([`morning-briefing.md`](docs/features/automations/morning-briefing.md)). Tests pass on Linux;
+      not yet seen live.
+- [ ] Safety cutoff helper: leak sensors cut the listed switches and keep them off until Reset,
+      power above a limit for a set time trips too, armed switch, notifications
+      ([`safety-cutoff.md`](docs/features/automations/safety-cutoff.md)). Tests pass on Linux; not
+      yet seen live.
+- [ ] Printer door integration: a Bambu Lab printer's door, print status and progress over the
+      printer's local MQTT, with door events and an event when the door opens during a print
+      ([`printer-door.md`](docs/features/integrations/printer-door.md)). Tests pass on Linux with a
+      mocked connection; not yet tried against a real printer.
 - [ ] PC screen layout from the Desktop board: "Light today" total and the recent changes list
       need history reading; not built.
 

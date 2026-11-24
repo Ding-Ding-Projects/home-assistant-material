@@ -21,6 +21,13 @@ Add it from **Settings > Devices & services > Helpers > Create helper > Grow lig
 | Water every | Days between waterings without a crop; 0 means no watering schedule. With a crop the stage sets it. |
 | Watering pump or valve | Optional `switch` or `input_boolean`. When set, the helper waters by itself when watering is due. |
 | Watering run | How many minutes the pump or valve runs each time. |
+| Soil moisture sensor | Optional `sensor` with the moisture device class. Scheduled watering is skipped while the soil reads wet, and soil going dry starts watering or a reminder. |
+| Water when soil is below | The dry threshold in percent for the soil moisture sensor. Default 30. |
+| Send alerts to | Optional notify actions, for example `notify.mobile_app_phone`. Any notify action can be typed in. |
+| Sow a new batch every | Optional days between sowings for batch crops such as radish, lettuce or mung beans. 0 means no reminder. |
+| Light power | Optional rated watts of the light, used to count its energy. |
+| Plug power sensor | Optional `sensor` with the power device class. When set, the energy count uses its readings instead of the light power. |
+| Electricity price | Optional price per kWh in the instance's currency. 0 hides the cost sensor. |
 
 All of them except the name can be changed later from the helper's **Options**; the helper reloads
 with the new settings.
@@ -44,6 +51,17 @@ with the new settings.
   opens or closes, the schedule switch changes, Home Assistant starts, or the plug comes back
   online after being unavailable. Switching the plug by hand is left alone until the next change.
 - A door that is `unavailable` or `unknown` counts as closed.
+- With a soil moisture sensor, a watering that falls due while the soil reads at or above the
+  threshold is put off to the same time the next day. When the reading drops below the threshold,
+  the pump runs at once (or a "soil dry" reminder is sent). A dry reading within 6 hours of a
+  watering is ignored, since the water may still be soaking in.
+- Alerts are sent for a new growth stage, the harvest stage, watering due (only without a pump, and
+  once per due time), a pump watering run, dry soil and the sowing reminder. Each one fires the
+  `grow_light_alert` event (`name`, `kind`, `message`), updates the **Alerts** event entity and goes
+  to every notify action chosen. Stage alerts are only sent for changes after Home Assistant
+  started, so a restart does not repeat them.
+- Energy is counted while the plug is on, from the plug's power sensor or else the light power, and
+  is kept across restarts.
 
 ## Entities
 
@@ -56,6 +74,25 @@ with the new settings.
 | Sensor **Next watering** | When watering is next due; empty without a watering schedule. `watering` is true while the pump runs. |
 | Sensor **Last watered** | The last watering, by hand or by the pump. Kept across restarts. |
 | Button **Watered** | Records a watering done by hand. |
+| Button **Sown again** | Only with a crop. Sets the sowing date to today and reloads, so the stages start over. |
+| Event **Alerts** | The latest alert, with its `message`. Event types: `stage_changed`, `ready_to_harvest`, `water_due`, `watered`, `soil_dry`, `sow_next`. |
+| Sensor **Next sowing** | Only with a crop and a sowing interval. When the next batch is due. |
+| Sensor **Light energy** | Only with a light power or power sensor. kWh used so far; can go on the Energy dashboard. |
+| Sensor **Light cost** | Only with energy and a price. The energy times the price. |
+
+The Next watering sensor also carries `soil_moisture` and `dry_below` when a soil moisture sensor is
+set.
+
+## Cards
+
+- **Grow light card** (`type: grow-light-card`, `entity:` the grow light's Status sensor): the crop
+  photo, stage with a stage bar, light status, light hours, next change, watering, soil moisture,
+  energy, cost, next sowing, and the Watered and Sown again buttons where those entities exist.
+  Without a crop it shows the light parts only.
+- **Grow light overview card** (`type: grow-light-overview-card`, optional `title`): every grow
+  light side by side, one column on a phone.
+
+Both are in the card picker. Not yet seen in a browser.
 
 ## Crop catalogue
 
@@ -160,4 +197,8 @@ Each stage is shown as its length in days, the grow-light hours and the days bet
   germination keeping the light off, seedling hours, the stage change turning the light on, the
   pump watering when due and stopping after the run, the Watered button, own watering days, and the
   setup step. Run on Linux; see `ROADMAP.md` for the latest result.
-- Not yet seen in a running build with a real plug, door sensor and pump.
+- `tests/components/grow_light/test_alerts.py`: the stage change alert to a notify action, one
+  watering reminder per due time, wet soil putting the pump off and dry soil starting it, the dry
+  soil reminder without a pump, energy and cost from the light power, no energy sensor without a
+  power source, the sowing reminder, and the Sown again button.
+- Not yet seen in a running build with a real plug, door sensor, pump or soil sensor.

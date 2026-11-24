@@ -24842,6 +24842,14 @@
               "description": "This card allows you to set an image to use for navigation to various paths in your interface or to perform an action.",
               "state_entity": "State entity"
             },
+            "grow-light-card": {
+              "name": "Grow light",
+              "description": "One grow light with its crop photo, growth stage, light status and watering."
+            },
+            "grow-light-overview-card": {
+              "name": "Grow lights overview",
+              "description": "Every grow light side by side."
+            },
             "plant-status": {
               "name": "Plant status",
               "description": "This card is for all the lovely botanists out there."

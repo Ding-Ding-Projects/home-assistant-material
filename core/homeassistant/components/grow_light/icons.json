@@ -1,16 +1,33 @@
 {
   "entity": {
     "button": {
+      "sown": {
+        "default": "mdi:seed-plus"
+      },
       "watered": {
         "default": "mdi:watering-can"
       }
     },
+    "event": {
+      "alerts": {
+        "default": "mdi:bell-ring-outline"
+      }
+    },
     "sensor": {
+      "cost": {
+        "default": "mdi:cash"
+      },
+      "energy": {
+        "default": "mdi:lightning-bolt"
+      },
       "last_watered": {
         "default": "mdi:water-check"
       },
       "next_change": {
         "default": "mdi:clock-outline"
+      },
+      "next_sowing": {
+        "default": "mdi:seed-outline"
       },
       "next_watering": {
         "default": "mdi:watering-can-outline"

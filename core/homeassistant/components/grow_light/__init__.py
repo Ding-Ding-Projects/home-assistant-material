@@ -8,14 +8,22 @@ from homeassistant.core import HomeAssistant
 
 from .const import (
     CONF_DOORS,
+    CONF_DRY_BELOW,
     CONF_HOURS,
+    CONF_MOISTURE,
+    CONF_NOTIFY,
     CONF_PLANT,
     CONF_PLANTED_ON,
     CONF_PLUG,
+    CONF_POWER,
+    CONF_PRICE,
+    CONF_RESOW_DAYS,
     CONF_START,
     CONF_WATER_DAYS,
     CONF_WATER_MINUTES,
     CONF_WATER_SWITCH,
+    CONF_WATTS,
+    DEFAULT_DRY_BELOW,
     DEFAULT_HOURS,
     DEFAULT_WATER_MINUTES,
     PLANT_CUSTOM,
@@ -24,7 +32,7 @@ from .controller import GrowLightController, GrowLightSettings
 from .photos import async_register_photos
 from .plants import async_get_plants
 
-PLATFORMS = [Platform.BUTTON, Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [Platform.BUTTON, Platform.EVENT, Platform.SENSOR, Platform.SWITCH]
 
 type GrowLightConfigEntry = ConfigEntry[GrowLightController]
 
@@ -51,6 +59,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: GrowLightConfigEntry) ->
             water_days=int(options.get(CONF_WATER_DAYS, 0)),
             water_switch=options.get(CONF_WATER_SWITCH),
             water_minutes=float(options.get(CONF_WATER_MINUTES, DEFAULT_WATER_MINUTES)),
+            name=entry.title,
+            notify=list(options.get(CONF_NOTIFY, [])),
+            moisture=options.get(CONF_MOISTURE),
+            dry_below=float(options.get(CONF_DRY_BELOW, DEFAULT_DRY_BELOW)),
+            watts=float(options.get(CONF_WATTS, 0)),
+            power=options.get(CONF_POWER),
+            price=float(options.get(CONF_PRICE, 0)),
+            resow_days=int(options.get(CONF_RESOW_DAYS, 0)),
         ),
     )
     entry.runtime_data = controller

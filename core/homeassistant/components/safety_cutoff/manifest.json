@@ -1,0 +1,13 @@
+{
+  "domain": "safety_cutoff",
+  "name": "Safety cutoff",
+  "after_dependencies": ["notify"],
+  "categories": ["helpers"],
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": ["binary_sensor", "button", "sensor", "switch"],
+  "documentation": "https://github.com/Ding-Ding-Projects/home-assistant-material/blob/main/docs/features/automations/safety-cutoff.md",
+  "integration_type": "helper",
+  "iot_class": "calculated",
+  "quality_scale": "internal"
+}

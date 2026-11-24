@@ -11666,6 +11666,12 @@
       "config_flow": true,
       "iot_class": "local_polling"
     },
+    "printer_door": {
+      "name": "Printer door",
+      "integration_type": "device",
+      "config_flow": true,
+      "iot_class": "local_push"
+    },
     "private_ble_device": {
       "name": "Private BLE Device",
       "integration_type": "device",
@@ -17617,6 +17623,14 @@
       "config_flow": true,
       "iot_class": "calculated"
     },
+    "morning_briefing": {
+      "integration_type": "helper",
+      "categories": [
+        "helpers"
+      ],
+      "config_flow": true,
+      "iot_class": "calculated"
+    },
     "otp": {
       "name": "One-Time Password (OTP)",
       "integration_type": "helper",
@@ -17627,6 +17641,14 @@
       "iot_class": "local_polling"
     },
     "random": {
+      "integration_type": "helper",
+      "categories": [
+        "helpers"
+      ],
+      "config_flow": true,
+      "iot_class": "calculated"
+    },
+    "safety_cutoff": {
       "integration_type": "helper",
       "categories": [
         "helpers"
@@ -17748,6 +17770,7 @@
     "moehlenhoff_alpha2",
     "mold_indicator",
     "moon",
+    "morning_briefing",
     "nextbus",
     "nmap_tracker",
     "plant",
@@ -17755,6 +17778,7 @@
     "random",
     "remote_calendar",
     "rpi_power",
+    "safety_cutoff",
     "schedule",
     "season",
     "shopping_list",
