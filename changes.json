@@ -1,15 +1,60 @@
 {
  "format": 1,
- "generated": "2026-11-23T23:53:14Z",
+ "generated": "2026-11-24T01:42:07Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 554,
+ "newest_build": 556,
  "releases": [
+  {
+   "build": 556,
+   "core": "2026.11.2.556",
+   "supervisor": "2026.11.0.556",
+   "os": "18.5.556",
+   "tag": null,
+   "source": "d54339964",
+   "date": "2026-11-23T20:18:52-05:00",
+   "previous_build": 554,
+   "changes": [
+    {
+     "sha": "d54339964",
+     "date": "2026-11-23T20:18:52-05:00",
+     "title": "Marketplace: carry an integration across a domain rename instead of refusing it",
+     "areas": [
+      "docs",
+      "core"
+     ],
+     "detail": "An update whose manifest moved to a new domain used to stop at Install with \"uninstall it and install it again\", which is advice, not an update. Now the Marketplace looks for a release that ships both the old and the new domain and installs that first, so the integration can migrate its own entries after a restart, then the normal update carries on. With no such release and nothing set up under the old domain it simply installs the new one and tidies the old folder away; with entries still there it raises a repair that asks before going ahead. Old folders are only removed once nothing uses them, and never when they are symlinks or belong to another repository.",
+     "detail_yue": "市集遇到整合轉咗名（例如 proxmoxve 變 proxmoxve_custom）唔會再叫你自己剷走 重裝喇。有過渡版本就先裝過渡版本，等佢自己搬晒設定；冇設定就直接裝新名、 執走舊資料夾；仲有設定就出個修復提示問你先。"
+    },
+    {
+     "sha": "1c12ff8dc",
+     "date": "2026-11-23T20:01:37-05:00",
+     "title": "Add the Alerts and costs board to the grow light canvas",
+     "areas": [
+      "design"
+     ],
+     "detail": "A phone board shows which alerts the seven home crops send on a chosen morning, soil moisture deciding between waiting and watering, and what the light costs to run. The crop card and PC overview notes now say those cards are built, instead of pretending they are still on the wish list.",
+     "detail_yue": "植物燈設計板加多張「通知同電費」：揀一日睇七盆菜會收到咩通知，拉泥土濕度睇 幾時淋水，拉燈嘅瓦數睇一個月食幾多電。兩張卡嘅便條都改返做「已經整咗」。"
+    },
+    {
+     "sha": "f06af28f8",
+     "date": "2026-11-23T19:58:43-05:00",
+     "title": "Grow light alerts, soil, energy and cards; morning briefing, safety cutoff and printer door",
+     "areas": [
+      "docs",
+      "core",
+      "interface"
+     ],
+     "detail": "Grow light now tells you things instead of making you check: a new growth stage, harvest time, watering due, a pump run, dry soil and a \"sow the next batch\" reminder go to any notify action, a grow_light_alert event and a new Alerts event entity. A soil moisture sensor can put a watering off while the pot is still wet and water as soon as it dries out, so the radishes stop swimming. Rated watts or the plug's own power sensor give Light energy and Light cost sensors; Next sowing and a Sown again button round it off. Two Lovelace cards (one crop, and every crop side by side) come from the boards.\n\nThree new pieces sit beside it: a Morning briefing helper that sends one summary a day (weather, transit alerts, grow lights, chosen entities), a Safety cutoff helper that latches the listed switches off on a leak or a power limit until Reset, and a Printer door integration that reads a Bambu Lab printer's door and print state over its local MQTT.",
+     "detail_yue": "植物燈識講嘢喇：轉階段、可以收成、要淋水、水泵開咗、泥乾咗、夠鐘再播一轉， 全部即刻通知你手機。泥仲濕就遲一日先淋，乾咗即刻淋，蘿蔔唔使再游水。 仲計埋燈食咗幾多電、幾多錢，兩張卡一張睇一盆、一張成架睇晒。另外新增 朝早簡報、漏水斷電保險掣同埋 3D 打印機門口監察，打印緊開門即刻知。"
+    }
+   ]
+  },
   {
    "build": 554,
    "core": "2026.11.2.554",
    "supervisor": "2026.11.0.554",
    "os": "18.5.554",
-   "tag": null,
+   "tag": "v2026.11.2.554",
    "source": "a3b5daa15",
    "date": "2026-11-23T16:14:20-05:00",
    "previous_build": 552,
