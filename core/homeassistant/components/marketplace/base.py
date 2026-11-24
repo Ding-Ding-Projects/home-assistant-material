@@ -91,6 +91,7 @@ from .repositories.base import (
     RepositoryManifest,
     valid_integration_categories,
 )
+from .repositories.integration import IntegrationRepository
 from .utils.data import MarketplaceData
 from .utils.file_system import async_exists, async_run_to_completion
 from .utils.identity import newest_id_per_name
@@ -951,6 +952,7 @@ class MarketplaceManager:
         self.status.startup = False
         self.async_dispatch(MarketplaceSignal.STATUS, {})
 
+        await self.async_remove_previous_domains()
         await self.async_handle_removed_repositories()
         await self.async_get_all_category_repositories()
         # Queued only, the queue runs them. Waiting for the interval would
@@ -965,6 +967,15 @@ class MarketplaceManager:
         await self.async_process_queue()
 
         self.async_dispatch(MarketplaceSignal.STATUS, {})
+
+    async def async_remove_previous_domains(self) -> None:
+        """Remove the folders of domains no config entries are left for."""
+        for repository in self.repositories.list_installed:
+            if (
+                isinstance(repository, IntegrationRepository)
+                and repository.data.previous_domain
+            ):
+                await repository.async_remove_previous_domain()
 
     async def async_download_file(
         self,

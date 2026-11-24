@@ -133,8 +133,11 @@
     "disabled_removed": {
       "message": "The Marketplace is being removed."
     },
+    "domain_change_needs_confirmation": {
+      "message": "{repository} changed its domain from {old_domain} to {domain}, and its configuration entries stay with {old_domain}. Confirm the change in the repairs to install it."
+    },
     "domain_changed": {
-      "message": "{repository} changed its domain from {old_domain} to {domain}, uninstall it and install it again."
+      "message": "{repository} changed its domain from {old_domain} to {domain}."
     },
     "download_incomplete": {
       "message": "The download did not complete: {error}"
@@ -398,6 +401,25 @@
         }
       },
       "title": "{repository} was removed because it is marked as critical"
+    },
+    "domain_bridge_installed": {
+      "description": "`{name}` changed its domain from `{old_domain}` to `{domain}`. The Marketplace installed {version}, which carries both, so the integration can move its configuration entries over. Restart Home Assistant to finish the move. The Marketplace then offers {target}, and removes the folder of `{old_domain}` once no entries of it are left.",
+      "title": "{name} is moving to a new domain"
+    },
+    "domain_change_confirmation": {
+      "fix_flow": {
+        "abort": {
+          "install_failed": "The new domain could not be installed: {error}",
+          "repository_missing": "The Marketplace no longer knows this integration."
+        },
+        "step": {
+          "confirm": {
+            "description": "`{name}` changed its domain from `{old_domain}` to `{domain}`, and no release carries both. Your existing entries of `{old_domain}` can not move over, remove them and add the integration again under `{domain}`.\n\nSelect **Submit** to install `{domain}`. The folder of `{old_domain}` stays until no entries of it are left.",
+            "title": "Install the new domain of {name}?"
+          }
+        }
+      },
+      "title": "{name} changed its domain"
     },
     "download_profile": {
       "fix_flow": {

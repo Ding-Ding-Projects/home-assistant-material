@@ -8,9 +8,12 @@ from homeassistant.components.repairs import RepairsFlow, RepairsFlowResult
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
-from .const import CONF_PROFILE, DOMAIN
+from .base import async_get_marketplace
+from .const import CONF_PROFILE, DOMAIN, DOMAIN_CHANGE_ISSUE_PREFIX
 from .critical import CRITICAL_ISSUE_PREFIX, async_acknowledge_critical_repository
+from .exceptions import MarketplaceError
 from .profiles import PROFILE_ISSUE_PREFIX, async_create_profile_suggestion, get_profile
+from .repositories.integration import IntegrationRepository
 
 
 class RestartRequiredFixFlow(RepairsFlow):
@@ -80,6 +83,50 @@ class CriticalRepositoryFixFlow(RepairsFlow):
         )
 
 
+class DomainChangeFixFlow(RepairsFlow):
+    """Install the new domain of an integration whose config entries stay behind."""
+
+    def __init__(self, issue_id: str, repository_id: str) -> None:
+        """Initialize the fix flow."""
+        self.issue_id = issue_id
+        self.repository_id = repository_id
+
+    async def async_step_init(
+        self, user_input: dict[str, str] | None = None
+    ) -> RepairsFlowResult:
+        """Handle the first step of a fix flow."""
+        return await self.async_step_confirm()
+
+    async def async_step_confirm(
+        self, user_input: dict[str, str] | None = None
+    ) -> RepairsFlowResult:
+        """Name both domains, install the new one once the user confirms."""
+        issue = ir.async_get(self.hass).async_get_issue(DOMAIN, self.issue_id)
+        placeholders = dict(issue.translation_placeholders or {}) if issue else {}
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="confirm",
+                data_schema=probatio.Schema({}),
+                description_placeholders=placeholders,
+            )
+
+        repository = async_get_marketplace(self.hass).repositories.get_by_id(
+            self.repository_id
+        )
+        if not isinstance(repository, IntegrationRepository):
+            return self.async_abort(reason="repository_missing")
+
+        try:
+            await repository.async_install_repository(confirm_domain_change=True)
+        except MarketplaceError as exception:
+            return self.async_abort(
+                reason="install_failed",
+                description_placeholders={"error": str(exception)},
+            )
+        return self.async_create_entry(title="", data={})
+
+
 class DownloadProfileFixFlow(RepairsFlow):
     """Switch to the download profile the issue suggests."""
 
@@ -136,6 +183,8 @@ async def async_create_fix_flow(
         return RestartRequiredFixFlow(issue_id)
     if issue_id.startswith(CRITICAL_ISSUE_PREFIX) and data:
         return CriticalRepositoryFixFlow(str(data["repository"]), str(data["reason"]))
+    if issue_id.startswith(DOMAIN_CHANGE_ISSUE_PREFIX) and data:
+        return DomainChangeFixFlow(issue_id, str(data["repository_id"]))
     if issue_id.startswith(PROFILE_ISSUE_PREFIX) and data:
         return DownloadProfileFixFlow(str(data["profile"]))
     return None

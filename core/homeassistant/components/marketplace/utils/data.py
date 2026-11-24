@@ -63,6 +63,7 @@ EXPORTED_INSTALLED_REPOSITORY_DATA: tuple[tuple[str, Any], ...] = (
     ("manifest_name", None),
     ("open_issues", 0),
     ("prerelease", None),
+    ("previous_domain", None),
     ("published_tags", []),
     ("releases", False),
     ("selected_tag", None),
@@ -385,6 +386,7 @@ class MarketplaceData:
             if topic not in TOPIC_FILTER
         ]
         repository.data.domain = repository_data.get("domain")
+        repository.data.previous_domain = repository_data.get("previous_domain")
         repository.data.integration_categories = valid_integration_categories(
             repository_data.get("integration_categories", [])
         )

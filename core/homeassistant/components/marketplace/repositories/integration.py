@@ -1,8 +1,12 @@
 """Class for integration repositories."""
 
+import asyncio
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from functools import partial
+import os
 from pathlib import Path
+import shutil
 import sys
 from typing import TYPE_CHECKING, Any, override
 
@@ -11,6 +15,8 @@ from awesomeversion.exceptions import AwesomeVersionException
 import probatio
 
 from homeassistant import components
+from homeassistant.core import callback
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
 from homeassistant.helpers.translation import async_invalidate_translations
 from homeassistant.loader import (
@@ -23,23 +29,67 @@ from homeassistant.loader import (
 )
 from homeassistant.util.json import json_loads_object
 
-from ..const import DOMAIN, RESTART_ISSUE_PREFIX
+from ..const import (
+    DOMAIN,
+    DOMAIN_BRIDGE_ISSUE_PREFIX,
+    DOMAIN_CHANGE_ISSUE_PREFIX,
+    RESTART_ISSUE_PREFIX,
+)
 from ..enums import RepositoryCategory, RepositoryFile
 from ..exceptions import (
     AppRepositoryError,
     CatalogContentUnresolvedError,
+    GitHubRateLimitError,
     MarketplaceError,
+    ReplacesBuiltInNotConfirmedError,
 )
+from ..types import DownloadableContent
+from ..utils.backup import Backup
 from ..utils.decode import decode_content
 from ..utils.decorator import concurrent
 from ..utils.filters import get_first_directory_in_directory
 from ..utils.logger import LOGGER
-from ..utils.url import github_raw_file, ref_version
+from ..utils.path import entry_in_directory, is_safe
+from ..utils.url import github_raw_file, github_release_asset, ref_version
 from ..utils.validate import INTEGRATION_MANIFEST_VALUES, VALID_DOMAIN
+from ..utils.version import is_newer_version
 from .base import Repository
 
 if TYPE_CHECKING:
     from ..base import MarketplaceManager
+
+
+class DomainChangedError(MarketplaceError):
+    """For an update of an installed integration that changes its domain."""
+
+    def __init__(self, repository: str, old_domain: str, domain: str) -> None:
+        """Initialize the exception."""
+        super().__init__(
+            translation_domain=DOMAIN,
+            translation_key="domain_changed",
+            translation_placeholders={
+                "repository": repository,
+                "old_domain": old_domain,
+                "domain": domain,
+            },
+        )
+        self.old_domain = old_domain
+        self.domain = domain
+
+
+@dataclass(frozen=True)
+class DomainBridge:
+    """A release that carries the old and the new domain of an integration."""
+
+    version: str
+    old_domain: str
+    domain: str
+    # The release ships a ZIP asset per domain, else the tree holds a folder per domain
+    from_assets: bool
+
+
+# A tree has to be fetched for every release looked at, so only a few are
+BRIDGE_TREE_LOOKUPS = 5
 
 
 def _validated_domain(domain: Any) -> str:
@@ -135,6 +185,10 @@ class IntegrationRepository(Repository):
         self.data.full_name = full_name
         self.data.category = RepositoryCategory.INTEGRATION
         self.content.path.local = self.localpath
+        self._domain_change_allowed = False
+        self._domain_change_confirmed = False
+        self._domain_moved_from: str | None = None
+        self._bridge: DomainBridge | None = None
 
     @property
     @override
@@ -165,7 +219,11 @@ class IntegrationRepository(Repository):
             self.logger.error("%s Missing domain", self.string)
             return False
 
-        return await super().remove_local_directory()
+        if not await super().remove_local_directory():
+            return False
+
+        previous = self.data.previous_domain
+        return previous is None or await self._async_remove_domain_folder(previous)
 
     @override
     async def async_pre_install(self) -> None:
@@ -188,6 +246,15 @@ class IntegrationRepository(Repository):
                     },
                 )
 
+        if (
+            self._domain_moved_from is not None
+            and not self._replace_built_in_confirmed
+            and await self.async_replaces_built_in()
+        ):
+            raise ReplacesBuiltInNotConfirmedError(
+                self.data.full_name, str(self.data.domain)
+            )
+
     @override
     async def async_post_installation(self) -> None:
         """Run post installation steps."""
@@ -199,6 +266,14 @@ class IntegrationRepository(Repository):
             self.pending_restart = (
                 self._known_to_the_loader() or self.data.domain not in found
             )
+
+        if self._domain_moved_from is not None:
+            self.data.previous_domain = self._domain_moved_from
+
+        # The old domain keeps loading its entries until the restart
+        if self._bridge is not None:
+            self.pending_restart = True
+            self._async_create_bridge_issue(self._bridge)
 
         if self.pending_restart:
             self.logger.debug("%s Creating restart_required issue", self.string)
@@ -214,6 +289,8 @@ class IntegrationRepository(Repository):
                     "name": self.display_name,
                 },
             )
+
+        await self.async_remove_previous_domain()
 
     def _known_to_the_loader(self) -> bool:
         """Return if this run already resolved the domain, its own or a built-in."""
@@ -248,6 +325,11 @@ class IntegrationRepository(Repository):
         loaded = self._known_to_the_loader()
         await self.reload_custom_components()
         self.pending_restart = loaded or not self.data.config_flow
+        self.data.previous_domain = None
+        for prefix in (DOMAIN_BRIDGE_ISSUE_PREFIX, DOMAIN_CHANGE_ISSUE_PREFIX):
+            ir.async_delete_issue(
+                self.marketplace.hass, DOMAIN, f"{prefix}{self.data.id}"
+            )
 
         if self.pending_restart:
             async_create_issue(
@@ -332,17 +414,12 @@ class IntegrationRepository(Repository):
         """Take the details of the integration from its manifest.json."""
         try:
             domain = _validated_domain(manifest["domain"])
-            # The files of an install stay where they are, removal needs to find them
             if self.data.installed and self.data.domain not in (None, domain):
-                raise MarketplaceError(
-                    translation_domain=DOMAIN,
-                    translation_key="domain_changed",
-                    translation_placeholders={
-                        "repository": self.data.full_name,
-                        "old_domain": self.data.domain,
-                        "domain": domain,
-                    },
-                )
+                if not self._domain_change_allowed:
+                    raise DomainChangedError(
+                        self.data.full_name, str(self.data.domain), domain
+                    )
+                self._domain_moved_from = self.data.domain
 
             self.integration_manifest = manifest
             self.data.authors = _manifest_value(manifest, "codeowners", [])
@@ -471,3 +548,313 @@ class IntegrationRepository(Repository):
             return json_loads_object(result)
         except ValueError:
             return None
+
+    @override
+    async def async_install_repository(
+        self,
+        *,
+        ref: str | None = None,
+        confirm_replace_built_in: bool = False,
+        confirm_domain_change: bool = False,
+    ) -> None:
+        """Install a repository, confirm_domain_change accepts a new domain."""
+        self._domain_change_confirmed = confirm_domain_change
+        try:
+            await super().async_install_repository(
+                ref=ref, confirm_replace_built_in=confirm_replace_built_in
+            )
+        finally:
+            self._domain_change_confirmed = False
+
+    @override
+    async def _async_install_repository(self, ref: str | None) -> None:
+        """Install a version, one that changes the domain moves to the new one."""
+        try:
+            await super()._async_install_repository(ref)
+        except DomainChangedError as change:
+            await self._async_install_domain_change(ref, change)
+
+    async def _async_install_domain_change(
+        self, ref: str | None, change: DomainChangedError
+    ) -> None:
+        """Install what an update that changes the domain needs."""
+        old_domain, domain = change.old_domain, change.domain
+        if bridge := await self._async_find_bridge(old_domain, domain, ref):
+            await self._async_install_bridge(bridge)
+            return
+
+        if (
+            self.marketplace.hass.config_entries.async_entries(old_domain)
+            and not self._domain_change_confirmed
+        ):
+            self._async_create_domain_change_issue(old_domain, domain)
+            raise MarketplaceError(
+                translation_domain=DOMAIN,
+                translation_key="domain_change_needs_confirmation",
+                translation_placeholders={
+                    "repository": self.data.full_name,
+                    "old_domain": old_domain,
+                    "domain": domain,
+                },
+            )
+
+        self._domain_change_allowed = True
+        try:
+            await super()._async_install_repository(ref)
+        except BaseException:
+            self._async_revert_domain(old_domain)
+            raise
+        finally:
+            self._domain_change_allowed = False
+            self._domain_moved_from = None
+
+        ir.async_delete_issue(
+            self.marketplace.hass,
+            DOMAIN,
+            f"{DOMAIN_CHANGE_ISSUE_PREFIX}{self.data.id}",
+        )
+
+    def _async_revert_domain(self, domain: str) -> None:
+        """Go back to the domain the files of the install are in."""
+        self.data.domain = domain
+        self.content.path.local = self.localpath
+        self._domain_moved_from = None
+
+    async def _async_find_bridge(
+        self, old_domain: str, domain: str, ref: str | None
+    ) -> DomainBridge | None:
+        """Return the newest release between the installed and the target version.
+
+        A bridge carries both domains, so the integration can move its config
+        entries over before the version that has the new domain only.
+        """
+        target = ref or self.data.last_version
+        try:
+            releases = await self.get_releases(prerelease=True, returnlimit=30)
+        except GitHubRateLimitError:
+            raise
+        except MarketplaceError as exception:
+            self.logger.debug(
+                "%s Could not look for a bridge release: %s", self.string, exception
+            )
+            return None
+
+        zip_release = self.repository_manifest.zip_release
+        wanted = {f"{old_domain}.zip", f"{domain}.zip"}
+        tree_lookups = 0
+        for release in releases:
+            version = release.tag_name
+            if target is not None and is_newer_version(version, target):
+                continue
+            installed = self.data.installed_version
+            if installed is not None and not is_newer_version(version, installed):
+                continue
+
+            if wanted <= {asset.name for asset in release.assets or []}:
+                return DomainBridge(version, old_domain, domain, from_assets=True)
+
+            if zip_release or tree_lookups >= BRIDGE_TREE_LOOKUPS:
+                continue
+            tree_lookups += 1
+            try:
+                tree = await self.get_tree(version)
+            except GitHubRateLimitError:
+                raise
+            except MarketplaceError:
+                continue
+            paths = {entry.path for entry in tree or []}
+            if {
+                f"custom_components/{old_domain}/{RepositoryFile.MANIFEST_JSON}",
+                f"custom_components/{domain}/{RepositoryFile.MANIFEST_JSON}",
+            } <= paths:
+                return DomainBridge(version, old_domain, domain, from_assets=False)
+
+        return None
+
+    async def _async_install_bridge(self, bridge: DomainBridge) -> None:
+        """Install a bridge release, the target stays the update on offer."""
+        self.logger.info(
+            "%s Installing %s, it carries %s and %s",
+            self.string,
+            bridge.version,
+            bridge.old_domain,
+            bridge.domain,
+        )
+        self.data.domain = bridge.domain
+        self._domain_moved_from = bridge.old_domain
+        self._bridge = bridge
+        self.ref = f"tags/{bridge.version}"
+        self.content.path.local = self.localpath
+        self.validate.errors.clear()
+        try:
+            with self._install_failure_names_the_version(bridge.version):
+                await self._async_run_install(partial(self._async_write_bridge, bridge))
+        except BaseException:
+            self._async_revert_domain(bridge.old_domain)
+            raise
+        finally:
+            self._bridge = None
+            self._domain_moved_from = None
+            self._end_install()
+
+    async def _async_write_bridge(self, bridge: DomainBridge) -> None:
+        """Write both domains of a bridge release and mark it installed."""
+        await self._async_write_content(partial(self._async_download_bridge, bridge))
+
+        self.data.installed = True
+        self.data.installed_commit = self.data.last_commit
+        self.data.releases = True
+        self.data.installed_version = bridge.version
+
+    async def _async_download_bridge(self, bridge: DomainBridge) -> None:
+        """Download a folder for each domain, the old one is put back on failure."""
+        hass = self.marketplace.hass
+        new_local = self.content.path.local
+        old_local = self._domain_path(bridge.old_domain)
+        old_backup = Backup(self.marketplace, old_local)
+        await hass.async_add_executor_job(old_backup.create)
+
+        def _undo() -> None:
+            if old_backup.is_first_install:
+                old_backup.remove_first_install()
+            else:
+                old_backup.restore()
+            old_backup.cleanup()
+
+        try:
+            folders = ((bridge.old_domain, old_local), (bridge.domain, new_local))
+            if bridge.from_assets:
+                for domain, local in folders:
+                    filename = f"{domain}.zip"
+                    self.content.path.local = local
+                    await self.async_download_zip_file(
+                        DownloadableContent(
+                            name=filename,
+                            url=github_release_asset(
+                                repository=self.data.full_name,
+                                version=bridge.version,
+                                filename=filename,
+                            ),
+                        ),
+                        self.validate,
+                    )
+            else:
+                archive = await self._async_download_archive(bridge.version)
+                for domain, local in folders:
+                    await hass.async_add_executor_job(
+                        archive.extract_directory, f"custom_components/{domain}", local
+                    )
+            self.content.path.local = new_local
+            self._raise_for_install_errors()
+            await self.async_check_written_content()
+        except Exception, asyncio.CancelledError:
+            self.content.path.local = new_local
+            await asyncio.shield(hass.async_add_executor_job(_undo))
+            raise
+
+        await hass.async_add_executor_job(old_backup.cleanup)
+
+    def _domain_path(self, domain: str) -> str:
+        """Return the folder of a domain."""
+        return f"{self.marketplace.core.config_path}/custom_components/{domain}"
+
+    @callback
+    def _async_create_bridge_issue(self, bridge: DomainBridge) -> None:
+        """Tell the integration changed its domain and a restart finishes the move."""
+        async_create_issue(
+            hass=self.marketplace.hass,
+            domain=DOMAIN,
+            issue_id=f"{DOMAIN_BRIDGE_ISSUE_PREFIX}{self.data.id}",
+            is_fixable=False,
+            issue_domain=bridge.domain,
+            severity=IssueSeverity.WARNING,
+            translation_key="domain_bridge_installed",
+            translation_placeholders={
+                "name": self.display_name,
+                "old_domain": bridge.old_domain,
+                "domain": bridge.domain,
+                "version": bridge.version,
+                "target": self.data.last_version or bridge.version,
+            },
+        )
+
+    @callback
+    def _async_create_domain_change_issue(self, old_domain: str, domain: str) -> None:
+        """Ask to confirm a new domain the existing config entries do not follow."""
+        async_create_issue(
+            hass=self.marketplace.hass,
+            domain=DOMAIN,
+            issue_id=f"{DOMAIN_CHANGE_ISSUE_PREFIX}{self.data.id}",
+            is_fixable=True,
+            severity=IssueSeverity.WARNING,
+            translation_key="domain_change_confirmation",
+            translation_placeholders={
+                "name": self.display_name,
+                "old_domain": old_domain,
+                "domain": domain,
+            },
+            data={"repository_id": self.data.id},
+        )
+
+    async def async_remove_previous_domain(self) -> None:
+        """Remove the folder of the old domain, once no config entries are left."""
+        previous = self.data.previous_domain
+        if previous is None:
+            return
+
+        if previous == self.data.domain or not VALID_DOMAIN.match(previous):
+            self.data.previous_domain = None
+            return
+
+        if self.marketplace.hass.config_entries.async_entries(previous):
+            return
+
+        if not await self._async_remove_domain_folder(previous):
+            return
+
+        self.data.previous_domain = None
+        ir.async_delete_issue(
+            self.marketplace.hass,
+            DOMAIN,
+            f"{DOMAIN_BRIDGE_ISSUE_PREFIX}{self.data.id}",
+        )
+
+    async def _async_remove_domain_folder(self, domain: str) -> bool:
+        """Remove the folder of a domain, return if it is gone or not ours to remove.
+
+        A symlink and a folder another repository installed to stay.
+        """
+        if not VALID_DOMAIN.match(domain) or any(
+            repository is not self
+            and repository.data.category == RepositoryCategory.INTEGRATION
+            and repository.data.domain == domain
+            for repository in self.marketplace.repositories.list_installed
+        ):
+            return True
+
+        def _remove() -> None:
+            directory = f"{self.marketplace.core.config_path}/custom_components"
+            path = entry_in_directory(directory, Path(directory, domain))
+            if os.path.islink(path) or not os.path.isdir(path):
+                if os.path.lexists(path):
+                    self.logger.warning("%s Not removing %s", self.string, path)
+                return
+            if not is_safe(self.marketplace, path):
+                self.logger.error(
+                    "%s Path %s is blocked from removal", self.string, path
+                )
+                return
+            self.logger.debug("%s Removing %s", self.string, path)
+            shutil.rmtree(path)
+
+        try:
+            await self.marketplace.hass.async_add_executor_job(_remove)
+        except (OSError, MarketplaceError) as exception:
+            self.logger.error(
+                "%s Removing the folder of %s failed with %s",
+                self.string,
+                domain,
+                exception,
+            )
+            return False
+        return True

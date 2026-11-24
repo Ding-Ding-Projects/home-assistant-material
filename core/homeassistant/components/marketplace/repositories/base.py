@@ -328,6 +328,9 @@ class RepositoryData:
     new: bool = True
     open_issues: int = 0
     prerelease: str | None = None
+    # The domain an integration had before an update changed it, its folder is
+    # kept until no config entries of it are left
+    previous_domain: str | None = None
     published_tags: list[str] = attr.field(factory=list)
     releases: bool = False
     selected_tag: str | None = None

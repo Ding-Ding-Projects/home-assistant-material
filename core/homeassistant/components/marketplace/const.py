@@ -64,3 +64,7 @@ CONF_PROFILE = "profile"
 
 # Installs that need a restart get an issue per repository and version
 RESTART_ISSUE_PREFIX = "restart_required_"
+
+# An update that changes the domain of an integration has an issue per repository
+DOMAIN_BRIDGE_ISSUE_PREFIX = "domain_bridge_"
+DOMAIN_CHANGE_ISSUE_PREFIX = "domain_change_"

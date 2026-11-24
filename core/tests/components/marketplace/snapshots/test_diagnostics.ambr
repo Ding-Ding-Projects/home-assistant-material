@@ -155,6 +155,7 @@
           'new': False,
           'open_issues': 0,
           'prerelease': None,
+          'previous_domain': None,
           'published_tags': list([
           ]),
           'releases': False,
@@ -219,6 +220,7 @@
           'new': False,
           'open_issues': 0,
           'prerelease': None,
+          'previous_domain': None,
           'published_tags': list([
           ]),
           'releases': False,

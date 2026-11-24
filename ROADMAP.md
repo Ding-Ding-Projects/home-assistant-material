@@ -41,6 +41,13 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 
 ## New helpers and an integration, 23 November 2026
 
+- [ ] Marketplace: an integration whose new version changes its domain (for example
+      `dougiteixeira/proxmoxve`, `proxmoxve` to `proxmoxve_custom`) no longer stops at Install. A
+      release that carries both domains is installed first so the integration can move its own
+      entries; with no such release and no entries the new domain is installed and the old folder
+      removed; with entries a repair asks before going ahead
+      ([`changed-domain.md`](docs/features/marketplace/changed-domain.md)). 14 new tests pass on
+      Linux; not yet run on the live instance.
 - [ ] Morning briefing helper: one daily notification with the weather, transit alerts, grow lights
       due for water, new stages or paused, and chosen extra entities; Send now button
       ([`morning-briefing.md`](docs/features/automations/morning-briefing.md)). Tests pass on Linux;
