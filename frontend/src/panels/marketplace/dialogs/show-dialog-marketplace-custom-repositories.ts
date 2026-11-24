@@ -3,6 +3,8 @@ import type { MarketplaceData } from "../../../data/marketplace/marketplace";
 
 export interface MarketplaceCustomRepositoriesDialogParams {
   marketplace: MarketplaceData;
+  // A package or ZIP file that was dropped or picked, looked through at once
+  file?: File;
 }
 
 const loadMarketplaceCustomRepositoriesDialog = () =>

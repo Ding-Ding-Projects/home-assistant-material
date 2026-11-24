@@ -9,8 +9,9 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .base import MarketplaceConfigEntry, MarketplaceManager
-from .const import SIGNAL_REPOSITORY_INSTALLED
+from .const import SIGNAL_PACKAGES_CHANGED, SIGNAL_REPOSITORY_INSTALLED
 from .entity import RepositoryEntity
+from .entity_package import PackageEntity
 from .repositories.base import Repository
 
 PARALLEL_UPDATES = 0
@@ -42,6 +43,25 @@ async def async_setup_entry(
         async_dispatcher_connect(
             hass, SIGNAL_REPOSITORY_INSTALLED, _async_add_installed
         )
+    )
+
+    added_packages: set[str] = set()
+
+    @callback
+    def _async_add_packages(_: str | None = None) -> None:
+        new = [
+            key
+            for key, record in marketplace.package_updates.records.items()
+            if key not in added_packages and record.update_url
+        ]
+        added_packages.update(new)
+        async_add_entities(
+            PackageAutoUpdateSwitchEntity(marketplace, key) for key in new
+        )
+
+    _async_add_packages()
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, SIGNAL_PACKAGES_CHANGED, _async_add_packages)
     )
 
 
@@ -90,3 +110,31 @@ class RepositoryPreReleaseSwitchEntity(RepositoryEntity, SwitchEntity):
         # Write the Marketplace data and update the entity state
         await self.marketplace.data.async_write()
         self.async_write_ha_state()
+
+
+class PackageAutoUpdateSwitchEntity(PackageEntity, SwitchEntity):
+    """Switch that lets a package update itself."""
+
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "package-auto-update"
+
+    def __init__(self, marketplace: MarketplaceManager, key: str) -> None:
+        """Initialize."""
+        super().__init__(marketplace, key)
+        self._attr_unique_id = f"package_{key}_auto_update"
+
+    @property
+    @override
+    def is_on(self) -> bool:
+        """Return if updates are installed without asking."""
+        return self.record.auto_update
+
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn automatic updates on."""
+        await self.marketplace.package_updates.async_set_auto_update(self.key, True)
+
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn automatic updates off, an update is only offered."""
+        await self.marketplace.package_updates.async_set_auto_update(self.key, False)

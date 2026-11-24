@@ -25,6 +25,12 @@ SIGNAL_REPOSITORY_INSTALLED: SignalType[Repository] = SignalType(
     "marketplace_repository_installed"
 )
 
+# The installed packages or what is known about them changed, the key of one
+# package or None for all
+SIGNAL_PACKAGES_CHANGED: SignalType[str | None] = SignalType(
+    "marketplace_packages_changed"
+)
+
 PACKAGE_NAME = "homeassistant.components.marketplace"
 
 

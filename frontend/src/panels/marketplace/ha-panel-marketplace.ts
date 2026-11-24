@@ -25,6 +25,7 @@ import {
   subscribeMarketplaceChanges,
 } from "../../data/marketplace/websocket";
 import { fetchMarketplaceRepositories } from "../../data/marketplace/repository";
+import "./components/ha-marketplace-package-drop";
 import "./ha-marketplace-router";
 import { haStyle } from "../../resources/styles";
 
@@ -214,13 +215,19 @@ class HaPanelMarketplace extends SubscribeMixin(LitElement) {
       `;
     }
 
+    const marketplace = this._marketplace(this._repositories, this._info);
     return html`
       <ha-marketplace-router
         .hass=${this.hass}
-        .marketplace=${this._marketplace(this._repositories, this._info)}
+        .marketplace=${marketplace}
         .route=${this.route}
         .narrow=${this.narrow}
       ></ha-marketplace-router>
+      <ha-marketplace-package-drop
+        .hass=${this.hass}
+        .marketplace=${marketplace}
+        .target=${this}
+      ></ha-marketplace-package-drop>
     `;
   }
 

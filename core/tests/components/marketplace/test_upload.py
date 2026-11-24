@@ -99,6 +99,8 @@ async def test_adds_an_integration(
         "restart_required": True,
         "resource_url": None,
         "resource_added": False,
+        "version": "1.2.0",
+        "title": None,
     }
     target = config_dir / "custom_components" / "demo_x"
     assert sorted(path.name for path in target.iterdir()) == [

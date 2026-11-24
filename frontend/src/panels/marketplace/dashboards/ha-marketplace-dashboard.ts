@@ -60,6 +60,8 @@ import "../../../components/ha-svg-icon";
 import type { PageNavigation } from "../../../layouts/hass-tabs-subpage";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
 import type { HomeAssistantUI, Route } from "../../../types";
+import "../components/ha-marketplace-installed-packages";
+import { ARCHIVE_ACCEPT } from "../../../data/marketplace/archive-upload";
 import { showMarketplaceAddFromLink } from "../tools/add-from-link";
 import "../components/ha-marketplace-discover";
 import type { MarketplaceRepositoryMenuItem } from "../components/ha-marketplace-repository-overflow-menu";
@@ -81,6 +83,7 @@ import {
   entitiesContext,
   internationalizationContext,
   uiContext,
+  userContext,
 } from "../../../data/context";
 import type {
   RepositoryBase,
@@ -191,6 +194,13 @@ export class HaMarketplaceDashboard extends LitElement {
   @state()
   @consume({ context: configContext, subscribe: true })
   private _config!: ContextType<typeof configContext>;
+
+  @state()
+  @consume({ context: userContext, subscribe: true })
+  private _user?: ContextType<typeof userContext>;
+
+  @query("#package-input")
+  private _packageInput?: HTMLInputElement;
 
   @state()
   @consume({ context: brandsAccessTokenContext, subscribe: true })
@@ -484,6 +494,13 @@ export class HaMarketplaceDashboard extends LitElement {
           .narrow=${this.narrow}
           @data-table-filter-changed=${this._sourceFilterChanged}
         ></ha-filter-states>
+        ${
+          this.tab === "installed"
+            ? html`<ha-marketplace-installed-packages
+                slot="top-header"
+              ></ha-marketplace-installed-packages>`
+            : nothing
+        }
       </hass-tabs-subpage-data-table>
       <ha-dropdown
         id="repository-overflow-menu"
@@ -534,6 +551,13 @@ export class HaMarketplaceDashboard extends LitElement {
               ${addFromLink}
             </ha-button>`
       }
+      <input
+        id="package-input"
+        type="file"
+        hidden
+        accept=${ARCHIVE_ACCEPT}
+        @change=${this._packagePicked}
+      />
       <ha-dropdown @wa-select=${this._handleMenuAction}>
         <ha-icon-button
           slot="trigger"
@@ -543,6 +567,13 @@ export class HaMarketplaceDashboard extends LitElement {
         <ha-dropdown-item value="documentation">
           ${this._i18n.localize("ui.panel.marketplace.menu.documentation")}
         </ha-dropdown-item>
+        ${
+          this._user?.is_admin
+            ? html`<ha-dropdown-item value="install_package">
+                ${this._i18n.localize("ui.panel.marketplace.menu.install_package")}
+              </ha-dropdown-item>`
+            : nothing
+        }
         <ha-dropdown-item value="custom_repositories">
           ${this._i18n.localize("ui.panel.marketplace.menu.custom_repositories")}
         </ha-dropdown-item>
@@ -912,6 +943,9 @@ export class HaMarketplaceDashboard extends LitElement {
       case "documentation":
         this._openDocumentation();
         break;
+      case "install_package":
+        this._packageInput?.click();
+        break;
       case "custom_repositories":
         navigate("/marketplace/repositories");
         break;
@@ -983,6 +1017,22 @@ export class HaMarketplaceDashboard extends LitElement {
 
   private _addFromLink() {
     showMarketplaceAddFromLink(this, this._i18n.localize, this.marketplace);
+  }
+
+  // The fallback for dropping a file: a plain file input also works with the
+  // keyboard and on a phone
+  private _packagePicked(ev: Event) {
+    const input = ev.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (file) {
+      showMarketplaceAddFromLink(
+        this,
+        this._i18n.localize,
+        this.marketplace,
+        file
+      );
+    }
   }
 
   private _renderGroupActions: DataTableGroupActions = (group) =>

@@ -14,6 +14,12 @@ from ..const import DOMAIN
 from ..enums import MarketplaceSignal
 from .critical import marketplace_critical_acknowledge, marketplace_critical_list
 from .decorators import marketplace_command
+from .packages import (
+    marketplace_packages_auto_update,
+    marketplace_packages_check,
+    marketplace_packages_list,
+    marketplace_packages_update,
+)
 from .repositories import (
     marketplace_repositories_add,
     marketplace_repositories_clear_new,
@@ -49,6 +55,11 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, marketplace_repository_beta)
     websocket_api.async_register_command(hass, marketplace_repository_refresh)
     websocket_api.async_register_command(hass, marketplace_repository_uninstall)
+
+    websocket_api.async_register_command(hass, marketplace_packages_list)
+    websocket_api.async_register_command(hass, marketplace_packages_auto_update)
+    websocket_api.async_register_command(hass, marketplace_packages_check)
+    websocket_api.async_register_command(hass, marketplace_packages_update)
 
     websocket_api.async_register_command(hass, marketplace_critical_acknowledge)
     websocket_api.async_register_command(hass, marketplace_critical_list)

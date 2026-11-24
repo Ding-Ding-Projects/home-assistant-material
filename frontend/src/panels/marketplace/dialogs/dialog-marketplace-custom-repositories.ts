@@ -26,6 +26,7 @@ import type {
   MarketplaceUploadResult,
 } from "../../../data/marketplace/archive-upload";
 import {
+  ARCHIVE_ACCEPT,
   archiveErrorMessage,
   inspectArchive,
   uploadArchiveItem,
@@ -106,6 +107,12 @@ export class DialogMarketplaceCustomRepositories extends DialogMixin<Marketplace
     }
 
     this._githubConnected = this.params.marketplace.info.github_connected;
+    if (this.params.file && !this._file) {
+      this._mode = "file";
+      this._filePicked({
+        detail: { files: [this.params.file] },
+      } as HASSDomEvent<{ files: File[] }>);
+    }
   }
 
   private get _busy(): boolean {
@@ -262,7 +269,7 @@ export class DialogMarketplaceCustomRepositories extends DialogMixin<Marketplace
               @archive-selection-changed=${this._selectionChanged}
             ></ha-marketplace-archive-found>`
           : html`<ha-file-upload
-              .accept=${".zip,application/zip,application/x-zip-compressed"}
+              .accept=${ARCHIVE_ACCEPT}
               .icon=${mdiFolderZipOutline}
               .label=${localize(`${FILE}.pick`)}
               .supports=${localize(`${FILE}.supports`, {
@@ -291,7 +298,7 @@ export class DialogMarketplaceCustomRepositories extends DialogMixin<Marketplace
           html`<ha-alert
             alert-type="success"
             .title=${localize(`${FILE}.added.item`, {
-              name: result.name,
+              name: result.title ?? result.name,
               path: result.path,
             })}
           >
@@ -316,7 +323,13 @@ export class DialogMarketplaceCustomRepositories extends DialogMixin<Marketplace
                   </div>`
                 : nothing
             }
-            <div>${localize(`${FILE}.added.not_tracked`)}</div>
+            <div>
+              ${
+                this._inspection?.package?.updateUrl
+                  ? localize(`${FILE}.package.updates_tracked`)
+                  : localize(`${FILE}.added.not_tracked`)
+              }
+            </div>
           </ha-alert>`
       )}
       ${outcome.failed.map(
@@ -389,8 +402,11 @@ export class DialogMarketplaceCustomRepositories extends DialogMixin<Marketplace
   }
 
   private _canAddFromFile(): boolean {
-    return !!this._inspection?.items.some(
-      (item) => isInstallable(item) && this._selected.includes(item.id)
+    return (
+      !this._inspection?.packageError &&
+      !!this._inspection?.items.some(
+        (item) => isInstallable(item) && this._selected.includes(item.id)
+      )
     );
   }
 

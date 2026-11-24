@@ -30,6 +30,13 @@
           "off": "No pre-releases",
           "on": "Pre-releases preferred"
         }
+      },
+      "package-auto-update": {
+        "name": "Update automatically",
+        "state": {
+          "off": "Updates are offered only",
+          "on": "Updates install by themselves"
+        }
       }
     }
   },
@@ -211,6 +218,7 @@
     "not_modified": {
       "message": "Nothing changed since the last check."
     },
+    "package_update_failed_action": "Updating {name} failed: {error}",
     "path_outside_directory": {
       "message": "{path} is not inside {directory}."
     },
@@ -334,6 +342,17 @@
     "upload_not_zip": {
       "message": "The file is not a ZIP archive."
     },
+    "upload_package_checksum": "The file {path} does not match the checksum in the package manifest. The package is damaged or was changed.",
+    "upload_package_downgrade": "Version {version} is older than the installed version {installed}, going back to an older version is not done by an update.",
+    "upload_package_download_checksum": "The downloaded package does not match the checksum the update index gives for it.",
+    "upload_package_format": "The package uses a manifest format that is not supported: {format}.",
+    "upload_package_identity": "The package is {declared}, but the installed package is {installed}. An update can not change what it updates.",
+    "upload_package_invalid": "The package manifest hapkg.json is not valid: {problem}.",
+    "upload_package_kind": "The package manifest says {declared}, but the package holds {found}.",
+    "upload_package_missing": "The package manifest lists {path}, which is not in the package.",
+    "upload_package_required": "The download is not a package: it has no manifest hapkg.json.",
+    "upload_package_unlisted": "The package holds {path}, which the package manifest does not list.",
+    "upload_package_update_url": "The update address of a package has to be a plain https address.",
     "upload_path_too_deep": {
       "message": "The archive holds a path that is nested too deeply: {path}."
     },
@@ -442,6 +461,10 @@
     "legacy_dashboard_resources": {
       "description": "Your dashboard resources in YAML still load from `/hacsfiles`, the path HACS used. The Marketplace keeps serving it for compatibility, but installed resources use `/local/community`. Change these resources in your YAML configuration:\n\n{resources}",
       "title": "Dashboard resources use an old path"
+    },
+    "package_update_failed": {
+      "description": "The update of {name} to {version} was not installed and the installed version is unchanged. The reason: {error}\n\nThe Marketplace tries again at the next check. You can also open the update in Settings and install it yourself.",
+      "title": "Updating {name} failed"
     },
     "python_scripts_not_supported": {
       "description": "The Marketplace no longer manages Python scripts. The scripts it installed stay in place and the Python scripts integration keeps running them: {scripts}.\n\nUpdates for these scripts no longer come from the Marketplace. Keep them up to date yourself, outside of the Marketplace.",

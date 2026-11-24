@@ -116,6 +116,10 @@ COMMANDS: tuple[dict[str, Any], ...] = (
         "type": "marketplace/repository/releases",
         "repository_id": REPOSITORY_INTEGRATION_ID,
     },
+    {"type": "marketplace/packages/list"},
+    {"type": "marketplace/packages/auto_update", "key": "demo", "enabled": True},
+    {"type": "marketplace/packages/check", "key": "demo"},
+    {"type": "marketplace/packages/update", "key": "demo"},
 )
 
 # The commands that work without a loaded Marketplace.

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Installed packages and updates</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;display=swap"/>
+<style>
+body{margin:0}
+.pu{box-sizing:border-box;height:844px;overflow-y:auto;background:#121412;color:#e3e6e1;font-family:Roboto,system-ui,sans-serif;padding:12px 16px 24px;display:flex;flex-direction:column;gap:12px}
+.pu *{box-sizing:border-box}
+.pu button{font:inherit;cursor:pointer}
+.pu h1{font-size:22px;font-weight:500;margin:6px 0 0}
+.sub{font-size:13px;color:#a9b0a7;line-height:1.45}
+.card{background:#1a1d1a;border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;animation:puin .4s cubic-bezier(.2,0,0,1) both;transition:transform .25s cubic-bezier(.2,0,0,1), background .25s}
+.card:hover{transform:translateY(-2px);background:#1f231f}
+@keyframes puin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pubar{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+@keyframes pupulse{0%,100%{opacity:1}50%{opacity:.45}}
+.head{display:flex;gap:12px;align-items:center}
+.tile{width:44px;height:44px;border-radius:14px;background:#262b26;display:flex;align-items:center;justify-content:center;flex:none}
+.name{font-size:16px;font-weight:500}
+.pill{font-size:12px;font-weight:500;border-radius:10px;padding:4px 10px;white-space:nowrap}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;width:100%;background:transparent;border:0;color:#e3e6e1;padding:0;font-size:14px;text-align:left}
+.track{width:52px;height:32px;border-radius:16px;border:2px solid #8d948b;background:#2a2f2a;position:relative;flex:none;transition:background .2s,border-color .2s}
+.track span{position:absolute;top:6px;left:6px;width:16px;height:16px;border-radius:12px;background:#8d948b;transition:all .2s cubic-bezier(.2,0,0,1)}
+.track.on{background:var(--ac);border-color:var(--ac)}
+.track.on span{left:22px;top:2px;width:24px;height:24px;background:#0f1410}
+.btn{min-height:44px;padding:0 20px;border-radius:22px;border:0;background:var(--ac);color:#0f1410;font-size:14px;font-weight:500;transition:transform .2s, filter .2s}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.08)}
+.btn.tonal{background:#2a2f2a;color:#e3e6e1}
+.note{background:#20241f;border-radius:14px;padding:10px 12px;font-size:13px;line-height:1.5;color:#c3c8c1}
+.bar{height:6px;border-radius:3px;background:#2a2f2a;overflow:hidden}
+.bar span{display:block;width:40%;height:100%;border-radius:3px;background:var(--ac);animation:pubar 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.live{animation:pupulse 1.4s ease-in-out infinite}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.pu *{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="{{rootClass}}" style="--ac: {{accent}}">
+<h1>Installed packages</h1>
+<span class="sub">Packages check their index for a newer version every 6 hours. Last checked 24 November, 08:10.</span>
+<sc-for list="{{packages}}" as="p" hint-placeholder-count="5">
+<div class="card">
+<div class="head">
+<span class="tile" style="color: {{p.color}}"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"></path><path d="M3 8l9 5 9-5M12 13v8"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+<span class="name">{{p.title}}</span>
+<span class="sub">Version {{p.version}} from {{p.source}}</span>
+</div>
+<span class="pill" style="background: {{p.pillBg}}; color: {{p.pillFg}}">{{p.pill}}</span>
+</div>
+<sc-if value="{{p.isAvail}}" hint-placeholder-val="{{ false }}">
+<div class="note"><strong style="color: #e3e6e1; font-weight: 500">What is new in {{p.next}}</strong><br/>{{p.notes}}</div>
+<div><button class="btn" onClick="{{ p.update }}">Update to {{p.next}}</button></div>
+</sc-if>
+<sc-if value="{{p.isUpdating}}" hint-placeholder-val="{{ false }}">
+<div class="bar" role="progressbar" aria-label="Updating {{p.title}}"><span></span></div>
+<span class="sub live">Downloading {{p.next}}, then checking every file against its checksum.</span>
+</sc-if>
+<sc-if value="{{p.isRestart}}" hint-placeholder-val="{{ false }}">
+<div class="note">Version {{p.next}} is downloaded and verified. Integrations start using new code after a restart.</div>
+<div><button class="btn" onClick="{{ p.restart }}">Restart Home Assistant</button></div>
+</sc-if>
+<sc-if value="{{p.isFailed}}" hint-placeholder-val="{{ false }}">
+<div class="note" style="background: #2e1c1a; color: #ffdad5"><strong style="font-weight: 500">Update to {{p.next}} did not go through</strong><br/>{{p.reason}} Version {{p.version}} was kept and is still running.</div>
+<div><button class="btn tonal" onClick="{{ p.update }}">Try again</button></div>
+</sc-if>
+<button class="sw" role="switch" aria-checked="{{p.autoAria}}" onClick="{{ p.toggleAuto }}">
+<span>Update automatically</span>
+<span class="{{p.trackClass}}"><span></span></span>
+</button>
+</div>
+</sc-for>
+<span class="sub">Automatic updates never install an older version, and never accept a package whose domain has changed.</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#8ab4f8","options":["#8ab4f8","#7cc483","#e0b04a","#d98cc4"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+const SRC = 'home-assistant-integrations';
+const PILLS = {
+  up: ['Up to date', '#1b2a1d', '#a5dcaa'],
+  avail: ['Update available', '#2c2618', '#ecd08a'],
+  updating: ['Updating', '#1c2530', '#a8c7fa'],
+  restart: ['Restart needed', '#2a2030', '#e0b8ee'],
+  failed: ['Update failed', '#2e1c1a', '#ffb4ab']
+};
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = { list: [
+      { id: 'bin_day', title: 'Bin day', version: '1.0.0', next: '1.0.0', st: 'up', auto: true, color: '#d7f23a' },
+      { id: 'seed_tray', title: 'Seed tray', version: '1.0.0', next: '1.1.0', st: 'avail', auto: false, color: '#7cc483', notes: 'Adds a days-to-harvest sensor. Fixes the stage shown for trays sown today.' },
+      { id: 'github_releases', title: 'GitHub releases', version: '1.0.0', next: '1.0.1', st: 'updating', auto: true, color: '#a78bfa' },
+      { id: 'countdown', title: 'Countdown', version: '1.0.0', next: '1.0.1', st: 'restart', auto: true, color: '#ff8a70' },
+      { id: 'sun_hours', title: 'Sun hours', version: '1.0.0', next: '1.0.1', st: 'failed', auto: true, color: '#ffb347', reason: 'The checksum for sensor.py did not match the package index.' }
+    ] };
+  }
+  patch(id, change) {
+    this.setState({ list: this.state.list.map((p) => (p.id === id ? Object.assign({}, p, change) : p)) });
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#8ab4f8';
+    const motion = this.props.motion ?? true;
+    const packages = this.state.list.map((p) => {
+      const pill = PILLS[p.st];
+      return {
+        title: p.title, version: p.version, next: p.next, source: SRC, color: p.color, notes: p.notes, reason: p.reason,
+        pill: pill[0], pillBg: pill[1], pillFg: pill[2],
+        isAvail: p.st === 'avail', isUpdating: p.st === 'updating', isRestart: p.st === 'restart', isFailed: p.st === 'failed',
+        autoAria: p.auto ? 'true' : 'false',
+        trackClass: p.auto ? 'track on' : 'track',
+        toggleAuto: () => this.patch(p.id, { auto: !p.auto }),
+        update: () => { this.patch(p.id, { st: 'updating' }); setTimeout(() => this.patch(p.id, { st: 'restart' }), 2200); },
+        restart: () => this.patch(p.id, { st: 'up', version: p.next })
+      };
+    });
+    return { accent, rootClass: motion ? 'pu' : 'pu still', packages };
+  }
+}
+</script>
+</body>
+</html>

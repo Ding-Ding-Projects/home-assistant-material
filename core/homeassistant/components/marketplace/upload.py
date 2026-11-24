@@ -22,6 +22,7 @@ import zipfile
 
 from aiohttp import BodyPartReader
 from aiohttp.web import Request, Response
+from awesomeversion import AwesomeVersion
 import probatio
 import yaml
 
@@ -61,6 +62,13 @@ from .upload_archive import (
     stage_files,
     validate_archive,
 )
+from .upload_package import (
+    Package,
+    check_kind,
+    check_update_url,
+    read_manifest,
+    verify_files,
+)
 from .utils.logger import LOGGER
 
 UPLOAD_MARKER = ".marketplace-upload.json"
@@ -83,6 +91,8 @@ class _Plan:
     target: Path
     replaces_upload: bool
     created_www: bool = False
+    package: Package | None = None
+    auto_update: bool = True
 
 
 @dataclass
@@ -95,17 +105,34 @@ class _Result:
     restart_required: bool = False
     resource_url: str | None = None
     resource_added: bool = False
+    version: str | None = None
+    title: str | None = None
 
 
-def _error_response(view: HomeAssistantView, error: UploadError) -> Response:
-    """Answer with the message of an error, in the language of Home Assistant."""
-    message = str(
+@dataclass(frozen=True)
+class InstalledPackage:
+    """A package that is installed, the limits an update has to keep."""
+
+    kind: str
+    name: str
+    version: str
+    auto_update: bool = True
+
+
+def error_message(error: UploadError) -> str:
+    """Return the message of an error, in the language of Home Assistant."""
+    return str(
         HomeAssistantError(
             translation_domain=DOMAIN,
             translation_key=error.key,
             translation_placeholders=error.placeholders,
         )
     )
+
+
+def _error_response(view: HomeAssistantView, error: UploadError) -> Response:
+    """Answer with the message of an error, in the language of Home Assistant."""
+    message = error_message(error)
     return view.json(
         {
             "message": message,
@@ -148,6 +175,8 @@ class MarketplaceUploadView(HomeAssistantView):
                 "restart_required": result.restart_required,
                 "resource_url": result.resource_url,
                 "resource_added": result.resource_added,
+                "version": result.version,
+                "title": result.title,
             },
             status_code=HTTPStatus.CREATED,
         )
@@ -212,6 +241,7 @@ async def _receive_and_install(
             staging / "stage",
             marketplace,
             config_path,
+            None,
         )
         return await _install(hass, marketplace, plan, config_path)
     finally:
@@ -235,14 +265,16 @@ def _prepare(
     archive_path: Path,
     archive_name: str,
     kind: str,
-    source: str,
+    source: str | None,
     stage: Path,
     marketplace: MarketplaceManager,
     config_path: Path,
+    installed: InstalledPackage | None,
 ) -> _Plan:
     """Check the archive, find the chosen item again and stage its files.
 
-    Runs in the executor.
+    A source of None means the item the manifest of a package names, an update
+    chooses nothing itself. Runs in the executor.
     """
     try:
         archive = zipfile.ZipFile(archive_path)
@@ -257,13 +289,27 @@ def _prepare(
         def read(path: str) -> str | None:
             return read_marker(archive, by_name[path]) if path in by_name else None
 
+        package = read_manifest(archive, by_name)
+        if package is None and installed is not None:
+            raise UploadError("upload_package_required")
+        if package is not None:
+            if package.update_url is not None:
+                check_update_url(package.update_url)
+            _check_package(archive, by_name, package, installed)
+
         items = detect([info.filename for info in infos], read, archive_name)
         item = next(
-            (found for found in items if found.kind == kind and found.source == source),
+            (
+                found
+                for found in items
+                if found.kind == kind and _is_chosen(found, source, package)
+            ),
             None,
         )
         if item is None:
             raise UploadError("upload_item_not_found")
+        if package is not None:
+            check_kind(package, item.kind, item.domain)
 
         if item.kind not in INSTALLABLE_KINDS:
             raise UploadError("upload_not_supported", name=item.name)
@@ -274,19 +320,78 @@ def _prepare(
             )
 
         stage.mkdir()
-        return _stage(archive, by_name, item, stage, marketplace, config_path)
+        plan = _stage(archive, by_name, item, stage, marketplace, config_path)
+        plan.package = package
+        plan.auto_update = installed.auto_update if installed else True
+        _write_marker(plan)
+        return plan
 
 
-def _marker_data(item: Item) -> str:
-    return json.dumps(
-        {
-            "source": "upload",
-            "kind": item.kind,
-            "name": item.name,
-            "version": item.version,
-            "uploaded": datetime.now(UTC).isoformat(),
+def _is_chosen(item: Item, source: str | None, package: Package | None) -> bool:
+    """Return if an item is the one asked for."""
+    if source is not None:
+        return item.source == source
+    if package is None:
+        return False
+    return item.kind != "integration" or item.domain == package.name
+
+
+def _check_package(
+    archive: zipfile.ZipFile,
+    by_name: dict[str, zipfile.ZipInfo],
+    package: Package,
+    installed: InstalledPackage | None,
+) -> None:
+    """Check the files of a package, and that an update keeps to what it updates."""
+    if installed is not None:
+        if package.kind != installed.kind or package.name != installed.name:
+            raise UploadError(
+                "upload_package_identity",
+                declared=package.name,
+                installed=installed.name,
+            )
+        if AwesomeVersion(package.version) < AwesomeVersion(installed.version):
+            raise UploadError(
+                "upload_package_downgrade",
+                version=package.version,
+                installed=installed.version,
+            )
+    verify_files(archive, by_name, package)
+
+
+def _marker_data(
+    item: Item, package: Package | None = None, auto_update: bool = True
+) -> str:
+    data: dict[str, object] = {
+        "source": "upload",
+        "kind": item.kind,
+        "name": item.name,
+        "version": item.version,
+        "uploaded": datetime.now(UTC).isoformat(),
+    }
+    if package is not None:
+        data["version"] = package.version
+        data["package"] = {
+            "format": 1,
+            "name": package.name,
+            "title": package.title,
+            "version": package.version,
+            "source": (
+                {"repository": package.source.repository, "path": package.source.path}
+                if package.source
+                else None
+            ),
+            "update_url": package.update_url,
+            "auto_update": auto_update and package.update_url is not None,
         }
-    )
+    return json.dumps(data)
+
+
+def _write_marker(plan: _Plan) -> None:
+    if plan.item.kind in ("integration", "plugin", "theme"):
+        (plan.staged / UPLOAD_MARKER).write_text(
+            _marker_data(plan.item, plan.package, plan.auto_update), encoding="utf-8"
+        )
 
 
 def _existing_target(target: Path, relative: str, *, directory: bool) -> bool:
@@ -415,10 +520,6 @@ def _stage(
             ),
         )
 
-    if plan.item.kind in ("integration", "plugin", "theme"):
-        (plan.staged / UPLOAD_MARKER).write_text(
-            _marker_data(plan.item), encoding="utf-8"
-        )
     return plan
 
 
@@ -497,6 +598,8 @@ async def _install(
         kind=item.kind,
         name=item.name,
         path=plan.target.relative_to(config_path).as_posix(),
+        version=plan.package.version if plan.package else item.version,
+        title=plan.package.title if plan.package else None,
     )
     LOGGER.info("Added %s %s from an uploaded archive", item.kind, item.name)
 
@@ -520,6 +623,7 @@ async def _install(
             "upload_post_install_failed", name=item.name, error=str(error)
         ) from error
 
+    await marketplace.package_updates.async_rescan()
     if result.restart_required:
         async_create_issue(
             hass=hass,
@@ -594,3 +698,38 @@ async def _add_dashboard_resource(
 def _file_tag(path: Path) -> str:
     """Return a short tag that changes when the card file does."""
     return hashlib.sha256(path.read_bytes()).hexdigest()[:10]
+
+
+async def install_package_file(
+    hass: HomeAssistant,
+    marketplace: MarketplaceManager,
+    archive_path: Path,
+    installed: InstalledPackage,
+) -> _Result:
+    """Install a downloaded package over the one that is installed.
+
+    The same checks and steps as a dropped package, chosen by what is installed.
+    """
+    config_path = Path(hass.config.path())
+    staging = Path(
+        await hass.async_add_executor_job(
+            lambda: tempfile.mkdtemp(prefix=".marketplace_upload_", dir=config_path)
+        )
+    )
+    lock = hass.data.setdefault(UPLOAD_LOCK, asyncio.Lock())
+    try:
+        async with lock:
+            plan = await hass.async_add_executor_job(
+                _prepare,
+                archive_path,
+                archive_path.name,
+                installed.kind,
+                None,
+                staging / "stage",
+                marketplace,
+                config_path,
+                installed,
+            )
+            return await _install(hass, marketplace, plan, config_path)
+    finally:
+        await hass.async_add_executor_job(shutil.rmtree, staging, True)

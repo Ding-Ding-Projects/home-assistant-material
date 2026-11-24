@@ -10,11 +10,18 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .base import MarketplaceConfigEntry
-from .const import DOMAIN, RELEASE_LIMIT, SIGNAL_REPOSITORY_INSTALLED
+from .base import MarketplaceConfigEntry, MarketplaceManager
+from .const import (
+    DOMAIN,
+    RELEASE_LIMIT,
+    SIGNAL_PACKAGES_CHANGED,
+    SIGNAL_REPOSITORY_INSTALLED,
+)
 from .entity import RepositoryEntity
+from .entity_package import PackageEntity
 from .enums import MarketplaceSignal, RepositoryCategory
 from .exceptions import GitHubAnonymousRateLimitError, MarketplaceError
+from .package_updates import STATE_FAILED, STATE_UPDATING
 from .repositories.base import Repository
 from .utils.logger import LOGGER
 from .utils.validate import valid_ref
@@ -45,6 +52,23 @@ async def async_setup_entry(
         async_dispatcher_connect(
             hass, SIGNAL_REPOSITORY_INSTALLED, _async_add_installed
         )
+    )
+
+    added_packages: set[str] = set()
+
+    @callback
+    def _async_add_packages(_: str | None = None) -> None:
+        new = [
+            key
+            for key in marketplace.package_updates.records
+            if key not in added_packages
+        ]
+        added_packages.update(new)
+        async_add_entities(PackageUpdateEntity(marketplace, key) for key in new)
+
+    _async_add_packages()
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, SIGNAL_PACKAGES_CHANGED, _async_add_packages)
     )
 
 
@@ -218,3 +242,76 @@ class RepositoryUpdateEntity(RepositoryEntity, UpdateEntity):
         self._attr_in_progress = progress is not False
         self._attr_update_percentage = progress if progress is not False else None
         self.async_write_ha_state()
+
+
+class PackageUpdateEntity(PackageEntity, UpdateEntity):
+    """Update entity of a package that was installed from a file."""
+
+    _attr_name = None
+    _attr_supported_features = (
+        UpdateEntityFeature.INSTALL
+        | UpdateEntityFeature.PROGRESS
+        | UpdateEntityFeature.RELEASE_NOTES
+    )
+
+    def __init__(self, marketplace: MarketplaceManager, key: str) -> None:
+        """Initialize."""
+        super().__init__(marketplace, key)
+        self._attr_unique_id = f"package_{key}"
+
+    @property
+    @override
+    def installed_version(self) -> str:
+        """Return the installed version."""
+        return self.record.version
+
+    @property
+    @override
+    def latest_version(self) -> str:
+        """Return the version on offer, the installed one when nothing is."""
+        record = self.record
+        if record.update_available and record.latest_version:
+            return record.latest_version
+        return record.version
+
+    @property
+    @override
+    def in_progress(self) -> bool:
+        """Return if the update is being installed."""
+        return self.record.state == STATE_UPDATING
+
+    @property
+    @override
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return how the last update went."""
+        record = self.record
+        return {
+            "package_state": record.state,
+            "package_error": record.error,
+            "auto_update": record.auto_update,
+        }
+
+    @override
+    async def async_install(
+        self, version: str | None, backup: bool, **kwargs: Any
+    ) -> None:
+        """Install the version on offer."""
+        await self.marketplace.package_updates.async_install(self.key)
+        if (record := self.record).state == STATE_FAILED:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="package_update_failed_action",
+                translation_placeholders={
+                    "name": record.title,
+                    "error": record.error or "",
+                },
+            )
+
+    @override
+    async def async_release_notes(self) -> str | None:
+        """Return the release notes the index carries."""
+        return self.record.notes
+
+    async def async_update(self) -> None:
+        """Look for an update, used by the generic entity update service."""
+        await self.marketplace.package_updates.async_check(self.key)

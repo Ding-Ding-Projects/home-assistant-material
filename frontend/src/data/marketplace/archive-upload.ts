@@ -1,15 +1,27 @@
 /* eslint-disable no-await-in-loop -- the small files are read in order */
 import type { LocalizeFunc } from "../../common/translations/localize";
 import { handleFetchPromise } from "../../util/hass-call-api";
+import { sha256, toHex } from "../../common/util/sha256";
 import { bytesToString } from "../../util/bytes-to-string";
 import type { HomeAssistant } from "../../types";
 import type { ArchiveGitInfo, ArchiveItem } from "./archive-detect";
 import { detectArchive, markerPaths } from "./archive-detect";
-import type { ArchiveErrorCode } from "./archive-zip";
+import type { PackageManifest } from "./archive-package";
+import {
+  MAX_MANIFEST_BYTES,
+  PACKAGE_MANIFEST,
+  PackageError,
+  packageKindMatches,
+  parsePackageManifest,
+  verifyPackageFiles,
+} from "./archive-package";
+import type { ArchiveErrorCode, ByteSource, ZipEntry } from "./archive-zip";
 import {
   ARCHIVE_LIMITS,
   ArchiveReadError,
   blobSource,
+  decodeUtf8,
+  readZipBytes,
   readZipDirectory,
   readZipText,
 } from "./archive-zip";
@@ -24,7 +36,22 @@ export interface ArchiveInspection {
   entryCount: number;
   items: ArchiveItem[];
   git?: ArchiveGitInfo;
+  /** What the manifest of a package says, once its checksums were verified */
+  package?: ArchivePackageInfo;
+  /** Why the manifest of a package was refused */
+  packageError?: PackageError;
 }
+
+export interface ArchivePackageInfo extends PackageManifest {
+  verified: true;
+}
+
+/** Package files and plain ZIP archives are read the same way */
+export const ARCHIVE_ACCEPT =
+  ".hapkg,.zip,application/zip,application/x-zip-compressed";
+
+export const isArchiveFileName = (name: string): boolean =>
+  /\.(hapkg|zip)$/i.test(name);
 
 /**
  * Looks inside the archive on this device. Only the list of the archive and
@@ -54,13 +81,57 @@ export const inspectArchive = async (
   }
 
   const detection = detectArchive(names, files, file.name ?? "");
-  return {
+  const inspection: ArchiveInspection = {
     fileName: file.name ?? "",
     fileSize: file.size,
     entryCount: entries.length,
     items: detection.items,
     git: detection.git,
   };
+
+  const manifestEntry = byName.get(PACKAGE_MANIFEST);
+  if (manifestEntry) {
+    try {
+      inspection.package = await inspectPackage(
+        source,
+        manifestEntry,
+        entries,
+        byName,
+        detection.items
+      );
+    } catch (err) {
+      if (!(err instanceof PackageError)) {
+        throw err;
+      }
+      inspection.packageError = err;
+    }
+  }
+  return inspection;
+};
+
+// Reads the manifest and checks every file against it, as the server does
+const inspectPackage = async (
+  source: ByteSource,
+  manifestEntry: ZipEntry,
+  entries: ZipEntry[],
+  byName: Map<string, ZipEntry>,
+  items: ArchiveItem[]
+): Promise<ArchivePackageInfo> => {
+  if (manifestEntry.isDirectory || manifestEntry.size > MAX_MANIFEST_BYTES) {
+    throw new PackageError("invalid", "size");
+  }
+  const text = decodeUtf8(await readZipBytes(source, manifestEntry));
+  if (text === undefined) {
+    throw new PackageError("invalid", "json");
+  }
+  const manifest = parsePackageManifest(text);
+  await verifyPackageFiles(manifest, entries, async (name) =>
+    toHex(sha256(await readZipBytes(source, byName.get(name)!)))
+  );
+  if (!packageKindMatches(manifest, items)) {
+    throw new PackageError("kind", manifest.kind);
+  }
+  return { ...manifest, verified: true };
 };
 
 // What the person is told when the archive is refused before it is sent
@@ -99,6 +170,9 @@ export interface MarketplaceUploadResult {
   restart_required: boolean;
   resource_url: string | null;
   resource_added: boolean;
+  // Set for a package, which names itself
+  version?: string | null;
+  title?: string | null;
 }
 
 // The server looks inside the archive again and installs only this item
@@ -138,3 +212,13 @@ export const uploadErrorMessage = (
     localize
   );
 };
+
+// What the person is told when the manifest of a package is refused
+export const packageErrorMessage = (
+  err: PackageError,
+  localize: LocalizeFunc
+): string =>
+  localize(
+    `ui.panel.marketplace.dialog_custom_repositories.file.package.errors.${err.code}`,
+    { detail: err.detail }
+  );

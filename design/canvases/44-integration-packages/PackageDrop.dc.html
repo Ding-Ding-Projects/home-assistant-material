@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Package drop on a phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;display=swap"/>
+<style>
+body{margin:0}
+.pk{box-sizing:border-box;min-height:844px;background:#121412;color:#e3e6e1;font-family:Roboto,system-ui,sans-serif;position:relative;overflow:hidden;padding:12px 16px 24px;display:flex;flex-direction:column;gap:14px}
+.pk *{box-sizing:border-box}
+.pk button{font:inherit;cursor:pointer}
+.in{animation:pkin .4s cubic-bezier(.2,0,0,1) both}
+.in2{animation-delay:.06s}.in3{animation-delay:.12s}.in4{animation-delay:.18s}
+@keyframes pkin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pkpop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@keyframes pkfade{from{opacity:0}to{opacity:1}}
+@keyframes pkbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pkdash{to{stroke-dashoffset:-32}}
+.bar{display:flex;align-items:center;gap:8px;min-height:48px}
+.bar h1{font-size:22px;font-weight:500;margin:0;flex:1}
+.ib{width:44px;height:44px;border-radius:22px;border:0;background:transparent;color:#e3e6e1;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.ib:hover{background:#242824}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{min-height:44px;padding:0 16px;border-radius:12px;border:1px solid #434843;background:transparent;color:#c3c8c1;font-size:14px}
+.chip.on{background:var(--ac);border-color:var(--ac);color:#0f1410;font-weight:500}
+.card{background:#1a1d1a;border-radius:20px;padding:14px 16px;transition:transform .25s cubic-bezier(.2,0,0,1), background .25s}
+.card:hover{transform:translateY(-2px);background:#1f231f}
+.dropcard{border:1.5px dashed #5a605a;background:transparent;border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.btn{min-height:44px;padding:0 20px;border-radius:22px;border:0;background:var(--ac);color:#0f1410;font-size:14px;font-weight:500;transition:transform .2s, filter .2s}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.08)}
+.btn.tonal{background:#2a2f2a;color:#e3e6e1}
+.btn.text{background:transparent;color:var(--ac)}
+.btn.off{background:#2a2f2a;color:#8d948b;cursor:not-allowed}
+.row{display:flex;gap:12px;align-items:center}
+.tile{width:44px;height:44px;border-radius:14px;background:#262b26;display:flex;align-items:center;justify-content:center;color:var(--ac);flex:none}
+.sub{font-size:13px;color:#a9b0a7}
+.scrim{position:absolute;inset:0;background:rgba(8,10,8,.78);display:flex;align-items:center;justify-content:center;padding:20px;animation:pkfade .2s both;z-index:5}
+.zone{position:absolute;inset:14px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px}
+.zone svg.frame{position:absolute;inset:0;width:100%;height:100%}
+.zone rect{animation:pkdash 1.2s linear infinite}
+.bob{animation:pkbob 1.8s ease-in-out infinite}
+.dlg{width:100%;background:#232723;border-radius:28px;padding:22px 20px 16px;display:flex;flex-direction:column;gap:14px;animation:pkpop .28s cubic-bezier(.2,0,0,1) both;position:relative;z-index:1}
+.dlg h2{font-size:22px;font-weight:400;margin:0}
+.kv{display:grid;grid-template-columns:96px 1fr;gap:8px 12px;font-size:14px;margin:0}
+.kv dt{color:#a9b0a7}.kv dd{margin:0;overflow-wrap:anywhere}
+.ok{display:flex;gap:10px;align-items:center;background:#1b2a1d;color:#a5dcaa;border-radius:14px;padding:10px 12px;font-size:14px}
+.warn{background:#2c2618;color:#ecd08a;border-radius:14px;padding:10px 12px;font-size:13px;line-height:1.45}
+.check{display:flex;gap:12px;align-items:center;min-height:48px;background:transparent;border:0;color:#e3e6e1;text-align:left;padding:0;font-size:14px}
+.box{width:22px;height:22px;border-radius:5px;border:2px solid #a9b0a7;flex:none;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s}
+.box.on{background:var(--ac);border-color:var(--ac);color:#0f1410}
+.acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.toast{position:absolute;left:16px;right:16px;bottom:20px;background:#e3e6e1;color:#1a1d1a;border-radius:12px;padding:14px 16px;font-size:14px;animation:pkin .3s both;z-index:4}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.pk *{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="{{rootClass}}" style="--ac: {{accent}}">
+<div class="bar">
+<h1>Marketplace</h1>
+<button class="ib" aria-label="Search the Marketplace"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button>
+</div>
+<div class="chips">
+<button class="chip on">All</button>
+<button class="chip">Integrations</button>
+<button class="chip">Dashboards</button>
+<button class="chip">Themes</button>
+</div>
+<div class="dropcard in">
+<div class="row">
+<span class="tile"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"></path><path d="M3 8l9 5 9-5M12 13v8"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 16px; font-weight: 500">Have a package file?</span>
+<span class="sub">Drag a .hapkg file anywhere onto this page.</span>
+</div>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<button class="btn" onClick="{{ pickFile }}">Install from a package file</button>
+<button class="btn tonal" onClick="{{ simulate }}">Simulate drag</button>
+</div>
+</div>
+<span style="font-size: 14px; font-weight: 500; color: #c3c8c1">Popular this week</span>
+<sc-for list="{{items}}" as="it" hint-placeholder-count="3">
+<div class="card in in2">
+<div class="row">
+<span class="tile" style="color: {{it.color}}"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M9 12h6M12 9v6"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+<span style="font-size: 15px; font-weight: 500">{{it.title}}</span>
+<span class="sub">{{it.text}}</span>
+</div>
+<span class="sub">{{it.version}}</span>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{isDragging}}" hint-placeholder-val="{{ false }}">
+<div class="scrim" role="dialog" aria-label="Drop a package to install">
+<div class="zone">
+<svg class="frame" aria-hidden="true"><rect x="2" y="2" width="99%" height="99%" rx="26" fill="none" stroke="{{accent}}" stroke-width="2.5" stroke-dasharray="10 6"></rect></svg>
+<span class="bob" style="color: {{accent}}; position: relative"><svg aria-hidden="true" width="84" height="84" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"></path><path d="M3 8l9 5 9-5M12 13v8M7.5 5.5l9 5"></path></svg></span>
+<span style="font-size: 24px; font-weight: 500; position: relative">Drop a package to install</span>
+<span class="sub" style="position: relative">Files ending in .hapkg. Nothing is added until you confirm.</span>
+<div style="display: flex; flex-direction: column; gap: 8px; position: relative; width: 100%; max-width: 280px">
+<button class="btn" onClick="{{ dropGood }}">Drop bin_day-1.0.0.hapkg</button>
+<button class="btn tonal" onClick="{{ dropBad }}">Drop holiday-photos.zip</button>
+<button class="btn text" onClick="{{ close }}">Cancel</button>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{isFound}}" hint-placeholder-val="{{ false }}">
+<div class="scrim">
+<div class="dlg" role="dialog" aria-modal="true" aria-labelledby="pk-found">
+<h2 id="pk-found">Add Bin day?</h2>
+<dl class="kv">
+<dt>Version</dt><dd>1.0.0</dd>
+<dt>Kind</dt><dd>Integration</dd>
+<dt>Domain</dt><dd>bin_day</dd>
+<dt>Source</dt><dd>github.com/Ding-Ding-Projects/home-assistant-integrations</dd>
+</dl>
+<div class="ok"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span>Checksums verified. All 6 files match hapkg.json.</span></div>
+<div class="warn">This package runs code inside Home Assistant with full access to your home. Only add packages from a source you trust.</div>
+<button class="check" role="checkbox" aria-checked="{{trustAria}}" onClick="{{ toggleTrust }}">
+<span class="{{boxClass}}"><sc-if value="{{trusted}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if></span>
+<span>I trust this source and want to run its code</span>
+</button>
+<div class="acts">
+<button class="btn text" onClick="{{ close }}">Cancel</button>
+<sc-if value="{{trusted}}" hint-placeholder-val="{{ false }}"><button class="btn" onClick="{{ add }}">Add</button></sc-if>
+<sc-if value="{{untrusted}}" hint-placeholder-val="{{ true }}"><button class="btn off" aria-disabled="true">Add</button></sc-if>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{isWrong}}" hint-placeholder-val="{{ false }}">
+<div class="scrim">
+<div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="pk-wrong">
+<span style="color: #ffb4ab"><svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5M12 16.5v.2"></path></svg></span>
+<h2 id="pk-wrong">That file is not a package</h2>
+<span style="font-size: 14px; line-height: 1.5; color: #c3c8c1">holiday-photos.zip has no hapkg.json inside, so there is nothing to install. Nothing was changed. Choose a file that ends in .hapkg.</span>
+<div class="acts">
+<button class="btn text" onClick="{{ close }}">Close</button>
+<button class="btn" onClick="{{ simulate }}">Try another file</button>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+<div class="toast" role="status">Bin day 1.0.0 added. Restart Home Assistant to finish.</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#8ab4f8","options":["#8ab4f8","#7cc483","#e0b04a","#d98cc4"]},"motion":{"editor":"boolean","default":true},"stage":{"editor":"enum","default":"idle","options":["idle","dragging","found","wrong-file"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0, trusted: false, toast: false }; this._p = null; this._s = 'idle'; }
+  go(s, extra) { this._s = s; this.setState(Object.assign({ n: this.state.n + 1, trusted: false, toast: false }, extra || {})); }
+  renderVals() {
+    const accent = this.props.accent ?? '#8ab4f8';
+    const motion = this.props.motion ?? true;
+    const p = this.props.stage ?? 'idle';
+    if (p !== this._p) { this._p = p; this._s = p; }
+    const s = this._s;
+    const trusted = this.state.trusted;
+    return {
+      accent,
+      rootClass: motion ? 'pk' : 'pk still',
+      items: [
+        { title: 'Bin day', text: 'Rubbish, recycling and compost schedule', version: '1.0.0', color: '#d7f23a' },
+        { title: 'Seed tray', text: 'Track sowing through to transplant', version: '1.0.0', color: '#7cc483' },
+        { title: 'Sun hours', text: 'Minutes of daylight, today and yesterday', version: '1.0.0', color: '#ffb347' }
+      ],
+      isDragging: s === 'dragging', isFound: s === 'found', isWrong: s === 'wrong-file',
+      trusted, untrusted: !trusted, trustAria: trusted ? 'true' : 'false',
+      boxClass: trusted ? 'box on' : 'box',
+      toast: this.state.toast && s === 'idle',
+      simulate: () => this.go('dragging'),
+      pickFile: () => this.go('found'),
+      dropGood: () => this.go('found'),
+      dropBad: () => this.go('wrong-file'),
+      close: () => this.go('idle'),
+      toggleTrust: () => this.setState({ trusted: !trusted }),
+      add: () => this.go('idle', { toast: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

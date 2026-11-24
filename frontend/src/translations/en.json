@@ -27067,8 +27067,8 @@
             "title": "Add from a file",
             "intro": "Add something from a ZIP file of its repository folder. The file is looked through on this device first. Nothing is sent to Home Assistant until you select Add.",
             "unknown_source": "A file from an unknown source is riskier than a link to a page you know. What you add here can run in your home, so only add files from people you trust.",
-            "pick": "Choose a ZIP file or drop it here",
-            "supports": "ZIP file, up to {size}",
+            "pick": "Choose a package or ZIP file, or drop it here",
+            "supports": "Package (.hapkg) or ZIP file, up to {size}",
             "reading": "Looking inside {name}",
             "choose_another": "Choose another file",
             "upload_failed": "Could not send the file to Home Assistant. Check the connection and try again.",
@@ -27146,6 +27146,21 @@
               "not_tracked": "It came from a file, so the Marketplace does not keep track of it or offer updates. To remove it, delete that folder or file.",
               "failed": "{name} could not be added: {error}",
               "close": "Close"
+            },
+            "package": {
+              "source": "Built from {repository}, {path}",
+              "updates": "Checks {url} for updates.",
+              "verified": "{count, plural, one {Checksum verified for # file} other {Checksums verified for # files}}",
+              "updates_tracked": "The Marketplace checks this package for updates and tells you when a new version is installed.",
+              "errors": {
+                "invalid": "The package manifest is not valid: {detail}.",
+                "format": "The package uses a manifest format that is not supported: {detail}.",
+                "missing": "The manifest lists a file that is not in the package: {detail}.",
+                "checksum": "A file does not match its checksum in the manifest, so the package is damaged or was changed: {detail}.",
+                "unlisted": "The package holds a file the manifest does not list: {detail}.",
+                "kind": "What the manifest says the package is does not match what it holds ({detail}).",
+                "update_url": "The update address of a package has to be a plain https address."
+              }
             },
             "errors": {
               "not_zip": "This is not a ZIP file.",
@@ -27280,7 +27295,31 @@
           "custom_repositories": "Custom repositories",
           "dismiss": "Dismiss new repositories",
           "documentation": "Documentation",
-          "download_source": "Download source"
+          "download_source": "Download source",
+          "install_package": "Install from a package file"
+        },
+        "package_drop": {
+          "title": "Drop a package to install",
+          "hint": "A .hapkg or .zip file. You check it before anything is installed.",
+          "admin_only": "Only administrators can install packages.",
+          "one_file": "Drop one package file at a time.",
+          "wrong_file": "{name} is not a package. Drop a .hapkg or .zip file."
+        },
+        "installed_packages": {
+          "title": "Installed from a file",
+          "installed_version": "Version {version}",
+          "up_to_date": "Up to date",
+          "available": "Update available: version {version}",
+          "notes": "What is new",
+          "update_now": "Update now",
+          "try_again": "Try again",
+          "updating": "Updating to version {version}",
+          "restart": "Version {version} is installed. Restart Home Assistant to start using it.",
+          "failed": "The update was not installed and nothing changed: {error} The Marketplace tries again at the next check.",
+          "auto_update": "Update automatically",
+          "auto_on": "New versions install by themselves.",
+          "auto_off": "New versions are only offered.",
+          "check": "Check for an update"
         },
         "dialog": {
           "error": {

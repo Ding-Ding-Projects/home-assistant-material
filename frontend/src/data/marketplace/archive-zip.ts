@@ -268,6 +268,14 @@ export const readZipText = async (
   if (entry.isDirectory || entry.size > ARCHIVE_LIMITS.markerBytes) {
     return undefined;
   }
+  return decodeUtf8(await readZipBytes(source, entry));
+};
+
+/** What really comes out of an entry, checked against its size and CRC. */
+export const readZipBytes = async (
+  source: ByteSource,
+  entry: ZipEntry
+): Promise<Uint8Array> => {
   const local = await source.read(entry.headerOffset, entry.headerOffset + 30);
   const localView = new DataView(
     local.buffer,
@@ -309,6 +317,10 @@ export const readZipText = async (
   if (data.length !== entry.size || crc32(data) !== entry.crc) {
     throw new ArchiveReadError("corrupt", entry.name);
   }
+  return data;
+};
+
+export const decodeUtf8 = (data: Uint8Array): string | undefined => {
   try {
     const text = new TextDecoder("utf-8", { fatal: true }).decode(data);
     return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;

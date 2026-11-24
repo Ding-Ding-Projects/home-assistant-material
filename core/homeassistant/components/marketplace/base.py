@@ -76,6 +76,7 @@ from .exceptions import (
     RepositoryArchivedError,
     RepositoryExistsError,
 )
+from .package_updates import PackageUpdates
 from .profiles import (
     DownloadProfile,
     ProfileEndpoints,
@@ -441,6 +442,7 @@ class MarketplaceManager:
         self.recurring_runs: set[asyncio.Task[None]] = set()
         self.startup_task: asyncio.Task[None] | None = None
         self.repositories = Repositories()
+        self.package_updates = PackageUpdates(self)
         self.status = MarketplaceStatus()
         self.system = MarketplaceSystem()
 
@@ -924,6 +926,10 @@ class MarketplaceManager:
 
         self._async_track_interval(
             self.async_get_all_category_repositories, timedelta(hours=6)
+        )
+        await self.package_updates.async_rescan()
+        self._async_track_interval(
+            self.package_updates.async_check_all, timedelta(hours=6)
         )
         self._async_track_interval(
             self.async_handle_removed_repositories, timedelta(hours=6)

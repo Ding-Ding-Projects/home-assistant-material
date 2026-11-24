@@ -1,6 +1,7 @@
 import type { ContextType } from "@lit/context";
 import {
   mdiApplicationBracesOutline,
+  mdiCheckDecagram,
   mdiCodeBraces,
   mdiFileDocumentOutline,
   mdiPackageVariant,
@@ -26,6 +27,7 @@ import {
   LOOKED_FOR,
 } from "../../../data/marketplace/archive-detect";
 import type { ArchiveInspection } from "../../../data/marketplace/archive-upload";
+import { packageErrorMessage } from "../../../data/marketplace/archive-upload";
 import { internationalizationContext } from "../../../data/context";
 
 declare global {
@@ -61,6 +63,14 @@ export class HaMarketplaceArchiveFound extends LitElement {
 
   protected render() {
     const { items, git } = this.inspection;
+    if (this.inspection.packageError) {
+      return html`<ha-alert alert-type="error">
+        ${packageErrorMessage(
+          this.inspection.packageError,
+          this._i18n.localize
+        )}
+      </ha-alert>`;
+    }
     if (!items.length) {
       return this._renderNothing();
     }
@@ -68,7 +78,7 @@ export class HaMarketplaceArchiveFound extends LitElement {
       (item) => isInstallable(item) && CODE_KINDS.includes(item.kind)
     ).length;
     return html`
-      ${items.map((item) => this._renderItem(item))}
+      ${this._renderPackage()} ${items.map((item) => this._renderItem(item))}
       ${
         items.some(isInstallable)
           ? nothing
@@ -106,6 +116,55 @@ export class HaMarketplaceArchiveFound extends LitElement {
             : this._i18n.localize(`${PREFIX}.found.history_no`)
         }
       </p>
+    `;
+  }
+
+  // What a package says about itself, shown once its checksums were verified
+  private _renderPackage() {
+    const pkg = this.inspection.package;
+    if (!pkg) {
+      return nothing;
+    }
+    const localize = this._i18n.localize;
+    return html`
+      <div class="package">
+        <div class="head">
+          <span class="name">${pkg.title}</span>
+          <span class="version"
+            >${localize(`${PREFIX}.found.version`, {
+              version: pkg.version,
+            })}</span
+          >
+        </div>
+        ${
+          pkg.description
+            ? html`<div class="line">${pkg.description}</div>`
+            : nothing
+        }
+        ${
+          pkg.source
+            ? html`<div class="line">
+                ${localize(`${PREFIX}.package.source`, {
+                  repository: pkg.source.repository,
+                  path: pkg.source.path,
+                })}
+              </div>`
+            : nothing
+        }
+        ${
+          pkg.updateUrl
+            ? html`<div class="line">
+                ${localize(`${PREFIX}.package.updates`, { url: pkg.updateUrl })}
+              </div>`
+            : nothing
+        }
+        <div class="verified">
+          <ha-svg-icon .path=${mdiCheckDecagram}></ha-svg-icon>
+          ${localize(`${PREFIX}.package.verified`, {
+            count: Object.keys(pkg.files).length,
+          })}
+        </div>
+      </div>
     `;
   }
 
@@ -219,6 +278,24 @@ export class HaMarketplaceArchiveFound extends LitElement {
     ha-alert {
       display: block;
       margin-block: var(--ha-space-2);
+    }
+    .package {
+      padding: var(--ha-space-3);
+      margin-block-end: var(--ha-space-2);
+      border-radius: var(--ha-border-radius-lg);
+      background: var(--ha-color-primary-container);
+      color: var(--ha-color-on-primary-container);
+    }
+    .package .version,
+    .package .line {
+      color: inherit;
+    }
+    .verified {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      margin-block-start: var(--ha-space-2);
+      font-weight: var(--ha-font-weight-medium);
     }
     .item {
       display: flex;

@@ -16,7 +16,8 @@ const isKnownDisabledReason = (reason: string): reason is DisabledReason =>
 export const showMarketplaceAddFromLink = (
   element: HTMLElement,
   localize: LocalizeFunc,
-  marketplace: MarketplaceData
+  marketplace: MarketplaceData,
+  file?: File
 ) => {
   const disabledReason = marketplace.info.disabled_reason;
 
@@ -33,5 +34,5 @@ export const showMarketplaceAddFromLink = (
     return;
   }
 
-  showMarketplaceCustomRepositoriesDialog(element, { marketplace });
+  showMarketplaceCustomRepositoriesDialog(element, { marketplace, file });
 };
