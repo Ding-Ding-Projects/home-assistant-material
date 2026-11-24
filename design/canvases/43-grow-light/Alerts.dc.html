@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Alerts and costs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.gl-in{animation:glin .35s cubic-bezier(.2,0,0,1) both}
+@keyframes glin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.gl-still .gl-in{animation:none}
+@media (prefers-reduced-motion: reduce){.gl-in{animation:none}}
+input[type=range]{width:100%}
+</style>
+</helmet>
+<div class="{{rootClass}}" style="box-sizing: border-box; min-height: 844px; background: #121412; color: #e3e6e1; font-family: Roboto, system-ui, sans-serif; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 22px; font-weight: 500">Alerts</span>
+<label for="dayr" style="font-size: 13px; color: #a9b0a7">All seven crops sown on the same day. Day {{day}} since sowing, 06:00</label>
+<input id="dayr" type="range" min="0" max="60" value="{{day}}" onInput="{{ setDay }}" style="accent-color: {{accent}}">
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{alerts}}" as="a" hint-placeholder-count="4">
+<div class="gl-in" style="display: flex; gap: 12px; align-items: center; background: #1a1d1a; border-radius: 16px; padding: 10px 12px">
+<img src="{{a.photo}}" alt="" style="width: 40px; height: 40px; border-radius: 20px; object-fit: cover; flex: none">
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 12px; color: {{a.color}}">{{a.kind}}</span>
+<span style="font-size: 14px">{{a.text}}</span>
+</div>
+</div>
+</sc-for>
+<span style="font-size: 13px; color: #8d948b">{{emptyText}}</span>
+</div>
+<div style="background: #1a1d1a; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 15px; font-weight: 500">Soil moisture</span>
+<label for="soilr" style="font-size: 13px; color: #a9b0a7">Soil reads {{soil}}%. Water when below {{dryBelow}}%</label>
+<input id="soilr" type="range" min="0" max="100" value="{{soil}}" onInput="{{ setSoil }}" style="accent-color: {{accent}}">
+<span style="font-size: 14px">{{soilText}}</span>
+</div>
+<div style="background: #1a1d1a; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 15px; font-weight: 500">Light energy and cost</span>
+<label for="wattr" style="font-size: 13px; color: #a9b0a7">Light power {{watts}} W at {{price}} a kWh</label>
+<input id="wattr" type="range" min="10" max="300" step="5" value="{{watts}}" onInput="{{ setWatts }}" style="accent-color: {{accent}}">
+<span style="font-size: 14px">{{energyText}}</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#7cc483","options":["#7cc483","#e0b04a","#8ab4f8","#d98cc4"]},"motion":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+const CROPS = [{"id": "mung_bean", "name": "Mung bean", "group": "Legume", "period": "Short-day", "note": "Quick warm-season bean that flowers best in shorter days.", "photo": "photos/mung_bean.jpg", "credit": "Bff, CC BY-SA 4.0", "stages": [{"key": "germination", "name": "Germination", "days": 5, "light": 0, "water": 2, "note": "Keep the mix lightly moist, never soggy, so seeds do not rot."}, {"key": "seedling", "name": "Seedling", "days": 10, "light": 16, "water": 3, "note": "Water gently when the top of the mix feels dry."}, {"key": "vegetative", "name": "Vegetative", "days": 20, "light": 16, "water": 3, "note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."}, {"key": "flowering", "name": "Flowering", "days": 12, "light": 12, "water": 2, "note": "Do not let the mix dry out now; water stress drops flowers."}, {"key": "fruiting", "name": "Fruiting", "days": 25, "light": 12, "water": 2, "note": "Water is critical during pod fill, so keep it even."}, {"key": "harvest", "name": "Harvest", "days": 10, "light": 12, "water": 5, "note": "Ease off watering as pods ripen and dry."}], "total": 82}, {"id": "radish", "name": "Radish", "group": "Vegetable", "period": "Long-day", "note": "Radish roots form quickly, but long days and warmth make it bolt, so cap light at about 12 hours.", "photo": "photos/radish.jpg", "credit": "Self, en:User:Jengod, Public domain", "stages": [{"key": "germination", "name": "Germination", "days": 4, "light": 0, "water": 1, "note": "Seeds sprout in a few days; keep moist."}, {"key": "seedling", "name": "Seedling", "days": 7, "light": 12, "water": 1, "note": "Water daily so the seedlings never dry out."}, {"key": "vegetative", "name": "Vegetative", "days": 10, "light": 12, "water": 2, "note": "Even moisture keeps roots crisp."}, {"key": "fruiting", "name": "Fruiting", "days": 10, "light": 12, "water": 2, "note": "Root bulking: dry spells make roots woody and hot."}, {"key": "harvest", "name": "Harvest", "days": 3, "light": 12, "water": 3, "note": "Pull at about 2.5 cm across, before they crack."}], "total": 34}, {"id": "sugar_snap_pea", "name": "Sugar snap pea", "group": "Legume", "period": "Long-day", "note": "Tall pea with plump, crisp, edible pods.", "photo": "photos/sugar_snap_pea.jpg", "credit": "Forest and Kim Starr, CC BY 3.0 us", "stages": [{"key": "germination", "name": "Germination", "days": 8, "light": 0, "water": 2, "note": "Keep the mix lightly moist, never soggy, so seeds do not rot."}, {"key": "seedling", "name": "Seedling", "days": 12, "light": 15, "water": 3, "note": "Water gently when the top of the mix feels dry."}, {"key": "vegetative", "name": "Vegetative", "days": 28, "light": 16, "water": 3, "note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."}, {"key": "flowering", "name": "Flowering", "days": 10, "light": 16, "water": 2, "note": "Do not let the mix dry out now; water stress drops flowers."}, {"key": "fruiting", "name": "Fruiting", "days": 18, "light": 16, "water": 2, "note": "Water is critical during pod fill, so keep it even."}, {"key": "harvest", "name": "Harvest", "days": 14, "light": 14, "water": 3, "note": "Ease off watering as pods ripen and dry."}], "total": 90}, {"id": "spinach", "name": "Spinach", "group": "Vegetable", "period": "Long-day", "note": "Spinach bolts quickly in long days and heat, so keep light to about 12 hours.", "photo": "photos/spinach.jpg", "credit": "Kayser Ahmad, CC BY-SA 4.0", "stages": [{"key": "germination", "name": "Germination", "days": 7, "light": 0, "water": 1, "note": "Keep the surface evenly moist until seedlings appear."}, {"key": "seedling", "name": "Seedling", "days": 14, "light": 12, "water": 2, "note": "Keep evenly moist; dry spells trigger bolting."}, {"key": "vegetative", "name": "Vegetative", "days": 21, "light": 12, "water": 2, "note": "Water regularly and keep cool."}, {"key": "harvest", "name": "Harvest", "days": 21, "light": 12, "water": 2, "note": "Cut leaves as needed; the plant regrows."}], "total": 63}, {"id": "carrot", "name": "Carrot", "group": "Vegetable", "period": "Day-neutral", "note": "Carrots are not sensitive to day length; roots swell steadily with 12 to 14 hours of light and cool, even moisture.", "photo": "photos/carrot.jpg", "credit": "Naturamano, Will Gomez, CC BY-SA 4.0", "stages": [{"key": "germination", "name": "Germination", "days": 14, "light": 0, "water": 1, "note": "Keep the surface evenly moist; seed is slow to sprout. Hold light at 0 until shoots show."}, {"key": "seedling", "name": "Seedling", "days": 21, "light": 12, "water": 2, "note": "Water gently and thin to about 5 to 7 cm apart."}, {"key": "vegetative", "name": "Vegetative", "days": 28, "light": 14, "water": 4, "note": "Water lightly and often in containers; the top grows fast."}, {"key": "fruiting", "name": "Fruiting", "days": 28, "light": 12, "water": 5, "note": "Root bulking: keep moisture even, since swings crack the roots."}, {"key": "harvest", "name": "Harvest", "days": 7, "light": 12, "water": 7, "note": "Ease off watering before lifting to avoid splitting."}], "total": 98}, {"id": "lettuce", "name": "Lettuce", "group": "Vegetable", "period": "Long-day", "note": "Long days and warmth push lettuce to bolt, so 14 hours is a sensible ceiling indoors.", "photo": "photos/lettuce.jpg", "credit": "999real, CC0", "stages": [{"key": "germination", "name": "Germination", "days": 5, "light": 0, "water": 1, "note": "Keep the surface evenly moist until seedlings appear."}, {"key": "seedling", "name": "Seedling", "days": 14, "light": 14, "water": 2, "note": "Water lightly every other day; never let seedlings dry out."}, {"key": "vegetative", "name": "Vegetative", "days": 21, "light": 14, "water": 2, "note": "Keep the root zone steadily moist. Water early in the day."}, {"key": "harvest", "name": "Harvest", "days": 14, "light": 14, "water": 2, "note": "Pick leaves or heads promptly; uneven watering and heat cause bitterness."}], "total": 54}, {"id": "adzuki_bean", "name": "Adzuki bean", "group": "Legume", "period": "Short-day", "note": "Warm-season bean that flowers when days shorten.", "photo": "photos/adzuki_bean.jpg", "credit": "The original uploader was たね at Japanese Wikipedia., CC BY-SA 3.0", "stages": [{"key": "germination", "name": "Germination", "days": 7, "light": 0, "water": 2, "note": "Keep the mix lightly moist, never soggy, so seeds do not rot."}, {"key": "seedling", "name": "Seedling", "days": 12, "light": 16, "water": 3, "note": "Water gently when the top of the mix feels dry."}, {"key": "vegetative", "name": "Vegetative", "days": 30, "light": 16, "water": 4, "note": "Water when the top 2 cm of the mix is dry; avoid wet leaves."}, {"key": "flowering", "name": "Flowering", "days": 14, "light": 12, "water": 2, "note": "Do not let the mix dry out now; water stress drops flowers."}, {"key": "fruiting", "name": "Fruiting", "days": 35, "light": 12, "water": 2, "note": "Water is critical during pod fill, so keep it even."}, {"key": "harvest", "name": "Harvest", "days": 15, "light": 12, "water": 5, "note": "Ease off watering as pods ripen and dry."}], "total": 113}];
+const RESOW = { radish: 7, lettuce: 14, mung_bean: 7 };
+const STAGE_WORD = { germination: 'germination', seedling: 'seedling', vegetative: 'leafy growth', flowering: 'flowering', fruiting: 'fruiting', harvest: 'harvest' };
+function stageStart(plant, day) {
+  let elapsed = 0;
+  for (const s of plant.stages) {
+    if (day === elapsed && elapsed > 0) return s;
+    elapsed += s.days;
+  }
+  return null;
+}
+function stageOn(plant, day) {
+  let elapsed = 0;
+  for (const s of plant.stages) {
+    if (day < elapsed + s.days) return s;
+    elapsed += s.days;
+  }
+  return plant.stages[plant.stages.length - 1];
+}
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { day: 7, soil: 42, watts: 60 }; }
+  renderVals() {
+    const accent = this.props.accent ?? '#7cc483';
+    const motion = this.props.motion ?? true;
+    const st = this.state;
+    const dryBelow = 30;
+    const wet = st.soil >= dryBelow;
+    const alerts = [];
+    for (const c of CROPS) {
+      const s = stageStart(c, st.day);
+      if (s && s.key === 'harvest') alerts.push({ photo: c.photo, kind: 'Ready to harvest', color: '#e0b04a', text: c.name + ' is ready to harvest.' });
+      else if (s) alerts.push({ photo: c.photo, kind: 'Stage changed', color: accent, text: c.name + ' moved to ' + STAGE_WORD[s.key] + ': ' + s.light + ' hours of light a day, water every ' + s.water + ' days.' });
+      const now = stageOn(c, st.day);
+      if (st.day > 0 && st.day % now.water === 0 && !wet) alerts.push({ photo: c.photo, kind: 'Water due', color: '#8ab4f8', text: c.name + ' needs water.' });
+      if (RESOW[c.id] && st.day > 0 && st.day % RESOW[c.id] === 0) alerts.push({ photo: c.photo, kind: 'Sow the next batch', color: '#d98cc4', text: 'Time to sow the next batch of ' + c.name + '.' });
+    }
+    const hours = CROPS.reduce((sum, c) => sum + stageOn(c, st.day).light, 0) / CROPS.length;
+    const kwhMonth = st.watts * hours * 30 / 1000;
+    const price = 0.13;
+    return {
+      accent,
+      rootClass: motion ? '' : 'gl-still',
+      day: st.day,
+      setDay: (e) => this.setState({ day: Number(e.target.value) }),
+      alerts,
+      emptyText: alerts.length ? alerts.length + ' alerts sent to your phone today' : 'All quiet today',
+      soil: st.soil, dryBelow,
+      setSoil: (e) => this.setState({ soil: Number(e.target.value) }),
+      soilText: wet ? 'Still wet: watering due today waits until 06:00 tomorrow.' : 'Dry: the pump runs now, or you get a reminder without one.',
+      watts: st.watts, price: '$' + price.toFixed(2),
+      setWatts: (e) => this.setState({ watts: Number(e.target.value) }),
+      energyText: 'About ' + kwhMonth.toFixed(1) + ' kWh a month per light at the ' + hours.toFixed(1) + ' h average, about $' + (kwhMonth * price).toFixed(2) + '.'
+    };
+  }
+}
+</script>
+</body>
+</html>

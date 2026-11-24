@@ -10,6 +10,7 @@ Boards for the Grow light helper (23 November 2026). The helper is built from th
 | `CropPicker.dc.html` | Phone, 390 px | The Crop field as a search over the whole catalogue: each row has a photo of the plant, group, day-length type, days to the end and photo credit. |
 | `CropCard.dc.html` | Phone, 390 px | One crop: photo, growth stage with a stage bar, today's light hours, next watering, the watering note and a Watered button. Crop pills and a day slider make it a working demo using the real catalogue. |
 | `Crops.dc.html` | PC screen, 1280 px, fluid | The crops grown at home side by side, each with photo, stage bar, light hours and watering interval, with a days-since-sowing slider. |
+| `Alerts.dc.html` | Phone, 390 px | Alerts the seven home crops send on a chosen day (stage changes, harvest, watering due, sowing reminders), soil moisture deciding between waiting and watering, and light energy and cost from the light power. |
 
 The photos in `photos/` are the same bundled thumbnails the helper serves; credits are in
 `core/homeassistant/components/grow_light/photos/CREDITS.md`.
