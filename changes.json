@@ -1,15 +1,40 @@
 {
  "format": 1,
- "generated": "2026-11-24T01:42:07Z",
+ "generated": "2026-11-24T19:44:10Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 556,
+ "newest_build": 558,
  "releases": [
   {
-   "build": 556,
-   "core": "2026.11.2.556",
-   "supervisor": "2026.11.0.556",
-   "os": "18.5.556",
+   "build": 558,
+   "core": "2026.11.2.558",
+   "supervisor": "2026.11.0.558",
+   "os": "18.5.558",
    "tag": null,
+   "source": "9ba5442eb",
+   "date": "2026-11-24T14:20:26-05:00",
+   "previous_build": 555,
+   "changes": [
+    {
+     "sha": "9ba5442eb",
+     "date": "2026-11-24T14:20:26-05:00",
+     "title": "Install Marketplace packages by drag and drop, with automatic updates",
+     "areas": [
+      "core",
+      "design",
+      "docs",
+      "interface"
+     ],
+     "detail": "Adds the .hapkg package: a ZIP with hapkg.json that lists title, version, source, an https update address and a SHA-256 for every file. The browser and the server both check it before anything is placed. Drop a package anywhere on the Marketplace page, or use \"Install from a package file\". Installed packages read their index every six hours, offer newer versions as update entities and, with \"Update automatically\" on, install them through the same checks: no downgrades, no domain swaps, a restart repair for integrations, and the old version kept when anything fails. An \"Installed from a file\" list on the Installed tab shows each package's state. Design boards are in design/canvases/44-integration-packages.",
+     "detail_yue": "以後裝嘢唔使再打 repo 連結，成個檔案拎住掟落去就得，好似 Chrome 擴充咁。 每個檔案逐粒 checksum 對過先放行，想偷龍轉鳳換 domain 或者倒退版本？ 門都冇。自動更新出事都唔怕，舊版照樣坐得穩穩陣陣。"
+    }
+   ]
+  },
+  {
+   "build": 555,
+   "core": "2026.11.2.555",
+   "supervisor": "2026.11.0.555",
+   "os": "18.5.555",
+   "tag": "v2026.11.2.555",
    "source": "d54339964",
    "date": "2026-11-23T20:18:52-05:00",
    "previous_build": 554,
