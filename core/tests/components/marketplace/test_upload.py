@@ -110,7 +110,7 @@ async def test_adds_an_integration(
     ]
     _assert_no_staging_left(config_dir)
     assert ir.async_get(hass).async_get_issue(
-        DOMAIN, f"{RESTART_ISSUE_PREFIX}upload_demo_x"
+        DOMAIN, f"{RESTART_ISSUE_PREFIX}upload_demo-x"
     )
 
 

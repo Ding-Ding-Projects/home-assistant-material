@@ -742,8 +742,8 @@ async def test_setup_without_github(
     assert marketplace.repositories.get_by_id(REPOSITORY_INTEGRATION_ID)
 
     # The background work that talks to GitHub is not scheduled, the catalog,
-    # its removals and its critical repositories are
-    assert len(marketplace.recurring_tasks) == 3
+    # its removals, its critical repositories and the packages installed from a file are
+    assert len(marketplace.recurring_tasks) == 4
     await marketplace.async_update_installed_custom_repositories()
     assert not marketplace.queue.has_pending_tasks
     assert await marketplace.async_can_update() == 0

@@ -456,7 +456,7 @@ def _manifest_text(manifest: dict | None, key: str) -> str | None:
 
 
 def _integration_items(
-    index: _Index, root: str, files: dict[str, str], hacs: dict | None
+    index: _Index, root: str, files: dict[str, str], repo_manifest: dict | None
 ) -> list[Item]:
     found: list[Item] = []
     components = _join(root, "custom_components")
@@ -465,7 +465,7 @@ def _integration_items(
         for name in index.dirs_in(components)
         if "manifest.json" in index.files_in(_join(components, name))
     ]
-    if (hacs or {}).get("content_in_root") is True and (
+    if (repo_manifest or {}).get("content_in_root") is True and (
         "manifest.json" in index.files_in(root)
     ):
         candidates.append((root, "integration_manifest_in_root"))
@@ -500,18 +500,18 @@ def _integration_items(
 
 
 def _plugin_item(
-    index: _Index, root: str, files: dict[str, str], hacs: dict | None, name: str
+    index: _Index, root: str, files: dict[str, str], repo_manifest: dict | None, name: str
 ) -> Item | None:
     directories = (root, _join(root, "dist"))
     script: str | None = None
     rule = "dashboard_root"
 
-    filename = _manifest_text(hacs, "filename")
+    filename = _manifest_text(repo_manifest, "filename")
     if filename and filename.endswith(".js") and "/" not in filename:
         for directory in directories:
             if filename in index.files_in(directory):
                 script = _join(directory, filename)
-                rule = "dashboard_hacs_file"
+                rule = "dashboard_manifest_file"
                 break
     else:
         for candidate in _script_names(name):
@@ -547,7 +547,7 @@ def _plugin_item(
     package = parse_json_object(files.get(_join(root, "package.json")))
     return Item(
         kind="plugin",
-        name=_manifest_text(hacs, "name") or name,
+        name=_manifest_text(repo_manifest, "name") or name,
         source=script,
         marker=script,
         rule=rule,
@@ -557,7 +557,7 @@ def _plugin_item(
 
 
 def _theme_items(
-    index: _Index, root: str, files: dict[str, str], hacs: dict | None, name: str
+    index: _Index, root: str, files: dict[str, str], repo_manifest: dict | None, name: str
 ) -> list[Item]:
     found: list[Item] = []
     themes = _join(root, "themes")
@@ -572,7 +572,7 @@ def _theme_items(
                 names.extend(theme_names(text))
         item = Item(
             kind="theme",
-            name=_manifest_text(hacs, "name") or name,
+            name=_manifest_text(repo_manifest, "name") or name,
             source=themes,
             marker=_join(themes, theme_files[0]),
             rule="theme_folder",
@@ -582,7 +582,7 @@ def _theme_items(
             item.problems.append("theme_without_names")
         found.append(item)
 
-    filename = _manifest_text(hacs, "filename")
+    filename = _manifest_text(repo_manifest, "filename")
     if (
         filename
         and filename.endswith(".yaml")
@@ -594,10 +594,10 @@ def _theme_items(
         found.append(
             Item(
                 kind="theme",
-                name=_manifest_text(hacs, "name") or name,
+                name=_manifest_text(repo_manifest, "name") or name,
                 source=path,
                 marker=path,
-                rule="theme_hacs_file",
+                rule="theme_manifest_file",
                 themes=theme_names(files.get(path)),
             )
         )
@@ -605,19 +605,19 @@ def _theme_items(
 
 
 def _template_items(
-    index: _Index, root: str, hacs: dict | None, name: str
+    index: _Index, root: str, repo_manifest: dict | None, name: str
 ) -> list[Item]:
-    filename = _manifest_text(hacs, "filename")
+    filename = _manifest_text(repo_manifest, "filename")
     if filename and filename.endswith(".jinja") and "/" not in filename:
         if filename in index.files_in(root):
             path = _join(root, filename)
             return [
                 Item(
                     kind="template",
-                    name=_manifest_text(hacs, "name") or filename[: -len(".jinja")],
+                    name=_manifest_text(repo_manifest, "name") or filename[: -len(".jinja")],
                     source=path,
                     marker=_join(root, "hacs.json"),
-                    rule="template_hacs_file",
+                    rule="template_manifest_file",
                     file=filename,
                 )
             ]
@@ -748,16 +748,16 @@ def detect(
     for root in index.roots():
         if best_depth is not None and _depth(root) > best_depth:
             break
-        hacs = parse_json_object(files.get(_join(root, "hacs.json")))
-        name = _manifest_text(hacs, "name") or folder_name(root, archive_name)
+        repo_manifest = parse_json_object(files.get(_join(root, "hacs.json")))
+        name = _manifest_text(repo_manifest, "name") or folder_name(root, archive_name)
         here = [
-            *_integration_items(index, root, files, hacs),
-            *_template_items(index, root, hacs, name),
-            *_theme_items(index, root, files, hacs, name),
+            *_integration_items(index, root, files, repo_manifest),
+            *_template_items(index, root, repo_manifest, name),
+            *_theme_items(index, root, files, repo_manifest, name),
             *_blueprint_items(index, root, files),
         ]
         if (
-            plugin := _plugin_item(index, root, files, hacs, name)
+            plugin := _plugin_item(index, root, files, repo_manifest, name)
         ) is not None and not any(item.kind == "integration" for item in here):
             here.append(plugin)
         if here:

@@ -467,7 +467,7 @@ def _stage(
         target = config_path / configuration.theme_path.strip("/") / directory
         staged = stage / directory
         staged.mkdir()
-        if item.rule == "theme_hacs_file":
+        if item.rule == "theme_manifest_file":
             folder, _, name = item.source.rpartition("/")
             stage_files(archive, by_name, folder, staged, only=name)
         else:
