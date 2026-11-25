@@ -1511,10 +1511,6 @@ ${rejected
         ha-assist-chip {
           --ha-assist-chip-container-shape: 10px;
         }
-        ha-dropdown::part(menu),
-        ha-dropdown::part(submenu) {
-          --auto-size-available-width: calc(50vw - var(--ha-space-4));
-        }
         ha-dropdown ha-assist-chip {
           --ha-assist-chip-trailing-space: 8px;
         }
@@ -1522,7 +1518,7 @@ ${rejected
           position: fixed;
           z-index: 4;
           bottom: calc(
-            var(--ha-phone-bar-height, 0px) +
+            var(--safe-area-inset-bottom, 0px) +
               var(--ha-bottom-tabs-height, 0px) + var(--ha-space-4)
           );
           inset-inline: var(--ha-sidebar-width, 0px) 0;

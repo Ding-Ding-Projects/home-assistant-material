@@ -1773,10 +1773,6 @@ ${rejected
         ha-alert ha-skeleton-text {
           --ha-skeleton-text-width: 100px;
         }
-        ha-dropdown::part(menu),
-        ha-dropdown::part(submenu) {
-          --auto-size-available-width: calc(50vw - var(--ha-space-4));
-        }
         ha-dropdown ha-assist-chip {
           --ha-assist-chip-trailing-space: 8px;
         }
