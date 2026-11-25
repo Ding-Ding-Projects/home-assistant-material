@@ -2,7 +2,7 @@
 
 Boards for the scroll, clipping and dated-look problems found in a survey of the frontend on 25 November 2026, one canvas page per area. Each finding was read in the source by one reviewer and re-checked by a second reviewer who tried to disprove it; 56 of 59 held up and every one of them has a home on a board below. Each page has a title note, and every board has its own note beside it saying what it shows, what to try and what is not built yet.
 
-36 boards: 28 phone boards at 390 x 844 and 8 fluid wide boards at 1280 px.
+39 boards: 31 phone boards at 390 x 844 and 8 fluid wide boards at 1280 px.
 
 Every board has a `before` stage that reproduces the problem as it is in today's build, marked with a small "Today" tag, and a default stage that shows the fix. Flip the `stage` tweak to compare.
 
@@ -157,6 +157,22 @@ Other pages: Calendar, Media, Profile, Activity, Energy and To-do fit their pane
 **Energy loading and error states, phone** (`PanelEnergy.dc.html`). The Energy page while it loads and when loading fails. Loading stage: the page header with the menu button stays, with a progress line and shimmering card placeholders. Error stage: the same header, a plain-words message, the exact error text, Try again and Back to Overview. Before stage (tagged Today): no header, no menu and no retry, only a bare red alert, or a bare spinner, at the top of a blank page. Try: in the error stage press Try again (the first try fails again, the second loads the page) and Back to Overview; in the before stage use the Error and Loading chips to see both of today's bare states. Unbuilt: all of it; the page still shows the bare alert and spinner. Tweaks: accent, motion, theme (dark or light), stage.
 
 **To-do lists, phone** (`PanelTodo.dc.html`). The To-do page on a phone with the list chooser open. Fixed stage: the lists are a tonal card list, each row with a 40 px tinted tile, the list name wrapping in full, a count of what is left to do, the current list filled, and New list as a row of the same kind. Before stage (tagged Today): a 179 px stock menu with untinted icons, no counts, a long list name cut with three dots, and Create list under a divider. Try: pick another list, tick items and reopen the chooser to see the counts change, press New list. Unbuilt: all of it. On a wide window the same rows form the side pane; the Calendar board shows that pane form. Tweaks: accent, motion, theme (dark or light), stage.
+
+## Found in the build check
+
+Found in the build check: the filter menu holds still while you type, the pattern workbench footer wraps, and Add integration lists every brand at once with a fallback icon
+
+| Board | Size | Default stage | Stages | Findings it covers |
+| --- | --- | --- | --- | --- |
+| `CheckFilterMenuTyping.dc.html` | Phone, 390 x 844 | `after` | after, typing, before, pattern, pattern-invalid |  |
+| `CheckWorkbenchFooter.dc.html` | Phone, 390 x 844 | `after` | after, before, pattern, pattern-invalid |  |
+| `CheckAddIntegrationOpen.dc.html` | Phone, 390 x 844 | `after` | after, before, grow, before-grow, pattern, pattern-invalid |  |
+
+**Entities: the Domain menu stays put while you type** (`CheckFilterMenuTyping.dc.html`). Shows the Entities page on a phone with the Domain filter menu open. In the fix the menu keeps the place and the height it opened with, so the search field never moves while rows filter inside the box. Try: type "se" in the menu search (one row is left, the box stays still), switch to stage before and type to see the menu jump down the page, tick a domain to filter the list, open the pattern button beside the search. Built and merged on 25 November 2026, not yet seen in a browser. Tweaks: accent, motion, theme (dark or light), stage.
+
+**Pattern workbench: the footer line wraps** (`CheckWorkbenchFooter.dc.html`). Shows the pattern workbench sheet at phone width, opened from the Domain menu search on the Entities page. The footer line "Searches as you type. Nothing changes until you choose Use pattern." wraps to two lines in the fix; stage before cuts it with three dots as it does today. Try: switch between after and before, edit the pattern, toggle the options, press Use pattern or Cancel and reopen from the pattern button. Built and merged on 25 November 2026, not yet seen in a browser. Tweaks: accent, motion, theme (dark or light), stage.
+
+**Add integration: the brand list shows at once** (`CheckAddIntegrationOpen.dc.html`). Shows the Select brand sheet on a phone. In the fix the full list is there as soon as the sheet opens and the guided setup link stays at the bottom. Stage before shows today's empty list until a search is typed. Stage grow shows Grow light with a neutral puzzle-piece icon and Grow shelf timer with the icon it declares; stage before-grow shows today's broken placeholder picture. Try: in stage before type a letter and clear it to see the list appear, search "grow", open the pattern button beside the search. Built and merged on 25 November 2026, not yet seen in a browser. Tweaks: accent, motion, theme (dark or light), stage.
 
 ## Tweaks
 
