@@ -198,6 +198,8 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
 
   @query(".tools") private _toolsElement?: HTMLElement;
 
+  @query(".tabs .tab.active") private _activeTabElement?: HTMLElement;
+
   @state() private _entityId?: string | null;
 
   @state() private _data?: Record<string, any>;
@@ -1428,6 +1430,15 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     this.addEventListener("close-child-view", () => this._goBack());
   }
 
+  // With tabs at the foot the row can scroll sideways; keep the active tab
+  // visible when the view changes.
+  private _scrollActiveTabIntoView() {
+    this._activeTabElement?.scrollIntoView({
+      inline: "nearest",
+      block: "nearest",
+    });
+  }
+
   // The height the content area had before a tab change, to glide from.
   private _heightBeforeTab?: number;
 
@@ -1557,6 +1568,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     }
 
     if (changedProps.has("_currView")) {
+      this._scrollActiveTabIntoView();
       this._infoEditMode = false;
       this._detailsYamlMode = false;
     }
@@ -1757,10 +1769,12 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           border-top: 1px solid var(--divider-color);
           flex-wrap: nowrap;
           overflow-x: auto;
+          overflow-y: hidden;
           scrollbar-width: none;
           gap: var(--ha-space-1);
           padding: var(--ha-space-2) var(--ha-space-3)
             max(var(--safe-area-inset-bottom), var(--ha-space-2));
+          scroll-padding-inline: var(--ha-space-3);
         }
 
         .content-wrapper.tabs-at-foot .tab {
