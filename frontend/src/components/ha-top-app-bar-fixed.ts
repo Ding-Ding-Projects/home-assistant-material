@@ -100,21 +100,19 @@ export const haTopAppBarFixedStyles: CSSResultGroup = [
       padding-inline: var(--ha-space-3);
     }
 
-    /* A phone gets a small bar: about 56 px, a 21 px title that may wrap to
-       two lines and 44 px round buttons. The large title is for wide windows. */
+    /* A phone gets a small bar: about 56 px, a title that shrinks to fit and
+       may wrap to two lines, and 48 px round buttons. The large title is for
+       wide windows. */
     :host([narrow]) .row {
       min-height: 56px;
       padding-block: var(--ha-space-1);
     }
-    :host([narrow]) .main-title .page-title {
-      font-size: 21px;
-    }
     :host([narrow]) ha-icon-button-arrow-prev,
     :host([narrow]) ha-menu-button,
     :host([narrow]) ::slotted([slot="navigationIcon"]) {
-      width: 44px;
-      height: 44px;
-      --mdc-icon-button-size: 44px;
+      width: 48px;
+      height: 48px;
+      --mdc-icon-button-size: 48px;
     }
 
     :host([narrow]) .row {
@@ -192,16 +190,15 @@ export const haTopAppBarFixedStyles: CSSResultGroup = [
     :host([narrow]) .main-title {
       margin-inline-start: var(--ha-space-2);
     }
-    /* On a phone the title stays on one line and ends in an ellipsis only
-       when it is too long even at its smallest size. */
+    /* On a phone a long title wraps onto a second line instead of being
+       cut, so the full text stays readable. */
     :host([narrow]) .main-title .page-title,
     :host([narrow]) ::slotted([slot="title"]) {
       min-width: 0;
       max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      overflow-wrap: normal;
+      overflow: visible;
+      white-space: normal;
+      overflow-wrap: break-word;
     }
     #title .main-title {
       margin-inline-start: var(--ha-space-2);

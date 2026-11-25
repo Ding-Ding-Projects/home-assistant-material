@@ -65,7 +65,11 @@ class HassNotFoundScreen extends LitElement {
       color: var(--primary-text-color);
       min-height: 100%;
       display: flex;
-      padding: var(--ha-space-4);
+      /* The screen sits straight in the panel area, so it clears the bars
+         around the page itself. */
+      padding: calc(var(--ha-space-4) + var(--safe-area-inset-top, 0px))
+        var(--ha-space-4)
+        calc(var(--ha-space-4) + var(--safe-area-inset-bottom, 0px));
       align-items: safe center;
       justify-content: safe center;
       box-sizing: border-box;

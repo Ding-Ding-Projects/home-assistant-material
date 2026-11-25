@@ -218,7 +218,7 @@ export const pageHeaderStyles = css`
     word-break: keep-all;
     overflow-wrap: anywhere;
   }
-  /* Phone: a compact title and 44 px round buttons, so the content below
+  /* Phone: a compact title and 48 px round buttons, so the content below
      the header stays on screen. */
   :host([narrow]) .main-title .page-title,
   :host([narrow]) .main-title h1.page-title {
@@ -242,9 +242,9 @@ export const pageHeaderStyles = css`
   }
   :host([narrow]) ha-icon-button-arrow-prev,
   :host([narrow]) ha-menu-button {
-    width: 44px;
-    height: 44px;
-    --mdc-icon-button-size: 44px;
+    width: 48px;
+    height: 48px;
+    --mdc-icon-button-size: 48px;
   }
   @media (prefers-reduced-motion: reduce) {
     .toolbar,

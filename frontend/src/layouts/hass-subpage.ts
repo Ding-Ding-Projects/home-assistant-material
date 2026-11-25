@@ -597,8 +597,19 @@ class HassSubpage extends LitElement {
               var(--safe-area-inset-bottom, 0px)
           );
         }
+        /* On a phone a toast sits where the button does, so the button rises
+           above it. */
+        :host([narrow]) #fab {
+          bottom: calc(
+            16px + var(--safe-area-inset-bottom, 0px) +
+              var(--ha-toast-reserved-height, 0px)
+          );
+        }
         :host([narrow]) #fab.tabs {
-          bottom: calc(84px + var(--safe-area-inset-bottom, 0px));
+          bottom: calc(
+            84px + var(--safe-area-inset-bottom, 0px) +
+              var(--ha-toast-reserved-height, 0px)
+          );
         }
         /* Wide screens dock the button in the header as a labelled pill. */
         #fab.docked {

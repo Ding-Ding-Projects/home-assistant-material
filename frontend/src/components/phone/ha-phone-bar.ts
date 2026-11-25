@@ -946,7 +946,7 @@ export class HaPhoneBar extends LitElement {
         aria-label=${localize("ui.phone.pages")}
         @toggle=${this._sheetToggled}
       >
-        <div class="handle" aria-hidden="true"></div>
+        <div class="grabber" aria-hidden="true"></div>
         <div class="sheet-header">
           <span class="sheet-title"
             >${
@@ -2407,8 +2407,8 @@ export class HaPhoneBar extends LitElement {
       align-items: center;
       justify-content: center;
       flex: none;
-      width: 44px;
-      height: 44px;
+      width: 48px;
+      height: 48px;
       border-radius: var(--ha-border-radius-circle);
       color: var(--secondary-text-color);
     }
@@ -2561,9 +2561,13 @@ export class HaPhoneBar extends LitElement {
       position: fixed;
       z-index: 8;
       inset-inline: var(--ha-space-3);
+      /* Above the keyboard when one is up, and above a notification toast
+         that sits in the same place. */
       bottom: calc(
         var(--ha-phone-bar-room) + var(--ha-space-3) +
-          var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
+          var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
+          var(--ha-phone-viewport-inset-bottom, 0px) +
+          var(--ha-toast-reserved-height, 0px)
       );
       display: flex;
       align-items: center;
@@ -2574,7 +2578,7 @@ export class HaPhoneBar extends LitElement {
       border-radius: var(--ha-border-radius-2xl);
       background-color: var(--primary-text-color);
       color: var(--primary-background-color);
-      box-shadow: 0 4px 8px 3px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--ha-shadow-overlay, 0 4px 16px rgba(0, 0, 0, 0.16));
     }
     .toast-text {
       min-width: 0;
@@ -2591,7 +2595,8 @@ export class HaPhoneBar extends LitElement {
       inset-inline: 12px;
       bottom: calc(
         var(--ha-phone-bar-room) +
-          var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
+          var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
+          var(--ha-phone-viewport-inset-bottom, 0px)
       );
       margin: 0;
       width: auto;
@@ -2602,7 +2607,7 @@ export class HaPhoneBar extends LitElement {
         100dvh - var(--ha-phone-bar-room) - var(--ha-space-8) - var(
             --app-safe-area-inset-bottom,
             env(safe-area-inset-bottom, 0px)
-          )
+          ) - var(--ha-phone-viewport-inset-bottom, 0px)
       );
       box-sizing: border-box;
       padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-3);
@@ -2611,7 +2616,10 @@ export class HaPhoneBar extends LitElement {
       background-color: var(--primary-background-color);
       color: var(--primary-text-color);
       box-shadow: var(--ha-shadow-overlay, 0 4px 16px rgba(0, 0, 0, 0.16));
-      overflow: hidden;
+      /* The sheet is the one scroller when the phone is short or the text is
+         large, so no row is cut off. */
+      overflow-y: auto;
+      overscroll-behavior: contain;
       flex-direction: column;
       gap: var(--ha-space-2);
     }
@@ -2621,7 +2629,8 @@ export class HaPhoneBar extends LitElement {
     #sheet::backdrop {
       background: transparent;
     }
-    .handle {
+    .grabber {
+      flex: none;
       align-self: center;
       width: 36px;
       height: 4px;
@@ -2644,7 +2653,7 @@ export class HaPhoneBar extends LitElement {
       display: inline-flex;
       align-items: center;
       gap: var(--ha-space-2);
-      min-height: 44px;
+      min-height: 48px;
       padding: 0 var(--ha-space-4);
       border-radius: var(--ha-border-radius-pill);
       background-color: var(--ha-color-fill-primary-normal-resting);
@@ -2748,7 +2757,7 @@ export class HaPhoneBar extends LitElement {
       flex-direction: column;
       gap: var(--ha-space-1);
       overflow-y: auto;
-      min-height: 0;
+      min-height: min(12rem, 40dvh);
     }
     /* Rows of a scrolling column keep their height instead of being squeezed. */
     .list > * {
@@ -2857,7 +2866,7 @@ export class HaPhoneBar extends LitElement {
       align-items: center;
       gap: var(--ha-space-2);
       width: 100%;
-      min-height: 44px;
+      min-height: 48px;
       padding: 0 var(--ha-space-3);
       border-radius: var(--ha-border-radius-pill);
       text-align: start;
@@ -2938,12 +2947,12 @@ export class HaPhoneBar extends LitElement {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 44px;
-      height: 44px;
+      width: 48px;
+      height: 48px;
       border-radius: var(--ha-border-radius-circle);
       color: var(--secondary-text-color);
     }
-    .handle {
+    .card-tool.handle {
       touch-action: none;
       cursor: grab;
       margin-inline-end: auto;
@@ -2974,7 +2983,7 @@ export class HaPhoneBar extends LitElement {
       color: var(--secondary-text-color);
     }
     .group-search {
-      --ha-input-search-height: 44px;
+      --ha-input-search-height: 48px;
       --ha-input-search-border-radius: var(--ha-border-radius-pill);
     }
     .group-list {
@@ -2983,7 +2992,7 @@ export class HaPhoneBar extends LitElement {
       gap: var(--ha-space-1);
     }
     .group-list .entry {
-      min-height: 44px;
+      min-height: 48px;
     }
     .empty {
       grid-column: 1 / -1;

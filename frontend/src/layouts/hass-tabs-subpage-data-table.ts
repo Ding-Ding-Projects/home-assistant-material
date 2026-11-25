@@ -2632,7 +2632,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     }
     :host([narrow]) .narrow-header-row ha-assist-chip,
     :host([narrow]) .narrow-header-row ha-filter-pane-chip {
-      --ha-button-height: 44px;
+      --ha-button-height: 48px;
     }
 
     /* The row fades where more chips wait beyond its edge. */
@@ -2776,18 +2776,18 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       --ha-assist-chip-trailing-space: 8px;
     }
 
-    /* Touch targets: the toolbar chips are at least 44 px on a touch screen. */
+    /* Touch targets: the toolbar chips are at least 48 px on a touch screen. */
     @media (pointer: coarse) {
       ha-assist-chip,
       ha-filter-pane-chip {
-        --ha-button-height: 44px;
-        min-width: 44px;
+        --ha-button-height: 48px;
+        min-width: 48px;
       }
       /* Chips a page puts beside the search field (Filters, Domain, Area). */
       ::slotted([slot="filter-chips"]) {
-        --ha-button-height: 44px;
-        --ha-assist-chip-container-height: 44px;
-        min-height: 44px;
+        --ha-button-height: 48px;
+        --ha-assist-chip-container-height: 48px;
+        min-height: 48px;
       }
     }
 
