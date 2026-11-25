@@ -1394,7 +1394,7 @@ export class HaTargetPicker extends SubscribeMixin(LitElement) {
           (item as EntityComboBoxItem).domain_name &&
           (type !== "entity" || !showEntityId)
             ? html`
-                <div slot="trailing-supporting-text" class="domain">
+                <div slot="trailing-supporting-text" class="domain hide-narrow">
                   ${(item as EntityComboBoxItem).domain_name}
                 </div>
               `

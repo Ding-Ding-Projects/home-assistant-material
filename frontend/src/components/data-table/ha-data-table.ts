@@ -870,7 +870,10 @@ export class HaDataTable extends LitElement {
                   : ""
               }
               ${Object.entries(columns).map(([key, column]) => {
-                if (!this._isColumnVisible(key, column)) {
+                if (
+                  (this.narrow && !column.main && !column.showNarrow) ||
+                  !this._isColumnVisible(key, column)
+                ) {
                   return nothing;
                 }
                 const sorted = key === this.sortColumn;
@@ -3028,6 +3031,14 @@ export class HaDataTable extends LitElement {
           ):not(.mdc-data-table__cell--overflow-menu):not(
             .mdc-data-table__cell--checkbox
           ) {
+          min-width: 0;
+        }
+        :host([narrow])
+          .mdc-data-table__header-cell:not(
+            .mdc-data-table__header-cell--icon
+          ):not(.mdc-data-table__header-cell--icon-button):not(
+            .mdc-data-table__header-cell--overflow-menu
+          ):not(.mdc-data-table__header-cell--checkbox) {
           min-width: 0;
         }
 

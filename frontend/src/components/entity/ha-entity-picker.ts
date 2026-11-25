@@ -341,7 +341,7 @@ export class HaEntityPicker extends LitElement {
         ${
           item.domain_name && !showEntityId
             ? html`
-                <div slot="trailing-supporting-text" class="domain">
+                <div slot="trailing-supporting-text" class="domain hide-narrow">
                   ${item.domain_name}
                 </div>
               `
