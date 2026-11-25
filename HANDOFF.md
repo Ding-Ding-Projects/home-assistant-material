@@ -1,5 +1,51 @@
 # Handoff
 
+## Closeout, 25 November 2026
+
+Work paused here. What the remote holds:
+
+- `main` is at `50b086e5c`. It contains the scroll and polish fixes from design canvases 46 and
+  47, the fixes from the build 564 check (`e28dd990e`), the shared filter chip menu, and the
+  marketplace rename (`f42a95165`). Every row in the roadmap section for canvases 46 and 47 is
+  still unticked, because none of it has been checked in a browser on a published build.
+- Release run 45675736303 (a manual build of `50b086e5c`) was still running when work paused.
+  It has not been checked. The owner's instance was not changed during this closeout; read its
+  versions before the next move.
+- The card editor's empty Config tab is not fixed on `main`. Branch `worktree-wf_d6ee1ac0-504-1`
+  holds two commits:
+  - `8efac94bd` is a complete first attempt. The dialog becomes a flex column, the tabs stay in
+    view, and only the form scrolls below a compact preview.
+  - `3eafb6dcd` is a review follow-up that was stopped partway. It undoes part of the first
+    attempt and adds unreviewed short-screen rules to the shared dialog, dialog header and dialog
+    tools.
+
+  Neither commit has been reproduced or verified in a browser. Two investigation probes under
+  `frontend/test/panels/lovelace/editor/scratch/` exist on that branch only; remove them before
+  merging.
+- The full `tests/components/marketplace` suite passed in WSL on the core tree of `f42a95165`
+  (core is unchanged on `main` since): 1283 passed, 55 snapshots passed, 4 warnings, in 1 h 20 min
+  51 s.
+- Two design items are partly done:
+  - the docked media player bar look (canvas 46);
+  - the badge and card edit-mode menu buttons (canvas 47), which have a 40 px hit area and no
+    wider gaps.
+
+Next, in order:
+
+1. Card editor. On a throwaway copy at 390 × 844, reproduce the empty Config tab and record what
+   the page actually renders. Then choose between the two approaches on the branch, verify the
+   fix in a browser, and merge. Push with `[skip ci]` and start one build.
+2. When a build of `50b086e5c` or later is published, check it on a throwaway copy:
+   - the canvas 46 and 47 items;
+   - filter menus not jumping while you type;
+   - the pattern workbench footer;
+   - the add-integration list and its fallback brand icon;
+   - dropping a `.hapkg` file;
+   - the printer discovery strings.
+
+   Only on a pass, update the owner's instance, Supervisor first and with a backup.
+3. Tick roadmap rows only with that evidence.
+
 ## Build 548 verification, 22 November 2026
 
 The public tag `v2026.11.2.548` points to `7650c522a5e2bae90ac9f817e7853360cd78b2dd`. The
