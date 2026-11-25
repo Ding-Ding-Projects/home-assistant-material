@@ -25,6 +25,10 @@ export class HuiCardElementEditor extends HuiTypedElementEditor<LovelaceCardConf
 
   @property({ attribute: false }) public sectionConfig?: LovelaceSectionConfig;
 
+  /** Keeps the tabs in view while the form below them scrolls. */
+  @property({ type: Boolean, reflect: true, attribute: "sticky-tabs" })
+  public stickyTabs = false;
+
   @state() private _currTab: (typeof tabs)[number] = tabs[0];
 
   protected async getConfigElement(): Promise<LovelaceCardEditor | undefined> {
@@ -138,6 +142,16 @@ export class HuiCardElementEditor extends HuiTypedElementEditor<LovelaceCardConf
     css`
       ha-tab-group {
         margin-bottom: 16px;
+      }
+
+      :host([sticky-tabs]) ha-tab-group {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: var(
+          --ha-dialog-surface-background,
+          var(--card-background-color, var(--ha-color-surface-default))
+        );
       }
 
       ha-tab-group-tab {

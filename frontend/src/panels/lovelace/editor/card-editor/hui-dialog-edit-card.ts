@@ -231,6 +231,7 @@ export class HuiDialogEditCard
 
     return html`
       <ha-dialog
+        flexcontent
         .open=${this._open}
         .width=${this.large ? "full" : "large"}
         .preventScrimClose=${this.isEffectiveDirtyState}
@@ -297,6 +298,7 @@ export class HuiDialogEditCard
               .lovelace=${this._params.lovelaceConfig}
               .value=${this._cardConfig}
               in-dialog
+              sticky-tabs
               @config-changed=${this._handleConfigChanged}
               @GUImode-changed=${this._handleGUIModeChanged}
               @editor-save=${this._save}
@@ -624,6 +626,13 @@ export class HuiDialogEditCard
         .content {
           width: 100%;
           max-width: 100%;
+          /* The dialog body is a flex column (flexcontent), so the content
+             fills what the header, search and footer leave over and scrolls
+             as a whole only as a last resort on very short screens. */
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-y: auto;
+          overflow-x: hidden;
         }
 
         @media all and (max-width: 450px), all and (max-height: 500px) {
@@ -667,6 +676,33 @@ export class HuiDialogEditCard
           padding-inline-start: var(--ha-space-1);
           padding-inline-end: var(--ha-space-2);
           margin-bottom: 0;
+        }
+
+        @media (max-width: 999px) {
+          /* Narrow layout: a compact preview stays above, and only the form
+             below it scrolls. The form keeps a minimum height so it can
+             never collapse to nothing, whatever the preview needs. */
+          .content > .element-preview {
+            order: 1;
+            flex: none;
+            max-height: clamp(72px, 24vh, 220px);
+            overflow-y: auto;
+          }
+          .content > .element-editor {
+            order: 2;
+            flex: 1 1 auto;
+            min-height: 160px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+          }
+        }
+
+        @media (max-width: 999px) and (max-height: 560px) {
+          /* No room for the preview on a short screen (for example with the
+             keyboard open): the form gets all of it. */
+          .content > .element-preview {
+            display: none;
+          }
         }
 
         @media (min-width: 1000px) {
