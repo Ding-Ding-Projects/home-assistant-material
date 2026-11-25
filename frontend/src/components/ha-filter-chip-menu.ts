@@ -117,6 +117,8 @@ export class HaFilterChipMenu extends LitElement {
     return html`<ha-dropdown
       class="chip-menu"
       @wa-show=${this._handleShow}
+      @wa-after-show=${this._handleAfterShow}
+      @wa-after-hide=${this._handleAfterHide}
       @wa-select=${this._handleSelect}
     >
       <ha-assist-chip
@@ -243,6 +245,33 @@ export class HaFilterChipMenu extends LitElement {
     this._pinned = [...this.selected];
   }
 
+  private _handleAfterShow(ev: Event) {
+    if (ev.target !== ev.currentTarget) {
+      return;
+    }
+    // The height of the menu once it opened with every row listed. Filtering
+    // keeps that height, so a menu that sits against the bottom of a phone, or
+    // flips above the chip, does not shrink and carry the search field away
+    // from the finger that is typing in it. It is set directly on the
+    // dropdown, because a bound style attribute would wipe the sheet offset
+    // the dropdown sets on itself.
+    const dropdown = ev.currentTarget as HTMLElement;
+    const menu = dropdown.shadowRoot?.querySelector('[part~="menu"]');
+    const height = Math.round(menu?.getBoundingClientRect().height ?? 0);
+    if (height) {
+      dropdown.style.setProperty("--chip-menu-open-height", `${height}px`);
+    }
+  }
+
+  private _handleAfterHide(ev: Event) {
+    if (ev.target !== ev.currentTarget) {
+      return;
+    }
+    (ev.currentTarget as HTMLElement).style.removeProperty(
+      "--chip-menu-open-height"
+    );
+  }
+
   private _handleSearch(ev: Event) {
     this._search = (ev.target as HaInputSearch).value ?? "";
   }
@@ -318,6 +347,14 @@ export class HaFilterChipMenu extends LitElement {
     .chip-menu::part(menu) {
       padding-top: 0;
       min-width: min(320px, calc(100vw - var(--ha-space-4)));
+    }
+    /* Only the phone sheet is anchored at its bottom, so only there does a
+       shrinking list carry the search field away. A wide menu is anchored at
+       its top and may shrink freely. */
+    @media (max-width: 599px) {
+      .chip-menu::part(menu) {
+        min-height: min(var(--chip-menu-open-height, 0px), 85dvh);
+      }
     }
     .chip-search {
       position: sticky;

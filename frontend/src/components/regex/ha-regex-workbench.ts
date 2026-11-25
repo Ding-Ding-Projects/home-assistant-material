@@ -4022,9 +4022,7 @@ export class HaRegexWorkbench extends LitElement {
       .narrow .origin {
         flex-basis: 100%;
         min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: anywhere;
       }
       .narrow .footer .filled {
         padding: 0 var(--ha-space-4);
