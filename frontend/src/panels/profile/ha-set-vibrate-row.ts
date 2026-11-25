@@ -6,6 +6,7 @@ import type { HASSDomTargetEvent } from "../../common/dom/fire_event";
 import "../../components/ha-switch";
 import type { HaSwitch } from "../../components/ha-switch";
 import "../../components/item/ha-row-item";
+import { profileRowStyle } from "./profile-row-style";
 import { forwardHaptic } from "../../data/haptics";
 import type { HomeAssistant } from "../../types";
 
@@ -41,6 +42,8 @@ class HaSetVibrateRow extends LitElement {
     });
     forwardHaptic(this, "light");
   }
+
+  static styles = profileRowStyle;
 }
 
 declare global {

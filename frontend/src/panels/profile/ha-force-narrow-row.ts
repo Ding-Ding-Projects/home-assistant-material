@@ -6,6 +6,7 @@ import type { HASSDomTargetEvent } from "../../common/dom/fire_event";
 import "../../components/ha-switch";
 import type { HaSwitch } from "../../components/ha-switch";
 import "../../components/item/ha-row-item";
+import { profileRowStyle } from "./profile-row-style";
 import type { HomeAssistant } from "../../types";
 
 @customElement("ha-force-narrow-row")
@@ -41,6 +42,8 @@ class HaForcedNarrowRow extends LitElement {
       dock: newValue ? "always_hidden" : "auto",
     });
   }
+
+  static styles = profileRowStyle;
 }
 
 declare global {

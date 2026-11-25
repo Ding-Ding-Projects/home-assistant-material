@@ -681,18 +681,22 @@ export class HaPanelLogbook extends LitElement {
         .toolbar {
           display: flex;
           align-items: center;
-          gap: var(--ha-space-4);
+          flex-wrap: wrap;
+          gap: var(--ha-space-2) var(--ha-space-4);
           box-sizing: border-box;
-          height: 56px;
+          min-height: 56px;
           flex-shrink: 0;
-          padding: 0 16px;
+          padding: var(--ha-space-1) 16px;
           border-bottom: 1px solid var(--divider-color);
           direction: var(--direction);
+        }
+        /* On a phone the row scrolls sideways, with a fade at both edges. */
+        :host([narrow]) .toolbar {
+          flex-wrap: nowrap;
+          height: 56px;
+          padding-block: 0;
           overflow-x: auto;
           scrollbar-width: none;
-        }
-        /* A fade at both edges shows that the row scrolls sideways. */
-        :host([narrow]) .toolbar {
           mask-image: linear-gradient(
             to right,
             transparent 0,
@@ -702,12 +706,13 @@ export class HaPanelLogbook extends LitElement {
           );
         }
 
-        .toolbar::-webkit-scrollbar {
+        :host([narrow]) .toolbar::-webkit-scrollbar {
           display: none;
         }
 
         .toolbar > * {
           flex-shrink: 0;
+          max-width: 100%;
         }
 
         ha-logbook {

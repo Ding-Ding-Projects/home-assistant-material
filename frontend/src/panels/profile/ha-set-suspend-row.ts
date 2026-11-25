@@ -9,6 +9,7 @@ import { fireEvent } from "../../common/dom/fire_event";
 import "../../components/ha-switch";
 import type { HaSwitch } from "../../components/ha-switch";
 import "../../components/item/ha-row-item";
+import { profileRowStyle } from "./profile-row-style";
 import type { HomeAssistant } from "../../types";
 
 declare global {
@@ -55,6 +56,8 @@ class HaSetSuspendRow extends LitElement {
       suspend,
     });
   }
+
+  static styles = profileRowStyle;
 }
 
 declare global {

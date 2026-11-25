@@ -4,6 +4,7 @@ import { customElement, property } from "lit/decorators";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import { pushSupported } from "../../components/ha-push-notifications-toggle";
 import "../../components/item/ha-row-item";
+import { profileRowStyle } from "./profile-row-style";
 import type { HomeAssistant } from "../../types";
 import {
   documentationUrl,
@@ -66,11 +67,14 @@ class HaPushNotificationsRow extends LitElement {
     `;
   }
 
-  static styles = css`
-    a {
-      color: var(--primary-color);
-    }
-  `;
+  static styles = [
+    profileRowStyle,
+    css`
+      a {
+        color: var(--primary-color);
+      }
+    `,
+  ];
 }
 
 declare global {

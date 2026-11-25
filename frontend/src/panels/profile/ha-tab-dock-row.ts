@@ -3,6 +3,7 @@ import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { getStorage } from "../../common/decorators/storage";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
+import { profileRowStyle } from "./profile-row-style";
 import type { DockEdge } from "../../common/tabs/tab-dock";
 import {
   DOCK_EDGES,
@@ -140,11 +141,28 @@ class HaTabDockRow extends LitElement {
     writeMerged(MAIN_SURFACE, (ev.target as HTMLInputElement).checked);
   }
 
-  static styles: CSSResultGroup = css`
-    ha-select {
-      min-width: 200px;
-    }
-  `;
+  static styles: CSSResultGroup = [
+    profileRowStyle,
+    css`
+      ha-select {
+        width: 200px;
+        max-width: 100%;
+      }
+      @media (max-width: 600px) {
+        /* On a phone the select drops under the label instead of squeezing it. */
+        ha-row-item:first-of-type::part(base) {
+          flex-wrap: wrap;
+        }
+        ha-row-item:first-of-type::part(content),
+        ha-row-item:first-of-type::part(end) {
+          flex: 1 1 100%;
+        }
+        ha-select {
+          width: 100%;
+        }
+      }
+    `,
+  ];
 }
 
 declare global {
