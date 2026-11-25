@@ -3,7 +3,7 @@
 from collections.abc import Callable, Generator
 import json
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_homeassistant.common import MockConfigEntry
@@ -155,3 +155,13 @@ def mock_config_entry() -> MockConfigEntry:
         unique_id=SERIAL,
         data={CONF_HOST: HOST, CONF_SERIAL: SERIAL, CONF_ACCESS_CODE: ACCESS_CODE},
     )
+
+
+@pytest.fixture(autouse=True)
+def mock_discovery_listen() -> Generator[MagicMock]:
+    """Keep the discovery listener off the real network."""
+    with patch(
+        "homeassistant.components.printer_door.discovery.PrinterDiscovery._async_listen",
+        return_value=MagicMock(),
+    ) as listen:
+        yield listen

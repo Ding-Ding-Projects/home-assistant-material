@@ -4,6 +4,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .coordinator import PrinterDoorConfigEntry, PrinterDoorCoordinator
+from .discovery import async_acquire, async_release
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.EVENT, Platform.SENSOR]
 
@@ -15,6 +16,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PrinterDoorConfigEntry) 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await coordinator.async_start()
     entry.async_on_unload(coordinator.async_stop)
+    await async_acquire(hass, entry.entry_id)
+    entry.async_on_unload(lambda: async_release(hass, entry.entry_id))
 
 
 async def async_unload_entry(

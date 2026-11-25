@@ -15,7 +15,20 @@ It is a local push integration: the printer sends its state over MQTT, nothing g
 
 Go to Settings, Devices and services, Add integration, and choose Printer door. Enter a name, the IP address, the serial number and the access code. The form connects to the printer to check the details before it saves anything. Each serial number can be added once.
 
+If you already have one printer set up, other Bambu Lab printers on the same network appear in Discovered by themselves (see below). Choose Configure, confirm the name and enter the access code; the address and serial number are filled in for you.
+
 If you change the access code on the printer, Home Assistant asks for the new one through a repair step (reauthentication).
+
+## Automatic discovery and address changes
+
+Bambu Lab printers announce themselves on the local network every few seconds with SSDP style NOTIFY packets: UDP multicast to `239.255.255.250` on ports 1990 and 2021. Each announcement carries the printer's current IP address (`Location`), its serial number (`USN`), its model (`DevModel.bambu.com`) and its name (`DevName.bambu.com`).
+
+While at least one printer is configured, the integration listens for these announcements with one shared listener. It only receives; it never sends anything to the network.
+
+- **Address changes.** Printers are matched by serial number, never by address. When a configured printer announces itself at a new address (for example after the router hands out a new DHCP lease), the stored address is updated and the printer reconnects at once. An info line in the log records the old and new address. The access code is never logged.
+- **New printers.** A serial number that is not configured yet starts a discovery flow, so the printer shows up in Discovered with its name and model. Only the access code is needed. Each printer and address is offered once while the listener runs; ignoring it in Discovered keeps it hidden.
+- **Ports in use.** The listener shares its ports with other programs (address reuse). If a port still cannot be opened, a warning is logged and discovery continues on the other port. Manual setup and the existing printers keep working either way.
+- **Limits.** Discovery only starts after the first printer has been added by hand, and only sees printers on the same network segment as Home Assistant (multicast does not cross routers). Home Assistant in a container needs host networking to receive the announcements. Reserving a fixed address for each printer in the router is still the most reliable setup.
 
 ## Entities
 
@@ -45,4 +58,4 @@ An opening during a print also fires the event `printer_door_opened_while_printi
 
 ## Limits and verification
 
-Door decoding follows the way Bambu Studio reads the printer's `stat` bits. The printer maker does not document it. The integration is covered by automated tests with a mocked MQTT client. It has not been tried against a real printer.
+Door decoding follows the way Bambu Studio reads the printer's `stat` bits. The printer maker does not document it. The integration is covered by automated tests with a mocked MQTT client and synthetic discovery packets (no real sockets). It has not been tried against a real printer.

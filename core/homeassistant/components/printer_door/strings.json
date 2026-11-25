@@ -1,13 +1,27 @@
 {
   "config": {
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "already_in_progress": "[%key:common::config_flow::abort::already_in_progress%]"
     },
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]"
     },
+    "flow_title": "{name}",
     "step": {
+      "discovery_confirm": {
+        "data": {
+          "access_code": "LAN access code",
+          "name": "[%key:common::config_flow::data::name%]"
+        },
+        "data_description": {
+          "access_code": "The LAN access code shown in the printer's network settings.",
+          "name": "The name to give this printer in Home Assistant."
+        },
+        "description": "Found {name} (model {model}, serial number {serial}) at {host} on your network. Enter its LAN access code to watch its door and print status. Home Assistant follows the printer by serial number, so it keeps working when the printer's address changes.",
+        "title": "Add discovered printer"
+      },
       "reauth_confirm": {
         "data": {
           "access_code": "LAN access code"
