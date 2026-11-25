@@ -858,6 +858,21 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
             --ha-button-height: 48px;
           }
         }
+
+        /* A short screen, such as a phone with its keyboard open or turned on
+           its side: the handle, the title, the tools and the buttons together
+           can fill all of it and leave the content no room at all. Give each
+           a tighter fit so the content keeps a usable share. */
+        @media (max-height: 520px) {
+          .handle {
+            height: 12px;
+          }
+          ::slotted([slot="footer"]) {
+            padding: var(--ha-space-1) var(--ha-space-4) var(--ha-space-2)
+              var(--ha-space-4);
+            --ha-button-height: 40px;
+          }
+        }
       `,
     ];
   }

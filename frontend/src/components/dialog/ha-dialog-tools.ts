@@ -362,6 +362,15 @@ export class HaDialogTools extends LitElement {
       --ha-input-search-height: 56px;
       --ha-input-search-border-radius: 28px;
     }
+    @media (max-height: 520px) {
+      :host {
+        padding: 0 var(--ha-space-4) var(--ha-space-1);
+      }
+      ha-input-search {
+        --ha-input-search-height: 44px;
+        --ha-input-search-border-radius: 22px;
+      }
+    }
     .spacer {
       flex: 1;
     }
