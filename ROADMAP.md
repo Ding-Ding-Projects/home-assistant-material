@@ -13,6 +13,33 @@ is being verified; `docs/feature-status.md` is the older row-by-row record up to
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
+## Packages, printer discovery and pickers, 24 and 25 November 2026
+
+- [ ] Marketplace packages (`.hapkg`): a ZIP with `hapkg.json` listing title, version, source, an
+      https update address and a SHA-256 per file, checked in the browser and on the server before
+      anything is placed. Drop one anywhere on the Marketplace page or use "Install from a package
+      file"; installed packages check their index every six hours, offer updates as update
+      entities and can update automatically with no downgrades or domain swaps (boards in
+      [`design/canvases/44-integration-packages`](design/canvases/44-integration-packages)). New
+      tests pass on Linux; a full marketplace run on 25 November ended 3 failed and 4 errors,
+      being looked into (the Linux test environment had no frontend package). Not yet seen in a
+      browser.
+- [ ] Printer door finds Bambu Lab printers on the local network from their SSDP announcements and
+      follows a printer by serial number when its address changes; an unknown printer offers a
+      setup flow ([`printer-door.md`](docs/features/integrations/printer-door.md)). 44 tests pass
+      on Linux; discovery only listens once one printer is set up; not yet tried on a real network.
+- [ ] Grow light is listed in Add integration again (it was registered as a helper, which that
+      list hides). Generated files updated by hand; not yet seen in a browser.
+- [ ] TTC route status and outage sensors keep their alert and outage lists out of the recorder,
+      so they no longer go over the 16 KB attribute limit. Tested on Linux; not yet seen live.
+- [ ] Entities page Domain and Area menus: an icon on every row, a pinned search with the regex
+      builder, a match count, a "Nothing matches" state and the rows already chosen listed first
+      (boards in [`design/canvases/45-pickers-and-discovery`](design/canvases/45-pickers-and-discovery)).
+      Type check, lint and 215 search tests pass; not yet seen in a browser. The Apply footer, the
+      chosen-count chip, the wide side panel and the same treatment for the other filter menus are
+      not built.
+- [ ] Card editor on phones: the Config tab of the card editor showed no form (being fixed).
+
 ## Grow light helper, 23 November 2026
 
 - [ ] Grow light helper: a plug on for set hours each day; any listed door turns it off, and
@@ -71,7 +98,7 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Live clips for cameras that need a data channel (Nest): the offer is reordered and given a
       data channel, and the answer is mapped back. Unit-tested; not yet seen on the real
       doorbell ([`event-clips-and-live-recording.md`](docs/features/camera-recording/event-clips-and-live-recording.md)).
-- [ ] Not code: the TTC alert sensors over 16 KB, the renamed Proxmox integration in the
+- [ ] Not code: the renamed Proxmox integration in the
       app-update automation, the HomeKit 150-device limit and the missing Nest Hub entity are
       settings in the home's own configuration.
 
