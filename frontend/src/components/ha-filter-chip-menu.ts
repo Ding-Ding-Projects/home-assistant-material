@@ -293,6 +293,16 @@ export class HaFilterChipMenu extends LitElement {
     :host {
       display: contents;
     }
+    /* With the host display: contents, the dropdown is the flex item in the
+       page's search row, so the slotted rules there cannot reach it. */
+    .chip-menu {
+      flex-shrink: 0;
+    }
+    @media (pointer: coarse) {
+      .chip-menu {
+        min-height: 44px;
+      }
+    }
     ha-assist-chip {
       --ha-assist-chip-container-shape: 10px;
       --ha-assist-chip-trailing-space: 8px;
