@@ -158,3 +158,14 @@ async def test_new_alert_event_fires_once(
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
     assert hass.states.get(entity_id).state == fired_at
+
+
+def test_bulky_attributes_are_not_recorded() -> None:
+    """Alert and outage text stays out of the recorder (16 KiB attribute limit)."""
+    from homeassistant.components.ttc.sensor import (  # noqa: PLC0415
+        TTCOutageSensor,
+        TTCRouteStatusSensor,
+    )
+
+    assert "alerts" in TTCRouteStatusSensor._unrecorded_attributes
+    assert "outages" in TTCOutageSensor._unrecorded_attributes

@@ -90,6 +90,9 @@ class TTCRouteStatusSensor(TTCEntity[TTCAlertsCoordinator], SensorEntity):
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = ROUTE_STATUSES
+    # The full alert text can exceed the recorder's 16 KiB attribute limit and is
+    # only needed live (the panel reads it over the websocket API).
+    _unrecorded_attributes = frozenset({"alerts"})
 
     def __init__(
         self, coordinator: TTCAlertsCoordinator, entry: TTCConfigEntry, route: str
@@ -120,6 +123,9 @@ class TTCRouteStatusSensor(TTCEntity[TTCAlertsCoordinator], SensorEntity):
 
 class TTCOutageSensor(TTCEntity[TTCLiftsCoordinator], SensorEntity):
     """The number of elevators or escalators out at a station."""
+
+    # Keep the bulky outage text out of the recorder; it is only needed live.
+    _unrecorded_attributes = frozenset({"outages"})
 
     def __init__(
         self,
