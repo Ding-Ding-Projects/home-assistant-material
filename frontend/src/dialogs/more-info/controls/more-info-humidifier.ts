@@ -270,7 +270,7 @@ class MoreInfoHumidifier extends LitElement {
         .chip {
           display: inline-flex;
           align-items: center;
-          min-height: 44px;
+          min-height: 48px;
           padding: 0 var(--ha-space-4);
           border: none;
           border-radius: var(--ha-border-radius-3xl);

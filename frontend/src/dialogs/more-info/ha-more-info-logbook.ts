@@ -98,6 +98,11 @@ export class MoreInfoLogbook extends LitElement {
         a:visited {
           color: var(--primary-color);
         }
+        .header > a {
+          display: inline-flex;
+          align-items: center;
+          min-height: 48px;
+        }
         h2 {
           margin: 0;
         }

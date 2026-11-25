@@ -429,9 +429,9 @@ class MoreInfoDate extends LitElement {
         color: var(--primary-text-color);
         font: inherit;
         width: 100%;
-        max-width: 44px;
+        max-width: 48px;
         aspect-ratio: 1;
-        min-height: 44px;
+        min-height: 48px;
         padding: 0;
         border-radius: var(--ha-border-radius-circle);
         cursor: pointer;
