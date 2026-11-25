@@ -53,7 +53,7 @@ from .offline_update import (
     OfflineUpdates,
     OfflineUpdateVerdict,
 )
-from .ssh_keys import ContainerAuthorizedKeys, key_fingerprint
+from .ssh_keys import ENV_SSH_PORT, ContainerAuthorizedKeys, key_fingerprint
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -150,6 +150,12 @@ class OSManager(JobGroup):
     def container_host(self) -> bool:
         """Return true in the full hosting mode, where no OS runs under the Supervisor."""
         return os.environ.get(ENV_CONTAINER_HOST) == "1"
+
+    @property
+    def container_ssh_port(self) -> int | None:
+        """Return the port of the SSH server of the outer container, if it has one."""
+        value = os.environ.get(ENV_SSH_PORT, "")
+        return int(value) if value.isdigit() and 0 < int(value) < 65536 else None
 
     @property
     def container_ssh_keys(self) -> ContainerAuthorizedKeys:
@@ -957,7 +963,17 @@ class OSManager(JobGroup):
         """Write the original keys back after a failed removal."""
         try:
             await self.sys_dbus.agent.system.clear_ssh_auth_keys()
-            for key in keys:
-                await self.sys_dbus.agent.system.add_ssh_auth_key(key)
         except DBusError as err:
             _LOGGER.critical("Can't restore SSH authorized keys: %s", err)
+            return
+
+        # Try every key, so that one the OS Agent refuses does not lose the rest.
+        for key in keys:
+            try:
+                await self.sys_dbus.agent.system.add_ssh_auth_key(key)
+            except DBusError as err:
+                _LOGGER.critical(
+                    "Can't restore SSH authorized key %s: %s",
+                    key_fingerprint(key) or "(unreadable)",
+                    err,
+                )

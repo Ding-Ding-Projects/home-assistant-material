@@ -37,21 +37,75 @@ cp "${DATA}/machine-id" /etc/machine-id
 # SSH, keys only. The Supervisor keeps the authorized keys of the SSH access page in its data
 # folder (/data/ssh/authorized_keys inside it), which is this folder here. Password logins are
 # off, and the host key stays on the data volume so clients do not see it change on a restart.
+#
+# The server runs only while at least one key is listed, so "SSH is off" on the page is true. A
+# watcher starts it when the first key appears, and ends every session (each one is a child
+# process that outlives the listener) when a key disappears. It listens on the container's own
+# address, not on the inner bridge, so apps inside cannot reach it. Its log goes to the
+# container's output, so "docker logs" shows who signed in.
 # ---------------------------------------------------------------------------------------------
-SSH_PORT="${HA_FULL_SSH_PORT:-22222}"
+SSH_PORT=22222
+SSH_PUBLISHED_PORT="${HA_MATERIAL_SSH_PORT:-22222}"
 SSH_DIR="${SUPERVISOR_DATA}/ssh"
+SSH_KEYS="${SSH_DIR}/authorized_keys"
+SSH_KEYS_SEEN=/run/ha-full-ssh-keys.seen
 SSH_HOST_KEY="${DATA}/ssh_host_ed25519_key"
-DROPBEAR_PID=
-start_ssh() {
-  mkdir -p "${SSH_DIR}" && chmod 700 "${SSH_DIR}"
-  [ -e "${SSH_DIR}/authorized_keys" ] || { : > "${SSH_DIR}/authorized_keys"; }
-  chmod 600 "${SSH_DIR}/authorized_keys"
-  [ -s "${SSH_HOST_KEY}" ] || dropbearkey -t ed25519 -f "${SSH_HOST_KEY}" >/dev/null 2>&1
-  dropbear -F -E -s -g -r "${SSH_HOST_KEY}" -D "${SSH_DIR}" -p "${SSH_PORT}" >/var/log/dropbear.log 2>&1 &
-  DROPBEAR_PID=$!
-  log "SSH answers on port ${SSH_PORT} for the keys on the SSH access page."
+SSH_WATCH_PID=
+
+ssh_has_keys() {
+  [ -f "${SSH_KEYS}" ] && grep -qvE '^[[:space:]]*(#|$)' "${SSH_KEYS}"
 }
-start_ssh
+
+ssh_start() {
+  # An empty host key file would make the server exit at once, so replace it.
+  [ -s "${SSH_HOST_KEY}" ] || { rm -f "${SSH_HOST_KEY}"; dropbearkey -t ed25519 -f "${SSH_HOST_KEY}" >/dev/null 2>&1; }
+  addr="$(ip -4 -o addr show dev eth0 2>/dev/null | awk '{split($4, a, "/"); print a[1]; exit}')"
+  dropbear -F -E -s -g -r "${SSH_HOST_KEY}" -D "${SSH_DIR}" -p "${addr:-0.0.0.0}:${SSH_PORT}" &
+  sleep 1
+  if pgrep -x dropbear >/dev/null; then
+    log "SSH answers on port ${SSH_PORT} for the keys on the SSH access page."
+  else
+    log "The SSH server did not start; its reason is in the lines above."
+  fi
+}
+
+ssh_sync() {
+  removed=0
+  # The key lines seen last time. A listed key that is gone now ends every session.
+  if [ -s "${SSH_KEYS_SEEN}" ]; then
+    if ! ssh_has_keys; then
+      removed=1
+    elif grep -vxFf "${SSH_KEYS}" "${SSH_KEYS_SEEN}" >/dev/null 2>&1; then
+      removed=1
+    fi
+  fi
+  if [ -f "${SSH_KEYS}" ]; then
+    grep -vE '^[[:space:]]*(#|$)' "${SSH_KEYS}" > "${SSH_KEYS_SEEN}" || true
+  else
+    : > "${SSH_KEYS_SEEN}"
+  fi
+  if [ "${removed}" = 1 ]; then
+    log "A key was removed; ending every SSH session."
+    pkill -x dropbear 2>/dev/null
+    sleep 1
+  fi
+  if ssh_has_keys && ! pgrep -x dropbear >/dev/null; then
+    ssh_start
+  fi
+}
+
+ssh_watch() {
+  while [ ! -f "${STOP_FILE}" ]; do
+    ssh_sync
+    sleep 2
+  done
+}
+
+mkdir -p "${SSH_DIR}" && chmod 700 "${SSH_DIR}"
+[ -e "${SSH_KEYS}" ] || : > "${SSH_KEYS}"
+chmod 600 "${SSH_KEYS}"
+ssh_watch &
+SSH_WATCH_PID=$!
 
 # ---------------------------------------------------------------------------------------------
 # The inner Docker engine. Its storage lives on the data volume, which must be a Linux
@@ -92,7 +146,8 @@ stop_all() {
   others="$(docker ps --quiet 2>/dev/null)"
   # shellcheck disable=SC2086
   [ -n "${others}" ] && docker stop --time 30 ${others} >/dev/null 2>&1
-  [ -n "${DROPBEAR_PID}" ] && kill -TERM "${DROPBEAR_PID}" 2>/dev/null
+  [ -n "${SSH_WATCH_PID}" ] && kill "${SSH_WATCH_PID}" 2>/dev/null
+  pkill -x dropbear 2>/dev/null
   if [ -n "${DOCKERD_PID}" ]; then
     kill -TERM "${DOCKERD_PID}" 2>/dev/null
     wait "${DOCKERD_PID}" 2>/dev/null
@@ -150,7 +205,8 @@ create_supervisor() {
   image_id="$(docker image inspect --format '{{.Id}}' "${SUPERVISOR_IMAGE}:latest")"
   current="$(docker inspect --format '{{.Image}}' hassio_supervisor 2>/dev/null || true)"
   if [ -n "${current}" ] && [ "${current}" = "${image_id}" ] \
-    && docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' hassio_supervisor 2>/dev/null | grep -qx 'SUPERVISOR_CONTAINER_HOST=1'; then
+    && docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' hassio_supervisor 2>/dev/null | grep -qx 'SUPERVISOR_CONTAINER_HOST=1' \
+    && docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' hassio_supervisor 2>/dev/null | grep -qx "SUPERVISOR_SSH_PORT=${SSH_PUBLISHED_PORT}"; then
     return 0
   fi
   [ -n "${current}" ] && { log "The Supervisor image or its settings changed; replacing its container."; docker container rm --force hassio_supervisor >/dev/null 2>&1; }
@@ -174,6 +230,7 @@ create_supervisor() {
     -e SUPERVISOR_NAME=hassio_supervisor \
     -e SUPERVISOR_FIREWALL_EXTERNAL=1 \
     -e SUPERVISOR_CONTAINER_HOST=1 \
+    -e "SUPERVISOR_SSH_PORT=${SSH_PUBLISHED_PORT}" \
     -e "SUPERVISOR_MACHINE=${MACHINE}" \
     "${SUPERVISOR_IMAGE}:latest" >/dev/null
 }

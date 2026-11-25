@@ -4,10 +4,12 @@ import {
   mdiKeyVariant,
   mdiTrashCanOutline,
 } from "@mdi/js";
-import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, queryAll, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { live } from "lit/directives/live";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { playPageEntry } from "../../../common/motion/page-entry";
 import { copyToClipboard } from "../../../common/util/copy-clipboard";
 import "../../../components/ha-alert";
@@ -22,7 +24,6 @@ import {
   addSshKey,
   clearSshKeys,
   fetchSshKeys,
-  isSshUnsupportedError,
   removeSshKey,
   sshErrorMessage,
 } from "../../../data/hassio/ssh-keys";
@@ -35,8 +36,10 @@ import type { ListedKey } from "./ssh-access";
 import {
   checkKeyInput,
   connectCommand,
+  connectHost,
   describeKeys,
   fingerprintOf,
+  SECURITY_KEY_TYPE,
   SSH_PORT,
   SSH_USER,
   toPathFingerprint,
@@ -65,13 +68,21 @@ class HaConfigSshAccess extends LitElement {
 
   @state() private _mode: SshAccessMode = "os";
 
+  @state() private _port = SSH_PORT;
+
   @state() private _loading = true;
 
   @state() private _unsupported = false;
 
   @state() private _busy = false;
 
-  @state() private _error?: string;
+  /** Why the list could not be read; shown at the top. */
+  @state() private _loadError?: string;
+
+  /** Why an add or a remove failed; shown where the person pressed. */
+  @state() private _actionError?: string;
+
+  @state() private _actionWhere?: "add" | "remove";
 
   @state() private _draft = "";
 
@@ -98,7 +109,11 @@ class HaConfigSshAccess extends LitElement {
 
   @queryAll("[data-focus]") private _focusTargets!: NodeListOf<HTMLElement>;
 
+  private _lang = new LanguageModeController(this);
+
   private _copiedTimer?: number;
+
+  private _entered = false;
 
   public constructor() {
     super();
@@ -106,7 +121,11 @@ class HaConfigSshAccess extends LitElement {
   }
 
   private _t(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(`${PREFIX}${key}` as any, values as any);
+    return this._lang.text(this.hass.localize, `${PREFIX}${key}`, values);
+  }
+
+  private _typeLabel(type: string): string {
+    return type === SECURITY_KEY_TYPE ? this._t("type_security_key") : type;
   }
 
   public disconnectedCallback(): void {
@@ -114,9 +133,7 @@ class HaConfigSshAccess extends LitElement {
     window.clearTimeout(this._copiedTimer);
   }
 
-  protected firstUpdated(changed: PropertyValues<this>): void {
-    super.firstUpdated(changed);
-    playPageEntry([...this._blocks]);
+  protected firstUpdated(): void {
     this._load();
   }
 
@@ -127,55 +144,70 @@ class HaConfigSshAccess extends LitElement {
     try {
       const info = await fetchSshKeys(this.hass);
       this._mode = info.mode;
+      this._port = info.port;
+      this._unsupported = info.mode === "unsupported";
       this._keys = await describeKeys(info.keys);
-      this._unsupported = false;
-      this._error = undefined;
+      this._loadError = undefined;
     } catch (err) {
-      if (isSshUnsupportedError(err)) {
-        this._unsupported = true;
-      } else {
-        this._error = sshErrorMessage(err) || this._t("load_failed");
-      }
+      this._loadError = sshErrorMessage(err) || this._t("load_failed");
     } finally {
       this._loading = false;
     }
+    if (!this._entered && !this._loadError) {
+      this._entered = true;
+      await this.updateComplete;
+      playPageEntry([...this._blocks]);
+    }
   }
 
-  private async _run(action: () => Promise<void>): Promise<boolean> {
+  private async _run(
+    action: () => Promise<void>,
+    where: "add" | "remove"
+  ): Promise<boolean> {
+    if (this._busy) {
+      return false;
+    }
     this._busy = true;
-    this._error = undefined;
+    this._actionError = undefined;
+    let ok = true;
     try {
       await action();
-      await this._load();
-      return true;
     } catch (err) {
-      this._error = sshErrorMessage(err) || this._t("action_failed");
-      await this._load();
-      return false;
-    } finally {
-      this._busy = false;
+      ok = false;
+      this._actionError = sshErrorMessage(err) || this._t("action_failed");
+      this._actionWhere = where;
     }
+    await this._load();
+    this._busy = false;
+    return ok;
   }
 
   // ------------------------------------------------------------ add
 
   private async _draftChanged(ev: Event): Promise<void> {
-    const value = (ev.target as HaTextArea).value ?? "";
+    const field = ev.target as HaTextArea;
     this._privateKeyRefused = false;
     this._newFingerprint = undefined;
-    await this._analyse(value);
+    this._actionError = undefined;
+    const kept = await this._analyse(field.value ?? "");
+    if (!kept) {
+      // The field keeps its own copy of what was pasted, so empty it too.
+      field.value = "";
+    }
   }
 
-  private async _analyse(value: string): Promise<void> {
+  /** Returns false when the text was a private key and has been dropped. */
+  private async _analyse(value: string): Promise<boolean> {
     const check = checkKeyInput(value);
     if (check.state === "problem" && check.problem === "private_key") {
       // Never keep a private key in the page.
       this._draft = "";
       this._privateKeyRefused = true;
       this._problem = undefined;
+      this._partial = false;
       this._preview = undefined;
       this._touched = false;
-      return;
+      return false;
     }
     this._draft = value;
     if (check.state === "empty") {
@@ -183,23 +215,23 @@ class HaConfigSshAccess extends LitElement {
       this._partial = false;
       this._preview = undefined;
       this._touched = false;
-      return;
+      return true;
     }
     if (check.state === "problem") {
       this._problem = check.problem;
       this._partial = check.partial;
       this._preview = undefined;
-      return;
+      return true;
     }
     const fingerprint = await fingerprintOf(check.key.bytes);
     if (this._draft !== value) {
-      return;
+      return true;
     }
     this._partial = false;
     if (this._keys.some((key) => key.fingerprint === fingerprint)) {
       this._problem = "duplicate";
       this._preview = undefined;
-      return;
+      return true;
     }
     this._problem = undefined;
     this._preview = {
@@ -207,6 +239,7 @@ class HaConfigSshAccess extends LitElement {
       type: check.key.type,
       fingerprint,
     };
+    return true;
   }
 
   private _draftBlur(): void {
@@ -215,16 +248,24 @@ class HaConfigSshAccess extends LitElement {
     }
   }
 
+  private _clearDraft(): void {
+    this._draft = "";
+    this._problem = undefined;
+    this._partial = false;
+    this._preview = undefined;
+    this._touched = false;
+    this._privateKeyRefused = false;
+    this._actionError = undefined;
+    this._focus("field");
+  }
+
   private async _add(): Promise<void> {
-    if (!this._preview) {
-      if (this._draft.trim()) {
-        this._touched = true;
-      }
+    if (!this._preview || this._busy) {
       return;
     }
     const line = this._draft.trim();
     const { fingerprint } = this._preview;
-    const ok = await this._run(() => addSshKey(this.hass, line));
+    const ok = await this._run(() => addSshKey(this.hass, line), "add");
     if (ok) {
       this._draft = "";
       this._preview = undefined;
@@ -232,6 +273,8 @@ class HaConfigSshAccess extends LitElement {
       this._touched = false;
       this._newFingerprint = fingerprint;
       showToast(this, { message: this._t("added_toast") });
+      await this.updateComplete;
+      this._focus("field");
     }
   }
 
@@ -239,6 +282,7 @@ class HaConfigSshAccess extends LitElement {
 
   private async _askRemove(ev: Event): Promise<void> {
     this._ask = (ev.currentTarget as HTMLElement).dataset.ask;
+    this._actionError = undefined;
     await this.updateComplete;
     this._focus("cancel");
   }
@@ -246,6 +290,7 @@ class HaConfigSshAccess extends LitElement {
   private async _cancelRemove(ev: Event): Promise<void> {
     const { returnTo } = (ev.currentTarget as HTMLElement).dataset;
     this._ask = undefined;
+    this._actionError = undefined;
     await this.updateComplete;
     this._focus(returnTo ?? "");
   }
@@ -254,6 +299,45 @@ class HaConfigSshAccess extends LitElement {
     [...this._focusTargets]
       .find((element) => element.dataset.focus === id)
       ?.focus();
+  }
+
+  private async _afterRemove(
+    ok: boolean,
+    removed: string[],
+    toast: string
+  ): Promise<void> {
+    await this.updateComplete;
+    if (!ok) {
+      // The question stays open: put focus back on its Remove button.
+      this._focus("confirm");
+      return;
+    }
+    this._ask = undefined;
+    this._newFingerprint = undefined;
+    showToast(this, {
+      message: toast,
+      action: {
+        text: this._t("undo"),
+        action: () => this._undo(removed),
+      },
+    });
+    await this.updateComplete;
+    this._focus("keys-heading");
+  }
+
+  /** Put removed keys back, one request each, as the person added them. */
+  private async _undo(lines: string[]): Promise<void> {
+    const ok = await this._run(async () => {
+      for (const line of lines) {
+        // eslint-disable-next-line no-await-in-loop
+        await addSshKey(this.hass, line);
+      }
+    }, "add");
+    if (!ok) {
+      showToast(this, {
+        message: this._actionError ?? this._t("action_failed"),
+      });
+    }
   }
 
   private async _remove(ev: Event): Promise<void> {
@@ -265,31 +349,23 @@ class HaConfigSshAccess extends LitElement {
     if (!key) {
       return;
     }
-    const ok = await this._run(() =>
-      removeSshKey(this.hass, toPathFingerprint(key.fingerprint))
+    const ok = await this._run(
+      () => removeSshKey(this.hass, toPathFingerprint(key.fingerprint)),
+      "remove"
     );
-    if (ok) {
-      this._ask = undefined;
-      this._newFingerprint = undefined;
-      await this.updateComplete;
-      this._focus("keys-heading");
-    }
+    await this._afterRemove(ok, [key.line], this._t("removed_toast"));
   }
 
   private async _removeAll(): Promise<void> {
-    const ok = await this._run(() => clearSshKeys(this.hass));
-    if (ok) {
-      this._ask = undefined;
-      this._newFingerprint = undefined;
-      await this.updateComplete;
-      this._focus("keys-heading");
-    }
+    const lines = this._keys.map((key) => key.line);
+    const ok = await this._run(() => clearSshKeys(this.hass), "remove");
+    await this._afterRemove(ok, lines, this._t("removed_all_toast"));
   }
 
   // ----------------------------------------------------------- copy
 
   private get _command(): string {
-    return connectCommand(window.location.hostname || "homeassistant.local");
+    return connectCommand(connectHost(window.location.hostname), this._port);
   }
 
   private async _copy(): Promise<void> {
@@ -315,11 +391,11 @@ class HaConfigSshAccess extends LitElement {
         .header=${this._t("caption")}
         .narrow=${this.narrow}
       >
-        <div class="page">
+        <div class="page" aria-busy=${this._busy ? "true" : "false"}>
           ${
             this._unsupported
               ? this._renderUnsupported()
-              : this._loading && !this._keys.length && !this._error
+              : this._loading && !this._keys.length && !this._loadError
                 ? html`<div class="loading card" role="status">
                     <ha-spinner size="small"></ha-spinner>
                     <span>${this._t("loading")}</span>
@@ -342,30 +418,36 @@ class HaConfigSshAccess extends LitElement {
 
   private _renderPage(): TemplateResult {
     const on = this._keys.length > 0;
+    // Without a successful first read there is nothing to manage yet.
+    const failedFirst = this._loadError !== undefined && !this._entered;
     return html`
       ${
-        this._error
-          ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
+        this._loadError
+          ? html`<ha-alert alert-type="error">${this._loadError}</ha-alert>`
           : nothing
       }
-      <div class="cols">
-        <div class="col left">
-          ${this._renderStatus(on)} ${this._renderContainerNote()}
-          ${this._renderHowTo()}
-          <p class="hint">${this._t("admin_only")}</p>
-        </div>
-        <div class="col right">
-          ${this._renderKeys()} ${this._renderAdd(on)}
-          ${on ? this._renderRemoveAll() : nothing}
-        </div>
-      </div>
+      ${
+        failedFirst
+          ? nothing
+          : html`<div class=${classMap({ cols: true, off: !on })}>
+              <div class="col left">
+                ${this._renderStatus(on)} ${this._renderContainerNote()}
+                ${this._renderHowTo()}
+                <p class="hint o-hint">${this._t("admin_only")}</p>
+              </div>
+              <div class="col right">
+                ${this._renderKeys()} ${this._renderAdd(on)}
+                ${on ? this._renderRemoveAll() : nothing}
+              </div>
+            </div>`
+      }
     `;
   }
 
   private _renderStatus(on: boolean): TemplateResult {
     const count = this._keys.length;
     return html`
-      <section class="card" aria-label=${this._t("status_label")}>
+      <section class="card o-status" aria-label=${this._t("status_label")}>
         <div class="status" role="status">
           <span class=${classMap({ lead: true, on })}>
             <ha-svg-icon .path=${mdiKeyVariant}></ha-svg-icon>
@@ -391,7 +473,7 @@ class HaConfigSshAccess extends LitElement {
           ${on ? this._t("connect_on") : this._t("connect_off")}
         </span>
         <div class="command">
-          <code class="mono"
+          <code class="mono" dir="ltr"
             ><span class="prompt" aria-hidden="true">$ </span
             >${this._command}</code
           >
@@ -409,7 +491,7 @@ class HaConfigSshAccess extends LitElement {
             : nothing
         }
         <ha-alert alert-type="info">
-          ${this._t("keys_only_warning", { port: SSH_PORT })}
+          ${this._t("keys_only_warning", { port: this._port })}
         </ha-alert>
         <div class="facts">
           <div class="fact">
@@ -422,11 +504,11 @@ class HaConfigSshAccess extends LitElement {
           </div>
           <div class="fact">
             <span class="label">${this._t("fact_user")}</span>
-            <b class="mono">${SSH_USER}</b>
+            <b class="mono" dir="ltr">${SSH_USER}</b>
           </div>
           <div class="fact">
             <span class="label">${this._t("fact_port")}</span>
-            <b class="mono">${SSH_PORT}</b>
+            <b class="mono" dir="ltr">${this._port}</b>
           </div>
         </div>
       </section>
@@ -438,23 +520,23 @@ class HaConfigSshAccess extends LitElement {
       return nothing;
     }
     return html`
-      <section class="card" aria-label=${this._t("container_title")}>
+      <section class="card o-note" aria-label=${this._t("container_title")}>
         <h3>${this._t("container_title")}</h3>
-        <p>${this._t("container_text", { port: SSH_PORT })}</p>
+        <p>${this._t("container_text", { port: this._port })}</p>
       </section>
     `;
   }
 
   private _renderHowTo(): TemplateResult {
     return html`
-      <section class="card" aria-label=${this._t("howto_title")}>
+      <section class="card o-howto" aria-label=${this._t("howto_title")}>
         <h3>${this._t("howto_title")}</h3>
         <ol class="steps">
           <li>
             <span class="num" aria-hidden="true">1</span>
             <span>
               ${this._t("howto_1")}
-              <code class="inline mono">ssh-keygen -t ed25519</code>
+              <code class="inline mono" dir="ltr">ssh-keygen -t ed25519</code>
             </span>
           </li>
           <li>
@@ -472,7 +554,7 @@ class HaConfigSshAccess extends LitElement {
 
   private _renderKeys(): TemplateResult {
     return html`
-      <section class="card" aria-labelledby="keys-heading">
+      <section class="card o-keys" aria-labelledby="keys-heading">
         <div class="head">
           <h3 id="keys-heading" tabindex="-1" data-focus="keys-heading">
             ${this._t("keys_title")}
@@ -490,6 +572,14 @@ class HaConfigSshAccess extends LitElement {
     `;
   }
 
+  private _renderActionError(
+    where: "add" | "remove"
+  ): TemplateResult | typeof nothing {
+    return this._actionError && this._actionWhere === where
+      ? html`<ha-alert alert-type="error">${this._actionError}</ha-alert>`
+      : nothing;
+  }
+
   private _renderKey(key: ListedKey): TemplateResult {
     const name = key.name || this._t("unnamed_key");
     if (this._ask === key.fingerprint && key.fingerprint) {
@@ -498,28 +588,32 @@ class HaConfigSshAccess extends LitElement {
           class="ask"
           role="group"
           aria-label=${this._t("remove_label", { name })}
+          aria-describedby="ask-question ask-last"
         >
           <div class="name">
-            <b>${name}</b><span class="tag primary">${key.type}</span>
+            <b>${name}</b
+            ><span class="tag primary">${this._typeLabel(key.type)}</span>
           </div>
-          <p>${this._t("remove_question")}</p>
+          <p id="ask-question">${this._t("remove_question")}</p>
           ${
             this._keys.length === 1
-              ? html`<p class="sub">${this._t("remove_last_note")}</p>`
+              ? html`<p class="sub" id="ask-last">
+                  ${this._t("remove_last_note")}
+                </p>`
               : nothing
           }
+          ${this._renderActionError("remove")}
           <div class="actions">
             <ha-button
               appearance="plain"
               data-focus="cancel"
-              ?disabled=${this._busy}
               data-return-to=${`remove-${key.fingerprint}`}
               @click=${this._cancelRemove}
-              >${this.hass.localize("ui.common.cancel")}</ha-button
+              >${this._lang.text(this.hass.localize, "ui.common.cancel")}</ha-button
             >
             <ha-button
               variant="danger"
-              ?disabled=${this._busy}
+              data-focus="confirm"
               data-fingerprint=${key.fingerprint}
               @click=${this._remove}
               >${this._t("remove")}</ha-button
@@ -536,7 +630,13 @@ class HaConfigSshAccess extends LitElement {
         <div class="grow">
           <div class="name">
             <b>${key.fingerprint ? name : this._t("unreadable_key")}</b>
-            ${key.type ? html`<span class="tag primary">${key.type}</span>` : nothing}
+            ${
+              key.type
+                ? html`<span class="tag primary"
+                    >${this._typeLabel(key.type)}</span
+                  >`
+                : nothing
+            }
             ${
               this._newFingerprint === key.fingerprint
                 ? html`<span class="tag on">${this._t("new_tag")}</span>`
@@ -545,7 +645,9 @@ class HaConfigSshAccess extends LitElement {
           </div>
           ${
             key.fingerprint
-              ? html`<span class="mono fingerprint">${key.fingerprint}</span>`
+              ? html`<span class="mono fingerprint" dir="ltr"
+                  >${key.fingerprint}</span
+                >`
               : nothing
           }
         </div>
@@ -555,7 +657,6 @@ class HaConfigSshAccess extends LitElement {
                 .path=${mdiTrashCanOutline}
                 .label=${this._t("remove_label", { name })}
                 data-focus=${`remove-${key.fingerprint}`}
-                ?disabled=${this._busy}
                 data-ask=${key.fingerprint}
                 @click=${this._askRemove}
               ></ha-icon-button>`
@@ -569,33 +670,31 @@ class HaConfigSshAccess extends LitElement {
     const showProblem =
       this._problem !== undefined && (!this._partial || this._touched);
     const ready = this._preview !== undefined;
+    const waiting = this._partial && !this._touched && !!this._draft.trim();
+    const message = showProblem ? this._t(`problem_${this._problem}`) : "";
     return html`
       <section
-        class=${classMap({ card: true, first: !on })}
+        class=${classMap({ card: true, "o-add": true, first: !on })}
         aria-labelledby="add-heading"
       >
         <div class="head">
           <h3 id="add-heading">${this._t("add_title")}</h3>
           ${on ? nothing : html`<span class="tag primary">${this._t("start_here")}</span>`}
         </div>
-        ${
-          this._newFingerprint && !this._draft
-            ? html`<ha-alert alert-type="success"
-                >${this._t("added_toast")}</ha-alert
-              >`
-            : nothing
-        }
+        <p class="sub" id="field-help">${this._t("field_help")}</p>
         <ha-textarea
           .label=${this._t("field_label")}
-          .hint=${this._t("field_help")}
+          .validationMessage=${message}
           placeholder="ssh-ed25519 AAAA... laptop"
           .rows=${4}
           resize="auto"
           spellcheck="false"
           autocomplete="off"
           autocapitalize="none"
-          .value=${this._draft}
-          .disabled=${this._busy}
+          data-focus="field"
+          aria-describedby="field-help"
+          .value=${live(this._draft)}
+          .readonly=${this._busy}
           ?invalid=${this._privateKeyRefused || showProblem}
           @input=${this._draftChanged}
           @blur=${this._draftBlur}
@@ -611,12 +710,13 @@ class HaConfigSshAccess extends LitElement {
             : nothing
         }
         ${
-          showProblem
-            ? html`<ha-alert alert-type="error">
-                ${this._t(`problem_${this._problem}`)}
-              </ha-alert>`
+          waiting
+            ? html`<p class="sub" role="status">
+                ${this._t("problem_partial")}
+              </p>`
             : nothing
         }
+        ${this._renderActionError("add")}
         ${this._preview ? this._renderPreview(this._preview) : nothing}
         <div class="foot">
           <span class="sub grow">
@@ -628,10 +728,16 @@ class HaConfigSshAccess extends LitElement {
                 : this._t("hint_idle")
             }
           </span>
+          ${
+            this._draft
+              ? html`<ha-button appearance="plain" @click=${this._clearDraft}>
+                  ${this._t("clear")}
+                </ha-button>`
+              : nothing
+          }
           <ha-button
-            appearance=${ready ? "filled" : "plain"}
-            aria-disabled=${ready ? "false" : "true"}
-            ?disabled=${this._busy}
+            appearance="filled"
+            ?disabled=${!ready}
             @click=${this._add}
           >
             ${this._t("add")}
@@ -650,9 +756,9 @@ class HaConfigSshAccess extends LitElement {
         </div>
         <div class="name">
           <b>${preview.name || this._t("unnamed_key")}</b>
-          <span class="tag primary">${preview.type}</span>
+          <span class="tag primary">${this._typeLabel(preview.type)}</span>
         </div>
-        <span class="mono fingerprint">${preview.fingerprint}</span>
+        <span class="mono fingerprint" dir="ltr">${preview.fingerprint}</span>
       </div>
     `;
   }
@@ -660,20 +766,25 @@ class HaConfigSshAccess extends LitElement {
   private _renderRemoveAll(): TemplateResult {
     if (this._ask === "all") {
       return html`
-        <div class="ask" role="group" aria-label=${this._t("remove_all")}>
-          <p>${this._t("remove_all_question")}</p>
+        <div
+          class="ask o-removeall"
+          role="group"
+          aria-label=${this._t("remove_all")}
+          aria-describedby="ask-question"
+        >
+          <p id="ask-question">${this._t("remove_all_question")}</p>
+          ${this._renderActionError("remove")}
           <div class="actions">
             <ha-button
               appearance="plain"
               data-focus="cancel"
-              ?disabled=${this._busy}
               data-return-to="remove-all"
               @click=${this._cancelRemove}
-              >${this.hass.localize("ui.common.cancel")}</ha-button
+              >${this._lang.text(this.hass.localize, "ui.common.cancel")}</ha-button
             >
             <ha-button
               variant="danger"
-              ?disabled=${this._busy}
+              data-focus="confirm"
               @click=${this._removeAll}
               >${this._t("remove_all_confirm")}</ha-button
             >
@@ -682,12 +793,11 @@ class HaConfigSshAccess extends LitElement {
       `;
     }
     return html`
-      <div class="foot end">
+      <div class="foot end o-removeall">
         <ha-button
           variant="danger"
           appearance="plain"
           data-focus="remove-all"
-          ?disabled=${this._busy}
           data-ask="all"
           @click=${this._askRemove}
           >${this._t("remove_all")}</ha-button
@@ -703,6 +813,7 @@ class HaConfigSshAccess extends LitElement {
         .page {
           box-sizing: border-box;
           max-width: 1120px;
+          container-type: inline-size;
           margin: 0 auto;
           padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
         }
@@ -781,8 +892,8 @@ class HaConfigSshAccess extends LitElement {
         }
         .key {
           align-items: flex-start;
-          padding: var(--ha-space-2) var(--ha-space-1) var(--ha-space-2)
-            var(--ha-space-3);
+          padding-block: var(--ha-space-2);
+          padding-inline: var(--ha-space-3) var(--ha-space-1);
           border-radius: 16px;
           background: var(
             --md-sys-color-surface-container-low,
@@ -871,8 +982,8 @@ class HaConfigSshAccess extends LitElement {
           align-items: center;
           gap: var(--ha-space-1);
           min-height: 56px;
-          padding: var(--ha-space-1) var(--ha-space-1) var(--ha-space-1)
-            var(--ha-space-4);
+          padding-block: var(--ha-space-1);
+          padding-inline: var(--ha-space-4) var(--ha-space-1);
           border-radius: 16px;
           background: var(--secondary-background-color);
           border: 1px solid var(--divider-color);
@@ -1006,12 +1117,52 @@ class HaConfigSshAccess extends LitElement {
         ha-textarea {
           display: block;
         }
-        ha-button,
-        ha-icon-button {
-          min-height: 48px;
+        ha-button {
+          --ha-button-height: 48px;
         }
         ha-icon-button {
+          min-height: 48px;
           min-width: 48px;
+        }
+        .help {
+          margin: 0;
+        }
+        @container (max-width: 799px) {
+          .cols {
+            flex-direction: column;
+            flex-wrap: nowrap;
+            align-items: stretch;
+          }
+          .col {
+            display: contents;
+          }
+          .o-status {
+            order: 1;
+          }
+          .o-keys {
+            order: 2;
+          }
+          .cols.off .o-keys {
+            order: 3;
+          }
+          .o-add {
+            order: 3;
+          }
+          .o-add.first {
+            order: 2;
+          }
+          .o-removeall {
+            order: 4;
+          }
+          .o-howto {
+            order: 5;
+          }
+          .o-note {
+            order: 6;
+          }
+          .o-hint {
+            order: 7;
+          }
         }
         .loading {
           flex-direction: row;

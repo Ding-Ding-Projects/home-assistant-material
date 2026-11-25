@@ -24,6 +24,7 @@ from ..const import (
     ATTR_LATEST_VERSION,
     ATTR_NAME,
     ATTR_PATH,
+    ATTR_PORT,
     ATTR_POWER_LED,
     ATTR_SERIAL,
     ATTR_SIZE,
@@ -124,7 +125,7 @@ SCHEMA_SWAP_OPTIONS = vol.Schema(
 # lines longer than 3000 bytes
 SSH_AUTH_KEY_MAX_LENGTH = 3000
 
-RE_SSH_KEY_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+RE_SSH_KEY_CONTROL_CHARS = re.compile("[\x00-\x1f\x7f\x85\u2028\u2029]")
 
 
 def ssh_auth_key(value: Any) -> str:
@@ -153,7 +154,7 @@ SCHEMA_SSH_AUTHORIZED_KEY = vol.Schema({vol.Required(ATTR_KEY): ssh_auth_key})
 def container_ssh_key(value: Any) -> str:
     """Check a public key before it is written without OS Agent's help."""
     key = ssh_auth_key(value)
-    if parse_key(key) is None:
+    if parse_key(key, allow_options=False) is None:
         raise vol.Invalid("Not a valid SSH public key")
     return key
 
@@ -162,6 +163,8 @@ SCHEMA_CONTAINER_SSH_KEY = vol.Schema({vol.Required(ATTR_KEY): container_ssh_key
 
 SSH_MODE_OS = "os"
 SSH_MODE_CONTAINER = "container"
+SSH_MODE_UNSUPPORTED = "unsupported"
+SSH_PORT_OS = 22222
 # pylint: enable=no-value-for-parameter
 
 
@@ -279,45 +282,59 @@ class APIOS(CoreSysAttributes):
         body = await api_validate(SCHEMA_SET_BOOT_SLOT, request)
         await asyncio.shield(self.sys_os.set_boot_slot(body[ATTR_BOOT_SLOT]))
 
+    def _require_container_ssh(self) -> None:
+        """Raise unless the outer container runs an SSH server."""
+        if self.sys_os.container_ssh_port is None:
+            raise APINotFound("This install has no SSH server to manage")
+
     @api_process
     async def ssh_authorized_keys_list(self, request: web.Request) -> dict[str, Any]:
         """Return root's SSH authorized keys on the host."""
         if self.sys_os.container_host:
+            port = self.sys_os.container_ssh_port
+            if port is None:
+                # The outer container runs no SSH server (an older image).
+                return {ATTR_KEYS: [], ATTR_MODE: SSH_MODE_UNSUPPORTED}
             keys = await self.sys_run_in_executor(self.sys_os.container_ssh_keys.list)
-            return {ATTR_KEYS: keys, ATTR_MODE: SSH_MODE_CONTAINER}
+            return {ATTR_KEYS: keys, ATTR_MODE: SSH_MODE_CONTAINER, ATTR_PORT: port}
 
         if (
             not self.sys_dbus.agent.is_connected
             or self.sys_dbus.agent.version < SSH_KEYS_LIST_MIN_OS_AGENT_VERSION
         ):
-            raise APINotFound(
-                f"OS Agent {SSH_KEYS_LIST_MIN_OS_AGENT_VERSION} or newer required "
-                "to list SSH authorized keys",
-                _LOGGER.debug,
-            )
+            # Answered with a mode, not an error, so the page can tell this
+            # apart from a failure: the websocket relay drops the status code.
+            return {ATTR_KEYS: [], ATTR_MODE: SSH_MODE_UNSUPPORTED}
 
         return {
             ATTR_KEYS: await self.sys_dbus.agent.system.list_ssh_auth_keys(),
             ATTR_MODE: SSH_MODE_OS,
+            ATTR_PORT: SSH_PORT_OS,
         }
 
     @api_process
     async def ssh_authorized_keys_add(self, request: web.Request) -> None:
         """Add an SSH authorized key for root on the host."""
         if self.sys_os.container_host:
-            body = await api_validate(SCHEMA_CONTAINER_SSH_KEY, request)
+            self._require_container_ssh()
+            body = await api_validate(
+                SCHEMA_CONTAINER_SSH_KEY, request, redact_values=True
+            )
             await self.sys_run_in_executor(
                 self.sys_os.container_ssh_keys.add, body[ATTR_KEY]
             )
             return
 
-        body = await api_validate(SCHEMA_SSH_AUTHORIZED_KEY, request)
+        body = await api_validate(
+            SCHEMA_SSH_AUTHORIZED_KEY, request, redact_values=True
+        )
         await asyncio.shield(self.sys_os.add_ssh_authorized_key(body[ATTR_KEY]))
 
     @api_process
     async def ssh_authorized_keys_clear(self, request: web.Request) -> None:
         """Remove all SSH authorized keys of root on the host."""
         if self.sys_os.container_host:
+            self._require_container_ssh()
             await self.sys_run_in_executor(self.sys_os.container_ssh_keys.clear)
             return
 
@@ -331,6 +348,7 @@ class APIOS(CoreSysAttributes):
             raise APIError("Not a valid SSH key fingerprint")
 
         if self.sys_os.container_host:
+            self._require_container_ssh()
             removed = await self.sys_run_in_executor(
                 self.sys_os.container_ssh_keys.remove, fingerprint
             )

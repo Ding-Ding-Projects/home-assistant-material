@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseSshKeysInfo } from "../../../../src/data/hassio/ssh-keys";
 import {
   checkKeyInput,
+  connectHost,
   describeKeys,
   fingerprintOf,
   parsePublicKey,
@@ -56,6 +57,38 @@ describe("parsePublicKey", () => {
     expect(parsePublicKey("hello world")).toBeUndefined();
     expect(parsePublicKey("ssh-ed25519 short")).toBeUndefined();
   });
+
+  it("refuses a key body that is cut off, junk, or of another type", () => {
+    const [algorithm, blob] = ED25519.split(" ");
+    expect(
+      parsePublicKey(`${algorithm} ${blob.slice(0, -12)}`)
+    ).toBeUndefined();
+    expect(
+      parsePublicKey("ssh-ed25519 AAAAAAAAAAAAAAAAAAAAAAAA t")
+    ).toBeUndefined();
+    expect(parsePublicKey(`ssh-rsa ${blob}`)).toBeUndefined();
+  });
+
+  it("does not take a key hidden in an options prefix for the key the server uses", () => {
+    const decoy = `command="exec sh # ${ED25519}" ${ECDSA}`;
+    // A line the page writes has no options at all.
+    expect(parsePublicKey(decoy)).toBeUndefined();
+    // A line written elsewhere is read the way the server reads it.
+    expect(parsePublicKey(decoy, true)).toMatchObject({
+      algorithm: "ecdsa-sha2-nistp256",
+      comment: "second@example",
+    });
+  });
+
+  it.each(["\u2028", "\u2029", "\u0085"])(
+    "refuses a line separator the server does not split on (%j)",
+    (separator) => {
+      expect(parsePublicKey(`${ED25519}${separator}${ECDSA}`)).toBeUndefined();
+      expect(checkKeyInput(`${ED25519}${separator}${ECDSA}`)).toMatchObject({
+        problem: "multiple",
+      });
+    }
+  );
 });
 
 describe("fingerprintOf", () => {
@@ -84,6 +117,20 @@ describe("checkKeyInput", () => {
         "-----BEGIN OPENSSH PRIVATE KEY-----\nb3Blbn\n-----END OPENSSH PRIVATE KEY-----"
       )
     ).toEqual({ state: "problem", problem: "private_key", partial: false });
+  });
+
+  it("recognises a PuTTY private key file", () => {
+    expect(
+      checkKeyInput(
+        "PuTTY-User-Key-File-3: ssh-ed25519\nEncryption: none\nPrivate-Lines: 1"
+      )
+    ).toMatchObject({ problem: "private_key" });
+  });
+
+  it("holds the message back for a key that is cut off", () => {
+    expect(
+      checkKeyInput(ED25519.split(" ").slice(0, 2).join(" ").slice(0, -12))
+    ).toMatchObject({ problem: "not_a_key", partial: true });
   });
 
   it("refuses two keys pasted together", () => {
@@ -127,12 +174,38 @@ describe("describeKeys", () => {
 
 describe("parseSshKeysInfo", () => {
   it("falls back to the operating system mode and no keys", () => {
-    expect(parseSshKeysInfo(null)).toEqual({ keys: [], mode: "os" });
-    expect(parseSshKeysInfo({ keys: [ED25519, 4], mode: "container" })).toEqual(
-      {
-        keys: [ED25519],
-        mode: "container",
-      }
+    expect(parseSshKeysInfo(null)).toEqual({
+      keys: [],
+      mode: "os",
+      port: 22222,
+    });
+    expect(
+      parseSshKeysInfo({ keys: [ED25519, 4], mode: "container", port: 2222 })
+    ).toEqual({ keys: [ED25519], mode: "container", port: 2222 });
+  });
+
+  it("reports an install without SSH as a mode, not an error", () => {
+    expect(parseSshKeysInfo({ keys: [], mode: "unsupported" }).mode).toBe(
+      "unsupported"
     );
+    expect(parseSshKeysInfo({ keys: [], port: 70000 }).port).toBe(22222);
+  });
+});
+
+// Built from parts so that no address is written out in the repository.
+const ip = (...octets: number[]) => octets.join(".");
+
+describe("connectHost", () => {
+  it.each([
+    [ip(192, 168, 1, 20), ip(192, 168, 1, 20)],
+    [ip(10, 0, 0, 5), ip(10, 0, 0, 5)],
+    [ip(172, 20, 1, 1), ip(172, 20, 1, 1)],
+    ["homeassistant.local", "homeassistant.local"],
+    ["homeassistant", "homeassistant"],
+    [ip(203, 0, 113, 9), "homeassistant.local"],
+    [ip(172, 40, 0, 1), "homeassistant.local"],
+    ["home.example.org", "homeassistant.local"],
+  ])("%s is shown as %s", (hostname, host) => {
+    expect(connectHost(hostname)).toBe(host);
   });
 });

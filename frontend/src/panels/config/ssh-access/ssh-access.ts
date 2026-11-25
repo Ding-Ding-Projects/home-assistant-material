@@ -1,23 +1,40 @@
-/** The user and port the page tells people to connect with. */
+/** The user and the default port the page tells people to connect with. */
 export const SSH_PORT = 22222;
 export const SSH_USER = "root";
 
-const KEY_ALGORITHMS = [
-  "ssh-ed25519",
-  "ssh-rsa",
-  "ecdsa-sha2-nistp256",
-  "ecdsa-sha2-nistp384",
-  "ecdsa-sha2-nistp521",
-  "sk-ssh-ed25519@openssh.com",
-  "sk-ecdsa-sha2-nistp256@openssh.com",
-] as const;
+/** Stands for the type of a hardware security key, which the page translates. */
+export const SECURITY_KEY_TYPE = "SECURITY_KEY";
 
-// Same shape the Supervisor accepts, with an optional options prefix.
-const RE_KEY_LINE = new RegExp(
-  `(?:^|\\s)(${KEY_ALGORITHMS.map((a) => a.replace(/[.]/g, "\\.")).join(
-    "|"
-  )})\\s+([A-Za-z0-9+/]{16,}={0,2})(?:\\s+(.*))?$`
-);
+/**
+ * The public key types an authorized_keys line can carry, with the names of
+ * the length-prefixed fields that follow the type name in the key body.
+ * Same table as the Supervisor's.
+ */
+const KEY_TYPES: Record<string, readonly string[]> = {
+  "ssh-ed25519": ["key"],
+  "ssh-rsa": ["e", "n"],
+  "ecdsa-sha2-nistp256": ["curve", "point"],
+  "ecdsa-sha2-nistp384": ["curve", "point"],
+  "ecdsa-sha2-nistp521": ["curve", "point"],
+  "sk-ssh-ed25519@openssh.com": ["key", "application"],
+  "sk-ecdsa-sha2-nistp256@openssh.com": ["curve", "point", "application"],
+};
+
+const KEY_ALGORITHMS = Object.keys(KEY_TYPES);
+
+const RE_BLOB = /^[A-Za-z0-9+/]{16,}={0,2}$/;
+const RE_PARTIAL_BLOB = /^[A-Za-z0-9+/]*={0,2}$/;
+
+// Every character that ends a line for some reader. The SSH server splits on
+// a line feed only, so none of them may sit inside one key line.
+// eslint-disable-next-line no-control-regex
+const RE_LINE_BREAKS = /[\u0000-\u001f\u007f\u0085\u2028\u2029]/;
+const RE_LINE_SPLIT = /[\r\n\u0085\u2028\u2029]/;
+
+// Text that only a private key file contains: OpenSSH and PEM files, and the
+// PuTTY format that PuTTYgen writes.
+const RE_PRIVATE_KEY =
+  /PRIVATE KEY|PuTTY-User-Key-File-|Private-Lines:|Private-MAC:/i;
 
 /** The most the SSH server reads from one authorized_keys line. */
 export const MAX_KEY_LENGTH = 3000;
@@ -29,6 +46,8 @@ export interface PublicKey {
   comment: string;
   /** The decoded key body, which the fingerprint is made from. */
   bytes: Uint8Array;
+  /** The options field before the key type, which the page never writes. */
+  options: string;
 }
 
 const decodeBase64 = (value: string): Uint8Array | undefined => {
@@ -45,36 +64,67 @@ const decodeBase64 = (value: string): Uint8Array | undefined => {
   }
 };
 
-/** The bit length of an RSA key, read from the modulus in the key body. */
-const rsaBits = (bytes: Uint8Array): number | undefined => {
+/** The length-prefixed fields of a key body, or undefined when it is cut off. */
+const readFields = (bytes: Uint8Array): Uint8Array[] | undefined => {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const fields: Uint8Array[] = [];
   let offset = 0;
-  const skip = (): number | undefined => {
+  while (offset < bytes.length) {
     if (offset + 4 > bytes.length) {
       return undefined;
     }
     const length = view.getUint32(offset);
-    const start = offset + 4;
-    offset = start + length;
-    return offset <= bytes.length ? start : undefined;
-  };
-  // algorithm name, exponent, modulus
-  if (skip() === undefined || skip() === undefined) {
+    offset += 4;
+    if (offset + length > bytes.length) {
+      return undefined;
+    }
+    fields.push(bytes.subarray(offset, offset + length));
+    offset += length;
+  }
+  return fields;
+};
+
+const asText = (bytes: Uint8Array): string => String.fromCharCode(...bytes);
+
+/** Whether the key body is a whole key of the declared type, with nothing extra. */
+const blobIsValid = (algorithm: string, bytes: Uint8Array): boolean => {
+  const fields = readFields(bytes);
+  const names = KEY_TYPES[algorithm];
+  if (
+    !fields ||
+    fields.length !== names.length + 1 ||
+    asText(fields[0]) !== algorithm
+  ) {
+    return false;
+  }
+  return names.every((name, index) => {
+    const value = fields[index + 1];
+    if (!value.length) {
+      return false;
+    }
+    if (name === "key") {
+      return value.length === 32;
+    }
+    if (name === "curve") {
+      return asText(value) === /nistp\d+/.exec(algorithm)?.[0];
+    }
+    return true;
+  });
+};
+
+/** The bit length of an RSA key, read from the modulus in the key body. */
+const rsaBits = (bytes: Uint8Array): number | undefined => {
+  const modulus = readFields(bytes)?.[2];
+  if (!modulus) {
     return undefined;
   }
-  const lengthAt = offset;
-  const start = skip();
-  if (start === undefined) {
-    return undefined;
-  }
-  const length = view.getUint32(lengthAt);
-  let first = start;
-  let size = length;
-  while (size > 0 && bytes[first] === 0) {
+  let first = 0;
+  while (first < modulus.length && modulus[first] === 0) {
     first++;
-    size--;
   }
-  return size ? (size - 1) * 8 + (32 - Math.clz32(bytes[first])) : undefined;
+  return first < modulus.length
+    ? (modulus.length - first - 1) * 8 + (32 - Math.clz32(modulus[first]))
+    : undefined;
 };
 
 const keyTypeLabel = (algorithm: string, bytes: Uint8Array): string => {
@@ -86,26 +136,69 @@ const keyTypeLabel = (algorithm: string, bytes: Uint8Array): string => {
     return bits ? `RSA ${bits}` : "RSA";
   }
   if (algorithm.startsWith("sk-")) {
-    return "Security key";
+    return SECURITY_KEY_TYPE;
   }
   return "ECDSA";
 };
 
-/** Take a public key line apart, or return undefined when it is not one. */
-export const parsePublicKey = (line: string): PublicKey | undefined => {
-  const match = RE_KEY_LINE.exec(line.trim());
-  if (!match) {
+/**
+ * Split the options field off a line the way the SSH server does: it ends at
+ * the first space or tab outside double quotes.
+ */
+const splitOptions = (line: string): [string, string] | undefined => {
+  if (KEY_ALGORITHMS.includes(line.split(/\s+/, 1)[0])) {
+    return ["", line];
+  }
+  let inQuote = false;
+  let escaped = false;
+  for (let index = 0; index < line.length; index++) {
+    const char = line[index];
+    if (escaped) {
+      escaped = false;
+    } else if (char === "\\") {
+      escaped = true;
+    } else if (char === '"') {
+      inQuote = !inQuote;
+    } else if ((char === " " || char === "\t") && !inQuote) {
+      return [line.slice(0, index), line.slice(index).replace(/^[ \t]+/, "")];
+    }
+  }
+  return undefined;
+};
+
+/**
+ * Take a public key line apart, or return undefined when it is not one. The
+ * line must start with its key type, unless allowOptions is set (to read keys
+ * that were written elsewhere), and the key body must be a whole key.
+ */
+export const parsePublicKey = (
+  line: string,
+  allowOptions = false
+): PublicKey | undefined => {
+  const text = line.trim();
+  if (!text || RE_LINE_BREAKS.test(text)) {
     return undefined;
   }
-  const bytes = decodeBase64(match[2]);
-  if (!bytes) {
+  const split = splitOptions(text);
+  if (!split || (split[0] && !allowOptions)) {
+    return undefined;
+  }
+  const [options, rest] = split;
+  const parts = rest.split(/\s+/);
+  const [algorithm, blob] = parts;
+  if (!KEY_ALGORITHMS.includes(algorithm) || !blob || !RE_BLOB.test(blob)) {
+    return undefined;
+  }
+  const bytes = decodeBase64(blob);
+  if (!bytes || !blobIsValid(algorithm, bytes)) {
     return undefined;
   }
   return {
-    algorithm: match[1],
-    type: keyTypeLabel(match[1], bytes),
-    comment: (match[3] ?? "").trim(),
+    algorithm,
+    type: keyTypeLabel(algorithm, bytes),
+    comment: parts.slice(2).join(" ").trim(),
     bytes,
+    options,
   };
 };
 
@@ -141,11 +234,7 @@ export type KeyInputCheck =
       partial: boolean;
     };
 
-const RE_PARTIAL_ALGORITHM = new RegExp(
-  `^(?:${KEY_ALGORITHMS.map((a) => a.replace(/[.]/g, "\\.")).join("|")})$`
-);
-
-/** Whether what was typed so far is a prefix of an algorithm name. */
+/** Whether what was typed so far could still turn into a key. */
 const couldBecomeKey = (line: string): boolean => {
   const parts = line.split(/\s+/);
   if (parts.length === 1) {
@@ -153,8 +242,8 @@ const couldBecomeKey = (line: string): boolean => {
   }
   return (
     parts.length === 2 &&
-    RE_PARTIAL_ALGORITHM.test(parts[0]) &&
-    /^[A-Za-z0-9+/]{0,15}$/.test(parts[1])
+    KEY_ALGORITHMS.includes(parts[0]) &&
+    RE_PARTIAL_BLOB.test(parts[1])
   );
 };
 
@@ -167,11 +256,11 @@ export const checkKeyInput = (text: string): KeyInputCheck => {
   if (!trimmed) {
     return { state: "empty" };
   }
-  if (/PRIVATE KEY/i.test(trimmed)) {
+  if (RE_PRIVATE_KEY.test(trimmed)) {
     return { state: "problem", problem: "private_key", partial: false };
   }
   const lines = trimmed
-    .split(/\r?\n/)
+    .split(RE_LINE_SPLIT)
     .map((line) => line.trim())
     .filter((line) => line);
   if (lines.length > 1) {
@@ -203,7 +292,7 @@ export interface ListedKey {
 export const describeKeys = async (lines: string[]): Promise<ListedKey[]> =>
   Promise.all(
     lines.map(async (line) => {
-      const key = parsePublicKey(line);
+      const key = parsePublicKey(line, true);
       return {
         line,
         name: key?.comment ?? "",
@@ -212,6 +301,30 @@ export const describeKeys = async (lines: string[]): Promise<ListedKey[]> =>
       };
     })
   );
+
+/**
+ * The host to put in the connect command. The address of the page is used
+ * when it is one inside a home network; a remote address cannot be reached
+ * by SSH, which stays inside the home network, so a local name stands in.
+ */
+export const connectHost = (hostname: string): string => {
+  const host = hostname.replace(/^\[|\]$/g, "");
+  const octets = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (octets) {
+    const [a, b] = [Number(octets[1]), Number(octets[2])];
+    const local =
+      a === 10 ||
+      a === 127 ||
+      (a === 192 && b === 168) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 169 && b === 254);
+    return local ? host : "homeassistant.local";
+  }
+  if (host === "localhost" || /^[^.]+(\.local)?$/i.test(host)) {
+    return host;
+  }
+  return "homeassistant.local";
+};
 
 export const connectCommand = (host: string, port = SSH_PORT): string =>
   `ssh ${SSH_USER}@${host} -p ${port}`;

@@ -2,14 +2,20 @@ import type { HomeAssistant } from "../../types";
 
 /**
  * How the Supervisor keeps the keys: with the operating system's SSH service,
- * or in a file read by the SSH server of the full hosting mode container.
+ * or in a file read by the SSH server of the full hosting mode container. It
+ * says "unsupported" when this install has no SSH server to manage; that is an
+ * answer, not an error, because the websocket relay drops error status codes.
  */
-export type SshAccessMode = "os" | "container";
+export type SshAccessMode = "os" | "container" | "unsupported";
+
+const DEFAULT_PORT = 22222;
 
 export interface SshKeysInfo {
   /** Every key as a line of an authorized_keys file. */
   keys: string[];
   mode: SshAccessMode;
+  /** The port to connect to: the published one in the full hosting mode. */
+  port: number;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -21,7 +27,17 @@ export const parseSshKeysInfo = (json: unknown): SshKeysInfo => {
     keys: Array.isArray(data.keys)
       ? data.keys.filter((key): key is string => typeof key === "string")
       : [],
-    mode: data.mode === "container" ? "container" : "os",
+    mode:
+      data.mode === "container" || data.mode === "unsupported"
+        ? data.mode
+        : "os",
+    port:
+      typeof data.port === "number" &&
+      Number.isInteger(data.port) &&
+      data.port > 0 &&
+      data.port < 65536
+        ? data.port
+        : DEFAULT_PORT,
   };
 };
 
@@ -36,14 +52,6 @@ export const sshErrorMessage = (error: unknown): string => {
     }
   }
   return typeof error === "string" ? error : "";
-};
-
-/** True when the Supervisor answered that this install has no SSH to manage. */
-export const isSshUnsupportedError = (error: unknown): boolean => {
-  if (!isRecord(error)) {
-    return false;
-  }
-  return error.code === "not_found" || error.status_code === 404;
 };
 
 const call = (

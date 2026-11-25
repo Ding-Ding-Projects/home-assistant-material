@@ -890,13 +890,13 @@ async def test_api_os_ssh_authorized_keys_list_requires_os_agent_version(
     api_client_with_prefix: tuple[TestClient, str],
     os_agent_services: dict[str, DBusServiceMock],
 ):
-    """Test 404 is returned on an OS Agent without ListSSHAuthKeys."""
+    """Test an OS Agent without ListSSHAuthKeys is reported as unsupported."""
     api_client, prefix = api_client_with_prefix
 
     resp = await api_client.get(f"{prefix}/os/ssh/authorized_keys")
-    assert resp.status == 404
+    assert resp.status == 200
     result = await resp.json()
-    assert "OS Agent 1.11.0 or newer required" in result["message"]
+    assert result["data"] == {"keys": [], "mode": "unsupported"}
 
 
 @pytest.mark.usefixtures("os_available")
@@ -1226,18 +1226,69 @@ async def test_api_os_ssh_authorized_keys_remove_failure_restores(
         TEST_SSH_KEY_ED25519,
         TEST_SSH_KEY_ECDSA,
     ]
-    system_service.response_add_ssh_auth_key = DBusError(ErrorType.FAILED, "boom")
     system_service.AddSSHAuthKey.calls.clear()
     system_service.ClearSSHAuthKeys.calls.clear()
 
-    with patch.object(coresys.host.services, "stop", new=AsyncMock()) as stop:
+    # Only the re-add during the removal fails; the restore must then succeed.
+    added: list[str] = []
+
+    async def add_key(key: str) -> None:
+        added.append(key)
+        if len(added) == 1:
+            raise SupervisorDBusError("boom")
+        await system_service_add(key)
+
+    system_service_add = coresys.dbus.agent.system.add_ssh_auth_key
+    with (
+        patch.object(coresys.dbus.agent.system, "add_ssh_auth_key", new=add_key),
+        patch.object(coresys.host.services, "stop", new=AsyncMock()) as stop,
+    ):
         resp = await api_client.delete(
             f"{prefix}/os/ssh/authorized_keys/{TEST_SSH_KEY_ED25519_PATH_FINGERPRINT}"
         )
     assert resp.status == 400
     # Cleared once for the removal and once for the restore
     assert len(system_service.ClearSSHAuthKeys.calls) == 2
+    # The one remaining key failed once; the restore wrote both originals, in order
+    assert added == [TEST_SSH_KEY_ECDSA, TEST_SSH_KEY_ED25519, TEST_SSH_KEY_ECDSA]
+    assert system_service.AddSSHAuthKey.calls == [
+        (TEST_SSH_KEY_ED25519,),
+        (TEST_SSH_KEY_ECDSA,),
+    ]
     stop.assert_not_called()
+
+
+async def test_api_os_ssh_container_host_without_server(
+    api_client_with_prefix: tuple[TestClient, str],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Test an outer container that runs no SSH server is reported as unsupported."""
+    api_client, prefix = api_client_with_prefix
+    monkeypatch.setenv("SUPERVISOR_CONTAINER_HOST", "1")
+    monkeypatch.delenv("SUPERVISOR_SSH_PORT", raising=False)
+
+    resp = await api_client.get(f"{prefix}/os/ssh/authorized_keys")
+    assert resp.status == 200
+    assert (await resp.json())["data"] == {"keys": [], "mode": "unsupported"}
+
+    resp = await api_client.post(
+        f"{prefix}/os/ssh/authorized_keys", json={"key": TEST_SSH_KEY_ED25519}
+    )
+    assert resp.status == 404
+
+
+async def test_api_os_ssh_rejected_key_is_not_echoed(
+    api_client_with_prefix: tuple[TestClient, str],
+    container_ssh_keys: ContainerAuthorizedKeys,
+):
+    """Test a rejected submission does not come back in the error message."""
+    api_client, prefix = api_client_with_prefix
+    secret = "-----BEGIN OPENSSH PRIVATE KEY-----"
+    resp = await api_client.post(
+        f"{prefix}/os/ssh/authorized_keys", json={"key": secret + " AAAA"}
+    )
+    assert resp.status == 400
+    assert "OPENSSH PRIVATE KEY" not in (await resp.json())["message"]
 
 
 async def test_api_os_ssh_authorized_keys_remove_bad_fingerprint(
@@ -1255,6 +1306,7 @@ def fixture_container_ssh_keys(
 ) -> ContainerAuthorizedKeys:
     """Run as the full hosting mode, with the key file in a temporary folder."""
     monkeypatch.setenv("SUPERVISOR_CONTAINER_HOST", "1")
+    monkeypatch.setenv("SUPERVISOR_SSH_PORT", "22222")
     keys = ContainerAuthorizedKeys(tmp_path / "ssh" / "authorized_keys")
     monkeypatch.setattr(coresys.os, "_container_ssh_keys", keys)
     return keys
@@ -1270,7 +1322,11 @@ async def test_api_os_ssh_container_host(
 
     resp = await api_client.get(f"{prefix}/os/ssh/authorized_keys")
     assert resp.status == 200
-    assert (await resp.json())["data"] == {"keys": [], "mode": "container"}
+    assert (await resp.json())["data"] == {
+        "keys": [],
+        "mode": "container",
+        "port": 22222,
+    }
 
     for key in (TEST_SSH_KEY_ED25519, TEST_SSH_KEY_ECDSA):
         resp = await api_client.post(
