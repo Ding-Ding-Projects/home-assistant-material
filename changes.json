@@ -1,15 +1,37 @@
 {
  "format": 1,
- "generated": "2026-11-24T19:44:10Z",
+ "generated": "2026-11-25T07:03:28Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 558,
+ "newest_build": 559,
  "releases": [
   {
-   "build": 558,
-   "core": "2026.11.2.558",
-   "supervisor": "2026.11.0.558",
-   "os": "18.5.558",
+   "build": 559,
+   "core": "2026.11.2.559",
+   "supervisor": "2026.11.0.559",
+   "os": "18.5.559",
    "tag": null,
+   "source": "f6e0d58e5",
+   "date": "2026-11-25T01:40:09-05:00",
+   "previous_build": 557,
+   "changes": [
+    {
+     "sha": "f6e0d58e5",
+     "date": "2026-11-25T01:40:09-05:00",
+     "title": "Grow light shows up in Add integration again",
+     "areas": [
+      "core"
+     ],
+     "detail": "Grow light was filed as a helper, and helpers never appear in the Add integration search, so typing \"grow light\" found nothing. It is now an ordinary service integration in the lighting category, with the generated flow and integration lists moved to match.",
+     "detail_yue": "種植燈之前扮咗做 helper，喺「新增整合」度點搵都搵唔到，好似收埋喺衣櫃咁。 而家正式做返整合，搵「grow light」即刻彈出嚟，唔使再捉迷藏。"
+    }
+   ]
+  },
+  {
+   "build": 557,
+   "core": "2026.11.2.557",
+   "supervisor": "2026.11.0.557",
+   "os": "18.5.557",
+   "tag": "v2026.11.2.557",
    "source": "9ba5442eb",
    "date": "2026-11-24T14:20:26-05:00",
    "previous_build": 555,
