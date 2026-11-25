@@ -960,6 +960,7 @@ class RestAPI(CoreSysAttributes):
                 web.post("/backups/delete_proof", api_backups.delete_proof_set),
                 web.delete("/backups/{slug}", api_backups.remove),
                 web.post("/backups/{slug}/restore/full", api_backups.restore_full),
+                web.post("/backups/{slug}/check_password", api_backups.check_password),
                 web.post(
                     "/backups/{slug}/restore/full/when_ready",
                     api_backups.restore_full_when_ready,

@@ -17,6 +17,7 @@ var (
 	// A backup slug is a short hex id made by the Supervisor
 	backupSlug         = `[0-9a-f]{1,64}`
 	regexBackupInfo    = regexp.MustCompile(`^/` + backupSlug + `/info$`)
+	regexBackupCheck   = regexp.MustCompile(`^/` + backupSlug + `/check_password$`)
 	regexBackupRestore = regexp.MustCompile(`^/` + backupSlug + `/restore/full/when_ready$`)
 )
 
@@ -27,6 +28,8 @@ func backupsProxyAllowed(method string, cleanPath string) bool {
 	case method == http.MethodPost && cleanPath == "/new/upload":
 		return true
 	case method == http.MethodGet && regexBackupInfo.MatchString(cleanPath):
+		return true
+	case method == http.MethodPost && regexBackupCheck.MatchString(cleanPath):
 		return true
 	case method == http.MethodPost && regexBackupRestore.MatchString(cleanPath):
 		return true

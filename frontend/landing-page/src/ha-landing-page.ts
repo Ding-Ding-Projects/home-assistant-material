@@ -14,6 +14,7 @@ import { haStyle } from "../../src/resources/styles";
 import { documentationUrlForVersion } from "../../src/util/documentation-url";
 import "./components/landing-page-logs";
 import "./components/landing-page-network";
+import "./components/landing-page-restore";
 import {
   getSupervisorJobsInfo,
   getSupervisorNetworkInfo,
@@ -59,74 +60,84 @@ class HaLandingPage extends provideLiteI18nMixin(LandingPageBaseElement) {
     }
 
     return html`
-      <div class="intro">
-        <div class="logo" aria-hidden="true">
-          <ha-svg-icon .path=${mdiHome}></ha-svg-icon>
+      <div class="layout">
+        <div class="col main">
+          <div class="intro">
+            <div class="logo" aria-hidden="true">
+              <ha-svg-icon .path=${mdiHome}></ha-svg-icon>
+            </div>
+            <h1>${this.localize("header")}</h1>
+            ${
+              showProgress
+                ? html`
+                    <p>${this.localize("subheader")}</p>
+                    <ha-progress-bar
+                      .indeterminate=${this._progress <= 0}
+                      .value=${this._progress > 0 ? this._progress : undefined}
+                      .loading=${this._progress >= 0}
+                      >${
+                        this._progress > 0
+                          ? `${Math.round(this._progress)}%`
+                          : nothing
+                      }</ha-progress-bar
+                    >
+                  `
+                : nothing
+            }
+          </div>
+          <ha-card>
+            <div class="card-content">
+              ${
+                networkIssue || this._networkInfoError
+                  ? html`
+                      <landing-page-network
+                        .networkInfo=${this._networkInfo}
+                        .error=${this._networkInfoError}
+                        @dns-set=${this._fetchSupervisorInfo}
+                      ></landing-page-network>
+                    `
+                  : nothing
+              }
+              ${
+                this._supervisorError
+                  ? html`
+                      <ha-alert
+                        alert-type="error"
+                        .title=${this.localize("error_title")}
+                      >
+                        ${this.localize("error_description")}
+                      </ha-alert>
+                    `
+                  : nothing
+              }
+              <landing-page-logs
+                @landing-page-error=${this._showError}
+              ></landing-page-logs>
+            </div>
+          </ha-card>
         </div>
-        <h1>${this.localize("header")}</h1>
-        ${
-          showProgress
-            ? html`
-                <p>${this.localize("subheader")}</p>
-                <ha-progress-bar
-                  .indeterminate=${this._progress <= 0}
-                  .value=${this._progress > 0 ? this._progress : undefined}
-                  .loading=${this._progress >= 0}
-                  >${
-                    this._progress > 0
-                      ? `${Math.round(this._progress)}%`
-                      : nothing
-                  }</ha-progress-bar
-                >
-              `
-            : nothing
-        }
-      </div>
-      <ha-card>
-        <div class="card-content">
-          ${
-            networkIssue || this._networkInfoError
-              ? html`
-                  <landing-page-network
-                    .networkInfo=${this._networkInfo}
-                    .error=${this._networkInfoError}
-                    @dns-set=${this._fetchSupervisorInfo}
-                  ></landing-page-network>
-                `
-              : nothing
-          }
-          ${
-            this._supervisorError
-              ? html`
-                  <ha-alert
-                    alert-type="error"
-                    .title=${this.localize("error_title")}
-                  >
-                    ${this.localize("error_description")}
-                  </ha-alert>
-                `
-              : nothing
-          }
-          <landing-page-logs
-            @landing-page-error=${this._showError}
-          ></landing-page-logs>
+        <div class="col side">
+          <landing-page-restore
+            .coreProgress=${this._progress}
+            .language=${this.language ?? "en"}
+          ></landing-page-restore>
         </div>
-      </ha-card>
-      <div class="footer">
-        <ha-language-picker
-          .value=${this.language}
-          .label=${""}
-          button-style
-          native-name
-          @value-changed=${this._languageChanged}
-        ></ha-language-picker>
-        <ha-button
-          appearance="plain"
-          variant="neutral"
-          href=${documentationUrlForVersion("", "/getting-started/onboarding/")}
-        >
-          ${this.localize("ui.panel.page-onboarding.help")}
-        </ha-button>
+        <div class="footer wide-row">
+          <ha-language-picker
+            .value=${this.language}
+            .label=${""}
+            button-style
+            native-name
+            @value-changed=${this._languageChanged}
+          ></ha-language-picker>
+          <ha-button
+            appearance="plain"
+            variant="neutral"
+            href=${documentationUrlForVersion("", "/getting-started/onboarding/")}
+          >
+            ${this.localize("ui.panel.page-onboarding.help")}
+          </ha-button>
+        </div>
       </div>
     `;
   }
@@ -332,6 +343,30 @@ class HaLandingPage extends provideLiteI18nMixin(LandingPageBaseElement) {
         .logo {
           animation: none;
         }
+      }
+      /* One column on a phone; the preparing page on the left and the backup card on the right on a wide window. */
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--ha-space-4);
+        margin: 0 auto;
+        max-width: 560px;
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-4);
+        min-width: 0;
+      }
+      @media (min-width: 960px) {
+        .layout {
+          grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+          align-items: start;
+          max-width: 1160px;
+        }
+      }
+      .wide-row {
+        grid-column: 1 / -1;
       }
       .footer {
         padding-top: 8px;

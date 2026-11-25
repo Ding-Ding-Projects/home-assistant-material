@@ -35,6 +35,11 @@ import { hassUrl, redirectWithAuthCode } from "../data/auth";
 import { saveFrontendSystemData } from "../data/frontend";
 import type { OnboardingResponses, OnboardingStep } from "../data/onboarding";
 import {
+  fetchOnboardingPendingRestore,
+  type OnboardingPendingRestore,
+} from "../data/onboarding-pending-restore";
+import "./onboarding-pending-restore";
+import {
   fetchInstallationType,
   fetchOnboardingOverview,
   onboardIntegrationStep,
@@ -106,6 +111,10 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
 
   @state() private _supervisor?: boolean;
 
+  @state() private _pendingRestore?: OnboardingPendingRestore;
+
+  private _pendingTimer?: number;
+
   @state() private _steps?: OnboardingStep[];
 
   @state() private _page = extractSearchParam("page");
@@ -118,6 +127,7 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    window.clearTimeout(this._pendingTimer);
     mainWindow.removeEventListener("location-changed", this._updatePage);
     mainWindow.removeEventListener("popstate", this._updatePage);
   }
@@ -163,6 +173,22 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
 
   private _refresh() {
     location.reload();
+  }
+
+  // A backup queued during first start restores by itself. Show its progress
+  // and then its result in place of the welcome step; poll while it is active.
+  private _checkPendingRestore = async () => {
+    window.clearTimeout(this._pendingTimer);
+    this._pendingRestore = (await fetchOnboardingPendingRestore()) ?? undefined;
+    const restoreState = this._pendingRestore?.state;
+    if (restoreState === "queued" || restoreState === "running") {
+      this._pendingTimer = window.setTimeout(this._checkPendingRestore, 3000);
+    }
+  };
+
+  private _dismissPendingRestore() {
+    window.clearTimeout(this._pendingTimer);
+    this._pendingRestore = undefined;
   }
 
   private _stepSummary(step: OnboardingStep): string | undefined {
@@ -259,6 +285,14 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
         .mode=${this._restoring}
       >
       </onboarding-restore-backup>`;
+    }
+
+    if (this._init && this._pendingRestore) {
+      return html`<onboarding-pending-restore
+        .restore=${this._pendingRestore}
+        @pending-restore-dismiss=${this._dismissPendingRestore}
+        @pending-restore-recheck=${this._checkPendingRestore}
+      ></onboarding-pending-restore>`;
     }
 
     if (this._init) {
@@ -431,6 +465,7 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
         this._init = true;
         // Init screen needs to know the installation type.
         this._fetchInstallationType();
+        this._checkPendingRestore();
       }
 
       this._steps = steps;

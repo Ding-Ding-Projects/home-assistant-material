@@ -296,6 +296,10 @@ class BackupManager(FileConfiguration, JobGroup):
         await self.reload()
         await self.pending_restore.load()
 
+    async def check_password(self, backup: Backup, password: str | None) -> None:
+        """Raise if the password does not open the backup."""
+        await self._validate_backup_location(backup, password)
+
     async def queue_restore_when_ready(
         self, backup: Backup, password: str | None
     ) -> dict:

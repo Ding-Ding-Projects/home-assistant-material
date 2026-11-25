@@ -14,6 +14,7 @@ func TestBackupsProxyAllowed(t *testing.T) {
 		{http.MethodPost, "/new/upload", true},
 		{http.MethodGet, "/7fed74c8/info", true},
 		{http.MethodPost, "/7fed74c8/restore/full/when_ready", true},
+		{http.MethodPost, "/7fed74c8/check_password", true},
 		{http.MethodGet, "/restore/pending", true},
 		{http.MethodDelete, "/restore/pending", true},
 		// Everything else in the backup API stays closed

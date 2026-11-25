@@ -544,6 +544,15 @@ class APIBackups(CoreSysAttributes):
         )
 
     @api_process
+    async def check_password(self, request: web.Request) -> None:
+        """Check that a password opens a backup, without restoring it."""
+        backup = self._extract_slug(request)
+        body = await api_validate(
+            vol.Schema({vol.Optional(ATTR_PASSWORD): vol.Maybe(str)}), request
+        )
+        await self.sys_backups.check_password(backup, body.get(ATTR_PASSWORD))
+
+    @api_process
     async def pending_restore_info(self, request: web.Request) -> dict[str, Any]:
         """Return the queued, running or finished restore, if any."""
         return {ATTR_PENDING_RESTORE: self.sys_backups.pending_restore.record}

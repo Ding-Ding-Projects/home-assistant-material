@@ -15,7 +15,7 @@ from supervisor.backups.pending_restore import (
 )
 from supervisor.const import CoreState
 from supervisor.coresys import CoreSys
-from supervisor.exceptions import BackupError
+from supervisor.exceptions import BackupError, BackupInvalidError
 from supervisor.homeassistant.const import LANDINGPAGE
 
 SLUG = "7fed74c8"
@@ -193,3 +193,23 @@ async def test_api_queue_info_and_cancel(
     assert resp.status == 200
     resp = await api_client.get("/backups/restore/pending")
     assert (await resp.json())["data"]["pending_restore"] is None
+
+
+async def test_api_check_password_reports_a_wrong_key(
+    api_client: TestClient, coresys: CoreSys
+) -> None:
+    """A key that does not open the backup is a client error, nothing is queued."""
+    with (
+        patch.object(coresys.backups, "get"),
+        patch.object(
+            coresys.backups,
+            "check_password",
+            AsyncMock(side_effect=BackupInvalidError("Invalid password")),
+        ),
+    ):
+        resp = await api_client.post(
+            f"/backups/{SLUG}/check_password", json={"password": "wrong"}
+        )
+    assert resp.status == 400
+    assert coresys.backups.pending_restore.record is None
+
