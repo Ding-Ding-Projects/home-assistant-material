@@ -1,19 +1,238 @@
 {
  "format": 1,
- "generated": "2026-11-25T08:58:06Z",
+ "generated": "2026-11-25T17:07:21Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 563,
+ "newest_build": 564,
  "releases": [
   {
-   "build": 563,
-   "core": "2026.11.2.563",
-   "supervisor": "2026.11.0.563",
-   "os": "18.5.563",
+   "build": 564,
+   "core": "2026.11.2.564",
+   "supervisor": "2026.11.0.564",
+   "os": "18.5.564",
    "tag": null,
-   "source": "bf7d9b758",
-   "date": "2026-11-25T01:59:09-05:00",
+   "source": "64b88d012",
+   "date": "2026-11-25T11:39:19-05:00",
    "previous_build": 557,
    "changes": [
+    {
+     "sha": "d52dbcb24",
+     "date": "2026-11-25T11:36:40-05:00",
+     "title": "Settings pages: map height on tablets, log height only on phones, phone bar offsets",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The zone map now has a fixed height whenever the narrow layout is used, so it cannot collapse between 700 and 870 px. The phone log height applies only on phones, and the raw log box keeps its original fallback on wide screens. The selection bars use the phone bar height again, plus the device inset, so they do not double-count the bottom tab strip on desktop. Camera recording rows keep the action button beside the name, as on the board.",
+     "detail_yue": "Zone 個地圖喺平板都唔會縮到零，log 高度淨係手機先改， 底部工具列唔再計兩次，攝影機個掣返去個名隔離，搞掂晒。"
+    },
+    {
+     "sha": "8129e2b0a",
+     "date": "2026-11-25T11:35:26-05:00",
+     "title": "Media player bar no longer clips the phone seek slider",
+     "areas": [
+      "design",
+      "interface"
+     ],
+     "detail": "The player bar's overflow clip cut off the top half of the narrow seek slider, which sits across the bar's top edge. The clip is removed, since the rounded corners do not need it. The deferred floating-card part of the player restyle is now noted in the canvas 46 findings.",
+     "detail_yue": "呢次啲入度條終於唔會畀人剪咗半截喇，剪刀收埋，圓角照靚。"
+    },
+    {
+     "sha": "7d3052ffe",
+     "date": "2026-11-25T11:34:53-05:00",
+     "title": "Calendar fits its pane, tonal list panes, rounded player, Energy error screens",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The Calendar page no longer runs 40 px past its pane on wide screens, so the Add event button is fully visible and there is no second scrollbar. The To-do and Calendar side panes use rounded tonal rows with an icon tile, the list name and an items-left count. The media player bar gets rounded top corners, a surface tone and a soft shadow. Energy loading and error states now show the page header with a menu button and a Reload action."
+    },
+    {
+     "sha": "cfa0c8b98",
+     "date": "2026-11-25T11:34:53-05:00",
+     "title": "Fix clipped media footer, activity toolbar, times and profile rows",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The Media page player no longer covers the page footer on wide screens, and its list stops above the footer too. The Activity toolbar wraps on wide screens instead of hiding the date navigator off the right edge. Timeline times get a column that grows with the text size and shows the full time on hover. Profile setting rows wrap their headline and description instead of cutting them to one line, and the tab strip select drops under its label on a phone.",
+     "detail_yue": "Cantonese: 播放器唔再壓住頁腳，活動工具列會自動換行，時間同設定文字都睇得晒， 唔使再靠「...」估個意思。"
+    },
+    {
+     "sha": "e5c2a9b27",
+     "date": "2026-11-25T11:34:14-05:00",
+     "title": "Fix review follow-ups on dashboard edit toolbars and cards",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Transit alerts can now be opened with the keyboard and announce their state, and two alerts with the same text no longer open together. The multi-select bar keeps reserving space after being moved or when the window resizes. Section edit controls fit their header on touch screens, the card position badge has an outline so it stays visible, and the raw editor only leaves room for the notice card on narrow windows.",
+     "detail_yue": "廣東話：鍵盤都撳得開晒啲通知，兩條一樣嘅通知唔會再一齊彈開； 選取列搬咗位或者拉窗都識得讓位，細部件嘅掣高度剛剛好， 位置標籤加咗框唔會融入背景，寬屏幕嘅編輯器亦唔會少咗一截。"
+    },
+    {
+     "sha": "ec38bbe5e",
+     "date": "2026-11-25T11:30:30-05:00",
+     "title": "Picker rows take their corner size from one shared setting",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Picker list rows used a hard-coded corner radius. They now read the same setting the dropdown menu rows use, with the same 14 px fallback, so the two stay matched if the menu ever changes. No visible change today.",
+     "detail_yue": "阿叔話：兩度圓角一個數就夠喇，唔使各自鬼up。"
+    },
+    {
+     "sha": "ee55ddcfa",
+     "date": "2026-11-25T11:28:55-05:00",
+     "title": "Fix dashboard clipping, scroll and touch-size problems",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The phone edit bar keeps the Edit title pencil on screen while the title shortens. The locked-page banner no longer covers the top of the view. The big-number tile has a row for its number. Picture glance bars wrap instead of cutting off icons. The multi-select bar is icon-only on phones and the page reserves room for it. The raw editor height follows the visible window. Transit alerts show three lines and expand on tap. Section, header and footer edit buttons are 44 px on touch screens. Edit mode uses the normal surface instead of the old slate bar.",
+     "detail_yue": "呢次幫 dashboard 執靚晒：鉛筆唔再畀個標題食咗，鎖頁橫額唔再蓋住頂部， 大數字有自己一行，揀咗卡片之後底部留夠位，手機撳掣都夠大，好靚仔。"
+    },
+    {
+     "sha": "b65c5752c",
+     "date": "2026-11-25T11:28:48-05:00",
+     "title": "Integration names wrap to two lines and About links use themed tonal tiles",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Integration card names clamp to two lines and show the full name as a tooltip. The About page links use tonal rounded square icons from the theme instead of fixed bright circles.",
+     "detail_yue": "Integration 個名可以斷兩行,仲有 tooltip;關於頁嘅 icon 跟返主題色。"
+    },
+    {
+     "sha": "59bfd54bd",
+     "date": "2026-11-25T11:28:47-05:00",
+     "title": "Script editor mode row sits below the sticky alerts",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The mode row now sticks below the error and draft alerts, measured with a resize observer, so neither covers the other.",
+     "detail_yue": "模式列企喺警告條下面,唔再蓋住錯誤提示。"
+    },
+    {
+     "sha": "e3b2ccf9b",
+     "date": "2026-11-25T11:28:47-05:00",
+     "title": "Camera recording and automation rows keep their facts on a phone",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Newest, Waiting and Oldest now show as labelled lines under each camera on narrow screens, and trigger and condition rows keep the live state chip, including the not found warning, only hiding the extra count.",
+     "detail_yue": "電話版啲資料唔再偷偷消失,最新、等緊、最舊同埋實體狀態都睇得返。"
+    },
+    {
+     "sha": "8e83f9541",
+     "date": "2026-11-25T11:28:46-05:00",
+     "title": "Raw log box fits the visible screen so it is the only scroller",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The log box height now uses dynamic viewport units and subtracts the heading block and safe-area insets, so the newest lines are on screen and there is no second scrollbar.",
+     "detail_yue": "Log 格仔而家按真正可見高度計,最新嗰幾行唔會躲喺摺位下面。"
+    },
+    {
+     "sha": "40149619a",
+     "date": "2026-11-25T11:28:45-05:00",
+     "title": "Zones page on a phone shows the map and the details of YAML zones",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The narrow Zones page now renders the map above the list, and tapping a zone defined in YAML shows its details read only with the reason it cannot be edited.",
+     "detail_yue": "電話版個 Zones 頁終於有幅地圖,點 YAML 嘅 zone 都有交代點解改唔到。"
+    },
+    {
+     "sha": "db88bac19",
+     "date": "2026-11-25T11:28:45-05:00",
+     "title": "Add integration sheet scrolls only the list and keeps the guided setup link on screen",
+     "areas": [
+      "interface"
+     ],
+     "detail": "On a phone the sheet now has a fixed height, the search stays put and only the brand list scrolls. The guided setup link moved into the dialog footer so it never falls below the fold.",
+     "detail_yue": "加integration嗰張紙而家只有個 list 郁,引導設定條 link 釘喺底,唔使再搵第二條 scroll 先撈到。"
+    },
+    {
+     "sha": "db6083298",
+     "date": "2026-11-25T11:28:44-05:00",
+     "title": "Settings list menus use the phone width and selection bars clear the phone bar",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The filter, bulk and row menus on the settings list pages were capped at half the screen width, so names wrapped onto several lines on a phone. The cap is removed so menus use the available width. The floating selection bars now sit above the combined safe area (device inset plus phone bar) instead of a fixed phone bar height.",
+     "detail_yue": "啲 menu 以前得半個螢幕闊,名都要斷行;而家放闊晒,揀選條亦都唔再俾電話底欄壓住,好似搬咗去高啲嘅位咁舒服。"
+    },
+    {
+     "sha": "d9505ceda",
+     "date": "2026-11-25T11:26:13-05:00",
+     "title": "Filter panels share one row style and say so when a search finds nothing",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Domains, integrations, labels, states, voice assistants, blueprints and entities now use the same rounded checkbox rows as the other filter panels. An empty search result shows a message that keeps the chosen options and offers Clear search, and the blueprint panel shows placeholder rows while loading. Row menu and expand buttons get a 48 px touch area so they no longer toggle the checkbox by accident.",
+     "detail_yue": "篩選面板而家齊齊整整，搜唔到嘢會話你知，仲有個「清除搜尋」掣，唔會再空白一大塊嚇親人。"
+    },
+    {
+     "sha": "9edeb06a1",
+     "date": "2026-11-25T11:26:12-05:00",
+     "title": "Pickers fit short windows, wrap long values and match menu styling",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Picker popovers now never grow taller than the space around the field, and a chosen value wraps instead of being cut off. Long names no longer lose space to the domain label on phones, the clear button has a 48 px touch area, the focus underline animates again, and the popover uses the same rounded surface and inset rows as menus.\n\nNarrow data tables also stop listing columns that the rows hide.",
+     "detail_yue": "陣仔，揀嘢啲選單終於唔再跌出窗口，長名都食得晒，個圈圈叉叉都撳得中，順便同其他選單靚得一式一樣。"
+    },
+    {
+     "sha": "b105ee03a",
+     "date": "2026-11-25T11:25:46-05:00",
+     "title": "Menu button, error screens and notch spacing behave correctly again",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The menu button now shows or hides based on the current state instead of the previous one, so it no longer stays missing on phones. The error and not-found screens scroll when they are taller than the window. Notch spacing on the right edge stays on the physical right in every direction. The tabs header keeps the gap before the title when the menu button shows.",
+     "detail_yue": "搞掂晒喇，個掣唔會再失蹤，錯誤頁短畫面都捲得郁，右邊缺口位都留返啱位。"
+    },
+    {
+     "sha": "12bbad129",
+     "date": "2026-11-25T11:25:17-05:00",
+     "title": "Entity sheet favorite button and setup device brand tiles are finished",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The favorite and color button in the entity sheet is now a 48 px target like the other controls, and the brand image on each device card after setup sits in a 40 px tonal tile. The \"is set up\" header from the board was left out on purpose: the dialog already shows the step title above the cards.\n\nSheet bits sorted, no more thumb-sized tiny buttons lah. Brand logos get their own little tile so they sit nice and proud."
+    },
+    {
+     "sha": "07df98844",
+     "date": "2026-11-25T11:21:41-05:00",
+     "title": "Page frames, empty lists, titles and the side rail no longer cut things off",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Pages built on the shared top bar now follow the phone's visible height, so the end of History, Logbook and Media is not hidden behind the browser bar, and they leave room for a toast. Empty list pages scroll and clear the bottom bar and Create button, and list titles on phones wrap to two lines with the full text on hover. Error and not-found screens keep their top reachable. The page lock banner pushes the content down, the page edge gap follows right-to-left languages, the empty menu circle is gone, the two-pane divider shows in the light theme, and short desktop windows scroll the side rail.",
+     "detail_yue": "Hong Kong Cantonese: 頁面底部唔會再俾瀏覽器工具列食咗，空白清單可以捲動， 標題長啲都睇得晒，側邊欄矮窗口都捲得到，齊齊整整，好正！"
+    },
+    {
+     "sha": "5f104f8e5",
+     "date": "2026-11-25T11:21:33-05:00",
+     "title": "Dialogs and sheets: steps fit the sheet, targets are 48 px, one scroller",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Voice setup steps no longer force a full-screen height, so Next and Skip stay on screen. The quick bar fits short windows. The setup guidance note flows inside the dialog instead of being clipped. The image cropper stays within the sheet. Confirm buttons, more-info tabs, tools and chips are 48 px, and the entity icon is 40 px on phones. The Assist picker keeps a 48 px touch area. The setup menu uses current list rows aligned with the text above, new devices appear as tonal cards, and the phone notification list shares one scroller with the drawer.",
+     "detail_yue": "成班對話框今次整得靚仔啲：掣唔再跌出畫面，彈窗唔再斷頭斷尾，手指都撳得中喇！"
+    },
+    {
+     "sha": "131318ca4",
+     "date": "2026-11-25T11:12:48-05:00",
+     "title": "Design canvas 46: scroll fixes and polish, one page per area",
+     "areas": [
+      "design"
+     ],
+     "detail": "A survey of the frontend found the places where content can't be reached or reads badly on a 390 px phone: empty lists that can't scroll, page ends hidden behind the bottom bar, menus 179 px wide, dialogs whose buttons fall off the sheet, titles and names cut with no way to read the rest. A second reviewer tried to knock each one down; 56 of 59 stood. This canvas draws the fix for every one of them on 36 boards across six pages (page frame and lists, dialogs, pickers and filters, settings, dashboards, other pages). Each board has a \"before\" stage that shows today's problem and the Tweaks accent, motion, theme and stage, plus a note beside it. findings.md keeps every finding with its lines and fix.",
+     "detail_yue": "一次過搵晒 56 個「睇唔到、碌唔到、切咗半截」嘅位，逐個畫埋點樣修。 每塊板都可以撥返去「before」睇吓今日幾咁核突，再撥返嚟睇修好之後。 空清單碌唔郁、選單窄過一條薯條，全部有得救。"
+    },
+    {
+     "sha": "c62eb8c95",
+     "date": "2026-11-25T10:20:37-05:00",
+     "title": "Roadmap: packages, printer discovery, grow light listing, TTC and pickers",
+     "areas": [
+      "docs"
+     ],
+     "detail": "Records the work from 24 and 25 November with its honest state: the package installer, printer discovery by SSDP, the grow light listing fix, the TTC recorder fix and the new entities filter menus. Nothing is ticked, because none of it has been seen in a browser yet, and the marketplace test run that came back with 3 failures and 4 errors is written down instead of swept under the rug.",
+     "detail_yue": "路線圖補返數：裝包、搵打印機、植物燈、TTC 同埋篩選選單，全部照直寫。 一格都冇剔，因為未喺瀏覽器親眼見過，剔咗就係車大炮。 測試爆咗幾個都照寫，唔好扮冇事。"
+    },
     {
      "sha": "bf7d9b758",
      "date": "2026-11-25T01:59:09-05:00",
