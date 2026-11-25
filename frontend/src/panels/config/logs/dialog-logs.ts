@@ -118,11 +118,17 @@ class LogsDialog extends DialogMixin<LogsDialogParams>(LitElement) {
         error-log-card {
           --error-log-card-margin: 0;
           --error-log-card-height: max(80px, calc(100vh - 320px));
-          --error-log-card-height: max(80px, calc(100dvh - 320px));
         }
         error-log-card.with-alert {
           --error-log-card-height: max(80px, calc(100vh - 368px));
-          --error-log-card-height: max(80px, calc(100dvh - 368px));
+        }
+        @supports (height: 100dvh) {
+          error-log-card {
+            --error-log-card-height: max(80px, calc(100dvh - 320px));
+          }
+          error-log-card.with-alert {
+            --error-log-card-height: max(80px, calc(100dvh - 368px));
+          }
         }
       `,
     ];
