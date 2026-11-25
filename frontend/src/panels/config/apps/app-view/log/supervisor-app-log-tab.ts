@@ -114,7 +114,9 @@ class SupervisorAppLogDashboard extends LitElement {
         }
         @media all and (max-width: 870px) {
           :host {
-            --error-log-card-height: calc(100vh - 304px);
+            --error-log-card-height: calc(
+              100dvh - 304px - var(--safe-area-inset-bottom, 0px)
+            );
           }
         }
       `,
