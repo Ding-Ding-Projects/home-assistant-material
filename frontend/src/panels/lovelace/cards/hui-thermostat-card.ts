@@ -140,7 +140,7 @@ export class HuiThermostatCard extends LitElement implements LovelaceCard {
 
     return html`
       <ha-card role="group" aria-labelledby="title">
-        <p class="title" id="title">${name}</p>
+        <p class="title" id="title" .title=${name}>${name}</p>
         <div class="container">
           ${
             domain === "water_heater"

@@ -505,6 +505,14 @@ export class HuiCardEditMode extends LitElement {
           --ha-icon-button-size: 32px;
           --mdc-icon-size: 20px;
         }
+        @media (pointer: coarse) {
+          /* Keep the small visible circle, answer to a 48 px touch area */
+          .more ha-icon-button::after {
+            content: "";
+            position: absolute;
+            inset: -8px;
+          }
+        }
       `,
     ];
   }

@@ -454,6 +454,7 @@ export class HaToast extends LitElement {
     .message {
       flex: 1;
       min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     .assistive-message {

@@ -255,7 +255,7 @@ export class HaConfigPerson extends LitElement {
             })}
           ></ha-person-badge>
           <div class="text">
-            <span class="name">${person.name}</span>
+            <span class="name" title=${person.name}>${person.name}</span>
             <span class="where">${this._presence(person)}</span>
           </div>
           <ha-icon-button
@@ -527,9 +527,13 @@ export class HaConfigPerson extends LitElement {
       .name {
         font-size: var(--ha-font-size-xl);
         font-weight: var(--ha-font-weight-medium);
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
         overflow: hidden;
+        overflow-wrap: anywhere;
         text-overflow: ellipsis;
-        white-space: nowrap;
       }
       .where {
         color: var(--secondary-text-color);

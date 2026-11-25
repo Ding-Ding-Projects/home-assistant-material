@@ -517,6 +517,13 @@ export class DialogHelperDetail extends DirtyStateProviderMixin<
                   0px
                 )
             );
+            height: calc(
+              100dvh -
+                184px - var(--safe-area-inset-top, 0px) - var(
+                  --safe-area-inset-bottom,
+                  0px
+                )
+            );
           }
         }
       `,

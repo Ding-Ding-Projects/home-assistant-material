@@ -223,8 +223,9 @@ export class HaMoreInfoFavorites extends LitElement {
       right: -6px;
       inset-inline-end: -6px;
       inset-inline-start: initial;
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
+      z-index: 1;
       outline: none;
       background-color: var(--secondary-background-color);
       padding: 0;
@@ -232,8 +233,14 @@ export class HaMoreInfoFavorites extends LitElement {
       border: none;
       cursor: pointer;
       display: block;
-      --mdc-icon-size: 12px;
+      --mdc-icon-size: 16px;
       color: var(--primary-text-color);
+    }
+
+    .delete::before {
+      content: "";
+      position: absolute;
+      inset: -12px;
     }
 
     .delete * {

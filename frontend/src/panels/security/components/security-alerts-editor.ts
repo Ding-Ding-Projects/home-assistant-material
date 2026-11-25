@@ -121,10 +121,12 @@ export class SecurityAlertsEditor extends LitElement {
         </div>
         <ha-settings-row slim>
           <state-badge slot="prefix" .stateObj=${stateObj}></state-badge>
-          <span slot="heading">${primary}</span>
+          <span slot="heading" title=${primary}>${primary}</span>
           ${
             secondary
-              ? html`<span slot="description">${secondary}</span>`
+              ? html`<span slot="description" title=${secondary}
+                  >${secondary}</span
+                >`
               : nothing
           }
           <ha-control-select-menu
@@ -270,11 +272,28 @@ export class SecurityAlertsEditor extends LitElement {
       padding-top: var(--ha-space-3);
     }
     ha-icon-button {
-      --ha-icon-button-size: 40px;
+      --ha-icon-button-size: 48px;
     }
     ha-control-select-menu {
       width: 118px;
-      --control-select-menu-height: 42px;
+      --control-select-menu-height: 48px;
+    }
+    @media all and (max-width: 600px) {
+      ha-settings-row {
+        flex-wrap: wrap;
+        row-gap: var(--ha-space-1);
+        /* With the prefix as display: contents, the text block is a direct
+           flex item of the row. Its basis is the row width minus the 24 px
+           badge and one gap, so the badge and text fill the first line and
+           the severity menu and delete button always drop to a second line
+           (118 + 48 px fits at 320 px). */
+        --layout-flex_-_flex-basis: calc(100% - 24px - var(--ha-space-3));
+      }
+      [slot="heading"],
+      [slot="description"] {
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
     }
   `;
 }

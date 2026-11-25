@@ -114,7 +114,7 @@ class MoreInfoConversation extends LitElement {
     }
     ha-assist-chat {
       flex: 1;
-      min-height: 400px;
+      min-height: min(400px, 60dvh);
     }
   `;
 }

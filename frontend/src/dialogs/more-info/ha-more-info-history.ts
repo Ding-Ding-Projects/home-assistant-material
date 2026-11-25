@@ -298,6 +298,11 @@ export class MoreInfoHistory extends LitElement {
       a:visited {
         color: var(--primary-color);
       }
+      .header > a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 48px;
+      }
       .header-secondary {
         font-size: var(--ha-font-size-s);
         color: var(--secondary-text-color);

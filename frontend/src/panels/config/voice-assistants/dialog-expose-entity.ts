@@ -322,6 +322,13 @@ class DialogExposeEntity extends DirtyStateProviderMixin<string[]>()(
                   0px
                 )
             );
+            height: calc(
+              100dvh -
+                210px - var(--safe-area-inset-top, 0px) - var(
+                  --safe-area-inset-bottom,
+                  0px
+                )
+            );
           }
           ha-check-list-item ha-state-icon {
             margin-left: var(--ha-space-2);

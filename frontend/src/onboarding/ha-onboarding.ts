@@ -690,7 +690,7 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
     .step-name {
       font-size: var(--ha-font-size-s);
       font-weight: var(--ha-font-weight-medium);
-      overflow-wrap: anywhere;
+      overflow-wrap: break-word;
     }
     .summary {
       font-size: var(--ha-font-size-xs, 12px);
@@ -700,12 +700,16 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
       white-space: nowrap;
     }
     @media all and (max-width: 450px) {
+      .stepper {
+        grid-template-columns: 1fr;
+      }
       .stepper-item {
-        flex-direction: column;
-        text-align: center;
+        flex-direction: row;
+        text-align: start;
       }
       .summary {
-        display: none;
+        white-space: normal;
+        overflow-wrap: break-word;
       }
     }
     .state-text {
@@ -739,17 +743,8 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
     }
     ha-language-picker {
       display: block;
-      width: 200px;
-      border-radius: var(--ha-border-radius-sm);
-      overflow: hidden;
-      --ha-select-height: 40px;
-      --mdc-select-fill-color: none;
-      --mdc-select-label-ink-color: var(--primary-text-color, #212121);
-      --mdc-select-ink-color: var(--primary-text-color, #212121);
-      --mdc-select-idle-line-color: transparent;
-      --mdc-select-hover-line-color: transparent;
-      --mdc-select-dropdown-icon-color: var(--primary-text-color, #212121);
-      --mdc-shape-small: 0;
+      width: min(100%, 240px);
+      border-radius: var(--ha-border-radius-pill);
     }
     a {
       text-decoration: none;

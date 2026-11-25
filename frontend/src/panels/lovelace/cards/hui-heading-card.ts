@@ -127,9 +127,13 @@ export class HuiHeadingCard extends LitElement implements LovelaceCard {
             }
             ${
               this._config.heading && style === "subtitle"
-                ? html`<h3 class="heading">${this._config.heading}</h3>`
+                ? html`<h3 class="heading" .title=${this._config.heading}>
+                    ${this._config.heading}
+                  </h3>`
                 : this._config.heading
-                  ? html`<h2 class="heading">${this._config.heading}</h2>`
+                  ? html`<h2 class="heading" .title=${this._config.heading}>
+                      ${this._config.heading}
+                    </h2>`
                   : nothing
             }
             ${actionable ? html`<ha-icon-next></ha-icon-next>` : nothing}

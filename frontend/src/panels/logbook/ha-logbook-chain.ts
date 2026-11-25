@@ -135,7 +135,7 @@ class HaLogbookChain extends LitElement {
       html`
         <span class="chain-node run">${renderLogbookCauseIcon(cause)}</span>
         <span class="chain-content">
-          <span class="name">${cause.name}</span>
+          <span class="name" title=${cause.name}>${cause.name}</span>
           ${
             mechanism
               ? html`<span class="chain-secondary">${mechanism}</span>`
@@ -191,7 +191,7 @@ class HaLogbookChain extends LitElement {
           ${this._renderOriginIcon(origin, historicStateObj)}
         </span>
         <span class="chain-content">
-          <span class="name">${name}</span>
+          <span class="name" title=${name}>${name}</span>
           ${
             secondary
               ? html`<span class="chain-secondary">${secondary}</span>`
@@ -261,7 +261,7 @@ class HaLogbookChain extends LitElement {
           ${renderLogbookGlyph(this.hass, row, item.glyph)}
         </span>
         <span class="chain-content">
-          <span class="name">${item.name}</span>
+          <span class="name" title=${item.name}>${item.name}</span>
           ${this._renderTraceLink(traceLink)}
         </span>
         <span class="chain-trailing">
@@ -296,7 +296,7 @@ class HaLogbookChain extends LitElement {
           ${renderLogbookGlyph(this.hass, row, item.glyph)}
         </span>
         <span class="chain-content">
-          <span class="name">${item.name}</span>
+          <span class="name" title=${item.name}>${item.name}</span>
           ${
             item.context
               ? html`<span class="chain-secondary">${item.context}</span>`
@@ -451,9 +451,11 @@ class HaLogbookChain extends LitElement {
 
         .chain-content .name {
           font-weight: var(--ha-font-weight-medium);
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
           overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          overflow-wrap: anywhere;
         }
 
         .chain-secondary {

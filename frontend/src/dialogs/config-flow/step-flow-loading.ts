@@ -36,7 +36,8 @@ class StepFlowLoading extends LitElement {
   static styles = css`
     .content {
       margin-top: 0;
-      padding: 50px 100px;
+      padding: var(--ha-space-8) var(--ha-space-4);
+      overflow-wrap: anywhere;
       text-align: center;
     }
     ha-spinner {

@@ -1184,6 +1184,14 @@ export class HassTabsSubpage extends LitElement {
           gap: var(--ha-space-2);
           --ha-button-box-shadow: var(--ha-box-shadow-l);
         }
+        /* On a phone a toast sits where the button does, so the button rises
+           above it. */
+        :host([narrow]) #fab {
+          bottom: calc(
+            16px + var(--safe-area-inset-bottom, 0px) +
+              var(--ha-toast-reserved-height, 0px)
+          );
+        }
         /* Above the page footer, which wide layouts show. */
         :host(:not([narrow])) #fab {
           bottom: calc(

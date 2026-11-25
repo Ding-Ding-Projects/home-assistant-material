@@ -47,7 +47,7 @@ export class HaIntegrationActionCard extends LitElement {
             @error=${this._onImageError}
             @load=${this._onImageLoad}
           />
-          <h3>${this.label}</h3>
+          <h3 title=${this.label}>${this.label}</h3>
           ${
             integrationName !== this.label
               ? html`<p class="integration-name">${integrationName}</p>`
@@ -84,8 +84,12 @@ export class HaIntegrationActionCard extends LitElement {
       h3 {
         font-size: var(--ha-font-size-l);
         font-weight: var(--ha-font-weight-normal);
-        white-space: nowrap;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
         overflow: hidden;
+        overflow-wrap: anywhere;
         text-overflow: ellipsis;
         margin-top: 8px;
         margin-bottom: 0;

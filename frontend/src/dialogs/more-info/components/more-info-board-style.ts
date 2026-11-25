@@ -52,7 +52,7 @@ export const moreInfoBoardStyle = css`
     font: inherit;
     font-weight: var(--ha-font-weight-medium);
     padding: var(--ha-space-2) var(--ha-space-4);
-    min-height: 44px;
+    min-height: 48px;
     border-radius: var(--ha-border-radius-3xl);
     cursor: pointer;
   }
@@ -79,7 +79,7 @@ export const moreInfoBoardStyle = css`
     display: inline-flex;
     align-items: center;
     gap: var(--ha-space-2);
-    min-height: 44px;
+    min-height: 48px;
     padding: 0 var(--ha-space-4);
     border-radius: var(--ha-border-radius-lg);
     border: 1px solid var(--outline-color, var(--divider-color));
@@ -90,10 +90,7 @@ export const moreInfoBoardStyle = css`
     cursor: pointer;
   }
   .chip[aria-pressed="true"] {
-    background: var(
-      --ha-color-fill-primary-quiet-resting,
-      rgba(3, 169, 244, 0.2)
-    );
+    background: var(--ha-color-fill-primary-quiet-resting);
     border-color: transparent;
   }
   .chip ha-svg-icon {

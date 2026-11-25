@@ -556,7 +556,7 @@ class MoreInfoVacuum extends LitElement {
           gap: 10px;
           width: auto;
           max-width: 100%;
-          height: 48px;
+          min-height: 48px;
           padding: 6px 10px;
           border: none;
           border-radius: var(--ha-border-radius-lg);
@@ -567,9 +567,8 @@ class MoreInfoVacuum extends LitElement {
           font-weight: var(--ha-font-weight-normal);
           line-height: 1.4;
           letter-spacing: 0.25px;
-          text-align: left;
+          text-align: start;
           cursor: pointer;
-          overflow: hidden;
           box-sizing: border-box;
           -webkit-tap-highlight-color: transparent;
           z-index: 0;
@@ -579,6 +578,7 @@ class MoreInfoVacuum extends LitElement {
           content: "";
           position: absolute;
           inset: 0;
+          border-radius: inherit;
           background-color: var(--disabled-color);
           opacity: 0.2;
           transition:
@@ -607,14 +607,12 @@ class MoreInfoVacuum extends LitElement {
           justify-content: center;
           flex: 1;
           min-width: 0;
-          overflow: hidden;
         }
         .clean-areas-button .content p {
           margin: 0;
           width: 100%;
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
+          white-space: normal;
+          overflow-wrap: anywhere;
         }
         .clean-areas-button .label {
           font-size: var(--ha-font-size-s);

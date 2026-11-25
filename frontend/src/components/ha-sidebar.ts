@@ -1284,7 +1284,10 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
           top: calc(-1 * var(--ha-space-1));
           left: 30px;
           border-radius: var(--ha-border-radius-md);
-          font-size: 0.65em;
+          font-size: max(var(--ha-font-size-xs, 11px), 11px);
+          min-width: 16px;
+          box-sizing: border-box;
+          text-align: center;
           line-height: var(--ha-line-height-expanded);
           padding: 0 var(--ha-space-1);
         }

@@ -187,11 +187,11 @@ class HaStatisticsPicker extends LitElement {
     ha-statistic-picker {
       display: block;
       width: 100%;
-      margin-top: 8px;
+      margin-top: var(--ha-space-2);
     }
     label {
       display: block;
-      margin-bottom: 0 0 8px;
+      margin: 0 0 var(--ha-space-2);
     }
   `;
 }

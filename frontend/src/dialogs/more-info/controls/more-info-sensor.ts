@@ -409,7 +409,7 @@ class MoreInfoSensor extends LitElement {
         align-items: center;
         justify-content: center;
         white-space: nowrap;
-        min-height: 44px;
+        min-height: 48px;
         padding: 0 var(--ha-space-4);
         border-radius: var(--ha-border-radius-lg);
         border: 1px solid var(--divider-color);

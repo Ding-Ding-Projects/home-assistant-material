@@ -649,7 +649,7 @@ export class HaEntityNamePicker extends LitElement {
       position: relative;
       display: flex;
       align-items: center;
-      background-color: var(--mdc-text-field-fill-color, whitesmoke);
+      background-color: var(--ha-color-fill-neutral-quiet-resting);
       border-radius: var(--ha-border-radius-sm);
       border-end-end-radius: var(--ha-border-radius-square);
       border-end-start-radius: var(--ha-border-radius-square);
@@ -664,23 +664,21 @@ export class HaEntityNamePicker extends LitElement {
       right: 0;
       height: 1px;
       width: 100%;
-      background-color: var(
-        --mdc-text-field-idle-line-color,
-        rgba(0, 0, 0, 0.42)
-      );
-      transform:
-        height 180ms ease-in-out,
-        background-color 180ms ease-in-out;
+      background-color: var(--ha-color-border-neutral-normal);
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .field:after {
+        transition:
+          height 180ms ease-in-out,
+          background-color 180ms ease-in-out;
+      }
     }
     :host([disabled]) .field:after {
-      background-color: var(
-        --mdc-text-field-disabled-line-color,
-        rgba(0, 0, 0, 0.42)
-      );
+      background-color: var(--ha-color-border-neutral-quiet);
     }
     .field:focus-within:after {
       height: 2px;
-      background-color: var(--mdc-theme-primary);
+      background-color: var(--primary-color);
     }
 
     .field ha-sortable {
@@ -693,7 +691,7 @@ export class HaEntityNamePicker extends LitElement {
     }
 
     .restore {
-      --ha-icon-button-size: 36px;
+      --ha-icon-button-size: 48px;
       --mdc-icon-size: 20px;
     }
 

@@ -728,6 +728,7 @@ export class HAFullCalendar extends LitElement {
 
         .navigation {
           display: flex;
+          flex-wrap: wrap;
           align-items: center;
           flex-grow: 0;
         }
@@ -758,7 +759,7 @@ export class HAFullCalendar extends LitElement {
 
         .prev,
         .next {
-          --ha-icon-button-size: 32px;
+          --ha-icon-button-size: 48px;
         }
 
         ha-button[slot="fab"] {
@@ -808,6 +809,12 @@ export class HAFullCalendar extends LitElement {
         }
 
         .ha-fc-day-number {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 32px;
+          min-height: 32px;
+          box-sizing: border-box;
           margin: 0;
           padding: 3px;
           font-size: var(--ha-font-size-s);
@@ -819,8 +826,8 @@ export class HAFullCalendar extends LitElement {
           display: flex;
           align-items: center;
           justify-content: center;
-          height: 26px;
-          min-width: 24px;
+          height: 32px;
+          min-width: 32px;
           box-sizing: border-box;
           color: var(--text-primary-color);
           background-color: var(--primary-color);

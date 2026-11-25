@@ -207,7 +207,10 @@ export class HuiViewFooter extends LitElement {
 
     :host([sticky]) {
       position: sticky;
-      bottom: var(--row-gap);
+      bottom: calc(
+        var(--row-gap) + var(--ha-toast-reserved-height, 0px) +
+          var(--ha-dim-sum-reserved-height, 0px)
+      );
       z-index: 4;
     }
 

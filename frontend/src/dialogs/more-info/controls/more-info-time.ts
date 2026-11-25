@@ -465,7 +465,7 @@ class MoreInfoTime extends LitElement {
         color: var(--disabled-text-color);
         font-size: 24px;
         min-width: 80px;
-        min-height: 44px;
+        min-height: 48px;
       }
       .column .current {
         display: flex;
@@ -482,10 +482,7 @@ class MoreInfoTime extends LitElement {
         color: var(--primary-text-color);
       }
       .column .current.selected {
-        background: var(
-          --ha-color-fill-primary-quiet-resting,
-          rgba(3, 169, 244, 0.2)
-        );
+        background: var(--ha-color-fill-primary-quiet-resting);
         color: var(--primary-color);
       }
       .colon {

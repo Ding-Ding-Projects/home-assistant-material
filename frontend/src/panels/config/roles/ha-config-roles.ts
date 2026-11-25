@@ -189,7 +189,7 @@ export class HaConfigRoles extends LitElement {
                 <ha-svg-icon .path=${mdiAccountGroup}></ha-svg-icon>
               </span>
               <span class="text">
-                <span class="name">${role.name}</span>
+                <span class="name" title=${role.name}>${role.name}</span>
                 <span class="people">
                   ${this.hass.localize("ui.panel.config.roles.people_count", {
                     count: role.users.length,
@@ -578,9 +578,13 @@ export class HaConfigRoles extends LitElement {
       }
       .name {
         font-weight: var(--ha-font-weight-semibold, 600);
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
         overflow: hidden;
+        overflow-wrap: anywhere;
         text-overflow: ellipsis;
-        white-space: nowrap;
       }
       .people,
       .muted {
