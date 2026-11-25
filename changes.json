@@ -1,19 +1,60 @@
 {
  "format": 1,
- "generated": "2026-11-25T07:03:28Z",
+ "generated": "2026-11-25T08:58:06Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 559,
+ "newest_build": 563,
  "releases": [
   {
-   "build": 559,
-   "core": "2026.11.2.559",
-   "supervisor": "2026.11.0.559",
-   "os": "18.5.559",
+   "build": 563,
+   "core": "2026.11.2.563",
+   "supervisor": "2026.11.0.563",
+   "os": "18.5.563",
    "tag": null,
-   "source": "f6e0d58e5",
-   "date": "2026-11-25T01:40:09-05:00",
+   "source": "bf7d9b758",
+   "date": "2026-11-25T01:59:09-05:00",
    "previous_build": 557,
    "changes": [
+    {
+     "sha": "bf7d9b758",
+     "date": "2026-11-25T01:59:09-05:00",
+     "title": "Entities page domain and area menus get icons and a search field",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The Domain and Area chip menus on the entities page were a long plain list of checkboxes with nothing to search. Each row now carries its icon in a tonal circle, a search field stays pinned at the top with a match count and the regex workbench, a no-match message offers to clear the search, and the rows that were selected when the menu opened sit at the top.",
+     "detail_yue": "篩選清單之前得一大串剔格，捲到手指都酸。而家每行有圖示，頂部有搜尋， 搵唔到仲識講聲，揀咗嘅排頭位，唔使再逐個捽。"
+    },
+    {
+     "sha": "d1f138af0",
+     "date": "2026-11-25T01:50:27-05:00",
+     "title": "Design canvas 45: filter picker, phone card editor and printer discovery",
+     "areas": [
+      "design"
+     ],
+     "detail": "Eighteen boards over three pages: the domain filter list with an icon on every row and a pinned search field, the dashboard card editor as a phone bottom sheet with its form actually visible, and Bambu printer discovery from the Discovered card through the access code to the moved-address notice. Each surface has normal, empty, loading and error stages, a 390 px phone board and a 1280 px wide board, plus Tweaks and a note on every board.",
+     "detail_yue": "三頁十八塊板：篩選清單每行有圖示仲有搜尋，手機改卡片終於見到個表格， 打印機由「已發現」到搬咗屋自動跟返都畫晒。今次真係先畫圖後落手。"
+    },
+    {
+     "sha": "b6cadc5cb",
+     "date": "2026-11-25T01:49:37-05:00",
+     "title": "Printer door finds Bambu printers on the network and follows them when their address changes",
+     "areas": [
+      "core",
+      "docs"
+     ],
+     "detail": "Bambu printers announce themselves over SSDP on ports 1990 and 2021. The printer door integration now listens for those announcements, matches each printer by serial number, and moves a configured printer to its new address and reconnects when DHCP hands it a different one. A printer it has not seen before shows up under Discovered, asking only for a name and the access code.",
+     "detail_yue": "部打印機成日搬屋換 IP，門感應器次次搵唔到佢。而家佢自己喺網絡度大叫 「我喺度呀」，我哋認住條序號就跟住佢搬，新機仲會自動出現喺「已發現」度， 入個存取碼就搞掂。"
+    },
+    {
+     "sha": "ad45ca35f",
+     "date": "2026-11-25T01:43:43-05:00",
+     "title": "TTC sensors stop flooding the recorder with oversized attributes",
+     "areas": [
+      "core"
+     ],
+     "detail": "The route status and station outage sensors carried their full alert and outage lists as state attributes, which pushed every recorded state past the 16 KB limit and filled the log with thousands of warnings a day. The lists stay live on the entities but are no longer recorded; the transit panel reads them through the websocket API and is unaffected.",
+     "detail_yue": "TTC 啲感應器之前將成疊警報塞晒入記錄，次次爆 16 KB，日誌一日嗌幾千次。 而家大份嘢唔再寫入資料庫，面板照樣有齊資料，日誌終於可以唞下。"
+    },
     {
      "sha": "f6e0d58e5",
      "date": "2026-11-25T01:40:09-05:00",
