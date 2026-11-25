@@ -590,7 +590,6 @@ export class BarMediaPlayer extends SubscribeMixin(LitElement) {
       border-start-start-radius: var(--ha-border-radius-4xl);
       border-start-end-radius: var(--ha-border-radius-4xl);
       box-shadow: var(--ha-box-shadow-l);
-      overflow: hidden;
       margin-right: var(--safe-area-inset-right);
       transition:
         width var(--ha-animation-duration-normal) ease,
