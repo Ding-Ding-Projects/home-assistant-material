@@ -2,6 +2,7 @@ import { mdiAlertCircleOutline } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
 import { getHistoryState, goBack } from "../common/navigate";
 import { consumeLocalize } from "../common/decorators/consume-context-entry";
 import type { LocalizeFunc } from "../common/translations/localize";
@@ -54,7 +55,7 @@ class HassErrorScreen extends LitElement {
     const localize = source ? withLanguageMode(source) : undefined;
     const title = localize?.("ui.status_screens.error_title") || "";
     return html`
-      <div class="content">
+      <div class=${classMap({ content: true, bare: !this.toolbar })}>
         ${
           title || this.error
             ? html`<div class="panel" role="alert">
@@ -115,15 +116,18 @@ class HassErrorScreen extends LitElement {
           color: var(--primary-text-color);
           min-height: 100%;
           display: flex;
-          /* The screen can sit straight in the panel area, so it clears the
-             bars around the page itself. */
-          padding: calc(var(--ha-space-4) + var(--safe-area-inset-top, 0px))
-            var(--ha-space-4)
-            calc(var(--ha-space-4) + var(--safe-area-inset-bottom, 0px));
+          padding: var(--ha-space-4);
           align-items: center;
           justify-content: safe center;
           flex-direction: column;
           box-sizing: border-box;
+        }
+        /* Without the toolbar the screen sits straight in the panel area, so it
+           clears the bars around the page itself. */
+        .content.bare {
+          padding: calc(var(--ha-space-4) + var(--safe-area-inset-top, 0px))
+            var(--ha-space-4)
+            calc(var(--ha-space-4) + var(--safe-area-inset-bottom, 0px));
         }
         a {
           color: var(--primary-color);

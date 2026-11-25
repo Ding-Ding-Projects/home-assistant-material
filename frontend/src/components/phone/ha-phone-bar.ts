@@ -2763,6 +2763,15 @@ export class HaPhoneBar extends LitElement {
     .list > * {
       flex-shrink: 0;
     }
+    /* On a short screen the sheet is the only scroller, so the list does not
+       open a second one inside it. */
+    @media (max-height: 520px) {
+      .list {
+        overflow-y: visible;
+        min-height: 0;
+        flex-shrink: 0;
+      }
+    }
     .list.cards {
       gap: var(--ha-space-3);
     }
@@ -3006,8 +3015,9 @@ export class HaPhoneBar extends LitElement {
         transition: none;
       }
     }
-    /* One column below 340 px, so three 44 px tools fit a card at 320 px. */
-    @media (max-width: 340px) {
+    /* One column up to 380 px, so the three 48 px tools of a card stay on one
+       row instead of wrapping. */
+    @media (max-width: 380px) {
       .grid {
         grid-template-columns: minmax(0, 1fr);
       }
