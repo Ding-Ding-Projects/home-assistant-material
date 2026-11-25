@@ -13,6 +13,27 @@ is being verified; `docs/feature-status.md` is the older row-by-row record up to
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
+## Scroll fixes and polish, canvases 46 and 47, 25 November 2026
+
+- [ ] Canvas 46 fixes ([`design/canvases/46-scroll-fixes-and-polish`](design/canvases/46-scroll-fixes-and-polish/README.md)):
+      55 of 56 surveyed scroll, clipping and dated-look problems fixed across the page frame and
+      lists, dialogs, pickers and filters, settings pages, dashboards and the other pages. The media
+      player bar is partly done: the page end clears it, but its docked rounded-card look is not
+      built. Merged in `64b88d012`; full type check passes; not yet seen in a browser.
+- [ ] One shared filter menu (icons, a pinned search with the pattern workbench, a match count, a
+      no-match state, the chosen rows first) on the Entities, Automations and Devices pages,
+      replacing three separate menus. Merged in `9ba297e71`; type check and 161 search tests pass;
+      not yet seen in a browser.
+- [ ] Canvas 47 fixes ([`design/canvases/47-scroll-fixes-round-two`](design/canvases/47-scroll-fixes-round-two/README.md)):
+      all 48 problems from the second survey round. The edit-mode menu buttons on badges and cards
+      reach a 40 px hit area instead of 48 px, and the wider gaps between them are not built.
+      Merged in `a2a8360bd`; full type check passes; not yet seen in a browser.
+- [ ] Every search field drawn on canvases 46 and 47 carries the pattern workbench, and the real
+      app's searches were checked to all render it through the shared search field.
+- [ ] Marketplace tests: six failures came from a test machine without the frontend package; the
+      other three were expectations behind deliberate changes and are updated (`f42a95165`).
+      Targeted runs pass; a full run of the marketplace folder is in progress.
+
 ## Packages, printer discovery and pickers, 24 and 25 November 2026
 
 - [ ] Marketplace packages (`.hapkg`): a ZIP with `hapkg.json` listing title, version, source, an
@@ -38,7 +59,8 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       Type check, lint and 215 search tests pass; not yet seen in a browser. The Apply footer, the
       chosen-count chip, the wide side panel and the same treatment for the other filter menus are
       not built.
-- [ ] Card editor on phones: the Config tab of the card editor showed no form (being fixed).
+- [ ] Card editor on phones: the Config tab of the card editor showed no form (being fixed; not
+      merged yet).
 
 ## Grow light helper, 23 November 2026
 
