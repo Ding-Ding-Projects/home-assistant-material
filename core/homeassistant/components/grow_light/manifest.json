@@ -2,12 +2,12 @@
   "domain": "grow_light",
   "name": "Grow light",
   "after_dependencies": ["http"],
-  "categories": ["helpers"],
+  "categories": ["lighting"],
   "codeowners": [],
   "config_flow": true,
   "dependencies": ["switch"],
   "documentation": "https://github.com/Ding-Ding-Projects/home-assistant-material/blob/main/docs/features/automations/grow-light.md",
-  "integration_type": "helper",
+  "integration_type": "service",
   "iot_class": "calculated",
   "quality_scale": "internal"
 }

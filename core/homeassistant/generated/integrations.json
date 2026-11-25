@@ -5784,6 +5784,15 @@
       "config_flow": false,
       "iot_class": "local_push"
     },
+    "grow_light": {
+      "name": "Grow light",
+      "integration_type": "service",
+      "categories": [
+        "lighting"
+      ],
+      "config_flow": true,
+      "iot_class": "calculated"
+    },
     "growatt_server": {
       "integration_type": "hub",
       "categories": [
@@ -17525,14 +17534,6 @@
       "integration_type": "helper",
       "categories": [
         "helpers.calculate_value"
-      ],
-      "config_flow": true,
-      "iot_class": "calculated"
-    },
-    "grow_light": {
-      "integration_type": "helper",
-      "categories": [
-        "helpers"
       ],
       "config_flow": true,
       "iot_class": "calculated"
