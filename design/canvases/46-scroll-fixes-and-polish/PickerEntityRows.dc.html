@@ -145,6 +145,28 @@ body{margin:0}
 .sheet.old{border-radius:20px 20px 0 0}
 .shead{display:flex;align-items:center;gap:4px;padding:0 4px 0 20px;min-height:52px;flex:none}
 .fscroll{flex:1;min-height:0;overflow-y:auto;padding:4px 16px 96px;display:flex;flex-direction:column;gap:14px}
+.m3 .rxb{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;color:var(--onv);flex:none;position:relative;margin:0 4px;transition:background-color .2s}
+.m3 .rxb::after{content:"";position:absolute;inset:-4px}
+.m3 .rxb:hover{background:var(--sl4)}
+.m3 .rxb.sel{background:var(--sc);color:var(--on-sc)}
+.rxscrim{position:absolute;inset:0;background:var(--scrim);z-index:20}
+.rxscrim.clear{background:transparent}
+.rxw{position:absolute;z-index:21;background:var(--sl1);box-shadow:var(--e3);display:flex;flex-direction:column;overflow:hidden}
+.rxw.bs{left:0;right:0;bottom:0;max-height:calc(100% - 24px);border-radius:28px 28px 0 0}
+.rxw.po{right:max(16px,calc(50% - 308px));width:min(480px,calc(100% - 32px));border-radius:24px;box-shadow:var(--e3),inset 0 0 0 1px var(--outv)}
+.rxhead{display:flex;align-items:center;gap:4px;padding:4px 4px 0 20px;min-height:56px;flex:none}
+.rxbody{flex:1;min-height:0;overflow-y:auto;padding:4px 16px 8px;display:flex;flex-direction:column;gap:10px}
+.rxpat{display:flex;align-items:center;gap:6px;min-height:56px;padding:0 14px;border-radius:12px;background:var(--sl3);box-shadow:inset 0 -1px 0 var(--out);flex:none}
+.rxpat:focus-within{box-shadow:inset 0 -2px 0 var(--p)}
+.rxpat.bad,.rxpat.bad:focus-within{box-shadow:inset 0 -3px 0 var(--err)}
+.rxpat .sl{color:var(--onv);font-size:16px;white-space:nowrap}
+.rxpat input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:48px;color:var(--on);font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.rxerr{color:var(--err);font-size:13px;line-height:18px;font-weight:600}
+.rxflags{display:flex;flex-wrap:wrap;gap:12px 8px;flex:none}
+.rxprev{display:flex;flex-direction:column;gap:4px}
+.rxline{padding:6px 12px;border-radius:10px;background:var(--sl2);font-size:14px;line-height:20px;overflow-wrap:anywhere}
+.rxline mark{background:var(--pc);color:var(--on-pc);border-radius:4px;padding:0 1px;font-weight:600}
+.rxfoot{flex:none;display:flex;align-items:center;gap:8px;padding:8px 16px 16px;flex-wrap:wrap}
 </style>
 </helmet>
 <div class="{{shell}}" style="--ac: {{accent}}">
@@ -172,7 +194,8 @@ body{margin:0}
 <div class="shead"><h2 class="tm" style="flex: 1">{{sheetTitle}}</h2><button class="ib" aria-label="Close the list" onClick="{{ closeSheet }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div>
 <div class="psr" style="margin: 0 12px 6px">
 <svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg>
-<input type="search" value="{{query}}" onInput="{{ setQuery }}" placeholder="Search entities" aria-label="Search entities"/>
+<input type="search" value="{{query}}" onInput="{{ setQuery }}" placeholder="Search entities" aria-label="{{searchLabel}}"/>
+<button class="{{rxBtnCls}}" data-rxb="1" aria-label="{{rxBtnLabel}}" title="Pattern workbench" aria-haspopup="dialog" aria-pressed="{{rxBtnOn}}" onClick="{{ rxOpenFn }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg></button>
 <span class="lm" role="status" style="white-space: nowrap; padding-right: 8px">{{countText}}</span>
 <sc-if value="{{hasQuery}}" hint-placeholder-val="{{ false }}"><button class="ib" aria-label="Clear search" onClick="{{ clearQuery }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></sc-if>
 </div>
@@ -193,14 +216,145 @@ body{margin:0}
 <sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}">
 <div class="toast up" role="status" style="z-index: 3"><span style="flex: 1">{{toastText}}</span><button class="btn text" onClick="{{ undo }}">Undo</button></div>
 </sc-if>
+<sc-if value="{{rxOpen}}" hint-placeholder-val="{{ false }}">
+<div class="rxscrim" onClick="{{ rxCancel }}"></div>
+<div class="rxw bs up" role="dialog" aria-modal="true" aria-label="{{rxTitle}}">
+<div class="grab" aria-hidden="true"></div>
+<div class="rxhead"><div class="grow"><h2 class="tm">Pattern workbench</h2><span class="sub">{{rxFor}}</span></div><button class="ib" aria-label="Close the pattern workbench" onClick="{{ rxCancel }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div>
+<div class="rxbody">
+<label class="lm" for="pe-rxp">PATTERN</label>
+<div class="{{rxPatCls}}"><span class="sl mono" aria-hidden="true">/</span><input id="pe-rxp" data-rxp="1" type="text" value="{{rxSrc}}" onInput="{{ rxSetSrc }}" autofocus="autofocus" spellcheck="false" autocomplete="off" autocapitalize="off" aria-invalid="{{rxInvalid}}"/><span class="sl mono" aria-hidden="true">/{{rxFlagText}}</span></div>
+<sc-if value="{{rxBad}}" hint-placeholder-val="{{ false }}"><span class="rxerr" role="alert">{{rxErr}}</span></sc-if>
+<div class="rxflags" role="group" aria-label="Pattern options">
+<sc-for list="{{rxFlags}}" as="g" hint-placeholder-count="4"><button class="{{g.cls}}" aria-pressed="{{g.aria}}" onClick="{{ g.toggle }}">{{g.name}}</button></sc-for>
+</div>
+<div class="note"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"></path></svg><span>{{rxSay}}</span></div>
+<span class="lm" role="status">{{rxCount}}</span>
+<div class="rxprev">
+<sc-for list="{{rxPrev}}" as="m" hint-placeholder-count="3"><div class="rxline"><span>{{m.pre}}</span><mark>{{m.hit}}</mark><span>{{m.post}}</span></div></sc-for>
+</div>
+<sc-if value="{{rxMore}}" hint-placeholder-val="{{ false }}"><span class="sub">{{rxMoreText}}</span></sc-if>
+</div>
+<div class="rxfoot"><button class="btn text" onClick="{{ rxClear }}">Clear</button><span style="flex: 1"></span><button class="btn text" onClick="{{ rxCancel }}">Cancel</button><button class="{{rxUseCls}}" aria-disabled="{{rxUseOff}}" onClick="{{ rxUse }}">Use pattern</button></div>
+</div>
+</sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","field","before","before-field"]},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","field","before","before-field","pattern","pattern-invalid"]},"$preview":{"width":390,"height":844}}'>
 const ENTS = [{"name":"Kitchen motion sensor illuminance","area":"Kitchen","device":"Kitchen motion sensor","dom":"Sensor","icon":"M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"},{"name":"Kitchen motion sensor battery","area":"Kitchen","device":"Kitchen motion sensor","dom":"Sensor","icon":"M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"},{"name":"Kitchen motion sensor occupancy","area":"Kitchen","device":"Kitchen motion sensor","dom":"Binary sensor","icon":"M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"},{"name":"Kitchen motion sensor temperature","area":"Kitchen","device":"Kitchen motion sensor","dom":"Sensor","icon":"M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"},{"name":"Living room ceiling light","area":"Living room","device":"Ceiling light","dom":"Light","icon":"M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z"},{"name":"Living room floor lamp","area":"Living room","device":"Floor lamp","dom":"Light","icon":"M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z"},{"name":"Upstairs hallway motion sensor occupancy","area":"Upstairs hallway","device":"Hallway multisensor","dom":"Binary sensor","icon":"M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"},{"name":"Front door contact","area":"Entrance","device":"Front door sensor","dom":"Binary sensor","icon":"M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"},{"name":"Grow shelf plug","area":"Utility room","device":"Grow shelf plug","dom":"Switch","icon":"M18.4 1.6C18 1.2 17.5 1 17 1H7C6.5 1 6 1.2 5.6 1.6C5.2 2 5 2.5 5 3V21C5 21.5 5.2 22 5.6 22.4C6 22.8 6.5 23 7 23H17C17.5 23 18 22.8 18.4 22.4C18.8 22 19 21.5 19 21V3C19 2.5 18.8 2 18.4 1.6M16 7C16 7.6 15.6 8 15 8H9C8.4 8 8 7.6 8 7V5C8 4.4 8.4 4 9 4H15C15.6 4 16 4.4 16 5V7Z"},{"name":"Thermostat","area":"Living room","device":"Thermostat","dom":"Climate","icon":"M16.95,16.95L14.83,14.83C15.55,14.1 16,13.1 16,12C16,11.26 15.79,10.57 15.43,10L17.6,7.81C18.5,9 19,10.43 19,12C19,13.93 18.22,15.68 16.95,16.95M12,5C13.57,5 15,5.5 16.19,6.4L14,8.56C13.43,8.21 12.74,8 12,8A4,4 0 0,0 8,12C8,13.1 8.45,14.1 9.17,14.83L7.05,16.95C5.78,15.68 5,13.93 5,12A7,7 0 0,1 12,5M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12C22,6.47 17.5,2 12,2Z"},{"name":"Bedroom fan","area":"Bedroom","device":"Bedroom fan","dom":"Fan","icon":"M12,11A1,1 0 0,0 11,12A1,1 0 0,0 12,13A1,1 0 0,0 13,12A1,1 0 0,0 12,11M12.5,2C17,2 17.11,5.57 14.75,6.75C13.76,7.24 13.32,8.29 13.13,9.22C13.61,9.42 14.03,9.73 14.35,10.13C18.05,8.13 22.03,8.92 22.03,12.5C22.03,17 18.46,17.1 17.28,14.73C16.78,13.74 15.72,13.3 14.79,13.11C14.59,13.59 14.28,14 13.88,14.34C15.87,18.03 15.08,22 11.5,22C7,22 6.91,18.42 9.27,17.24C10.25,16.75 10.69,15.71 10.89,14.79C10.4,14.59 9.97,14.27 9.65,13.87C5.96,15.85 2,15.07 2,11.5C2,7 5.56,6.89 6.74,9.26C7.24,10.25 8.29,10.68 9.22,10.87C9.41,10.39 9.73,9.97 10.14,9.65C8.15,5.96 8.94,2 12.5,2Z"},{"name":"Porch camera","area":"Entrance","device":"Porch camera","dom":"Camera","icon":"M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"},{"name":"Coffee maker","area":"Kitchen","device":"Coffee maker","dom":"Switch","icon":"M18.4 1.6C18 1.2 17.5 1 17 1H7C6.5 1 6 1.2 5.6 1.6C5.2 2 5 2.5 5 3V21C5 21.5 5.2 22 5.6 22.4C6 22.8 6.5 23 7 23H17C17.5 23 18 22.8 18.4 22.4C18.8 22 19 21.5 19 21V3C19 2.5 18.8 2 18.4 1.6M16 7C16 7.6 15.6 8 15 8H9C8.4 8 8 7.6 8 7V5C8 4.4 8.4 4 9 4H15C15.6 4 16 4.4 16 5V7Z"},{"name":"Washing machine power","area":"Utility room","device":"Washing machine plug","dom":"Sensor","icon":"M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"}];
 const LABELS = ['Motion sensor', 'Light level sensor', 'Light to turn on'];
+const RX_FLAGS = [['i', 'Ignore case', 'Capital and small letters count as the same.'], ['w', 'Whole word', 'Only whole words count.'], ['m', 'Multiline', 'Start and end apply to every line.'], ['s', 'Dot matches new line', 'A dot also matches a line break.']];
+function rxParse(q) { const m = /^\/(.+)\/([imsw]*)$/.exec(String(q).trim()); if (!m) return null; const f = {}; m[2].split('').forEach((c) => { f[c] = true; }); return { src: m[1], f }; }
+function rxFlagStr(f) { return RX_FLAGS.map((x) => x[0]).filter((c) => f[c]).join(''); }
+function rxEsc(t) { return String(t).replace(/[.*+?^$()|[\]\\\/]/g, '\\$&').replace(/[{}]/g, '\\$&'); }
+function rxWhy(src) {
+  const tail = (/\\+$/.exec(src) || [''])[0].length;
+  if (tail % 2 === 1) return 'The pattern ends with a backslash. Add the character it belongs to, or remove it.';
+  const s = src.replace(/\\./g, '');
+  if (/\[[^\]]*$/.test(s)) return 'A square bracket [ is opened but never closed. Add ] or remove it.';
+  const flat = s.replace(/\[[^\]]*\]/g, '');
+  const o = (flat.match(/\(/g) || []).length; const c = (flat.match(/\)/g) || []).length;
+  if (o > c) return 'A bracket ( is opened but never closed. Add ) or remove it.';
+  if (c > o) return 'There is a closing bracket ) with no opening one. Remove it, or add (.';
+  if (/^[*+?]|[(|][*+?]/.test(flat)) return 'A repeat sign (*, + or ?) has nothing before it to repeat.';
+  return 'This pattern is not complete yet. Check for a missing bracket or a stray backslash.';
+}
+function rxCompile(src, f) {
+  if (!src) return { empty: true };
+  if (src.length > 120) return { err: 'This pattern is too long for the workbench. Keep it under 120 characters.' };
+  try { return { re: new RegExp(f.w ? '\\b(?:' + src + ')\\b' : src, (f.i ? 'i' : '') + (f.m ? 'm' : '') + (f.s ? 's' : '')) }; } catch (e) { return { err: rxWhy(src) }; }
+}
+function rxFind(re, text) { try { const m = re.exec(String(text).slice(0, 160)); return m ? { at: m.index, len: m[0].length } : null; } catch (e) { return null; } }
+function rxMatcher(q) { const p = rxParse(q); if (!p) return null; const c = rxCompile(p.src, p.f); return c.re ? (t) => !!rxFind(c.re, t) : null; }
+function rxSay(src, f) {
+  const CL = { d: 'a digit', w: 'a letter, digit or underscore', s: 'a space', b: 'a word edge', D: 'anything but a digit', W: 'a symbol or space', S: 'anything but a space' };
+  const parts = []; let lit = ''; let i = 0;
+  const flush = () => { if (lit) { parts.push('the text "' + lit + '"'); lit = ''; } };
+  const rep = (j) => {
+    const c = src[j]; let w = ''; let n = 0;
+    if (c === '*') { w = ', any number of times'; n = 1; } else if (c === '+') { w = ', one or more times'; n = 1; } else if (c === '?') { w = ', if it is there'; n = 1; } else if (c === '{') {
+      const m = /^\{(\d+)(,(\d*))?\}/.exec(src.slice(j));
+      if (m) { w = ', ' + (m[2] ? (m[3] ? m[1] + ' to ' + m[3] : m[1] + ' or more') : m[1]) + ' times'; n = m[0].length; }
+    }
+    if (n && src[j + n] === '?') n += 1;
+    return [w, n];
+  };
+  while (i < src.length && parts.length < 16) {
+    const c = src[i]; let t = ''; let n = 1;
+    if (c === '\\' && i + 1 < src.length) { n = 2; t = CL[src[i + 1]] || ''; if (!t) { lit += src[i + 1]; i += 2; continue; } } else if (c === '.') t = 'any one character';
+    else if (c === '^') t = 'the start of the text';
+    else if (c === '$') t = 'the end of the text';
+    else if (c === '|' || c === ')') t = c;
+    else if (c === '(') { t = c; if (src.slice(i + 1, i + 3) === '?:') n = 3; } else if (c === '[') {
+      const j = src.indexOf(']', i + 2);
+      if (j < 0) { lit += c; i += 1; continue; }
+      const inner = src.slice(i + 1, j);
+      t = (inner[0] === '^' ? 'any character except ' : 'one of ') + '"' + inner.replace(/^\^/, '') + '"'; n = j - i + 1;
+    } else if ('*+?{'.includes(c)) {
+      const r = rep(i);
+      if (r[1] && lit) { const last = lit.slice(-1); lit = lit.slice(0, -1); flush(); parts.push('"' + last + '"' + r[0]); i += r[1]; continue; }
+      lit += c; i += 1; continue;
+    } else { lit += c; i += 1; continue; }
+    flush();
+    if (t === '|' || t === '(') { parts.push(t); i += n; continue; }
+    const r = rep(i + n);
+    if (c === '.' && src[i + 1] === '*') t = 'any text'; else if (c === '.' && src[i + 1] === '+') t = 'at least one character'; else t += r[0];
+    parts.push(t); i += n + r[1];
+  }
+  flush();
+  let out = '';
+  parts.forEach((p, k) => {
+    const prev = parts[k - 1];
+    if (p === '|') out += ' or '; else if (p[0] === ')') out += p; else out += (k === 0 || prev === '(' || prev === '|' ? '' : ', then ') + p;
+  });
+  return 'Finds ' + out + '. ' + RX_FLAGS.filter((x) => f[x[0]]).map((x) => x[2]).join(' ');
+}
+function rxFocus(self, sel) { if (typeof document === 'undefined') return; setTimeout(() => { try { const el = (self._rxRoot || document).querySelector(sel); if (el) el.focus(); } catch (e) { /* focus is a nicety */ } }, 60); }
+function rxClose(self) { self.wb = null; rxFocus(self, '[data-rxb]'); self.bump(); }
+function rxInit(self) {
+  self.wb = null;
+  if (typeof document === 'undefined') return;
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && self.wb) { try { rxClose(self); } catch (err) { /* board is gone */ } } });
+}
+function rxStage(self, s, good, bad) {
+  self.wb = s === 'pattern' ? { src: good, f: { i: true } } : s === 'pattern-invalid' ? { src: bad, f: { i: true } } : null;
+  if (self.wb) rxFocus(self, '[data-rxp]');
+}
+function rxVals(self, o) {
+  const wb = self.wb; const ap = rxParse(o.q); const on = !!(ap && rxCompile(ap.src, ap.f).re);
+  const out = {
+    rxBtnCls: on ? 'rxb sel' : 'rxb', rxBtnOn: String(on), rxBtnLabel: 'Build a pattern search for: ' + o.label,
+    rxOpenFn: (ev) => {
+      try { self._rxRoot = (ev.currentTarget || ev.target).getRootNode(); } catch (e) { self._rxRoot = null; }
+      const p = rxParse(o.q);
+      self.wb = { src: p ? p.src : rxEsc(o.q.trim()), f: p ? p.f : { i: true } };
+      if (o.onOpen) o.onOpen();
+      rxFocus(self, '[data-rxp]'); self.bump();
+    },
+    rxOpen: !!wb, rxFor: 'For: ' + o.label, rxTitle: 'Pattern workbench for ' + o.label,
+    rxSrc: '', rxPatCls: 'rxpat', rxBad: false, rxErr: '', rxInvalid: 'false', rxFlagText: '', rxFlags: [], rxSay: '', rxCount: '', rxPrev: [], rxMore: false, rxMoreText: '',
+    rxUseCls: 'btn off', rxUseOff: 'true', rxUse: () => {},
+    rxSetSrc: (e) => { if (self.wb) { self.wb.src = e.target.value; self.bump(); } },
+    rxCancel: () => rxClose(self),
+    rxClear: () => { o.setQ(''); rxClose(self); }
+  };
+  if (!wb) return out;
+  const c = rxCompile(wb.src, wb.f); const hits = []; const cap = o.cap || 3;
+  if (c.re) o.pool.forEach((t) => { const m = rxFind(c.re, t); if (m) hits.push({ t: String(t), m }); });
+  return Object.assign(out, {
+    rxSrc: wb.src, rxPatCls: c.err ? 'rxpat bad' : 'rxpat', rxBad: !!c.err, rxErr: c.err || '', rxInvalid: String(!!c.err), rxFlagText: rxFlagStr(wb.f),
+    rxFlags: RX_FLAGS.map((x) => ({ name: x[1], cls: wb.f[x[0]] ? 'chip sel' : 'chip', aria: String(!!wb.f[x[0]]), toggle: () => { const f = Object.assign({}, wb.f); if (f[x[0]]) delete f[x[0]]; else f[x[0]] = true; self.wb = { src: wb.src, f }; self.bump(); } })),
+    rxSay: c.empty ? 'Type a pattern to see what it finds. For example ' + o.example + '.' : c.err ? 'Fix the pattern to see what it finds. Use pattern stays off until it is complete.' : rxSay(wb.src, wb.f),
+    rxCount: c.empty ? 'Nothing typed yet' : c.err ? 'No count while the pattern is incomplete' : 'Matches ' + hits.length + ' of ' + o.pool.length + ' ' + o.noun,
+    rxPrev: hits.slice(0, cap).map((h) => ({ pre: h.t.slice(0, h.m.at), hit: h.t.slice(h.m.at, h.m.at + h.m.len), post: h.t.slice(h.m.at + h.m.len) })),
+    rxMore: hits.length > cap, rxMoreText: 'and ' + (hits.length - cap) + ' more',
+    rxUseCls: c.re ? 'btn fill' : 'btn off', rxUseOff: String(!c.re),
+    rxUse: () => { if (!c.re) return; o.setQ('/' + wb.src + '/' + rxFlagStr(wb.f)); rxClose(self); }
+  });
+}
 class Component extends DCLogic {
-  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.reset('after'); }
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; rxInit(this); this.reset('after'); }
 
   base() {
     const accent = this.props.accent ?? '#98CBFF';
@@ -215,16 +369,18 @@ class Component extends DCLogic {
     return this._s;
   }
 
-  reset(s) { this.q = ''; this.vals = [6, 0, 4]; this.open = (s === 'after' || s === 'before') ? 1 : -1; this.undoVal = null; this.toast = ''; }
+  reset(s) { this.q = ''; this.vals = [6, 0, 4]; this.open = (s === 'after' || s === 'before' || s === 'pattern' || s === 'pattern-invalid') ? 1 : -1; rxStage(this, s, '^kitchen.*sensor', '(kitchen'); this.undoVal = null; this.toast = ''; }
   renderVals() {
     const v = this.base();
     const s = this.stage();
     const before = s === 'before' || s === 'before-field';
     const q = this.q.trim().toLowerCase();
-    const shown = ENTS.map((e, i) => ({ e, i })).filter((x) => !q || x.e.name.toLowerCase().includes(q) || x.e.area.toLowerCase().includes(q));
+    const rm = rxMatcher(this.q);
+    const shown = ENTS.map((e, i) => ({ e, i })).filter((x) => (rm ? rm(x.e.name) : !q || x.e.name.toLowerCase().includes(q) || x.e.area.toLowerCase().includes(q)));
     const cur = this.open >= 0 ? this.vals[this.open] : null;
-    return Object.assign(v, {
-      isBefore: before,
+    const searchLabel = this.open >= 0 ? 'Search entities for ' + LABELS[this.open].toLowerCase() : 'Search entities';
+    return Object.assign(v, rxVals(this, { q: this.q, setQ: (t) => { this.q = t; }, label: searchLabel, pool: ENTS.map((e) => e.name), noun: 'entity names', example: 'gar.* finds every name that contains "gar"' }), {
+      searchLabel, isBefore: before,
       fields: LABELS.map((label, k) => {
         const e = this.vals[k] === null ? null : ENTS[this.vals[k]];
         return {

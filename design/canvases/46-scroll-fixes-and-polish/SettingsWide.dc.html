@@ -126,6 +126,36 @@ body{margin:0}
 .ptile.old{border-radius:20px;color:#fff}
 .srchw{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 16px;border-radius:24px;background:var(--sl0);color:var(--onv);flex:1 1 220px;max-width:420px}
 .srchw input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px;color:var(--on)}
+.rxb{width:48px;height:48px;display:grid;place-items:center;flex:none;color:var(--onv);border-radius:24px}
+.rxb > span{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;transition:background-color .2s}
+.rxb:hover > span{background:var(--sl4)}
+.m3 .rxb.on > span{background:var(--sc);color:var(--on-sc)}
+.srow{display:flex;flex-direction:column;gap:6px;padding:0 12px 8px;flex:none;position:relative;z-index:5;background:var(--surf)}
+.srow .sub{padding:0 16px}
+.sfield{display:flex;align-items:center;gap:4px;min-height:56px;padding:0 4px 0 16px;border-radius:28px;background:var(--sl2);color:var(--onv);min-width:0}
+.sfield input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px;color:var(--on)}
+.wbscrim{position:absolute;inset:0;background:var(--scrim);z-index:29}
+.wb{background:var(--sl1);color:var(--on);box-shadow:var(--e3);display:flex;flex-direction:column;gap:12px;padding:16px;z-index:30;overflow-y:auto;text-align:left}
+.wb.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;border-radius:28px 28px 0 0;padding:12px 16px 20px}
+.wb.popv{position:absolute;top:calc(100% + 8px);right:0;width:min(460px,calc(100vw - 32px));max-height:540px;border-radius:24px}
+.wbhead{display:flex;align-items:center;gap:8px;color:var(--onv);flex:none}
+.wbhead .tm{flex:1;min-width:0;color:var(--on)}
+.wbfield{display:flex;align-items:center;gap:4px;min-height:56px;padding:0 16px;border-radius:16px;background:var(--sl3);box-shadow:inset 0 -2px 0 var(--out);flex:none}
+.wbfield.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.wbfield input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:48px;color:var(--on);font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.wbfield .sl{color:var(--onv);font-size:16px}
+.wberr{color:var(--err);font-size:13px;line-height:18px;margin:-6px 4px 0;flex:none}
+.wbflags{display:flex;flex-wrap:wrap;gap:12px 8px;flex:none}
+.wbbox{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:16px;background:var(--sl2);flex:none}
+.wbx{display:flex;gap:10px;align-items:baseline;font-size:13px;line-height:18px;color:var(--onv)}
+.wbx .tok{flex:none;min-width:36px;max-width:45%;padding:1px 6px;border-radius:6px;background:var(--pc);color:var(--on-pc);text-align:center;overflow-wrap:anywhere}
+.wbrow{font-size:14px;line-height:20px;white-space:pre-wrap;overflow-wrap:anywhere}
+.wbrow .hit{background:var(--amberc);color:var(--amber);border-radius:4px;font-weight:600}
+.wbact{display:flex;align-items:center;gap:4px;flex-wrap:wrap;flex:none}
+.srchbox{position:relative;display:flex;flex:1 1 220px;max-width:420px;min-width:0}
+.srchbox .srchw{flex:1;max-width:none;min-width:0;padding-right:0}
+.srchbox.st{flex:1 1 300px}
+.srchbox.st .srchw{background:var(--sl2)}
 </style>
 </helmet>
 <div class="{{shell}}" style="--ac: {{accent}}">
@@ -148,15 +178,33 @@ body{margin:0}
 <div class="moderow">
 <div class="seg" role="group" aria-label="Editor"><button class="sel" aria-pressed="true">Visual</button><button aria-pressed="false">YAML</button></div>
 <button class="chip" aria-haspopup="listbox">Mode: Single<svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button>
-<span class="sub" style="flex: 1; min-width: 80px">6 steps</span>
-<button class="ib" aria-label="Search the steps"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></button>
+<span class="sub" style="flex: 1; min-width: 80px" role="status">{{stepsText}}</span>
+<sc-if value="{{stClosed}}" hint-placeholder-val="{{ true }}"><button class="ib" aria-label="Search the steps" aria-expanded="false" onClick="{{ stOpen }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></button></sc-if><sc-if value="{{stShown}}" hint-placeholder-val="{{ false }}"><div class="srchbox st"><div class="srchw"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg><input type="search" data-stin="1" value="{{stQ}}" onInput="{{ stSet }}" placeholder="Search the steps" aria-label="Search the steps"/><button class="{{stRxCls}}" data-rx="st" aria-label="Build a pattern search for: Search the steps" title="Pattern workbench" aria-haspopup="dialog" aria-pressed="{{stRxOn}}" onClick="{{ stRxOpen }}"><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg></span></button><button class="ib" aria-label="Close the search" onClick="{{ stClose }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div><sc-if value="{{wbAtSt}}" hint-placeholder-val="{{ false }}"><div class="{{wbCls}}" role="dialog" aria-modal="true" aria-label="{{wbTitle}}" onKeyDown="{{ wbKey }}">
+<div class="wbhead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg><span class="tm">Pattern workbench</span><button class="ib" aria-label="Close the pattern workbench" onClick="{{ wbCancel }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div>
+<span class="sub">{{wbFor}}</span>
+<label class="{{wbFieldCls}}"><span class="mono sl" aria-hidden="true">/</span><input data-wbin="1" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" value="{{wbPat}}" onInput="{{ wbSet }}" aria-label="Pattern" aria-invalid="{{wbInvalid}}" placeholder="For example: gar.*"/><span class="mono sl" aria-hidden="true">{{wbTail}}</span></label>
+<sc-if value="{{wbBad}}" hint-placeholder-val="{{ false }}"><div class="wberr" role="alert">{{wbErr}}</div></sc-if>
+<div class="wbflags" role="group" aria-label="Pattern options"><sc-for list="{{wbFlags}}" as="f" hint-placeholder-count="4"><button class="{{f.cls}}" aria-pressed="{{f.aria}}" onClick="{{ f.toggle }}">{{f.name}}</button></sc-for></div>
+<div class="wbbox"><span class="lm">In plain words</span><sc-for list="{{wbExplain}}" as="x" hint-placeholder-count="3"><div class="wbx"><span class="mono tok">{{x.tok}}</span><span>{{x.text}}</span></div></sc-for></div>
+<div class="wbbox"><span class="lm" role="status">{{wbCount}}</span><sc-for list="{{wbPreview}}" as="pv" hint-placeholder-count="3"><div class="wbrow"><sc-for list="{{pv.segs}}" as="g" hint-placeholder-count="3"><span class="{{g.cls}}">{{g.t}}</span></sc-for></div></sc-for><sc-if value="{{wbMore}}" hint-placeholder-val="{{ false }}"><span class="sub">{{wbMoreText}}</span></sc-if></div>
+<div class="wbact"><button class="btn text" onClick="{{ wbClear }}">Clear</button><span style="flex: 1"></span><button class="btn text" onClick="{{ wbCancel }}">Cancel</button><button class="{{wbUseCls}}" aria-disabled="{{wbUseOff}}" onClick="{{ wbUse }}">Use pattern</button></div>
+</div></sc-if></div></sc-if>
 </div>
 </div></sc-if>
 <sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><div class="stick old"><div class="oldalerts"><sc-for list="{{alerts}}" as="a" hint-placeholder-count="2"><div class="{{a.cls}}" role="{{a.role}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{a.icon}}"></path></svg><span class="wrapany" style="flex: 1; min-width: 200px">{{a.text}}</span><sc-if value="{{a.has2}}" hint-placeholder-val="{{ false }}"><button class="btn text" onClick="{{ a.do2 }}">{{a.b2}}</button></sc-if><button class="btn text" onClick="{{ a.do1 }}">{{a.b1}}</button></div></sc-for></div><div class="moderow">
 <div class="seg" role="group" aria-label="Editor"><button class="sel" aria-pressed="true">Visual</button><button aria-pressed="false">YAML</button></div>
 <button class="chip" aria-haspopup="listbox">Mode: Single<svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button>
-<span class="sub" style="flex: 1; min-width: 80px">6 steps</span>
-<button class="ib" aria-label="Search the steps"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></button>
+<span class="sub" style="flex: 1; min-width: 80px" role="status">{{stepsText}}</span>
+<sc-if value="{{stClosed}}" hint-placeholder-val="{{ true }}"><button class="ib" aria-label="Search the steps" aria-expanded="false" onClick="{{ stOpen }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></button></sc-if><sc-if value="{{stShown}}" hint-placeholder-val="{{ false }}"><div class="srchbox st"><div class="srchw"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg><input type="search" data-stin="1" value="{{stQ}}" onInput="{{ stSet }}" placeholder="Search the steps" aria-label="Search the steps"/><button class="{{stRxCls}}" data-rx="st" aria-label="Build a pattern search for: Search the steps" title="Pattern workbench" aria-haspopup="dialog" aria-pressed="{{stRxOn}}" onClick="{{ stRxOpen }}"><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg></span></button><button class="ib" aria-label="Close the search" onClick="{{ stClose }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div><sc-if value="{{wbAtSt}}" hint-placeholder-val="{{ false }}"><div class="{{wbCls}}" role="dialog" aria-modal="true" aria-label="{{wbTitle}}" onKeyDown="{{ wbKey }}">
+<div class="wbhead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg><span class="tm">Pattern workbench</span><button class="ib" aria-label="Close the pattern workbench" onClick="{{ wbCancel }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div>
+<span class="sub">{{wbFor}}</span>
+<label class="{{wbFieldCls}}"><span class="mono sl" aria-hidden="true">/</span><input data-wbin="1" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" value="{{wbPat}}" onInput="{{ wbSet }}" aria-label="Pattern" aria-invalid="{{wbInvalid}}" placeholder="For example: gar.*"/><span class="mono sl" aria-hidden="true">{{wbTail}}</span></label>
+<sc-if value="{{wbBad}}" hint-placeholder-val="{{ false }}"><div class="wberr" role="alert">{{wbErr}}</div></sc-if>
+<div class="wbflags" role="group" aria-label="Pattern options"><sc-for list="{{wbFlags}}" as="f" hint-placeholder-count="4"><button class="{{f.cls}}" aria-pressed="{{f.aria}}" onClick="{{ f.toggle }}">{{f.name}}</button></sc-for></div>
+<div class="wbbox"><span class="lm">In plain words</span><sc-for list="{{wbExplain}}" as="x" hint-placeholder-count="3"><div class="wbx"><span class="mono tok">{{x.tok}}</span><span>{{x.text}}</span></div></sc-for></div>
+<div class="wbbox"><span class="lm" role="status">{{wbCount}}</span><sc-for list="{{wbPreview}}" as="pv" hint-placeholder-count="3"><div class="wbrow"><sc-for list="{{pv.segs}}" as="g" hint-placeholder-count="3"><span class="{{g.cls}}">{{g.t}}</span></sc-for></div></sc-for><sc-if value="{{wbMore}}" hint-placeholder-val="{{ false }}"><span class="sub">{{wbMoreText}}</span></sc-if></div>
+<div class="wbact"><button class="btn text" onClick="{{ wbClear }}">Clear</button><span style="flex: 1"></span><button class="btn text" onClick="{{ wbCancel }}">Cancel</button><button class="{{wbUseCls}}" aria-disabled="{{wbUseOff}}" onClick="{{ wbUse }}">Use pattern</button></div>
+</div></sc-if></div></sc-if>
 </div></div></sc-if>
 <div class="steps">
 <sc-for list="{{steps}}" as="t" hint-placeholder-count="6"><div class="{{t.cls}}"><span class="num">{{t.n}}</span><span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{t.icon}}"></path></svg></span><span class="grow"><span class="bl wrapany">{{t.title}}</span><span class="sub">{{t.meta}}</span></span><button class="ib" aria-label="{{t.more}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button></div></sc-for>
@@ -166,7 +214,16 @@ body{margin:0}
 </div></sc-if>
 <sc-if value="{{isInt}}" hint-placeholder-val="{{ false }}"><div class="top">
 <h1 class="tl" style="flex: 1; min-width: 160px">Integrations</h1>
-<div class="srchw"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg><input type="search" value="{{query}}" onInput="{{ setQuery }}" placeholder="Search integrations" aria-label="Search integrations"/></div>
+<div class="srchbox"><div class="srchw"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg><input type="search" value="{{query}}" onInput="{{ setQuery }}" placeholder="Search integrations" aria-label="Search integrations"/><button class="{{intRxCls}}" data-rx="int" aria-label="Build a pattern search for: Search integrations" title="Pattern workbench" aria-haspopup="dialog" aria-pressed="{{intRxOn}}" onClick="{{ intRxOpen }}"><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg></span></button></div><sc-if value="{{wbAtInt}}" hint-placeholder-val="{{ false }}"><div class="{{wbCls}}" role="dialog" aria-modal="true" aria-label="{{wbTitle}}" onKeyDown="{{ wbKey }}">
+<div class="wbhead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg><span class="tm">Pattern workbench</span><button class="ib" aria-label="Close the pattern workbench" onClick="{{ wbCancel }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div>
+<span class="sub">{{wbFor}}</span>
+<label class="{{wbFieldCls}}"><span class="mono sl" aria-hidden="true">/</span><input data-wbin="1" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" value="{{wbPat}}" onInput="{{ wbSet }}" aria-label="Pattern" aria-invalid="{{wbInvalid}}" placeholder="For example: gar.*"/><span class="mono sl" aria-hidden="true">{{wbTail}}</span></label>
+<sc-if value="{{wbBad}}" hint-placeholder-val="{{ false }}"><div class="wberr" role="alert">{{wbErr}}</div></sc-if>
+<div class="wbflags" role="group" aria-label="Pattern options"><sc-for list="{{wbFlags}}" as="f" hint-placeholder-count="4"><button class="{{f.cls}}" aria-pressed="{{f.aria}}" onClick="{{ f.toggle }}">{{f.name}}</button></sc-for></div>
+<div class="wbbox"><span class="lm">In plain words</span><sc-for list="{{wbExplain}}" as="x" hint-placeholder-count="3"><div class="wbx"><span class="mono tok">{{x.tok}}</span><span>{{x.text}}</span></div></sc-for></div>
+<div class="wbbox"><span class="lm" role="status">{{wbCount}}</span><sc-for list="{{wbPreview}}" as="pv" hint-placeholder-count="3"><div class="wbrow"><sc-for list="{{pv.segs}}" as="g" hint-placeholder-count="3"><span class="{{g.cls}}">{{g.t}}</span></sc-for></div></sc-for><sc-if value="{{wbMore}}" hint-placeholder-val="{{ false }}"><span class="sub">{{wbMoreText}}</span></sc-if></div>
+<div class="wbact"><button class="btn text" onClick="{{ wbClear }}">Clear</button><span style="flex: 1"></span><button class="btn text" onClick="{{ wbCancel }}">Cancel</button><button class="{{wbUseCls}}" aria-disabled="{{wbUseOff}}" onClick="{{ wbUse }}">Use pattern</button></div>
+</div></sc-if></div>
 <button class="btn fill"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg>Add integration</button>
 </div>
 <span class="sub" role="status">{{intText}}</span>
@@ -193,7 +250,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"script","options":["script","integrations","about","before"]},"$preview":{"width":1280,"height":860}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"script","options":["script","integrations","about","before","pattern","pattern-invalid"]},"$preview":{"width":1280,"height":860}}'>
 const WI = { err: "M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z", draft: "M4 19H10V21H4C2.89 21 2 20.1 2 19V5C2 3.9 2.89 3 4 3H16L20 7V9.12L18 11.12V7.83L15.17 5H4V19M14 10V6H5V10H14M20.42 12.3C20.31 12.19 20.18 12.13 20.04 12.13C19.9 12.13 19.76 12.19 19.65 12.3L18.65 13.3L20.7 15.35L21.7 14.35C21.92 14.14 21.92 13.79 21.7 13.58L20.42 12.3M12 19.94V22H14.06L20.12 15.93L18.07 13.88L12 19.94M14 15C14 13.34 12.66 12 11 12S8 13.34 8 15 9.34 18 11 18C11.04 18 11.08 18 11.13 18L14 15.13C14 15.09 14 15.05 14 15", lamp: "M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z", timer: "M12,20A7,7 0 0,1 5,13A7,7 0 0,1 12,6A7,7 0 0,1 19,13A7,7 0 0,1 12,20M19.03,7.39L20.45,5.97C20,5.46 19.55,5 19.04,4.56L17.62,6C16.07,4.74 14.12,4 12,4A9,9 0 0,0 3,13A9,9 0 0,0 12,22C17,22 21,17.97 21,13C21,10.88 20.26,8.93 19.03,7.39M11,14H13V8H11M15,1H9V3H15V1Z", blinds: "M3,2H21A1,1 0 0,1 22,3V5A1,1 0 0,1 21,6H20V13A1,1 0 0,1 19,14H13V16.17C14.17,16.58 15,17.69 15,19A3,3 0 0,1 12,22A3,3 0 0,1 9,19C9,17.69 9.83,16.58 11,16.17V14H5A1,1 0 0,1 4,13V6H3A1,1 0 0,1 2,5V3A1,1 0 0,1 3,2M12,18A1,1 0 0,0 11,19A1,1 0 0,0 12,20A1,1 0 0,0 13,19A1,1 0 0,0 12,18Z", thermo: "M16.95,16.95L14.83,14.83C15.55,14.1 16,13.1 16,12C16,11.26 15.79,10.57 15.43,10L17.6,7.81C18.5,9 19,10.43 19,12C19,13.93 18.22,15.68 16.95,16.95M12,5C13.57,5 15,5.5 16.19,6.4L14,8.56C13.43,8.21 12.74,8 12,8A4,4 0 0,0 8,12C8,13.1 8.45,14.1 9.17,14.83L7.05,16.95C5.78,15.68 5,13.93 5,12A7,7 0 0,1 12,5M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12C22,6.47 17.5,2 12,2Z", speaker: "M12,12A3,3 0 0,0 9,15A3,3 0 0,0 12,18A3,3 0 0,0 15,15A3,3 0 0,0 12,12M12,20A5,5 0 0,1 7,15A5,5 0 0,1 12,10A5,5 0 0,1 17,15A5,5 0 0,1 12,20M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8C10.89,8 10,7.1 10,6C10,4.89 10.89,4 12,4M17,2H7C5.89,2 5,2.89 5,4V20A2,2 0 0,0 7,22H17A2,2 0 0,0 19,20V4C19,2.89 18.1,2 17,2Z", bell: "M10 21H14C14 22.1 13.1 23 12 23S10 22.1 10 21M21 19V20H3V19L5 17V11C5 7.9 7 5.2 10 4.3V4C10 2.9 10.9 2 12 2S14 2.9 14 4V4.3C17 5.2 19 7.9 19 11V17L21 19M17 11C17 8.2 14.8 6 12 6S7 8.2 7 11V18H17V11Z",
   keyboard: "M19,10H17V8H19M19,13H17V11H19M16,10H14V8H16M16,13H14V11H16M16,17H8V15H16M7,10H5V8H7M7,13H5V11H7M8,11H10V13H8M8,8H10V10H8M11,11H13V13H11M11,8H13V10H11M20,5H4C2.89,5 2,5.89 2,7V17A2,2 0 0,0 4,19H20A2,2 0 0,0 22,17V7C22,5.89 21.1,5 20,5Z", thanks: "M11.43 9.67C11.47 9.78 11.5 9.88 11.5 10V15.22C11.5 15.72 11.31 16.2 10.97 16.57L8.18 19.62L4.78 16.22L6 15L8.8 2.86C8.92 2.36 9.37 2 9.89 2C10.5 2 11 2.5 11 3.11V8.07C10.84 8.03 10.67 8 10.5 8C9.4 8 8.5 8.9 8.5 10V13C8.5 13.28 8.72 13.5 9 13.5S9.5 13.28 9.5 13V10C9.5 9.45 9.95 9 10.5 9C10.69 9 10.85 9.07 11 9.16C11.12 9.23 11.21 9.32 11.3 9.42C11.33 9.46 11.36 9.5 11.38 9.55C11.4 9.59 11.42 9.63 11.43 9.67M2 19L6 22L7.17 20.73L3.72 17.28L2 19M18 15L15.2 2.86C15.08 2.36 14.63 2 14.11 2C13.5 2 13 2.5 13 3.11V8.07C13.16 8.03 13.33 8 13.5 8C14.6 8 15.5 8.9 15.5 10V13C15.5 13.28 15.28 13.5 15 13.5S14.5 13.28 14.5 13V10C14.5 9.45 14.05 9 13.5 9C13.31 9 13.15 9.07 13 9.16C12.88 9.23 12.79 9.32 12.71 9.42C12.68 9.46 12.64 9.5 12.62 9.55C12.6 9.59 12.58 9.63 12.57 9.67C12.53 9.78 12.5 9.88 12.5 10V15.22C12.5 15.72 12.69 16.2 13.03 16.57L15.82 19.62L19.22 16.22L18 15M20.28 17.28L16.83 20.73L18 22L22 19L20.28 17.28Z", help: "M10,19H13V22H10V19M12,2C17.35,2.22 19.68,7.62 16.5,11.67C15.67,12.67 14.33,13.33 13.67,14.17C13,15 13,16 13,17H10C10,15.33 10,13.92 10.67,12.92C11.33,11.92 12.67,11.33 13.5,10.67C15.92,8.43 15.32,5.26 12,5A3,3 0 0,0 9,8H6A6,6 0 0,1 12,2Z", doc: "M13,9H18.5L13,3.5V9M6,2H14L20,8V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V4C4,2.89 4.89,2 6,2M15,18V16H6V18H15M18,14V12H6V14H18Z", out: "M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z", next: "M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z" };
 const SCRIPT = [
@@ -213,6 +270,95 @@ const INTS = [
 ];
 const VERSIONS = [['Core', '2026.11.3'], ['Frontend', '20261120.0'], ['Supervisor', '2026.11.1'], ['Operating system', '16.3'], ['Installation method', 'Home Assistant OS']];
 const PAGES = [['Shortcuts', 'keyboard', '#9e4dd1', 0, 'Keyboard shortcuts for this window'], ['Thanks to', 'thanks', '#3B808E', 1, ''], ['Help', 'help', '#B1345C', 1, ''], ['License', 'doc', '#518C43', 1, '']];
+// Pattern (regular expression) helpers shared by every search field on this board.
+const RX_FLAGS = [['i', 'Ignore case'], ['w', 'Whole word'], ['m', 'Multiline'], ['s', 'Dot matches new line']];
+const RX_WORDS = { d: 'any digit', D: 'anything but a digit', w: 'a letter, digit or underscore', W: 'anything but a letter, digit or underscore', s: 'a space or tab', S: 'anything but a space', b: 'the edge of a word', n: 'a new line', t: 'a tab' };
+function rxEsc(t) { return t.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&'); }
+function rxTail(fl) { return (fl.i ? 'i' : '') + (fl.m ? 'm' : '') + (fl.s ? 's' : ''); }
+function rxQuery(pat, fl) { return '/' + (fl.w ? '\\b(?:' + pat + ')\\b' : pat) + '/' + rxTail(fl); }
+function rxParse(q) {
+  const m = /^\/(.+)\/([ims]*)$/.exec((q || '').trim());
+  if (!m) return null;
+  const fl = {}; m[2].split('').forEach((c) => { fl[c] = 1; });
+  let pat = m[1];
+  if (pat.length > 8 && pat.slice(0, 5) === '\\b(?:' && pat.slice(-3) === ')\\b') { fl.w = 1; pat = pat.slice(5, -3); }
+  return { pat, fl };
+}
+function rxWhy(pat) {
+  let depth = 0, list = false;
+  for (let i = 0; i < pat.length; i++) {
+    const c = pat[i];
+    if (c === '\\') { if (i === pat.length - 1) return 'The pattern ends with a backslash. Add the character it stands for.'; i++; continue; }
+    if (list) { if (c === ']') list = false; continue; }
+    if (c === '[') list = true; else if (c === '(') depth++; else if (c === ')') depth--;
+    if (depth < 0) return 'There is a closing bracket ) with no opening bracket ( before it.';
+  }
+  if (list) return 'A list that starts with [ is never closed. Add ] to finish it.';
+  if (depth > 0) return 'A group that starts with ( is never closed. Add ) to finish it.';
+  if (/^[*+?]/.test(pat)) return 'A pattern cannot start with * + or ?. Put something before it to repeat.';
+  return 'This pattern cannot be read. Check the last thing you typed.';
+}
+function rxBuild(pat, fl) {
+  if (!pat) return { re: null, err: '' };
+  if (pat.length > 200) return { re: null, err: 'This pattern is too long. Keep it under 200 characters.' };
+  if (/\([^()]*[*+][^()]*\)[*+{]/.test(pat)) return { re: null, err: 'This pattern repeats a repeat, which can take too long to run. Make it simpler.' };
+  try { return { re: new RegExp(fl.w ? '\\b(?:' + pat + ')\\b' : pat, 'g' + rxTail(fl)), err: '' }; }
+  catch (e) { return { re: null, err: rxWhy(pat) }; }
+}
+function rxHas(text, re) { try { re.lastIndex = 0; return re.test(String(text).slice(0, 400)); } catch (e) { return false; } }
+function rxSegs(text, re) {
+  text = String(text).slice(0, 400);
+  const segs = []; let last = 0, n = 0, m;
+  if (re) { try {
+    re.lastIndex = 0;
+    while (n < 20 && (m = re.exec(text))) {
+      if (m[0] === '') { re.lastIndex++; if (re.lastIndex > text.length) break; continue; }
+      if (m.index > last) segs.push({ t: text.slice(last, m.index), cls: '' });
+      segs.push({ t: m[0], cls: 'hit' }); last = m.index + m[0].length; n++;
+    }
+  } catch (e) {} }
+  if (last < text.length) segs.push({ t: text.slice(last), cls: '' });
+  return segs;
+}
+function rxMatcher(q) {
+  const t = (q || '').trim();
+  if (!t) return null;
+  const p = rxParse(t);
+  if (p) { const b = rxBuild(p.pat, p.fl); if (b.re) return (x) => rxHas(x, b.re); }
+  const low = t.toLowerCase();
+  return (x) => String(x).toLowerCase().includes(low);
+}
+function rxExplain(pat) {
+  const out = []; let i = 0, lit = '';
+  const flush = () => { if (lit) { out.push({ tok: lit, text: 'the text "' + lit + '"' }); lit = ''; } };
+  const add = (tok, text, step) => { flush(); out.push({ tok, text }); i += step; };
+  while (i < pat.length && out.length < 12) {
+    const c = pat[i], two = pat.substr(i, 2);
+    if (c === '\\') { const k = pat[i + 1]; if (k === undefined) add('\\', 'an unfinished backslash', 1); else add('\\' + k, RX_WORDS[k] || 'the character "' + k + '" itself', 2); }
+    else if (two === '.*') add('.*', 'any text, or nothing', 2);
+    else if (two === '.+') add('.+', 'any text, at least one character', 2);
+    else if (c === '.') add('.', 'any one character', 1);
+    else if (c === '^') add('^', 'the start', 1);
+    else if (c === '$') add('$', 'the end', 1);
+    else if (c === '|') add('|', 'or', 1);
+    else if (pat.substr(i, 3) === '(?:') add('(?:', 'start of a group', 3);
+    else if (c === '(') add('(', 'start of a group', 1);
+    else if (c === ')') add(')', 'end of the group', 1);
+    else if (c === '*') add('*', 'the piece before it, any number of times', 1);
+    else if (c === '+') add('+', 'the piece before it, one or more times', 1);
+    else if (c === '?') add('?', 'the piece before it is optional', 1);
+    else if (c === '[') {
+      const j = pat.indexOf(']', i + 2);
+      if (j < 0) add(pat.slice(i), 'an unfinished list of characters', pat.length - i);
+      else { const inner = pat.slice(i + 1, j); add(pat.slice(i, j + 1), inner[0] === '^' ? 'any one character except: ' + inner.slice(1) : 'any one of: ' + inner, j + 1 - i); }
+    }
+    else if (c === '{' && pat.indexOf('}', i) > i) { const j = pat.indexOf('}', i); add(pat.slice(i, j + 1), 'the piece before it, repeated ' + pat.slice(i + 1, j).replace(',', ' to ') + ' times', j + 1 - i); }
+    else { lit += c; i++; }
+  }
+  flush();
+  if (i < pat.length) out.push({ tok: '...', text: 'and the rest of the pattern' });
+  return out;
+}
 class Component extends DCLogic {
   constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'script'; this.reset('script'); }
 
@@ -230,7 +376,65 @@ class Component extends DCLogic {
   }
   go(s) { this._s = s; this.reset(s); this.bump(); }
 
-reset(s) { this.gone = {}; this.toast = null; this.q = ''; if (s !== 'before') this.view = s; else if (!this.view) this.view = 'script'; }
+reset(s) { this.gone = {}; this.toast = null; this.sq = {}; this.wb = null; this.stOpen = false; const pat = s === 'pattern' || s === 'pattern-invalid'; if (pat) { this.view = 'integrations'; this.wb = { id: 'int', pat: s === 'pattern' ? '^(matter|thread|bluetooth)' : '^(matter|thread', fl: { i: 1 } }; } else if (s !== 'before') this.view = s; else if (!this.view) this.view = 'script'; }
+
+  // ---- pattern workbench: one draft at a time, one saved query per search field ----
+  rxFocus(sel) { const root = this._root; setTimeout(() => { try { const el = (root || document).querySelector(sel); if (el) el.focus(); } catch (e) {} }, 60); }
+  rxOpen(id, e) {
+    try { if (e && e.currentTarget && e.currentTarget.getRootNode) this._root = e.currentTarget.getRootNode(); } catch (err) {}
+    const cur = (this.sq[id] || '').trim(); const p = rxParse(cur);
+    this.wb = p ? { id, pat: p.pat, fl: p.fl } : { id, pat: rxEsc(cur), fl: { i: 1 } };
+    this.bump(); this.rxFocus('[data-wbin]');
+  }
+  rxClose() { const id = this.wb && this.wb.id; this.wb = null; this.bump(); if (id) this.rxFocus('[data-rx="' + id + '"]'); }
+  rxEscape() {
+    if (this._esc || typeof document === 'undefined') return;
+    this._esc = true;
+    try { document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.wb) this.rxClose(); }); } catch (e) {}
+  }
+  rxField(v, p, id) {
+    const q = this.sq[id] || '';
+    const pq = rxParse(q);
+    const on = !!pq && !!rxBuild(pq.pat, pq.fl).re;
+    v[p + 'Q'] = q;
+    v[p + 'Set'] = (e) => { const n = Object.assign({}, this.sq); n[id] = e.target.value; this.sq = n; this.bump(); };
+    v[p + 'RxCls'] = on ? 'rxb on' : 'rxb';
+    v[p + 'RxOn'] = on ? 'true' : 'false';
+    v[p + 'RxOpen'] = (e) => this.rxOpen(id, e);
+  }
+  rxVals(v, fields) {
+    this.rxEscape();
+    const w = this.wb, f = w ? fields[w.id] : null;
+    const open = !!f;
+    const pat = open ? w.pat : '', fl = open ? w.fl : {};
+    const b = rxBuild(pat, fl);
+    const rows = open ? f.rows : [];
+    const hits = b.re ? rows.filter((t) => rxHas(t, b.re)) : [];
+    const sample = open && !rows.length && f.sample ? f.sample : '';
+    let count = 'Type a pattern to see what it matches';
+    if (b.err) count = 'Fix the pattern to see what it matches';
+    else if (b.re && sample) count = 'There are no ' + f.noun + ' to search yet. On a test line it finds:';
+    else if (b.re) count = hits.length + ' of ' + rows.length + ' ' + f.noun + (hits.length === 1 ? ' matches' : ' match');
+    const ok = !!b.re;
+    Object.assign(v, {
+      wbOpen: open, wbCls: 'wb popv pop',
+      wbTitle: open ? 'Pattern workbench for: ' + f.label : '', wbFor: open ? 'Opened from: ' + f.label + '. The pattern is kept for this search only.' : '',
+      wbPat: pat, wbTail: '/' + rxTail(fl), wbFieldCls: b.err ? 'wbfield bad' : 'wbfield', wbInvalid: b.err ? 'true' : 'false',
+      wbSet: (e) => { if (this.wb) { this.wb = Object.assign({}, this.wb, { pat: e.target.value }); this.bump(); } },
+      wbBad: !!b.err, wbErr: b.err,
+      wbFlags: RX_FLAGS.map((g) => ({ name: g[1], cls: fl[g[0]] ? 'chip sel' : 'chip', aria: fl[g[0]] ? 'true' : 'false',
+        toggle: () => { if (!this.wb) return; const n = Object.assign({}, this.wb.fl); if (n[g[0]]) delete n[g[0]]; else n[g[0]] = 1; this.wb = Object.assign({}, this.wb, { fl: n }); this.bump(); } })),
+      wbExplain: pat ? rxExplain(pat).concat(fl.w ? [{ tok: 'word', text: 'only as a whole word' }] : []) : [{ tok: '/ /', text: 'Nothing typed yet. Try gar.* for anything that has "gar" in it.' }],
+      wbCount: count,
+      wbPreview: sample ? [{ segs: rxSegs(sample, b.re) }] : hits.slice(0, 4).map((t) => ({ segs: rxSegs(t, b.re) })),
+      wbMore: hits.length > 4, wbMoreText: 'and ' + (hits.length - 4) + ' more',
+      wbUseCls: ok ? 'btn fill' : 'btn off', wbUseOff: ok ? 'false' : 'true',
+      wbUse: () => { if (!ok || !this.wb) return; const n = Object.assign({}, this.sq); n[this.wb.id] = rxQuery(pat, fl); this.sq = n; this.rxClose(); },
+      wbCancel: () => this.rxClose(),
+      wbClear: () => { if (!this.wb) return; const n = Object.assign({}, this.sq); n[this.wb.id] = ''; this.sq = n; this.wb = Object.assign({}, this.wb, { pat: '' }); this.bump(); this.rxFocus('[data-wbin]'); },
+      wbKey: (e) => { if (e && e.key === 'Escape') { if (e.stopPropagation) e.stopPropagation(); this.rxClose(); } }
+    });
+  }
   renderVals() {
     const v = this.base();
     const s = this.stage();
@@ -241,15 +445,25 @@ reset(s) { this.gone = {}; this.toast = null; this.q = ''; if (s !== 'before') t
     const alerts = [];
     if (!this.gone.err) alerts.push({ cls: 'al err', role: 'alert', icon: WI.err, text: 'Step 3 cannot be saved: the action "Set the heating to night temperature" has no target.', has2: false, b2: '', do2: () => {}, b1: 'Show step 3', do1: drop('err', 'Scrolls to step 3 and opens it') });
     if (!this.gone.draft) alerts.push({ cls: 'al info', role: 'status', icon: WI.draft, text: 'A draft from 19:42 was restored. It is not saved yet.', has2: true, b2: 'Discard', do2: drop('draft', 'Draft discarded'), b1: 'Keep editing', do1: drop('draft', 'Draft kept') });
-    const q = this.q.trim().toLowerCase();
-    const ints = INTS.filter((c) => !q || c[0].toLowerCase().includes(q));
+    const hitInt = rxMatcher(this.sq.int);
+    const ints = hitInt ? INTS.filter((c) => hitInt(c[0])) : INTS;
+    const stepLine = (t) => t[1] + ' · ' + t[2];
+    const hitSt = rxMatcher(this.sq.st);
+    const stepRows = SCRIPT.map((t, i) => [t, i]).filter((x) => !hitSt || hitSt(stepLine(x[0])));
+    this.rxField(v, 'int', 'int'); this.rxField(v, 'st', 'st');
+    this.rxVals(v, { int: { label: 'Search integrations', noun: 'integrations', rows: INTS.map((c) => c[0]) }, st: { label: 'Search the steps', noun: 'steps', rows: SCRIPT.map(stepLine) } });
+    v.wbAtInt = v.wbOpen && this.wb.id === 'int'; v.wbAtSt = v.wbOpen && this.wb.id === 'st';
+    v.stShown = !!this.stOpen; v.stClosed = !this.stOpen;
+    v.stOpen = (e) => { this.stOpen = true; try { this._root = e.currentTarget.getRootNode(); } catch (err) {} this.bump(); this.rxFocus('[data-stin]'); };
+    v.stClose = () => { this.stOpen = false; const n = Object.assign({}, this.sq); n.st = ''; this.sq = n; if (this.wb && this.wb.id === 'st') this.wb = null; this.bump(); };
+    v.stepsText = hitSt ? stepRows.length + ' of ' + SCRIPT.length + ' steps' : SCRIPT.length + ' steps';
     return Object.assign(v, {
       isBefore: before, isAfter: !before,
       isScript: view === 'script', isInt: view === 'integrations', isAbout: view === 'about',
       views: [['script', 'Script editor'], ['integrations', 'Integrations'], ['about', 'About']].map((w) => ({ name: w[1], cls: view === w[0] ? 'sel' : '', aria: view === w[0] ? 'true' : 'false', pick: () => { this.view = w[0]; this.toast = null; this.bump(); } })),
       alerts, noAlerts: alerts.length === 0, restore: () => { this.gone = {}; this.toast = null; this.bump(); },
-      steps: SCRIPT.map((t, i) => ({ n: i + 1, icon: WI[t[0]], title: t[1], meta: t[2], cls: i === 2 && !this.gone.err ? 'stepc bad' : 'stepc', more: 'More actions for step ' + (i + 1) })),
-      query: this.q, setQuery: (e) => { this.q = e.target.value; this.bump(); },
+      steps: stepRows.map((x) => { const t = x[0], i = x[1]; return { n: i + 1, icon: WI[t[0]], title: t[1], meta: t[2], cls: i === 2 && !this.gone.err ? 'stepc bad' : 'stepc', more: 'More actions for step ' + (i + 1) }; }),
+      query: this.sq.int || '', setQuery: v.intSet,
       intText: ints.length + ' of ' + INTS.length + ' integrations' + (before ? '' : ' · long names wrap to two lines'),
       cards: ints.map((c) => {
         const long = c[0].length > 22;
