@@ -586,11 +586,12 @@ class WatchedKeeper:
             raise
         except Exception as err:  # noqa: BLE001
             LOGGER.warning(
-                "A watched live view of %s ended: %s %s",
+                "A watched live view of %s ended: %s (%s)",
                 cam,
                 type(err).__name__,
-                mask_secrets(str(err)),
+                classify_error(err).value,
             )
+            LOGGER.debug("Watched live view of %s: %s", cam, mask_secrets(str(err)))
             _settle(watch.ready, WatchRefused(classify_error(err).value))
         finally:
             watch.ended = True
@@ -732,7 +733,13 @@ class WatchedKeeper:
                 await access.remove(watch.stream)
             except Exception as err:  # noqa: BLE001
                 LOGGER.warning(
-                    "Could not remove the watched stream of %s: %s",
+                    "Could not remove the watched stream of %s: %s (%s)",
+                    watch.cam,
+                    type(err).__name__,
+                    classify_error(err).value,
+                )
+                LOGGER.debug(
+                    "Watched stream removal for %s: %s",
                     watch.cam,
                     mask_secrets(str(err)),
                 )

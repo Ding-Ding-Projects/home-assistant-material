@@ -75,3 +75,64 @@ def test_problem_log_masks_credentials(caplog: pytest.LogCaptureFixture) -> None
         problems.failed(f"Connection to {RTSPS} failed", now=0)
     assert "12345678" not in caplog.text
     assert "bblp" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("text", "secrets"),
+    [
+        ("rtsp://admin:pa/ss@192.168.1.10/stream: Invalid argument", ["pa/ss", "admin"]),
+        ("rtsp://admin:pa'ss@192.168.1.10/stream: Invalid", ["pa'ss", "admin"]),
+        ("rtsp://admin:P@ss/w0rd@192.168.1.10/stream", ["P@ss", "w0rd", "admin"]),
+        (
+            "rtsp://192.168.1.10:554/user=admin_password=S3cret_channel=1_stream=0.sdp?real_stream",
+            ["S3cret", "admin"],
+        ),
+        ("rtsp://cam/user=admin&password=S3cret&channel=1", ["S3cret", "admin"]),
+        ("rtsps://cam:7441/x?hdnts=exp=1~hmac=zz&channel=1", ["hmac=zz"]),
+    ],
+)
+def test_mask_secrets_in_odd_addresses(text: str, secrets: list[str]) -> None:
+    """Passwords with slashes, quotes or at signs, and secrets in paths, are hidden."""
+    masked = mask_secrets(text)
+    for secret in secrets:
+        assert secret not in masked
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "rtsp://admin:pa/ss@192.168.1.10/stream",
+        "rtsp://admin:P@ss/w0rd@192.168.1.10/stream",
+    ],
+)
+def test_source_summary_survives_odd_passwords(source: str) -> None:
+    """The host is taken after the last at sign, so no part of the login is shown."""
+    assert source_summary(source) == "rtsp://192.168.1.10"
+
+
+def test_detail_is_written_once_and_repeats_get_rarer(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Extra lines come with a new problem only, and reminders become less frequent."""
+    problems = ProblemLog(logging.getLogger("test_problem_log"), "Recording camera.x")
+    with caplog.at_level(logging.INFO, logger="test_problem_log"):
+        problems.failed("down", now=0, detail="    ffmpeg: line")
+        problems.failed("down", now=REPEAT_SECONDS, detail="    ffmpeg: line")
+        assert not problems.failed("down", now=REPEAT_SECONDS * 2)
+        assert problems.failed("down", now=REPEAT_SECONDS + 3600)
+    lines = [record.getMessage() for record in caplog.records]
+    assert lines[0] == "Recording camera.x: down\n    ffmpeg: line"
+    assert "ffmpeg: line" not in lines[1]
+    assert len(lines) == 3
+
+
+def test_key_decides_what_is_the_same_problem(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Messages with the same key are one problem, and a process address is ignored."""
+    problems = ProblemLog(logging.getLogger("test_problem_log"), "Recording camera.x")
+    with caplog.at_level(logging.INFO, logger="test_problem_log"):
+        assert problems.failed("[a @ 0x1] stopped", now=0)
+        assert not problems.failed("[a @ 0x2] stopped", now=1)
+        assert problems.failed("x", now=2, key="one")
+        assert not problems.failed("y", now=3, key="one")

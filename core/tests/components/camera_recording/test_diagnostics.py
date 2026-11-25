@@ -42,3 +42,4 @@ async def test_diagnostics_have_no_credentials(
     assert "bblp" not in text
     assert "secret" not in text
     assert "cams" not in text
+    assert "server" not in text

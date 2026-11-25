@@ -122,7 +122,7 @@ def remote_entry() -> MockConfigEntry:
     """An entry recording to an SSH server."""
     return MockConfigEntry(
         domain=DOMAIN,
-        title="memory",
+        title="cams@server:/srv/cameras",
         data={
             CONF_DESTINATION: DEST_SFTP,
             CONF_HOST: "server",
