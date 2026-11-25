@@ -35,6 +35,7 @@ from .live import (
     whep_source,
 )
 from .manager import RecordingManager
+from .problem_log import mask_secrets
 from .recorder import RecorderState
 
 KIND_LIVE_VIEW = "live_view"
@@ -569,6 +570,10 @@ class WatchedKeeper:
             elif not settings.keep_live:
                 await watch.stop.wait()
             elif source is None:
+                LOGGER.warning(
+                    "No live clip of %s can be kept: the camera gave no stream address",
+                    cam,
+                )
                 self._row_not_kept(cam, ClipReason.UNSUPPORTED)
                 await watch.stop.wait()
             else:
@@ -580,8 +585,11 @@ class WatchedKeeper:
         except asyncio.CancelledError:
             raise
         except Exception as err:  # noqa: BLE001
-            LOGGER.debug(
-                "A watched live view of %s ended (%s)", cam, type(err).__name__
+            LOGGER.warning(
+                "A watched live view of %s ended: %s %s",
+                cam,
+                type(err).__name__,
+                mask_secrets(str(err)),
             )
             _settle(watch.ready, WatchRefused(classify_error(err).value))
         finally:
@@ -722,8 +730,12 @@ class WatchedKeeper:
         if access is not None and watch.stream is not None:
             try:
                 await access.remove(watch.stream)
-            except Exception:  # noqa: BLE001
-                LOGGER.debug("Could not remove the watched stream of %s", watch.cam)
+            except Exception as err:  # noqa: BLE001
+                LOGGER.warning(
+                    "Could not remove the watched stream of %s: %s",
+                    watch.cam,
+                    mask_secrets(str(err)),
+                )
         session = watch.session
         if session is not None:
             camera = self._camera(watch.cam)

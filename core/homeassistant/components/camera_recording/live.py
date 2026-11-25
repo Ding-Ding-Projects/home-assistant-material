@@ -298,9 +298,19 @@ class LiveOfferView(HomeAssistantView):
             )
             sdp = await asyncio.wait_for(answer, LIVE_OFFER_TIMEOUT_SECONDS)
         except TimeoutError:
+            LOGGER.warning(
+                "No answer to the live offer for %s within %s s",
+                session.entity_id,
+                LIVE_OFFER_TIMEOUT_SECONDS,
+            )
             session.failure = ClipReason.TIMED_OUT
             return web.Response(status=504)
         except LiveOfferError as err:
+            LOGGER.warning(
+                "The live offer for %s was refused: %s",
+                session.entity_id,
+                err.reason.value,
+            )
             session.failure = err.reason
             return web.Response(
                 status=429 if err.reason is ClipReason.RATE_LIMITED else 502
