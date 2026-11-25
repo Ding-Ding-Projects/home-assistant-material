@@ -347,7 +347,14 @@ export class HaFilterChipMenu extends LitElement {
     .chip-menu::part(menu) {
       padding-top: 0;
       min-width: min(320px, calc(100vw - var(--ha-space-4)));
-      min-height: var(--chip-menu-open-height, 0px);
+    }
+    /* Only the phone sheet is anchored at its bottom, so only there does a
+       shrinking list carry the search field away. A wide menu is anchored at
+       its top and may shrink freely. */
+    @media (max-width: 599px) {
+      .chip-menu::part(menu) {
+        min-height: min(var(--chip-menu-open-height, 0px), 85dvh);
+      }
     }
     .chip-search {
       position: sticky;
