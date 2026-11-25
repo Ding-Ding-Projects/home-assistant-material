@@ -104,6 +104,14 @@ export class HaFilterChipMenu extends LitElement {
    */
   @state() private _pinned: string[] = [];
 
+  /**
+   * The height of the menu once it opened with every row listed. Filtering
+   * keeps that height, so a menu that sits against the bottom of a phone, or
+   * flips above the chip, does not shrink and carry the search field away
+   * from the finger that is typing in it.
+   */
+  @state() private _openHeight = 0;
+
   protected render(): TemplateResult {
     const localize = this.localize;
     const search = this._search;
@@ -116,7 +124,10 @@ export class HaFilterChipMenu extends LitElement {
 
     return html`<ha-dropdown
       class="chip-menu"
+      style=${this._openHeight ? `--chip-menu-open-height: ${this._openHeight}px` : ""}
       @wa-show=${this._handleShow}
+      @wa-after-show=${this._handleAfterShow}
+      @wa-after-hide=${this._handleAfterHide}
       @wa-select=${this._handleSelect}
     >
       <ha-assist-chip
@@ -243,6 +254,23 @@ export class HaFilterChipMenu extends LitElement {
     this._pinned = [...this.selected];
   }
 
+  private _handleAfterShow(ev: Event) {
+    if (ev.target !== ev.currentTarget) {
+      return;
+    }
+    const menu = (ev.currentTarget as HTMLElement).shadowRoot?.querySelector(
+      '[part~="menu"]'
+    );
+    this._openHeight = Math.round(menu?.getBoundingClientRect().height ?? 0);
+  }
+
+  private _handleAfterHide(ev: Event) {
+    if (ev.target !== ev.currentTarget) {
+      return;
+    }
+    this._openHeight = 0;
+  }
+
   private _handleSearch(ev: Event) {
     this._search = (ev.target as HaInputSearch).value ?? "";
   }
@@ -318,6 +346,7 @@ export class HaFilterChipMenu extends LitElement {
     .chip-menu::part(menu) {
       padding-top: 0;
       min-width: min(320px, calc(100vw - var(--ha-space-4)));
+      min-height: var(--chip-menu-open-height, 0px);
     }
     .chip-search {
       position: sticky;

@@ -1,5 +1,6 @@
 import type { ContextType } from "@lit/context";
 import { initialState } from "@lit/task";
+import { mdiPuzzleOutline } from "@mdi/js";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { consume } from "../common/decorators/consume";
@@ -17,6 +18,7 @@ import {
 } from "../data/icons";
 import { brandsUrl } from "../util/brands-url";
 import "./ha-icon";
+import "./ha-svg-icon";
 
 @customElement("ha-domain-icon")
 export class HaDomainIcon extends LitElement {
@@ -47,6 +49,9 @@ export class HaDomainIcon extends LitElement {
   @consume({ context: brandsAccessTokenContext, subscribe: true })
   // @ts-ignore re-render trigger only, its value is never read
   private _brandsAccessToken?: string;
+
+  /** The domain whose brand image was reported missing by the server. */
+  @state() private _brandMissingFor?: string;
 
   private _iconTask = new AsyncValueTask(this, {
     task: ([icon, connection, config, domain, deviceClass, domainState]) => {
@@ -100,24 +105,54 @@ export class HaDomainIcon extends LitElement {
       `;
     }
     if (this.brandFallback) {
-      const image = brandsUrl(
-        {
-          domain: this.domain!,
-          type: "icon",
-          darkOptimized: this._hassUi?.themes.darkMode,
-        },
-        this._hassConfig?.auth.data.hassUrl
+      if (this._brandMissingFor === this.domain) {
+        // The brands server has no image for this domain: show a neutral icon
+        // instead of the "icon not available" picture it would send otherwise.
+        return html`<ha-svg-icon .path=${mdiPuzzleOutline}></ha-svg-icon>`;
+      }
+      const image = this._withoutPlaceholder(
+        brandsUrl(
+          {
+            domain: this.domain!,
+            type: "icon",
+            darkOptimized: this._hassUi?.themes.darkMode,
+          },
+          this._hassConfig?.auth.data.hassUrl
+        )
       );
       return html`
         <img
           alt=""
           src=${image}
+          @error=${this._handleBrandError}
           crossorigin="anonymous"
           referrerpolicy="no-referrer"
         />
       `;
     }
     return html`<ha-svg-icon .path=${DEFAULT_DOMAIN_ICON}></ha-svg-icon>`;
+  }
+
+  // Ask the server for a 404 instead of its placeholder picture, so a missing
+  // image reaches the error handler.
+  private _withoutPlaceholder(url: string): string {
+    if (!url || __DEMO__) {
+      return url;
+    }
+    try {
+      const parsed = new URL(url);
+      parsed.searchParams.set("placeholder", "no");
+      return parsed.toString();
+    } catch {
+      return url;
+    }
+  }
+
+  private _handleBrandError(ev: Event) {
+    // An empty src (no token yet) also errors; only a real request counts.
+    if ((ev.target as HTMLImageElement).getAttribute("src")) {
+      this._brandMissingFor = this.domain;
+    }
   }
 
   static styles = css`

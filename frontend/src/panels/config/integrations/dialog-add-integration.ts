@@ -629,10 +629,14 @@ class AddIntegrationDialog extends LitElement {
               .rowRenderer=${this._renderRow}
               style=${styleMap({
                 width: `${this._width}px`,
-                // On a phone the list fills the sheet body (see the flex rule
-                // in the styles); on a wide screen it has a bounded height
+                // On a phone the list fills the sheet body. The height is
+                // stated outright (the sheet is 88dvh tall, less the header,
+                // search and footer) rather than left to a percentage chain
+                // inside flex boxes with no definite height, which let the
+                // virtualizer measure zero rows while the sheet opened. On a
+                // wide screen it has a bounded height.
                 height: this._narrow
-                  ? undefined
+                  ? "calc(88dvh - 184px)"
                   : "min(500px, calc(var(--safe-height) - var(--ha-space-20) - 184px))",
                 flex: this._narrow ? "1 1 auto" : undefined,
                 "min-height": this._narrow ? "0" : undefined,
