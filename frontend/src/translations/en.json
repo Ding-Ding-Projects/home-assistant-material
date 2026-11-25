@@ -13888,6 +13888,26 @@
           "pause_all": "Pause all",
           "resume_all": "Resume all",
           "change": "Cameras and limits",
+          "search": {
+            "label": "Search cameras",
+            "count": "{count, plural,\n  one {# camera}\n  other {# cameras}\n}",
+            "count_of": "{shown} of {total, plural,\n  one {# camera}\n  other {# cameras}\n}",
+            "expand_all": "Expand all",
+            "collapse_all": "Collapse all",
+            "expand_all_label": "Expand all cameras",
+            "collapse_all_label": "Collapse all cameras",
+            "no_match": "No cameras match \"{query}\".",
+            "clear": "Clear search",
+            "none_here": "No cameras here match."
+          },
+          "row": {
+            "events_today": "{count, plural,\n  one {# event today}\n  other {# events today}\n}",
+            "newest_waiting": "newest {time} · {count} waiting",
+            "nothing_kept": "nothing kept yet",
+            "pause_camera": "Pause {name}",
+            "resume_camera": "Resume {name}",
+            "settings_of": "{name} settings"
+          },
           "states": {
             "starting": "Starting",
             "recording": "Recording",

@@ -3972,6 +3972,26 @@
           "pause_all": "全部暫停",
           "resume_all": "全部繼續",
           "change": "鏡頭同限制",
+          "search": {
+            "label": "搜尋鏡頭",
+            "count": "{count} 部鏡頭",
+            "count_of": "{total} 部鏡頭入面有 {shown} 部",
+            "expand_all": "全部展開",
+            "collapse_all": "全部收埋",
+            "expand_all_label": "展開所有鏡頭",
+            "collapse_all_label": "收埋所有鏡頭",
+            "no_match": "冇鏡頭符合「{query}」。",
+            "clear": "清除搜尋",
+            "none_here": "呢度冇鏡頭符合。"
+          },
+          "row": {
+            "events_today": "今日有 {count} 個事件",
+            "newest_waiting": "最新 {time} · 等緊 {count} 個",
+            "nothing_kept": "未有保留嘅錄影",
+            "pause_camera": "暫停{name}",
+            "resume_camera": "繼續{name}",
+            "settings_of": "{name}嘅設定"
+          },
           "states": {
             "starting": "開緊",
             "recording": "錄緊",
