@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Expose entities and create helper: lists that fit the visible screen, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.m3 .btn{padding:0 24px}
+.m3 .btn.text{padding:0 14px}
+.ph{background:var(--surf)}
+.sbar{height:28px;flex:none;display:flex;align-items:center;gap:8px;padding:0 16px;font-size:12px;line-height:16px;font-weight:600;color:var(--onv);position:relative;z-index:12;background:var(--surf)}
+.sbar .mid{flex:1;display:flex;justify-content:center;gap:6px;min-width:0}
+.sbar .ic{width:16px;height:16px}
+.tag.td{background:var(--amberc);color:var(--amber);min-height:20px;padding:1px 10px}
+.tag.nt{min-height:20px;padding:1px 10px}
+.bar{position:relative;z-index:5;background:var(--surf)}
+.pbar{position:absolute;left:12px;right:12px;bottom:12px;height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);display:flex;align-items:center;padding:0 6px;z-index:10}
+.m3 .pbar button{flex:1;min-width:0;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;line-height:14px;font-weight:600;color:var(--onv)}
+.pbar .pi{width:48px;height:28px;border-radius:14px;display:grid;place-items:center;transition:background-color .2s}
+.m3 .pbar button.on{color:var(--on)}
+.pbar button.on .pi{background:var(--sc);color:var(--on-sc)}
+.m3 .fab{position:absolute;right:16px;bottom:92px;z-index:6;min-height:56px;padding:0 22px 0 16px;border-radius:28px;background:var(--p);color:var(--on-p);box-shadow:var(--e3);display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;max-width:calc(100% - 32px)}
+.ltabs{display:flex;flex:none;box-shadow:inset 0 -1px 0 var(--outv);overflow-x:auto;position:relative;z-index:5;background:var(--surf)}
+.m3 .ltab{flex:1 0 auto;min-height:48px;padding:0 14px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--onv);position:relative}
+.m3 .ltab.sel{color:var(--p)}
+.m3 .ltab.sel::after{content:"";position:absolute;left:20%;right:20%;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--p)}
+.row{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 4px 8px 12px;border-radius:16px;background:var(--sl0);flex:none}
+.row .bl{font-size:15px;line-height:20px}
+
+.sumrow{display:flex;align-items:center;gap:8px;padding:4px 16px 8px;flex:none;position:relative;z-index:5;background:var(--surf)}
+.lscroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column-reverse}
+.linner{flex:none;display:flex;flex-direction:column;gap:6px;padding:4px 12px 0}
+.endcap{text-align:center;padding:10px 0 0}
+.spacer{flex:none}
+.ghost{display:flex;flex-direction:column;gap:8px;visibility:hidden;pointer-events:none}
+.tstrip{position:absolute;left:12px;right:12px;bottom:92px;z-index:8;display:flex;flex-direction:column;gap:8px}
+.tst{background:var(--inv);color:var(--on-inv);border-radius:16px;padding:0 4px 0 16px;display:flex;align-items:center;gap:4px;box-shadow:var(--e3);font-size:13px;line-height:18px;flex:none;min-height:48px}
+.tst .msg{flex:1;min-width:0;padding:6px 0;overflow-wrap:anywhere}
+.m3 .tst .btn.text{color:inherit;text-decoration:underline;padding:0 12px}
+.m3 .tst .ib{color:inherit}
+.m3 .tst .ib:hover{background:transparent}
+.rxb{width:48px;height:48px;display:grid;place-items:center;flex:none;color:var(--onv);border-radius:24px}
+.rxb > span{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;transition:background-color .2s}
+.rxb:hover > span{background:var(--sl4)}
+.m3 .rxb.on > span{background:var(--sc);color:var(--on-sc)}
+.srow{display:flex;flex-direction:column;gap:6px;padding:0 12px 8px;flex:none;position:relative;z-index:5;background:var(--surf)}
+.srow .sub{padding:0 16px}
+.sfield{display:flex;align-items:center;gap:4px;min-height:56px;padding:0 4px 0 16px;border-radius:28px;background:var(--sl2);color:var(--onv);min-width:0}
+.sfield input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px;color:var(--on)}
+.wbscrim{position:absolute;inset:0;background:var(--scrim);z-index:29}
+.wb{background:var(--sl1);color:var(--on);box-shadow:var(--e3);display:flex;flex-direction:column;gap:12px;padding:16px;z-index:30;overflow-y:auto;text-align:left}
+.wb.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;border-radius:28px 28px 0 0;padding:12px 16px 20px}
+.wb.popv{position:absolute;top:calc(100% + 8px);right:0;width:min(460px,calc(100vw - 32px));max-height:540px;border-radius:24px}
+.wbhead{display:flex;align-items:center;gap:8px;color:var(--onv);flex:none}
+.wbhead .tm{flex:1;min-width:0;color:var(--on)}
+.wbfield{display:flex;align-items:center;gap:4px;min-height:56px;padding:0 16px;border-radius:16px;background:var(--sl3);box-shadow:inset 0 -2px 0 var(--out);flex:none}
+.wbfield.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.wbfield input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:48px;color:var(--on);font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.wbfield .sl{color:var(--onv);font-size:16px}
+.wberr{color:var(--err);font-size:13px;line-height:18px;margin:-6px 4px 0;flex:none}
+.wbflags{display:flex;flex-wrap:wrap;gap:12px 8px;flex:none}
+.wbbox{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:16px;background:var(--sl2);flex:none}
+.wbx{display:flex;gap:10px;align-items:baseline;font-size:13px;line-height:18px;color:var(--onv)}
+.wbx .tok{flex:none;min-width:36px;max-width:45%;padding:1px 6px;border-radius:6px;background:var(--pc);color:var(--on-pc);text-align:center;overflow-wrap:anywhere}
+.wbrow{font-size:14px;line-height:20px;white-space:pre-wrap;overflow-wrap:anywhere}
+.wbrow .hit{background:var(--amberc);color:var(--amber);border-radius:4px;font-weight:600}
+.wbact{display:flex;align-items:center;gap:4px;flex-wrap:wrap;flex:none}
+.vp{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
+.pg{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 12px 0}
+.card{background:var(--sl0);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;flex:none;min-width:0}
+.c1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.c2{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;min-width:0}
+.t0{--tone:var(--p)}.t1{--tone:var(--amber)}.t2{--tone:var(--green)}.t3{--tone:var(--err)}
+.box{width:20px;height:20px;border-radius:4px;box-shadow:inset 0 0 0 2px var(--out);display:grid;place-items:center;flex:none;margin:0 14px;transition:background-color .2s}
+.box svg{width:16px;height:16px;fill:var(--on-p);opacity:0}
+.box.on{background:var(--p);box-shadow:none}
+.box.on svg{opacity:1}
+.bbar{height:56px;flex:none;position:relative;z-index:20;background:var(--sl4);display:flex;align-items:center;gap:10px;padding:0 14px;color:var(--onv);box-shadow:0 -1px 0 var(--outv)}
+.bbar .url{flex:1;min-width:0;height:36px;border-radius:18px;background:var(--sl1);display:flex;align-items:center;gap:6px;padding:0 12px;font-size:13px}
+.bbar .tabs{width:22px;height:22px;border-radius:6px;box-shadow:inset 0 0 0 2px currentColor;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+.dlg{position:absolute;left:0;right:0;top:0;height:100%;display:flex;flex-direction:column;background:var(--sl0);min-height:0}
+.dlg.tall{height:calc(100% + 56px)}
+.dlg .bar,.dlg .srow{background:var(--sl0)}
+.m3 .sw{width:52px;height:32px;border-radius:16px;background:var(--sl4);box-shadow:inset 0 0 0 2px var(--out);position:relative;flex:none;transition:background-color .2s}
+.m3 .sw::after{content:"";position:absolute;inset:-8px 0}
+.sw i{position:absolute;top:8px;left:8px;width:16px;height:16px;border-radius:12px;background:var(--out);transition:all .2s cubic-bezier(.2,0,0,1)}
+.m3 .sw.on{background:var(--p);box-shadow:none}
+.sw.on i{left:24px;top:4px;width:24px;height:24px;background:var(--on-p)}
+.dlist{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;padding:0 8px}
+.m3 .erow{display:flex;align-items:center;gap:12px;padding:6px 0 6px 8px;border-radius:16px;width:100%;flex:none;transition:background-color .2s}
+.m3 .erow.e{min-height:72px}
+.m3 .erow.h{min-height:56px}
+.m3 .erow:hover{background:var(--sl2)}
+.m3 .erow.on{background:var(--pc);color:var(--on-pc)}
+.m3 .erow.on .sub{color:inherit;opacity:.85}
+.erow .sub{font-size:12px;line-height:16px}
+.dfoot{flex:none;display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;background:var(--sl0);box-shadow:0 -1px 0 var(--outv)}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<div class="sbar"><span>19:49</span><span class="mid"><sc-if value="{{isOld}}" hint-placeholder-val="{{ false }}"><span class="tag td">Today</span></sc-if></span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,21L15.6,16.2C14.6,15.45 13.35,15 12,15C10.65,15 9.4,15.45 8.4,16.2L12,21M12,3C7.95,3 4.21,4.34 1.2,6.6L3,9C5.5,7.12 8.62,6 12,6C15.38,6 18.5,7.12 21,9L22.8,6.6C19.79,4.34 16.05,3 12,3M12,9C9.3,9 6.81,9.89 4.8,11.4L6.6,13.8C8.1,12.67 9.97,12 12,12C14.03,12 15.9,12.67 17.4,13.8L19.2,11.4C17.19,9.89 14.7,9 12,9Z"></path></svg><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,10H8V6H16M16.67,4H15V2H9V4H7.33A1.33,1.33 0 0,0 6,5.33V20.67C6,21.4 6.6,22 7.33,22H16.67A1.33,1.33 0 0,0 18,20.67V5.33C18,4.6 17.4,4 16.67,4Z"></path></svg></div>
+<div class="vp">
+<div class="{{dlgCls}}" role="dialog" aria-modal="true" aria-label="{{dTitle}}">
+<div class="bar">
+<button class="ib" aria-label="Close"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button>
+<span class="grow"><h1>{{dTitle}}</h1><sc-if value="{{hasSub}}" hint-placeholder-val="{{ true }}"><span class="sub c2">{{dSub}}</span></sc-if></span>
+</div>
+<div class="srow"><div class="sfield"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg><input type="search" value="{{sQ}}" onInput="{{ sSet }}" placeholder="{{sPh}}" aria-label="{{sPh}}"/><button class="{{sRxCls}}" data-rx="{{sId}}" aria-label="{{sRxLabel}}" title="Pattern workbench" aria-haspopup="dialog" aria-pressed="{{sRxOn}}" onClick="{{ sRxOpen }}"><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg></span></button></div></div>
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{ false }}">
+<div class="stagebox" role="status"><svg class="ic l spin" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"></path></svg><p class="sub">Loading the helper types</p></div>
+</sc-if>
+<sc-if value="{{showList}}" hint-placeholder-val="{{ true }}">
+<div class="dlist" tabindex="0" role="region" aria-label="{{listLabel}}">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+<button class="{{r.cls}}" role="{{r.role}}" aria-checked="{{r.aria}}" onClick="{{ r.tap }}">
+<span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{r.icon}}"></path></svg></span>
+<span class="grow"><span class="bl c2" title="{{r.name}}">{{r.name}}</span><sc-if value="{{r.hasMeta}}" hint-placeholder-val="{{ true }}"><span class="sub mono c1" title="{{r.meta}}">{{r.meta}}</span></sc-if></span>
+<sc-if value="{{r.check}}" hint-placeholder-val="{{ true }}"><span class="{{r.box}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></sc-if>
+<sc-if value="{{r.chev}}" hint-placeholder-val="{{ false }}"><span class="ib" aria-hidden="true"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg></span></sc-if>
+</button>
+</sc-for>
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+<div class="stagebox in"><span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></span><h2 class="tm" style="color: var(--on)">Nothing matches</h2><p class="sub" style="overflow-wrap: anywhere">{{emptyText}}</p><button class="btn tonal" onClick="{{ clearQ }}">Clear the search</button></div>
+</sc-if>
+<sc-if value="{{hasEnd}}" hint-placeholder-val="{{ true }}"><div class="sub endcap" style="padding: 10px 0 12px">{{endText}}</div></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{hasFoot}}" hint-placeholder-val="{{ true }}">
+<div class="dfoot"><button class="btn text">Cancel</button><button class="{{goCls}}" aria-disabled="{{goOff}}">{{goText}}</button></div>
+</sc-if>
+</div>
+<sc-if value="{{wbOpen}}" hint-placeholder-val="{{ false }}"><div class="wbscrim" onClick="{{ wbCancel }}"></div><div class="{{wbCls}}" role="dialog" aria-modal="true" aria-label="{{wbTitle}}" onKeyDown="{{ wbKey }}">
+<div class="wbhead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg><span class="tm">Pattern workbench</span><button class="ib" aria-label="Close the pattern workbench" onClick="{{ wbCancel }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div>
+<span class="sub">{{wbFor}}</span>
+<label class="{{wbFieldCls}}"><span class="mono sl" aria-hidden="true">/</span><input data-wbin="1" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" value="{{wbPat}}" onInput="{{ wbSet }}" aria-label="Pattern" aria-invalid="{{wbInvalid}}" placeholder="For example: gar.*"/><span class="mono sl" aria-hidden="true">{{wbTail}}</span></label>
+<sc-if value="{{wbBad}}" hint-placeholder-val="{{ false }}"><div class="wberr" role="alert">{{wbErr}}</div></sc-if>
+<div class="wbflags" role="group" aria-label="Pattern options"><sc-for list="{{wbFlags}}" as="f" hint-placeholder-count="4"><button class="{{f.cls}}" aria-pressed="{{f.aria}}" onClick="{{ f.toggle }}">{{f.name}}</button></sc-for></div>
+<div class="wbbox"><span class="lm">In plain words</span><sc-for list="{{wbExplain}}" as="x" hint-placeholder-count="3"><div class="wbx"><span class="mono tok">{{x.tok}}</span><span>{{x.text}}</span></div></sc-for></div>
+<div class="wbbox"><span class="lm" role="status">{{wbCount}}</span><sc-for list="{{wbPreview}}" as="pv" hint-placeholder-count="3"><div class="wbrow"><sc-for list="{{pv.segs}}" as="g" hint-placeholder-count="3"><span class="{{g.cls}}">{{g.t}}</span></sc-for></div></sc-for><sc-if value="{{wbMore}}" hint-placeholder-val="{{ false }}"><span class="sub">{{wbMoreText}}</span></sc-if></div>
+<div class="wbact"><button class="btn text" onClick="{{ wbClear }}">Clear</button><span style="flex: 1"></span><button class="btn text" onClick="{{ wbCancel }}">Cancel</button><button class="{{wbUseCls}}" aria-disabled="{{wbUseOff}}" onClick="{{ wbUse }}">Use pattern</button></div>
+</div></sc-if>
+</div>
+<div class="bbar" role="img" aria-label="The phone browser toolbar. It is part of the browser, not the app."><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"></path></svg><span class="url c1">home.example:8123</span><span class="tabs">3</span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","helper","before","before-helper","pattern","pattern-invalid","empty","loading"]},"$preview":{"width":390,"height":844}}'>
+const ENTS = [["Living room ceiling light","light.living_room_ceiling","M8,9H11V4H13V9H16L20,17H4L8,9M14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18H14Z"],["Hallway lamp","light.hallway_lamp","M14.56 4L17.23 12H6.78L9.44 4H14.56M16 2H8L4 14H20L16 2M11 15H13V20H18V22H6V20H11V15Z"],["Kitchen counter light","light.kitchen_counter","M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z"],["Living room thermostat","climate.living_room","M15 13V5A3 3 0 0 0 9 5V13A5 5 0 1 0 15 13M12 4A1 1 0 0 1 13 5V8H11V5A1 1 0 0 1 12 4Z"],["Bedroom fan","fan.bedroom","M12,11A1,1 0 0,0 11,12A1,1 0 0,0 12,13A1,1 0 0,0 13,12A1,1 0 0,0 12,11M12.5,2C17,2 17.11,5.57 14.75,6.75C13.76,7.24 13.32,8.29 13.13,9.22C13.61,9.42 14.03,9.73 14.35,10.13C18.05,8.13 22.03,8.92 22.03,12.5C22.03,17 18.46,17.1 17.28,14.73C16.78,13.74 15.72,13.3 14.79,13.11C14.59,13.59 14.28,14 13.88,14.34C15.87,18.03 15.08,22 11.5,22C7,22 6.91,18.42 9.27,17.24C10.25,16.75 10.69,15.71 10.89,14.79C10.4,14.59 9.97,14.27 9.65,13.87C5.96,15.85 2,15.07 2,11.5C2,7 5.56,6.89 6.74,9.26C7.24,10.25 8.29,10.68 9.22,10.87C9.41,10.39 9.73,9.97 10.14,9.65C8.15,5.96 8.94,2 12.5,2Z"],["Front door","binary_sensor.front_door_contact","M8,3C6.89,3 6,3.89 6,5V21H18V5C18,3.89 17.11,3 16,3H8M8,5H16V19H8V5M13,11V13H15V11H13Z"],["Hallway motion sensor","binary_sensor.hallway_motion","M10,0.2C9,0.2 8.2,1 8.2,2C8.2,3 9,3.8 10,3.8C11,3.8 11.8,3 11.8,2C11.8,1 11,0.2 10,0.2M15.67,1A7.33,7.33 0 0,0 23,8.33V7A6,6 0 0,1 17,1H15.67M18.33,1C18.33,3.58 20.42,5.67 23,5.67V4.33C21.16,4.33 19.67,2.84 19.67,1H18.33M21,1A2,2 0 0,0 23,3V1H21M7.92,4.03C7.75,4.03 7.58,4.06 7.42,4.11L2,5.8V11H3.8V7.33L5.91,6.67L2,22H3.8L6.67,13.89L9,17V22H10.8V15.59L8.31,11.05L9.04,8.18L10.12,10H15V8.2H11.38L9.38,4.87C9.08,4.37 8.54,4.03 7.92,4.03Z"],["Office speaker","media_player.office_speaker","M12,12A3,3 0 0,0 9,15A3,3 0 0,0 12,18A3,3 0 0,0 15,15A3,3 0 0,0 12,12M12,20A5,5 0 0,1 7,15A5,5 0 0,1 12,10A5,5 0 0,1 17,15A5,5 0 0,1 12,20M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8C10.89,8 10,7.1 10,6C10,4.89 10.89,4 12,4M17,2H7C5.89,2 5,2.89 5,4V20A2,2 0 0,0 7,22H17A2,2 0 0,0 19,20V4C19,2.89 18.1,2 17,2Z"],["Bedroom television","media_player.bedroom_television","M21,17H3V5H21M21,3H3A2,2 0 0,0 1,5V17A2,2 0 0,0 3,19H8V21H16V19H21A2,2 0 0,0 23,17V5A2,2 0 0,0 21,3Z"],["Robot vacuum downstairs","vacuum.downstairs","M12,2C14.65,2 17.19,3.06 19.07,4.93L17.65,6.35C16.15,4.85 14.12,4 12,4C9.88,4 7.84,4.84 6.35,6.35L4.93,4.93C6.81,3.06 9.35,2 12,2M3.66,6.5L5.11,7.94C4.39,9.17 4,10.57 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,10.57 19.61,9.17 18.88,7.94L20.34,6.5C21.42,8.12 22,10.04 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12C2,10.04 2.58,8.12 3.66,6.5M12,6A6,6 0 0,1 18,12C18,13.59 17.37,15.12 16.24,16.24L14.83,14.83C14.08,15.58 13.06,16 12,16C10.94,16 9.92,15.58 9.17,14.83L7.76,16.24C6.63,15.12 6,13.59 6,12A6,6 0 0,1 12,6M12,8A1,1 0 0,0 11,9A1,1 0 0,0 12,10A1,1 0 0,0 13,9A1,1 0 0,0 12,8Z"],["Garage door","cover.garage_door","M19,20H17V11H7V20H5V9L12,5L19,9V20M8,12H16V14H8V12M8,15H16V17H8V15M16,18V20H8V18H16Z"],["Porch light","light.porch","M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z"]];
+const HELPERS = [["Toggle","M17 6H7C3.69 6 1 8.69 1 12S3.69 18 7 18H17C20.31 18 23 15.31 23 12S20.31 6 17 6M17 16H7C4.79 16 3 14.21 3 12S4.79 8 7 8H17C19.21 8 21 9.79 21 12S19.21 16 17 16M17 9C15.34 9 14 10.34 14 12S15.34 15 17 15 20 13.66 20 12 18.66 9 17 9Z"],["Button","M13 5C15.21 5 17 6.79 17 9C17 10.5 16.2 11.77 15 12.46V11.24C15.61 10.69 16 9.89 16 9C16 7.34 14.66 6 13 6S10 7.34 10 9C10 9.89 10.39 10.69 11 11.24V12.46C9.8 11.77 9 10.5 9 9C9 6.79 10.79 5 13 5M20 20.5C19.97 21.32 19.32 21.97 18.5 22H13C12.62 22 12.26 21.85 12 21.57L8 17.37L8.74 16.6C8.93 16.39 9.2 16.28 9.5 16.28H9.7L12 18V9C12 8.45 12.45 8 13 8S14 8.45 14 9V13.47L15.21 13.6L19.15 15.79C19.68 16.03 20 16.56 20 17.14V20.5M20 2H4C2.9 2 2 2.9 2 4V12C2 13.11 2.9 14 4 14H8V12L4 12L4 4H20L20 12H18V14H20V13.96L20.04 14C21.13 14 22 13.09 22 12V4C22 2.9 21.11 2 20 2Z"],["Number","M4,17V9H2V7H6V17H4M22,15C22,16.11 21.1,17 20,17H16V15H20V13H18V11H20V9H16V7H20A2,2 0 0,1 22,9V10.5A1.5,1.5 0 0,1 20.5,12A1.5,1.5 0 0,1 22,13.5V15M14,15V17H8V13C8,11.89 8.9,11 10,11H12V9H8V7H12A2,2 0 0,1 14,9V11C14,12.11 13.1,13 12,13H10V15H14Z"],["Text","M17,7H22V17H17V19A1,1 0 0,0 18,20H20V22H17.5C16.95,22 16,21.55 16,21C16,21.55 15.05,22 14.5,22H12V20H14A1,1 0 0,0 15,19V5A1,1 0 0,0 14,4H12V2H14.5C15.05,2 16,2.45 16,3C16,2.45 16.95,2 17.5,2H20V4H18A1,1 0 0,0 17,5V7M2,7H13V9H4V15H13V17H2V7M20,15V9H17V15H20Z"],["Dropdown","M17 5H20L18.5 7L17 5M3 2H21C22.11 2 23 2.9 23 4V8C23 9.11 22.11 10 21 10H16V20C16 21.11 15.11 22 14 22H3C1.9 22 1 21.11 1 20V4C1 2.9 1.9 2 3 2M3 4V8H14V4H3M21 8V4H16V8H21M3 20H14V10H3V20M5 12H12V14H5V12M5 16H12V18H5V16Z"],["Date and/or time","M15,13H16.5V15.82L18.94,17.23L18.19,18.53L15,16.69V13M19,8H5V19H9.67C9.24,18.09 9,17.07 9,16A7,7 0 0,1 16,9C17.07,9 18.09,9.24 19,9.67V8M5,21C3.89,21 3,20.1 3,19V5C3,3.89 3.89,3 5,3H6V1H8V3H16V1H18V3H19A2,2 0 0,1 21,5V11.1C22.24,12.36 23,14.09 23,16A7,7 0 0,1 16,23C14.09,23 12.36,22.24 11.1,21H5M16,11.15A4.85,4.85 0 0,0 11.15,16C11.15,18.68 13.32,20.85 16,20.85A4.85,4.85 0 0,0 20.85,16C20.85,13.32 18.68,11.15 16,11.15Z"],["Counter","M4,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M4,6V18H11V6H4M20,18V6H18.76C19,6.54 18.95,7.07 18.95,7.13C18.88,7.8 18.41,8.5 18.24,8.75L15.91,11.3L19.23,11.28L19.24,12.5L14.04,12.47L14,11.47C14,11.47 17.05,8.24 17.2,7.95C17.34,7.67 17.91,6 16.5,6C15.27,6.05 15.41,7.3 15.41,7.3L13.87,7.31C13.87,7.31 13.88,6.65 14.25,6H13V18H15.58L15.57,17.14L16.54,17.13C16.54,17.13 17.45,16.97 17.46,16.08C17.5,15.08 16.65,15.08 16.5,15.08C16.37,15.08 15.43,15.13 15.43,15.95H13.91C13.91,15.95 13.95,13.89 16.5,13.89C19.1,13.89 18.96,15.91 18.96,15.91C18.96,15.91 19,17.16 17.85,17.63L18.37,18H20M8.92,16H7.42V10.2L5.62,10.76V9.53L8.76,8.41H8.92V16Z"],["Timer","M12,20A7,7 0 0,1 5,13A7,7 0 0,1 12,6A7,7 0 0,1 19,13A7,7 0 0,1 12,20M19.03,7.39L20.45,5.97C20,5.46 19.55,5 19.04,4.56L17.62,6C16.07,4.74 14.12,4 12,4A9,9 0 0,0 3,13A9,9 0 0,0 12,22C17,22 21,17.97 21,13C21,10.88 20.26,8.93 19.03,7.39M11,14H13V8H11M15,1H9V3H15V1Z"],["Schedule","M15,13H16.5V15.82L18.94,17.23L18.19,18.53L15,16.69V13M19,8H5V19H9.67C9.24,18.09 9,17.07 9,16A7,7 0 0,1 16,9C17.07,9 18.09,9.24 19,9.67V8M5,21C3.89,21 3,20.1 3,19V5C3,3.89 3.89,3 5,3H6V1H8V3H16V1H18V3H19A2,2 0 0,1 21,5V11.1C22.24,12.36 23,14.09 23,16A7,7 0 0,1 16,23C14.09,23 12.36,22.24 11.1,21H5M16,11.15A4.85,4.85 0 0,0 11.15,16C11.15,18.68 13.32,20.85 16,20.85A4.85,4.85 0 0,0 20.85,16C20.85,13.32 18.68,11.15 16,11.15Z"],["Group","M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25M0,20V18.5C0,17.11 1.89,15.94 4.45,15.6C3.86,16.28 3.5,17.22 3.5,18.25V20H0M24,20H20.5V18.25C20.5,17.22 20.14,16.28 19.55,15.6C22.11,15.94 24,17.11 24,18.5V20Z"],["Template","M8,3A2,2 0 0,0 6,5V9A2,2 0 0,1 4,11H3V13H4A2,2 0 0,1 6,15V19A2,2 0 0,0 8,21H10V19H8V14A2,2 0 0,0 6,12A2,2 0 0,0 8,10V5H10V3M16,3A2,2 0 0,1 18,5V9A2,2 0 0,0 20,11H21V13H20A2,2 0 0,0 18,15V19A2,2 0 0,1 16,21H14V19H16V14A2,2 0 0,1 18,12A2,2 0 0,1 16,10V5H14V3H16Z"],["Threshold sensor","M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12C20,14.4 19,16.5 17.3,18C15.9,16.7 14,16 12,16C10,16 8.2,16.7 6.7,18C5,16.5 4,14.4 4,12A8,8 0 0,1 12,4M14,5.89C13.62,5.9 13.26,6.15 13.1,6.54L11.81,9.77L11.71,10C11,10.13 10.41,10.6 10.14,11.26C9.73,12.29 10.23,13.45 11.26,13.86C12.29,14.27 13.45,13.77 13.86,12.74C14.12,12.08 14,11.32 13.57,10.76L13.67,10.5L14.96,7.29L14.97,7.26C15.17,6.75 14.92,6.17 14.41,5.96C14.28,5.91 14.15,5.89 14,5.89M10,6A1,1 0 0,0 9,7A1,1 0 0,0 10,8A1,1 0 0,0 11,7A1,1 0 0,0 10,6M7,9A1,1 0 0,0 6,10A1,1 0 0,0 7,11A1,1 0 0,0 8,10A1,1 0 0,0 7,9M17,9A1,1 0 0,0 16,10A1,1 0 0,0 17,11A1,1 0 0,0 18,10A1,1 0 0,0 17,9Z"],["Statistics","M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z"],["Utility meter","M11 15H6L13 1V9H18L11 23V15Z"],["Derivative sensor","M4 19V20H22V22H2V2H4V17C7 17 10 15 12.1 11.4C15.1 6.4 18.4 4 22 4V6C19.2 6 16.5 8.1 13.9 12.5C11.3 16.6 7.7 19 4 19Z"]];
+// Pattern (regular expression) helpers shared by every search field on this board.
+const RX_FLAGS = [['i', 'Ignore case'], ['w', 'Whole word'], ['m', 'Multiline'], ['s', 'Dot matches new line']];
+const RX_WORDS = { d: 'any digit', D: 'anything but a digit', w: 'a letter, digit or underscore', W: 'anything but a letter, digit or underscore', s: 'a space or tab', S: 'anything but a space', b: 'the edge of a word', n: 'a new line', t: 'a tab' };
+function rxEsc(t) { return t.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&'); }
+function rxTail(fl) { return (fl.i ? 'i' : '') + (fl.m ? 'm' : '') + (fl.s ? 's' : ''); }
+function rxQuery(pat, fl) { return '/' + (fl.w ? '\\b(?:' + pat + ')\\b' : pat) + '/' + rxTail(fl); }
+function rxParse(q) {
+  const m = /^\/(.+)\/([ims]*)$/.exec((q || '').trim());
+  if (!m) return null;
+  const fl = {}; m[2].split('').forEach((c) => { fl[c] = 1; });
+  let pat = m[1];
+  if (pat.length > 8 && pat.slice(0, 5) === '\\b(?:' && pat.slice(-3) === ')\\b') { fl.w = 1; pat = pat.slice(5, -3); }
+  return { pat, fl };
+}
+function rxWhy(pat) {
+  let depth = 0, list = false;
+  for (let i = 0; i < pat.length; i++) {
+    const c = pat[i];
+    if (c === '\\') { if (i === pat.length - 1) return 'The pattern ends with a backslash. Add the character it stands for.'; i++; continue; }
+    if (list) { if (c === ']') list = false; continue; }
+    if (c === '[') list = true; else if (c === '(') depth++; else if (c === ')') depth--;
+    if (depth < 0) return 'There is a closing bracket ) with no opening bracket ( before it.';
+  }
+  if (list) return 'A list that starts with [ is never closed. Add ] to finish it.';
+  if (depth > 0) return 'A group that starts with ( is never closed. Add ) to finish it.';
+  if (/^[*+?]/.test(pat)) return 'A pattern cannot start with * + or ?. Put something before it to repeat.';
+  return 'This pattern cannot be read. Check the last thing you typed.';
+}
+function rxBuild(pat, fl) {
+  if (!pat) return { re: null, err: '' };
+  if (pat.length > 200) return { re: null, err: 'This pattern is too long. Keep it under 200 characters.' };
+  if (/\([^()]*[*+][^()]*\)[*+{]/.test(pat)) return { re: null, err: 'This pattern repeats a repeat, which can take too long to run. Make it simpler.' };
+  try { return { re: new RegExp(fl.w ? '\\b(?:' + pat + ')\\b' : pat, 'g' + rxTail(fl)), err: '' }; }
+  catch (e) { return { re: null, err: rxWhy(pat) }; }
+}
+function rxHas(text, re) { try { re.lastIndex = 0; return re.test(String(text).slice(0, 400)); } catch (e) { return false; } }
+function rxSegs(text, re) {
+  text = String(text).slice(0, 400);
+  const segs = []; let last = 0, n = 0, m;
+  if (re) { try {
+    re.lastIndex = 0;
+    while (n < 20 && (m = re.exec(text))) {
+      if (m[0] === '') { re.lastIndex++; if (re.lastIndex > text.length) break; continue; }
+      if (m.index > last) segs.push({ t: text.slice(last, m.index), cls: '' });
+      segs.push({ t: m[0], cls: 'hit' }); last = m.index + m[0].length; n++;
+    }
+  } catch (e) {} }
+  if (last < text.length) segs.push({ t: text.slice(last), cls: '' });
+  return segs;
+}
+function rxMatcher(q) {
+  const t = (q || '').trim();
+  if (!t) return null;
+  const p = rxParse(t);
+  if (p) { const b = rxBuild(p.pat, p.fl); if (b.re) return (x) => rxHas(x, b.re); }
+  const low = t.toLowerCase();
+  return (x) => String(x).toLowerCase().includes(low);
+}
+function rxExplain(pat) {
+  const out = []; let i = 0, lit = '';
+  const flush = () => { if (lit) { out.push({ tok: lit, text: 'the text "' + lit + '"' }); lit = ''; } };
+  const add = (tok, text, step) => { flush(); out.push({ tok, text }); i += step; };
+  while (i < pat.length && out.length < 12) {
+    const c = pat[i], two = pat.substr(i, 2);
+    if (c === '\\') { const k = pat[i + 1]; if (k === undefined) add('\\', 'an unfinished backslash', 1); else add('\\' + k, RX_WORDS[k] || 'the character "' + k + '" itself', 2); }
+    else if (two === '.*') add('.*', 'any text, or nothing', 2);
+    else if (two === '.+') add('.+', 'any text, at least one character', 2);
+    else if (c === '.') add('.', 'any one character', 1);
+    else if (c === '^') add('^', 'the start', 1);
+    else if (c === '$') add('$', 'the end', 1);
+    else if (c === '|') add('|', 'or', 1);
+    else if (pat.substr(i, 3) === '(?:') add('(?:', 'start of a group', 3);
+    else if (c === '(') add('(', 'start of a group', 1);
+    else if (c === ')') add(')', 'end of the group', 1);
+    else if (c === '*') add('*', 'the piece before it, any number of times', 1);
+    else if (c === '+') add('+', 'the piece before it, one or more times', 1);
+    else if (c === '?') add('?', 'the piece before it is optional', 1);
+    else if (c === '[') {
+      const j = pat.indexOf(']', i + 2);
+      if (j < 0) add(pat.slice(i), 'an unfinished list of characters', pat.length - i);
+      else { const inner = pat.slice(i + 1, j); add(pat.slice(i, j + 1), inner[0] === '^' ? 'any one character except: ' + inner.slice(1) : 'any one of: ' + inner, j + 1 - i); }
+    }
+    else if (c === '{' && pat.indexOf('}', i) > i) { const j = pat.indexOf('}', i); add(pat.slice(i, j + 1), 'the piece before it, repeated ' + pat.slice(i + 1, j).replace(',', ' to ') + ' times', j + 1 - i); }
+    else { lit += c; i++; }
+  }
+  flush();
+  if (i < pat.length) out.push({ tok: '...', text: 'and the rest of the pattern' });
+  return out;
+}
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.sq = {}; this.wb = null; }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+
+
+  // ---- pattern workbench: one draft at a time, one saved query per search field ----
+  rxFocus(sel) { const root = this._root; setTimeout(() => { try { const el = (root || document).querySelector(sel); if (el) el.focus(); } catch (e) {} }, 60); }
+  rxOpen(id, e) {
+    try { if (e && e.currentTarget && e.currentTarget.getRootNode) this._root = e.currentTarget.getRootNode(); } catch (err) {}
+    const cur = (this.sq[id] || '').trim(); const p = rxParse(cur);
+    this.wb = p ? { id, pat: p.pat, fl: p.fl } : { id, pat: rxEsc(cur), fl: { i: 1 } };
+    this.bump(); this.rxFocus('[data-wbin]');
+  }
+  rxClose() { const id = this.wb && this.wb.id; this.wb = null; this.bump(); if (id) this.rxFocus('[data-rx="' + id + '"]'); }
+  rxEscape() {
+    if (this._esc || typeof document === 'undefined') return;
+    this._esc = true;
+    try { document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.wb) this.rxClose(); }); } catch (e) {}
+  }
+  rxField(v, p, id) {
+    const q = this.sq[id] || '';
+    const pq = rxParse(q);
+    const on = !!pq && !!rxBuild(pq.pat, pq.fl).re;
+    v[p + 'Q'] = q;
+    v[p + 'Set'] = (e) => { const n = Object.assign({}, this.sq); n[id] = e.target.value; this.sq = n; this.bump(); };
+    v[p + 'RxCls'] = on ? 'rxb on' : 'rxb';
+    v[p + 'RxOn'] = on ? 'true' : 'false';
+    v[p + 'RxOpen'] = (e) => this.rxOpen(id, e);
+  }
+  rxVals(v, fields) {
+    this.rxEscape();
+    const w = this.wb, f = w ? fields[w.id] : null;
+    const open = !!f;
+    const pat = open ? w.pat : '', fl = open ? w.fl : {};
+    const b = rxBuild(pat, fl);
+    const rows = open ? f.rows : [];
+    const hits = b.re ? rows.filter((t) => rxHas(t, b.re)) : [];
+    const sample = open && !rows.length && f.sample ? f.sample : '';
+    let count = 'Type a pattern to see what it matches';
+    if (b.err) count = 'Fix the pattern to see what it matches';
+    else if (b.re && sample) count = 'There are no ' + f.noun + ' to search yet. On a test line it finds:';
+    else if (b.re) count = hits.length + ' of ' + rows.length + ' ' + f.noun + (hits.length === 1 ? ' matches' : ' match');
+    const ok = !!b.re;
+    Object.assign(v, {
+      wbOpen: open, wbCls: 'wb sheet up',
+      wbTitle: open ? 'Pattern workbench for: ' + f.label : '', wbFor: open ? 'Opened from: ' + f.label + '. The pattern is kept for this search only.' : '',
+      wbPat: pat, wbTail: '/' + rxTail(fl), wbFieldCls: b.err ? 'wbfield bad' : 'wbfield', wbInvalid: b.err ? 'true' : 'false',
+      wbSet: (e) => { if (this.wb) { this.wb = Object.assign({}, this.wb, { pat: e.target.value }); this.bump(); } },
+      wbBad: !!b.err, wbErr: b.err,
+      wbFlags: RX_FLAGS.map((g) => ({ name: g[1], cls: fl[g[0]] ? 'chip sel' : 'chip', aria: fl[g[0]] ? 'true' : 'false',
+        toggle: () => { if (!this.wb) return; const n = Object.assign({}, this.wb.fl); if (n[g[0]]) delete n[g[0]]; else n[g[0]] = 1; this.wb = Object.assign({}, this.wb, { fl: n }); this.bump(); } })),
+      wbExplain: pat ? rxExplain(pat).concat(fl.w ? [{ tok: 'word', text: 'only as a whole word' }] : []) : [{ tok: '/ /', text: 'Nothing typed yet. Try gar.* for anything that has "gar" in it.' }],
+      wbCount: count,
+      wbPreview: sample ? [{ segs: rxSegs(sample, b.re) }] : hits.slice(0, 4).map((t) => ({ segs: rxSegs(t, b.re) })),
+      wbMore: hits.length > 4, wbMoreText: 'and ' + (hits.length - 4) + ' more',
+      wbUseCls: ok ? 'btn fill' : 'btn off', wbUseOff: ok ? 'false' : 'true',
+      wbUse: () => { if (!ok || !this.wb) return; const n = Object.assign({}, this.sq); n[this.wb.id] = rxQuery(pat, fl); this.sq = n; this.rxClose(); },
+      wbCancel: () => this.rxClose(),
+      wbClear: () => { if (!this.wb) return; const n = Object.assign({}, this.sq); n[this.wb.id] = ''; this.sq = n; this.wb = Object.assign({}, this.wb, { pat: '' }); this.bump(); this.rxFocus('[data-wbin]'); },
+      wbKey: (e) => { if (e && e.key === 'Escape') { if (e.stopPropagation) e.stopPropagation(); this.rxClose(); } }
+    });
+  }
+  reset(s) {
+    this.sel = { 0: 1, 2: 1, 5: 1 }; this.sq = {}; this.wb = null;
+    if (s === 'pattern') this.wb = { id: 'e', pat: 'light\\.', fl: { i: 1 } };
+    if (s === 'pattern-invalid') this.wb = { id: 'e', pat: 'light[', fl: { i: 1 } };
+    if (s === 'empty') this.sq = { e: 'aquarium' };
+  }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const old = s === 'before' || s === 'before-helper';
+    const helper = s === 'helper' || s === 'before-helper' || s === 'loading';
+    const loading = s === 'loading';
+    const id = helper ? 'h' : 'e';
+    const ph = helper ? 'Search helpers' : 'Search entities';
+    const eline = (e) => e[0] + ' · ' + e[1];
+    const hit = rxMatcher(this.sq[id]);
+    this.rxField(v, 's', id);
+    this.rxVals(v, {
+      e: { label: 'Search entities', noun: 'entities', rows: ENTS.map(eline) },
+      h: { label: 'Search helpers', noun: 'helper types', rows: HELPERS.map((h) => h[0]) }
+    });
+    let rows;
+    if (helper) {
+      rows = HELPERS.filter((h) => !hit || hit(h[0])).map((h) => ({ name: h[0], meta: '', hasMeta: false, icon: h[1], cls: 'erow h', role: 'option', aria: 'false', check: false, chev: true, box: 'box', tap: () => {} }));
+    } else {
+      rows = ENTS.map((e, i) => [e, i]).filter((x) => !hit || hit(eline(x[0]))).map((x) => {
+        const e = x[0], i = x[1], on = !!this.sel[i];
+        return { name: e[0], meta: e[1], hasMeta: true, icon: e[2], cls: 'erow e' + (on ? ' on' : ''), role: 'checkbox', aria: on ? 'true' : 'false', check: true, chev: false, box: on ? 'box on' : 'box',
+          tap: () => { const n = Object.assign({}, this.sel); if (n[i]) delete n[i]; else n[i] = 1; this.sel = n; this.bump(); } };
+      });
+    }
+    const n = Object.keys(this.sel).length;
+    const all = helper ? HELPERS.length : ENTS.length;
+    const noun = helper ? ' helper types' : ' entities';
+    return Object.assign(v, {
+      isOld: old,
+      // Today the list is sized from 100vh, the tall screen that includes the space behind the browser toolbar,
+      // so the dialog is one toolbar (56 px here) taller than what can be seen. The fix sizes it from 100dvh.
+      dlgCls: old ? 'dlg tall' : 'dlg',
+      dTitle: helper ? 'Create helper' : 'Expose entities', hasSub: !helper, dSub: 'Expose to Assist and Sample Cloud',
+      sPh: ph, sId: id, sRxLabel: 'Build a pattern search for: ' + ph,
+      isLoading: loading, showList: !loading, listLabel: helper ? 'Helper types' : 'Entities',
+      rows, isEmpty: !loading && rows.length === 0, emptyText: 'Nothing matches "' + (this.sq[id] || '') + '". Check the spelling or clear the search.',
+      clearQ: () => { this.sq = {}; this.bump(); },
+      hasEnd: !loading && rows.length > 0, endText: 'End of the list · ' + (hit ? rows.length + ' of ' + all : all) + noun,
+      hasFoot: !helper, goCls: n ? 'btn fill' : 'btn off', goOff: n ? 'false' : 'true', goText: n === 1 ? 'Expose 1 entity' : 'Expose ' + n + ' entities'
+    });
+  }
+}
+</script>
+</body>
+</html>

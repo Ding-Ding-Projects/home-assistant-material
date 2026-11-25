@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Assist chat in the entity sheet, phone on its side</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.ph{background:var(--surf)}
+.pl{width:844px;height:390px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surf)}
+.dash{position:absolute;inset:0;padding:72px 16px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
+.pl .dash{grid-template-columns:repeat(4,1fr)}
+.dash span{height:84px;border-radius:20px;background:var(--sl2)}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;background:var(--sl0);border-radius:28px 28px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--e3)}
+.grab{width:32px;height:4px;border-radius:2px;background:var(--out);opacity:.5;margin:10px auto;flex:none}
+.sbody{flex:1;min-height:0;overflow-y:auto}
+.sfoot{flex:none;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:8px 16px 16px;background:var(--sl0)}
+.today{position:absolute;left:8px;top:8px;right:8px;z-index:40;display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:none}
+.today>*{pointer-events:auto}
+.today .tag{box-shadow:var(--e3)}
+.m3 .mini{min-height:28px;padding:0 10px;border-radius:14px;background:var(--sl3);color:var(--onv);font-size:12px;font-weight:600;position:relative;box-shadow:var(--e3)}
+.m3 .mini::after{content:"";position:absolute;inset:-10px -2px}
+.m3 .mini.sel{background:var(--pc);color:var(--on-pc)}
+.sw{width:52px;height:32px;border-radius:16px;box-shadow:inset 0 0 0 2px var(--out);background:var(--sl4);display:flex;align-items:center;padding:0 8px;flex:none;transition:background-color .2s}
+.sw i{display:block;width:16px;height:16px;border-radius:12px;background:var(--out);transition:all .2s cubic-bezier(.2,0,0,1)}
+.sw.on{box-shadow:none;background:var(--p);justify-content:flex-end;padding:0 4px}
+.sw.on i{width:24px;height:24px;background:var(--on-p)}
+.es{--t:48px;--dr:48px;--rr:48px}
+.es.old{--t:44px;--dr:40px;--rr:44px}
+.ehd{display:flex;align-items:center;gap:12px;padding:0 4px 4px 16px;min-height:56px;flex:none}
+.ehd h1{overflow-wrap:anywhere}
+.tilei{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;flex:none;background:var(--pc);color:var(--on-pc);transition:all .2s}
+.ebd{padding:8px 16px 16px;display:flex;flex-direction:column;gap:14px}
+.foot{flex:none;padding:8px 12px 8px;box-shadow:0 -1px 0 var(--outv);background:var(--sl0)}
+.ftabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.ftabs::-webkit-scrollbar{display:none}
+.m3 .ftab{flex:1 0 auto;min-width:48px;min-height:48px;padding:0 10px;border-radius:24px;font-size:14px;font-weight:500;color:var(--on);display:inline-flex;flex-direction:column;align-items:center;justify-content:center;white-space:nowrap;line-height:1.2;transition:background-color .2s}
+.ftab .alt{font-size:12px;font-weight:400;opacity:.8}
+.m3 .ftab.sel{background:var(--inv);color:var(--on-inv)}
+.old .ftabs{overflow:visible}
+.m3 .old .ftab{flex:1 1 0;min-width:0;padding:0 4px}
+.px{font-size:11px;line-height:14px;font-weight:600;color:var(--out);text-align:center;padding-top:4px}
+.twrap{position:absolute;left:12px;right:12px;bottom:16px;z-index:50;display:flex;justify-content:center;pointer-events:none}
+.twrap .toast{position:static;width:min(420px,100%);pointer-events:auto;min-height:48px}
+.shows .ta{outline:2px dashed var(--amber);outline-offset:-2px}
+.vstate{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.vstate .big{font-size:40px;line-height:48px;font-weight:400}
+.modes{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.m3 .mode{width:56px;height:56px;border-radius:28px;display:grid;place-items:center;background:var(--sl2);color:var(--on);transition:background-color .2s}
+.m3 .mode.sel{background:var(--pc);color:var(--on-pc)}
+.segmented{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;padding:4px;border-radius:28px;background:var(--sl3);align-self:center;max-width:100%}
+.m3 .segmented button{color:var(--onv);font-weight:500;font-size:14px;padding:8px 16px;min-height:var(--t);border-radius:24px;transition:background-color .2s}
+.m3 .segmented button[aria-pressed="true"]{background:var(--sl0);color:var(--on);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;align-self:center}
+.m3 .vchip{display:inline-flex;align-items:center;gap:8px;min-height:var(--t);padding:0 16px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--on);font-weight:500;font-size:14px;transition:background-color .2s}
+.m3 .vchip[aria-pressed="true"]{background:var(--pc);color:var(--on-pc);box-shadow:none}
+.m3 .old .vchip[aria-pressed="true"]{background:rgba(3,169,244,.2);color:var(--on)}
+.bslide{height:56px;border-radius:20px;background:var(--sl3);position:relative;overflow:hidden;flex:1;min-width:0}
+.bslide b{position:absolute;left:0;top:0;bottom:0;border-radius:20px;background:var(--p)}
+.bslide b::after{content:"";position:absolute;right:8px;top:16px;bottom:16px;width:4px;border-radius:2px;background:rgba(0,0,0,.5)}
+.bslide input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+
+.pl .sheet{top:48px;max-height:none;left:max(0px,calc(50% - 320px));right:max(0px,calc(50% - 320px))}
+.pl .ehd{padding-top:8px}
+.cbody{display:flex;flex-direction:column;padding:0 16px}
+/* agreed rule: min-height:min(400px,60dvh). The board is 390 px tall, so 60dvh is drawn as 234px. */
+.chat{flex:1;min-height:min(400px,234px);display:flex;flex-direction:column;gap:8px;padding-bottom:8px}
+.old .chat{min-height:400px}
+.cmsgs{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 0}
+.msg{max-width:80%;padding:10px 14px;border-radius:20px;font-size:15px;line-height:20px;overflow-wrap:anywhere;flex:none}
+.msg.a{align-self:flex-start;background:var(--sl3);border-bottom-left-radius:6px}
+.msg.u{align-self:flex-end;background:var(--pc);color:var(--on-pc);border-bottom-right-radius:6px}
+.cin{display:flex;align-items:center;gap:4px;min-height:56px;padding:0 4px 0 16px;border-radius:28px;background:var(--sl2);flex:none}
+.cin input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:48px;color:var(--on)}
+.m3 .cin .ib{color:var(--p)}
+.fold{position:sticky;bottom:0;align-self:center;margin-top:-28px;z-index:3}
+.cwait{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;color:var(--onv);padding:8px 16px}
+.spinner{width:48px;height:48px;border-radius:50%;border:5px solid var(--sl4);border-top-color:var(--p)}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="{{root}}">
+<div class="today"><sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><span class="tag e">Today</span><span class="tag">{{todayText}}</span></sc-if><sc-if value="{{hasGap}}" hint-placeholder-val="{{ true }}"><span class="tag p">Fix: min(400px, 60dvh) = 234 px</span><span class="tag">{{gapText}}</span></sc-if></div>
+<div class="bar" aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0"><h1 style="padding-left: 16px">Home</h1></div>
+<div class="dash" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<div class="scrim"></div>
+<div class="sheet up" role="dialog" aria-modal="true" aria-labelledby="es-title">
+<div class="ehd">
+<span class="tilei" style="{{tileStyle}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{tileIcon}}"></path></svg></span>
+<span class="grow"><h1 id="es-title" class="tm">{{title}}</h1><span class="sub">{{stateText}}</span></span>
+<button class="ib" aria-label="More actions" onClick="{{ moreAct }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button>
+<button class="ib" aria-label="Close" onClick="{{ closeAct }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button>
+</div>
+<div class="sbody cbody" tabindex="0" role="region" aria-label="Conversation">
+<sc-if value="{{cOk}}" hint-placeholder-val="{{ true }}"><div class="chat">
+<div class="cmsgs" data-msgs="1" role="log" aria-live="polite" tabindex="0" aria-label="Messages"><sc-for list="{{msgs}}" as="m" hint-placeholder-count="3"><div class="{{m.cls}}">{{m.text}}</div></sc-for></div>
+<div class="cin"><input type="text" value="{{draft}}" onInput="{{ setDraft }}" onKeyDown="{{ key }}" placeholder="Ask Home Assistant" aria-label="Message" autocomplete="off"/><button class="ib" aria-label="Send" onClick="{{ send }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"></path></svg></button></div>
+</div>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><span class="tag e fold">The message box is further down. Scroll this sheet to reach it.</span></sc-if></sc-if>
+<sc-if value="{{cLoading}}" hint-placeholder-val="{{ false }}"><div class="cwait"><div class="spinner spin" role="progressbar" aria-label="Loading the assistant"></div><span class="sub">Loading the assistant</span></div></sc-if>
+<sc-if value="{{cError}}" hint-placeholder-val="{{ false }}"><div class="cwait" role="alert"><span class="bl" style="color: var(--on)">This assistant is not answering</span><span class="sub">The conversation agent did not load. Your other assistants still work.</span><button class="btn tonal" onClick="{{ retry }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg>Try again</button></div></sc-if>
+</div>
+<div class="foot">
+<div class="ftabs" role="tablist" aria-label="Sections">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><button class="{{t.cls}}" role="tab" aria-selected="{{t.aria}}" onClick="{{ t.pick }}"><span>{{t.main}}</span><sc-if value="{{t.hasAlt}}" hint-placeholder-val="{{ false }}"><span class="alt">{{t.alt}}</span></sc-if></button></sc-for>
+</div>
+<sc-if value="{{hasSize}}" hint-placeholder-val="{{ false }}"><div class="px" aria-hidden="true">{{sizeText}}</div></sc-if>
+</div>
+</div>
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}"><div class="twrap"><div class="toast up" role="status"><span style="flex: 1">{{toast}}</span></div></div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","empty","loading","error","before"]},"$preview":{"width":844,"height":390}}'>
+const MDI = {"mdiCommentProcessingOutline":"M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9M10,16V19.08L13.08,16H20V4H4V16H10M17,11H15V9H17V11M13,11H11V9H13V11M9,11H7V9H9V11Z"};
+const DEFAULT_STAGE = 'after';
+const START = [['a', 'How can I help?'], ['u', 'Is the garage door closed?'], ['a', 'Yes. The garage door has been closed since 18:20.'], ['u', 'Turn off the porch light at 23:00'], ['a', 'Done. The porch light will turn off at 23:00 tonight.']];
+const REPLIES = ['Done. I turned that on.', 'It is 20.5 °C in the hallway.', 'I could not find a device with that name. Try the name shown on your dashboard.'];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = DEFAULT_STAGE; this.toast = ''; this.reset(DEFAULT_STAGE); }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? DEFAULT_STAGE;
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+  say(t) { this.toast = t; this.bump(); clearTimeout(this._tt); this._tt = setTimeout(() => { this.toast = ''; this.bump(); }, 3600); }
+  minis(list) { return list.map((m) => ({ name: m[0], cls: m[1] ? 'mini sel' : 'mini', aria: m[1] ? 'true' : 'false', pick: m[2] })); }
+  flip(k) { return () => { this[k] = !this[k]; this.bump(); }; }
+  head(v, title, stateText, icon, style) {
+    Object.assign(v, { title, stateText, tileIcon: icon, tileStyle: style || '', toast: this.toast || '', hasToast: !!this.toast,
+      moreAct: () => this.say('More actions open here'), closeAct: () => this.say('The sheet closes here') });
+  }
+  plainTabs(names) { return names.map((n, i) => ({ main: n, alt: '', hasAlt: false, cls: i === 0 ? 'ftab sel' : 'ftab', aria: i === 0 ? 'true' : 'false', pick: () => { if (i) this.say(n + ' is drawn on the tabs and rows board'); } })); }
+
+  reset(s) { this.cs = s === 'loading' || s === 'error' ? s : 'ok'; this.msgs = s === 'empty' ? START.slice(0, 1) : START.slice(); this.draft = ''; this.sent = 0; this.toast = ''; }
+  toEnd() { const root = this._root; setTimeout(() => { try { const el = (root || document).querySelector('[data-msgs]'); if (el) el.scrollTop = el.scrollHeight; } catch (e) {} }, 60); }
+  post(e) {
+    const t = (this.draft || '').trim();
+    if (!t) return;
+    try { if (e && e.currentTarget && e.currentTarget.getRootNode) this._root = e.currentTarget.getRootNode(); } catch (err) {}
+    this.msgs = this.msgs.concat([['u', t]]); this.draft = ''; this.bump(); this.toEnd();
+    const r = REPLIES[this.sent % REPLIES.length]; this.sent++;
+    setTimeout(() => { this.msgs = this.msgs.concat([['a', r]]); this.bump(); this.toEnd(); }, 700);
+  }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const old = s === 'before';
+    this.head(v, 'Home assistant chat', 'Conversation agent · ready', MDI.mdiCommentProcessingOutline);
+    return Object.assign(v, {
+      root: 'pl es' + (old ? ' old' : ''), isBefore: old,
+      todayText: 'The chat is forced to 400 px, taller than the sheet on a phone held sideways.',
+      hasGap: !old && this.cs === 'ok', gapText: 'Still about 20 to 30 px taller than the space above the tabs, so the sheet scrolls a little.',
+      cOk: this.cs === 'ok', cLoading: this.cs === 'loading', cError: this.cs === 'error',
+      retry: () => { this.cs = 'ok'; this.bump(); },
+      msgs: this.msgs.map((m) => ({ cls: 'msg ' + m[0], text: m[1] })),
+      draft: this.draft, setDraft: (e) => { this.draft = e.target.value; this.bump(); },
+      key: (e) => { if (e && e.key === 'Enter') this.post(e); }, send: (e) => this.post(e),
+      tabs: this.plainTabs(['Overview', 'History', 'Settings']),
+      hasSize: false, sizeText: ''
+    });
+  }
+}
+</script>
+</body>
+</html>

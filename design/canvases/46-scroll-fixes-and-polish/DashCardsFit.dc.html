@@ -143,7 +143,7 @@ body{margin:0}
 <div class="cgrid">
 <sc-for list="{{thermos}}" as="h" hint-placeholder-count="2">
 <div class="{{h.cls}}">
-<div class="tilec" style="height: 56px"><span class="tdot" style="background: color-mix(in srgb, #E5645A 22%, transparent); color: #E5645A"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M15,13V5A3,3 0 0,0 9,5V13A5,5 0 1,0 15,13M12,4A1,1 0 0,1 13,5V8H11V5A1,1 0 0,1 12,4Z"></path></svg></span><span class="grow"><span class="tn">{{h.name}}</span><span class="ts">{{h.state}}</span></span></div>
+<div class="tilec" style="height: 56px"><span class="tdot" style="background: color-mix(in srgb, #E5645A 22%, transparent); color: #E5645A"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M15 13V5A3 3 0 0 0 9 5V13A5 5 0 1 0 15 13M12 4A1 1 0 0 1 13 5V8H11V5A1 1 0 0 1 12 4Z"></path></svg></span><span class="grow"><span class="tn">{{h.name}}</span><span class="ts">{{h.state}}</span></span></div>
 <div class="feat"><button aria-label="Lower the target for {{h.name}}" onClick="{{ h.down }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H5V11H19V13Z"></path></svg></button><span>{{h.target}}</span><button aria-label="Raise the target for {{h.name}}" onClick="{{ h.up }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg></button></div>
 <div class="bigs" aria-label="Current temperature {{h.now}}">{{h.now}}</div>
 </div>

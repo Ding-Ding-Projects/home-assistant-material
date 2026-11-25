@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Marketplace, logbook cause and security alerts on a wide window</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.m3 .btn{padding:0 24px}
+.m3 .btn.text{padding:0 14px}
+.ph{background:var(--surf)}
+.sbar{height:28px;flex:none;display:flex;align-items:center;gap:8px;padding:0 16px;font-size:12px;line-height:16px;font-weight:600;color:var(--onv);position:relative;z-index:12;background:var(--surf)}
+.sbar .mid{flex:1;display:flex;justify-content:center;gap:6px;min-width:0}
+.sbar .ic{width:16px;height:16px}
+.tag.td{background:var(--amberc);color:var(--amber);min-height:20px;padding:1px 10px}
+.tag.nt{min-height:20px;padding:1px 10px}
+.bar{position:relative;z-index:5;background:var(--surf)}
+.pbar{position:absolute;left:12px;right:12px;bottom:12px;height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);display:flex;align-items:center;padding:0 6px;z-index:10}
+.m3 .pbar button{flex:1;min-width:0;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;line-height:14px;font-weight:600;color:var(--onv)}
+.pbar .pi{width:48px;height:28px;border-radius:14px;display:grid;place-items:center;transition:background-color .2s}
+.m3 .pbar button.on{color:var(--on)}
+.pbar button.on .pi{background:var(--sc);color:var(--on-sc)}
+.m3 .fab{position:absolute;right:16px;bottom:92px;z-index:6;min-height:56px;padding:0 22px 0 16px;border-radius:28px;background:var(--p);color:var(--on-p);box-shadow:var(--e3);display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;max-width:calc(100% - 32px)}
+.ltabs{display:flex;flex:none;box-shadow:inset 0 -1px 0 var(--outv);overflow-x:auto;position:relative;z-index:5;background:var(--surf)}
+.m3 .ltab{flex:1 0 auto;min-height:48px;padding:0 14px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--onv);position:relative}
+.m3 .ltab.sel{color:var(--p)}
+.m3 .ltab.sel::after{content:"";position:absolute;left:20%;right:20%;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--p)}
+.row{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 4px 8px 12px;border-radius:16px;background:var(--sl0);flex:none}
+.row .bl{font-size:15px;line-height:20px}
+
+.sumrow{display:flex;align-items:center;gap:8px;padding:4px 16px 8px;flex:none;position:relative;z-index:5;background:var(--surf)}
+.lscroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column-reverse}
+.linner{flex:none;display:flex;flex-direction:column;gap:6px;padding:4px 12px 0}
+.endcap{text-align:center;padding:10px 0 0}
+.spacer{flex:none}
+.ghost{display:flex;flex-direction:column;gap:8px;visibility:hidden;pointer-events:none}
+.tstrip{position:absolute;left:12px;right:12px;bottom:92px;z-index:8;display:flex;flex-direction:column;gap:8px}
+.tst{background:var(--inv);color:var(--on-inv);border-radius:16px;padding:0 4px 0 16px;display:flex;align-items:center;gap:4px;box-shadow:var(--e3);font-size:13px;line-height:18px;flex:none;min-height:48px}
+.tst .msg{flex:1;min-width:0;padding:6px 0;overflow-wrap:anywhere}
+.m3 .tst .btn.text{color:inherit;text-decoration:underline;padding:0 12px}
+.m3 .tst .ib{color:inherit}
+.m3 .tst .ib:hover{background:transparent}
+.rxb{width:48px;height:48px;display:grid;place-items:center;flex:none;color:var(--onv);border-radius:24px}
+.rxb > span{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;transition:background-color .2s}
+.rxb:hover > span{background:var(--sl4)}
+.m3 .rxb.on > span{background:var(--sc);color:var(--on-sc)}
+.srow{display:flex;flex-direction:column;gap:6px;padding:0 12px 8px;flex:none;position:relative;z-index:5;background:var(--surf)}
+.srow .sub{padding:0 16px}
+.sfield{display:flex;align-items:center;gap:4px;min-height:56px;padding:0 4px 0 16px;border-radius:28px;background:var(--sl2);color:var(--onv);min-width:0}
+.sfield input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px;color:var(--on)}
+.wbscrim{position:absolute;inset:0;background:var(--scrim);z-index:29}
+.wb{background:var(--sl1);color:var(--on);box-shadow:var(--e3);display:flex;flex-direction:column;gap:12px;padding:16px;z-index:30;overflow-y:auto;text-align:left}
+.wb.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;border-radius:28px 28px 0 0;padding:12px 16px 20px}
+.wb.popv{position:absolute;top:calc(100% + 8px);right:0;width:min(460px,calc(100vw - 32px));max-height:540px;border-radius:24px}
+.wbhead{display:flex;align-items:center;gap:8px;color:var(--onv);flex:none}
+.wbhead .tm{flex:1;min-width:0;color:var(--on)}
+.wbfield{display:flex;align-items:center;gap:4px;min-height:56px;padding:0 16px;border-radius:16px;background:var(--sl3);box-shadow:inset 0 -2px 0 var(--out);flex:none}
+.wbfield.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.wbfield input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:48px;color:var(--on);font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.wbfield .sl{color:var(--onv);font-size:16px}
+.wberr{color:var(--err);font-size:13px;line-height:18px;margin:-6px 4px 0;flex:none}
+.wbflags{display:flex;flex-wrap:wrap;gap:12px 8px;flex:none}
+.wbbox{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:16px;background:var(--sl2);flex:none}
+.wbx{display:flex;gap:10px;align-items:baseline;font-size:13px;line-height:18px;color:var(--onv)}
+.wbx .tok{flex:none;min-width:36px;max-width:45%;padding:1px 6px;border-radius:6px;background:var(--pc);color:var(--on-pc);text-align:center;overflow-wrap:anywhere}
+.wbrow{font-size:14px;line-height:20px;white-space:pre-wrap;overflow-wrap:anywhere}
+.wbrow .hit{background:var(--amberc);color:var(--amber);border-radius:4px;font-weight:600}
+.wbact{display:flex;align-items:center;gap:4px;flex-wrap:wrap;flex:none}
+.scr{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:4px 12px 100px;display:flex;flex-direction:column;gap:12px}
+.kard{background:var(--sl0);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:8px;flex:none;min-width:0}
+.menu{background:var(--sl3);border-radius:20px;padding:8px;box-shadow:var(--e3);display:flex;flex-direction:column;min-width:196px}
+.m3 .mi{display:flex;align-items:center;gap:12px;min-height:48px;padding:0 14px 0 12px;border-radius:14px;font-size:14px;width:100%}
+.m3 .mi:hover{background:var(--sl4)}
+.m3 .mi.sel{background:var(--pc);color:var(--on-pc)}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;overflow-wrap:anywhere}
+.cut1{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alist{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.arow{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;position:relative}
+.arow.old,.arow.wide{flex-wrap:nowrap}
+.hdl{display:flex;align-items:center;min-height:48px;color:var(--onv);flex:none;cursor:grab}
+.sbd{display:flex;align-items:center;justify-content:center;width:24px;min-height:48px;margin:0 2px 0 4px;color:var(--onv);flex:none}
+.atx{flex:1 1 150px;min-width:0;display:flex;flex-direction:column;justify-content:center;min-height:48px;padding:4px 0}
+.ah{font-size:16px;line-height:22px;overflow-wrap:anywhere}
+.ad{font-size:13px;line-height:18px;color:var(--onv);overflow-wrap:anywhere}
+.arow.old .atx,.arow.wide .atx{flex:1 1 0}
+.arow.old .ah,.arow.old .ad,.arow.wide .ah,.arow.wide .ad{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.selw{position:relative;flex:none;order:4;flex-basis:100%;padding-left:70px;display:flex}
+.arow.old .selw,.arow.wide .selw{order:0;flex-basis:auto;padding-left:0;align-self:center}
+.m3 .sevsel{display:flex;align-items:center;gap:8px;height:48px;min-width:160px;padding:0 8px 0 14px;border-radius:12px;background:var(--sl2);font-size:14px;font-weight:500}
+.m3 .arow.old .sevsel{width:118px;min-width:0;height:42px;padding:0 2px 0 10px;gap:6px}
+.m3 .arow.wide .sevsel{width:150px;min-width:0}
+.sevsel .sv{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sdot{width:10px;height:10px;border-radius:5px;flex:none;background:var(--amber)}
+.sdot.alert{background:var(--err)}
+.m3 .del{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;order:3;transition:background-color .2s}
+.m3 .del:hover{background:var(--sl3)}
+.m3 .arow.old .del{width:40px;height:40px;order:0;align-self:center}
+.m3 .arow.wide .del{order:0}
+.smenu{position:absolute;top:calc(100% + 4px);left:70px;z-index:6}
+.arow.old .smenu,.arow.wide .smenu{left:auto;right:0}
+.m3 .addf{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 12px 0 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -1px 0 var(--out);width:100%;margin-top:8px;color:var(--onv);font-size:16px}
+.mini{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:20px 8px;color:var(--onv)}
+.mrow{position:relative;display:flex;align-items:center;gap:16px;padding:12px 16px;min-height:64px;width:100%;text-align:left}
+.m3 button.mrow{display:flex}
+.mrow + .mrow{box-shadow:inset 0 1px 0 var(--outv)}
+.mrow:hover{background:var(--sl1)}
+.mic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--sc);color:var(--on-sc)}
+.mtx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mtt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mrow.old .mtt{flex-wrap:nowrap}
+.mnm{font-size:16px;line-height:22px;font-weight:500;overflow-wrap:anywhere}
+.mty{padding:0 8px;border-radius:6px;font-size:12px;line-height:20px;color:var(--onv);background:var(--sl3);white-space:nowrap;flex:none}
+.mds{font-size:14px;line-height:20px;color:var(--onv)}
+.mnum{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:var(--onv);font-size:13px;line-height:18px;font-variant-numeric:tabular-nums}
+.mnum span{display:inline-flex;align-items:center;gap:4px}
+.mnum .ic{width:16px;height:16px}
+.minst{display:inline-flex;align-items:center;gap:4px;flex:none;color:var(--green);font-size:13px;line-height:18px;font-weight:600}
+.minst .ic{width:18px;height:18px}
+.mcard{background:var(--sl0);border-radius:20px;overflow:hidden;display:flex;flex-direction:column}
+.shd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 4px 0 8px}
+.shd h3{margin:0;font-size:18px;line-height:24px;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.shd h3.old{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chain{display:flex;flex-direction:column}
+.crow{position:relative;display:flex;align-items:flex-start;gap:12px;padding:8px 0;min-height:48px}
+.crow + .crow::before{content:"";position:absolute;top:-3px;left:11px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--outv)}
+.cnode{width:32px;height:32px;border-radius:16px;display:grid;place-items:center;flex:none;color:var(--nc,var(--onv));background:color-mix(in srgb,var(--nc,var(--onv)) 15%,var(--sl0))}
+.cnode.run{border-radius:10px;--nc:var(--p)}
+.cnode .ic{width:18px;height:18px}
+.cct{flex:1;min-width:0;display:flex;flex-direction:column}
+.cnm{font-size:15px;line-height:20px;font-weight:500}
+.csec{font-size:13px;line-height:18px;color:var(--onv);overflow-wrap:anywhere}
+.m3 .ctr{align-self:flex-start;color:var(--p);font-size:13px;line-height:18px;font-weight:600;position:relative;padding:2px 0}
+.m3 .ctr::after{content:"";position:absolute;inset:-13px -8px}
+.ctl{display:flex;flex-direction:column;align-items:flex-end;flex:none;font-size:13px;line-height:18px;color:var(--onv);padding-top:1px}
+.ctl .cts{color:var(--on);font-weight:500}
+.most{display:grid;grid-template-columns:1fr auto;gap:0 8px;margin-top:6px;font-size:15px;line-height:20px}
+.most .cnt{font-weight:500}
+.most .pg{grid-column:1 / -1;height:6px;border-radius:3px;background:var(--sl3);overflow:hidden;margin-top:4px}
+.most .pg i{display:block;height:100%;border-radius:3px;background:var(--p)}
+.most > span:first-child{min-width:0}
+.clamp3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;overflow-wrap:anywhere}
+.crow.nw{flex-wrap:wrap}
+.crow.nw .ctl{flex-basis:100%;flex-direction:row;align-items:center;gap:8px;padding:0 0 0 44px;margin-top:-6px}
+
+.wd{--wh:860px}
+.whd{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.srchbox{position:relative;display:flex;flex:1 1 280px;max-width:460px;min-width:0}
+.srchw{display:flex;align-items:center;gap:8px;min-height:56px;padding:0 4px 0 16px;border-radius:28px;background:var(--sl0);color:var(--onv);flex:1;min-width:0}
+.srchw input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px;color:var(--on)}
+.wbscrim.clear{background:transparent}
+.fwrap{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.panel{background:var(--sl1);border-radius:28px;display:flex;flex-direction:column;gap:12px;padding:20px;min-width:0}
+.panel.main{flex:1.6 1 480px}
+.panel.side{flex:1 1 340px}
+.panel.full{flex:1 1 100%}
+.phd2{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.phd2 .tm{flex:1;min-width:0}
+.msec{display:flex;flex-direction:column;gap:8px}
+.m3 .see{min-height:48px;color:var(--p);font-size:14px;font-weight:600;padding:0 12px;border-radius:24px;flex:none}
+.mrow .wnum{flex:none}
+.agrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:4px 24px}
+.wsub{display:flex;flex-direction:column;gap:2px;padding-top:8px;box-shadow:inset 0 1px 0 var(--outv)}
+.wb.popv{max-height:min(620px,calc(var(--wh) - 120px))}
+.wb.popv .wbhead{position:sticky;top:-16px;z-index:1;background:var(--sl1);margin-top:-16px;padding-top:12px}
+.wb.popv .wbact{position:sticky;bottom:-16px;background:var(--sl1);margin-bottom:-16px;padding:8px 0 12px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="wd">
+<div class="whd">
+<h1 class="tl">Marketplace</h1>
+<sc-if value="{{isOld}}" hint-placeholder-val="{{ false }}"><span class="tag td">Today</span></sc-if>
+<span style="flex: 1"></span>
+<div class="srchbox">
+<div class="srchw"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg><input type="search" value="{{sQ}}" onInput="{{ sSet }}" placeholder="Search packages" aria-label="Search packages"/><span class="lm" role="status" style="white-space: nowrap; padding-right: 4px">{{sCount}}</span><button class="{{sRxCls}}" data-rx="s" aria-label="Build a pattern search for: Search packages" title="Pattern workbench" aria-haspopup="dialog" aria-pressed="{{sRxOn}}" onClick="{{ sRxOpen }}"><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg></span></button></div>
+<sc-if value="{{wbOpen}}" hint-placeholder-val="{{ false }}"><div class="{{wbCls}}" role="dialog" aria-modal="true" aria-label="{{wbTitle}}" onKeyDown="{{ wbKey }}">
+<div class="wbhead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg><span class="tm">Pattern workbench</span><button class="ib" aria-label="Close the pattern workbench" onClick="{{ wbCancel }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div>
+<span class="sub">{{wbFor}}</span>
+<label class="{{wbFieldCls}}"><span class="mono sl" aria-hidden="true">/</span><input data-wbin="1" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" value="{{wbPat}}" onInput="{{ wbSet }}" aria-label="Pattern" aria-invalid="{{wbInvalid}}" placeholder="For example: gar.*"/><span class="mono sl" aria-hidden="true">{{wbTail}}</span></label>
+<sc-if value="{{wbBad}}" hint-placeholder-val="{{ false }}"><div class="wberr" role="alert">{{wbErr}}</div></sc-if>
+<div class="wbflags" role="group" aria-label="Pattern options"><sc-for list="{{wbFlags}}" as="f" hint-placeholder-count="4"><button class="{{f.cls}}" aria-pressed="{{f.aria}}" onClick="{{ f.toggle }}">{{f.name}}</button></sc-for></div>
+<div class="wbbox"><span class="lm">In plain words</span><sc-for list="{{wbExplain}}" as="x" hint-placeholder-count="3"><div class="wbx"><span class="mono tok">{{x.tok}}</span><span>{{x.text}}</span></div></sc-for></div>
+<div class="wbbox"><span class="lm" role="status">{{wbCount}}</span><sc-for list="{{wbPreview}}" as="pv" hint-placeholder-count="3"><div class="wbrow"><sc-for list="{{pv.segs}}" as="g" hint-placeholder-count="3"><span class="{{g.cls}}">{{g.t}}</span></sc-for></div></sc-for><sc-if value="{{wbMore}}" hint-placeholder-val="{{ false }}"><span class="sub">{{wbMoreText}}</span></sc-if></div>
+<div class="wbact"><button class="btn text" onClick="{{ wbClear }}">Clear</button><span style="flex: 1"></span><button class="btn text" onClick="{{ wbCancel }}">Cancel</button><button class="{{wbUseCls}}" aria-disabled="{{wbUseOff}}" onClick="{{ wbUse }}">Use pattern</button></div>
+</div></sc-if>
+</div>
+</div>
+<sc-if value="{{wbOpen}}" hint-placeholder-val="{{ false }}"><div class="wbscrim clear" onClick="{{ wbCancel }}"></div></sc-if>
+<div class="fwrap">
+<div class="panel main">
+<div class="phd2"><span class="tm">Discover</span><span class="sub">Made by people in the community and shared with everyone.</span></div>
+<sc-for list="{{sections}}" as="s" hint-placeholder-count="2">
+<section class="msec">
+<div class="shd"><h3 class="{{s.hCls}}">{{s.title}}</h3><button class="see">See all</button></div>
+<div class="mcard">
+<sc-for list="{{s.rows}}" as="r" hint-placeholder-count="2">
+<button class="{{r.cls}}" aria-label="{{r.label}}">
+<span class="mic"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{r.icon}}"></path></svg></span>
+<span class="mtx"><span class="mtt"><span class="mnm">{{r.name}}</span><span class="mty">{{r.type}}</span></span><span class="{{r.dCls}}" title="{{r.tip}}">{{r.desc}}</span></span>
+<sc-if value="{{r.installed}}" hint-placeholder-val="{{ false }}"><span class="minst"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"></path></svg>Installed</span></sc-if>
+<span class="mnum wnum"><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"></path></svg>{{r.downloads}}</span><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"></path></svg>{{r.stars}}</span></span>
+</button>
+</sc-for>
+</div>
+</section>
+</sc-for>
+<sc-if value="{{noMatch}}" hint-placeholder-val="{{ false }}"><div class="stagebox in"><span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></span><span class="tm" style="color: var(--on)">{{noMatchTitle}}</span><span class="sub">Check the spelling, or search for part of a name or a description.</span><button class="btn tonal" onClick="{{ sClear }}">Clear search</button></div></sc-if>
+</div>
+<div class="panel side">
+<div class="phd2"><span class="tm">Logbook</span><span class="sub">Hallway ceiling light turned on · 19:49</span></div>
+<span class="lm">WHY THIS HAPPENED</span>
+<div class="chain">
+<sc-for list="{{chain}}" as="c" hint-placeholder-count="4">
+<div class="crow"><span class="{{c.node}}" style="{{c.style}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{c.icon}}"></path></svg></span><span class="cct"><span class="{{c.nmCls}}" title="{{c.tip}}">{{c.name}}</span><sc-if value="{{c.hasSec}}" hint-placeholder-val="{{ true }}"><span class="csec">{{c.sec}}</span></sc-if><sc-if value="{{c.trace}}" hint-placeholder-val="{{ false }}"><button class="ctr">View trace</button></sc-if></span><span class="ctl"><sc-if value="{{c.hasState}}" hint-placeholder-val="{{ false }}"><span class="cts">{{c.state}}</span></sc-if><span class="mono">{{c.time}}</span></span></div>
+</sc-for>
+</div>
+<div class="wsub"><span class="lm" style="padding-top: 4px">MOST ACTIVE</span>
+<sc-for list="{{most}}" as="a" hint-placeholder-count="3"><div class="most"><span class="{{a.cls}}" title="{{a.tip}}">{{a.name}}</span><span class="cnt">{{a.count}}</span><span class="pg" aria-hidden="true"><i style="{{a.bar}}"></i></span></div></sc-for>
+</div>
+</div>
+<div class="panel full">
+<div class="phd2"><span class="tm">Security and safety · Active alert entities</span><span class="sub">Display any entities that require attention.</span></div>
+<div class="agrid" role="list">
+<sc-for list="{{alerts}}" as="r" hint-placeholder-count="4">
+<div class="{{r.cls}}" role="listitem">
+<span class="hdl" aria-hidden="true"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 11H3V9H21V11M21 13H3V15H21V13Z"></path></svg></span>
+<span class="sbd" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="{{r.icon}}"></path></svg></span>
+<span class="atx"><span class="ah" title="{{r.tipA}}">{{r.name}}</span><span class="ad" title="{{r.tipB}}">{{r.where}}</span></span>
+<span class="selw"><button class="sevsel" aria-haspopup="menu" aria-expanded="{{r.menuAria}}" aria-label="{{r.sevLabel}}" onClick="{{ r.openMenu }}"><span class="{{r.dot}}"></span><span class="sv">{{r.sev}}</span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,10L12,15L17,10H7Z"></path></svg></button>
+<sc-if value="{{r.menu}}" hint-placeholder-val="{{ false }}"><div class="menu pop smenu" role="menu" aria-label="Severity"><sc-for list="{{r.opts}}" as="o" hint-placeholder-count="2"><button class="{{o.cls}}" role="menuitemradio" aria-checked="{{o.aria}}" onClick="{{ o.pick }}"><span class="{{o.dot}}"></span>{{o.name}}</button></sc-for></div></sc-if></span>
+<button class="del" aria-label="{{r.delLabel}}" onClick="{{ r.del }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"></path></svg></button>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{canRestore}}" hint-placeholder-val="{{ false }}"><div class="hrow"><span class="sub" role="status" style="flex: 1">{{restoreText}}</span><button class="btn text" onClick="{{ restore }}">Undo</button></div></sc-if>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","before","pattern","pattern-invalid","no-match"]},"$preview":{"width":1280,"height":860}}'>
+// Made-up packages: [name, type, description, downloads, stars, installed, icon]
+const PACKS = {
+  popular: [
+    ['Rain Radar Card', 'Dashboard', 'Shows a live rain radar loop for your home location with a legend, a time slider and optional lightning strikes, and can follow a second saved place.', '48K', '2.1K', true, 'M9,12C9.53,12.14 9.85,12.69 9.71,13.22L8.41,18.05C8.27,18.59 7.72,18.9 7.19,18.76C6.65,18.62 6.34,18.07 6.5,17.54L7.78,12.71C7.92,12.17 8.47,11.86 9,12M13,12C13.53,12.14 13.85,12.69 13.71,13.22L11.64,20.95C11.5,21.5 10.95,21.8 10.41,21.66C9.88,21.5 9.56,20.97 9.7,20.43L11.78,12.71C11.92,12.17 12.47,11.86 13,12M17,12C17.53,12.14 17.85,12.69 17.71,13.22L16.41,18.05C16.27,18.59 15.72,18.9 15.19,18.76C14.65,18.62 14.34,18.07 14.5,17.54L15.78,12.71C15.92,12.17 16.47,11.86 17,12M17,10V9A5,5 0 0,0 12,4C9.5,4 7.45,5.82 7.06,8.19C6.73,8.07 6.37,8 6,8A3,3 0 0,0 3,11C3,12.11 3.6,13.08 4.5,13.6V13.59C5,13.87 5.14,14.5 4.87,14.96C4.59,15.43 4,15.6 3.5,15.32V15.33C2,14.47 1,12.85 1,11A5,5 0 0,1 6,6C7,3.65 9.3,2 12,2C15.43,2 18.24,4.66 18.5,8.03L19,8A4,4 0 0,1 23,12C23,13.5 22.2,14.77 21,15.46V15.46C20.5,15.73 19.91,15.57 19.63,15.09C19.36,14.61 19.5,14 20,13.72V13.73C20.6,13.39 21,12.74 21,12A2,2 0 0,0 19,10H17Z'],
+    ['Rain Radar Card Compact', 'Dashboard', 'Shows a live rain radar loop for your home location in a small tile without the legend or the time slider, for dashboards with little room.', '6.2K', '318', false, 'M9,12C9.53,12.14 9.85,12.69 9.71,13.22L8.41,18.05C8.27,18.59 7.72,18.9 7.19,18.76C6.65,18.62 6.34,18.07 6.5,17.54L7.78,12.71C7.92,12.17 8.47,11.86 9,12M13,12C13.53,12.14 13.85,12.69 13.71,13.22L11.64,20.95C11.5,21.5 10.95,21.8 10.41,21.66C9.88,21.5 9.56,20.97 9.7,20.43L11.78,12.71C11.92,12.17 12.47,11.86 13,12M17,12C17.53,12.14 17.85,12.69 17.71,13.22L16.41,18.05C16.27,18.59 15.72,18.9 15.19,18.76C14.65,18.62 14.34,18.07 14.5,17.54L15.78,12.71C15.92,12.17 16.47,11.86 17,12M17,10V9A5,5 0 0,0 12,4C9.5,4 7.45,5.82 7.06,8.19C6.73,8.07 6.37,8 6,8A3,3 0 0,0 3,11C3,12.11 3.6,13.08 4.5,13.6V13.59C5,13.87 5.14,14.5 4.87,14.96C4.59,15.43 4,15.6 3.5,15.32V15.33C2,14.47 1,12.85 1,11A5,5 0 0,1 6,6C7,3.65 9.3,2 12,2C15.43,2 18.24,4.66 18.5,8.03L19,8A4,4 0 0,1 23,12C23,13.5 22.2,14.77 21,15.46V15.46C20.5,15.73 19.91,15.57 19.63,15.09C19.36,14.61 19.5,14 20,13.72V13.73C20.6,13.39 21,12.74 21,12A2,2 0 0,0 19,10H17Z'],
+    ['Garden Watering Planner', 'Integration', 'Works out how long each watering zone should run from the forecast, the soil sensor and what was already watered this week, then skips rainy days.', '12K', '640', false, 'M11 7H13V9H11V7M5 22H9V10H5V22M14 11H16V9H14V11M17 10H19V8H17V10M17 5V7H19V5H17M14 8H16V6H14V8M17 13H19V11H17V13M5 7H5.33L6 9H8L8.67 7H9V6H5V7Z']
+  ],
+  updated: [
+    ['Bus Stop Departures', 'Integration', 'Next departures for the stops you pick, with delays, platform changes and one sensor per line, refreshed every minute while someone is home.', '7.1K', '388', true, 'M18,11H6V6H18M16.5,17A1.5,1.5 0 0,1 15,15.5A1.5,1.5 0 0,1 16.5,14A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 16.5,17M7.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,14A1.5,1.5 0 0,1 9,15.5A1.5,1.5 0 0,1 7.5,17M4,16C4,16.88 4.39,17.67 5,18.22V20A1,1 0 0,0 6,21H7A1,1 0 0,0 8,20V19H16V20A1,1 0 0,0 17,21H18A1,1 0 0,0 19,20V18.22C19.61,17.67 20,16.88 20,16V6C20,2.5 16.42,2 12,2C7.58,2 4,2.5 4,6V16Z'],
+    ['Laundry Done Notifier', 'Integration', 'Tells the right person when the washer or dryer finishes, based on power use, and repeats until the door is opened.', '3.4K', '201', false, 'M14.83,11.17C16.39,12.73 16.39,15.27 14.83,16.83C13.27,18.39 10.73,18.39 9.17,16.83L14.83,11.17M6,2H18A2,2 0 0,1 20,4V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V4A2,2 0 0,1 6,2M7,4A1,1 0 0,0 6,5A1,1 0 0,0 7,6A1,1 0 0,0 8,5A1,1 0 0,0 7,4M10,4A1,1 0 0,0 9,5A1,1 0 0,0 10,6A1,1 0 0,0 11,5A1,1 0 0,0 10,4M12,8A6,6 0 0,0 6,14A6,6 0 0,0 12,20A6,6 0 0,0 18,14A6,6 0 0,0 12,8Z']
+  ]
+};
+const TITLES = { popular: 'Popular', updated: 'Recently updated' };
+const IC = { motion: 'M10,0.2C9,0.2 8.2,1 8.2,2C8.2,3 9,3.8 10,3.8C11,3.8 11.8,3 11.8,2C11.8,1 11,0.2 10,0.2M15.67,1A7.33,7.33 0 0,0 23,8.33V7A6,6 0 0,1 17,1H15.67M18.33,1C18.33,3.58 20.42,5.67 23,5.67V4.33C21.16,4.33 19.67,2.84 19.67,1H18.33M21,1A2,2 0 0,0 23,3V1H21M7.92,4.03C7.75,4.03 7.58,4.06 7.42,4.11L2,5.8V11H3.8V7.33L5.91,6.67L2,22H3.8L6.67,13.89L9,17V22H10.8V15.59L8.31,11.05L9.04,8.18L10.12,10H15V8.2H11.38L9.38,4.87C9.08,4.37 8.54,4.03 7.92,4.03Z', auto: 'M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z', bulb: 'M12,2A7,7 0 0,1 19,9C19,11.38 17.81,13.47 16,14.74V17A1,1 0 0,1 15,18H9A1,1 0 0,1 8,17V14.74C6.19,13.47 5,11.38 5,9A7,7 0 0,1 12,2M9,21V20H15V21A1,1 0 0,1 14,22H10A1,1 0 0,1 9,21M12,4A5,5 0 0,0 7,9C7,11.05 8.23,12.81 10,13.58V16H14V13.58C15.77,12.81 17,11.05 17,9A5,5 0 0,0 12,4Z' };
+const CHAIN = [
+  ['origin', IC.motion, 'Hallway motion sensor near the front door detected motion', 'Started by a state change', '', '19:49:03.120', false],
+  ['run', IC.auto, 'Turn on the hallway and staircase lights when someone comes home after sunset', 'Automation triggered', '', '19:49:03.184', true],
+  ['effect', IC.bulb, 'Hallway ceiling light', '', 'On', '19:49:03.410', false],
+  ['effect', IC.bulb, 'Staircase wall lights on the upper landing and the lower landing', '', 'On', '19:49:03.455', false]
+];
+const NODE = { origin: ['cnode', '--nc: var(--amber)'], run: ['cnode run', ''], effect: ['cnode', '--nc: var(--green)'] };
+const MOST = [['Hallway motion sensor near the front door motion', 86], ['Living room thermostat current temperature', 52], ['Kitchen counter light', 31]];
+const ALERTS = [
+  ['Living room window left contact sensor opening', 'Living room · Window sensor left', 'M21 20V2H3V20H1V23H23V20M19 4V11H17V4M5 4H7V11H5M5 20V13H7V20M9 20V4H15V20M17 20V13H19V20Z', 'alert'],
+  ['Living room window right contact sensor opening', 'Living room · Window sensor right', 'M21 20V2H3V20H1V23H23V20M19 4V11H17V4M5 4H7V11H5M5 20V13H7V20M9 20V4H15V20M17 20V13H19V20Z', 'alert'],
+  ['Basement utility room water leak sensor moisture', 'Basement · Leak sensor under the sink', 'M10 3.25C10 3.25 16 10 16 14C16 17.31 13.31 20 10 20S4 17.31 4 14C4 10 10 3.25 10 3.25M20 7V13H18V7H20M18 17H20V15H18V17Z', 'warning'],
+  ['Garage side door lock', 'Garage · Lock bridge', 'M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z', 'warning']
+];
+const SEV = { alert: 'Alert', warning: 'Warning' };
+// Pattern (regular expression) helpers shared by every search field on this board.
+const RX_FLAGS = [['i', 'Ignore case'], ['w', 'Whole word'], ['m', 'Multiline'], ['s', 'Dot matches new line']];
+const RX_WORDS = { d: 'any digit', D: 'anything but a digit', w: 'a letter, digit or underscore', W: 'anything but a letter, digit or underscore', s: 'a space or tab', S: 'anything but a space', b: 'the edge of a word', n: 'a new line', t: 'a tab' };
+function rxEsc(t) { return t.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&'); }
+function rxTail(fl) { return (fl.i ? 'i' : '') + (fl.m ? 'm' : '') + (fl.s ? 's' : ''); }
+function rxQuery(pat, fl) { return '/' + (fl.w ? '\\b(?:' + pat + ')\\b' : pat) + '/' + rxTail(fl); }
+function rxParse(q) {
+  const m = /^\/(.+)\/([ims]*)$/.exec((q || '').trim());
+  if (!m) return null;
+  const fl = {}; m[2].split('').forEach((c) => { fl[c] = 1; });
+  let pat = m[1];
+  if (pat.length > 8 && pat.slice(0, 5) === '\\b(?:' && pat.slice(-3) === ')\\b') { fl.w = 1; pat = pat.slice(5, -3); }
+  return { pat, fl };
+}
+function rxWhy(pat) {
+  let depth = 0, list = false;
+  for (let i = 0; i < pat.length; i++) {
+    const c = pat[i];
+    if (c === '\\') { if (i === pat.length - 1) return 'The pattern ends with a backslash. Add the character it stands for.'; i++; continue; }
+    if (list) { if (c === ']') list = false; continue; }
+    if (c === '[') list = true; else if (c === '(') depth++; else if (c === ')') depth--;
+    if (depth < 0) return 'There is a closing bracket ) with no opening bracket ( before it.';
+  }
+  if (list) return 'A list that starts with [ is never closed. Add ] to finish it.';
+  if (depth > 0) return 'A group that starts with ( is never closed. Add ) to finish it.';
+  if (/^[*+?]/.test(pat)) return 'A pattern cannot start with * + or ?. Put something before it to repeat.';
+  return 'This pattern cannot be read. Check the last thing you typed.';
+}
+function rxBuild(pat, fl) {
+  if (!pat) return { re: null, err: '' };
+  if (pat.length > 200) return { re: null, err: 'This pattern is too long. Keep it under 200 characters.' };
+  if (/\([^()]*[*+][^()]*\)[*+{]/.test(pat)) return { re: null, err: 'This pattern repeats a repeat, which can take too long to run. Make it simpler.' };
+  try { return { re: new RegExp(fl.w ? '\\b(?:' + pat + ')\\b' : pat, 'g' + rxTail(fl)), err: '' }; }
+  catch (e) { return { re: null, err: rxWhy(pat) }; }
+}
+function rxHas(text, re) { try { re.lastIndex = 0; return re.test(String(text).slice(0, 400)); } catch (e) { return false; } }
+function rxSegs(text, re) {
+  text = String(text).slice(0, 400);
+  const segs = []; let last = 0, n = 0, m;
+  if (re) { try {
+    re.lastIndex = 0;
+    while (n < 20 && (m = re.exec(text))) {
+      if (m[0] === '') { re.lastIndex++; if (re.lastIndex > text.length) break; continue; }
+      if (m.index > last) segs.push({ t: text.slice(last, m.index), cls: '' });
+      segs.push({ t: m[0], cls: 'hit' }); last = m.index + m[0].length; n++;
+    }
+  } catch (e) {} }
+  if (last < text.length) segs.push({ t: text.slice(last), cls: '' });
+  return segs;
+}
+function rxMatcher(q) {
+  const t = (q || '').trim();
+  if (!t) return null;
+  const p = rxParse(t);
+  if (p) { const b = rxBuild(p.pat, p.fl); if (b.re) return (x) => rxHas(x, b.re); }
+  const low = t.toLowerCase();
+  return (x) => String(x).toLowerCase().includes(low);
+}
+function rxExplain(pat) {
+  const out = []; let i = 0, lit = '';
+  const flush = () => { if (lit) { out.push({ tok: lit, text: 'the text "' + lit + '"' }); lit = ''; } };
+  const add = (tok, text, step) => { flush(); out.push({ tok, text }); i += step; };
+  while (i < pat.length && out.length < 12) {
+    const c = pat[i], two = pat.substr(i, 2);
+    if (c === '\\') { const k = pat[i + 1]; if (k === undefined) add('\\', 'an unfinished backslash', 1); else add('\\' + k, RX_WORDS[k] || 'the character "' + k + '" itself', 2); }
+    else if (two === '.*') add('.*', 'any text, or nothing', 2);
+    else if (two === '.+') add('.+', 'any text, at least one character', 2);
+    else if (c === '.') add('.', 'any one character', 1);
+    else if (c === '^') add('^', 'the start', 1);
+    else if (c === '$') add('$', 'the end', 1);
+    else if (c === '|') add('|', 'or', 1);
+    else if (pat.substr(i, 3) === '(?:') add('(?:', 'start of a group', 3);
+    else if (c === '(') add('(', 'start of a group', 1);
+    else if (c === ')') add(')', 'end of the group', 1);
+    else if (c === '*') add('*', 'the piece before it, any number of times', 1);
+    else if (c === '+') add('+', 'the piece before it, one or more times', 1);
+    else if (c === '?') add('?', 'the piece before it is optional', 1);
+    else if (c === '[') {
+      const j = pat.indexOf(']', i + 2);
+      if (j < 0) add(pat.slice(i), 'an unfinished list of characters', pat.length - i);
+      else { const inner = pat.slice(i + 1, j); add(pat.slice(i, j + 1), inner[0] === '^' ? 'any one character except: ' + inner.slice(1) : 'any one of: ' + inner, j + 1 - i); }
+    }
+    else if (c === '{' && pat.indexOf('}', i) > i) { const j = pat.indexOf('}', i); add(pat.slice(i, j + 1), 'the piece before it, repeated ' + pat.slice(i + 1, j).replace(',', ' to ') + ' times', j + 1 - i); }
+    else { lit += c; i++; }
+  }
+  flush();
+  if (i < pat.length) out.push({ tok: '...', text: 'and the rest of the pattern' });
+  return out;
+}
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.sq = {}; this.wb = null; this.items = []; this.menu = -1; this.gone = null; }
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+  reset(s) {
+    this.sq = s === 'no-match' ? { s: 'doorbell' } : {};
+    this.wb = null;
+    if (s === 'pattern') this.wb = { id: 's', pat: 'radar|bus', fl: { i: 1 } };
+    if (s === 'pattern-invalid') this.wb = { id: 's', pat: '(radar', fl: { i: 1 } };
+    this.items = ALERTS.map((a, i) => ({ id: i, name: a[0], where: a[1], icon: a[2], sev: a[3] }));
+    this.menu = -1; this.gone = null;
+  }
+  // ---- pattern workbench: one draft at a time, one saved query per search field ----
+  rxFocus(sel) { const root = this._root; setTimeout(() => { try { const el = (root || document).querySelector(sel); if (el) el.focus(); } catch (e) {} }, 60); }
+  rxOpen(id, e) {
+    try { if (e && e.currentTarget && e.currentTarget.getRootNode) this._root = e.currentTarget.getRootNode(); } catch (err) {}
+    const cur = (this.sq[id] || '').trim(); const p = rxParse(cur);
+    this.wb = p ? { id, pat: p.pat, fl: p.fl } : { id, pat: rxEsc(cur), fl: { i: 1 } };
+    this.bump(); this.rxFocus('[data-wbin]');
+  }
+  rxClose() { const id = this.wb && this.wb.id; this.wb = null; this.bump(); if (id) this.rxFocus('[data-rx="' + id + '"]'); }
+  rxEscape() {
+    if (this._esc || typeof document === 'undefined') return;
+    this._esc = true;
+    try { document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.wb) this.rxClose(); }); } catch (e) {}
+  }
+  rxField(v, p, id) {
+    const q = this.sq[id] || '';
+    const pq = rxParse(q);
+    const on = !!pq && !!rxBuild(pq.pat, pq.fl).re;
+    v[p + 'Q'] = q;
+    v[p + 'Set'] = (e) => { const n = Object.assign({}, this.sq); n[id] = e.target.value; this.sq = n; this.bump(); };
+    v[p + 'RxCls'] = on ? 'rxb on' : 'rxb';
+    v[p + 'RxOn'] = on ? 'true' : 'false';
+    v[p + 'RxOpen'] = (e) => this.rxOpen(id, e);
+  }
+  rxVals(v, fields) {
+    this.rxEscape();
+    const w = this.wb, f = w ? fields[w.id] : null;
+    const open = !!f;
+    const pat = open ? w.pat : '', fl = open ? w.fl : {};
+    const b = rxBuild(pat, fl);
+    const rows = open ? f.rows : [];
+    const hits = b.re ? rows.filter((t) => rxHas(t, b.re)) : [];
+    const sample = open && !rows.length && f.sample ? f.sample : '';
+    let count = 'Type a pattern to see what it matches';
+    if (b.err) count = 'Fix the pattern to see what it matches';
+    else if (b.re && sample) count = 'There are no ' + f.noun + ' to search yet. On a test line it finds:';
+    else if (b.re) count = hits.length + ' of ' + rows.length + ' ' + f.noun + (hits.length === 1 ? ' matches' : ' match');
+    const ok = !!b.re;
+    Object.assign(v, {
+      wbOpen: open, wbCls: 'wb popv pop',
+      wbTitle: open ? 'Pattern workbench for: ' + f.label : '', wbFor: open ? 'Opened from: ' + f.label + '. The pattern is kept for this search only.' : '',
+      wbPat: pat, wbTail: '/' + rxTail(fl), wbFieldCls: b.err ? 'wbfield bad' : 'wbfield', wbInvalid: b.err ? 'true' : 'false',
+      wbSet: (e) => { if (this.wb) { this.wb = Object.assign({}, this.wb, { pat: e.target.value }); this.bump(); } },
+      wbBad: !!b.err, wbErr: b.err,
+      wbFlags: RX_FLAGS.map((g) => ({ name: g[1], cls: fl[g[0]] ? 'chip sel' : 'chip', aria: fl[g[0]] ? 'true' : 'false',
+        toggle: () => { if (!this.wb) return; const n = Object.assign({}, this.wb.fl); if (n[g[0]]) delete n[g[0]]; else n[g[0]] = 1; this.wb = Object.assign({}, this.wb, { fl: n }); this.bump(); } })),
+      wbExplain: pat ? rxExplain(pat).concat(fl.w ? [{ tok: 'word', text: 'only as a whole word' }] : []) : [{ tok: '/ /', text: 'Nothing typed yet. Try gar.* for anything that has "gar" in it.' }],
+      wbCount: count,
+      wbPreview: sample ? [{ segs: rxSegs(sample, b.re) }] : hits.slice(0, 4).map((t) => ({ segs: rxSegs(t, b.re) })),
+      wbMore: hits.length > 4, wbMoreText: 'and ' + (hits.length - 4) + ' more',
+      wbUseCls: ok ? 'btn fill' : 'btn off', wbUseOff: ok ? 'false' : 'true',
+      wbUse: () => { if (!ok || !this.wb) return; const n = Object.assign({}, this.sq); n[this.wb.id] = rxQuery(pat, fl); this.sq = n; this.rxClose(); },
+      wbCancel: () => this.rxClose(),
+      wbClear: () => { if (!this.wb) return; const n = Object.assign({}, this.sq); n[this.wb.id] = ''; this.sq = n; this.wb = Object.assign({}, this.wb, { pat: '' }); this.bump(); this.rxFocus('[data-wbin]'); },
+      wbKey: (e) => { if (e && e.key === 'Escape') { if (e.stopPropagation) e.stopPropagation(); this.rxClose(); } }
+    });
+  }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const old = s === 'before';
+    const all = [].concat(PACKS.popular, PACKS.updated);
+    const line = (p) => p[0] + ' · ' + p[1] + ' · ' + p[2];
+    const hit = rxMatcher(this.sq.s);
+    const pq = rxParse(this.sq.s || ''); const b = pq ? rxBuild(pq.pat, pq.fl) : { re: null };
+    this.rxField(v, 's', 's');
+    this.rxVals(v, { s: { label: 'Search packages', noun: 'packages', rows: all.map(line) } });
+    const sections = Object.keys(PACKS).map((k) => ({
+      title: TITLES[k], hCls: old ? 'old' : '',
+      rows: PACKS[k].filter((p) => !hit || hit(line(p))).map((p) => ({
+        cls: old ? 'mrow old' : 'mrow', name: p[0], type: p[1], desc: p[2], icon: p[6],
+        dCls: old ? 'mds cut1' : 'mds clamp2', tip: old ? '' : p[2], installed: p[5], downloads: p[3], stars: p[4],
+        label: p[0] + ', ' + p[1] + '. ' + p[2]
+      }))
+    })).filter((x) => x.rows.length);
+    const shown = sections.reduce((n, x) => n + x.rows.length, 0);
+    return Object.assign(v, {
+      isOld: old,
+      sCount: hit ? shown + ' of ' + all.length : all.length + ' packages',
+      sClear: () => { this.sq = {}; this.bump(); },
+      sections, noMatch: !shown,
+      noMatchTitle: 'No packages match ' + (b.re ? 'that pattern' : '"' + (this.sq.s || '').trim() + '"'),
+      chain: CHAIN.map((c) => ({
+        node: NODE[c[0]][0], style: NODE[c[0]][1], icon: c[1], name: c[2], tip: old ? '' : c[2],
+        nmCls: old ? 'cnm cut1' : 'cnm clamp2', hasSec: !!c[3], sec: c[3], hasState: !!c[4], state: c[4], time: c[5], trace: c[6]
+      })),
+      most: MOST.map((a) => ({ name: a[0], tip: old ? '' : a[0], cls: old ? 'cut1' : 'clamp2', count: String(a[1]), bar: 'width: ' + Math.round(a[1] / MOST[0][1] * 100) + '%' })),
+      alerts: this.items.map((it) => ({
+        cls: old ? 'arow old' : 'arow wide', name: it.name, where: it.where, icon: it.icon,
+        tipA: old ? '' : it.name, tipB: old ? '' : it.where,
+        sev: SEV[it.sev], dot: 'sdot ' + it.sev, sevLabel: 'Severity for ' + it.name + ': ' + SEV[it.sev],
+        menu: this.menu === it.id, menuAria: this.menu === it.id ? 'true' : 'false',
+        openMenu: () => { this.menu = this.menu === it.id ? -1 : it.id; this.bump(); },
+        opts: ['alert', 'warning'].map((k) => ({
+          name: SEV[k], dot: 'sdot ' + k, cls: it.sev === k ? 'mi sel' : 'mi', aria: it.sev === k ? 'true' : 'false',
+          pick: () => { it.sev = k; this.menu = -1; this.bump(); }
+        })),
+        delLabel: 'Remove ' + it.name,
+        del: () => { this.gone = { item: it, at: this.items.indexOf(it) }; this.items = this.items.filter((x) => x !== it); this.menu = -1; this.bump(); }
+      })),
+      canRestore: !!this.gone, restoreText: this.gone ? this.gone.item.name + ' removed from the alerts.' : '',
+      restore: () => { if (!this.gone) return; const n = this.items.slice(); n.splice(this.gone.at, 0, this.gone.item); this.items = n; this.gone = null; this.bump(); }
+    });
+  }
+}
+</script>
+</body>
+</html>

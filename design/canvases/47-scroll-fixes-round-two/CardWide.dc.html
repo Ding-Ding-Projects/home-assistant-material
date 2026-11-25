@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dashboard cards on a wide screen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.m3 .btn{padding:0 24px}
+.m3 .btn.text{padding:0 14px}
+.tag.td{background:var(--amberc);color:var(--amber);min-height:20px;padding:1px 10px}
+.tag.nt{min-height:20px;padding:1px 10px}
+.hd{flex:none;background:var(--sl2);position:relative;z-index:3}
+.hd.slate{background:#455A64;color:#fff;--onv:#fff;--p:#fff;--sl3:rgba(255,255,255,.12)}
+.hd.slate .btn.fill{background:#03A9F4;color:#fff}
+.tb{display:flex;align-items:center;min-height:56px;padding:0 4px}
+.tb h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:400;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m3 .ib.n{width:40px;position:relative}
+.m3 .ib.n::after{content:"";position:absolute;inset:0 -4px}
+.m3 .btn.sm{min-height:40px;padding:0 14px;position:relative;flex:none}
+.m3 .btn.sm::after{content:"";position:absolute;inset:-4px 0}
+.vtabs{display:flex;align-items:center;overflow-x:auto;scrollbar-width:none;padding:0 4px}
+.m3 .vt{min-height:48px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--onv);white-space:nowrap;flex:none;position:relative;opacity:.8}
+.m3 .vt.sel{color:var(--p);opacity:1}
+.m3 .vt.sel::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--p)}
+.view{flex:1;min-height:0;overflow-y:auto;padding:4px 16px 24px}
+.sech{font-size:20px;line-height:28px;font-weight:400;padding:14px 4px 8px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.card{background:var(--sl1);border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);position:relative;min-width:0}
+.m3 .tilec{min-height:56px;padding:8px 10px;display:flex;align-items:center;gap:10px;width:100%}
+.tdot{width:36px;height:36px;border-radius:18px;display:grid;place-items:center;flex:none}
+.tn{font-size:14px;line-height:20px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ts{font-size:12px;line-height:16px;color:var(--onv);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.em .card{outline:1px dashed var(--out);outline-offset:1px}
+.today{position:absolute;right:12px;bottom:12px;z-index:9;display:inline-flex;align-items:center;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--amberc);color:var(--amber);font-size:12px;line-height:16px;font-weight:700;box-shadow:var(--e3)}
+.scrim{position:absolute;inset:0;background:var(--scrim);z-index:6}
+
+.ph .toast{bottom:92px}
+.view{padding:4px 16px 0}
+.endroom{flex:none}
+.card{display:block}
+.m3 button.card{display:flex}
+.col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.wd{padding:0 0 32px;gap:0}
+.whd{background:var(--surf);padding:16px clamp(16px,3vw,40px) 0;display:flex;flex-direction:column;gap:8px;position:relative}
+.hrw{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hrw .ttl{flex:1 1 240px;min-width:0;display:flex;flex-direction:column}
+.hrw h1{font-size:28px;line-height:36px;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.wbody{padding:8px clamp(16px,3vw,40px) 0;display:flex;flex-direction:column;gap:20px}
+.wd .toast{left:auto;right:24px;max-width:420px;width:calc(100% - 48px)}
+.tt{position:relative;display:block;min-width:0;flex:1}
+.m3 .tx1{display:block;width:100%;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:inherit;font:inherit;color:inherit;line-height:inherit;padding:12px 0;margin:-12px 0}
+.m3 .tx1.slice{overflow:visible}
+.tipb{display:none;position:absolute;left:0;top:calc(100% + 2px);z-index:7;background:var(--inv);color:var(--on-inv);border-radius:8px;padding:8px 12px;font-size:13px;line-height:18px;font-weight:400;text-align:left;white-space:normal;overflow-wrap:anywhere;width:max-content;max-width:min(320px,100%);box-shadow:var(--e3)}
+.tt.has:hover .tipb,.tt.has:focus-within .tipb,.tt.open .tipb{display:block}
+.hcardr{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 4px;font-size:16px;line-height:24px;font-weight:500;color:var(--on)}
+.hcardr .tt{flex:0 1 auto}
+.ehd{display:flex;align-items:center;gap:12px;padding:12px 16px 4px;font-size:22px;line-height:32px;font-weight:400}
+.m3 .sw{width:52px;height:32px;border-radius:16px;background:var(--sl4);box-shadow:inset 0 0 0 2px var(--out);position:relative;flex:none;transition:background-color .2s}
+.m3 .sw::before{content:"";position:absolute;left:8px;top:8px;width:16px;height:16px;border-radius:12px;background:var(--out);transition:transform .2s cubic-bezier(.2,0,0,1),background-color .2s}
+.m3 .sw::after{content:"";position:absolute;inset:-8px 0}
+.m3 .sw.on{background:var(--p);box-shadow:none}
+.m3 .sw.on::before{transform:translateX(20px) scale(1.5);background:var(--on-p)}
+.erow{display:flex;align-items:center;gap:16px;min-height:48px;padding:0 16px;font-size:14px;line-height:20px}
+.erow .grow{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.ent{padding-bottom:8px}
+.cal{padding:0 8px 8px}
+.cal.old{overflow:hidden}
+.calh{padding:16px 8px 8px;font-size:22px;line-height:28px;font-weight:400;display:flex}
+.cev{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px;border-radius:8px}
+.cev i{width:4px;align-self:stretch;border-radius:2px;flex:none}
+.cev .when{font-size:12px;line-height:16px;color:var(--onv);white-space:nowrap;flex:none;text-align:right}
+.cev .nm{font-size:14px;line-height:20px;overflow-wrap:anywhere}
+.calm{display:flex;align-items:center;padding:0 0 4px 8px;gap:4px;color:var(--onv);font-size:14px;font-weight:500}
+.clim{display:flex;flex-direction:column;align-items:center;padding-bottom:12px;position:relative}
+.clim .tt{position:static}
+.clim .tipb{top:44px;left:4px;right:4px;width:auto;max-width:none}
+.clim .ct{width:100%;font-size:16px;line-height:24px;padding:8px 30px;text-align:center;display:flex;min-height:40px}
+.clim .ct .tx1{text-align:center}
+.dial{position:relative;width:132px;height:132px;display:grid;place-items:center}
+.dial svg{position:absolute;inset:0;width:100%;height:100%}
+.dial b{font-size:28px;line-height:32px;font-weight:400}
+.dial small{font-size:12px;line-height:16px;color:var(--onv);display:block;text-align:center}
+
+.mc{border-radius:12px;overflow:hidden;position:relative;color:#fff;background:linear-gradient(115deg,#17384A 0%,#2B4A63 45%,#5B3A5E 100%);min-width:0}
+.player{padding:16px 16px 12px;display:flex;flex-direction:column}
+.mtop{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;line-height:20px;min-height:24px}
+.mtop .nm{display:flex;align-items:center;gap:8px;min-width:0}
+.mtop .nm span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m3 .minfo{position:absolute;top:4px;right:4px;color:#fff}
+.m3 .minfo:hover{background:rgba(255,255,255,.14)}
+.mt1{font-size:17px;line-height:24px;font-weight:500;padding-top:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt2{font-size:14px;line-height:20px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctl{display:flex;align-items:center;padding:8px 0 0;margin-left:-12px;min-height:64px}
+.ctl .start{flex:1;display:flex;align-items:center;min-width:0}
+.m3 .mb{width:var(--b);height:var(--b);border-radius:50%;display:grid;place-items:center;flex:none;color:#fff;transition:background-color .2s}
+.m3 .mb:hover{background:rgba(255,255,255,.14)}
+.mb svg{width:var(--i);height:var(--i);fill:currentColor;display:block}
+.prog{height:8px;border-radius:4px;background:rgba(200,200,200,.5);overflow:hidden;margin-top:8px}
+.prog span{display:block;height:100%;border-radius:4px;background:#fff}
+
+.td{padding-bottom:8px;--ab:48px;--rh:48px;--hh:48px;--hp:12px}
+.td.old{--ab:32px;--rh:40px;--hh:24px;--hp:4px}
+.td .ch{font-size:22px;line-height:32px;font-weight:400;padding:12px 16px 0;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.addrow{padding:12px 16px 0;display:flex}
+.ain{flex:1;min-width:0;display:flex;align-items:center;min-height:56px;border-radius:12px 12px 4px 4px;background:var(--sl3);box-shadow:inset 0 -1px 0 var(--out);padding:0 4px 0 16px;gap:4px}
+.td.old .ain{padding-right:12px}
+.ain input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px;color:var(--on)}
+.m3 .tab{width:var(--ab);height:var(--ab);border-radius:50%;display:grid;place-items:center;flex:none;color:var(--onv);transition:background-color .2s}
+.m3 .tab:hover{background:var(--sl4)}
+.th{display:flex;align-items:center;justify-content:space-between;padding:0 4px 0 16px;margin-top:8px;min-height:48px}
+.th h3{font-size:14px;line-height:20px;font-weight:500;margin:0}
+.ti{display:flex;align-items:center;gap:16px;min-height:var(--rh);padding:0 8px 0 20px}
+.m3 .cbx{width:18px;height:18px;border-radius:2px;box-shadow:inset 0 0 0 2px var(--onv);display:grid;place-items:center;flex:none;position:relative;color:transparent}
+.m3 .cbx::after{content:"";position:absolute;inset:-15px}
+.td.old .cbx::after{inset:-11px}
+.m3 .cbx.on{background:var(--p);box-shadow:none;color:var(--on-p)}
+.cbx svg{width:16px;height:16px;fill:currentColor;display:block}
+.tin{font-size:14px;line-height:20px;overflow-wrap:anywhere}
+.ti.dn .tin{text-decoration:line-through;color:var(--onv)}
+.m3 .hdl{height:var(--hh);padding:0 var(--hp);display:flex;align-items:center;cursor:grab;color:var(--onv);flex:none;border-radius:12px}
+.td.old .hdl{display:block}
+.m3 .del{width:var(--ab);height:var(--ab);border-radius:50%;display:grid;place-items:center;flex:none;color:var(--onv)}
+.tdiv{height:1px;background:var(--outv);margin:8px 0 0}
+.tload{min-height:96px;display:grid;place-items:center}
+.tnone{min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 32px;color:var(--onv);font-size:14px;line-height:20px;text-align:center}
+.tnone svg{width:32px;height:32px;fill:currentColor}
+.tbare{padding:16px 32px;display:inline-block;font-size:14px;line-height:20px;margin:0}
+
+.wd .vtabs{padding:0}
+.wbody{padding-top:16px}
+.secs{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px 24px;align-items:start}
+.col{gap:12px}
+.col .grid{gap:12px}
+.wd .tipb{max-width:min(360px,100%)}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="wd">
+<div class="whd">
+<div class="hrw"><button class="ib" aria-label="Open the sidebar"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg></button><div class="ttl"><h1>Home</h1></div><sc-if value="{{isOld}}" hint-placeholder-val="{{ false }}"><span class="tag td">Today</span></sc-if><button class="ib" aria-label="Dashboard menu"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button></div>
+<div class="vtabs" role="tablist" aria-label="Views"><button class="vt sel" role="tab" aria-selected="true">Overview</button><button class="vt" role="tab" aria-selected="false">Upstairs</button><button class="vt" role="tab" aria-selected="false">Energy</button></div>
+</div>
+<div class="wbody">
+<div class="secs">
+<div class="col">
+<div class="hcardr"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12.5 7C12.5 5.89 13.39 5 14.5 5H18C19.1 5 20 5.9 20 7V9.16C18.84 9.57 18 10.67 18 11.97V14H12.5V7M6 11.96V14H11.5V7C11.5 5.89 10.61 5 9.5 5H6C4.9 5 4 5.9 4 7V9.15C5.16 9.56 6 10.67 6 11.96M20.66 10.03C19.68 10.19 19 11.12 19 12.12V15H5V12C5 10.9 4.11 10 3 10S1 10.9 1 12V17C1 18.1 1.9 19 3 19V21H5V19H19V21H21V19C22.1 19 23 18.1 23 17V12C23 10.79 21.91 9.82 20.66 10.03Z"></path></svg><span class="{{hd1Cls}}"><button class="{{hd1Tx}}" title="{{hd1Tip}}" aria-label="{{hd1Label}}" aria-expanded="{{hd1Aria}}" onClick="{{ hd1Tap }}">{{hd1Text}}</button><span class="tipb" role="tooltip">{{hd1Text}}</span></span><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg></div>
+<div class="card ent"><div class="ehd"><span class="{{en1Cls}}"><button class="{{en1Tx}}" title="{{en1Tip}}" aria-label="{{en1Label}}" aria-expanded="{{en1Aria}}" onClick="{{ en1Tap }}">{{en1Text}}</button><span class="tipb" role="tooltip">{{en1Text}}</span></span><button class="{{allCls}}" role="switch" aria-checked="{{allAria}}" aria-label="Turn every light in this card on or off" onClick="{{ allTap }}"></button></div><sc-for list="{{erows}}" as="e" hint-placeholder-count="3"><div class="erow"><span style="color: {{e.color}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{e.icon}}"></path></svg></span><span class="grow">{{e.name}}</span><button class="{{e.cls}}" role="switch" aria-checked="{{e.aria}}" aria-label="{{e.name}}" onClick="{{ e.tap }}"></button></div></sc-for></div>
+</div>
+<div class="col">
+<div class="{{calCls}}"><div class="calh"><span class="{{cal1Cls}}"><button class="{{cal1Tx}}" title="{{cal1Tip}}" aria-label="{{cal1Label}}" aria-expanded="{{cal1Aria}}" onClick="{{ cal1Tap }}">{{cal1Text}}</button><span class="tipb" role="tooltip">{{cal1Text}}</span></span></div><div class="calm"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z"></path></svg><span>This week</span></div><sc-for list="{{events}}" as="ev" hint-placeholder-count="3"><div class="cev"><i style="background: {{ev.color}}"></i><span class="grow"><span class="nm">{{ev.name}}</span><span class="ts">{{ev.day}}</span></span><span class="when">{{ev.time}}</span></div></sc-for></div>
+<div class="grid"><div class="card clim"><div class="ct"><span class="{{th1Cls}}"><button class="{{th1Tx}}" title="{{th1Tip}}" aria-label="{{th1Label}}" aria-expanded="{{th1Aria}}" onClick="{{ th1Tap }}">{{th1Text}}</button><span class="tipb" role="tooltip">{{th1Text}}</span></span></div><div class="dial"><svg viewBox="0 0 132 132" aria-hidden="true"><circle cx="66" cy="66" r="56" fill="none" stroke="var(--sl4)" stroke-width="10" stroke-linecap="round" stroke-dasharray="264 352" transform="rotate(135 66 66)"></circle><circle cx="66" cy="66" r="56" fill="none" stroke="#E5645A" stroke-width="10" stroke-linecap="round" stroke-dasharray="150 352" transform="rotate(135 66 66)"></circle></svg><span><b>21.5 °C</b><small>Heating to 22</small></span></div></div><div class="card clim"><div class="ct"><span class="{{hu1Cls}}"><button class="{{hu1Tx}}" title="{{hu1Tip}}" aria-label="{{hu1Label}}" aria-expanded="{{hu1Aria}}" onClick="{{ hu1Tap }}">{{hu1Text}}</button><span class="tipb" role="tooltip">{{hu1Text}}</span></span></div><div class="dial"><svg viewBox="0 0 132 132" aria-hidden="true"><circle cx="66" cy="66" r="56" fill="none" stroke="var(--sl4)" stroke-width="10" stroke-linecap="round" stroke-dasharray="264 352" transform="rotate(135 66 66)"></circle><circle cx="66" cy="66" r="56" fill="none" stroke="#3FB7B0" stroke-width="10" stroke-linecap="round" stroke-dasharray="150 352" transform="rotate(135 66 66)"></circle></svg><span><b>45%</b><small>Target 50%</small></span></div></div></div>
+</div>
+<div class="col">
+<div class="mc"><div class="player"><div class="mtop"><span class="nm"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,12A3,3 0 0,0 9,15A3,3 0 0,0 12,18A3,3 0 0,0 15,15A3,3 0 0,0 12,12M12,20A5,5 0 0,1 7,15A5,5 0 0,1 12,10A5,5 0 0,1 17,15A5,5 0 0,1 12,20M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8C10.89,8 10,7.1 10,6C10,4.89 10.89,4 12,4M17,2H7C5.89,2 5,2.89 5,4V20A2,2 0 0,0 7,22H17A2,2 0 0,0 19,20V4C19,2.89 18.1,2 17,2Z"></path></svg><span>Living room speaker</span></span></div><button class="ib minfo" aria-label="Show more information" onClick="{{ mediaInfo }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button><div class="mt1">{{trackTitle}}</div><div class="mt2">{{trackBy}}</div><div class="ctl"><div class="start"><sc-for list="{{ctl}}" as="c" hint-placeholder-count="4"><button class="mb" style="{{c.style}}" aria-label="{{c.label}}" title="{{c.label}}" onClick="{{ c.tap }}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="{{c.icon}}"></path></svg></button></sc-for></div><button class="mb" style="{{browseStyle}}" aria-label="Browse media" title="Browse media" onClick="{{ browse }}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4,6H2V20A2,2 0 0,0 4,22H18V20H4V6M20,2H8A2,2 0 0,0 6,4V16A2,2 0 0,0 8,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M12,14.5V5.5L18,10L12,14.5Z"></path></svg></button></div><div class="prog" role="progressbar" aria-label="Track progress" aria-valuenow="{{progNow}}" aria-valuemin="0" aria-valuemax="100"><span style="{{progStyle}}"></span></div></div></div>
+<sc-for list="{{cards}}" as="c" hint-placeholder-count="1">
+<div class="{{c.cls}}"><h2 class="ch" title="{{c.title}}">{{c.title}}</h2><div class="addrow"><label class="ain"><input type="text" value="{{c.draft}}" onInput="{{ c.setDraft }}" onKeyDown="{{ c.key }}" placeholder="Add item" aria-label="Add item to {{c.title}}" enterkeyhint="done"/><button class="tab" aria-label="Add item" title="Add item" onClick="{{ c.add }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg></button></label></div><sc-if value="{{c.isLoading}}" hint-placeholder-val="{{ false }}"><div class="tload" role="status" aria-label="Loading items"><svg class="spin" width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--p)" stroke-width="4" stroke-linecap="round" stroke-dasharray="94 126"></circle></svg></div></sc-if><sc-if value="{{c.isEmpty}}" hint-placeholder-val="{{ false }}"><div class="tnone in"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z"></path></svg><span>You have no to-do items!</span></div></sc-if><sc-if value="{{c.isBare}}" hint-placeholder-val="{{ false }}"><p class="tbare">You have no to-do items!</p></sc-if><sc-if value="{{c.isError}}" hint-placeholder-val="{{ false }}"><div class="note bad" style="margin: 12px 16px 8px" role="alert"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"></path></svg><span class="grow"><span>This list did not load. The device that keeps it is not answering.</span><span><button class="btn text" style="margin-left: -14px" onClick="{{ c.retry }}">Try again</button></span></span></div></sc-if><sc-if value="{{c.isList}}" hint-placeholder-val="{{ true }}"><div class="th"><h3>{{c.head}}</h3><button class="ib" aria-label="{{c.menuLabel}}" title="{{c.menuLabel}}" aria-pressed="{{c.reAria}}" onClick="{{ c.toggleRe }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{c.menuIcon}}"></path></svg></button></div><sc-for list="{{c.items}}" as="i" hint-placeholder-count="4"><div class="ti"><button class="cbx" role="checkbox" aria-checked="false" aria-label="Mark {{i.name}} as done" onClick="{{ i.check }}"></button><span class="grow"><span class="tin">{{i.name}}</span><sc-if value="{{i.hasDue}}" hint-placeholder-val="{{ false }}"><span class="ts">{{i.due}}</span></sc-if></span><sc-if value="{{i.re}}" hint-placeholder-val="{{ false }}"><button class="hdl" aria-label="Move {{i.name}} up one place" title="Drag to reorder" onClick="{{ i.up }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 11H3V9H21V11M21 13H3V15H21V13Z"></path></svg></button></sc-if></div></sc-for><sc-if value="{{c.hasDone}}" hint-placeholder-val="{{ true }}"><div class="tdiv" role="separator"></div><div class="th"><h3>Completed</h3><button class="ib" aria-label="Clear completed items" title="Clear completed items" onClick="{{ c.clear }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M15,16H19V18H15V16M15,8H22V10H15V8M15,12H21V14H15V12M3,18A2,2 0 0,0 5,20H11A2,2 0 0,0 13,18V8H3V18M14,5H11L10,4H6L5,5H2V7H14V5Z"></path></svg></button></div><sc-for list="{{c.done}}" as="i" hint-placeholder-count="1"><div class="ti dn"><button class="cbx on" role="checkbox" aria-checked="true" aria-label="Mark {{i.name}} as not done" onClick="{{ i.check }}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></button><span class="grow"><span class="tin">{{i.name}}</span></span><button class="del" aria-label="Delete {{i.name}}" title="Delete item" onClick="{{ i.del }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"></path></svg></button></div></sc-for></sc-if></sc-if></div>
+</sc-for>
+</div>
+</div>
+</div>
+<sc-if value="{{hasMsg}}" hint-placeholder-val="{{ false }}"><div class="toast pop" role="status"><span style="flex: 1; min-width: 0">{{msg}}</span><button class="btn text" onClick="{{ dismiss }}">Dismiss</button></div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","before","loading","empty"]},"$preview":{"width":1280,"height":860}}'>
+const DEF = "after";
+const ICON = {"CEIL":"M8,9H11V4H13V9H16L20,17H4L8,9M14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18H14Z","FLOOR":"M15,2L17,9H7L9,2M11,10H13V20H16V22H8V20H11V10Z","LAMP":"M8,2H16L20,14H4L8,2M11,15H13V20H18V22H6V20H11V15Z","PREV":"M6,18V6H8V18H6M9.5,12L18,6V18L9.5,12Z","NEXT":"M16,18H18V6H16M6,18L14.5,12L6,6V18Z","PLAY":"M8,5.14V19.14L19,12.14L8,5.14Z","PAUSE":"M14,19H18V5H14M6,19H10V5H6V19Z","STOP":"M18,18H6V6H18V18Z","SORT":"M18 21L14 17H17V7H14L18 3L22 7H19V17H22M2 19V17H12V19M2 13V11H9V13M2 7V5H6V7H2Z","CLOSE":"M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"};
+const TITLES = {
+  hd1: 'Living room, dining room and the reading corner by the window',
+  en1: 'Living room and dining room lights 客廳同飯廳燈',
+  cal1: 'Family, school and bin collection calendar',
+  th1: 'Upstairs hallway thermostat',
+  hu1: 'Nursery and guest room humidifier'
+};
+const EROWS = [['Ceiling light', 'CEIL'], ['Floor lamp by the sofa', 'FLOOR'], ['Dining table pendant lights', 'CEIL'], ['Reading corner lamp', 'LAMP']];
+const EVENTS = [
+  ['School run and music lesson drop-off', 'Thursday 26 November', '08:30 to 09:15', '#4C8BF5'],
+  ['Bin collection: paper and glass', 'Friday 27 November', 'All day', '#4CAF6A'],
+  ['Dentist for the twins', 'Friday 27 November', '16:40 to 17:30', '#E5645A'],
+  ['Grandparents visit', 'Saturday 28 November', '12:00 to 19:00', '#D4A72C']
+];
+function titleVals(self, v, old) {
+  Object.keys(TITLES).forEach((k) => {
+    const open = !old && self.tip === k;
+    v[k + 'Text'] = TITLES[k];
+    v[k + 'Cls'] = old ? 'tt' : (open ? 'tt has open' : 'tt has');
+    v[k + 'Tx'] = old && k === 'cal1' ? 'tx1 slice' : 'tx1';
+    v[k + 'Tip'] = old ? '' : TITLES[k];
+    v[k + 'Label'] = old ? TITLES[k] : TITLES[k] + '. Show the full title';
+    v[k + 'Aria'] = open ? 'true' : 'false';
+    v[k + 'Tap'] = () => { if (old) return; self.tip = self.tip === k ? '' : k; self.bump(); };
+  });
+  v.calCls = old ? 'card cal old' : 'card cal';
+  const all = self.lights.every((x) => x);
+  v.allCls = all ? 'sw on' : 'sw'; v.allAria = String(all);
+  v.allTap = () => { self.lights = self.lights.map(() => !all); self.bump(); };
+  v.erows = EROWS.map((r, i) => ({ name: r[0], icon: ICON[r[1]], color: self.lights[i] ? '#E0A526' : 'var(--onv)', cls: self.lights[i] ? 'sw on' : 'sw', aria: String(self.lights[i]),
+    tap: () => { self.lights = self.lights.map((x, j) => (j === i ? !x : x)); self.bump(); } }));
+  v.events = EVENTS.map((e) => ({ name: e[0], day: e[1], time: e[2], color: e[3] }));
+}
+
+// Sizes follow the media control card source. Narrow layout (card 300 to 349 px wide): every button 40 px, and only
+// play and play-pause reach 50 px today because the selector list lost a comma. Wide layout: 44 px and 56 px.
+function mediaVals(self, v, layout, old) {
+  const narrow = layout === 'narrow';
+  const base = narrow ? (old ? [40, 28] : [48, 28]) : [44, 30];
+  const main = narrow ? [50, 36] : [56, 40];
+  const small = narrow && old ? base : main;
+  const st = (z) => '--b: ' + z[0] + 'px; --i: ' + z[1] + 'px';
+  const play = self.playing;
+  const list = [['Previous track', ICON.PREV, base, () => self.say('Previous track')]];
+  if (play) {
+    list.push(['Pause', ICON.PAUSE, small, () => { self.playing = false; self.bump(); }]);
+    list.push(['Stop', ICON.STOP, small, () => { self.playing = false; self.say('Stopped'); }]);
+  } else list.push(['Play', ICON.PLAY, main, () => { self.playing = true; self.bump(); }]);
+  list.push(['Next track', ICON.NEXT, base, () => self.say('Next track')]);
+  v.ctl = list.map((c) => ({ label: c[0] + ', ' + c[2][0] + ' px button', icon: c[1], style: st(c[2]), tap: c[3] }));
+  v.browseStyle = '--b: ' + base[0] + 'px; --i: 24px';
+  v.browse = () => self.say('Browse media');
+  v.mediaInfo = () => self.say('Living room speaker: ' + (play ? 'playing' : 'paused'));
+  v.trackTitle = 'Morning rain on the tram line';
+  v.trackBy = 'The Harbour Quartet · Sample album';
+  v.progNow = play ? '42' : '42';
+  v.progStyle = 'width: 42%';
+}
+
+function todoSeed() { return { items: [['Oat milk', ''], ['Spring onions and ginger', 'Due today'], ['Rice noodles, two packs', ''], ['Dish soap refill', 'Due Friday 27 November']], done: ['Eggs'], draft: '', re: false }; }
+// mode: list | loading | empty | error | blank (today: nothing while loading) | bare (today: plain sentence)
+function todoCard(self, key, title, mode, old) {
+  const d = self.td[key] || (self.td[key] = todoSeed());
+  const set = (o) => { self.td = Object.assign({}, self.td); self.td[key] = Object.assign({}, d, o); self.bump(); };
+  let m = mode;
+  if (m === 'list' && !d.items.length && !d.done.length) m = old ? 'bare' : 'empty';
+  const add = () => { const t = (d.draft || '').trim(); if (!t || m === 'error') return; set({ items: d.items.concat([[t, '']]), draft: '' }); };
+  return {
+    cls: old ? 'card td old' : 'card td', title, draft: d.draft,
+    setDraft: (e) => { d.draft = e.target.value; },
+    key: (e) => { if (e && e.key === 'Enter') add(); },
+    add,
+    isLoading: m === 'loading', isEmpty: m === 'empty', isBare: m === 'bare', isError: m === 'error', isList: m === 'list',
+    retry: () => self.say('Asked ' + title + ' to load again'),
+    head: d.re ? 'Reorder items' : 'Active', reAria: String(d.re),
+    menuLabel: d.re ? 'Exit reorder mode' : 'Reorder items', menuIcon: d.re ? ICON.CLOSE : ICON.SORT,
+    toggleRe: () => set({ re: !d.re }),
+    items: d.items.map((it, i) => ({
+      name: it[0], hasDue: !!it[1], due: it[1], re: d.re,
+      check: () => set({ items: d.items.filter((x, j) => j !== i), done: [it[0]].concat(d.done) }),
+      up: () => { if (!i) return; const n = d.items.slice(); n[i - 1] = d.items[i]; n[i] = d.items[i - 1]; set({ items: n }); }
+    })),
+    hasDone: d.done.length > 0,
+    done: d.done.map((n, i) => ({ name: n,
+      check: () => set({ done: d.done.filter((x, j) => j !== i), items: d.items.concat([[n, '']]) }),
+      del: () => set({ done: d.done.filter((x, j) => j !== i) }) })),
+    clear: () => set({ done: [] })
+  };
+}
+
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = DEF; this.reset(DEF); }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? DEF;
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  say(m) { this.msg = m; this.bump(); }
+  common(v, old) {
+    Object.assign(v, { isOld: old, hasMsg: !!this.msg, msg: this.msg, dismiss: () => this.say(''), endStyle: 'height: ' + (this.msg ? 172 : 100) + 'px' });
+  }
+
+  reset(s) {
+    this.msg = ''; this.tip = ''; this.lights = [true, false, true, false]; this.playing = true; this.td = { a: todoSeed() };
+    if (s === 'empty') { this.td.a.items = []; this.td.a.done = []; }
+  }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const old = s === 'before';
+    this.common(v, old);
+    titleVals(this, v, old);
+    mediaVals(this, v, 'wide', old);
+    // With a mouse the to-do sizes stay as they are today; only the loading and empty states change on a wide screen.
+    const card = todoCard(this, 'a', 'Shopping list', old ? 'blank' : s === 'loading' ? 'loading' : 'list', false);
+    card.cls = 'card td old';
+    v.cards = [card];
+    return v;
+  }
+}
+</script>
+</body>
+</html>

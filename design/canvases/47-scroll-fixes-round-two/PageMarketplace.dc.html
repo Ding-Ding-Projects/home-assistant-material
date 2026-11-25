@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Marketplace Discover rows, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.m3 .btn{padding:0 24px}
+.m3 .btn.text{padding:0 14px}
+.ph{background:var(--surf)}
+.sbar{height:28px;flex:none;display:flex;align-items:center;gap:8px;padding:0 16px;font-size:12px;line-height:16px;font-weight:600;color:var(--onv);position:relative;z-index:12;background:var(--surf)}
+.sbar .mid{flex:1;display:flex;justify-content:center;gap:6px;min-width:0}
+.sbar .ic{width:16px;height:16px}
+.tag.td{background:var(--amberc);color:var(--amber);min-height:20px;padding:1px 10px}
+.tag.nt{min-height:20px;padding:1px 10px}
+.bar{position:relative;z-index:5;background:var(--surf)}
+.pbar{position:absolute;left:12px;right:12px;bottom:12px;height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);display:flex;align-items:center;padding:0 6px;z-index:10}
+.m3 .pbar button{flex:1;min-width:0;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;line-height:14px;font-weight:600;color:var(--onv)}
+.pbar .pi{width:48px;height:28px;border-radius:14px;display:grid;place-items:center;transition:background-color .2s}
+.m3 .pbar button.on{color:var(--on)}
+.pbar button.on .pi{background:var(--sc);color:var(--on-sc)}
+.m3 .fab{position:absolute;right:16px;bottom:92px;z-index:6;min-height:56px;padding:0 22px 0 16px;border-radius:28px;background:var(--p);color:var(--on-p);box-shadow:var(--e3);display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;max-width:calc(100% - 32px)}
+.ltabs{display:flex;flex:none;box-shadow:inset 0 -1px 0 var(--outv);overflow-x:auto;position:relative;z-index:5;background:var(--surf)}
+.m3 .ltab{flex:1 0 auto;min-height:48px;padding:0 14px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--onv);position:relative}
+.m3 .ltab.sel{color:var(--p)}
+.m3 .ltab.sel::after{content:"";position:absolute;left:20%;right:20%;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--p)}
+.row{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 4px 8px 12px;border-radius:16px;background:var(--sl0);flex:none}
+.row .bl{font-size:15px;line-height:20px}
+
+.sumrow{display:flex;align-items:center;gap:8px;padding:4px 16px 8px;flex:none;position:relative;z-index:5;background:var(--surf)}
+.lscroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column-reverse}
+.linner{flex:none;display:flex;flex-direction:column;gap:6px;padding:4px 12px 0}
+.endcap{text-align:center;padding:10px 0 0}
+.spacer{flex:none}
+.ghost{display:flex;flex-direction:column;gap:8px;visibility:hidden;pointer-events:none}
+.tstrip{position:absolute;left:12px;right:12px;bottom:92px;z-index:8;display:flex;flex-direction:column;gap:8px}
+.tst{background:var(--inv);color:var(--on-inv);border-radius:16px;padding:0 4px 0 16px;display:flex;align-items:center;gap:4px;box-shadow:var(--e3);font-size:13px;line-height:18px;flex:none;min-height:48px}
+.tst .msg{flex:1;min-width:0;padding:6px 0;overflow-wrap:anywhere}
+.m3 .tst .btn.text{color:inherit;text-decoration:underline;padding:0 12px}
+.m3 .tst .ib{color:inherit}
+.m3 .tst .ib:hover{background:transparent}
+.rxb{width:48px;height:48px;display:grid;place-items:center;flex:none;color:var(--onv);border-radius:24px}
+.rxb > span{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;transition:background-color .2s}
+.rxb:hover > span{background:var(--sl4)}
+.m3 .rxb.on > span{background:var(--sc);color:var(--on-sc)}
+.srow{display:flex;flex-direction:column;gap:6px;padding:0 12px 8px;flex:none;position:relative;z-index:5;background:var(--surf)}
+.srow .sub{padding:0 16px}
+.sfield{display:flex;align-items:center;gap:4px;min-height:56px;padding:0 4px 0 16px;border-radius:28px;background:var(--sl2);color:var(--onv);min-width:0}
+.sfield input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px;color:var(--on)}
+.wbscrim{position:absolute;inset:0;background:var(--scrim);z-index:29}
+.wb{background:var(--sl1);color:var(--on);box-shadow:var(--e3);display:flex;flex-direction:column;gap:12px;padding:16px;z-index:30;overflow-y:auto;text-align:left}
+.wb.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;border-radius:28px 28px 0 0;padding:12px 16px 20px}
+.wb.popv{position:absolute;top:calc(100% + 8px);right:0;width:min(460px,calc(100vw - 32px));max-height:540px;border-radius:24px}
+.wbhead{display:flex;align-items:center;gap:8px;color:var(--onv);flex:none}
+.wbhead .tm{flex:1;min-width:0;color:var(--on)}
+.wbfield{display:flex;align-items:center;gap:4px;min-height:56px;padding:0 16px;border-radius:16px;background:var(--sl3);box-shadow:inset 0 -2px 0 var(--out);flex:none}
+.wbfield.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.wbfield input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:48px;color:var(--on);font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.wbfield .sl{color:var(--onv);font-size:16px}
+.wberr{color:var(--err);font-size:13px;line-height:18px;margin:-6px 4px 0;flex:none}
+.wbflags{display:flex;flex-wrap:wrap;gap:12px 8px;flex:none}
+.wbbox{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:16px;background:var(--sl2);flex:none}
+.wbx{display:flex;gap:10px;align-items:baseline;font-size:13px;line-height:18px;color:var(--onv)}
+.wbx .tok{flex:none;min-width:36px;max-width:45%;padding:1px 6px;border-radius:6px;background:var(--pc);color:var(--on-pc);text-align:center;overflow-wrap:anywhere}
+.wbrow{font-size:14px;line-height:20px;white-space:pre-wrap;overflow-wrap:anywhere}
+.wbrow .hit{background:var(--amberc);color:var(--amber);border-radius:4px;font-weight:600}
+.wbact{display:flex;align-items:center;gap:4px;flex-wrap:wrap;flex:none}
+.scr{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:4px 12px 100px;display:flex;flex-direction:column;gap:12px}
+.kard{background:var(--sl0);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:8px;flex:none;min-width:0}
+.menu{background:var(--sl3);border-radius:20px;padding:8px;box-shadow:var(--e3);display:flex;flex-direction:column;min-width:196px}
+.m3 .mi{display:flex;align-items:center;gap:12px;min-height:48px;padding:0 14px 0 12px;border-radius:14px;font-size:14px;width:100%}
+.m3 .mi:hover{background:var(--sl4)}
+.m3 .mi.sel{background:var(--pc);color:var(--on-pc)}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;overflow-wrap:anywhere}
+.cut1{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alist{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.arow{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;position:relative}
+.arow.old,.arow.wide{flex-wrap:nowrap}
+.hdl{display:flex;align-items:center;min-height:48px;color:var(--onv);flex:none;cursor:grab}
+.sbd{display:flex;align-items:center;justify-content:center;width:24px;min-height:48px;margin:0 2px 0 4px;color:var(--onv);flex:none}
+.atx{flex:1 1 150px;min-width:0;display:flex;flex-direction:column;justify-content:center;min-height:48px;padding:4px 0}
+.ah{font-size:16px;line-height:22px;overflow-wrap:anywhere}
+.ad{font-size:13px;line-height:18px;color:var(--onv);overflow-wrap:anywhere}
+.arow.old .atx,.arow.wide .atx{flex:1 1 0}
+.arow.old .ah,.arow.old .ad,.arow.wide .ah,.arow.wide .ad{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.selw{position:relative;flex:none;order:4;flex-basis:100%;padding-left:70px;display:flex}
+.arow.old .selw,.arow.wide .selw{order:0;flex-basis:auto;padding-left:0;align-self:center}
+.m3 .sevsel{display:flex;align-items:center;gap:8px;height:48px;min-width:160px;padding:0 8px 0 14px;border-radius:12px;background:var(--sl2);font-size:14px;font-weight:500}
+.m3 .arow.old .sevsel{width:118px;min-width:0;height:42px;padding:0 2px 0 10px;gap:6px}
+.m3 .arow.wide .sevsel{width:150px;min-width:0}
+.sevsel .sv{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sdot{width:10px;height:10px;border-radius:5px;flex:none;background:var(--amber)}
+.sdot.alert{background:var(--err)}
+.m3 .del{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;order:3;transition:background-color .2s}
+.m3 .del:hover{background:var(--sl3)}
+.m3 .arow.old .del{width:40px;height:40px;order:0;align-self:center}
+.m3 .arow.wide .del{order:0}
+.smenu{position:absolute;top:calc(100% + 4px);left:70px;z-index:6}
+.arow.old .smenu,.arow.wide .smenu{left:auto;right:0}
+.m3 .addf{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 12px 0 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -1px 0 var(--out);width:100%;margin-top:8px;color:var(--onv);font-size:16px}
+.mini{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:20px 8px;color:var(--onv)}
+.mrow{position:relative;display:flex;align-items:center;gap:16px;padding:12px 16px;min-height:64px;width:100%;text-align:left}
+.m3 button.mrow{display:flex}
+.mrow + .mrow{box-shadow:inset 0 1px 0 var(--outv)}
+.mrow:hover{background:var(--sl1)}
+.mic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--sc);color:var(--on-sc)}
+.mtx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mtt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mrow.old .mtt{flex-wrap:nowrap}
+.mnm{font-size:16px;line-height:22px;font-weight:500;overflow-wrap:anywhere}
+.mty{padding:0 8px;border-radius:6px;font-size:12px;line-height:20px;color:var(--onv);background:var(--sl3);white-space:nowrap;flex:none}
+.mds{font-size:14px;line-height:20px;color:var(--onv)}
+.mnum{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:var(--onv);font-size:13px;line-height:18px;font-variant-numeric:tabular-nums}
+.mnum span{display:inline-flex;align-items:center;gap:4px}
+.mnum .ic{width:16px;height:16px}
+.minst{display:inline-flex;align-items:center;gap:4px;flex:none;color:var(--green);font-size:13px;line-height:18px;font-weight:600}
+.minst .ic{width:18px;height:18px}
+.mcard{background:var(--sl0);border-radius:20px;overflow:hidden;display:flex;flex-direction:column}
+.shd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 4px 0 8px}
+.shd h3{margin:0;font-size:18px;line-height:24px;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.shd h3.old{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chain{display:flex;flex-direction:column}
+.crow{position:relative;display:flex;align-items:flex-start;gap:12px;padding:8px 0;min-height:48px}
+.crow + .crow::before{content:"";position:absolute;top:-3px;left:11px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--outv)}
+.cnode{width:32px;height:32px;border-radius:16px;display:grid;place-items:center;flex:none;color:var(--nc,var(--onv));background:color-mix(in srgb,var(--nc,var(--onv)) 15%,var(--sl0))}
+.cnode.run{border-radius:10px;--nc:var(--p)}
+.cnode .ic{width:18px;height:18px}
+.cct{flex:1;min-width:0;display:flex;flex-direction:column}
+.cnm{font-size:15px;line-height:20px;font-weight:500}
+.csec{font-size:13px;line-height:18px;color:var(--onv);overflow-wrap:anywhere}
+.m3 .ctr{align-self:flex-start;color:var(--p);font-size:13px;line-height:18px;font-weight:600;position:relative;padding:2px 0}
+.m3 .ctr::after{content:"";position:absolute;inset:-13px -8px}
+.ctl{display:flex;flex-direction:column;align-items:flex-end;flex:none;font-size:13px;line-height:18px;color:var(--onv);padding-top:1px}
+.ctl .cts{color:var(--on);font-weight:500}
+.most{display:grid;grid-template-columns:1fr auto;gap:0 8px;margin-top:6px;font-size:15px;line-height:20px}
+.most .cnt{font-weight:500}
+.most .pg{grid-column:1 / -1;height:6px;border-radius:3px;background:var(--sl3);overflow:hidden;margin-top:4px}
+.most .pg i{display:block;height:100%;border-radius:3px;background:var(--p)}
+.most > span:first-child{min-width:0}
+.clamp3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;overflow-wrap:anywhere}
+.crow.nw{flex-wrap:wrap}
+.crow.nw .ctl{flex-basis:100%;flex-direction:row;align-items:center;gap:8px;padding:0 0 0 44px;margin-top:-6px}
+
+.intro{padding:8px 8px 0;display:flex;flex-direction:column;gap:6px}
+.intro h2{font-size:22px;line-height:28px;font-weight:500;color:var(--onv)}
+.msec{display:flex;flex-direction:column;gap:8px;flex:none}
+.m3 .see{min-height:48px;color:var(--p);font-size:14px;font-weight:600;padding:0 12px;border-radius:24px;flex:none}
+.mrow.old .mnm{white-space:nowrap}
+.sheetscrim{position:absolute;inset:0;background:var(--scrim);z-index:20}
+.dsheet{position:absolute;left:0;right:0;bottom:0;z-index:21;max-height:80%;display:flex;flex-direction:column;background:var(--sl1);border-radius:28px 28px 0 0;box-shadow:var(--e3)}
+.dsheet .dh{display:flex;align-items:center;gap:12px;padding:16px 8px 8px 20px;flex:none}
+.dsheet .dh .tm{flex:1;min-width:0;overflow-wrap:anywhere}
+.dsheet .db{flex:1;min-height:0;overflow-y:auto;padding:0 20px 8px;display:flex;flex-direction:column;gap:10px}
+.dsheet .df{display:flex;justify-content:flex-end;gap:8px;padding:8px 16px 16px;flex:none;flex-wrap:wrap}
+.m3 .ltab{padding:0 10px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<div class="sbar"><span>19:49</span><span class="mid"><sc-if value="{{isOld}}" hint-placeholder-val="{{ false }}"><span class="tag td">Today</span></sc-if></span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,21L15.6,16.2C14.6,15.45 13.35,15 12,15C10.65,15 9.4,15.45 8.4,16.2L12,21M12,3C7.95,3 4.21,4.34 1.2,6.6L3,9C5.5,7.12 8.62,6 12,6C15.38,6 18.5,7.12 21,9L22.8,6.6C19.79,4.34 16.05,3 12,3M12,9C9.3,9 6.81,9.89 4.8,11.4L6.6,13.8C8.1,12.67 9.97,12 12,12C14.03,12 15.9,12.67 17.4,13.8L19.2,11.4C17.19,9.89 14.7,9 12,9Z"></path></svg><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,10H8V6H16M16.67,4H15V2H9V4H7.33A1.33,1.33 0 0,0 6,5.33V20.67C6,21.4 6.6,22 7.33,22H16.67A1.33,1.33 0 0,0 18,20.67V5.33C18,4.6 17.4,4 16.67,4Z"></path></svg></div>
+<div class="bar">
+<button class="ib" aria-label="Open the menu"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg></button>
+<h1>Marketplace</h1>
+<button class="ib" aria-label="More options"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button>
+</div>
+<div class="ltabs" role="tablist" aria-label="Marketplace sections"><sc-for list="{{tabs}}" as="b" hint-placeholder-count="4"><button class="{{b.cls}}" role="tab" aria-selected="{{b.aria}}" onClick="{{ b.pick }}">{{b.name}}</button></sc-for></div>
+<div class="scr" tabindex="0" role="region" aria-label="{{regionLabel}}" style="padding-top: 12px">
+<sc-if value="{{isList}}" hint-placeholder-val="{{ true }}">
+<sc-if value="{{hasIntro}}" hint-placeholder-val="{{ true }}"><div class="intro"><h2>Make Home Assistant yours</h2><p class="sub">Made by people in the community and shared with everyone. Here are some to start with, or browse everything.</p></div></sc-if>
+<sc-for list="{{sections}}" as="s" hint-placeholder-count="2">
+<section class="msec">
+<div class="shd"><h3 class="{{s.hCls}}">{{s.title}}</h3><button class="see">See all</button></div>
+<div class="mcard">
+<sc-for list="{{s.rows}}" as="r" hint-placeholder-count="3">
+<button class="{{r.cls}}" aria-label="{{r.label}}" onClick="{{ r.open }}">
+<span class="mic"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{r.icon}}"></path></svg></span>
+<span class="mtx">
+<span class="mtt"><span class="mnm">{{r.name}}</span><span class="mty">{{r.type}}</span></span>
+<span class="{{r.dCls}}" title="{{r.tip}}">{{r.desc}}</span>
+<sc-if value="{{r.below}}" hint-placeholder-val="{{ true }}"><span class="mnum"><sc-if value="{{r.installed}}" hint-placeholder-val="{{ false }}"><span class="minst"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"></path></svg>Installed</span></sc-if><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"></path></svg>{{r.downloads}}</span><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"></path></svg>{{r.stars}}</span></span></sc-if>
+</span>
+<sc-if value="{{r.instSide}}" hint-placeholder-val="{{ false }}"><span class="minst"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"></path></svg>Installed</span></sc-if>
+</button>
+</sc-for>
+</div>
+</section>
+</sc-for>
+<sc-if value="{{isOther}}" hint-placeholder-val="{{ false }}"><div class="stagebox in"><span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5,11H19V7C19,5.89 18.1,5 17,5H13V3.5A2.5,2.5 0 0,0 10.5,1A2.5,2.5 0 0,0 8,3.5V5H4A2,2 0 0,0 2,7V10.8H3.5C5,10.8 6.2,12 6.2,13.5C6.2,15 5,16.2 3.5,16.2H2V20A2,2 0 0,0 4,22H7.8V20.5C7.8,19 9,17.8 10.5,17.8C12,17.8 13.2,19 13.2,20.5V22H17A2,2 0 0,0 19,20V16H20.5A2.5,2.5 0 0,0 23,13.5A2.5,2.5 0 0,0 20.5,11Z"></path></svg></span><span class="tm" style="color: var(--on)">{{otherTitle}}</span><span class="sub">This board draws the Discover tab. The rows on this tab use the same two-line descriptions.</span><button class="btn tonal" onClick="{{ toDiscover }}">Back to Discover</button></div></sc-if>
+</sc-if>
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{ false }}">
+<div class="intro"><span class="sk" style="height: 26px; width: 70%"></span><span class="sk" style="height: 14px; width: 92%"></span></div>
+<span class="sub" role="status" style="padding: 0 8px">Loading the marketplace</span>
+<div class="mcard" aria-busy="true"><sc-for list="{{skel}}" as="k" hint-placeholder-count="5"><div class="mrow"><span class="sk" style="width: 36px; height: 36px; flex: none"></span><span class="mtx" style="gap: 8px"><span class="sk" style="height: 16px; width: {{k.w}}"></span><span class="sk" style="height: 12px; width: 94%"></span><span class="sk" style="height: 12px; width: 60%"></span></span></div></sc-for></div>
+</sc-if>
+<sc-if value="{{isError}}" hint-placeholder-val="{{ false }}">
+<div class="stagebox in"><span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"></path></svg></span><span class="tm" style="color: var(--on)">The marketplace could not be loaded</span><span class="sub">The list of packages did not arrive. What you have installed keeps working.</span><button class="btn tonal" onClick="{{ retry }}">Try again</button></div>
+</sc-if>
+</div>
+<sc-if value="{{sheetOpen}}" hint-placeholder-val="{{ false }}">
+<div class="sheetscrim" onClick="{{ closeSheet }}"></div>
+<div class="dsheet up" role="dialog" aria-modal="true" aria-label="{{shName}}" onKeyDown="{{ sheetKey }}">
+<div class="dh"><span class="mic"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{shIcon}}"></path></svg></span><span class="tm">{{shName}}</span><button class="ib" data-shx="1" aria-label="Close" onClick="{{ closeSheet }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div>
+<div class="db"><span class="mtt"><span class="mty">{{shType}}</span><sc-if value="{{shInstalled}}" hint-placeholder-val="{{ false }}"><span class="minst"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"></path></svg>Installed</span></sc-if></span><p class="bl">{{shDesc}}</p><span class="mnum"><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"></path></svg>{{shDownloads}} downloads</span><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"></path></svg>{{shStars}} stars</span></span></div>
+<div class="df"><button class="btn text" onClick="{{ closeSheet }}">Close</button><button class="btn fill" onClick="{{ closeSheet }}">Open the package page</button></div>
+</div>
+</sc-if>
+<nav class="pbar" aria-label="Bottom bar"><button class=""><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"></path></svg></span>Home</button><button class=""><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></span>Search</button><button class=""><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,3H3A2,2 0 0,0 1,5V19A2,2 0 0,0 3,21H21A2,2 0 0,0 23,19V5A2,2 0 0,0 21,3M21,19H3V5H13V9H21V19Z"></path></svg></span>Pages</button><button class=""><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"></path></svg></span>Settings</button><button class="on" aria-current="page"><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg></span>Menu</button></nav>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","before","details","loading","error"]},"$preview":{"width":390,"height":844}}'>
+// Made-up packages: [name, type, description, downloads, stars, installed, icon]
+const PACKS = {
+  popular: [
+    ['Rain Radar Card', 'Dashboard', 'Shows a live rain radar loop for your home location with a legend, a time slider and optional lightning strikes.', '48K', '2.1K', true, 'M9,12C9.53,12.14 9.85,12.69 9.71,13.22L8.41,18.05C8.27,18.59 7.72,18.9 7.19,18.76C6.65,18.62 6.34,18.07 6.5,17.54L7.78,12.71C7.92,12.17 8.47,11.86 9,12M13,12C13.53,12.14 13.85,12.69 13.71,13.22L11.64,20.95C11.5,21.5 10.95,21.8 10.41,21.66C9.88,21.5 9.56,20.97 9.7,20.43L11.78,12.71C11.92,12.17 12.47,11.86 13,12M17,12C17.53,12.14 17.85,12.69 17.71,13.22L16.41,18.05C16.27,18.59 15.72,18.9 15.19,18.76C14.65,18.62 14.34,18.07 14.5,17.54L15.78,12.71C15.92,12.17 16.47,11.86 17,12M17,10V9A5,5 0 0,0 12,4C9.5,4 7.45,5.82 7.06,8.19C6.73,8.07 6.37,8 6,8A3,3 0 0,0 3,11C3,12.11 3.6,13.08 4.5,13.6V13.59C5,13.87 5.14,14.5 4.87,14.96C4.59,15.43 4,15.6 3.5,15.32V15.33C2,14.47 1,12.85 1,11A5,5 0 0,1 6,6C7,3.65 9.3,2 12,2C15.43,2 18.24,4.66 18.5,8.03L19,8A4,4 0 0,1 23,12C23,13.5 22.2,14.77 21,15.46V15.46C20.5,15.73 19.91,15.57 19.63,15.09C19.36,14.61 19.5,14 20,13.72V13.73C20.6,13.39 21,12.74 21,12A2,2 0 0,0 19,10H17Z'],
+    ['Rain Radar Card Compact', 'Dashboard', 'Shows a live rain radar loop for your home location in a small tile without the legend or the time slider.', '6.2K', '318', false, 'M9,12C9.53,12.14 9.85,12.69 9.71,13.22L8.41,18.05C8.27,18.59 7.72,18.9 7.19,18.76C6.65,18.62 6.34,18.07 6.5,17.54L7.78,12.71C7.92,12.17 8.47,11.86 9,12M13,12C13.53,12.14 13.85,12.69 13.71,13.22L11.64,20.95C11.5,21.5 10.95,21.8 10.41,21.66C9.88,21.5 9.56,20.97 9.7,20.43L11.78,12.71C11.92,12.17 12.47,11.86 13,12M17,12C17.53,12.14 17.85,12.69 17.71,13.22L16.41,18.05C16.27,18.59 15.72,18.9 15.19,18.76C14.65,18.62 14.34,18.07 14.5,17.54L15.78,12.71C15.92,12.17 16.47,11.86 17,12M17,10V9A5,5 0 0,0 12,4C9.5,4 7.45,5.82 7.06,8.19C6.73,8.07 6.37,8 6,8A3,3 0 0,0 3,11C3,12.11 3.6,13.08 4.5,13.6V13.59C5,13.87 5.14,14.5 4.87,14.96C4.59,15.43 4,15.6 3.5,15.32V15.33C2,14.47 1,12.85 1,11A5,5 0 0,1 6,6C7,3.65 9.3,2 12,2C15.43,2 18.24,4.66 18.5,8.03L19,8A4,4 0 0,1 23,12C23,13.5 22.2,14.77 21,15.46V15.46C20.5,15.73 19.91,15.57 19.63,15.09C19.36,14.61 19.5,14 20,13.72V13.73C20.6,13.39 21,12.74 21,12A2,2 0 0,0 19,10H17Z'],
+    ['Garden Watering Planner', 'Integration', 'Works out how long each watering zone should run from the forecast, the soil sensor and what was already watered this week.', '12K', '640', false, 'M11 7H13V9H11V7M5 22H9V10H5V22M14 11H16V9H14V11M17 10H19V8H17V10M17 5V7H19V5H17M14 8H16V6H14V8M17 13H19V11H17V13M5 7H5.33L6 9H8L8.67 7H9V6H5V7Z']
+  ],
+  updated: [
+    ['Quiet Hours Theme', 'Theme', 'A low-contrast evening theme that dims cards and hides badges between the hours you choose.', '9.3K', '512', false, 'M17.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,9A1.5,1.5 0 0,1 19,10.5A1.5,1.5 0 0,1 17.5,12M14.5,8A1.5,1.5 0 0,1 13,6.5A1.5,1.5 0 0,1 14.5,5A1.5,1.5 0 0,1 16,6.5A1.5,1.5 0 0,1 14.5,8M9.5,8A1.5,1.5 0 0,1 8,6.5A1.5,1.5 0 0,1 9.5,5A1.5,1.5 0 0,1 11,6.5A1.5,1.5 0 0,1 9.5,8M6.5,12A1.5,1.5 0 0,1 5,10.5A1.5,1.5 0 0,1 6.5,9A1.5,1.5 0 0,1 8,10.5A1.5,1.5 0 0,1 6.5,12M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A1.5,1.5 0 0,0 13.5,19.5C13.5,19.11 13.35,18.76 13.11,18.5C12.88,18.23 12.73,17.88 12.73,17.5A1.5,1.5 0 0,1 14.23,16H16A5,5 0 0,0 21,11C21,6.58 16.97,3 12,3Z'],
+    ['Bus Stop Departures', 'Integration', 'Next departures for the stops you pick, with delays, platform changes and one sensor per line.', '7.1K', '388', true, 'M18,11H6V6H18M16.5,17A1.5,1.5 0 0,1 15,15.5A1.5,1.5 0 0,1 16.5,14A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 16.5,17M7.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,14A1.5,1.5 0 0,1 9,15.5A1.5,1.5 0 0,1 7.5,17M4,16C4,16.88 4.39,17.67 5,18.22V20A1,1 0 0,0 6,21H7A1,1 0 0,0 8,20V19H16V20A1,1 0 0,0 17,21H18A1,1 0 0,0 19,20V18.22C19.61,17.67 20,16.88 20,16V6C20,2.5 16.42,2 12,2C7.58,2 4,2.5 4,6V16Z'],
+    ['Laundry Done Notifier', 'Integration', 'Tells the right person when the washer or dryer finishes, based on power use, and repeats until the door is opened.', '3.4K', '201', false, 'M14.83,11.17C16.39,12.73 16.39,15.27 14.83,16.83C13.27,18.39 10.73,18.39 9.17,16.83L14.83,11.17M6,2H18A2,2 0 0,1 20,4V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V4A2,2 0 0,1 6,2M7,4A1,1 0 0,0 6,5A1,1 0 0,0 7,6A1,1 0 0,0 8,5A1,1 0 0,0 7,4M10,4A1,1 0 0,0 9,5A1,1 0 0,0 10,6A1,1 0 0,0 11,5A1,1 0 0,0 10,4M12,8A6,6 0 0,0 6,14A6,6 0 0,0 12,20A6,6 0 0,0 18,14A6,6 0 0,0 12,8Z']
+  ]
+};
+const TITLES = { popular: 'Popular', updated: 'Recently updated' };
+const TABS = ['Discover', 'Browse', 'Installed', '2 updates'];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.tab = 'Discover'; this.open = null; }
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+  reset(s) { this.tab = 'Discover'; this.open = s === 'details' ? PACKS.popular[2] : null; }
+  focusLater(sel, e) {
+    try { if (e && e.currentTarget && e.currentTarget.getRootNode) this._root = e.currentTarget.getRootNode(); } catch (err) {}
+    const root = this._root; setTimeout(() => { try { const el = (root || document).querySelector(sel); if (el) el.focus(); } catch (err) {} }, 60);
+  }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const old = s === 'before';
+    const list = s === 'after' || s === 'before' || s === 'details';
+    const disc = this.tab === 'Discover';
+    const o = this.open;
+    const close = () => { this.open = null; this.bump(); };
+    return Object.assign(v, {
+      isOld: old, isList: list, hasIntro: list && disc, isOther: list && !disc, otherTitle: this.tab,
+      isLoading: s === 'loading', isError: s === 'error', retry: () => this.go('after'),
+      regionLabel: 'Marketplace, ' + this.tab,
+      tabs: TABS.map((n) => ({ name: n, cls: this.tab === n ? 'ltab sel' : 'ltab', aria: this.tab === n ? 'true' : 'false', pick: () => { this.tab = n; this.open = null; this.bump(); } })),
+      toDiscover: () => { this.tab = 'Discover'; this.bump(); },
+      sections: !disc ? [] : Object.keys(PACKS).map((k) => ({
+        title: TITLES[k], hCls: old ? 'old' : '',
+        rows: PACKS[k].map((p) => ({
+          cls: old ? 'mrow old' : 'mrow', name: p[0], type: p[1], desc: p[2], icon: p[6],
+          dCls: old ? 'mds cut1' : 'mds clamp2', tip: old ? '' : p[2],
+          below: !old, installed: p[5], instSide: old && p[5], downloads: p[3], stars: p[4],
+          label: p[0] + ', ' + p[1] + '. ' + p[2],
+          open: (e) => { this.open = p; this.bump(); this.focusLater('[data-shx]', e); }
+        }))
+      })),
+      skel: ['52%', '64%', '44%', '58%', '48%'].map((w) => ({ w })),
+      sheetOpen: !!o, closeSheet: close, sheetKey: (e) => { if (e && e.key === 'Escape') close(); },
+      shName: o ? o[0] : '', shType: o ? o[1] : '', shDesc: o ? o[2] : '', shDownloads: o ? o[3] : '', shStars: o ? o[4] : '', shInstalled: !!(o && o[5]), shIcon: o ? o[6] : ''
+    });
+  }
+}
+</script>
+</body>
+</html>
