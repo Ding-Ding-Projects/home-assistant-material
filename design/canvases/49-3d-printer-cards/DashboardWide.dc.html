@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Both 3D printer cards on a wide dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3{--on-err:#FFFFFF}
+.m3.dark{--on-err:#690005}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 h3,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.xs{width:16px;height:16px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.cut1{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,background-color .2s}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.danger{background:var(--errc);color:var(--on-errc)}
+.m3 .btn.err{background:var(--err);color:var(--on-err)}
+.m3 .btn.off{background:var(--sl3);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600;white-space:nowrap}
+.pop{animation:pop .22s ease both}
+.up{animation:up .25s ease both}
+@keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+@keyframes beat{0%,100%{opacity:1}50%{opacity:.35}}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+
+.wd{min-height:860px;position:relative;padding:12px clamp(16px,3vw,40px) 96px;display:flex;flex-direction:column;gap:20px;max-width:1360px;margin:0 auto}
+.whd{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;min-height:56px}
+.whd h1{min-width:0}
+.sect{display:flex;flex-direction:column;gap:10px;min-width:0}
+.shd{display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap;padding:0 4px}
+.crow{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.kard{background:var(--sl0);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.pst{flex:1 1 340px;max-width:480px;cursor:pointer;transition:background-color .2s}
+.pst:hover{background:var(--sl1)}
+.pctl{flex:1.7 1 340px}
+
+.phead{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.m3 .popen{display:flex;align-items:center;gap:12px;min-height:48px;flex:1 1 190px;min-width:0;border-radius:16px}
+.pico{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--pc);color:var(--on-pc);flex:none}
+.odot{display:inline-block;width:8px;height:8px;border-radius:4px;margin-right:6px;background:var(--green);vertical-align:1px}
+.odot.no{background:transparent;box-shadow:inset 0 0 0 2px var(--out)}
+.schip{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:4px 12px;border-radius:16px;font-size:13px;line-height:18px;font-weight:600;flex:none;max-width:100%}
+.schip.run{background:var(--pc);color:var(--on-pc)}
+.schip.hold{background:var(--amberc);color:var(--amber)}
+.schip.idle{background:var(--sl3);color:var(--onv)}
+.schip.offl{box-shadow:inset 0 0 0 1px var(--out);color:var(--onv)}
+.pdot{width:8px;height:8px;border-radius:4px;background:currentColor;flex:none}
+.pdot.live{animation:beat 1.8s ease-in-out infinite}
+.jobrow{display:flex;align-items:center;gap:12px;min-width:0}
+.thumb{width:56px;height:56px;border-radius:14px;background:var(--sl3);flex:none;display:block;overflow:hidden}
+.thumb svg{display:block;width:56px;height:56px}
+.prog{display:flex;flex-direction:column;gap:8px}
+.pctrow{display:flex;align-items:flex-end;justify-content:space-between;gap:4px 12px;flex-wrap:wrap}
+.pct{font-size:44px;line-height:44px;font-weight:500;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.pct small{font-size:18px;line-height:24px;font-weight:500;color:var(--onv);letter-spacing:0;margin-left:2px}
+.eta{display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+.eta b{font-size:15px;line-height:22px;font-weight:600}
+.slats{display:flex;gap:2px;height:26px;align-items:stretch}
+.sl{flex:1;min-width:0;border-radius:2px;background:var(--sl4);transition:background-color .25s ease}
+.sl.f{background:var(--p)}
+.sl.n{background:var(--p);animation:beat 1.8s ease-in-out infinite}
+.slats.hold .sl.f,.slats.hold .sl.n{background:var(--amber);animation:none}
+.okline{display:flex;align-items:center;gap:8px;color:var(--green);font-size:13px;line-height:18px;font-weight:600;min-height:24px}
+.probs{background:var(--errc);color:var(--on-errc);border-radius:16px;padding:12px 14px 4px;display:flex;flex-direction:column;cursor:default}
+.probs .ph2{display:flex;align-items:center;gap:8px;font-size:13px;line-height:18px;font-weight:600;padding-bottom:8px}
+.prob{display:flex;flex-direction:column;gap:4px;padding:10px 0 0;box-shadow:inset 0 1px 0 color-mix(in srgb,currentColor 28%,transparent)}
+.prob .pt{font-size:14px;line-height:20px}
+.prob .pm{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;font-size:12px;line-height:16px}
+.prob .pm .mono{overflow-wrap:anywhere}
+.ptag{display:inline-flex;align-items:center;min-height:20px;padding:1px 8px;border-radius:10px;box-shadow:inset 0 0 0 1px currentColor;font-size:12px;line-height:16px;font-weight:600}
+.m3 .plink{display:inline-flex;align-items:center;gap:6px;min-height:48px;font-size:13px;font-weight:600;text-decoration:underline;align-self:flex-start;border-radius:8px}
+.temps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tt{background:var(--sl2);border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tt.act{box-shadow:inset 0 0 0 2px var(--p)}
+.tt .th{display:flex;align-items:center;gap:6px;justify-content:space-between;min-height:20px}
+.tt .tv{font-size:24px;line-height:30px;font-weight:500;font-variant-numeric:tabular-nums}
+.tt .tv small{font-size:13px;font-weight:500;color:var(--onv);margin-left:3px}
+.tt .tf{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.tmark{display:inline-flex;align-items:center;gap:3px;font-size:12px;line-height:16px;font-weight:600;color:var(--onv);white-space:nowrap}
+.tmark.upm{color:var(--amber)}
+.tmark.dnm{color:var(--p)}
+.m3:not(.dark) .tmark.dnm{color:var(--on-pc)}
+.m3:not(.dark) .dlg .btn.text{color:var(--on-pc)}
+.tmark.okm{color:var(--green)}
+.atag{font-size:11px;line-height:16px;font-weight:600;padding:0 8px;border-radius:8px;background:var(--pc);color:var(--on-pc)}
+.quiet{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv)}
+.quiet .tm{color:var(--on);font-size:15px;line-height:22px}
+.pst.off .pico{background:var(--sl3);color:var(--out)}
+.pst.off .tm{color:var(--onv)}
+
+.chead{display:flex;align-items:center;gap:12px;min-height:48px}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:10px;align-items:start}
+.cgrid.dis{pointer-events:none}
+.cgrid.dis .grp > :not(.reason):not(h3){opacity:.45}
+.m3 button:disabled,.m3 input:disabled{cursor:not-allowed}
+.grp{background:var(--sl1);border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.grp h3{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv);padding:0 4px 2px}
+.pbtns{display:flex;gap:8px;flex-wrap:wrap}
+.pbtns .btn{flex:1 1 120px}
+.reason{display:flex;align-items:center;gap:8px;font-size:13px;line-height:18px;color:var(--onv);padding:2px 4px}
+.seg{display:flex;border-radius:24px;box-shadow:inset 0 0 0 1px var(--outv);overflow:hidden}
+.m3 .seg button{flex:1 1 0;min-width:0;min-height:48px;text-align:center;font-size:13px;font-weight:600;color:var(--onv);padding:0 2px;transition:background-color .2s;box-shadow:inset 1px 0 0 var(--outv)}
+.m3 .seg button:first-child{box-shadow:none}
+.m3 .seg button.on{background:var(--sc);color:var(--on-sc)}
+.trow{display:flex;align-items:center;gap:8px;min-height:48px;padding-left:4px}
+.trow .nm{font-size:14px;line-height:20px}
+.stp{display:flex;align-items:center;background:var(--sl3);border-radius:24px;flex:none}
+.stp .ib:hover{background:var(--sl4)}
+.stp output{min-width:58px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
+.fan{display:flex;flex-direction:column}
+.m3 .swrow{display:flex;align-items:center;gap:12px;min-height:48px;width:100%;border-radius:12px;padding:0 4px}
+.swrow .nm{font-size:14px;line-height:20px}
+.swrow .val{font-size:13px;font-weight:600;color:var(--onv);font-variant-numeric:tabular-nums;min-width:40px;text-align:right}
+.sw{width:52px;height:32px;border-radius:16px;background:var(--sl4);box-shadow:inset 0 0 0 2px var(--out);position:relative;flex:none;display:block;transition:background-color .2s}
+.sw i{position:absolute;top:8px;left:8px;width:16px;height:16px;border-radius:8px;background:var(--out);transition:transform .2s ease,background-color .2s}
+.sw.on{background:var(--p);box-shadow:none}
+.sw.on i{background:var(--on-p);transform:translateX(20px) scale(1.5)}
+.m3 input[type=range]{display:block;width:100%;height:48px;margin:0;padding:0 4px;background:transparent;accent-color:var(--p);cursor:pointer}
+.mbtns{display:flex;gap:8px;flex-wrap:wrap;padding-top:4px}
+.mbtns .btn{flex:1 1 130px;padding:0 14px}
+
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:40}
+.dwrap{position:fixed;inset:0;display:grid;place-items:center;padding:16px;z-index:41;pointer-events:none}
+.dlg{pointer-events:auto;width:min(400px,100%);background:var(--sl3);color:var(--on);border-radius:28px;padding:24px 24px 16px;box-shadow:var(--e3);display:flex;flex-direction:column;gap:12px}
+.dlg .acts{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding-top:8px}
+.twrap{position:fixed;left:0;right:0;bottom:16px;display:flex;justify-content:center;padding:0 12px;z-index:39;pointer-events:none}
+.tst{pointer-events:auto;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:0 4px 0 16px;display:flex;align-items:center;gap:4px;box-shadow:var(--e3);font-size:13px;line-height:18px;min-height:48px;max-width:520px;width:100%}
+.tst .msg{flex:1;min-width:0;padding:8px 0;overflow-wrap:anywhere}
+.m3 .tst .ib{color:inherit}
+.m3 .tst .ib:hover{background:transparent}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="wd">
+<header class="whd">
+<h1 class="tl">Workshop</h1>
+<span class="tag">2 printers</span>
+<span style="flex: 1"></span>
+<span class="sub">{{clock}}</span>
+<button class="ib" aria-label="Edit dashboard" title="Edit dashboard" onClick="{{ editGo }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"></path></svg></button>
+</header>
+
+<sc-for list="{{sections}}" as="sec" hint-placeholder-count="2">
+<section class="sect" aria-label="{{sec.title}}">
+<div class="shd"><h2 class="tm">{{sec.title}}</h2><span class="sub">{{sec.sub}}</span></div>
+<div class="crow">
+
+<sc-for list="{{sec.status}}" as="st" hint-placeholder-count="1">
+<article class="{{st.cls}}" aria-label="{{st.cardLabel}}" onClick="{{ st.open }}">
+<div class="phead">
+<button class="popen" aria-label="{{st.openLabel}}" onClick="{{ st.open }}">
+<span class="pico"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,2H17V8H19V13H16.5L13,17H11L7.5,13H5V8H7V2M10,22H2V20H10A1,1 0 0,0 11,19V18H13V19A3,3 0 0,1 10,22Z"></path></svg></span>
+<span class="grow"><span class="tm cut1">{{st.name}}</span><span class="sub cut1"><span class="{{st.dotCls}}" aria-hidden="true"></span>{{st.model}} · {{st.onlineText}}</span></span>
+</button>
+<span class="{{st.chipCls}}" role="status"><span class="{{st.pdotCls}}" aria-hidden="true"></span><span>{{st.stage}}</span></span>
+</div>
+
+<sc-if value="{{st.hasJob}}" hint-placeholder-val="{{ true }}">
+<div class="jobrow">
+<sc-if value="{{st.showCover}}" hint-placeholder-val="{{ true }}"><span class="thumb" role="img" aria-label="{{st.coverLabel}}"><svg viewBox="0 0 56 56" aria-hidden="true"><path d="M8 44 L28 52 L48 44 L28 36 Z" fill="var(--sl4)"></path><path d="M16 22 L16 40 L30 46 L30 40 L22 37 L22 24 Z" fill="var(--p)"></path><path d="M30 46 L42 41 L42 35 L30 40 Z" fill="var(--p)" opacity=".62"></path><path d="M16 22 L22 24 L28 21.500 L22 19.500 Z" fill="var(--p)" opacity=".8"></path><path d="M22 24 L28 21.500 L28 34.500 L42 35 L30 40 L22 37 Z" fill="var(--p)" opacity=".42"></path><circle cx="36" cy="40.500" r="1.600" fill="var(--sl0)"></circle></svg></span></sc-if>
+<span class="grow"><span class="tm cut1">{{st.job}}</span><span class="sub cut1">{{st.jobSub}}</span></span>
+</div>
+<div class="prog">
+<div class="pctrow">
+<span class="pct">{{st.pct}}<small>%</small></span>
+<span class="eta"><b>{{st.timeLeft}}</b><span class="sub">{{st.doneAt}}</span></span>
+</div>
+<div class="{{st.barCls}}" role="progressbar" aria-label="{{st.pctLabel}}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{st.pct}}"><sc-for list="{{st.layers}}" as="ly" hint-placeholder-count="38"><span class="{{ly.cls}}"></span></sc-for></div>
+<span class="sub">{{st.layerText}}</span>
+</div>
+</sc-if>
+
+<sc-if value="{{st.isIdle}}" hint-placeholder-val="{{ false }}">
+<div class="quiet"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg><span class="grow"><span class="tm">{{st.idleText}}</span><span class="sub">{{st.idleSub}}</span></span></div>
+</sc-if>
+
+<sc-if value="{{st.isOffline}}" hint-placeholder-val="{{ false }}">
+<div class="quiet"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"></path></svg><span class="grow"><span class="tm">{{st.offlineText}}</span><span class="sub">Temperatures and progress come back when it reconnects.</span></span></div>
+</sc-if>
+
+<sc-if value="{{st.hasProblems}}" hint-placeholder-val="{{ false }}">
+<div class="probs" role="group" aria-label="{{st.probLabel}}" onClick="{{ st.stay }}">
+<div class="ph2"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"></path></svg><span>{{st.probTitle}}</span></div>
+<sc-for list="{{st.problems}}" as="pb" hint-placeholder-count="3">
+<div class="prob">
+<span class="pt">{{pb.text}}</span>
+<span class="pm"><span class="ptag">{{pb.sev}}</span><span class="mono">{{pb.code}}</span></span>
+<sc-if value="{{pb.hasWiki}}" hint-placeholder-val="{{ true }}"><button class="plink" aria-label="{{pb.wikiLabel}}" onClick="{{ pb.wiki }}">What this means<svg class="ic xs" aria-hidden="true" viewBox="0 0 24 24"><path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"></path></svg></button></sc-if>
+<sc-if value="{{pb.noWiki}}" hint-placeholder-val="{{ false }}"><span style="height: 10px; display: block"></span></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{st.noProblems}}" hint-placeholder-val="{{ true }}">
+<div class="okline"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg><span>No problems</span></div>
+</sc-if>
+
+<sc-if value="{{st.hasTemps}}" hint-placeholder-val="{{ true }}">
+<div class="temps" role="group" aria-label="Temperatures">
+<sc-for list="{{st.temps}}" as="tp" hint-placeholder-count="4">
+<div class="{{tp.cls}}">
+<span class="th"><span class="lm">{{tp.label}}</span><sc-if value="{{tp.active}}" hint-placeholder-val="{{ false }}"><span class="atag">Active</span></sc-if></span>
+<span class="tv">{{tp.cur}}<small>°C</small></span>
+<span class="tf"><span class="sub">{{tp.target}}</span>
+<sc-if value="{{tp.hasMark}}" hint-placeholder-val="{{ true }}"><span class="{{tp.markCls}}"><sc-if value="{{tp.up}}" hint-placeholder-val="{{ false }}"><svg class="ic xs" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,20H11V8L5.5,13.5L4.08,12.08L12,4.16L19.92,12.08L18.5,13.5L13,8V20Z"></path></svg></sc-if><sc-if value="{{tp.down}}" hint-placeholder-val="{{ false }}"><svg class="ic xs" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,4H13V16L18.5,10.5L19.92,11.92L12,19.84L4.08,11.92L5.5,10.5L11,16V4Z"></path></svg></sc-if><sc-if value="{{tp.hold}}" hint-placeholder-val="{{ true }}"><svg class="ic xs" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></sc-if>{{tp.trend}}</span></sc-if></span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</article>
+</sc-for>
+
+<sc-if value="{{sec.hasCtl}}" hint-placeholder-val="{{ true }}">
+<article class="kard pctl" aria-label="Workshop H2D controls">
+<div class="chead">
+<span class="pico"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,17V19H9V17H3M3,5V7H13V5H3M13,21V19H21V17H13V15H11V21H13M7,9V11H3V13H7V15H9V9H7M21,13V11H11V13H21M15,9H17V7H21V5H17V3H15V9Z"></path></svg></span>
+<span class="grow"><span class="tm cut1">Workshop H2D controls</span><span class="sub cut1" role="status">{{ctlSub}}</span></span>
+</div>
+<div class="{{gridCls}}">
+
+<div class="grp" role="group" aria-label="Print">
+<h3>Print</h3>
+<div class="pbtns">
+<sc-if value="{{showPause}}" hint-placeholder-val="{{ true }}"><button class="{{pauseCls}}" aria-disabled="{{printOff}}" disabled="{{off}}" data-pause="1" onClick="{{ pause }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M14,19H18V5H14M6,19H10V5H6V19Z"></path></svg>Pause</button></sc-if>
+<sc-if value="{{showResume}}" hint-placeholder-val="{{ false }}"><button class="btn fill" data-resume="1" onClick="{{ resume }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M8,5.14V19.14L19,12.14L8,5.14Z"></path></svg>Resume</button></sc-if>
+<button class="{{stopCls}}" aria-disabled="{{printOff}}" aria-haspopup="dialog" disabled="{{off}}" data-stop="1" onClick="{{ stopAsk }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M18,18H6V6H18V18Z"></path></svg>Stop</button>
+</div>
+<sc-if value="{{hasReason}}" hint-placeholder-val="{{ false }}"><div class="reason"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"></path></svg><span>{{reason}}</span></div></sc-if>
+</div>
+
+<div class="grp" role="group" aria-label="Speed">
+<h3>Speed</h3>
+<div class="seg" role="radiogroup" aria-label="Printing speed"><sc-for list="{{speeds}}" as="sp" hint-placeholder-count="4"><button class="{{sp.cls}}" role="radio" aria-checked="{{sp.aria}}" disabled="{{off}}" onClick="{{ sp.pick }}">{{sp.name}}</button></sc-for></div>
+</div>
+
+<div class="grp" role="group" aria-label="Temperature">
+<h3>Temperature</h3>
+<sc-for list="{{heaters}}" as="th" hint-placeholder-count="4">
+<div class="trow">
+<span class="grow"><span class="nm cut1">{{th.label}}</span><span class="sub cut1">{{th.now}}</span></span>
+<span class="stp" role="group" aria-label="{{th.groupLabel}}"><button class="ib" aria-label="{{th.decLabel}}" disabled="{{off}}" onClick="{{ th.dec }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H5V11H19V13Z"></path></svg></button><output aria-live="polite">{{th.val}}</output><button class="ib" aria-label="{{th.incLabel}}" disabled="{{off}}" onClick="{{ th.inc }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg></button></span>
+</div>
+</sc-for>
+</div>
+
+<div class="grp" role="group" aria-label="Fans">
+<h3>Fans</h3>
+<sc-for list="{{fans}}" as="fn" hint-placeholder-count="4">
+<div class="fan">
+<button class="swrow" role="switch" aria-checked="{{fn.aria}}" aria-label="{{fn.label}}" disabled="{{off}}" onClick="{{ fn.toggle }}"><span class="grow"><span class="nm cut1">{{fn.label}}</span></span><span class="val">{{fn.val}}</span><span class="{{fn.swCls}}" aria-hidden="true"><i></i></span></button>
+<input type="range" min="0" max="100" step="10" value="{{fn.pct}}" aria-label="{{fn.sliderLabel}}" disabled="{{off}}" onInput="{{ fn.set }}"/>
+</div>
+</sc-for>
+</div>
+
+<div class="grp" role="group" aria-label="Lights">
+<h3>Lights</h3>
+<sc-for list="{{lights}}" as="lt" hint-placeholder-count="2">
+<button class="swrow" role="switch" aria-checked="{{lt.aria}}" aria-label="{{lt.label}}" disabled="{{off}}" onClick="{{ lt.toggle }}"><span class="grow"><span class="nm cut1">{{lt.label}}</span></span><span class="val">{{lt.val}}</span><span class="{{lt.swCls}}" aria-hidden="true"><i></i></span></button>
+</sc-for>
+</div>
+
+<div class="grp" role="group" aria-label="More">
+<h3>More</h3>
+<span class="sub" style="padding: 0 4px">Airduct mode</span>
+<div class="seg" role="radiogroup" aria-label="Airduct mode"><sc-for list="{{ducts}}" as="ad" hint-placeholder-count="2"><button class="{{ad.cls}}" role="radio" aria-checked="{{ad.aria}}" disabled="{{off}}" onClick="{{ ad.pick }}">{{ad.name}}</button></sc-for></div>
+<sc-for list="{{switches}}" as="sw" hint-placeholder-count="2">
+<button class="swrow" role="switch" aria-checked="{{sw.aria}}" aria-label="{{sw.label}}" disabled="{{off}}" onClick="{{ sw.toggle }}"><span class="grow"><span class="nm cut1">{{sw.label}}</span></span><span class="val">{{sw.val}}</span><span class="{{sw.swCls}}" aria-hidden="true"><i></i></span></button>
+</sc-for>
+<div class="mbtns">
+<button class="btn tonal" disabled="{{off}}" onClick="{{ silence }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,4L9.91,6.09L12,8.18M4.27,3L3,4.27L7.73,9H3V15H7L12,20V13.27L16.25,17.53C15.58,18.04 14.83,18.46 14,18.7V20.77C15.38,20.45 16.63,19.82 17.68,18.96L19.73,21L21,19.73L12,10.73M19,12C19,12.94 18.8,13.82 18.46,14.64L19.97,16.15C20.62,14.91 21,13.5 21,12C21,7.72 18,4.14 14,3.23V5.29C16.89,6.15 19,8.83 19,12M16.5,12C16.5,10.23 15.5,8.71 14,7.97V10.18L16.45,12.63C16.5,12.43 16.5,12.21 16.5,12Z"></path></svg>Silence buzzer</button>
+<button class="btn tonal" disabled="{{off}}" onClick="{{ refresh }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg>Force refresh</button>
+</div>
+</div>
+
+</div>
+</article>
+</sc-if>
+
+</div>
+</section>
+</sc-for>
+
+<sc-if value="{{stopOpen}}" hint-placeholder-val="{{ false }}">
+<div class="scrim" onClick="{{ stopNo }}"></div>
+<div class="dwrap"><div class="dlg pop" role="alertdialog" aria-modal="true" aria-label="Stop this print?" onKeyDown="{{ dlgKey }}">
+<h2 class="tl">Stop this print?</h2>
+<p class="sub" style="font-size: 14px; line-height: 20px">It cannot be resumed. Bracket v3 is at layer {{stopLayer}}.</p>
+<div class="acts"><button class="btn text" data-keep="1" onClick="{{ stopNo }}">Keep printing</button><button class="btn err" data-stopyes="1" onClick="{{ stopYes }}">Stop print</button></div>
+</div></div>
+</sc-if>
+
+<sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+<div class="twrap"><div class="tst up" role="status"><span class="msg">{{toastText}}</span><button class="ib" aria-label="Dismiss" onClick="{{ toastOff }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div></div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#7DD3A8","#FFB874","#D0BCFF"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"stage":{"editor":"enum","options":["after","problem","idle","offline"],"default":"after"},"$preview":{"width":1280,"height":860}}'>
+const SLATS = 38;
+const SPEEDS = [['silent', 'Silent'], ['standard', 'Standard'], ['sport', 'Sport'], ['ludicrous', 'Ludicrous']];
+const DUCTS = [['cooling', 'Cooling'], ['heating', 'Heating']];
+const FANS = [['part', 'Part cooling fan'], ['aux', 'Aux fan'], ['chamber', 'Chamber fan'], ['exhaust', 'Exhaust fan']];
+const HEATERS = [['ln', 'Left nozzle', 300, 220], ['rn', 'Right nozzle', 300, 220], ['bed', 'Bed', 120, 65], ['ch', 'Chamber', 65, 40]];
+const HMS = [
+  { text: 'The AMS filament ran out. Please insert a new filament into the same AMS slot.', code: 'HMS_0700_2000_0002_0001', sev: 'Common', wiki: true },
+  { text: 'The nozzle temperature is abnormal.', code: 'HMS_0300_0100_0001_0007', sev: 'Serious', wiki: true },
+  { text: 'Print error: filament runout.', code: '0700_8011', sev: 'Print error', wiki: false }
+];
+function deg(n) { return n + ' °C'; }
+function left(min) { const h = Math.floor(min / 60), m = min % 60; return (h ? h + ' h ' : '') + m + ' min left'; }
+function trend(cur, target, hasTarget) {
+  if (!hasTarget) return ['hold', '', 'tmark'];
+  if (!target) return cur > 35 ? ['down', 'Cooling', 'tmark dnm'] : ['none', '', 'tmark'];
+  if (cur < target - 2) return ['up', 'Heating', 'tmark upm'];
+  if (cur > target + 2) return ['down', 'Cooling', 'tmark dnm'];
+  return ['hold', 'At target', 'tmark okm'];
+}
+
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.reset('after'); }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  reset(s) {
+    const cold = s === 'idle';
+    this.h = {
+      status: s === 'problem' ? 'pause' : s === 'idle' ? 'idle' : s === 'offline' ? 'offline' : 'running',
+      stage: s === 'problem' ? 'Paused: filament runout' : s === 'idle' ? 'Idle' : s === 'offline' ? 'Offline' : 'Printing',
+      problems: s === 'problem' ? HMS.slice() : [],
+      t: cold ? { ln: [31, 0], rn: [29, 0], bed: [27, 0], ch: [26, 0] } : { ln: [218, 220], rn: [38, 0], bed: [65, 65], ch: [34, 0] },
+      speed: 'standard',
+      fans: cold
+        ? { part: [100, false], aux: [60, false], chamber: [40, false], exhaust: [0, false] }
+        : { part: [100, true], aux: [60, true], chamber: [40, true], exhaust: [0, false] },
+      lights: { chamber: true, heatbed: false },
+      duct: 'cooling', camera: true, sound: true
+    };
+    this.stopOpen = false; this.toast = '';
+  }
+  say(t) { this.toast = t; this.bump(); }
+  focus(sel, e) {
+    let root = null;
+    try { if (e && e.currentTarget && e.currentTarget.getRootNode) root = e.currentTarget.getRootNode(); } catch (err) {}
+    if (root) this._root = root;
+    const r = this._root;
+    setTimeout(() => { try { const el = (r || document).querySelector(sel); if (el) el.focus(); } catch (err) {} }, 60);
+  }
+  tiles(list) {
+    return list.map((x) => {
+      const tr = trend(x.cur, x.target, x.hasTarget);
+      return {
+        cls: x.active ? 'tt act' : 'tt', label: x.label, active: !!x.active, cur: String(x.cur),
+        target: !x.hasTarget ? 'No target' : x.target ? 'of ' + deg(x.target) : 'Target off',
+        up: tr[0] === 'up', down: tr[0] === 'down', hold: tr[0] === 'hold' && !!tr[1], trend: tr[1], hasMark: !!tr[1], markCls: tr[2]
+      };
+    });
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    this.stage();
+    const h = this.h;
+    const offline = h.status === 'offline', idle = h.status === 'idle', running = h.status === 'running', paused = h.status === 'pause';
+    const hasJob = running || paused;
+    const filled = Math.floor(236 / 380 * SLATS);
+    const stay = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const open = (name) => (e) => { stay(e); this.say('Opens the ' + name + ' device page. The card itself never starts or stops anything.'); };
+    const guard = (fn) => (e) => { if (offline) return; fn(e); this.bump(); };
+
+    const h2d = {
+      cls: offline ? 'kard pst off' : 'kard pst', cardLabel: 'Workshop H2D status', open: open('Workshop H2D'), openLabel: 'Workshop H2D, H2D. Open the device page', stay,
+      name: 'Workshop H2D', model: 'H2D', dotCls: offline ? 'odot no' : 'odot', onlineText: offline ? 'Offline' : 'Online',
+      chipCls: 'schip ' + (running ? 'run' : paused ? 'hold' : offline ? 'offl' : 'idle'), stage: h.stage, pdotCls: running ? 'pdot live' : 'pdot',
+      hasJob, showCover: true, coverLabel: 'Cover image of Bracket v3', job: 'Bracket v3', jobSub: paused ? 'Paused · started 18:06' : 'Started 18:06',
+      pct: '62', pctLabel: 'Print progress, layer 236 of 380', timeLeft: paused ? 'Paused' : left(84), doneAt: paused ? '1 h 24 min left when resumed' : 'Done at 21:47',
+      barCls: paused ? 'slats hold' : 'slats',
+      layers: Array.from({ length: SLATS }, (_, i) => ({ cls: i < filled ? 'sl f' : i === filled ? 'sl n' : 'sl' })),
+      layerText: 'Layer 236 of 380 · 144 layers left',
+      isIdle: idle, idleText: 'Nothing is printing', idleSub: 'Ready for the next print.',
+      isOffline: offline, offlineText: 'Offline since 18:03',
+      hasProblems: h.problems.length > 0, probLabel: 'Problems on Workshop H2D', probTitle: h.problems.length + (h.problems.length === 1 ? ' problem' : ' problems'),
+      problems: h.problems.map((p) => ({
+        text: p.text, code: p.code, sev: p.sev, hasWiki: p.wiki, noWiki: !p.wiki, wikiLabel: 'What this means: ' + p.code,
+        wiki: (e) => { stay(e); this.say('Opens the help page for ' + p.code + ' in the browser.'); }
+      })),
+      noProblems: !offline && !h.problems.length,
+      hasTemps: !offline,
+      temps: this.tiles([
+        { label: 'Left nozzle', cur: h.t.ln[0], target: h.t.ln[1], hasTarget: true, active: !offline },
+        { label: 'Right nozzle', cur: h.t.rn[0], target: h.t.rn[1], hasTarget: true },
+        { label: 'Bed', cur: h.t.bed[0], target: h.t.bed[1], hasTarget: true },
+        { label: 'Chamber', cur: h.t.ch[0], target: h.t.ch[1], hasTarget: true }
+      ])
+    };
+    const p1s = {
+      cls: 'kard pst', cardLabel: 'Office P1S status', open: open('Office P1S'), openLabel: 'Office P1S, P1S. Open the device page', stay,
+      name: 'Office P1S', model: 'P1S', dotCls: 'odot', onlineText: 'Online', chipCls: 'schip idle', stage: 'Idle', pdotCls: 'pdot',
+      hasJob: false, showCover: false, coverLabel: '', job: '', jobSub: '', pct: '0', pctLabel: '', timeLeft: '', doneAt: '', barCls: 'slats', layers: [], layerText: '',
+      isIdle: true, idleText: 'Nothing is printing', idleSub: 'Ready for the next print.', isOffline: false, offlineText: '',
+      hasProblems: false, probLabel: '', probTitle: '', problems: [], noProblems: true, hasTemps: true,
+      temps: this.tiles([{ label: 'Nozzle', cur: 26, target: 0, hasTarget: true }, { label: 'Bed', cur: 24, target: 0, hasTarget: true }])
+    };
+
+    const sw = (on) => (on ? 'sw on' : 'sw');
+    const printOff = !hasJob;
+    return {
+      accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still'),
+      clock: 'Updated 20:23',
+      editGo: () => this.say('Edit mode opens here. Both cards are added from the Add card dialog.'),
+      sections: [
+        { title: 'Workshop H2D', sub: 'Dual nozzle · status and controls', status: [h2d], hasCtl: true },
+        { title: 'Office P1S', sub: 'Single nozzle · status only', status: [p1s], hasCtl: false }
+      ],
+      ctlSub: offline ? 'The printer is offline' : running ? 'Printing Bracket v3' : paused ? 'Paused · Bracket v3' : 'Nothing is printing',
+      gridCls: offline ? 'cgrid dis' : 'cgrid', off: offline,
+      showPause: !paused, showResume: paused,
+      pauseCls: printOff ? 'btn off' : 'btn tonal', stopCls: printOff ? 'btn off' : 'btn danger', printOff: printOff ? 'true' : 'false',
+      hasReason: printOff, reason: offline ? 'The printer is offline' : 'Nothing is printing',
+      pause: guard((e) => { if (running) { h.status = 'pause'; h.stage = 'Paused by user'; this.toast = ''; this.focus('[data-resume]', e); } }),
+      resume: guard((e) => { if (paused) { h.status = 'running'; h.stage = 'Printing'; h.problems = []; this.toast = 'Print resumed'; this.focus('[data-pause]', e); } }),
+      stopAsk: (e) => { if (!hasJob) return; this.stopOpen = true; this.bump(); this.focus('[data-keep]', e); },
+      stopOpen: this.stopOpen, stopLayer: '236 of 380',
+      stopNo: () => { this.stopOpen = false; this.bump(); this.focus('[data-stop]'); },
+      stopYes: (e) => {
+        this.stopOpen = false; h.status = 'idle'; h.stage = 'Idle'; h.problems = [];
+        h.t.ln[1] = 0; h.t.rn[1] = 0; h.t.bed[1] = 0; h.t.ch[1] = 0;
+        Object.keys(h.fans).forEach((k) => { h.fans[k][1] = false; });
+        this.toast = 'Print stopped'; this.bump(); this.focus('[data-stop]', e);
+      },
+      dlgKey: (e) => {
+        if (!e) return;
+        if (e.key === 'Escape') { this.stopOpen = false; this.bump(); this.focus('[data-stop]', e); return; }
+        if (e.key === 'Tab') {
+          if (e.preventDefault) e.preventDefault();
+          const onKeep = !!(e.target && e.target.hasAttribute && e.target.hasAttribute('data-keep'));
+          this.focus(onKeep ? '[data-stopyes]' : '[data-keep]', e);
+        }
+      },
+      speeds: SPEEDS.map((s) => ({ name: s[1], cls: h.speed === s[0] ? 'on' : '', aria: h.speed === s[0] ? 'true' : 'false', pick: guard(() => { h.speed = s[0]; }) })),
+      heaters: HEATERS.map((x) => {
+        const t = h.t[x[0]];
+        return {
+          label: x[1], now: 'Now ' + deg(t[0]), val: t[1] ? deg(t[1]) : 'Off', groupLabel: x[1] + ' target temperature',
+          decLabel: 'Lower the ' + x[1].toLowerCase() + ' target by 5 degrees', incLabel: 'Raise the ' + x[1].toLowerCase() + ' target by 5 degrees',
+          dec: guard(() => { const n = t[1] - 5; t[1] = n < 20 ? 0 : n; }),
+          inc: guard(() => { t[1] = t[1] ? Math.min(x[2], t[1] + 5) : x[3]; })
+        };
+      }),
+      fans: FANS.map((f) => {
+        const s = h.fans[f[0]];
+        return {
+          label: f[1], sliderLabel: f[1] + ' speed, percent', aria: s[1] ? 'true' : 'false', swCls: sw(s[1]),
+          val: s[1] ? s[0] + '%' : 'Off', pct: String(s[1] ? s[0] : 0),
+          toggle: guard(() => { s[1] = !s[1]; if (s[1] && !s[0]) s[0] = 100; }),
+          set: guard((e) => { const n = Math.max(0, Math.min(100, Number(e && e.target ? e.target.value : 0) || 0)); s[1] = n > 0; if (n > 0) s[0] = n; })
+        };
+      }),
+      lights: [['chamber', 'Chamber light'], ['heatbed', 'Heatbed light']].map((l) => ({
+        label: l[1], aria: h.lights[l[0]] ? 'true' : 'false', swCls: sw(h.lights[l[0]]), val: h.lights[l[0]] ? 'On' : 'Off',
+        toggle: guard(() => { h.lights[l[0]] = !h.lights[l[0]]; })
+      })),
+      ducts: DUCTS.map((d) => ({ name: d[1], cls: h.duct === d[0] ? 'on' : '', aria: h.duct === d[0] ? 'true' : 'false', pick: guard(() => { h.duct = d[0]; }) })),
+      switches: [['camera', 'Camera'], ['sound', 'Prompt sound']].map((x) => ({
+        label: x[1], aria: h[x[0]] ? 'true' : 'false', swCls: sw(h[x[0]]), val: h[x[0]] ? 'On' : 'Off',
+        toggle: guard(() => { h[x[0]] = !h[x[0]]; })
+      })),
+      silence: guard(() => { this.toast = 'Buzzer silenced on Workshop H2D'; }),
+      refresh: guard(() => { this.toast = 'Asked Workshop H2D for fresh values'; }),
+      toastOn: !!this.toast, toastText: this.toast, toastOff: () => { this.toast = ''; this.bump(); }
+    };
+  }
+}
+</script>
+</body>
+</html>

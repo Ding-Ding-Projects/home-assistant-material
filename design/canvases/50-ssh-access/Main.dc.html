@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SSH access page, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--dlg:#FFFFFF;--dlgin:#F1F4F9;--ph:#656A70;--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--dlg:#1D2126;--dlgin:#14181D;--ph:#8C9199;--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input,.m3 textarea{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,background-color .2s}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.danger{background:var(--err);color:var(--surf)}
+.m3 .btn.dtext{color:var(--err);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600;flex:none;white-space:nowrap}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px;flex:none}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.note .ic{margin-top:-1px}
+.in{animation:rise .25s ease both}
+.pop{animation:pop .22s ease both}
+.up{animation:up .25s ease both}
+.spin{animation:spin 1s linear infinite}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surf)}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none;position:relative;z-index:5;background:var(--surf)}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pg{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:0 12px}
+.intro{padding:0 8px 2px;color:var(--onv);flex:none}
+.card{background:var(--sl0);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;flex:none;min-width:0}
+.card.hl{box-shadow:inset 0 0 0 2px var(--p)}
+.chead{display:flex;align-items:center;gap:12px;min-width:0}
+.chead h2{font-size:16px;line-height:24px;font-weight:500}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sl3);color:var(--onv);flex:none}
+.lead.g{background:var(--greenc);color:var(--green)}
+.lead.p{background:var(--pc);color:var(--on-pc)}
+.code{display:flex;align-items:center;gap:4px;min-height:56px;padding:4px 4px 4px 14px;border-radius:14px;background:var(--sl2);box-shadow:inset 0 0 0 1px var(--outv);min-width:0}
+.code code{flex:1;min-width:0;font-family:'Roboto Mono',ui-monospace,Menlo,monospace;font-size:13px;line-height:18px;overflow-wrap:anywhere;color:var(--on);user-select:all}
+.code.dim code{color:var(--onv)}
+.m3 .code .ib{color:var(--p)}
+.safe{display:flex;gap:10px;color:var(--onv);font-size:13px;line-height:18px}
+.safe .ic{color:var(--amber)}
+.port{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 4px 0 14px;border-radius:14px;background:var(--sl2);min-width:0}
+.dot{width:10px;height:10px;border-radius:5px;background:var(--green);flex:none}
+.klist{display:flex;flex-direction:column;gap:2px;margin:0 -8px}
+.krow{display:flex;align-items:flex-start;gap:4px;padding:8px 0 8px 8px;border-radius:14px;min-width:0}
+.krow + .krow{box-shadow:0 -1px 0 var(--outv);border-radius:0}
+.kname{font-size:15px;line-height:20px;font-weight:500;overflow-wrap:anywhere;min-width:0}
+.kmeta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0}
+.fp{font-family:'Roboto Mono',ui-monospace,Menlo,monospace;font-size:12px;line-height:17px;color:var(--onv);overflow-wrap:anywhere;word-break:break-all}
+.m3 .krow .ib:hover{background:var(--errc);color:var(--on-errc)}
+.empty{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.ta{display:flex;flex-direction:column;gap:2px;padding:8px 14px 6px;border-radius:14px 14px 4px 4px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);transition:box-shadow .2s}
+.ta:focus-within{box-shadow:inset 0 -3px 0 var(--p)}
+.ta.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.ta.good{box-shadow:inset 0 -3px 0 var(--green)}
+.ta span{font-size:12px;line-height:16px;font-weight:600;color:var(--onv)}
+.ta textarea{display:block;width:100%;min-height:76px;resize:none;border:0;outline:none;background:transparent;font-family:'Roboto Mono',ui-monospace,Menlo,monospace;font-size:13px;line-height:19px;word-break:break-all;padding:2px 0}
+.ta textarea::placeholder{color:var(--ph);opacity:1}
+.prev{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;background:var(--sl2);box-shadow:inset 3px 0 0 var(--green);min-width:0}
+.prev .ok{display:flex;align-items:center;gap:6px;color:var(--green);font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px}
+.acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.endrow{display:flex;justify-content:center;flex:none}
+.endpad{flex:none;height:84px}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px 20px 96px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.stagebox h2{font-size:18px;line-height:24px;font-weight:500;color:var(--on)}
+.why{display:flex;flex-direction:column;gap:10px;text-align:left;padding:14px 16px;border-radius:16px;background:var(--sl0);width:100%}
+.why div{display:flex;gap:10px;font-size:13px;line-height:18px}
+.pbar{position:absolute;left:12px;right:12px;bottom:12px;height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);display:flex;align-items:center;padding:0 6px;z-index:10}
+.m3 .pbar button{flex:1;min-width:0;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;line-height:14px;font-weight:600;color:var(--onv)}
+.pbar .pi{width:48px;height:28px;border-radius:14px;display:grid;place-items:center;position:relative;transition:background-color .2s}
+.m3 .pbar button.on{color:var(--on)}
+.pbar button.on .pi{background:var(--sc);color:var(--on-sc)}
+.pbar .bdg{position:absolute;top:-4px;left:28px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--err);color:var(--surf);font-size:10px;line-height:16px;font-weight:700;text-align:center}
+.toast{position:absolute;left:12px;right:12px;bottom:88px;z-index:12;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:0 4px 0 16px;min-height:48px;display:flex;align-items:center;gap:4px;box-shadow:var(--e3);font-size:13px;line-height:18px}
+.toast .msg{flex:1;min-width:0;padding:8px 0}
+.m3 .toast .btn.text{color:inherit;text-decoration:underline;padding:0 12px}
+.scrim{position:absolute;inset:0;background:var(--scrim);z-index:29}
+.dlg{position:absolute;left:24px;right:24px;top:50%;transform:translateY(-50%);z-index:30;background:var(--dlg);border-radius:28px;padding:24px 24px 16px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--e3)}
+.dlg.pop{animation-name:dpop}
+@keyframes dpop{from{opacity:0;transform:translateY(-50%) scale(.96)}to{opacity:1;transform:translateY(-50%)}}
+.dlg h2{font-size:20px;line-height:26px;font-weight:500}
+.dlg .who{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;background:var(--dlgin);min-width:0}
+.dlg .note{background:var(--dlgin)}
+.dlg .acts{justify-content:flex-end;padding-top:4px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<div class="bar">
+<button class="ib" aria-label="Back to System"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></button>
+<h1>SSH access</h1>
+<button class="ib" aria-label="More options"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button>
+</div>
+
+<sc-if value="{{unsupported}}" hint-placeholder-val="{{ false }}">
+<div class="stagebox in">
+<span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,19V7H4V19H20M20,3A2,2 0 0,1 22,5V19A2,2 0 0,1 20,21H4A2,2 0 0,1 2,19V5C2,3.89 2.9,3 4,3H20M13,17V15H18V17H13M9.58,13L5.57,9H8.4L11.7,12.3C12.09,12.69 12.09,13.33 11.7,13.72L8.42,17H5.59L9.58,13Z"></path></svg></span>
+<h2>SSH access is not available here</h2>
+<p>This install runs without the operating system agent, the part of Home Assistant that starts and stops the SSH service. There is nothing to turn on.</p>
+<div class="why">
+<span class="lm">SSH access works on</span>
+<div><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg><span>Home Assistant OS, on a device or in a virtual machine</span></div>
+<div><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg><span>The Docker full mode, with port 22222 published</span></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{supported}}" hint-placeholder-val="{{ true }}">
+<div class="pg" tabindex="0" role="region" aria-label="SSH access settings">
+<p class="intro">Sign in to a shell on this Home Assistant with an SSH key. Only owners and administrators can open this page.</p>
+
+<sc-if value="{{isOff}}" hint-placeholder-val="{{ false }}">
+<div class="card" role="status">
+<div class="chead"><span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,19V7H4V19H20M20,3A2,2 0 0,1 22,5V19A2,2 0 0,1 20,21H4A2,2 0 0,1 2,19V5C2,3.89 2.9,3 4,3H20M13,17V15H18V17H13M9.58,13L5.57,9H8.4L11.7,12.3C12.09,12.69 12.09,13.33 11.7,13.72L8.42,17H5.59L9.58,13Z"></path></svg></span><span class="grow"><h2>SSH is off</h2><span class="sub">No key can sign in yet. Add a public key and SSH turns on.</span></span></div>
+</div>
+<div class="card hl in">
+<div class="chead"><span class="lead p"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,14A2,2 0 0,1 5,12A2,2 0 0,1 7,10A2,2 0 0,1 9,12A2,2 0 0,1 7,14M12.65,10C11.83,7.67 9.61,6 7,6A6,6 0 0,0 1,12A6,6 0 0,0 7,18C9.61,18 11.83,16.33 12.65,14H17V18H21V14H23V10H12.65Z"></path></svg></span><span class="grow"><h2 id="addh">Add a public key</h2><span class="sub">Start here</span></span></div>
+<label class="{{taCls}}"><span>Public key</span><textarea rows="4" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="{{descA}}" aria-invalid="{{draftInvalid}}" placeholder="ssh-ed25519 AAAA... name" value="{{draft}}" onInput="{{ draftSet }}"></textarea></label>
+<p class="sub" id="addhelp">Paste one line that starts with ssh-ed25519, ssh-rsa or ecdsa-sha2-. It is the .pub file, never the private key.</p>
+<sc-if value="{{hasErr}}" hint-placeholder-val="{{ false }}"><div class="note bad in" id="adderr" role="alert"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg><span>{{errText}}</span></div></sc-if>
+<sc-if value="{{hasPrev}}" hint-placeholder-val="{{ false }}"><div class="prev in" role="status"><span class="ok"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg>This key will be added</span><div class="kmeta"><span class="tag p">{{prevType}}</span><span class="kname">{{prevName}}</span></div><span class="fp">{{prevFp}}</span></div></sc-if>
+<div class="acts"><button class="btn text" onClick="{{ pasteGo }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,20H5V4H7V7H17V4H19M12,2A1,1 0 0,1 13,3A1,1 0 0,1 12,4A1,1 0 0,1 11,3A1,1 0 0,1 12,2M19,2H14.82C14.4,0.84 13.3,0 12,0C10.7,0 9.6,0.84 9.18,2H5A2,2 0 0,0 3,4V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V4A2,2 0 0,0 19,2Z"></path></svg>Paste</button><span style="flex: 1"></span><button class="{{addCls}}" aria-disabled="{{addOff}}" onClick="{{ addGo }}">Add key</button></div>
+</div>
+<div class="card">
+<div class="chead"><h2>How to connect</h2></div>
+<div class="code dim"><code>ssh root@homeassistant.local -p 22222</code></div>
+<div class="safe"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"></path></svg><span>This works once a key is added. Keys only, no passwords. Keep port 22222 inside your home network: do not forward it on your router.</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isOn}}" hint-placeholder-val="{{ true }}">
+<div class="card">
+<div class="chead" role="status"><span class="lead g"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,19V7H4V19H20M20,3A2,2 0 0,1 22,5V19A2,2 0 0,1 20,21H4A2,2 0 0,1 2,19V5C2,3.89 2.9,3 4,3H20M13,17V15H18V17H13M9.58,13L5.57,9H8.4L11.7,12.3C12.09,12.69 12.09,13.33 11.7,13.72L8.42,17H5.59L9.58,13Z"></path></svg></span><span class="grow"><h2>SSH is on</h2><span class="sub">{{keyCount}}</span></span><span class="tag g"><span class="dot"></span>On</span></div>
+<span class="lm">How to connect</span>
+<div class="code"><code>ssh root@homeassistant.local -p 22222</code><button class="ib" aria-label="{{copyLabel}}" onClick="{{ copyGo }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{copyIcon}}"></path></svg></button></div>
+<div class="safe"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"></path></svg><span>Keys only, no passwords. Keep port 22222 inside your home network: do not forward it on your router.</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{docker}}" hint-placeholder-val="{{ false }}">
+<div class="card in">
+<div class="chead"><span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"></path></svg></span><span class="grow"><h2>Running in Docker, full mode</h2></span></div>
+<p class="sub">SSH opens a shell in the Home Assistant container. Publish port 22222 when you start it (<span class="mono">HA_MATERIAL_SSH_PORT</span>).</p>
+<div class="port" role="status"><sc-if value="{{portIdle}}" hint-placeholder-val="{{ true }}"><span class="dot"></span></sc-if><sc-if value="{{portBusy}}" hint-placeholder-val="{{ false }}"><svg class="ic s spin" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"></path></svg></sc-if><span class="grow"><span style="font-weight: 500; color: var(--on)">{{portText}}</span><span class="sub">{{portSub}}</span></span><button class="ib" aria-label="Check port 22222 again" onClick="{{ portGo }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg></button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isOn}}" hint-placeholder-val="{{ true }}">
+<div class="card">
+<div class="chead"><span class="grow"><h2>Keys that can sign in</h2></span><span class="tag">{{keyTotal}}</span></div>
+<div class="klist" role="list">
+<sc-for list="{{keys}}" as="k" hint-placeholder-count="2">
+<div class="krow" role="listitem"><span class="grow" style="gap: 4px; padding-top: 4px"><span class="kmeta"><span class="tag p">{{k.type}}</span><span class="kname">{{k.name}}</span></span><span class="fp">{{k.fp}}</span><span class="sub">{{k.added}}</span></span><button class="ib" aria-label="{{k.label}}" onClick="{{ k.remove }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H16V19H8V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z"></path></svg></button></div>
+</sc-for>
+</div>
+</div>
+<div class="card">
+<div class="chead"><h2>Add a public key</h2></div>
+<label class="{{taCls}}"><span>Public key</span><textarea rows="4" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="{{descB}}" aria-invalid="{{draftInvalid}}" placeholder="ssh-ed25519 AAAA... name" value="{{draft}}" onInput="{{ draftSet }}"></textarea></label>
+<p class="sub" id="addhelp2">Paste one line that starts with ssh-ed25519, ssh-rsa or ecdsa-sha2-. It is the .pub file, never the private key.</p>
+<sc-if value="{{hasErr}}" hint-placeholder-val="{{ false }}"><div class="note bad in" id="adderr2" role="alert"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg><span>{{errText}}</span></div></sc-if>
+<sc-if value="{{hasPrev}}" hint-placeholder-val="{{ false }}"><div class="prev in" role="status"><span class="ok"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg>This key will be added</span><div class="kmeta"><span class="tag p">{{prevType}}</span><span class="kname">{{prevName}}</span></div><span class="fp">{{prevFp}}</span></div></sc-if>
+<div class="acts"><button class="btn text" onClick="{{ pasteGo }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,20H5V4H7V7H17V4H19M12,2A1,1 0 0,1 13,3A1,1 0 0,1 12,4A1,1 0 0,1 11,3A1,1 0 0,1 12,2M19,2H14.82C14.4,0.84 13.3,0 12,0C10.7,0 9.6,0.84 9.18,2H5A2,2 0 0,0 3,4V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V4A2,2 0 0,0 19,2Z"></path></svg>Paste</button><span style="flex: 1"></span><button class="{{addCls}}" aria-disabled="{{addOff}}" onClick="{{ addGo }}">Add key</button></div>
+</div>
+<div class="endrow"><button class="btn dtext" onClick="{{ removeAll }}">Remove all keys</button></div>
+</sc-if>
+<div class="endpad" aria-hidden="true"></div>
+</div>
+</sc-if>
+
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}"><div class="toast up" role="status"><span class="msg">{{toastText}}</span><sc-if value="{{toastUndo}}" hint-placeholder-val="{{ false }}"><button class="btn text" onClick="{{ undoGo }}">Undo</button></sc-if><button class="ib" style="color: inherit" aria-label="Dismiss" onClick="{{ toastClose }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div></sc-if>
+
+<nav class="pbar" aria-label="Main">
+<button><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"></path></svg></span>Home</button>
+<button><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></span>Search</button>
+<button aria-label="Pages, 21 pages"><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,3V9H21V3M13,21H21V11H13M3,21H11V15H3M3,13H11V3H3V13Z"></path></svg><span class="bdg" aria-hidden="true">21</span></span>Pages</button>
+<button class="on" aria-current="page" aria-label="Settings, 4 notices"><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"></path></svg><span class="bdg" aria-hidden="true">4</span></span>Settings</button>
+<button><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg></span>Menu</button>
+</nav>
+
+<sc-if value="{{dlgOpen}}" hint-placeholder-val="{{ false }}"><div class="scrim" onClick="{{ dlgCancel }}"></div>
+<div class="dlg pop" role="alertdialog" aria-modal="true" aria-labelledby="dlgt" aria-describedby="dlgb" onKeyDown="{{ dlgKey }}">
+<h2 id="dlgt">{{dlgTitle}}</h2>
+<p id="dlgb" style="color: var(--onv)">{{dlgBody}}</p>
+<sc-if value="{{dlgOne}}" hint-placeholder-val="{{ true }}"><div class="who"><div class="kmeta"><span class="tag p">{{dlgType}}</span><span class="kname">{{dlgName}}</span></div><span class="fp">{{dlgFp}}</span></div></sc-if>
+<sc-if value="{{dlgLast}}" hint-placeholder-val="{{ false }}"><div class="note"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"></path></svg><span>{{dlgLastText}}</span></div></sc-if>
+<div class="acts"><button class="btn text" data-dlgc="1" onClick="{{ dlgCancel }}">Cancel</button><button class="btn danger" onClick="{{ dlgOk }}">{{dlgOkText}}</button></div>
+</div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#7DD3A8","#FFB874","#D0BCFF"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"stage":{"editor":"enum","options":["after","off","remove-confirm","docker","unsupported"],"default":"after"},"$preview":{"width":390,"height":844}}'>
+const SAMPLE_KEYS = [
+  { type: 'ED25519', name: 'laptop', fp: 'SHA256:q3vN8fJ2kZr1xW0hPq9LmT4yUe6cBd7aSg5HoKjV2nI', added: '21 Nov' },
+  { type: 'ED25519', name: 'assistant@workshop-pc', fp: 'SHA256:Zb7yXk2Qp1Lm9RtV4cN8eWs6Ha3Jf5Gd0uIoPq7Mn2E', added: '25 Nov' }
+];
+// The Paste button stands in for the clipboard on this board and fills in this sample public key.
+const PASTE_SAMPLE = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGq7Lw2xN5pR8tVbY3cKd9eFhJ1mUoZsQa4WiX6yTn0B tablet@kitchen';
+const IC_COPY = 'M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z';
+const IC_DONE = 'M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z';
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const KEY_TYPES = { 'ssh-ed25519': 'ED25519', 'ssh-rsa': 'RSA', 'ecdsa-sha2-nistp256': 'ECDSA', 'ecdsa-sha2-nistp384': 'ECDSA', 'ecdsa-sha2-nistp521': 'ECDSA' };
+const MSG_PRIVATE = 'This is a private key. Never paste a private key anywhere. Paste the matching .pub file instead.';
+
+function b64Bytes(s) {
+  s = s.replace(/=+$/, ''); const out = []; let acc = 0, bits = 0;
+  for (let i = 0; i < s.length; i++) {
+    const v = B64.indexOf(s[i]); if (v < 0) return null;
+    acc = (acc << 6) | v; bits += 6;
+    if (bits >= 8) { bits -= 8; out.push((acc >> bits) & 255); acc &= (1 << bits) - 1; }
+  }
+  return out;
+}
+function bytesB64(b) {
+  let out = '';
+  for (let i = 0; i < b.length; i += 3) {
+    const n = (b[i] << 16) | ((b[i + 1] || 0) << 8) | (b[i + 2] || 0);
+    out += B64[(n >> 18) & 63] + B64[(n >> 12) & 63] + (i + 1 < b.length ? B64[(n >> 6) & 63] : '') + (i + 2 < b.length ? B64[n & 63] : '');
+  }
+  return out;
+}
+function sha256(bytes) {
+  const K = [], H = []; let n = 2, c = 0;
+  const fr = (x) => ((x - Math.floor(x)) * 4294967296) | 0;
+  while (c < 64) {
+    let prime = true;
+    for (let i = 2; i * i <= n; i++) if (n % i === 0) { prime = false; break; }
+    if (prime) { if (c < 8) H[c] = fr(Math.pow(n, 0.5)); K[c] = fr(Math.pow(n, 1 / 3)); c++; }
+    n++;
+  }
+  const m = bytes.slice(); const bits = bytes.length * 8;
+  m.push(128); while (m.length % 64 !== 56) m.push(0);
+  for (let i = 7; i >= 0; i--) m.push(i > 3 ? 0 : (bits >>> (i * 8)) & 255);
+  const rr = (x, k) => (x >>> k) | (x << (32 - k));
+  const w = [];
+  for (let o = 0; o < m.length; o += 64) {
+    for (let i = 0; i < 16; i++) w[i] = (m[o + 4 * i] << 24) | (m[o + 4 * i + 1] << 16) | (m[o + 4 * i + 2] << 8) | m[o + 4 * i + 3];
+    for (let i = 16; i < 64; i++) {
+      const a = w[i - 15], e = w[i - 2];
+      w[i] = (w[i - 16] + (rr(a, 7) ^ rr(a, 18) ^ (a >>> 3)) + w[i - 7] + (rr(e, 17) ^ rr(e, 19) ^ (e >>> 10))) | 0;
+    }
+    let a = H[0], b = H[1], cc = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+    for (let i = 0; i < 64; i++) {
+      const t1 = (h + (rr(e, 6) ^ rr(e, 11) ^ rr(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0;
+      const t2 = ((rr(a, 2) ^ rr(a, 13) ^ rr(a, 22)) + ((a & b) ^ (a & cc) ^ (b & cc))) | 0;
+      h = g; g = f; f = e; e = (d + t1) | 0; d = cc; cc = b; b = a; a = (t1 + t2) | 0;
+    }
+    H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + cc) | 0; H[3] = (H[3] + d) | 0;
+    H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+  }
+  const out = [];
+  H.forEach((x) => { out.push((x >>> 24) & 255, (x >>> 16) & 255, (x >>> 8) & 255, x & 255); });
+  return out;
+}
+// Reads what is in the field. Returns { kind: 'empty' | 'private' | 'err' | 'ok', msg, key }.
+function readKey(text, keys) {
+  const t = String(text || '').trim();
+  if (!t) return { kind: 'empty' };
+  if (/PRIVATE KEY/.test(t)) return { kind: 'private', msg: MSG_PRIVATE };
+  const lines = t.split(/\r?\n/).map((l) => l.trim()).filter((l) => l);
+  if (lines.length > 1) return { kind: 'err', msg: 'Paste one key at a time' };
+  const parts = lines[0].split(/\s+/);
+  const bad = { kind: 'err', msg: 'This does not look like a public key' };
+  const label = KEY_TYPES[parts[0]];
+  if (!label || !parts[1] || parts[1].length < 60 || parts[1].length > 1200 || !/^[A-Za-z0-9+\/]+={0,2}$/.test(parts[1])) return bad;
+  const blob = b64Bytes(parts[1]);
+  if (!blob || blob.length < 40) return bad;
+  const nameLen = (blob[0] << 24) | (blob[1] << 16) | (blob[2] << 8) | blob[3];
+  if (nameLen !== parts[0].length || blob.slice(4, 4 + nameLen).map((x) => String.fromCharCode(x)).join('') !== parts[0]) return bad;
+  let type = label;
+  if (label === 'RSA') {
+    let o = 4 + nameLen; const eLen = (blob[o] << 24) | (blob[o + 1] << 16) | (blob[o + 2] << 8) | blob[o + 3]; o += 4 + eLen;
+    let nLen = (blob[o] << 24) | (blob[o + 1] << 16) | (blob[o + 2] << 8) | blob[o + 3];
+    if (blob[o + 4] === 0) nLen--;
+    if (nLen > 0 && nLen < 2100) type = 'RSA ' + nLen * 8;
+  }
+  const name = parts.slice(2).join(' ').slice(0, 80);
+  const fp = 'SHA256:' + bytesB64(sha256(blob));
+  if (keys.some((k) => k.fp === fp)) return { kind: 'err', msg: 'This key is already on the list' };
+  return { kind: 'ok', key: { type, name: name || 'Key with no name', fp, added: '25 Nov' } };
+}
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.reset('after'); }
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  later(fn, ms) { try { return setTimeout(fn, ms); } catch (e) { return 0; } }
+  reset(s) {
+    this.keys = s === 'off' ? [] : SAMPLE_KEYS.slice();
+    this.draft = ''; this.err = ''; this.copied = false; this.toast = null; this.undo = null;
+    this.portBusy = false; this.portTime = '13:42';
+    this.dlg = s === 'remove-confirm' ? { kind: 'one', fp: SAMPLE_KEYS[0].fp } : null;
+  }
+  say(text, undo) {
+    this.toast = { text, undo: !!undo }; const mine = this.toast;
+    this.later(() => { if (this.toast === mine) { this.toast = null; this.bump(); } }, 6000);
+  }
+  focusLater(sel, e) {
+    let root = null;
+    try { if (e && e.currentTarget && e.currentTarget.getRootNode) root = e.currentTarget.getRootNode(); } catch (err) {}
+    this.later(() => { try { const el = (root || document).querySelector(sel); if (el) el.focus(); } catch (err) {} }, 60);
+  }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const unsupported = s === 'unsupported';
+    const keys = this.keys;
+    const on = keys.length > 0;
+    const read = readKey(this.draft, keys);
+    const ok = read.kind === 'ok';
+    const errText = read.kind === 'err' ? read.msg : this.err;
+    const d = this.dlg;
+    const dKey = d && d.kind === 'one' ? keys.find((k) => k.fp === d.fp) : null;
+    const dOpen = !!d && (d.kind === 'all' ? on : !!dKey);
+    const closeDlg = () => { this.dlg = null; this.bump(); };
+    return Object.assign(v, {
+      unsupported, supported: !unsupported,
+      isOn: !unsupported && on, isOff: !unsupported && !on,
+      docker: s === 'docker',
+      keyCount: keys.length === 1 ? '1 key can sign in' : keys.length + ' keys can sign in',
+      keyTotal: keys.length === 1 ? '1 key' : keys.length + ' keys',
+      keys: keys.map((k) => ({ type: k.type, name: k.name, fp: k.fp, added: 'Added ' + k.added, label: 'Remove key ' + k.name,
+        remove: (e) => { this.dlg = { kind: 'one', fp: k.fp }; this.bump(); this.focusLater('[data-dlgc]', e); } })),
+      copyLabel: this.copied ? 'Command copied' : 'Copy the command', copyIcon: this.copied ? IC_DONE : IC_COPY,
+      copyGo: () => {
+        try { if (typeof navigator !== 'undefined' && navigator.clipboard) navigator.clipboard.writeText('ssh root@homeassistant.local -p 22222').catch(() => {}); } catch (e) {}
+        this.copied = true; this.say('Command copied.'); this.bump();
+        this.later(() => { this.copied = false; this.bump(); }, 2500);
+      },
+      portIdle: !this.portBusy, portBusy: this.portBusy,
+      portText: this.portBusy ? 'Checking port 22222' : 'Port 22222 answers',
+      portSub: this.portBusy ? 'This takes a moment' : 'Checked at ' + this.portTime,
+      portGo: () => {
+        if (this.portBusy) return;
+        this.portBusy = true; this.bump();
+        this.later(() => { this.portBusy = false; this.portTime = '13:43'; this.bump(); }, 900);
+      },
+      draft: this.draft,
+      draftSet: (e) => {
+        const val = e.target.value;
+        if (readKey(val, keys).kind === 'private') { this.draft = ''; this.err = MSG_PRIVATE; try { e.target.value = ''; } catch (err) {} }
+        else { this.draft = val; this.err = ''; }
+        this.bump();
+      },
+      pasteGo: () => { this.draft = PASTE_SAMPLE; this.err = ''; this.bump(); },
+      taCls: errText ? 'ta bad' : ok ? 'ta good' : 'ta', draftInvalid: errText ? 'true' : 'false',
+      hasErr: !!errText, errText,
+      descA: errText ? 'addhelp adderr' : 'addhelp', descB: errText ? 'addhelp2 adderr2' : 'addhelp2',
+      hasPrev: ok, prevType: ok ? read.key.type : '', prevName: ok ? read.key.name : '', prevFp: ok ? read.key.fp : '',
+      addCls: ok ? 'btn fill' : 'btn off', addOff: ok ? 'false' : 'true',
+      addGo: () => {
+        if (!ok) return;
+        const first = !on;
+        this.keys = keys.concat([read.key]); this.draft = ''; this.err = ''; this.undo = null;
+        this.say(first ? 'Key added. SSH is on.' : 'Key added.'); this.bump();
+      },
+      removeAll: (e) => { this.dlg = { kind: 'all' }; this.bump(); this.focusLater('[data-dlgc]', e); },
+      dlgOpen: dOpen, dlgOne: dOpen && !!dKey,
+      dlgTitle: d && d.kind === 'all' ? 'Remove all keys?' : 'Remove this key?',
+      dlgBody: d && d.kind === 'all' ? 'Nobody can sign in over SSH until you add a key again.' : 'Anyone using it can no longer sign in.',
+      dlgType: dKey ? dKey.type : '', dlgName: dKey ? dKey.name : '', dlgFp: dKey ? dKey.fp : '',
+      dlgLast: dOpen && (d.kind === 'all' || keys.length === 1),
+      dlgLastText: d && d.kind === 'all' ? 'SSH turns off when the last key is gone.' : 'This is the last key. Removing it turns SSH off.',
+      dlgOkText: d && d.kind === 'all' ? 'Remove all' : 'Remove',
+      dlgCancel: closeDlg,
+      dlgKey: (e) => { if (e && e.key === 'Escape') closeDlg(); },
+      dlgOk: () => {
+        if (!dOpen) return;
+        this.undo = keys.slice();
+        this.keys = d.kind === 'all' ? [] : keys.filter((k) => k.fp !== d.fp);
+        this.dlg = null;
+        this.say(this.keys.length ? 'Key removed.' : d.kind === 'all' ? 'All keys removed. SSH is off.' : 'Key removed. SSH is off.', true);
+        this.bump();
+      },
+      hasToast: !!this.toast, toastText: this.toast ? this.toast.text : '', toastUndo: !!this.toast && this.toast.undo && !!this.undo,
+      undoGo: () => { if (this.undo) { this.keys = this.undo; this.undo = null; } this.toast = null; this.bump(); },
+      toastClose: () => { this.toast = null; this.bump(); }
+    });
+  }
+}
+</script>
+</body>
+</html>

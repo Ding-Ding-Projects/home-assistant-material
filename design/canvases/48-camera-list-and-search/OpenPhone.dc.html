@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>One camera open, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--on-err:#FFFFFF;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--on-err:#690005;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 h3,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--onv);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl4);color:var(--onv);font-size:12px;line-height:16px;font-weight:600;white-space:nowrap}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.a{background:var(--amberc);color:var(--amber)}
+.tag.e{background:var(--err);color:var(--on-err)}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surf)}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none;position:relative;z-index:5;background:var(--surf)}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pbar{position:absolute;left:12px;right:12px;bottom:12px;height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);display:flex;align-items:center;padding:0 6px;z-index:10}
+.m3 .pbar button{flex:1;min-width:0;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;line-height:14px;font-weight:600;color:var(--onv)}
+.pbar .pi{width:48px;height:28px;border-radius:14px;display:grid;place-items:center;position:relative}
+.m3 .pbar button.on{color:var(--on)}
+.pbar button.on .pi{background:var(--sc);color:var(--on-sc)}
+.pbar .bdg{position:absolute;top:-4px;right:0;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--on);color:var(--surf);font-size:10px;line-height:16px;text-align:center;font-weight:700}
+.pg{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:0 12px}
+.sumrow{display:flex;align-items:center;gap:8px;padding:0 0 0 14px;flex:none;min-height:48px;background:var(--sl0);border-radius:16px}
+.sumrow .sub{flex:1;min-width:0}
+.card{background:var(--sl0);border-radius:20px;padding:6px 6px 8px;display:flex;flex-direction:column;flex:none;min-width:0;box-shadow:inset 0 0 0 1px var(--outv)}
+.place{display:flex;align-items:center;gap:10px;padding:8px 10px 6px;color:var(--onv)}
+.place .mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace;font-size:13px;color:var(--on);font-weight:500;overflow-wrap:anywhere}
+.cam{border-radius:16px;display:flex;flex-direction:column;transition:background-color .2s ease}
+.cam.open{background:var(--sl2);margin:4px 0}
+.cam + .cam{position:relative}
+.cam + .cam::before{content:"";position:absolute;left:12px;right:12px;top:0;height:1px;background:var(--outv)}
+.cam.open::before,.cam.open + .cam::before{display:none}
+.camhead{display:flex;align-items:center;gap:0;padding-right:4px}
+.m3 .disc{flex:1;min-width:0;min-height:68px;display:flex;align-items:center;gap:12px;padding:10px 4px 10px 10px;border-radius:16px}
+.m3 .disc:hover{background:color-mix(in srgb,var(--on) 5%,transparent)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.cname{font-size:16px;line-height:22px;font-weight:500;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.cline{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:2px}
+.cerr{color:var(--err);font-size:13px;line-height:18px;margin-top:4px}
+.chev{color:var(--onv);transition:transform .22s ease}
+.chev.open{transform:rotate(180deg)}
+.fold{display:grid;grid-template-rows:0fr;visibility:hidden;transition:grid-template-rows .22s ease,visibility 0s linear .22s}
+.fold.open{grid-template-rows:1fr;visibility:visible;transition:grid-template-rows .22s ease,visibility 0s}
+.clip{overflow:hidden;min-height:0;min-width:0}
+.region{display:flex;flex-direction:column;gap:12px;padding:2px 12px 14px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:4px 6px 0}
+.stat{background:var(--sl2);border-radius:16px;padding:10px 14px;display:flex;flex-direction:column;min-width:0}
+.stat b{font-size:20px;line-height:26px;font-weight:600}
+.keep{display:flex;flex-direction:column;padding:10px 8px 4px}
+.tri{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tri div{background:var(--sl0);border-radius:12px;padding:8px 10px;min-width:0}
+.tri b{display:block;font-size:16px;line-height:22px;font-weight:500}
+.tri span{display:block;font-size:12px;line-height:16px;color:var(--onv)}
+.sec{display:flex;flex-direction:column;gap:8px;min-width:0}
+.sech{font-size:14px;line-height:20px;font-weight:600}
+.seg{display:flex;border-radius:24px;box-shadow:inset 0 0 0 1px var(--out);overflow:hidden}
+.m3 .seg button{flex:1;min-width:0;min-height:48px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:600;color:var(--on);transition:background-color .2s ease}
+.m3 .seg button + button{box-shadow:inset 1px 0 0 var(--out)}
+.m3 .seg button.sel{background:var(--sc);color:var(--on-sc)}
+.seg .ic{display:none}
+.seg .sel .ic{display:block;width:18px;height:18px}
+.m3 .swrow{display:flex;align-items:center;gap:12px;min-height:56px;width:100%;text-align:left;border-radius:12px}
+.m3 .sw{width:52px;height:32px;border-radius:16px;background:var(--sl4);box-shadow:inset 0 0 0 2px var(--out);position:relative;flex:none;transition:background-color .2s}
+.sw i{position:absolute;top:8px;left:8px;width:16px;height:16px;border-radius:12px;background:var(--out);transition:all .2s ease}
+.m3 .sw.on{background:var(--p);box-shadow:none}
+.sw.on i{left:24px;top:4px;width:24px;height:24px;background:var(--on-p)}
+.sld{display:flex;flex-direction:column;min-width:0}
+.sld span{font-size:14px;line-height:20px}
+.rng{display:block;width:100%;height:48px;margin:0;accent-color:var(--p);background:transparent;cursor:pointer}
+.panel{background:var(--sl0);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.kv{display:flex;gap:12px;align-items:baseline;font-size:13px;line-height:18px}
+.kv span:first-child{color:var(--onv);flex:0 0 44%}
+.kv span:last-child{flex:1;min-width:0;overflow-wrap:anywhere}
+.m3 .srcbtn{display:flex;align-items:center;gap:8px;min-height:48px;width:100%;padding:0 4px 0 0;border-radius:12px;font-size:14px}
+.m3 .ckrow{display:flex;align-items:center;gap:12px;min-height:48px;width:100%;border-radius:12px;text-align:left}
+.m3 .ckrow:hover,.m3 .srcbtn:hover,.m3 .swrow:hover{background:color-mix(in srgb,var(--on) 5%,transparent)}
+.box{width:20px;height:20px;border-radius:4px;box-shadow:inset 0 0 0 2px var(--out);display:grid;place-items:center;flex:none;margin:0 2px 0 6px;transition:background-color .2s}
+.box svg{width:16px;height:16px;fill:var(--on-p);opacity:0}
+.box.on{background:var(--p);box-shadow:none}
+.box.on svg{opacity:1}
+.box.dim{opacity:.55}
+.m3 .ckrow.dis{cursor:not-allowed}
+.res{font-size:13px;line-height:18px;padding:8px 10px;border-radius:12px;background:var(--greenc);color:var(--green)}
+.res.bad{background:var(--errc);color:var(--on-errc)}
+.hr{height:1px;background:var(--outv);flex:none}
+.acts{display:flex;flex-wrap:wrap;gap:4px;padding:6px 4px 0;justify-content:flex-end}
+.endsp{flex:none;height:92px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<div class="bar">
+<button class="ib" aria-label="Back to Settings"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></button>
+<h1>Camera recording</h1>
+<button class="ib" aria-label="More options"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button>
+</div>
+<div class="pg" tabindex="0" role="region" aria-label="Cameras">
+<div class="sumrow"><span class="sub" role="status">{{countText}}</span><button class="btn text" onClick="{{ allFlip }}">{{allText}}</button></div>
+<div class="card">
+<div class="place"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"></path></svg><span class="grow"><span class="mono">/config/recordings</span></span></div>
+<div class="stats">
+<div class="stat"><b>{{recText}}</b><span class="sub">Cameras recording</span></div>
+<div class="stat"><b>0 Bytes</b><span class="sub">Space used</span></div>
+<div class="stat"><b>0</b><span class="sub">Waiting to copy</span></div>
+<div class="stat"><b>—</b><span class="sub">Last copy</span></div>
+</div>
+<label class="keep"><span>{{keepText}}</span><input class="rng" type="range" min="1" max="90" step="1" value="{{days}}" onInput="{{ setDays }}"/><span class="sub">The oldest are removed after this, or sooner when space runs out.</span></label>
+<sc-for list="{{cams}}" as="c" hint-placeholder-count="3">
+<div class="{{c.cls}}">
+<div class="camhead">
+<button class="disc" aria-expanded="{{c.aria}}" aria-controls="{{c.rid}}" onClick="{{ c.flip }}">
+<span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{c.icon}}"></path></svg></span>
+<span class="grow"><span class="cname">{{c.name}}</span><span class="cline"><span class="{{c.pillCls}}">{{c.pill}}</span><span class="sub">{{c.line}}</span></span><sc-if value="{{c.hasErr}}" hint-placeholder-val="{{ false }}"><span class="cerr">{{c.err}}</span></sc-if></span>
+<svg class="{{c.chev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg>
+</button>
+<button class="ib" aria-label="{{c.pauseLabel}}" title="{{c.pauseTitle}}" onClick="{{ c.pauseFlip }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{c.pauseIcon}}"></path></svg></button>
+</div>
+<div class="{{c.fold}}" id="{{c.rid}}" role="region" aria-label="{{c.regionLabel}}">
+<div class="clip">
+<div class="region">
+<div class="tri"><div><b>{{c.newest}}</b><span>Newest recording</span></div><div><b>{{c.waiting}}</b><span>Waiting to copy</span></div><div><b>{{c.oldest}}</b><span>Oldest kept</span></div></div>
+<sc-if value="{{c.provider}}" hint-placeholder-val="{{ false }}"><p class="sub">This camera only offers live video through its provider. Its event clips are kept instead.</p></sc-if>
+<div class="sec">
+<h3 class="sech">How much to keep</h3>
+<div class="seg" role="group" aria-label="{{c.segLabel}}"><sc-for list="{{c.amounts}}" as="a" hint-placeholder-count="3"><button class="{{a.cls}}" aria-pressed="{{a.aria}}" onClick="{{ a.pick }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg>{{a.name}}</button></sc-for></div>
+<p>{{c.explain}}</p>
+<sc-if value="{{c.hasToday}}" hint-placeholder-val="{{ true }}"><p class="sub">{{c.today}}</p></sc-if>
+</div>
+<sc-if value="{{c.provider}}" hint-placeholder-val="{{ false }}">
+<div class="sec">
+<button class="swrow" role="switch" aria-checked="{{c.liveAria}}" onClick="{{ c.liveFlip }}"><span class="{{c.liveSw}}"><i></i></span><span class="grow"><span>Record live video around events</span></span></button>
+<p class="sub">{{c.liveExplain}}</p>
+<sc-for list="{{c.liveSliders}}" as="s" hint-placeholder-count="2"><label class="sld"><span>{{s.label}}</span><input class="rng" type="range" min="{{s.min}}" max="{{s.max}}" step="{{s.step}}" value="{{s.val}}" onInput="{{ s.set }}"/></label></sc-for>
+<p class="sub">{{c.liveLeft}}</p>
+</div>
+</sc-if>
+<div class="panel">
+<h3 class="sech">Recording check</h3>
+<sc-for list="{{c.check}}" as="k" hint-placeholder-count="6"><div class="kv"><span>{{k.k}}</span><span>{{k.v}}</span></div></sc-for>
+<sc-if value="{{c.provider}}" hint-placeholder-val="{{ false }}">
+<button class="{{c.testCls}}" aria-disabled="{{c.testOff}}" onClick="{{ c.test }}" style="white-space: normal; padding: 6px 18px; line-height: 18px; text-align: center"><sc-if value="{{c.testing}}" hint-placeholder-val="{{ false }}"><svg class="ic s spin" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"></path></svg></sc-if>{{c.testText}}</button>
+<p class="sub">Uses one live view from the camera service.</p>
+<sc-if value="{{c.hasRes}}" hint-placeholder-val="{{ false }}"><p class="res" role="status">{{c.resText}}</p></sc-if>
+</sc-if>
+</div>
+<p class="sub">Changing this does not delete what was already recorded.</p>
+<sc-for list="{{c.sliders}}" as="s" hint-placeholder-count="2"><label class="sld"><span>{{s.label}}</span><input class="rng" type="range" min="{{s.min}}" max="{{s.max}}" step="{{s.step}}" value="{{s.val}}" onInput="{{ s.set }}"/></label></sc-for>
+<sc-if value="{{c.showSeen}}" hint-placeholder-val="{{ false }}">
+<div class="sec">
+<button class="srcbtn" aria-expanded="{{c.srcAria}}" aria-controls="{{c.sid}}" onClick="{{ c.srcFlip }}"><span class="grow"><span style="font-weight: 600">What counts as seen</span><span class="sub">{{c.srcSummary}}</span></span><svg class="{{c.srcChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button>
+<div class="{{c.srcFold}}" id="{{c.sid}}">
+<div class="clip">
+<div class="panel" role="group" aria-label="What counts as seen" style="padding: 4px 6px 6px; gap: 0">
+<sc-for list="{{c.sources}}" as="o" hint-placeholder-count="4"><button class="{{o.cls}}" role="checkbox" aria-checked="{{o.aria}}" aria-disabled="{{o.dis}}" onClick="{{ o.flip }}"><span class="{{o.box}}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span><span class="grow"><span>{{o.name}}</span><span class="sub">{{o.kind}}</span></span></button></sc-for>
+<button class="btn text" style="align-self: flex-start" onClick="{{ c.addSource }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg>Add another event source</button>
+<p class="sub" style="padding: 0 8px 4px">{{c.addNote}}</p>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+<div class="panel">
+<h3 class="sech">Keep what is watched</h3>
+<sc-for list="{{c.watch}}" as="w" hint-placeholder-count="3"><button class="swrow" role="switch" aria-checked="{{w.aria}}" onClick="{{ w.flip }}"><span class="grow"><span>{{w.title}}</span><span class="sub">{{w.note}}</span></span><span class="{{w.sw}}"><i></i></span></button></sc-for>
+<sc-for list="{{c.watchSliders}}" as="s" hint-placeholder-count="2"><label class="sld"><span>{{s.label}}</span><input class="rng" type="range" min="{{s.min}}" max="{{s.max}}" step="{{s.step}}" value="{{s.val}}" onInput="{{ s.set }}"/></label></sc-for>
+<p class="sub">{{c.keptToday}}</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</sc-for>
+<div class="hr" style="margin: 6px 12px 0"></div>
+<div class="acts"><button class="btn text" onClick="{{ pauseAll }}">{{pauseAllText}}</button><button class="btn tonal">Cameras and limits</button></div>
+</div>
+<div class="endsp" aria-hidden="true"></div>
+</div>
+<nav class="pbar" aria-label="Main">
+<button><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"></path></svg></span>Home</button>
+<button><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></span>Search</button>
+<button aria-label="Pages, 21"><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,16H3V4H21M21,2H3C1.89,2 1,2.89 1,4V16A2,2 0 0,0 3,18H10V20H8V22H16V20H14V18H21A2,2 0 0,0 23,16V4C23,2.89 22.1,2 21,2Z"></path></svg><span class="bdg" aria-hidden="true">21</span></span>Pages</button>
+<button class="on" aria-current="page" aria-label="Settings, 4"><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"></path></svg><span class="bdg" aria-hidden="true">4</span></span>Settings</button>
+<button><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg></span>Menu</button>
+</nav>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#7DD3A8","#FFB874","#D0BCFF"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"stage":{"editor":"enum","options":["after","all-day","light","paused","problem"],"default":"after"},"$preview":{"width":390,"height":844}}'>
+const I_BELL = 'M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21';
+const I_CAM = 'M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z';
+const I_PAUSE = 'M14,19H18V5H14M6,19H10V5H6V19Z';
+const I_PLAY = 'M8,5.14V19.14L19,12.14L8,5.14Z';
+const CAMS = [
+  { id: 'door', name: 'Front Door DOORBELL', icon: I_BELL, provider: true, newest: '—', waiting: '0', oldest: '—', events: 0, size: '0 Bytes',
+    check: [['Streaming program', 'Set up and ready'], ['Streams only through its service', 'Yes'], ['Last event heard', 'None yet'], ['Last clip', 'None yet'], ['Last problem', 'None']],
+    kept: 'Kept today: 0 live views · 0 snapshots · 0 Bytes' },
+  { id: 'drive', name: 'Driveway', icon: I_CAM, newest: '13:42', waiting: '2', oldest: '26 Aug', events: 4, size: '36 MB',
+    check: [['Streaming program', 'Set up and ready'], ['Streams only through its service', 'No'], ['Last event heard', 'Motion · 13:42'], ['Last clip', '13:42 · recorded here'], ['Last problem', 'None']],
+    kept: 'Kept today: 2 live views · 5 snapshots · 14 MB',
+    src: [['The camera’s own events', 'Camera service'], ['Driveway motion sensor', 'Motion'], ['Driveway vehicle detected', 'Vehicle']] },
+  { id: 'garage', name: 'Garage', icon: I_CAM, newest: '11:26', waiting: '0', oldest: '28 Aug', events: 2, size: '14 MB',
+    check: [['Streaming program', 'Set up and ready'], ['Streams only through its service', 'No'], ['Last event heard', 'Motion · 11:26'], ['Last clip', '11:26 · 40 s · recorded here'], ['Last problem', 'None']],
+    kept: 'Kept today: 1 live view · 0 snapshots · 6 MB',
+    src: [['The camera’s own events', 'Camera service'], ['Garage motion sensor', 'Motion'], ['Garage person detected', 'Person']] }
+];
+const AMOUNTS = [['all_day', 'All day'], ['light', 'Light'], ['off', 'Off']];
+const PROBLEM = 'The camera stopped answering at 13:42. Trying again every 30 seconds.';
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.st = {}; this.reset('after'); }
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  reset(s) {
+    const mk = (o) => Object.assign({ open: false, paused: false, amount: 'light', live: true, before: 10, after: 30, clip: 120, perHour: 12, srcOpen: false, auto: true, pick: {}, extra: 0,
+      autoStart: true, keepLive: true, keepSnap: false, longest: 10, snapSec: 30, testing: false, res: '' }, o);
+    this.problem = s === 'problem';
+    this.days = 90;
+    this.st = {
+      door: mk({ open: s === 'after' }),
+      drive: mk({ amount: 'all_day', open: s === 'all-day' || s === 'problem' }),
+      garage: mk({ open: s === 'light' || s === 'paused', paused: true, srcOpen: s === 'light' })
+    };
+  }
+  up(id, patch) { const n = Object.assign({}, this.st); n[id] = Object.assign({}, n[id], patch); this.st = n; this.bump(); }
+  slider(id, key, label, min, max, step) {
+    return { label, min: String(min), max: String(max), step: String(step), val: String(this.st[id][key]),
+      set: (e) => { const o = {}; o[key] = Number(e.target.value); this.up(id, o); } };
+  }
+  cam(d) {
+    const t = this.st[d.id], id = d.id;
+    const bad = this.problem && id === 'drive' && !t.paused;
+    let pill = 'Recording', pillCls = 'tag g';
+    if (t.paused) { pill = 'Paused'; pillCls = 'tag'; }
+    else if (bad) { pill = 'Reconnecting'; pillCls = 'tag e'; }
+    else if (t.amount === 'off') { pill = 'Stopped'; pillCls = 'tag'; }
+    else if (d.provider) { pill = 'Event clips'; pillCls = 'tag a'; }
+    const amountName = AMOUNTS.filter((a) => a[0] === t.amount)[0][1];
+    let line = amountName;
+    if (d.provider) line += ' · ' + d.events + ' events today';
+    else line += ' · newest ' + d.newest + (d.waiting !== '0' ? ' · ' + d.waiting + ' waiting' : '');
+    let explain = 'All day keeps everything.';
+    if (t.amount === 'off') explain = 'Off keeps nothing new. What was already recorded stays.';
+    else if (d.provider) explain = 'Event clips are the only thing that can be kept for this camera. Each event’s clip or picture is saved with its time and kept for ' + this.days + ' days, like any recording.';
+    else if (t.amount === 'light') explain = 'Light keeps video only around something being seen: from ' + t.before + ' s before to ' + t.after + ' s after.';
+    const light = t.amount === 'light';
+    const showSeen = !d.provider && light;
+    const sliders = showSeen ? [this.slider(id, 'before', 'Before: ' + t.before + ' s', 0, 60, 5), this.slider(id, 'after', 'After: ' + t.after + ' s', 5, 300, 5)] : [];
+    const liveSliders = d.provider ? [this.slider(id, 'clip', 'Clip length: ' + t.clip + ' s', 10, 120, 5), this.slider(id, 'perHour', 'At most ' + t.perHour + ' live clips per hour', 1, 30, 1)] : [];
+    const src = (d.src || []).slice();
+    for (let i = 0; i < t.extra; i++) src.push([d.name + ' sound sensor' + (i ? ' ' + (i + 1) : ''), 'Added by you']);
+    const all = () => { const n = {}; (d.src || []).forEach((o, i) => { n[i] = 1; }); return n; };
+    const chosen = src.filter((o, i) => t.pick[i]).length;
+    const sources = [{ name: 'Automatic', kind: 'Anything the camera or its sensors report', cls: 'ckrow', dis: 'false', aria: t.auto ? 'true' : 'false', box: t.auto ? 'box on' : 'box',
+      flip: () => this.up(id, t.auto ? { auto: false, pick: all() } : { auto: true, pick: {}, extra: 0 }) }].concat(src.map((o, i) => {
+      const on = t.auto || !!t.pick[i];
+      return { name: o[0], kind: o[1], cls: t.auto ? 'ckrow dis' : 'ckrow', dis: t.auto ? 'true' : 'false', aria: on ? 'true' : 'false', box: on ? (t.auto ? 'box on dim' : 'box on') : 'box',
+        flip: () => { if (t.auto) return; const n = Object.assign({}, t.pick); if (n[i]) delete n[i]; else n[i] = 1; this.up(id, { pick: n }); } };
+    }));
+    const check = d.check.map((r) => ({ k: r[0], v: r[1] }));
+    if (bad) check[check.length - 1] = { k: 'Last problem', v: '13:42 · The camera did not answer in time.' };
+    check.push({ k: 'Clips left this hour', v: (d.provider ? Math.max(0, t.perHour - 1) : t.perHour) + ' of ' + t.perHour });
+    const sw = (key, title, note) => ({ title, note, aria: t[key] ? 'true' : 'false', sw: t[key] ? 'sw on' : 'sw', flip: () => { const o = {}; o[key] = !t[key]; this.up(id, o); } });
+    return {
+      id, name: d.name, icon: d.icon, rid: 'cam-' + id, sid: 'src-' + id, open: t.open, provider: !!d.provider,
+      cls: 'cam' + (t.open ? ' open' : ''), fold: 'fold' + (t.open ? ' open' : ''), srcFold: 'fold' + (t.srcOpen ? ' open' : ''), aria: t.open ? 'true' : 'false', chev: 'ic chev' + (t.open ? ' open' : ''),
+      flip: () => this.up(id, { open: !t.open }),
+      pill, pillCls, line, hasErr: bad, err: PROBLEM,
+      pauseLabel: (t.paused ? 'Resume ' : 'Pause ') + d.name, pauseTitle: t.paused ? 'Resume' : 'Pause', pauseIcon: t.paused ? I_PLAY : I_PAUSE,
+      pauseFlip: () => this.up(id, { paused: !t.paused }),
+      regionLabel: d.name + ' settings', segLabel: 'How much to keep for ' + d.name,
+      newest: d.newest, waiting: d.waiting, oldest: d.oldest,
+      amounts: AMOUNTS.filter((a) => !(d.provider && a[0] === 'all_day')).map((a) => ({ name: a[1], cls: t.amount === a[0] ? 'sel' : '', aria: t.amount === a[0] ? 'true' : 'false', pick: () => this.up(id, { amount: a[0] }) })),
+      explain, hasToday: light, today: 'Light, today: ' + d.events + (d.events === 1 ? ' event' : ' events') + ' kept, ' + d.size + '.',
+      liveAria: t.live ? 'true' : 'false', liveSw: t.live ? 'sw on' : 'sw', liveFlip: () => this.up(id, { live: !t.live }),
+      liveExplain: 'Uses the camera’s live video for about ' + t.clip + ' seconds per event. Nothing leaves the home.',
+      sliders, liveSliders, liveLeft: 'Live clips left this hour: ' + Math.max(0, t.perHour - 1),
+      showSeen, srcOpen: t.srcOpen, srcAria: t.srcOpen ? 'true' : 'false', srcChev: 'ic chev' + (t.srcOpen ? ' open' : ''),
+      srcFlip: () => this.up(id, { srcOpen: !t.srcOpen }), srcSummary: t.auto ? 'Automatic' : chosen + ' chosen', sources,
+      addSource: () => { const n = t.auto ? all() : Object.assign({}, t.pick); n[src.length] = 1; this.up(id, { auto: false, extra: t.extra + 1, pick: n }); },
+      addNote: 'Motion, occupancy, door and sound sensors, and event entities.',
+      check,
+      testing: t.testing, testCls: t.testing ? 'btn off' : 'btn tonal', testOff: t.testing ? 'true' : 'false',
+      testText: t.testing ? 'Recording the test clip…' : 'Record a 10 second test clip now',
+      test: () => {
+        if (this.st[id].testing) return;
+        this.up(id, { testing: true, res: '' });
+        setTimeout(() => this.up(id, { testing: false, res: 'ok' }), 1400);
+      },
+      hasRes: !!t.res, resText: 'Test clip at 13:58: saved, 10 s, 1.2 MB.',
+      watch: [sw('autoStart', 'Start live video when it is on screen', 'On a dashboard or a sheet, with no tap'), sw('keepLive', 'Keep every live view', 'Recorded for as long as it is open'), sw('keepSnap', 'Keep every snapshot', 'Taken by a person, a dashboard or an automation')],
+      watchSliders: [this.slider(id, 'longest', 'Longest live view kept: ' + t.longest + ' min', 1, 60, 1), this.slider(id, 'snapSec', 'Snapshots that repeat: one every ' + t.snapSec + ' s at most', 10, 600, 10)],
+      keptToday: d.kept
+    };
+  }
+  renderVals() {
+    const v = this.base();
+    this.stage();
+    const cams = CAMS.map((d) => this.cam(d));
+    const anyOpen = cams.some((c) => c.open);
+    const rec = cams.filter((c) => c.pill === 'Recording').length;
+    const allPaused = CAMS.every((d) => this.st[d.id].paused);
+    const setAll = (patch) => { const n = {}; CAMS.forEach((d) => { n[d.id] = Object.assign({}, this.st[d.id], patch); }); this.st = n; this.bump(); };
+    return Object.assign(v, {
+      cams, countText: cams.length + ' cameras', allText: anyOpen ? 'Collapse all' : 'Expand all',
+      allFlip: () => setAll({ open: !anyOpen }),
+      recText: rec + ' of ' + cams.length, days: String(this.days), keepText: 'Clips and recordings kept for ' + this.days + ' days',
+      setDays: (e) => { this.days = Number(e.target.value); this.bump(); },
+      pauseAllText: allPaused ? 'Resume all' : 'Pause all', pauseAll: () => setAll({ paused: !allPaused })
+    });
+  }
+}
+</script>
+</body>
+</html>

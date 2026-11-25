@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SSH access on a wide window</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--on-err:#FFFFFF;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--on-err:#690005;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input,.m3 textarea{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,Consolas,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,background-color .2s}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.text.red{color:var(--err)}
+.m3 .btn.danger{background:var(--err);color:var(--on-err)}
+.m3 .btn.off{background:var(--sl4);color:var(--onv);cursor:not-allowed}
+.m3 .btn.text.off{background:none;color:var(--onv);opacity:.72}
+.btn.off:hover{filter:none}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:13px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip:hover{background:var(--sl3)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.lead.g{background:var(--greenc);color:var(--green)}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600;white-space:nowrap;flex:none}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.note.good{background:var(--greenc);color:var(--green)}
+.note .ic{margin-top:-1px}
+.in{animation:rise .24s ease both}
+.spin{animation:spin 1s linear infinite}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.wd{--wh:860px;min-height:var(--wh,860px);position:relative;padding:12px clamp(12px,3vw,40px) 32px;display:flex;flex-direction:column}
+.wrap{width:100%;max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.whd{display:flex;align-items:center;gap:4px;min-height:64px;margin-left:-8px}
+.whd h1{font-size:22px;line-height:28px;font-weight:500}
+.crumb{font-size:12px;line-height:16px;color:var(--onv)}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.col.l{flex:1 1 340px}
+.col.r{flex:1.5 1 440px}
+.card{background:var(--sl0);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card.first{order:-1;box-shadow:inset 0 0 0 2px var(--p)}
+.chd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:32px}
+.chd h2{font-size:16px;line-height:24px;font-weight:500;flex:1;min-width:0}
+.stat{display:flex;align-items:center;gap:12px}
+.stat .tm{font-size:18px}
+.dot{width:10px;height:10px;border-radius:5px;background:var(--out);flex:none}
+.dot.g{background:var(--green)}
+.cmd{display:flex;align-items:center;gap:4px;min-height:56px;padding:4px 4px 4px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 0 0 1px var(--outv)}
+.cmd code{flex:1;min-width:0;font-size:14px;line-height:20px;overflow-wrap:anywhere;color:var(--on);padding:8px 0}
+.cmd .pr{color:var(--onv);user-select:none}
+.m3 .ib.done{color:var(--green)}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fact{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:14px;background:var(--sl1)}
+.fact b{font-size:15px;line-height:20px;font-weight:500;overflow-wrap:anywhere}
+.steps{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.steps li{display:flex;gap:12px;align-items:flex-start}
+.num{width:24px;height:24px;border-radius:12px;background:var(--sl3);color:var(--onv);display:grid;place-items:center;font-size:12px;font-weight:600;flex:none}
+.inl{display:inline-block;padding:1px 6px;border-radius:6px;background:var(--sl2);font-size:12.5px;overflow-wrap:anywhere}
+.klist{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.krow{display:flex;gap:12px;align-items:flex-start;padding:10px 4px 10px 12px;border-radius:16px;background:var(--sl1);min-width:0}
+.krow .lead{margin-top:4px}
+.kname{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kname b{font-size:15px;line-height:22px;font-weight:500;overflow-wrap:anywhere;min-width:0}
+.fp{font-size:12.5px;line-height:18px;color:var(--onv);overflow-wrap:anywhere;word-break:break-all;margin-top:2px}
+.ask{display:flex;flex-direction:column;gap:8px;padding:12px 12px 8px 14px;border-radius:16px;background:var(--sl1);box-shadow:inset 0 0 0 2px var(--err);min-width:0}
+.ask .q{font-size:14px;line-height:20px}
+.acts{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.empty{display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;background:var(--sl1);color:var(--onv)}
+.ta{display:flex;flex-direction:column;gap:2px;padding:8px 16px 6px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);transition:box-shadow .2s}
+.ta:focus-within{box-shadow:inset 0 -3px 0 var(--p)}
+.ta.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.ta span{font-size:12px;line-height:16px;font-weight:600;color:var(--onv)}
+.ta.bad span{color:var(--err)}
+.ta textarea{display:block;width:100%;min-height:96px;border:0;background:transparent;outline:none;resize:vertical;font-family:'Roboto Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:20px;overflow-wrap:anywhere;word-break:break-all;padding:4px 0}
+.ta textarea::placeholder{color:var(--onv);opacity:1}
+.pv{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:16px;background:var(--sl1);box-shadow:inset 0 0 0 1px var(--outv)}
+.pvh{display:flex;align-items:center;gap:8px;color:var(--green);font-size:13px;font-weight:600}
+.try{display:flex;flex-wrap:wrap;align-items:center;gap:12px 8px}
+.foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="wd">
+<div class="wrap">
+<header class="whd">
+<button class="ib" aria-label="Back to System"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></button>
+<div class="grow"><span class="crumb">Settings / System</span><h1>SSH access</h1></div>
+</header>
+<div class="cols">
+
+<div class="col l">
+<section class="card" aria-label="Status and how to connect">
+<div class="stat" role="status">
+<span class="{{statLead}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,19V7H4V19H20M20,3A2,2 0 0,1 22,5V19A2,2 0 0,1 20,21H4A2,2 0 0,1 2,19V5C2,3.89 2.9,3 4,3H20M13,17V15H18V17H13M9.58,13L5.57,9H8.4L11.7,12.3C12.09,12.69 12.09,13.33 11.7,13.72L8.42,17H5.59L9.58,13Z"></path></svg></span>
+<div class="grow"><span class="tm">{{statTitle}}</span><span class="sub">{{statSub}}</span></div>
+<span class="{{statTag}}"><span class="{{statDot}}" aria-hidden="true"></span>{{statWord}}</span>
+</div>
+<span class="lm">{{cmdHead}}</span>
+<div class="cmd"><code class="mono"><span class="pr" aria-hidden="true">$ </span>ssh root@homeassistant.local -p 22222</code><button class="{{copyCls}}" aria-label="{{copyLabel}}" title="{{copyLabel}}" onClick="{{ copy }}"><sc-if value="{{copied}}" hint-placeholder-val="{{ false }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></sc-if><sc-if value="{{notCopied}}" hint-placeholder-val="{{ true }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg></sc-if></button></div>
+<sc-if value="{{copied}}" hint-placeholder-val="{{ false }}"><span class="sub" role="status" style="color: var(--green); margin-top: -6px">Copied.</span></sc-if>
+<div class="note"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"></path></svg><span>Keys only, no passwords. Keep port 22222 inside your home network: do not forward it on your router.</span></div>
+<div class="facts">
+<div class="fact"><span class="lm">Sign in with</span><b>Keys only</b></div>
+<div class="fact"><span class="lm">Keys on the list</span><b>{{keyCount}}</b></div>
+<div class="fact"><span class="lm">User</span><b class="mono">root</b></div>
+<div class="fact"><span class="lm">Port</span><b class="mono">22222</b></div>
+</div>
+</section>
+
+<sc-if value="{{isDocker}}" hint-placeholder-val="{{ false }}">
+<section class="card in" aria-label="Running in a container">
+<div class="chd"><span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5M12,4.15L6.04,7.5L12,10.85L17.96,7.5L12,4.15M5,15.91L11,19.29V12.58L5,9.21V15.91M19,15.91V9.21L13,12.58V19.29L19,15.91Z"></path></svg></span><h2>Running in Docker, full mode</h2></div>
+<p class="sub" style="font-size: 14px; line-height: 20px">SSH opens a shell in the Home Assistant container. Publish port 22222 when you start it (<span class="mono inl">HA_MATERIAL_SSH_PORT</span>).</p>
+<div class="foot" role="status">
+<sc-if value="{{portOk}}" hint-placeholder-val="{{ true }}"><span class="tag g"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg>Port 22222 answers</span></sc-if>
+<sc-if value="{{portBusy}}" hint-placeholder-val="{{ false }}"><span class="tag"><svg class="ic s spin" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"></path></svg>Checking port 22222</span></sc-if>
+<span class="sub" style="flex: 1 1 140px; min-width: 0">{{portText}}</span>
+<button class="{{portBtnCls}}" style="margin-left: auto" aria-disabled="{{portBtnOff}}" onClick="{{ portCheck }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg>Check again</button>
+</div>
+</section>
+</sc-if>
+
+<section class="card" aria-label="No key yet">
+<div class="chd"><h2>No key yet?</h2></div>
+<ol class="steps">
+<li><span class="num" aria-hidden="true">1</span><span>On the computer that will connect, run <span class="mono inl">ssh-keygen -t ed25519</span></span></li>
+<li><span class="num" aria-hidden="true">2</span><span>Open the file that ends in <span class="mono inl">.pub</span> and paste its one line under Add a public key.</span></li>
+<li><span class="num" aria-hidden="true">3</span><span>Connect with the command above. The private key never leaves that computer.</span></li>
+</ol>
+</section>
+<span class="sub" style="padding: 0 4px">Only owners and administrators can open this page.</span>
+</div>
+
+<div class="col r">
+<section class="card" aria-labelledby="ssh-keys-h">
+<div class="chd"><h2 id="ssh-keys-h" tabindex="-1">Keys that can sign in</h2><span class="tag">{{keyCount}}</span></div>
+<sc-if value="{{hasKeys}}" hint-placeholder-val="{{ true }}">
+<ul class="klist">
+<sc-for list="{{keys}}" as="k" hint-placeholder-count="2">
+<li>
+<sc-if value="{{k.plain}}" hint-placeholder-val="{{ true }}">
+<div class="krow">
+<span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M22,18V22H18V19H15V16H12L9.74,13.74C9.19,13.91 8.61,14 8,14A6,6 0 0,1 2,8A6,6 0 0,1 8,2A6,6 0 0,1 14,8C14,8.61 13.91,9.19 13.74,9.74L22,18M7,5A2,2 0 0,0 5,7A2,2 0 0,0 7,9A2,2 0 0,0 9,7A2,2 0 0,0 7,5Z"></path></svg></span>
+<div class="grow">
+<div class="kname"><b>{{k.name}}</b><span class="tag p">{{k.type}}</span><sc-if value="{{k.isNew}}" hint-placeholder-val="{{ false }}"><span class="tag g">New</span></sc-if></div>
+<span class="mono fp">{{k.fp}}</span>
+<span class="sub">{{k.added}}</span>
+</div>
+<button class="ib" data-f="{{k.rmId}}" aria-label="{{k.rmLabel}}" title="{{k.rmLabel}}" onClick="{{ k.ask }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H16V19H8V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z"></path></svg></button>
+</div>
+</sc-if>
+<sc-if value="{{k.confirming}}" hint-placeholder-val="{{ false }}">
+<div class="ask in" role="group" aria-label="{{k.rmLabel}}">
+<div class="kname"><b>{{k.name}}</b><span class="tag p">{{k.type}}</span></div>
+<p class="q">Remove this key? Anyone using it can no longer sign in.</p>
+<sc-if value="{{k.last}}" hint-placeholder-val="{{ false }}"><p class="sub">This is the last key. Removing it turns SSH off.</p></sc-if>
+<div class="acts"><button class="btn text" data-f="{{k.cancelId}}" onClick="{{ k.cancel }}">Cancel</button><button class="btn danger" onClick="{{ k.remove }}">Remove</button></div>
+</div>
+</sc-if>
+</li>
+</sc-for>
+</ul>
+</sc-if>
+<sc-if value="{{noKeys}}" hint-placeholder-val="{{ false }}">
+<div class="empty"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M22,18V22H18V19H15V16H12L9.74,13.74C9.19,13.91 8.61,14 8,14A6,6 0 0,1 2,8A6,6 0 0,1 8,2A6,6 0 0,1 14,8C14,8.61 13.91,9.19 13.74,9.74L22,18M7,5A2,2 0 0,0 5,7A2,2 0 0,0 7,9A2,2 0 0,0 9,7A2,2 0 0,0 7,5Z"></path></svg><span>No keys yet. Nobody can sign in over SSH. Add a public key to turn SSH on.</span></div>
+</sc-if>
+</section>
+
+<section class="{{addCard}}" aria-labelledby="ssh-add-h">
+<div class="chd"><h2 id="ssh-add-h">Add a public key</h2><sc-if value="{{noKeys}}" hint-placeholder-val="{{ false }}"><span class="tag p">Start here</span></sc-if></div>
+<sc-if value="{{justAdded}}" hint-placeholder-val="{{ false }}"><div class="note good in" role="status"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg><span>Key added. SSH is on.</span></div></sc-if>
+<label class="{{taCls}}"><span>Public key</span><textarea rows="4" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="ssh-add-help" aria-invalid="{{taInvalid}}" placeholder="ssh-ed25519 AAAA... laptop" value="{{draft}}" onInput="{{ setDraft }}" onBlur="{{ blurDraft }}"></textarea></label>
+<p class="sub" id="ssh-add-help">Paste one line that starts with ssh-ed25519, ssh-rsa or ecdsa-sha2-. It is the .pub file, never the private key.</p>
+<sc-if value="{{isPriv}}" hint-placeholder-val="{{ false }}"><div class="note bad in" role="alert"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg><span><b>This is a private key.</b> Never paste a private key anywhere. Paste the matching .pub file instead. The field was cleared and nothing was saved.</span></div></sc-if>
+<sc-if value="{{hasErr}}" hint-placeholder-val="{{ false }}"><div class="note bad in" role="alert"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg><span>{{errText}}</span></div></sc-if>
+<sc-if value="{{hasPv}}" hint-placeholder-val="{{ false }}">
+<div class="pv in" role="status" aria-label="Key to add">
+<div class="pvh"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg>This key can be added</div>
+<div class="kname"><b>{{pvName}}</b><span class="tag p">{{pvType}}</span></div>
+<span class="mono fp">{{pvFp}}</span>
+</div>
+</sc-if>
+<div class="foot"><span class="sub" style="flex: 1; min-width: 0">{{addHint}}</span><button class="{{addCls}}" aria-disabled="{{addOff}}" onClick="{{ addKey }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg>Add key</button></div>
+<div class="try" role="group" aria-label="Sample text to try on this board">
+<span class="lm">Try a sample</span>
+<sc-for list="{{samples}}" as="sm" hint-placeholder-count="5"><button class="chip" onClick="{{ sm.use }}">{{sm.name}}</button></sc-for>
+</div>
+</section>
+
+<sc-if value="{{hasKeys}}" hint-placeholder-val="{{ true }}">
+<sc-if value="{{allPlain}}" hint-placeholder-val="{{ true }}"><div class="foot" style="justify-content: flex-end"><button class="btn text red" data-f="all-rm" onClick="{{ allAsk }}">Remove all keys</button></div></sc-if>
+<sc-if value="{{allConfirm}}" hint-placeholder-val="{{ false }}">
+<div class="ask in" role="group" aria-label="Remove all keys">
+<p class="q">Remove all keys? SSH turns off and nobody can sign in until a key is added.</p>
+<div class="acts"><button class="btn text" data-f="all-cancel" onClick="{{ allCancel }}">Cancel</button><button class="btn danger" onClick="{{ allRemove }}">Remove all</button></div>
+</div>
+</sc-if>
+</sc-if>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#7DD3A8","#FFB874","#D0BCFF"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"stage":{"editor":"enum","options":["after","off","private-key","docker"],"default":"after"},"$preview":{"width":1280,"height":860}}'>
+const ED = 'AAAAC3NzaC1lZDI1NTE5AAAAI';
+const BLOB_LAPTOP = ED + 'Hq3vN8fJ2kZr1xW0hPq9LmT4yUe6cBd7aSg5HoKjV2n';
+const BLOB_ASSIST = ED + 'Jb7yXk2Qp1Lm9RtV4cN8eWs6Ha3Jf5Gd0uIoPq7Mn2E';
+const BLOB_TABLET = ED + 'K8mT2vQx4nRZc1WpYh7LdJf0sGbEu3HaXo6NkBy9tVw';
+const BLOB_ECDSA = 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBGk3Qw9ZrT5xLm2Vb8NcJd4Hs7Ye1Ua6Pf0Go3KiXtWnRz5CvBq2MlEj9SyDh4FuAo8Tg6IpNe1Wk7Xr3Zc5Vb=';
+// Fingerprints on this board are stand-ins: the real page works out the SHA-256 of the key.
+const KNOWN = {};
+KNOWN[BLOB_LAPTOP] = 'SHA256:q3vN8fJ2kZr1xW0hPq9LmT4yUe6cBd7aSg5HoKjV2nI';
+KNOWN[BLOB_ASSIST] = 'SHA256:Zb7yXk2Qp1Lm9RtV4cN8eWs6Ha3Jf5Gd0uIoPq7Mn2E';
+KNOWN[BLOB_TABLET] = 'SHA256:Lk4Wd9ZpT1xQe7Rb2Ns6YhUa0Gm3Vc8Jf5oIiXrBtEw';
+const TODAY = '25 Nov';
+const SAMPLE_NEW = 'ssh-ed25519 ' + BLOB_TABLET + ' tablet@kitchen';
+const SAMPLE_ECDSA = 'ecdsa-sha2-nistp256 ' + BLOB_ECDSA + ' desktop';
+const SAMPLE_DUP = 'ssh-ed25519 ' + BLOB_LAPTOP + ' laptop';
+const SAMPLE_PRIV = '-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAAB (sample, not a real key)\n-----END OPENSSH PRIVATE KEY-----';
+const SAMPLE_TWO = SAMPLE_NEW + '\n' + SAMPLE_ECDSA;
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+function fpOf(blob) {
+  if (KNOWN[blob]) return KNOWN[blob];
+  let a = 0x811c9dc5, out = '';
+  for (let i = 0; i < blob.length; i++) { a ^= blob.charCodeAt(i); a = Math.imul(a, 16777619) >>> 0; }
+  for (let i = 0; i < 43; i++) { a ^= a << 13; a >>>= 0; a ^= a >>> 17; a ^= a << 5; a >>>= 0; out += B64[a % 64]; }
+  return 'SHA256:' + out;
+}
+function keyType(algo, blob) {
+  if (algo === 'ssh-ed25519') return 'ED25519';
+  if (algo === 'ssh-rsa') return blob.length >= 700 ? 'RSA 4096' : blob.length >= 540 ? 'RSA 3072' : 'RSA 2048';
+  return 'ECDSA';
+}
+function analyse(text, keys) {
+  const t = (text || '').trim();
+  if (!t) return { state: 'empty' };
+  const lines = t.split(/\r?\n/).map((l) => l.trim()).filter((l) => l);
+  if (lines.length > 1) return { state: 'err', msg: 'Paste one key at a time.' };
+  const m = /^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(?:256|384|521))\s+([A-Za-z0-9+\/]{20,}={0,2})(?:\s+(.*))?$/.exec(lines[0]);
+  if (!m) {
+    // A line that could still become a key (an algorithm name being typed, or a short key body) is not an error yet.
+    const tk = lines[0].split(/s+/);
+    const partial = tk.length === 1 || (tk.length === 2 && /^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(?:256|384|521))$/.test(tk[0]) && /^[A-Za-z0-9+/]{0,19}$/.test(tk[1]));
+    return { state: 'err', partial, msg: 'This does not look like a public key.' };
+  }
+  const fp = fpOf(m[2]);
+  if (keys.some((k) => k.fp === fp)) return { state: 'err', msg: 'This key is already on the list.' };
+  return { state: 'ok', type: keyType(m[1], m[2]), comment: (m[3] || '').trim(), fp };
+}
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.reset('after'); }
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  // Moves keyboard focus after the next paint, so opening or closing a remove question never drops it.
+  focus(id) { try { setTimeout(() => { try { const el = document.querySelector(id.charAt(0) === '#' ? id : '[data-f="' + id + '"]'); if (el) el.focus(); } catch (e) {} }, 40); } catch (e) {} }
+  later(fn, ms) { try { setTimeout(() => { fn(); this.bump(); }, ms); } catch (e) { fn(); } }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  reset(s) {
+    this.keys = s === 'off' ? [] : [
+      { name: 'laptop', type: 'ED25519', fp: KNOWN[BLOB_LAPTOP], added: '21 Nov' },
+      { name: 'assistant@workshop-pc', type: 'ED25519', fp: KNOWN[BLOB_ASSIST], added: '25 Nov' }
+    ];
+    this.draft = ''; this.priv = s === 'private-key'; this.added = ''; this.ask = null;
+    this.checked = false; this.copied = false; this.port = 'ok'; this.portAt = '13:42';
+  }
+  setDraft(value, checked) {
+    this.added = '';
+    if (checked || !value.trim()) this.checked = !!checked;
+    if (/PRIVATE KEY/i.test(value)) { this.draft = ''; this.priv = true; }
+    else { this.draft = value; if (value.trim()) this.priv = false; }
+    this.bump();
+  }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const keys = this.keys, on = keys.length > 0;
+    const a = analyse(this.draft, keys);
+    const ok = a.state === 'ok';
+    // The format message waits for blur, Add key, or a line that can no longer become a key.
+    const err = a.state === 'err' && (!a.partial || this.checked);
+    const pvName = ok ? (a.comment || 'Key without a comment') : '';
+    return Object.assign(v, {
+      statLead: on ? 'lead g' : 'lead', statTitle: on ? 'SSH is on' : 'SSH is off',
+      statSub: on ? (keys.length === 1 ? 'One key can sign in.' : keys.length + ' keys can sign in.') : 'It turns on when you add the first key.',
+      statTag: on ? 'tag g' : 'tag', statDot: on ? 'dot g' : 'dot', statWord: on ? 'On' : 'Off',
+      cmdHead: on ? 'Connect from a computer on your home network' : 'Once a key is on the list, connect with',
+      copied: this.copied, notCopied: !this.copied, copyCls: this.copied ? 'ib done' : 'ib', copyLabel: this.copied ? 'Copied' : 'Copy the command',
+      copy: () => {
+        try { if (typeof navigator !== 'undefined' && navigator.clipboard) navigator.clipboard.writeText('ssh root@homeassistant.local -p 22222').catch(() => {}); } catch (e) {}
+        this.copied = true; this.bump(); this.later(() => { this.copied = false; }, 2000);
+      },
+      keyCount: String(keys.length),
+      isDocker: s === 'docker', portOk: this.port === 'ok', portBusy: this.port !== 'ok',
+      portText: this.port === 'ok' ? 'Checked at ' + this.portAt : 'Trying to reach the port',
+      portBtnCls: this.port === 'ok' ? 'btn text' : 'btn text off', portBtnOff: this.port === 'ok' ? 'false' : 'true',
+      portCheck: () => { if (this.port !== 'ok') return; this.port = 'busy'; this.bump(); this.later(() => { this.port = 'ok'; this.portAt = '13:43'; }, 900); },
+      hasKeys: on, noKeys: !on,
+      keys: keys.map((k, i) => ({
+        rmId: 'rm-' + i, cancelId: 'cancel-' + i,
+        name: k.name, type: k.type, fp: k.fp, added: 'Added ' + k.added, isNew: this.added === k.fp,
+        rmLabel: 'Remove key ' + k.name, plain: this.ask !== k.fp, confirming: this.ask === k.fp, last: keys.length === 1,
+        ask: () => { this.ask = k.fp; this.bump(); this.focus('cancel-' + i); }, cancel: () => { this.ask = null; this.bump(); this.focus('rm-' + i); },
+        remove: () => { this.keys = this.keys.filter((x) => x.fp !== k.fp); this.ask = null; this.added = ''; this.bump(); this.focus('#ssh-keys-h'); }
+      })),
+      addCard: on ? 'card' : 'card first',
+      justAdded: !!this.added && !this.draft,
+      draft: this.draft, setDraft: (e) => this.setDraft(e && e.target ? e.target.value : ''),
+      blurDraft: () => { if (this.draft.trim() && !this.checked) { this.checked = true; this.bump(); } },
+      taCls: this.priv || err ? 'ta bad' : 'ta', taInvalid: this.priv || err ? 'true' : 'false',
+      isPriv: this.priv, hasErr: err, errText: a.msg || '',
+      hasPv: ok, pvName, pvType: ok ? a.type : '', pvFp: ok ? a.fp : '',
+      addHint: ok ? (on ? 'Check the fingerprint matches the one on your computer.' : 'Adding this key turns SSH on.') : 'The key is checked as you type.',
+      addCls: ok ? 'btn fill' : 'btn off', addOff: ok ? 'false' : 'true',
+      addKey: () => {
+        const r = analyse(this.draft, this.keys);
+        if (r.state !== 'ok') { if (this.draft.trim() && !this.checked) { this.checked = true; this.bump(); } return; }
+        this.keys = this.keys.concat([{ name: r.comment || 'Key without a comment', type: r.type, fp: r.fp, added: TODAY }]);
+        this.added = r.fp; this.draft = ''; this.priv = false; this.checked = false; this.bump();
+      },
+      samples: [['A new key', SAMPLE_NEW], ['An ECDSA key', SAMPLE_ECDSA], ['A key already listed', SAMPLE_DUP], ['A private key', SAMPLE_PRIV], ['Two keys', SAMPLE_TWO], ['Not a key', 'hello world']]
+        .map((x) => ({ name: x[0], use: () => this.setDraft(x[1], true) })),
+      allPlain: this.ask !== 'all', allConfirm: this.ask === 'all',
+      allAsk: () => { this.ask = 'all'; this.bump(); this.focus('all-cancel'); }, allCancel: () => { this.ask = null; this.bump(); this.focus('all-rm'); },
+      allRemove: () => { this.keys = []; this.ask = null; this.added = ''; this.bump(); this.focus('#ssh-keys-h'); }
+    });
+  }
+}
+</script>
+</body>
+</html>

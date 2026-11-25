@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Adding the cards, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--on-err:#FFFFFF;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 45%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--on-err:#690005;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 h3,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.ic.xs{width:16px;height:16px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:22px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn{padding:0 24px}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.danger{background:var(--errc);color:var(--on-errc)}
+.m3 .btn.dfill{background:var(--err);color:var(--on-err)}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.m3 .btn.sm{padding:0 18px}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.lead.p{background:var(--pc);color:var(--on-pc)}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:20px;padding:1px 8px;border-radius:10px;background:var(--pc);color:var(--on-pc);font-size:11px;line-height:16px;font-weight:600;flex:none}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px;flex:none}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.in{animation:rise .25s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .25s cubic-bezier(.2,0,0,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes ring{0%{transform:scale(1);opacity:.7}70%,100%{transform:scale(2.6);opacity:0}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+@keyframes glow{0%,100%{opacity:1}50%{opacity:.45}}
+.still *,.still *::before,.still *::after{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *,.m3 *::before,.m3 *::after{animation:none!important;transition:none!important}}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surf)}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none;position:relative;z-index:5;background:var(--surf)}
+.bar h1{font-size:20px;line-height:26px;font-weight:500}
+.c1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.stagebox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:28px 20px;color:var(--onv);flex:none}
+.stagebox .big{width:64px;height:64px;border-radius:32px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:0 0 0 16px;min-height:48px;display:flex;align-items:center;gap:4px;box-shadow:var(--e3);font-size:13px;line-height:18px}
+.toast.hi{bottom:88px}
+.toast .msg{flex:1;min-width:0;padding:8px 0;overflow-wrap:anywhere}
+.m3 .toast .ib{color:inherit}
+.m3 .toast .ib:hover{background:transparent}
+.rxb{width:48px;height:48px;display:grid;place-items:center;flex:none;color:var(--onv);border-radius:24px}
+.rxb > span{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;transition:background-color .2s}
+.rxb:hover > span{background:var(--sl4)}
+.m3 .rxb.on > span{background:var(--sc);color:var(--on-sc)}
+.qrow{display:flex;flex-direction:column;gap:6px;padding:0 12px 8px;flex:none;position:relative;z-index:5;background:var(--surf)}
+.qrow .sub{padding:0 16px}
+.qrow .serr{padding:0 16px;color:var(--err);font-size:13px;line-height:18px}
+.sfield{display:flex;align-items:center;gap:0;min-height:56px;padding:0 4px 0 16px;border-radius:28px;background:var(--sl2);color:var(--onv);min-width:0}
+.sfield > .ic{margin-right:8px}
+.sfield input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px;color:var(--on)}
+.sfield input::-webkit-search-cancel-button{display:none}
+.wbscrim{position:absolute;inset:0;background:var(--scrim);z-index:29}
+.wb{background:var(--sl1);color:var(--on);box-shadow:var(--e3);display:flex;flex-direction:column;gap:12px;padding:16px;z-index:30;overflow-y:auto;text-align:left}
+.wb.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;border-radius:28px 28px 0 0;padding:12px 16px 20px}
+.wbhead{display:flex;align-items:center;gap:8px;color:var(--onv);flex:none}
+.wbhead .tm{flex:1;min-width:0;color:var(--on)}
+.wbfield{display:flex;align-items:center;gap:4px;min-height:56px;padding:0 16px;border-radius:16px;background:var(--sl3);box-shadow:inset 0 -2px 0 var(--out);flex:none}
+.wbfield.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.wbfield input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:15px;min-height:48px;color:var(--on);font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.wbfield .sl{color:var(--onv);font-size:16px}
+.wberr{color:var(--err);font-size:13px;line-height:18px;margin:-6px 4px 0;flex:none}
+.wbflags{display:flex;flex-wrap:wrap;gap:12px 8px;flex:none}
+.wbbox{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:16px;background:var(--sl2);flex:none}
+.wbx{display:flex;gap:10px;align-items:baseline;font-size:13px;line-height:18px;color:var(--onv)}
+.wbx .tok{flex:none;min-width:36px;max-width:45%;padding:1px 6px;border-radius:6px;background:var(--pc);color:var(--on-pc);text-align:center;overflow-wrap:anywhere}
+.wbrow{font-size:14px;line-height:20px;white-space:pre-wrap;overflow-wrap:anywhere}
+.wbrow .hit{background:var(--amberc);color:var(--amber);border-radius:4px;font-weight:600}
+.wbact{display:flex;align-items:center;gap:4px;flex-wrap:wrap;flex:none}
+.m3 .sw{width:52px;height:32px;border-radius:16px;background:var(--sl4);box-shadow:inset 0 0 0 2px var(--out);position:relative;flex:none;transition:background-color .2s;display:block}
+.sw i{position:absolute;top:8px;left:8px;width:16px;height:16px;border-radius:12px;background:var(--out);transition:all .2s cubic-bezier(.2,0,0,1)}
+.m3 .sw.on{background:var(--p);box-shadow:none}
+.sw.on i{left:24px;top:4px;width:24px;height:24px;background:var(--on-p)}
+
+/* dialog body and the list of cards */
+.pg{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:2px 12px 0}
+.it{flex:none;display:flex;flex-direction:column;gap:10px;min-width:0}
+.it.pick{background:var(--sl0);border-radius:24px;padding:12px}
+.it.prev{position:sticky;top:0;z-index:3;background:var(--surf);margin:0 -12px;padding:0 12px 8px;box-shadow:0 1px 0 var(--outv);gap:6px}
+.it.prev .well{max-height:292px;overflow:hidden;border-radius:24px}
+.it.prev.open{position:static}
+.it.prev.open .well{max-height:none;overflow:visible}
+.pick .well{pointer-events:none}
+.m3 .pvmore{display:inline-flex;align-items:center;gap:4px;min-height:48px;padding:0 4px 0 12px;border-radius:24px;color:var(--p);font-size:13px;font-weight:600;white-space:nowrap;flex:none}
+.pvmore .ic{transition:transform .22s ease}
+.pvmore .ic.open{transform:rotate(180deg)}
+.ihead{display:flex;align-items:center;gap:12px;min-width:0}
+.well{border-radius:20px;background:var(--surf);padding:8px;min-width:0}
+.prev .well{padding:0;background:none}
+.plabel{display:flex;align-items:center;gap:8px;padding:0 0 0 4px;min-height:48px}
+.row{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 4px 8px 12px;border-radius:16px;background:var(--sl0);flex:none}
+.row .tm{font-size:15px;line-height:20px}
+.shead{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv);padding:8px 4px 0;flex:none}
+
+/* 3D printer status card: the markup, classes and styles of the status card board */
+.card{background:var(--sl0);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:14px;flex:none;min-width:0;position:relative}
+.pva{display:block;height:0;flex:none}
+.card > .pva{margin-bottom:-14px}
+.sc.pcard.off{--p:var(--out)}
+.sc.pcard.off .nm,.sc.pcard.off .tval .n,.sc.pcard.off .quiet .qt{color:var(--onv)}
+.sc.pcard.off .tgrid,.sc.pcard.off .lead{opacity:.62}
+.m3 .sc .phead{display:flex;align-items:center;gap:12px;min-height:48px;width:100%;border-radius:12px}
+.sc .phead .nm{font-size:16px;line-height:22px;font-weight:500}
+.sc .phead .chev{color:var(--onv)}
+.sc .odot{width:8px;height:8px;border-radius:4px;background:var(--green);flex:none}
+.sc .odot.no{background:transparent;box-shadow:inset 0 0 0 2px var(--out)}
+.sc .srow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sc .stg{display:inline-flex;align-items:center;gap:8px;min-height:28px;padding:4px 12px 4px 10px;border-radius:14px;font-size:13px;line-height:18px;font-weight:600;background:var(--sl3);color:var(--onv);min-width:0}
+.sc .stg.p{background:var(--pc);color:var(--on-pc)}
+.sc .stg.a{background:var(--amberc);color:var(--amber)}
+.sc .stg.e{background:var(--errc);color:var(--on-errc)}
+.sc .stg.g{background:var(--greenc);color:var(--green)}
+.sc .stg .d{width:8px;height:8px;border-radius:4px;background:currentColor;flex:none;position:relative}
+.sc .stg .d.pulse::after{content:"";position:absolute;inset:0;border-radius:4px;background:currentColor;animation:ring 2.4s ease-out infinite}
+.sc .pst{margin-left:auto;font-size:13px;line-height:18px;color:var(--onv);white-space:nowrap}
+.sc .job{display:flex;align-items:center;gap:12px;min-width:0}
+.sc .thumb{width:48px;height:48px;border-radius:12px;flex:none;display:grid;place-items:center;color:var(--p);background:linear-gradient(145deg,var(--sl4),var(--sl2));box-shadow:inset 0 0 0 1px var(--outv)}
+.sc .thumb svg{width:30px;height:30px;fill:currentColor}
+.sc .job .jn{font-size:16px;line-height:22px;font-weight:500}
+.sc .prow{display:flex;align-items:flex-end;gap:12px}
+.sc .pnum{font-size:44px;line-height:44px;font-weight:600;letter-spacing:-1px;color:var(--on);font-variant-numeric:tabular-nums}
+.sc .pu{font-size:20px;line-height:28px;font-weight:600;color:var(--onv);margin-left:2px}
+.sc .ptime{margin-left:auto;text-align:right;display:flex;flex-direction:column;min-width:0}
+.sc .ptime .t1{font-size:16px;line-height:22px;font-weight:500}
+.sc .lbar{display:flex;align-items:flex-end;gap:3px;height:36px}
+.sc .tk{flex:1;min-width:0;height:24px;border-radius:2px;background:var(--sl4);transition:height .25s ease,background-color .25s ease}
+.sc .tk.on{background:var(--p)}
+.sc .tk.cur{height:36px;background:var(--on);animation:glow 2.4s ease-in-out infinite}
+.sc .lbar.hold .tk.cur{animation:none;background:var(--err)}
+.sc .ltxt{display:flex;flex-wrap:wrap;gap:0 6px;font-size:14px;line-height:20px}
+.sc .ltxt b{font-weight:500}
+.sc .okline{display:flex;align-items:center;gap:8px;color:var(--onv);font-size:13px;line-height:18px;min-height:24px}
+.sc .okline .ic{color:var(--green)}
+.sc .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sc .tile{background:var(--sl2);border-radius:16px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.sc .tile.act{box-shadow:inset 0 0 0 1.5px var(--p)}
+.sc .tile .tlab{display:flex;align-items:center;gap:6px;min-height:20px;font-size:12px;line-height:16px;font-weight:600;letter-spacing:.3px;color:var(--onv)}
+.sc .atag{margin-left:auto;padding:1px 8px;border-radius:10px;background:var(--pc);color:var(--on-pc);font-size:11px;line-height:16px;font-weight:700;letter-spacing:0}
+.sc .tval{display:flex;align-items:center;gap:6px}
+.sc .tval .n{font-size:22px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums}
+.sc .tmk{margin-left:auto;width:24px;height:24px;border-radius:12px;display:grid;place-items:center;background:var(--sl4);color:var(--onv)}
+.sc .tmk.h{background:var(--amberc);color:var(--amber)}
+.sc .tmk.c{background:var(--sc);color:var(--on-sc)}
+.sc .tmk.g{background:var(--greenc);color:var(--green)}
+.sc .tbar{height:3px;border-radius:2px;background:var(--sl4);overflow:hidden;margin-top:6px}
+.sc .tbar span{display:block;height:100%;border-radius:2px;background:var(--p);transition:width .25s ease}
+.sc .quiet{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2)}
+.sc .quiet .qt{font-size:15px;line-height:20px;font-weight:500}
+
+/* 3D printer controls card: the markup, classes and styles of the control card board */
+.cc.pcard{background:var(--sl0);border-radius:24px;padding:14px 16px 8px;display:flex;flex-direction:column;flex:none;min-width:0}
+.cc .phead{display:flex;align-items:center;gap:12px;padding-bottom:12px}
+.cc .pico{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--pc);color:var(--on-pc);flex:none;position:relative}
+.cc .pico .dot{position:absolute;right:-2px;bottom:-2px;width:12px;height:12px;border-radius:6px;background:var(--green);box-shadow:0 0 0 2px var(--sl0)}
+.cc .pico.gone{background:var(--sl3);color:var(--out)}
+.cc .pico.gone .dot{background:var(--out)}
+.cc .stg{display:inline-flex;align-items:center;gap:8px;min-height:28px;padding:2px 12px 2px 10px;border-radius:14px;font-size:12px;line-height:16px;font-weight:600;flex:none;max-width:150px}
+.cc .stg i{width:8px;height:8px;border-radius:4px;background:currentColor;flex:none}
+.cc .stg.run{background:var(--pc);color:var(--on-pc)}
+.cc .stg.run i{background:var(--p);animation:pulse 1.8s ease-in-out infinite}
+.cc .stg.pause{background:var(--amberc);color:var(--amber)}
+.cc .stg.idle{background:var(--sl3);color:var(--onv)}
+.cc .stg.gone{box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv)}
+.cc.pcard .note{margin-bottom:8px}
+.cc .grp{display:flex;flex-direction:column;box-shadow:0 -1px 0 var(--outv)}
+.m3 .cc .ghead{display:flex;align-items:center;gap:10px;min-height:48px;width:100%;color:var(--onv);border-radius:12px}
+.cc .ghead .gl{font-size:13px;line-height:18px;font-weight:600;letter-spacing:.2px;color:var(--on);flex:none}
+.cc .ghead .gs{flex:1;min-width:0;text-align:right;font-size:12px;line-height:16px;color:var(--onv)}
+.cc .chev{transition:transform .22s ease}
+.cc .chev.open{transform:rotate(180deg)}
+.cc .gbody{display:flex;flex-direction:column;gap:8px;padding:0 0 14px}
+.cc .prow{display:flex;gap:8px}
+.cc .prow .btn{flex:1;min-width:0;padding:0 12px}
+.cc .why{display:flex;align-items:center;gap:8px;font-size:13px;line-height:18px;color:var(--onv)}
+.cc .seg{display:flex;border-radius:24px;box-shadow:inset 0 0 0 1px var(--out);overflow:hidden}
+.m3 .cc .seg button{flex:1;min-width:0;min-height:48px;display:grid;place-items:center;font-size:13px;font-weight:600;color:var(--on);box-shadow:inset -1px 0 0 var(--out);transition:background-color .2s}
+.m3 .cc .seg button:last-child{box-shadow:none}
+.m3 .cc .seg button.sel{background:var(--p);color:var(--on-p)}
+.cc .seg.off{box-shadow:inset 0 0 0 1px var(--outv)}
+.m3 .cc .seg.off button{color:var(--out);box-shadow:inset -1px 0 0 var(--outv);cursor:not-allowed}
+.m3 .cc .seg.off button:last-child{box-shadow:none}
+.m3 .cc .seg.off button.sel{background:var(--sl3);color:var(--onv)}
+.cc .trow{display:flex;align-items:center;gap:12px;min-height:52px}
+.cc .tnm{font-size:15px;line-height:20px;display:flex;align-items:center;gap:8px;min-width:0}
+.cc .tnow{display:flex;align-items:center;gap:4px}
+.cc .mk.heat{color:var(--amber)}
+.cc .mk.cool{color:var(--p)}
+.cc .mk.hold{color:var(--green)}
+.cc .stp{display:flex;align-items:center;background:var(--sl2);border-radius:24px;flex:none}
+.m3 .cc .sb{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--p);transition:background-color .2s}
+.m3 .cc .sb:hover{background:var(--sl3)}
+.m3 .cc .sb.off{color:var(--out);cursor:not-allowed}
+.m3 .cc .sb.off:hover{background:none}
+.cc .sv{min-width:62px;text-align:center;font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.cc .sv.off{color:var(--onv);font-weight:500}
+.cc .frow{display:flex;flex-direction:column;padding-top:6px}
+.cc .fnm{display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-width:0}
+.cc .fnm .tnm{display:block}
+.cc .fnm .sub{font-variant-numeric:tabular-nums;flex:none}
+.cc .fct{display:flex;align-items:center;gap:10px}
+.m3 .cc .swb{width:56px;height:48px;display:grid;place-items:center;flex:none;border-radius:16px}
+.cc .rng{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:48px;margin:0;background:transparent;cursor:pointer;--rp:var(--p)}
+.cc .rng:disabled{--rp:var(--out);cursor:not-allowed}
+.cc .rng::-webkit-slider-runnable-track{height:14px;border-radius:7px;background:linear-gradient(to right,transparent var(--v),var(--sl4) var(--v)),repeating-linear-gradient(90deg,var(--rp) 0 3px,color-mix(in srgb,var(--rp) 50%,transparent) 3px 5px)}
+.cc .rng::-moz-range-track{height:14px;border-radius:7px;background:linear-gradient(to right,transparent var(--v),var(--sl4) var(--v)),repeating-linear-gradient(90deg,var(--rp) 0 3px,color-mix(in srgb,var(--rp) 50%,transparent) 3px 5px)}
+.cc .rng::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:6px;height:30px;margin-top:-8px;border-radius:3px;background:var(--rp);box-shadow:0 0 0 4px var(--sl0)}
+.cc .rng::-moz-range-thumb{width:6px;height:30px;border:0;border-radius:3px;background:var(--rp);box-shadow:0 0 0 4px var(--sl0)}
+.cc .tiles{display:flex;gap:8px}
+.m3 .cc .lt{flex:1;min-width:0;min-height:64px;border-radius:18px;padding:8px 14px;display:flex;align-items:center;gap:12px;background:var(--sl2);color:var(--onv);transition:background-color .2s,color .2s}
+.cc .lt .tnm{color:var(--on);display:block}
+.m3 .cc .lt.on{background:var(--pc);color:var(--on-pc)}
+.cc .lt.on .tnm,.cc .lt.on .sub{color:inherit}
+.m3 .cc .lt.off{cursor:not-allowed}
+.cc .lt.off .tnm{color:var(--onv)}
+.m3 .cc .swrow{display:flex;align-items:center;gap:12px;min-height:48px;width:100%;border-radius:12px;font-size:15px;color:var(--on)}
+.cc .swrow .ic{color:var(--onv)}
+.m3 .cc .swrow.off{cursor:not-allowed;color:var(--onv)}
+.cc .mrow{display:flex;align-items:center;gap:12px;min-height:48px}
+.cc .mrow .seg{flex:none;width:188px}
+.cc .acts{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px}
+.cc .acts .btn{flex:1 1 140px;min-width:0;padding:0 12px}
+
+/* card editor rows */
+.gh{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.m3 .orow{display:flex;align-items:center;gap:12px;min-height:48px;width:100%;min-width:0;border-radius:12px}
+.m3 .orow.dis{cursor:not-allowed}
+.orow.dis .sw{opacity:.45}
+.orow.dis .nm{color:var(--out)}
+.orow .nm{font-size:15px;line-height:20px}
+.empty{display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;box-shadow:inset 0 0 0 1px var(--outv);background:var(--sl0);color:var(--onv);font-size:13px;line-height:18px}
+
+/* card editor */
+.sec{background:var(--sl0);border-radius:20px;padding:12px 12px 8px;display:flex;flex-direction:column;gap:2px;flex:none;min-width:0}
+.sec .gh{padding:0 4px 4px}
+.m3 .rrow{display:flex;align-items:center;gap:12px;min-height:60px;width:100%;min-width:0;border-radius:16px;padding:6px 4px;transition:background-color .2s}
+.m3 .rrow.on{background:var(--sl2)}
+.rad{width:20px;height:20px;border-radius:10px;box-shadow:inset 0 0 0 2px var(--out);display:grid;place-items:center;flex:none;margin:0 10px}
+.rad::after{content:"";width:10px;height:10px;border-radius:5px;background:var(--p);opacity:0;transition:opacity .2s}
+.rad.on{box-shadow:inset 0 0 0 2px var(--p)}
+.rad.on::after{opacity:1}
+.ebar{flex:none;display:flex;align-items:center;gap:8px;padding:10px 12px 14px;background:var(--surf);box-shadow:0 -1px 0 var(--outv);position:relative;z-index:5}
+.ebar .sub{flex:1;min-width:0;padding-left:4px}
+.m3 .lnk{display:inline-flex;align-items:center;gap:6px;min-height:48px;color:var(--p);font-weight:600;font-size:14px;text-decoration:underline;align-self:flex-start}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph" role="dialog" aria-modal="true" aria-label="{{barTitle}}">
+<div class="bar">
+<button class="ib" aria-label="{{barLabel}}" onClick="{{ barGo }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{barIcon}}"></path></svg></button>
+<span class="grow"><h1 class="c1">{{barTitle}}</h1><span class="sub c1">{{barSub}}</span></span>
+</div>
+<sc-if value="{{isPicker}}" hint-placeholder-val="{{ true }}">
+<div class="qrow" role="search">
+<div class="sfield"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg><input type="search" value="{{aQ}}" onInput="{{ aSet }}" placeholder="Search cards" aria-label="Search cards" spellcheck="false" autocomplete="off"/><sc-if value="{{hasQ}}" hint-placeholder-val="{{ true }}"><button class="ib" aria-label="Clear the search" onClick="{{ sClear }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></sc-if><button class="{{aRxCls}}" data-rx="a" aria-label="Build a pattern search for: Search cards" title="Pattern workbench" aria-haspopup="dialog" aria-pressed="{{aRxOn}}" onClick="{{ aRxOpen }}"><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg></span></button></div>
+<sc-if value="{{badTyped}}" hint-placeholder-val="{{ false }}"><span class="serr" role="alert">{{badTypedText}}</span></sc-if>
+<span class="sub" role="status">{{countText}}</span>
+</div>
+</sc-if>
+<div class="pg" tabindex="0" role="region" aria-label="{{pgLabel}}">
+
+<sc-if value="{{showSt}}" hint-placeholder-val="{{ true }}">
+<section class="{{itCls}}" aria-label="{{stAria}}">
+<sc-if value="{{isPicker}}" hint-placeholder-val="{{ true }}">
+<div class="ihead"><span class="lead p"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6A1,1 0 0,0 20,5A1,1 0 0,0 19,4A1,1 0 0,0 18,5A1,1 0 0,0 19,6M19,2A3,3 0 0,1 22,5V11H18V7H6V11H2V5A3,3 0 0,1 5,2H19M18,18.25C18,18.63 17.79,18.96 17.47,19.13L12.57,21.82C12.4,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L6.53,19.13C6.21,18.96 6,18.63 6,18.25V13C6,12.62 6.21,12.29 6.53,12.12L11.43,9.68C11.59,9.56 11.79,9.5 12,9.5C12.21,9.5 12.4,9.56 12.57,9.68L17.47,12.12C17.79,12.29 18,12.62 18,13V18.25M12,11.65L9.04,13L12,14.6L14.96,13L12,11.65M8,17.66L11,19.29V16.33L8,14.71V17.66M16,17.66V14.71L13,16.33V19.29L16,17.66Z"></path></svg></span><span class="grow"><h2 class="tm">3D printer status</h2><span class="sub">Progress, layers and time left, the stage, problems and temperatures.</span></span><button class="btn tonal sm" aria-label="Add the 3D printer status card" onClick="{{ addSt }}">Add</button></div>
+</sc-if>
+<sc-if value="{{isEditor}}" hint-placeholder-val="{{ false }}"><div class="plabel"><span class="grow"><span class="lm">Preview</span><span class="sub">Updates as you change the settings</span></span><button class="pvmore" aria-expanded="{{pvAria}}" aria-controls="pv-st" aria-label="{{pvMoreLabel}}" onClick="{{ pvFlip }}">{{pvMoreText}}<svg class="{{pvChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></div></sc-if>
+<div class="well" id="pv-st" data-pvbox="1" aria-hidden="{{pvHidden}}">
+<sc-if value="{{hasPrinter}}" hint-placeholder-val="{{ true }}">
+<div class="card pcard sc">
+<button class="phead" tabindex="{{pvTab}}" aria-label="{{st.openLabel}}" onClick="{{ pvOnly }}"><span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,2H17V8H19V13H16.5L13,17H11L7.5,13H5V8H7V2M10,22H2V20H10A1,1 0 0,0 11,19V18H13V19A3,3 0 0,1 10,22Z"></path></svg></span><span class="grow"><span class="nm c1">{{st.name}}</span><span class="sub hrow" style="gap: 6px"><span class="{{st.dotCls}}"></span><span class="c1">{{st.lineText}}</span></span></span><svg class="ic chev" aria-hidden="true" viewBox="0 0 24 24"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg></button>
+<div class="srow"><span class="{{st.stageCls}}"><span class="{{st.stageDot}}"></span><span>{{st.stageText}}</span></span><sc-if value="{{st.showStatus}}" hint-placeholder-val="{{ true }}"><span class="pst">{{st.statusText}}</span></sc-if></div>
+<span class="pva" data-pv="image"></span>
+<sc-if value="{{st.showJob}}" hint-placeholder-val="{{ true }}">
+<div class="job"><sc-if value="{{st.showImage}}" hint-placeholder-val="{{ true }}"><span class="thumb" role="img" aria-label="{{st.thumbLabel}}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="{{st.jobIcon}}"></path></svg></span></sc-if><span class="grow"><span class="jn c1">{{st.jobName}}</span><span class="sub">Print job</span></span></div>
+</sc-if>
+<sc-if value="{{st.showProgress}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div class="prow"><span><span class="pnum">{{st.pct}}</span><span class="pu">%</span></span><span class="ptime"><span class="t1">{{st.timeMain}}</span><span class="sub">{{st.timeSub}}</span></span></div>
+<div class="{{st.lbarCls}}" role="progressbar" aria-label="Print progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{st.pct}}"><sc-for list="{{ticks}}" as="tk" hint-placeholder-count="40"><span class="{{tk.cls}}"></span></sc-for></div>
+<div class="ltxt"><b>{{st.layerMain}}</b><span class="sub" style="line-height: 20px">{{st.layerSub}}</span></div>
+</div>
+</sc-if>
+<sc-if value="{{st.showQuiet}}" hint-placeholder-val="{{ false }}">
+<div class="quiet"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" style="color: var(--onv)"><path d="{{st.quietIcon}}"></path></svg><span class="grow"><span class="qt">{{st.quietTitle}}</span><span class="sub">{{st.quietSub}}</span></span></div>
+</sc-if>
+<span class="pva" data-pv="problems"></span>
+<sc-if value="{{st.showOk}}" hint-placeholder-val="{{ true }}">
+<div class="okline"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M10,17L18,9L16.59,7.58L10,14.17L7.41,11.59L6,13L10,17Z"></path></svg><span>No problems</span></div>
+</sc-if>
+<span class="pva" data-pv="chamber"></span>
+<div class="tgrid" role="group" aria-label="Temperatures">
+<sc-for list="{{tiles}}" as="tt" hint-placeholder-count="4"><div class="{{tt.cls}}"><span class="tlab"><span class="c1">{{tt.label}}</span><sc-if value="{{tt.active}}" hint-placeholder-val="{{ false }}"><span class="atag">Active</span></sc-if></span><span class="tval"><span class="n">{{tt.value}}</span><span class="{{tt.markCls}}"><svg class="ic xs" aria-hidden="true" viewBox="0 0 24 24"><path d="{{tt.icon}}"></path></svg></span></span><span class="sub c1">{{tt.sub}}</span><span class="tbar" aria-hidden="true"><span style="{{tt.bar}}"></span></span></div></sc-for>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{noPrinter}}" hint-placeholder-val="{{ false }}"><div class="empty"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg><span>The preview appears once a 3D printer has been added.</span></div></sc-if>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{showCt}}" hint-placeholder-val="{{ true }}">
+<section class="{{itCls}}" aria-label="{{ctAria}}">
+<sc-if value="{{isPicker}}" hint-placeholder-val="{{ true }}">
+<div class="ihead"><span class="lead p"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,17V19H9V17H3M3,5V7H13V5H3M13,21V19H21V17H13V15H11V21H13M7,9V11H3V13H7V15H9V9H7M21,13V11H11V13H21M15,9H17V7H21V5H17V3H15V9Z"></path></svg></span><span class="grow"><h2 class="tm">3D printer controls</h2><span class="sub">Pause and stop, speed, temperatures, fans, lights and more.</span></span><button class="btn tonal sm" aria-label="Add the 3D printer controls card" onClick="{{ addCt }}">Add</button></div>
+</sc-if>
+<sc-if value="{{isEditor}}" hint-placeholder-val="{{ false }}"><div class="plabel"><span class="grow"><span class="lm">Preview</span><span class="sub">Nothing here reaches the printer</span></span><button class="pvmore" aria-expanded="{{pvAria}}" aria-controls="pv-ct" aria-label="{{pvMoreLabel}}" onClick="{{ pvFlip }}">{{pvMoreText}}<svg class="{{pvChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></div></sc-if>
+<div class="well" id="pv-ct" data-pvbox="1" aria-hidden="{{pvHidden}}">
+<sc-if value="{{hasPrinter}}" hint-placeholder-val="{{ true }}">
+<div class="pcard cc">
+<div class="phead">
+<span class="pico"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,2H17V8H19V13H16.5L13,17H11L7.5,13H5V8H7V2M10,22H2V20H10A1,1 0 0,0 11,19V18H13V19A3,3 0 0,1 10,22Z"></path></svg><span class="dot" role="img" aria-label="Online"></span></span>
+<div class="grow"><h2 class="tm c1">{{ct.name}}</h2><span class="sub c1">{{ct.headSub}}</span></div>
+<span class="{{ct.stgCls}}" role="status"><i aria-hidden="true"></i><span class="c1">{{ct.stageText}}</span></span>
+</div>
+<span class="pva" data-pv="print"></span>
+<sc-if value="{{cgPrint}}" hint-placeholder-val="{{ true }}">
+<div class="grp"><h3><button tabindex="{{pvTab}}" class="ghead" aria-expanded="{{printAria}}" aria-controls="g-print" onClick="{{ printFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M8,5.14V19.14L19,12.14L8,5.14Z"></path></svg><span class="gl">Print</span><span class="gs c1">{{printSum}}</span><svg class="{{printChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></h3>
+<sc-if value="{{printOpen}}" hint-placeholder-val="{{ true }}">
+<div class="gbody in" id="g-print">
+<div class="prow">
+<sc-if value="{{showPause}}" hint-placeholder-val="{{ true }}"><button tabindex="{{pvTab}}" class="{{pauseCls}}" aria-disabled="{{printOffAria}}" onClick="{{ pause }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M14,19H18V5H14M6,19H10V5H6V19Z"></path></svg>Pause</button></sc-if>
+<sc-if value="{{showResume}}" hint-placeholder-val="{{ false }}"><button tabindex="{{pvTab}}" class="btn fill" onClick="{{ resume }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M8,5.14V19.14L19,12.14L8,5.14Z"></path></svg>Resume</button></sc-if>
+<button tabindex="{{pvTab}}" class="{{stopCls}}" data-stop="1" aria-haspopup="dialog" aria-disabled="{{printOffAria}}" onClick="{{ askStop }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M18,18H6V6H18V18Z"></path></svg>Stop</button>
+</div>
+<sc-if value="{{hasPrintWhy}}" hint-placeholder-val="{{ false }}"><p class="why"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg>{{printWhy}}</p></sc-if>
+</div>
+</sc-if>
+</div>
+</sc-if>
+<span class="pva" data-pv="speed"></span>
+<sc-if value="{{cgSpeed}}" hint-placeholder-val="{{ true }}">
+<div class="grp"><h3><button tabindex="{{pvTab}}" class="ghead" aria-expanded="{{speedAria}}" aria-controls="g-speed" onClick="{{ speedFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A3,3 0 0,1 9,13C9,11.88 9.61,10.9 10.5,10.39L20.21,4.77L14.68,14.35C14.18,15.33 13.17,16 12,16M12,3C13.81,3 15.5,3.5 16.97,4.32L14.87,5.53C14,5.19 13,5 12,5A8,8 0 0,0 4,13C4,15.21 4.89,17.21 6.34,18.65H6.35C6.74,19.04 6.74,19.67 6.35,20.06C5.96,20.45 5.32,20.45 4.93,20.07V20.07C3.12,18.26 2,15.76 2,13A10,10 0 0,1 12,3M22,13C22,15.76 20.88,18.26 19.07,20.07V20.07C18.68,20.45 18.05,20.45 17.66,20.06C17.27,19.67 17.27,19.04 17.66,18.65V18.65C19.11,17.2 20,15.21 20,13C20,12 19.81,11 19.46,10.1L20.67,8C21.5,9.5 22,11.18 22,13Z"></path></svg><span class="gl">Speed</span><span class="gs c1">{{speedSum}}</span><svg class="{{speedChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></h3>
+<sc-if value="{{speedOpen}}" hint-placeholder-val="{{ true }}">
+<div class="gbody in" id="g-speed">
+<div class="{{speedSeg}}" role="radiogroup" aria-label="Printing speed">
+<sc-for list="{{speeds}}" as="sp" hint-placeholder-count="4"><button tabindex="{{pvTab}}" class="{{sp.cls}}" role="radio" aria-checked="{{sp.aria}}" aria-disabled="{{sp.off}}" onClick="{{ sp.pick }}">{{sp.name}}</button></sc-for>
+</div>
+<p class="why">{{speedNote}}</p>
+</div>
+</sc-if>
+</div>
+</sc-if>
+<span class="pva" data-pv="temp"></span>
+<sc-if value="{{cgTemp}}" hint-placeholder-val="{{ true }}">
+<div class="grp"><h3><button tabindex="{{pvTab}}" class="ghead" aria-expanded="{{tempAria}}" aria-controls="g-temp" onClick="{{ tempFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M15,13V5A3,3 0 0,0 9,5V13A5,5 0 1,0 15,13M12,4A1,1 0 0,1 13,5V8H11V5A1,1 0 0,1 12,4Z"></path></svg><span class="gl">Temperature</span><span class="gs c1">{{tempSum}}</span><svg class="{{tempChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></h3>
+<sc-if value="{{tempOpen}}" hint-placeholder-val="{{ true }}">
+<div class="gbody in" id="g-temp" style="gap: 4px">
+<sc-for list="{{temps}}" as="t" hint-placeholder-count="4">
+<div class="trow">
+<span class="grow"><span class="tnm"><span class="c1">{{t.name}}</span><sc-if value="{{t.active}}" hint-placeholder-val="{{ false }}"><span class="tag">Active</span></sc-if></span><span class="sub tnow"><sc-if value="{{t.marked}}" hint-placeholder-val="{{ true }}"><svg class="{{t.markCls}}" aria-hidden="true" viewBox="0 0 24 24"><path d="{{t.markPath}}"></path></svg></sc-if><span class="c1">{{t.now}}</span></span></span>
+<div class="stp" role="group" aria-label="{{t.groupLabel}}">
+<button tabindex="{{pvTab}}" class="{{t.downCls}}" aria-label="{{t.downLabel}}" aria-disabled="{{t.downOff}}" onClick="{{ t.down }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H5V11H19V13Z"></path></svg></button>
+<output class="{{t.valCls}}" aria-live="polite">{{t.target}}</output>
+<button tabindex="{{pvTab}}" class="{{t.upCls}}" aria-label="{{t.upLabel}}" aria-disabled="{{t.upOff}}" onClick="{{ t.up }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg></button>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
+<span class="pva" data-pv="fans"></span>
+<sc-if value="{{cgFans}}" hint-placeholder-val="{{ true }}">
+<div class="grp"><h3><button tabindex="{{pvTab}}" class="ghead" aria-expanded="{{fansAria}}" aria-controls="g-fans" onClick="{{ fansFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,11A1,1 0 0,0 11,12A1,1 0 0,0 12,13A1,1 0 0,0 13,12A1,1 0 0,0 12,11M12.5,2C17,2 17.11,5.57 14.75,6.75C13.76,7.24 13.32,8.29 13.13,9.22C13.61,9.42 14.03,9.73 14.35,10.13C18.05,8.13 22.03,8.92 22.03,12.5C22.03,17 18.46,17.1 17.28,14.73C16.78,13.74 15.72,13.3 14.79,13.11C14.59,13.59 14.28,14 13.88,14.34C15.87,18.03 15.08,22 11.5,22C7,22 6.91,18.42 9.27,17.24C10.25,16.75 10.69,15.71 10.89,14.79C10.4,14.59 9.97,14.27 9.65,13.87C5.96,15.85 2,15.07 2,11.5C2,7 5.56,6.89 6.74,9.26C7.24,10.25 8.29,10.68 9.22,10.87C9.41,10.39 9.73,9.97 10.14,9.65C8.15,5.96 8.94,2 12.5,2Z"></path></svg><span class="gl">Fans</span><span class="gs c1">{{fansSum}}</span><svg class="{{fansChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></h3>
+<sc-if value="{{fansOpen}}" hint-placeholder-val="{{ true }}">
+<div class="gbody in" id="g-fans" style="gap: 0">
+<sc-for list="{{fans}}" as="fn" hint-placeholder-count="4">
+<div class="frow">
+<span class="fnm"><span class="tnm c1">{{fn.name}}</span><span class="sub">{{fn.text}}</span></span>
+<div class="fct">
+<input tabindex="{{pvTab}}" class="rng" type="range" min="0" max="100" step="10" value="{{fn.pct}}" style="{{fn.fill}}" aria-label="{{fn.sliderLabel}}" onInput="{{ fn.set }}"/>
+<button tabindex="{{pvTab}}" class="swb" role="switch" aria-checked="{{fn.aria}}" aria-label="{{fn.swLabel}}" aria-disabled="{{fn.off}}" onClick="{{ fn.flip }}"><span class="{{fn.sw}}"><i></i></span></button>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
+<span class="pva" data-pv="lights"></span>
+<sc-if value="{{cgLights}}" hint-placeholder-val="{{ true }}">
+<div class="grp"><h3><button tabindex="{{pvTab}}" class="ghead" aria-expanded="{{lightsAria}}" aria-controls="g-lights" onClick="{{ lightsFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z"></path></svg><span class="gl">Lights</span><span class="gs c1">{{lightsSum}}</span><svg class="{{lightsChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></h3>
+<sc-if value="{{lightsOpen}}" hint-placeholder-val="{{ true }}">
+<div class="gbody in" id="g-lights">
+<div class="tiles">
+<sc-for list="{{lights}}" as="lt" hint-placeholder-count="2"><button tabindex="{{pvTab}}" class="{{lt.cls}}" role="switch" aria-label="{{lt.name}}" aria-checked="{{lt.aria}}" aria-disabled="{{lt.off}}" onClick="{{ lt.flip }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{lt.icon}}"></path></svg><span class="grow"><span class="tnm c1">{{lt.name}}</span><span class="sub">{{lt.text}}</span></span></button></sc-for>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+<span class="pva" data-pv="more"></span>
+<sc-if value="{{cgMore}}" hint-placeholder-val="{{ true }}">
+<div class="grp"><h3><button tabindex="{{pvTab}}" class="ghead" aria-expanded="{{moreAria}}" aria-controls="g-more" onClick="{{ moreFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,17V19H9V17H3M3,5V7H13V5H3M13,21V19H21V17H13V15H11V21H13M7,9V11H3V13H7V15H9V9H7M21,13V11H11V13H21M15,9H17V7H21V5H17V3H15V9Z"></path></svg><span class="gl">More</span><span class="gs c1">{{moreSum}}</span><svg class="{{moreChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></h3>
+<sc-if value="{{moreOpen}}" hint-placeholder-val="{{ true }}">
+<div class="gbody in" id="g-more" style="gap: 4px">
+<sc-if value="{{hasAirduct}}" hint-placeholder-val="{{ true }}">
+<div class="mrow"><span class="grow"><span class="tnm">Airduct mode</span></span>
+<div class="{{airSeg}}" role="radiogroup" aria-label="Airduct mode"><sc-for list="{{airModes}}" as="am" hint-placeholder-count="2"><button tabindex="{{pvTab}}" class="{{am.cls}}" role="radio" aria-checked="{{am.aria}}" aria-disabled="{{am.off}}" onClick="{{ am.pick }}">{{am.name}}</button></sc-for></div>
+</div>
+</sc-if>
+<sc-for list="{{switches}}" as="wx" hint-placeholder-count="2"><button tabindex="{{pvTab}}" class="{{wx.cls}}" role="switch" aria-checked="{{wx.aria}}" aria-disabled="{{wx.off}}" onClick="{{ wx.flip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="{{wx.icon}}"></path></svg><span class="grow">{{wx.name}}</span><span class="{{wx.sw}}"><i></i></span></button></sc-for>
+<div class="acts">
+<sc-if value="{{hasBuzzer}}" hint-placeholder-val="{{ true }}"><button tabindex="{{pvTab}}" class="{{actCls}}" aria-disabled="{{allOffAria}}" onClick="{{ silence }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.84,22.73L18.11,20H3V19L5,17V11C5,9.86 5.29,8.73 5.83,7.72L1.11,3L2.39,1.73L22.11,21.46L20.84,22.73M19,15.8V11C19,7.9 16.97,5.17 14,4.29C14,4.19 14,4.1 14,4A2,2 0 0,0 12,2A2,2 0 0,0 10,4C10,4.1 10,4.19 10,4.29C9.39,4.47 8.8,4.74 8.26,5.09L19,15.8M12,23A2,2 0 0,0 14,21H10A2,2 0 0,0 12,23Z"></path></svg>Silence buzzer</button></sc-if>
+<button tabindex="{{pvTab}}" class="{{actCls}}" aria-disabled="{{allOffAria}}" onClick="{{ refresh }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg>Force refresh</button>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{cgHint}}" hint-placeholder-val="{{ false }}"><p class="why" style="padding: 4px 0 10px">Every group is hidden. Turn one on below.</p></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{noPrinter}}" hint-placeholder-val="{{ false }}"><div class="empty"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg><span>The preview appears once a 3D printer has been added.</span></div></sc-if>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{hasOthers}}" hint-placeholder-val="{{ false }}">
+<span class="shead">Other cards</span>
+<sc-for list="{{others}}" as="oc" hint-placeholder-count="4"><div class="row"><span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{oc.icon}}"></path></svg></span><span class="grow"><span class="tm c1">{{oc.name}}</span><span class="sub">{{oc.desc}}</span></span><button class="ib" aria-label="{{oc.label}}" onClick="{{ oc.add }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg></button></div></sc-for>
+</sc-if>
+<sc-if value="{{noResults}}" hint-placeholder-val="{{ false }}"><div class="stagebox in"><span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></span><p class="sub" style="overflow-wrap: anywhere">{{noResultsText}}</p><button class="btn tonal" onClick="{{ sClear }}">Clear the search</button></div></sc-if>
+
+<sc-if value="{{isEditor}}" hint-placeholder-val="{{ false }}">
+<div class="sec"><span class="gh" id="gh-printer">Printer</span>
+<sc-if value="{{hasPrinter}}" hint-placeholder-val="{{ true }}">
+<div role="radiogroup" aria-labelledby="gh-printer" style="display: flex; flex-direction: column; gap: 2px"><sc-for list="{{printers}}" as="pr" hint-placeholder-count="2"><button class="{{pr.cls}}" role="radio" aria-checked="{{pr.aria}}" onClick="{{ pr.pick }}"><span class="lead" style="margin-left: 4px"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6A1,1 0 0,0 20,5A1,1 0 0,0 19,4A1,1 0 0,0 18,5A1,1 0 0,0 19,6M19,2A3,3 0 0,1 22,5V11H18V7H6V11H2V5A3,3 0 0,1 5,2H19M18,18.25C18,18.63 17.79,18.96 17.47,19.13L12.57,21.82C12.4,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L6.53,19.13C6.21,18.96 6,18.63 6,18.25V13C6,12.62 6.21,12.29 6.53,12.12L11.43,9.68C11.59,9.56 11.79,9.5 12,9.5C12.21,9.5 12.4,9.56 12.57,9.68L17.47,12.12C17.79,12.29 18,12.62 18,13V18.25M12,11.65L9.04,13L12,14.6L14.96,13L12,11.65M8,17.66L11,19.29V16.33L8,14.71V17.66M16,17.66V14.71L13,16.33V19.29L16,17.66Z"></path></svg></span><span class="grow"><span class="tm c1" style="font-size: 15px">{{pr.name}}</span><span class="sub c1">{{pr.sub}}</span></span><span class="{{pr.rad}}"></span></button></sc-for></div>
+<span class="sub" style="padding: 6px 4px 6px">Only supported 3D printers are listed. The card finds the printer's sensors and controls by itself.</span>
+</sc-if>
+<sc-if value="{{noPrinter}}" hint-placeholder-val="{{ false }}">
+<div class="stagebox in" style="padding: 12px 12px 4px" role="status"><span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6A1,1 0 0,0 20,5A1,1 0 0,0 19,4A1,1 0 0,0 18,5A1,1 0 0,0 19,6M19,2A3,3 0 0,1 22,5V11H18V7H6V11H2V5A3,3 0 0,1 5,2H19M18,18.25C18,18.63 17.79,18.96 17.47,19.13L12.57,21.82C12.4,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L6.53,19.13C6.21,18.96 6,18.63 6,18.25V13C6,12.62 6.21,12.29 6.53,12.12L11.43,9.68C11.59,9.56 11.79,9.5 12,9.5C12.21,9.5 12.4,9.56 12.57,9.68L17.47,12.12C17.79,12.29 18,12.62 18,13V18.25M12,11.65L9.04,13L12,14.6L14.96,13L12,11.65M8,17.66L11,19.29V16.33L8,14.71V17.66M16,17.66V14.71L13,16.33V19.29L16,17.66Z"></path></svg></span><span class="tm" style="color: var(--on)">No 3D printer was found</span><p class="sub">This card works with printers set up through a 3D printer integration. Add one, then come back.</p><a class="lnk" style="align-self: center" href="#integrations" onClick="{{ addInt }}">Add an integration</a></div>
+</sc-if>
+</div>
+<div class="sec" role="group" aria-labelledby="gh-show"><span class="gh" id="gh-show">Show</span>
+<sc-for list="{{opts}}" as="op" hint-placeholder-count="3"><button class="{{op.cls}}" role="switch" aria-checked="{{op.aria}}" aria-disabled="{{op.dis}}" onClick="{{ op.flip }}"><span class="grow" style="padding-left: 4px"><span class="nm">{{op.name}}</span><span class="sub">{{op.sub}}</span></span><span class="{{op.sw}}" style="margin-right: 4px"><i></i></span></button></sc-for>
+</div>
+</sc-if>
+<div style="flex: none; height: 20px" aria-hidden="true"></div>
+</div>
+
+<sc-if value="{{isEditor}}" hint-placeholder-val="{{ false }}">
+<div class="ebar"><span class="sub">{{saveNote}}</span><button class="btn text" onClick="{{ barGo }}">Cancel</button><button class="{{saveCls}}" aria-disabled="{{saveOff}}" onClick="{{ save }}">Save</button></div>
+</sc-if>
+
+<sc-if value="{{showToast}}" hint-placeholder-val="{{ false }}"><div class="{{toastCls}}" role="status"><span class="msg">{{toastText}}</span><button class="ib" aria-label="Dismiss the message" onClick="{{ toastHide }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div></sc-if>
+
+<sc-if value="{{showConfirm}}" hint-placeholder-val="{{ false }}"><div class="wbscrim" onClick="{{ stopKeep }}"></div><div class="wb sheet up" data-sheet="1" role="alertdialog" aria-modal="true" aria-labelledby="cf-title" aria-describedby="cf-text" onKeyDown="{{ sheetKey }}">
+<h2 class="tm" id="cf-title">Stop this print?</h2>
+<p class="sub" id="cf-text">It cannot be resumed.</p>
+<div class="wbbox"><span style="font-size: 15px; line-height: 20px">{{stopJob}}</span><span class="sub">{{stopDetail}}</span></div>
+<div class="wbact" style="gap: 8px"><button class="btn tonal" style="flex: 1" data-keep="1" onClick="{{ stopKeep }}">Keep printing</button><button class="btn dfill" style="flex: 1" onClick="{{ stopDo }}">Stop print</button></div>
+</div></sc-if>
+
+<sc-if value="{{wbOpen}}" hint-placeholder-val="{{ false }}"><div class="wbscrim" onClick="{{ wbCancel }}"></div><div class="{{wbCls}}" role="dialog" aria-modal="true" aria-label="{{wbTitle}}" onKeyDown="{{ wbKey }}">
+<div class="wbhead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z"></path></svg><span class="tm">Pattern workbench</span><button class="ib" aria-label="Close the pattern workbench" onClick="{{ wbCancel }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div>
+<span class="sub">{{wbFor}}</span>
+<label class="{{wbFieldCls}}"><span class="mono sl" aria-hidden="true">/</span><input data-wbin="1" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" value="{{wbPat}}" onInput="{{ wbSet }}" aria-label="Pattern" aria-invalid="{{wbInvalid}}" placeholder="For example: 3d.*"/><span class="mono sl" aria-hidden="true">{{wbTail}}</span></label>
+<sc-if value="{{wbBad}}" hint-placeholder-val="{{ false }}"><div class="wberr" role="alert">{{wbErr}}</div></sc-if>
+<div class="wbflags" role="group" aria-label="Pattern options"><sc-for list="{{wbFlags}}" as="f" hint-placeholder-count="4"><button class="{{f.cls}}" aria-pressed="{{f.aria}}" onClick="{{ f.toggle }}">{{f.name}}</button></sc-for></div>
+<div class="wbbox"><span class="lm">In plain words</span><sc-for list="{{wbExplain}}" as="x" hint-placeholder-count="3"><div class="wbx"><span class="mono tok">{{x.tok}}</span><span>{{x.text}}</span></div></sc-for></div>
+<div class="wbbox"><span class="lm" role="status">{{wbCount}}</span><sc-for list="{{wbPreview}}" as="pv" hint-placeholder-count="3"><div class="wbrow"><sc-for list="{{pv.segs}}" as="g" hint-placeholder-count="3"><span class="{{g.cls}}">{{g.t}}</span></sc-for></div></sc-for><sc-if value="{{wbMore}}" hint-placeholder-val="{{ false }}"><span class="sub">{{wbMoreText}}</span></sc-if></div>
+<div class="wbact"><button class="btn text" onClick="{{ wbClear }}">Clear</button><span style="flex: 1"></span><button class="btn text" onClick="{{ wbCancel }}">Cancel</button><button class="{{wbUseCls}}" aria-disabled="{{wbUseOff}}" onClick="{{ wbUse }}">Use pattern</button></div>
+</div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#7DD3A8","#FFB874","#D0BCFF"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"stage":{"editor":"enum","options":["after","pattern","pattern-invalid","status-editor","control-editor","no-printer"],"default":"after"},"$preview":{"width":390,"height":844}}'>
+const I_CLOSE = 'M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z';
+const I_BACK = 'M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z';
+const I_UP = 'M13,20H11V8L5.5,13.5L4.08,12.08L12,4.16L19.92,12.08L18.5,13.5L13,8V20Z';
+const I_DOWN = 'M11,4H13V16L18.5,10.5L19.92,11.92L12,19.84L4.08,11.92L5.5,10.5L11,16V4Z';
+const I_CHECK = 'M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z';
+const I_PAUSE = 'M14,19H18V5H14M6,19H10V5H6V19Z';
+const I_PLAY = 'M8,5.14V19.14L19,12.14L8,5.14Z';
+const I_DASH = 'M19,13H5V11H19V13Z';
+const I_SLEEP = 'M23,12H17V10L20.39,6H17V4H23V6L19.62,10H23V12M15,16H9V14L12.39,10H9V8H15V10L11.62,14H15V16M7,20H1V18L4.39,14H1V12H7V14L3.62,18H7V20Z';
+const I_BRACKET = 'M4,3H9V15H21V20H4V3M6,5V18H19V17H7V5H6M12,6A2,2 0 0,1 14,8A2,2 0 0,1 12,10A2,2 0 0,1 10,8A2,2 0 0,1 12,6Z';
+const ICON = {
+  bulb: 'M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z',
+  bed: 'M3,4H21V8H19V20H17V8H7V20H5V8H3V4M8,10H16V12H8V10M8,14H16V16H8V14Z',
+  camera: 'M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z',
+  sound: 'M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z'
+};
+// The cards the Add card dialog offers. The first two are the new ones; the rest use the app's own names and descriptions.
+const CARDS = [
+  ['status', '3D printer status', 'Progress, layers and time left, the stage, problems and temperatures.', ''],
+  ['controls', '3D printer controls', 'Pause and stop, speed, temperatures, fans, lights and more.', ''],
+  ['tile', 'Tile', 'This card gives you a quick overview of an entity. It allows you to toggle the entity, show the More info dialog or trigger custom actions.', 'M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M5,5V19H19V5H5M7,7H11V11H7V7Z'],
+  ['entities', 'Entities', 'This card is the most common type of card. It groups items together into lists.', 'M3,5H21V7H3V5M3,11H21V13H3V11M3,17H21V19H3V17Z'],
+  ['button', 'Button', 'This card allows you to add buttons to perform tasks.', 'M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8Z'],
+  ['gauge', 'Gauge', 'This card is a basic card that allows visually seeing sensor data.', 'M12,4A10,10 0 0,0 2,14V18H4V14A8,8 0 0,1 12,6A8,8 0 0,1 20,14V18H22V14A10,10 0 0,0 12,4M16.2,8.4L11,13.2A2,2 0 0,0 10,15A2,2 0 0,0 12,17A2,2 0 0,0 14,15C14,14.8 13.97,14.6 13.9,14.4L17.6,9.8L16.2,8.4Z'],
+  ['history', 'History graph', 'This card allows you to display a graph for each of the entities listed.', 'M3,3H5V19H21V21H3V3M7,15L11,9L14,12L19,5L20.6,6.2L14.3,15L11.2,11.9L8.6,16L7,15Z'],
+  ['thermostat', 'Thermostat', 'This card gives control of a climate or water heater entity for heating or cooling, allowing you to set its mode and desired temperature.', 'M15,13V5A3,3 0 0,0 12,2A3,3 0 0,0 9,5V13A5,5 0 0,0 7,17A5,5 0 0,0 12,22A5,5 0 0,0 17,17A5,5 0 0,0 15,13M12,4A1,1 0 0,1 13,5V8H11V5A1,1 0 0,1 12,4Z'],
+  ['weather', 'Weather forecast', 'This card displays the weather. Very useful to include on interfaces that people display on the wall.', 'M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M3.36,17L5.12,13.23C5.26,14 5.53,14.78 5.95,15.5C6.37,16.24 6.91,16.86 7.5,17.37L3.36,17M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M20.64,17L16.5,17.36C17.09,16.85 17.62,16.22 18.04,15.5C18.46,14.77 18.73,14 18.87,13.21L20.64,17M12,22L9.59,18.56C10.33,18.83 11.14,19 12,19C12.82,19 13.63,18.83 14.37,18.56L12,22Z'],
+  ['picture', 'Picture entity', 'This card displays an entity in the form of an image. Instead of images from URL, it can also show the picture of camera entities.', 'M21,19V5A2,2 0 0,0 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z'],
+  ['markdown', 'Markdown', 'This card is used to render Markdown.', 'M4,5H20V7H4V5M4,9H20V11H4V9M4,13H14V15H4V13M4,17H14V19H4V17Z'],
+  ['area', 'Area', 'This card automatically displays entities of a specific area.', 'M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z']
+];
+// The supported printers, with the same sample values as the status card and control card boards.
+// Entity keys are those of the bambu_lab integration.
+const PRINTERS = {
+  h2d: { name: 'Workshop H2D', model: 'H2D', kind: 'two nozzles', dual: true, chamber: true, airduct: true, buzzer: true, job: 'Bracket v3', layer: 'Layer 236 of 380 · 62% done', line: 'Printing, 62%' },
+  p1s: { name: 'Office P1S', model: 'P1S', kind: 'one nozzle', dual: false, chamber: false, airduct: false, buzzer: false, job: '', layer: '', line: 'Idle' }
+};
+const SPEEDS = [['silent', 'Silent', '50%'], ['standard', 'Standard', '100%'], ['sport', 'Sport', '124%'], ['ludicrous', 'Ludicrous', '166%']];
+const GROUPS = ['print', 'speed', 'temp', 'fans', 'lights', 'more'];
+const TICKS = 40;
+const ST_OPTS = [['image', 'Job image', 'The cover picture of the print'], ['problems', 'Problems', 'Printer messages and the print error'], ['chamber', 'Chamber temperature', 'Shown beside the nozzles and the bed']];
+const CT_OPTS = [['print', 'Print', 'Pause, resume and stop'], ['speed', 'Speed', 'Silent, Standard, Sport and Ludicrous'], ['temp', 'Temperature', 'Nozzle, bed and chamber targets'], ['fans', 'Fans', 'Part cooling, aux, chamber and exhaust'], ['lights', 'Lights', 'Chamber light and heatbed light'], ['more', 'More', 'Airduct mode, camera, prompt sound, buzzer and refresh']];
+// One temperature tile of the status card. tgt null = the printer has no target for it; tgt 0 = target off.
+function tile(key, label, cur, tgt, active) {
+  const t = { key, label, active: !!active, cls: active ? 'tile act' : 'tile', value: cur + ' °C', markCls: 'tmk', icon: I_DASH, sub: '', bar: 'width: 0%' };
+  if (tgt === null) t.sub = 'No target';
+  else if (tgt === 0) {
+    if (cur > 35) { t.sub = 'Target off · cooling'; t.markCls = 'tmk c'; t.icon = I_DOWN; } else t.sub = 'Target off';
+  } else {
+    t.bar = 'width: ' + Math.min(100, Math.round((cur / tgt) * 100)) + '%';
+    if (cur < tgt - 1) { t.sub = 'of ' + tgt + ' °C · heating'; t.markCls = 'tmk h'; t.icon = I_UP; }
+    else if (cur > tgt + 1) { t.sub = 'of ' + tgt + ' °C · cooling'; t.markCls = 'tmk c'; t.icon = I_DOWN; }
+    else { t.sub = 'of ' + tgt + ' °C · at target'; t.markCls = 'tmk g'; t.icon = I_CHECK; }
+  }
+  return t;
+}
+// What the status card shows for each printer right now: the H2D is printing, the P1S is idle.
+function statusModel(id) {
+  if (id === 'p1s') return { stageText: 'Idle', stageCls: 'stg', pulse: false, statusText: '', job: null, progress: null,
+    quiet: { icon: I_SLEEP, title: 'Nothing is printing', sub: 'Ready for the next print.' },
+    tiles: [tile('nozzle', 'Nozzle', 26, 0), tile('bed', 'Bed', 24, 0)] };
+  return { stageText: 'Printing', stageCls: 'stg p', pulse: true, statusText: 'Standard speed', job: { name: 'Bracket v3', icon: I_BRACKET },
+    progress: { pct: 62, timeMain: '1 h 24 min left', timeSub: 'Done at 21:47', layer: 236, total: 380 }, quiet: null,
+    tiles: [tile('left', 'Left nozzle', 218, 220, true), tile('right', 'Right nozzle', 38, 0), tile('bed', 'Bed', 65, 65), tile('chamber', 'Chamber', 34, 35)] };
+}
+// The state the control card starts from for each printer.
+function ctlState(id) {
+  const h = id === 'h2d';
+  const fan = (k, name, pct) => ({ k, name, pct: h ? pct : 0, on: h && pct > 0, last: pct || 100 });
+  const s = { st: h ? 'running' : 'idle', speed: 'standard', air: 'cooling', open: { print: true, speed: true, temp: true, fans: true, lights: true, more: true } };
+  s.temps = h
+    ? [{ k: 'left', name: 'Left nozzle', now: 218, target: 220, max: 320, active: true }, { k: 'right', name: 'Right nozzle', now: 38, target: 0, max: 320 }, { k: 'bed', name: 'Bed', now: 65, target: 65, max: 120 }, { k: 'chamber', name: 'Chamber', now: 34, target: 0, max: 65 }]
+    : [{ k: 'nozzle', name: 'Nozzle', now: 26, target: 0, max: 300 }, { k: 'bed', name: 'Bed', now: 24, target: 0, max: 120 }];
+  s.fans = [fan('cooling', 'Part cooling fan', 100), fan('aux', 'Aux fan', 60), fan('chamber', 'Chamber fan', 40)];
+  if (h) s.fans.push(fan('exhaust', 'Exhaust fan', 0));
+  s.lights = [{ k: 'chamber', name: 'Chamber light', on: true, icon: ICON.bulb }];
+  if (h) s.lights.push({ k: 'heatbed', name: 'Heatbed light', on: false, icon: ICON.bed });
+  s.sw = [{ k: 'camera', name: 'Camera', on: true, icon: ICON.camera }];
+  if (h) s.sw.push({ k: 'sound', name: 'Prompt sound', on: true, icon: ICON.sound });
+  return s;
+}
+// Pattern (regular expression) helpers shared by every search field on this board.
+const RX_FLAGS = [['i', 'Ignore case'], ['w', 'Whole word'], ['m', 'Multiline'], ['s', 'Dot matches new line']];
+const RX_WORDS = { d: 'any digit', D: 'anything but a digit', w: 'a letter, digit or underscore', W: 'anything but a letter, digit or underscore', s: 'a space or tab', S: 'anything but a space', b: 'the edge of a word', n: 'a new line', t: 'a tab' };
+function rxEsc(t) { return t.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&'); }
+function rxTail(fl) { return (fl.i ? 'i' : '') + (fl.m ? 'm' : '') + (fl.s ? 's' : ''); }
+function rxQuery(pat, fl) { return '/' + (fl.w ? '\\b(?:' + pat + ')\\b' : pat) + '/' + rxTail(fl); }
+function rxParse(q) {
+  const m = /^\/(.+)\/([ims]*)$/.exec((q || '').trim());
+  if (!m) return null;
+  const fl = {}; m[2].split('').forEach((c) => { fl[c] = 1; });
+  let pat = m[1];
+  if (pat.length > 8 && pat.slice(0, 5) === '\\b(?:' && pat.slice(-3) === ')\\b') { fl.w = 1; pat = pat.slice(5, -3); }
+  return { pat, fl };
+}
+function rxWhy(pat) {
+  let depth = 0, list = false;
+  for (let i = 0; i < pat.length; i++) {
+    const c = pat[i];
+    if (c === '\\') { if (i === pat.length - 1) return 'The pattern ends with a backslash. Add the character it stands for.'; i++; continue; }
+    if (list) { if (c === ']') list = false; continue; }
+    if (c === '[') list = true; else if (c === '(') depth++; else if (c === ')') depth--;
+    if (depth < 0) return 'There is a closing bracket ) with no opening bracket ( before it.';
+  }
+  if (list) return 'A list that starts with [ is never closed. Add ] to finish it.';
+  if (depth > 0) return 'A group that starts with ( is never closed. Add ) to finish it.';
+  if (/^[*+?]/.test(pat)) return 'A pattern cannot start with * + or ?. Put something before it to repeat.';
+  return 'This pattern cannot be read. Check the last thing you typed.';
+}
+function rxBuild(pat, fl) {
+  if (!pat) return { re: null, err: '' };
+  if (pat.length > 200) return { re: null, err: 'This pattern is too long. Keep it under 200 characters.' };
+  if (/\([^()]*[*+][^()]*\)[*+{]/.test(pat)) return { re: null, err: 'This pattern repeats a repeat, which can take too long to run. Make it simpler.' };
+  try { return { re: new RegExp(fl.w ? '\\b(?:' + pat + ')\\b' : pat, 'g' + rxTail(fl)), err: '' }; }
+  catch (e) { return { re: null, err: rxWhy(pat) }; }
+}
+function rxHas(text, re) { try { re.lastIndex = 0; return re.test(String(text).slice(0, 400)); } catch (e) { return false; } }
+function rxSegs(text, re) {
+  text = String(text).slice(0, 400);
+  const segs = []; let last = 0, n = 0, m;
+  if (re) { try {
+    re.lastIndex = 0;
+    while (n < 20 && (m = re.exec(text))) {
+      if (m[0] === '') { re.lastIndex++; if (re.lastIndex > text.length) break; continue; }
+      if (m.index > last) segs.push({ t: text.slice(last, m.index), cls: '' });
+      segs.push({ t: m[0], cls: 'hit' }); last = m.index + m[0].length; n++;
+    }
+  } catch (e) {} }
+  if (last < text.length) segs.push({ t: text.slice(last), cls: '' });
+  return segs;
+}
+function rxMatcher(q) {
+  const t = (q || '').trim();
+  if (!t) return null;
+  const p = rxParse(t);
+  if (p) { const b = rxBuild(p.pat, p.fl); if (b.re) return (x) => rxHas(x, b.re); }
+  const low = t.toLowerCase();
+  return (x) => String(x).toLowerCase().includes(low);
+}
+function rxExplain(pat) {
+  const out = []; let i = 0, lit = '';
+  const flush = () => { if (lit) { out.push({ tok: lit, text: 'the text "' + lit + '"' }); lit = ''; } };
+  const add = (tok, text, step) => { flush(); out.push({ tok, text }); i += step; };
+  while (i < pat.length && out.length < 12) {
+    const c = pat[i], two = pat.substr(i, 2);
+    if (c === '\\') { const k = pat[i + 1]; if (k === undefined) add('\\', 'an unfinished backslash', 1); else add('\\' + k, RX_WORDS[k] || 'the character "' + k + '" itself', 2); }
+    else if (two === '.*') add('.*', 'any text, or nothing', 2);
+    else if (two === '.+') add('.+', 'any text, at least one character', 2);
+    else if (c === '.') add('.', 'any one character', 1);
+    else if (c === '^') add('^', 'the start', 1);
+    else if (c === '$') add('$', 'the end', 1);
+    else if (c === '|') add('|', 'or', 1);
+    else if (pat.substr(i, 3) === '(?:') add('(?:', 'start of a group', 3);
+    else if (c === '(') add('(', 'start of a group', 1);
+    else if (c === ')') add(')', 'end of the group', 1);
+    else if (c === '*') add('*', 'the piece before it, any number of times', 1);
+    else if (c === '+') add('+', 'the piece before it, one or more times', 1);
+    else if (c === '?') add('?', 'the piece before it is optional', 1);
+    else if (c === '[') {
+      const j = pat.indexOf(']', i + 2);
+      if (j < 0) add(pat.slice(i), 'an unfinished list of characters', pat.length - i);
+      else { const inner = pat.slice(i + 1, j); add(pat.slice(i, j + 1), inner[0] === '^' ? 'any one character except: ' + inner.slice(1) : 'any one of: ' + inner, j + 1 - i); }
+    }
+    else if (c === '{' && pat.indexOf('}', i) > i) { const j = pat.indexOf('}', i); add(pat.slice(i, j + 1), 'the piece before it, repeated ' + pat.slice(i + 1, j).replace(',', ' to ') + ' times', j + 1 - i); }
+    else { lit += c; i++; }
+  }
+  flush();
+  if (i < pat.length) out.push({ tok: '...', text: 'and the rest of the pattern' });
+  return out;
+}
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.sq = {}; this.wb = null; }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+
+  // ---- pattern workbench: one draft at a time, one saved query per search field ----
+  rxFocus(sel) { const root = this._root; setTimeout(() => { try { const el = (root || document).querySelector(sel); if (el) el.focus(); } catch (e) {} }, 60); }
+  rxOpen(id, e) {
+    try { if (e && e.currentTarget && e.currentTarget.getRootNode) this._root = e.currentTarget.getRootNode(); } catch (err) {}
+    const cur = (this.sq[id] || '').trim(); const p = rxParse(cur);
+    this.wb = p ? { id, pat: p.pat, fl: p.fl } : { id, pat: rxEsc(cur), fl: { i: 1 } };
+    this.bump(); this.rxFocus('[data-wbin]');
+  }
+  rxClose() { const id = this.wb && this.wb.id; this.wb = null; this.bump(); if (id) this.rxFocus('[data-rx="' + id + '"]'); }
+  rxEscape() {
+    if (this._esc || typeof document === 'undefined') return;
+    this._esc = true;
+    try { document.addEventListener('keydown', (e) => { if (e.key === 'Tab' && this.confirm && !this.wb) { this.trapTab(e); return; } if (e.key !== 'Escape') return; if (this.wb) this.rxClose(); else if (this.confirm) this.closeSheet(); }); } catch (e) {}
+  }
+  rxField(v, p, id) {
+    const q = this.sq[id] || '';
+    const pq = rxParse(q);
+    const on = !!pq && !!rxBuild(pq.pat, pq.fl).re;
+    v[p + 'Q'] = q;
+    v[p + 'Set'] = (e) => { const n = Object.assign({}, this.sq); n[id] = e.target.value; this.sq = n; this.bump(); };
+    v[p + 'RxCls'] = on ? 'rxb on' : 'rxb';
+    v[p + 'RxOn'] = on ? 'true' : 'false';
+    v[p + 'RxOpen'] = (e) => this.rxOpen(id, e);
+  }
+  rxVals(v, fields) {
+    this.rxEscape();
+    const w = this.wb, f = w ? fields[w.id] : null;
+    const open = !!f;
+    const pat = open ? w.pat : '', fl = open ? w.fl : {};
+    const b = rxBuild(pat, fl);
+    const rows = open ? f.rows : [];
+    const hits = b.re ? rows.filter((t) => rxHas(t, b.re)) : [];
+    let count = 'Type a pattern to see what it matches';
+    if (b.err) count = 'Fix the pattern to see what it matches';
+    else if (b.re) count = hits.length + ' of ' + rows.length + ' ' + f.noun + (hits.length === 1 ? ' matches' : ' match');
+    const ok = !!b.re;
+    Object.assign(v, {
+      wbOpen: open, wbCls: 'wb sheet up',
+      wbTitle: open ? 'Pattern workbench for: ' + f.label : '', wbFor: open ? 'Opened from: ' + f.label + '. The pattern is kept for this search only.' : '',
+      wbPat: pat, wbTail: '/' + rxTail(fl), wbFieldCls: b.err ? 'wbfield bad' : 'wbfield', wbInvalid: b.err ? 'true' : 'false',
+      wbSet: (e) => { if (this.wb) { this.wb = Object.assign({}, this.wb, { pat: e.target.value }); this.bump(); } },
+      wbBad: !!b.err, wbErr: b.err,
+      wbFlags: RX_FLAGS.map((g) => ({ name: g[1], cls: fl[g[0]] ? 'chip sel' : 'chip', aria: fl[g[0]] ? 'true' : 'false',
+        toggle: () => { if (!this.wb) return; const n = Object.assign({}, this.wb.fl); if (n[g[0]]) delete n[g[0]]; else n[g[0]] = 1; this.wb = Object.assign({}, this.wb, { fl: n }); this.bump(); } })),
+      wbExplain: pat ? rxExplain(pat).concat(fl.w ? [{ tok: 'word', text: 'only as a whole word' }] : []) : [{ tok: '/ /', text: 'Nothing typed yet. Try 3d.* for every card whose name has "3d" in it.' }],
+      wbCount: count,
+      wbPreview: hits.slice(0, 4).map((t) => ({ segs: rxSegs(t, b.re) })),
+      wbMore: hits.length > 4, wbMoreText: 'and ' + (hits.length - 4) + ' more',
+      wbUseCls: ok ? 'btn fill' : 'btn off', wbUseOff: ok ? 'false' : 'true',
+      wbUse: () => { if (!ok || !this.wb) return; const n = Object.assign({}, this.sq); n[this.wb.id] = rxQuery(pat, fl); this.sq = n; this.rxClose(); },
+      wbCancel: () => this.rxClose(),
+      wbClear: () => { if (!this.wb) return; const n = Object.assign({}, this.sq); n[this.wb.id] = ''; this.sq = n; this.wb = Object.assign({}, this.wb, { pat: '' }); this.bump(); this.rxFocus('[data-wbin]'); },
+      wbKey: (e) => { if (e && e.key === 'Escape') { if (e.stopPropagation) e.stopPropagation(); this.rxClose(); } }
+    });
+  }
+
+  reset(s) {
+    this.sq = { a: 'printer' }; this.wb = null; this.toast = ''; this.confirm = false; this.pvOpen = false;
+    this.mode = s === 'status-editor' || s === 'no-printer' ? 'status' : s === 'control-editor' ? 'controls' : 'picker';
+    this.none = s === 'no-printer';
+    this.sel = 'h2d';
+    this.show = { image: 1, problems: 1, chamber: 1 };
+    this.grp = { print: 1, speed: 1, temp: 1, fans: 1, lights: 1, more: 1 };
+    this.cs = { h2d: ctlState('h2d'), p1s: ctlState('p1s') };
+    // The Add to dashboard dialog shows a fixed, non-interactive sample of the control card.
+    this.cs0 = ctlState('h2d'); this.cs0.open = { print: true, speed: true };
+    if (s === 'pattern') { this.sq = { a: '/^3d printer (status|controls)$/i' }; this.wb = { id: 'a', pat: '^3d printer (status|controls)$', fl: { i: 1 } }; }
+    if (s === 'pattern-invalid') this.wb = { id: 'a', pat: '^3d printer (status|controls', fl: { i: 1 } };
+  }
+  say(t) { this.toast = t; this.bump(); }
+  open(mode) { this.mode = mode; this.toast = ''; this.confirm = false; this.pvOpen = false; this.bump(); }
+
+  // ---- focus helpers for the stop sheet and the preview ----
+  // Finds an element in the board, whether it is rendered in the page or inside a shadow root.
+  find(sel) {
+    try {
+      if (this._root && this._root.querySelector) { const a = this._root.querySelector(sel); if (a) return a; }
+      if (typeof document === 'undefined') return null;
+      const b = document.querySelector(sel); if (b) return b;
+      const all = document.querySelectorAll('*');
+      for (let i = 0; i < all.length; i++) { const sr = all[i].shadowRoot; if (sr) { const c = sr.querySelector(sel); if (c) { this._root = sr; return c; } } }
+    } catch (e) {}
+    return null;
+  }
+  focusOn(sel) { try { setTimeout(() => { try { const el = this.find(sel); if (el) el.focus(); } catch (e) {} }, 60); } catch (e) {} }
+  keepRoot(e) { try { if (e && e.currentTarget && e.currentTarget.getRootNode) this._root = e.currentTarget.getRootNode(); } catch (err) {} }
+  // Keeps Tab inside the stop sheet while it is open.
+  trapTab(e) {
+    try {
+      const sheet = this.find('[data-sheet]'); if (!sheet) return;
+      const items = Array.prototype.slice.call(sheet.querySelectorAll('button'));
+      if (!items.length) return;
+      const root = sheet.getRootNode ? sheet.getRootNode() : document;
+      const i = items.indexOf(root.activeElement);
+      let next = null;
+      if (i < 0) next = items[0];
+      else if (e.shiftKey && i === 0) next = items[items.length - 1];
+      else if (!e.shiftKey && i === items.length - 1) next = items[0];
+      if (next) { if (e.preventDefault) e.preventDefault(); next.focus(); }
+    } catch (err) {}
+  }
+  closeSheet() { this.confirm = false; this.bump(); this.focusOn('[data-stop]'); }
+  // The preview stays on top in a short window. When a setting changes, the window moves to the part it affects.
+  pvScroll(key, e) {
+    this.keepRoot(e);
+    if (this.pvOpen) return;
+    let smooth = this.props.motion ?? true;
+    try { if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) smooth = false; } catch (err) {}
+    try { setTimeout(() => { try {
+      const box = this.find('[data-pvbox]'); if (!box) return;
+      let top = 0;
+      if (key) { const el = box.querySelector('[data-pv="' + key + '"]'); if (!el) return; top = Math.max(0, el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8); }
+      if (box.scrollTo) box.scrollTo({ top, behavior: smooth ? 'smooth' : 'auto' }); else box.scrollTop = top;
+    } catch (err) {} }, 60); } catch (err) {}
+  }
+
+  // ---- the status card, as drawn on the status card board ----
+  statusView(id, picker) {
+    const P = PRINTERS[id], m = statusModel(id);
+    const pr = m.progress || { pct: 0, timeMain: '', timeSub: '', layer: 0, total: 0 };
+    const filled = Math.round((pr.pct / 100) * TICKS);
+    const running = pr.pct > 0 && pr.pct < 100;
+    const ticks = [];
+    for (let i = 0; i < TICKS; i++) ticks.push({ cls: i < filled ? 'tk on' : (i === filled && running ? 'tk cur' : 'tk') });
+    const left = pr.total - pr.layer;
+    const q = m.quiet || { icon: I_DASH, title: '', sub: '' };
+    return {
+      st: {
+        name: P.name, openLabel: 'Open the ' + P.name + ' device page', dotCls: 'odot', lineText: 'Online · ' + P.model,
+        stageCls: m.stageCls, stageDot: m.pulse ? 'd pulse' : 'd', stageText: m.stageText, statusText: m.statusText, showStatus: !!m.statusText,
+        showJob: !!m.job, showImage: picker || !!this.show.image, jobName: m.job ? m.job.name : '', jobIcon: m.job ? m.job.icon : I_DASH, thumbLabel: m.job ? 'Cover image of ' + m.job.name : '',
+        showProgress: !!m.progress, pct: pr.pct, timeMain: pr.timeMain, timeSub: pr.timeSub, lbarCls: 'lbar',
+        layerMain: 'Layer ' + pr.layer + ' of ' + pr.total, layerSub: '· ' + left + ' layers left',
+        showQuiet: !!m.quiet, quietIcon: q.icon, quietTitle: q.title, quietSub: q.sub,
+        showOk: picker || !!this.show.problems
+      },
+      tiles: m.tiles.filter((t) => t.key !== 'chamber' || picker || !!this.show.chamber),
+      ticks
+    };
+  }
+
+  // ---- the control card, as drawn on the control card board; every change stays on this board ----
+  controlView(id, S, picker) {
+    const P = PRINTERS[id], v = {};
+    const yes = (b) => (b ? 'true' : 'false');
+    const st = S.st;
+    const printOff = st === 'idle';
+    const g = picker ? { print: 1, speed: 1, temp: 1, fans: 1, lights: 1, more: 1 } : this.grp;
+    const put = (fn) => () => { if (picker) return; fn(); this.bump(); };
+    GROUPS.forEach((k) => {
+      const o = !!S.open[k];
+      v[k + 'Open'] = o; v[k + 'Aria'] = yes(o); v[k + 'Chev'] = 'ic chev' + (o ? ' open' : '');
+      v[k + 'Flip'] = put(() => { S.open[k] = !o; });
+      v['cg' + k[0].toUpperCase() + k.slice(1)] = !!g[k];
+    });
+    const speed = SPEEDS.find((x) => x[0] === S.speed) || SPEEDS[1];
+    const temps = S.temps.map((t) => {
+      const d = t.target - t.now;
+      let kind = '', word = '';
+      // With a target set: heating below it, cooling 3 °C or more above it, otherwise at target. With the target off: cooling while still warm.
+      if (t.target > 0) {
+        if (d >= 2) { kind = 'heat'; word = 'heating'; }
+        else if (d <= -3) { kind = 'cool'; word = 'cooling'; }
+        else { kind = 'hold'; word = 'at target'; }
+      } else if (t.now > 35) { kind = 'cool'; word = 'cooling'; }
+      // The first raise from Off jumps to a usable target instead of 5 °C.
+      const first = Math.min(t.max, t.k === 'bed' ? 60 : t.k === 'chamber' ? 35 : 220);
+      const isOff = t.target <= 0;
+      const set = (val) => put(() => { t.target = Math.max(0, Math.min(t.max, val)); });
+      const downOff = t.target <= 0, upOff = t.target >= t.max;
+      const low = t.name.toLowerCase();
+      return {
+        name: t.name, active: !!t.active && !printOff, marked: !!kind,
+        markCls: 'ic xs mk ' + (kind || 'hold'), markPath: kind === 'heat' ? I_UP : kind === 'cool' ? I_DOWN : I_CHECK,
+        now: t.now + ' °C now' + (word ? ' · ' + word : ''),
+        target: t.target > 0 ? t.target + ' °C' : 'Off', valCls: t.target > 0 ? 'sv' : 'sv off',
+        groupLabel: 'Target for the ' + low,
+        downLabel: 'Lower the ' + low + ' target by 5 °C', upLabel: isOff ? 'Set the ' + low + ' target to ' + first + ' °C' : 'Raise the ' + low + ' target by 5 °C',
+        downCls: downOff ? 'sb off' : 'sb', upCls: upOff ? 'sb off' : 'sb', downOff: yes(downOff), upOff: yes(upOff),
+        down: set(t.target - 5), up: set(isOff ? first : t.target + 5)
+      };
+    });
+    const nozzleMax = Math.max.apply(null, S.temps.filter((t) => t.k !== 'bed' && t.k !== 'chamber').map((t) => t.target));
+    const bedT = (S.temps.find((t) => t.k === 'bed') || { target: 0 }).target;
+    const fans = S.fans.map((f) => {
+      const pct = f.on ? f.pct : 0;
+      return {
+        name: f.name, text: f.on ? pct + '%' : 'Off', pct: String(pct), fill: '--v: ' + pct + '%',
+        sliderLabel: 'Speed of the ' + f.name.toLowerCase() + ', percent', swLabel: f.name,
+        aria: yes(f.on), off: 'false', sw: 'sw' + (f.on ? ' on' : ''),
+        set: (e) => {
+          if (picker) return;
+          const n = Math.max(0, Math.min(100, Math.round(Number(e && e.target ? e.target.value : pct) / 10) * 10));
+          if (isNaN(n)) return;
+          if (n > 0) { f.pct = n; f.on = true; f.last = n; } else { f.pct = 0; f.on = false; }
+          this.bump();
+        },
+        flip: put(() => { if (f.on) { f.on = false; f.pct = 0; } else { f.on = true; f.pct = f.last || 100; } })
+      };
+    });
+    const fansOn = S.fans.filter((f) => f.on).length;
+    const lightsOn = S.lights.filter((l) => l.on).length;
+    const act = () => { if (!picker) this.say('Preview only. Nothing was sent to the printer.'); };
+    const shown = GROUPS.filter((k) => g[k]).length;
+    return Object.assign(v, {
+      ct: {
+        name: P.name, headSub: P.model + (st !== 'idle' && P.job ? ' · ' + P.job : P.dual ? ' · dual nozzle' : ''),
+        stgCls: 'stg ' + (st === 'running' ? 'run' : st === 'pause' ? 'pause' : 'idle'),
+        stageText: st === 'running' ? 'Printing' : st === 'pause' ? 'Paused by user' : 'Idle'
+      },
+      cgHint: !picker && shown === 0,
+      printSum: st === 'running' ? 'Printing' : st === 'pause' ? 'Paused' : 'Nothing is printing',
+      showPause: st !== 'pause', showResume: st === 'pause',
+      pauseCls: printOff ? 'btn off' : 'btn tonal', stopCls: printOff ? 'btn off' : 'btn danger', printOffAria: yes(printOff),
+      hasPrintWhy: printOff, printWhy: 'Nothing is printing',
+      pause: put(() => { if (S.st === 'running') S.st = 'pause'; }),
+      resume: put(() => { if (S.st === 'pause') S.st = 'running'; }),
+      askStop: (e) => { if (picker || printOff) return; this.keepRoot(e); this.confirm = true; this.toast = ''; this.bump(); },
+      speedSum: printOff ? 'Not printing' : speed[1],
+      speedSeg: printOff ? 'seg off' : 'seg',
+      speeds: SPEEDS.map((x) => ({ name: x[1], cls: x[0] === S.speed ? 'sel' : '', aria: yes(x[0] === S.speed), off: yes(printOff),
+        pick: put(() => { if (!printOff) S.speed = x[0]; }) })),
+      speedNote: printOff ? 'Speed can be changed while a print is running' : speed[1] + ' runs at ' + speed[2] + ' of the sliced speed',
+      temps,
+      tempSum: nozzleMax <= 0 && bedT <= 0 ? 'All off' : 'Nozzle ' + (nozzleMax > 0 ? nozzleMax + ' °C' : 'off') + ' · bed ' + (bedT > 0 ? bedT + ' °C' : 'off'),
+      fans, fansSum: fansOn ? fansOn + ' of ' + S.fans.length + ' on' : 'All off',
+      lights: S.lights.map((l) => ({ name: l.name, text: l.on ? 'On' : 'Off', icon: l.icon, aria: yes(l.on), off: 'false', cls: 'lt' + (l.on ? ' on' : ''), flip: put(() => { l.on = !l.on; }) })),
+      lightsSum: lightsOn ? lightsOn + ' of ' + S.lights.length + ' on' : 'All off',
+      moreSum: P.airduct ? 'Airduct ' + (S.air === 'heating' ? 'heating' : 'cooling') : '',
+      hasAirduct: P.airduct, airSeg: 'seg',
+      airModes: [['cooling', 'Cooling'], ['heating', 'Heating']].map((x) => ({ name: x[1], cls: x[0] === S.air ? 'sel' : '', aria: yes(x[0] === S.air), off: 'false', pick: put(() => { S.air = x[0]; }) })),
+      switches: S.sw.map((w) => ({ name: w.name, icon: w.icon, aria: yes(w.on), off: 'false', cls: 'swrow', sw: 'sw' + (w.on ? ' on' : ''), flip: put(() => { w.on = !w.on; }) })),
+      actCls: 'btn tonal', allOffAria: 'false', silence: act, refresh: act, hasBuzzer: P.buzzer
+    });
+  }
+
+  renderVals() {
+    const v = this.base();
+    this.stage();
+    const picker = this.mode === 'picker', editor = !picker;
+    const id = picker ? 'h2d' : this.sel;
+    const pr = PRINTERS[id];
+    const has = !this.none;
+    const S = picker ? this.cs0 : this.cs[id];
+
+    // Move focus into the stop sheet whenever it appears, and back to Stop when it closes.
+    const sheetUp = !!this.confirm && editor;
+    if (sheetUp && !this._sheetFocus) { this._sheetFocus = true; this.focusOn('[data-keep]'); }
+    if (!sheetUp) this._sheetFocus = false;
+
+    // search: plain text looks at names and descriptions, a pattern looks at names
+    const q = (this.sq.a || '').trim();
+    const pq = rxParse(q);
+    const badTyped = !!pq && !rxBuild(pq.pat, pq.fl).re;
+    const hit = badTyped ? null : rxMatcher(q);
+    const match = (c) => !hit || hit(c[1]) || (!pq && hit(c[2]));
+    const found = CARDS.filter(match);
+    const ids = found.map((c) => c[0]);
+    this.rxField(v, 'a', 'a');
+    this.rxVals(v, { a: { label: 'Search cards', noun: 'cards', rows: CARDS.map((c) => c[1]) } });
+    const others = found.filter((c) => c[0] !== 'status' && c[0] !== 'controls');
+
+    Object.assign(v, this.statusView(id, picker), this.controlView(id, S, picker));
+
+    const isSt = this.mode === 'status';
+    const optRows = (isSt ? ST_OPTS : CT_OPTS).map((o) => {
+      const bag = isSt ? this.show : this.grp;
+      const noChamber = isSt && o[0] === 'chamber' && !pr.chamber;
+      const on = !!bag[o[0]] && !noChamber;
+      return {
+        name: o[1], sub: noChamber ? pr.name + ' has no chamber sensor' : o[2], aria: on ? 'true' : 'false', dis: noChamber ? 'true' : 'false',
+        sw: on ? 'sw on' : 'sw', cls: noChamber ? 'orow dis' : 'orow',
+        flip: (e) => {
+          if (noChamber) return;
+          if (bag[o[0]]) delete bag[o[0]]; else { bag[o[0]] = 1; if (!isSt) S.open[o[0]] = true; }
+          this.bump(); this.pvScroll(o[0], e);
+        }
+      };
+    });
+    const cardName = isSt ? '3D printer status' : '3D printer controls';
+    const back = () => this.open('picker');
+    const preview = () => this.say('Preview only. Nothing was sent to the printer.');
+    return Object.assign(v, {
+      isPicker: picker, isEditor: editor, hasPrinter: has, noPrinter: !has,
+      barTitle: picker ? 'Add to dashboard' : cardName,
+      barSub: picker ? 'Which card would you like to add to Workshop' : 'Card configuration',
+      barLabel: picker ? 'Close' : 'Back to the list of cards', barIcon: picker ? I_CLOSE : I_BACK,
+      barGo: picker ? () => this.say('Nothing was added.') : back,
+      pgLabel: picker ? 'Cards you can add' : 'Card settings',
+      hasQ: q.length > 0, sClear: () => { this.sq = { a: '' }; this.bump(); },
+      badTyped, badTypedText: badTyped ? rxBuild(pq.pat, pq.fl).err + ' Nothing is filtered until it is fixed.' : '',
+      countText: !q ? CARDS.length + ' cards' : badTyped ? 'Showing all ' + CARDS.length + ' cards' : found.length + ' of ' + CARDS.length + ' cards' + (pq ? (found.length === 1 ? ' matches the pattern' : ' match the pattern') : ''),
+      showSt: picker ? ids.indexOf('status') >= 0 : isSt,
+      showCt: picker ? ids.indexOf('controls') >= 0 : !isSt,
+      itCls: picker ? 'it pick' : this.pvOpen ? 'it prev open' : 'it prev',
+      // In the Add to dashboard dialog the previews are pictures only: no pointer, no tab stops, hidden from assistive technology.
+      pvTab: picker ? '-1' : '0', pvHidden: picker ? 'true' : 'false',
+      pvAria: this.pvOpen ? 'true' : 'false', pvChev: this.pvOpen ? 'ic s open' : 'ic s',
+      pvMoreText: this.pvOpen ? 'Show less' : 'Show all', pvMoreLabel: this.pvOpen ? 'Show less of the preview' : 'Show the whole preview',
+      pvFlip: (e) => { this.pvOpen = !this.pvOpen; this.bump(); if (!this.pvOpen) this.pvScroll('', e); },
+      stAria: picker ? '3D printer status card' : 'Preview of the 3D printer status card',
+      ctAria: picker ? '3D printer controls card' : 'Preview of the 3D printer controls card',
+      addSt: () => this.open('status'), addCt: () => this.open('controls'),
+      hasOthers: picker && others.length > 0,
+      others: others.map((c) => ({ name: c[1], desc: c[2], icon: c[3], label: 'Add the ' + c[1] + ' card', add: () => this.say(c[1] + ' card added to Workshop.') })),
+      noResults: picker && found.length === 0,
+      noResultsText: 'No card matches "' + q + '".',
+      printers: has ? Object.keys(PRINTERS).map((k) => { const p = PRINTERS[k]; const on = k === this.sel; return {
+        name: p.name, sub: p.model + ' · ' + p.kind + ' · ' + p.line,
+        aria: on ? 'true' : 'false', cls: on ? 'rrow on' : 'rrow', rad: on ? 'rad on' : 'rad', pick: (e) => { this.sel = k; this.bump(); this.pvScroll('', e); } }; }) : [],
+      opts: optRows,
+      addInt: (e) => { if (e && e.preventDefault) e.preventDefault(); this.say('This opens Settings, Devices and services, Add integration.'); },
+      saveNote: has ? 'For ' + pr.name : 'Add a 3D printer first',
+      saveCls: has ? 'btn fill' : 'btn off', saveOff: has ? 'false' : 'true',
+      save: () => { if (!has) return; this.mode = 'picker'; this.confirm = false; this.say(cardName + ' card added for ' + pr.name + '.'); },
+      showToast: !!this.toast && !this.confirm, toastText: this.toast || '', toastCls: editor ? 'toast hi in' : 'toast in', toastHide: () => { this.toast = ''; this.bump(); },
+      pvOnly: () => { if (!picker) preview(); },
+      showConfirm: sheetUp,
+      stopJob: pr.job ? pr.job + ' on ' + pr.name : 'The print on ' + pr.name,
+      stopDetail: pr.layer || 'The nozzle and bed will cool down.',
+      stopKeep: () => this.closeSheet(),
+      stopDo: () => { this.confirm = false; preview(); this.focusOn('[data-stop]'); },
+      sheetKey: (e) => { if (!e) return; this.keepRoot(e); if (e.key === 'Escape') { if (e.stopPropagation) e.stopPropagation(); this.closeSheet(); } }
+    });
+  }
+}
+</script>
+</body>
+</html>

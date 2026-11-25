@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Preparing page with a backup, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p,.m3 dl,.m3 dd,.m3 ul,.m3 ol{margin:0;padding:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:15px;line-height:20px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:12px}
+.c1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.center{text-align:center}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,background-color .2s}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.text.neutral{color:var(--onv)}
+.m3 .btn.off{background:var(--sl4);color:var(--onv);cursor:not-allowed}
+.m3 .btn.danger{background:var(--errc);color:var(--on-errc)}
+.m3 a.btn{text-decoration:none}
+.btn.w100{width:100%}
+.btn:hover{filter:brightness(1.07)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--pc);color:var(--on-pc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600;flex:none}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.a{background:var(--amberc);color:var(--amber)}
+.tag.td{background:var(--amberc);color:var(--amber);min-height:20px;padding:1px 10px}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note strong{display:block;font-size:14px;line-height:20px;font-weight:600;color:inherit}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.note.good{background:var(--greenc);color:var(--green)}
+.note.good span span{color:var(--on)}
+.m3.dark .note.good span span{color:#E3F6E5}
+.in{animation:rise .25s ease both}
+.spin{animation:spin 1s linear infinite}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surf)}
+.ph::before{content:"";position:absolute;left:0;right:0;top:0;height:260px;background:radial-gradient(120% 100% at 50% 0%,color-mix(in srgb,var(--ac) 16%,transparent),transparent 70%);pointer-events:none}
+.pg{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:20px 12px 16px;position:relative}
+.todayrow{display:flex;justify-content:center;flex:none;margin-top:-8px}
+.intro{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:4px 12px 4px;flex:none}
+.logo{width:56px;height:56px;border-radius:28px;display:grid;place-items:center;background:var(--p);color:var(--on-p);margin-bottom:4px}
+.logo .ic{width:32px;height:32px}
+.logo.old{width:84px;height:84px;border-radius:28px;background:linear-gradient(135deg,var(--p),color-mix(in srgb,var(--p) 55%,#B58CFF));animation:breathe 3.2s ease-in-out infinite}
+.logo.old .ic{width:48px;height:48px}
+@keyframes breathe{50%{transform:scale(1.06)}}
+.intro .sub{max-width:320px}
+.pb{height:8px;border-radius:4px;background:var(--sl4);overflow:hidden;width:100%;flex:none}
+.pb span{display:block;height:100%;border-radius:4px;background:var(--p);transition:width .25s ease}
+.pb.old{height:12px;border-radius:6px}
+.pb.old span{border-radius:6px;font-size:10px;line-height:12px;font-weight:600;color:var(--on-p);text-align:center;font-variant-numeric:tabular-nums}
+.pbwrap{width:100%;display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.pbrow{display:flex;align-items:center;gap:8px;color:var(--onv);font-size:13px;line-height:18px;text-align:left}
+.pbrow .pct{margin-left:auto;font-weight:600;color:var(--on);font-variant-numeric:tabular-nums}
+.pbrow .ic{color:var(--p)}
+.card{background:var(--sl0);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;flex:none;min-width:0;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--outv) 55%,transparent)}
+.card.slim{padding:4px 4px 4px 2px;gap:0}
+.stp{display:flex;gap:6px;list-style:none;flex:none}
+.stp li{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:16px;color:var(--onv)}
+.stp i{display:block;height:4px;border-radius:2px;background:var(--sl4);transition:background-color .2s}
+.stp li.cur{color:var(--on);font-weight:600}
+.stp li.cur i,.stp li.done i{background:var(--p)}
+.bd{font-size:14px;line-height:20px;color:var(--onv)}
+.frow{display:flex;align-items:center;gap:12px;min-width:0}
+.fic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--sl3);color:var(--onv);flex:none}
+.fic.ok{background:var(--greenc);color:var(--green)}
+.frow .pct{font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums;flex:none}
+.bk{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:16px;background:var(--sl2)}
+.meta{display:flex;flex-direction:column;gap:0}
+.meta div{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px;box-shadow:inset 0 1px 0 var(--outv)}
+.meta dt{font-size:13px;line-height:18px;color:var(--onv);flex:none}
+.meta dd{font-size:14px;line-height:20px;text-align:right;min-width:0;overflow-wrap:anywhere}
+.holds{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.holds li{display:flex;align-items:center;gap:8px;min-height:36px;padding:6px 10px;border-radius:12px;background:var(--sl0);font-size:13px;line-height:18px;min-width:0}
+.holds .ic{color:var(--p)}
+.holds li span{min-width:0;overflow-wrap:anywhere}
+.keybox{display:flex;flex-direction:column;gap:8px}
+.keybox label{font-size:13px;line-height:18px;font-weight:600;color:var(--on)}
+.field{display:flex;align-items:center;gap:10px;min-height:56px;padding:0 4px 0 14px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);color:var(--onv);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field.good{box-shadow:inset 0 -3px 0 var(--green)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:48px;color:var(--on);font-family:'Roboto Mono',ui-monospace,Menlo,monospace;letter-spacing:.5px}
+.fmsg{display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:18px}
+.fmsg.e{color:var(--err)}
+.fmsg.k{color:var(--green)}
+.acts{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.det{display:grid;grid-template-rows:0fr;visibility:hidden;transition:grid-template-rows .22s ease,visibility .22s}
+.det.open{grid-template-rows:1fr;visibility:visible}
+.detin{min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:8px}
+.detpad{padding:4px 10px 10px 12px;display:flex;flex-direction:column;gap:8px}
+.netrow{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 12px;border-radius:16px;background:var(--sl2)}
+.netrow .ic{color:var(--onv)}
+.logs{max-height:176px;overflow:auto;padding:10px 12px;border-radius:16px;background:var(--sl2);font-size:12px;line-height:18px;color:var(--onv);white-space:nowrap}
+.logs .lt{color:var(--onv)}
+.logs .lmsg{color:var(--on)}
+.chev{transition:transform .22s ease}
+.chev.up{transform:rotate(180deg)}
+.foot{display:flex;align-items:center;justify-content:space-between;flex:none;padding:0 2px;margin-top:auto;position:relative}
+.langs{position:absolute;left:0;bottom:52px;z-index:2;list-style:none;display:flex;flex-direction:column;min-width:200px;padding:4px;border-radius:16px;background:var(--sl3);box-shadow:var(--e3)}
+.m3 .langs button{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:0 12px;border-radius:12px;font-size:14px}
+.langs button:hover{background:var(--sl4)}
+.langs .ic{color:var(--p)}
+.oldacts{position:relative;display:flex;justify-content:center;min-height:48px}
+.oldacts .ib{position:absolute;right:0;top:0;color:var(--p)}
+.qs{list-style:none;display:flex;flex-direction:column;gap:2px}
+.qs li{display:flex;align-items:flex-start;gap:12px;min-height:44px;padding:4px 2px}
+.qn{width:24px;height:24px;border-radius:12px;display:grid;place-items:center;flex:none;margin-top:2px;font-size:12px;line-height:16px;font-weight:600;background:var(--sl3);color:var(--onv)}
+.qs li.act .qn{background:var(--p);color:var(--on-p)}
+.qs li.act .bl{font-weight:600}
+.qs .pb{height:6px;margin-top:6px}
+.ask{display:flex;flex-direction:column;gap:6px;padding:12px 14px 6px;border-radius:16px;background:var(--sl2)}
+.cfoot{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<main class="pg" tabindex="0" aria-label="First start of Home Assistant">
+<sc-if value="{{isOld}}" hint-placeholder-val="{{ false }}"><div class="todayrow"><span class="tag td">Today</span></div></sc-if>
+<header class="intro">
+<span class="{{logoCls}}" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"></path></svg></span>
+<h1 class="tl">Preparing Home Assistant</h1>
+<p class="sub">The latest version of Home Assistant is being downloaded. This may take 20 minutes or more.</p>
+<sc-if value="{{isOld}}" hint-placeholder-val="{{ false }}">
+<div class="pbwrap">
+<div class="pb old" role="progressbar" aria-label="Preparing Home Assistant" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{prepNow}}"><span style="{{prepStyle}}">{{prepText}}</span></div>
+</div>
+</sc-if>
+<sc-if value="{{showCard}}" hint-placeholder-val="{{ true }}">
+<div class="pbwrap">
+<div class="pb" role="progressbar" aria-label="Preparing Home Assistant" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{prepNow}}"><span style="{{prepStyle}}"></span></div>
+<div class="pbrow"><svg class="ic s spin" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"></path></svg><span>{{prepLabel}}</span><span class="pct">{{prepText}}</span></div>
+</div>
+</sc-if>
+</header>
+
+<sc-if value="{{showCard}}" hint-placeholder-val="{{ true }}">
+<section class="card" aria-labelledby="bk-h">
+<div class="hrow">
+<span class="lead" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M12,3A9,9 0 0,0 3,12H0L4,16L8,12H5A7,7 0 0,1 12,5A7,7 0 0,1 19,12A7,7 0 0,1 12,19C10.5,19 9.09,18.5 7.94,17.7L6.5,19.14C8.04,20.3 9.94,21 12,21A9,9 0 0,0 21,12A9,9 0 0,0 12,3M14,12A2,2 0 0,0 12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12Z"></path></svg></span>
+<span class="grow"><h2 id="bk-h" class="tm">Restore a backup while you wait</h2><span class="sub">{{stepText}}</span></span>
+</div>
+<ol class="stp" aria-hidden="true"><sc-for list="{{steps}}" as="st" hint-placeholder-count="3"><li class="{{st.cls}}"><i></i><span>{{st.name}}</span></li></sc-for></ol>
+
+<sc-if value="{{isOffer}}" hint-placeholder-val="{{ true }}">
+<div class="acts in">
+<p class="bd" style="margin-bottom: 6px">Moving from another Home Assistant? Upload its backup now. It is restored as soon as Home Assistant is ready, so you do not have to wait here.</p>
+<sc-if value="{{hasMsg}}" hint-placeholder-val="{{ false }}"><div class="note" role="status" style="margin-bottom: 6px">{{msg}}</div></sc-if>
+<button class="btn fill w100" onClick="{{ choose }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M9,16V10H5L12,3L19,10H15V16H9M5,20V18H19V20H5Z"></path></svg>Choose backup file</button>
+<span class="sub center">A .tar file made by Home Assistant, from Settings &gt; System &gt; Backups.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isUploading}}" hint-placeholder-val="{{ false }}">
+<div class="acts in">
+<div class="frow"><span class="fic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"></path></svg></span><span class="grow"><span class="bl c1" title="{{fileName}}">{{fileName}}</span><span class="sub">{{upText}}</span></span><span class="pct">{{upPct}}</span></div>
+<div class="pb" role="progressbar" aria-label="Uploading the backup" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{upNow}}" style="margin-top: 6px"><span style="{{upStyle}}"></span></div>
+<div class="hrow" style="gap: 8px"><span class="sub" style="flex: 1; min-width: 0">Keep this page open until the upload finishes.</span><button class="btn text" onClick="{{ cancelUp }}">Cancel</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isError}}" hint-placeholder-val="{{ false }}">
+<div class="acts in">
+<div class="note bad" role="alert" style="margin-bottom: 6px"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg><span class="grow"><strong>This file is not a backup</strong><span style="overflow-wrap: anywhere">{{errText}}</span></span></div>
+<button class="btn fill w100" onClick="{{ choose }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M9,16V10H5L12,3L19,10H15V16H9M5,20V18H19V20H5Z"></path></svg>Try another file</button>
+<span class="sub center">Nothing was changed. Home Assistant keeps preparing.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isDetails}}" hint-placeholder-val="{{ false }}">
+<div class="acts in" style="gap: 12px">
+<div class="bk">
+<div class="frow"><span class="fic ok" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span><span class="grow"><span class="bl" style="font-weight: 500">Full backup 2026-11-20 03:00</span><span class="sub c1" title="{{fileName}}">Uploaded · {{fileName}}</span></span></div>
+<dl class="meta"><sc-for list="{{metas}}" as="m" hint-placeholder-count="4"><div><dt>{{m.k}}</dt><dd>{{m.v}}</dd></div></sc-for></dl>
+<span class="lm">What it holds</span>
+<ul class="holds"><sc-for list="{{holds}}" as="h" hint-placeholder-count="4"><li><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="{{h.icon}}"></path></svg><span>{{h.name}}</span></li></sc-for></ul>
+</div>
+
+<sc-if value="{{needKey}}" hint-placeholder-val="{{ false }}">
+<div class="keybox">
+<label for="bk-key">Backup encryption key</label>
+<div class="{{keyFieldCls}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,14A2,2 0 0,1 5,12A2,2 0 0,1 7,10A2,2 0 0,1 9,12A2,2 0 0,1 7,14M12.65,10C11.83,7.67 9.61,6 7,6A6,6 0 0,0 1,12A6,6 0 0,0 7,18C9.61,18 11.83,16.33 12.65,14H17V18H21V14H23V10H12.65Z"></path></svg><input id="bk-key" type="{{keyType}}" value="{{keyVal}}" onInput="{{ keySet }}" onKeyDown="{{ keyKey }}" aria-invalid="{{keyInvalid}}" aria-describedby="bk-key-help" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Enter the key"/><button class="ib" aria-label="Show the key" aria-pressed="{{keyShown}}" onClick="{{ keyEye }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{keyEyeIcon}}"></path></svg></button></div>
+<sc-if value="{{keyBad}}" hint-placeholder-val="{{ false }}"><div class="fmsg e" role="alert"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg><span>{{keyErr}}</span></div></sc-if>
+<sc-if value="{{keyOk}}" hint-placeholder-val="{{ false }}"><div class="fmsg k" role="status"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"></path></svg><span>Key accepted. This backup can be restored.</span></div></sc-if>
+<span id="bk-key-help" class="sub">{{keyHelp}}</span>
+<sc-if value="{{showCheck}}" hint-placeholder-val="{{ true }}"><button class="btn tonal w100" aria-disabled="{{checkBusy}}" onClick="{{ keyCheck }}"><sc-if value="{{isChecking}}" hint-placeholder-val="{{ false }}"><svg class="ic s spin" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"></path></svg></sc-if>{{checkText}}</button></sc-if>
+</div>
+</sc-if>
+
+<div class="acts">
+<button class="{{contCls}}" aria-disabled="{{contOff}}" aria-describedby="bk-cont-help" onClick="{{ cont }}">Continue</button>
+<span id="bk-cont-help" class="sub center">{{contHelp}}</span>
+<button class="btn text" style="align-self: center" onClick="{{ another }}">Choose another file</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isQueued}}" hint-placeholder-val="{{ false }}">
+<div class="acts in" style="gap: 10px">
+<div class="note good" role="status"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"></path></svg><span class="grow"><strong>Restore queued</strong><span>Your backup will be restored as soon as Home Assistant is ready. You can close this page or put your phone down: it carries on without you.</span></span></div>
+<span class="lm" id="mq-h">What happens next</span>
+<ol class="qs" aria-labelledby="mq-h">
+<sc-for list="{{qsteps}}" as="q" hint-placeholder-count="4"><li class="{{q.cls}}"><span class="qn" aria-hidden="true">{{q.n}}</span><span class="grow"><span class="bl">{{q.name}}</span><span class="sub">{{q.state}}</span><sc-if value="{{q.hasBar}}" hint-placeholder-val="{{ false }}"><div class="pb" role="progressbar" aria-label="Preparing Home Assistant" aria-valuemin="0" aria-valuemax="100" aria-valuenow="62"><span style="width: 62%"></span></div></sc-if></span></li></sc-for>
+</ol>
+<sc-if value="{{askCancel}}" hint-placeholder-val="{{ false }}">
+<div class="ask in" role="group" aria-label="Cancel the restore?">
+<span class="tm">Cancel the restore?</span>
+<span class="sub">Home Assistant keeps preparing. Your backup stays uploaded, so you can queue it again or set up without it.</span>
+<div class="cfoot" style="justify-content: flex-end"><button class="btn text" onClick="{{ cancelNo }}">Keep restore</button><button class="btn danger" onClick="{{ cancelYes }}">Cancel restore</button></div>
+</div>
+</sc-if>
+<sc-if value="{{showCancelBtn}}" hint-placeholder-val="{{ true }}">
+<div class="cfoot"><button class="btn text" onClick="{{ cancelAsk }}">Cancel restore</button><span class="sub" style="flex: 1; min-width: 140px; padding: 0 8px">Works until the restore starts.</span></div>
+</sc-if>
+</div>
+</sc-if>
+</section>
+</sc-if>
+
+<section class="card slim" aria-label="Details">
+<sc-if value="{{isOld}}" hint-placeholder-val="{{ false }}">
+<div class="oldacts">
+<button class="btn text" aria-expanded="{{detOpen}}" aria-controls="lp-det" onClick="{{ detFlip }}">{{detText}}</button>
+<sc-if value="{{showDet}}" hint-placeholder-val="{{ false }}"><button class="ib" aria-label="Download logs" onClick="{{ dlLogs }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"></path></svg></button></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{showCard}}" hint-placeholder-val="{{ true }}">
+<div class="hrow" style="gap: 4px">
+<button class="btn text" aria-expanded="{{detOpen}}" aria-controls="lp-det" onClick="{{ detFlip }}"><svg class="{{chevCls}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg>{{detText}}</button>
+<span style="flex: 1"></span>
+<sc-if value="{{showDet}}" hint-placeholder-val="{{ false }}"><button class="ib" aria-label="Download logs" onClick="{{ dlLogs }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"></path></svg></button></sc-if>
+</div>
+</sc-if>
+<div id="lp-det" class="{{detCls}}"><div class="detin"><div class="detpad">
+<sc-if value="{{showNet}}" hint-placeholder-val="{{ true }}"><div class="netrow"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16.36,14C16.44,13.34 16.5,12.68 16.5,12C16.5,11.32 16.44,10.66 16.36,10H19.74C19.9,10.64 20,11.31 20,12C20,12.69 19.9,13.36 19.74,14M14.59,19.56C15.19,18.45 15.65,17.25 15.97,16H18.92C17.96,17.65 16.43,18.93 14.59,19.56M14.34,14H9.66C9.56,13.34 9.5,12.68 9.5,12C9.5,11.32 9.56,10.65 9.66,10H14.34C14.43,10.65 14.5,11.32 14.5,12C14.5,12.68 14.43,13.34 14.34,14M12,19.96C11.17,18.76 10.5,17.43 10.09,16H13.91C13.5,17.43 12.83,18.76 12,19.96M8,8H5.08C6.03,6.34 7.57,5.06 9.4,4.44C8.8,5.55 8.35,6.75 8,8M5.08,16H8C8.35,17.25 8.8,18.45 9.4,19.56C7.57,18.93 6.03,17.65 5.08,16M4.26,14C4.1,13.36 4,12.69 4,12C4,11.31 4.1,10.64 4.26,10H7.64C7.56,10.66 7.5,11.32 7.5,12C7.5,12.68 7.56,13.34 7.64,14M12,4.03C12.83,5.23 13.5,6.57 13.91,8H10.09C10.5,6.57 11.17,5.23 12,4.03M18.92,8H15.97C15.65,6.75 15.19,5.55 14.59,4.44C16.43,5.07 17.96,6.34 18.92,8M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg><span class="grow"><span class="bl">Network check</span><span class="sub">Connected. No problem found.</span></span><span class="tag g">OK</span></div><span class="sub" style="padding: 0 4px">A network problem is never folded away: it is shown on the page itself as soon as it is found, as today.</span></sc-if>
+<div class="logs mono" role="log" tabindex="0" aria-label="Installation log"><sc-for list="{{logs}}" as="l" hint-placeholder-count="6"><div><span class="lt">{{l.t}}</span> <span class="lmsg">{{l.m}}</span></div></sc-for></div>
+<sc-if value="{{hasDlMsg}}" hint-placeholder-val="{{ false }}"><span class="sub" role="status" style="padding: 0 4px">{{dlMsg}}</span></sc-if>
+</div></div></div>
+</section>
+
+<footer class="foot">
+<button class="btn text neutral" aria-expanded="{{langOpen}}" aria-controls="lp-langs" aria-label="{{langLabel}}" onClick="{{ langFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12.87,15.07L10.33,12.56L10.36,12.53C12.1,10.59 13.34,8.36 14.07,6H17V4H10V2H8V4H1V6H12.17C11.5,7.92 10.44,9.75 9,11.35C8.07,10.32 7.3,9.19 6.69,8H4.69C5.42,9.63 6.42,11.17 7.67,12.56L2.58,17.58L4,19L9,14L12.11,17.11L12.87,15.07M18.5,10H16.5L12,22H14L15.12,19H19.87L21,22H23L18.5,10M15.88,17L17.5,12.67L19.12,17H15.88Z"></path></svg>{{lang}}<svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button>
+<div id="lp-langs"><sc-if value="{{showLangs}}" hint-placeholder-val="{{ false }}"><ul class="langs in" aria-label="Language"><sc-for list="{{langs}}" as="lg" hint-placeholder-count="3"><li><button aria-pressed="{{lg.on}}" onClick="{{ lg.pick }}"><span style="flex: 1">{{lg.name}}</span><sc-if value="{{lg.sel}}" hint-placeholder-val="{{ false }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></sc-if></button></li></sc-for></ul></sc-if></div>
+<a class="btn text neutral" href="https://www.home-assistant.io/getting-started/onboarding/" target="_blank" rel="noreferrer">Help</a>
+</footer>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#7DD3A8","#FFB874","#D0BCFF"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"stage":{"editor":"enum","options":["after","uploading","details","protected","wrong-key","upload-error","before"],"default":"after"},"$preview":{"width":390,"height":844}}'>
+// Sample upload: 1.3 GB at 38 MB/s. The board advances it in real time, one tick every half second.
+const TOTAL = 1300, RATE = 38, TICK = 500;
+const GOOD_KEY = 'K7QD-M2XR-9TBW';
+const PREP = { after: 38, uploading: 41, details: 44, 'protected': 44, 'wrong-key': 44, 'upload-error': 40, before: 38 };
+const I_EYE = 'M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z';
+const I_EYE_OFF = 'M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z';
+const HOLDS = [
+  ['Home Assistant settings', 'M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z'],
+  ['14 apps', 'M20.5,11H19V7C19,5.89 18.1,5 17,5H13V3.5A2.5,2.5 0 0,0 10.5,1A2.5,2.5 0 0,0 8,3.5V5H4A2,2 0 0,0 2,7V10.8H3.5C5,10.8 6.2,12 6.2,13.5C6.2,15 5,16.2 3.5,16.2H2V20A2,2 0 0,0 4,22H7.8V20.5C7.8,19 9,17.8 10.5,17.8C12,17.8 13.2,19 13.2,20.5V22H17A2,2 0 0,0 19,20V16H20.5A2.5,2.5 0 0,0 23,13.5A2.5,2.5 0 0,0 20.5,11Z'],
+  ['Media', 'M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M10,16V8L15,12'],
+  ['Share', 'M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z']
+];
+// Times and version match the other two boards: the download starts at 13:36:02, the restore is queued at 13:42.
+const LOGS = [
+  ['13:35:48', 'Starting the Supervisor'],
+  ['13:35:51', 'Network is connected'],
+  ['13:35:58', 'Fetching version information'],
+  ['13:36:02', 'Downloading Home Assistant Core 2026.11.3'],
+  ['13:37:20', 'Pulling image layers: 3 of 11'],
+  ['13:38:14', 'Pulling image layers: 4 of 11'],
+  ['13:38:52', 'Pulling image layers: 5 of 11']
+];
+const LOGS_Q = [
+  ['13:36:02', 'Downloading Home Assistant Core 2026.11.3'],
+  ['13:39:47', 'Download finished, checking the image'],
+  ['13:41:10', 'Installing Home Assistant Core'],
+  ['13:42:18', 'Backup uploaded: Full backup 2026-11-20 03:00 (1.3 GB)'],
+  ['13:42:36', 'Restore queued, it starts when the install is done'],
+  ['13:44:05', 'Installing Home Assistant Core: 62%']
+];
+const LANGS = ['English', 'Deutsch', 'Nederlands'];
+function fmtSize(mb) { return mb >= 1000 ? (Math.round(mb / 100) / 10) + ' GB' : Math.round(mb) + ' MB'; }
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this._t = null; this._k = null; }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  stopTimers() {
+    if (this._t) { clearInterval(this._t); this._t = null; }
+    if (this._k) { clearTimeout(this._k); this._k = null; }
+  }
+  reset(s) {
+    this.stopTimers();
+    this.det = false; this.msg = ''; this.dlMsg = ''; this.ask = false; this.langOpen = false; this.lang = this.lang || 'English';
+    this.key = ''; this.keyShown = false; this.keyState = 'idle';
+    this.prot = s === 'protected' || s === 'wrong-key';
+    this.nextProt = this.prot;
+    this.up = 0; this.file = 'full_backup_2026-11-20.tar';
+    this.prep = PREP[s] ?? 38;
+    this.mode = 'offer';
+    this.live = false;
+    if (s === 'uploading') { this.mode = 'uploading'; this.up = 412; }
+    if (s === 'details' || s === 'protected' || s === 'wrong-key') this.mode = 'details';
+    if (s === 'wrong-key') { this.key = 'K7QD-M2XR-9TBV'; this.keyState = 'bad'; }
+    if (s === 'upload-error') { this.mode = 'error'; this.file = 'holiday-photos.zip'; }
+  }
+  // The upload runs only in a browser; the timer is started lazily so a static render stays static.
+  tick() {
+    if (this._t || typeof document === 'undefined') return;
+    this._t = setInterval(() => {
+      if (this.mode !== 'uploading') { this.stopTimers(); return; }
+      this.up = Math.min(TOTAL, this.up + RATE * TICK / 1000);
+      if (this.up >= TOTAL) {
+        this.stopTimers();
+        this.mode = 'details'; this.prot = this.nextProt; this.key = ''; this.keyState = 'idle';
+        this.prep = Math.min(99, this.prep + 3);
+      }
+      this.bump();
+    }, TICK);
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    const s = this.stage();
+    const old = s === 'before';
+    const mode = this.mode;
+    // The uploading stage holds at 412 MB so it can be inspected; a run started with the button is live.
+    if (mode === 'uploading' && this.live) this.tick();
+
+    const pct = Math.floor(this.up / TOTAL * 100);
+    const left = Math.max(5, Math.ceil((TOTAL - this.up) / RATE / 5) * 5);
+    const needKey = mode === 'details' && this.prot;
+    const ks = this.keyState;
+    const keyOk = ks === 'ok';
+    const canGo = mode === 'details' && (!this.prot || keyOk);
+    const stepIdx = mode === 'details' ? 1 : mode === 'queued' ? 3 : 0;
+    let stepText = 'Step 1 of 3 · Upload the file';
+    if (mode === 'uploading') stepText = 'Step 1 of 3 · Uploading';
+    if (mode === 'details') stepText = needKey && !keyOk ? 'Step 2 of 3 · Enter the encryption key' : 'Step 2 of 3 · Check the details, then continue';
+    if (mode === 'queued') stepText = 'All done · You can leave now';
+
+    return {
+      accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still'),
+      isOld: old, showCard: !old, showNet: !old, logoCls: old ? 'logo old' : 'logo',
+      prepLabel: this.prep >= 60 ? 'Installing Home Assistant Core' : 'Downloading Home Assistant Core',
+      prepNow: String(this.prep), prepText: this.prep + '%', prepStyle: 'width: ' + this.prep + '%',
+      stepText,
+      steps: ['Upload', 'Check', 'Continue'].map((name, i) => ({ name, cls: i < stepIdx ? 'done' : i === stepIdx ? 'cur' : '' })),
+
+      isOffer: mode === 'offer', isUploading: mode === 'uploading', isError: mode === 'error', isDetails: mode === 'details', isQueued: mode === 'queued',
+      hasMsg: !!this.msg, msg: this.msg,
+      choose: () => { this.stopTimers(); this.mode = 'uploading'; this.live = true; this.up = 0; this.msg = ''; this.file = 'full_backup_2026-11-20.tar'; this.bump(); },
+      cancelUp: () => { this.stopTimers(); this.mode = 'offer'; this.up = 0; this.msg = 'Upload cancelled. Nothing was kept.'; this.bump(); },
+
+      fileName: this.file,
+      upText: fmtSize(this.up) + ' of ' + fmtSize(TOTAL) + ' · ' + RATE + ' MB/s · about ' + left + ' s left',
+      upPct: pct + '%', upNow: String(pct), upStyle: 'width: ' + pct + '%',
+      errText: this.file + ' is not a Home Assistant backup. Choose a .tar file made by Home Assistant.',
+
+      metas: [
+        { k: 'Created', v: '20 Nov 2026, 03:00' },
+        { k: 'Size', v: '1.3 GB' },
+        { k: 'Made with', v: 'Home Assistant 2026.11.1' },
+        { k: 'Protection', v: this.prot ? 'Protected with an encryption key' : 'Not protected' }
+      ],
+      holds: HOLDS.map((h) => ({ name: h[0], icon: h[1] })),
+
+      needKey,
+      keyVal: this.key, keyType: this.keyShown ? 'text' : 'password',
+      keyFieldCls: 'field' + (ks === 'bad' || ks === 'empty' ? ' bad' : keyOk ? ' good' : ''),
+      keyInvalid: ks === 'bad' || ks === 'empty' ? 'true' : 'false',
+      keySet: (e) => { this.key = e.target.value; if (this.keyState !== 'checking') this.keyState = 'idle'; this.bump(); },
+      keyKey: (e) => { if (e && e.key === 'Enter') this.check(); },
+      keyShown: this.keyShown ? 'true' : 'false',
+      keyEyeIcon: this.keyShown ? I_EYE_OFF : I_EYE,
+      keyEye: () => { this.keyShown = !this.keyShown; this.bump(); },
+      keyBad: ks === 'bad' || ks === 'empty',
+      keyErr: ks === 'empty' ? 'Enter the key first.' : 'That key does not open this backup. Check each group of letters and numbers, then try again.',
+      keyOk,
+      keyHelp: 'You find it in your old system under Settings > System > Backups, or in the emergency kit you downloaded.',
+      showCheck: !keyOk, isChecking: ks === 'checking', checkBusy: ks === 'checking' ? 'true' : 'false',
+      checkText: ks === 'checking' ? 'Checking the key' : 'Check key',
+      keyCheck: () => this.check(),
+
+      contCls: canGo ? 'btn fill w100' : 'btn off w100', contOff: canGo ? 'false' : 'true',
+      contHelp: canGo ? 'After this you can close the page. The restore starts by itself when Home Assistant is ready.' : 'Check the key to continue.',
+      cont: () => { if (!canGo) return; this.mode = 'queued'; this.ask = false; this.prep = 62; this.bump(); },
+      another: () => { this.stopTimers(); this.mode = 'offer'; this.msg = ''; this.nextProt = false; this.bump(); },
+      qsteps: [
+        { n: '1', cls: 'act', name: 'Preparing Home Assistant', state: 'In progress · 62%', hasBar: true },
+        { n: '2', cls: '', name: 'Restoring your backup', state: 'Queued at 13:42 · starts by itself', hasBar: false },
+        { n: '3', cls: '', name: 'Starting Home Assistant', state: 'Waiting', hasBar: false },
+        { n: '4', cls: '', name: 'Ready to sign in', state: 'Waiting · this page opens the sign-in screen', hasBar: false }
+      ],
+      askCancel: mode === 'queued' && this.ask, showCancelBtn: mode === 'queued' && !this.ask,
+      cancelAsk: () => { this.ask = true; this.bump(); },
+      cancelNo: () => { this.ask = false; this.bump(); },
+      cancelYes: () => { this.ask = false; this.mode = 'details'; this.bump(); },
+
+      lang: this.lang, langLabel: 'Language: ' + this.lang, langOpen: this.langOpen ? 'true' : 'false', showLangs: this.langOpen,
+      langFlip: () => { this.langOpen = !this.langOpen; this.bump(); },
+      langs: LANGS.map((name) => ({ name, sel: name === this.lang, on: name === this.lang ? 'true' : 'false', pick: () => { this.lang = name; this.langOpen = false; this.bump(); } })),
+
+      detOpen: this.det ? 'true' : 'false', detText: this.det ? 'Hide details' : 'Show details',
+      detCls: this.det ? 'det open' : 'det', chevCls: this.det ? 'ic s chev up' : 'ic s chev', showDet: this.det,
+      detFlip: () => { this.det = !this.det; this.dlMsg = ''; this.bump(); },
+      logs: (mode === 'queued' ? LOGS_Q : LOGS).map((l) => ({ t: l[0], m: l[1] })),
+      hasDlMsg: !!this.dlMsg, dlMsg: this.dlMsg,
+      dlLogs: () => { this.dlMsg = (mode === 'queued' ? 'Saved as home-assistant_2026-11-25_13-44.log' : 'Saved as home-assistant_2026-11-25_13-38.log'); this.bump(); }
+    };
+  }
+  check() {
+    if (this.keyState === 'checking' || this.keyState === 'ok') return;
+    const typed = (this.key || '').trim().toUpperCase();
+    if (!typed) { this.keyState = 'empty'; this.bump(); return; }
+    this.keyState = 'checking'; this.bump();
+    this._k = setTimeout(() => { this._k = null; this.keyState = typed === GOOD_KEY ? 'ok' : 'bad'; this.bump(); }, 700);
+  }
+}
+</script>
+</body>
+</html>

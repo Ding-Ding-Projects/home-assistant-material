@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>3D printer control card, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--on-err:#FFFFFF;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--on-err:#690005;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 h3,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.xs{width:16px;height:16px}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.c1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,background-color .2s}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.danger{box-shadow:inset 0 0 0 1px var(--err);color:var(--err)}
+.m3 .btn.dfill{background:var(--err);color:var(--on-err)}
+.m3 .btn.off{background:var(--sl3);color:var(--out);box-shadow:none;cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:20px;padding:1px 8px;border-radius:10px;background:var(--pc);color:var(--on-pc);font-size:11px;line-height:16px;font-weight:600;flex:none}
+.note{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note b{display:block;color:var(--on);font-size:14px;line-height:20px;font-weight:600}
+.in{animation:rise .22s ease both}
+.up{animation:up .25s ease both}
+.fade{animation:fade .2s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surf)}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 4px 8px 16px;flex:none;position:relative;z-index:5;background:var(--surf)}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.pg{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 12px 0}
+.endsp{flex:none;height:92px}
+.pbar{position:absolute;left:12px;right:12px;bottom:12px;height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);display:flex;align-items:center;padding:0 6px;z-index:10}
+.m3 .pbar button{flex:1;min-width:0;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;line-height:14px;font-weight:600;color:var(--onv)}
+.pbar .pi{width:48px;height:28px;border-radius:14px;display:grid;place-items:center;position:relative;transition:background-color .2s}
+.m3 .pbar button.on{color:var(--on)}
+.pbar button.on .pi{background:var(--sc);color:var(--on-sc)}
+.bdg{position:absolute;top:-4px;right:0;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--err);color:var(--on-err);font-size:10px;line-height:16px;font-weight:700;text-align:center}
+.m3 .sw{width:52px;height:32px;border-radius:16px;background:var(--sl4);box-shadow:inset 0 0 0 2px var(--out);position:relative;flex:none;display:block;transition:background-color .2s}
+.sw i{position:absolute;top:8px;left:8px;width:16px;height:16px;border-radius:12px;background:var(--out);transition:all .2s ease}
+.m3 .sw.on{background:var(--p);box-shadow:none}
+.sw.on i{left:24px;top:4px;width:24px;height:24px;background:var(--on-p)}
+.m3 .sw.dis{background:var(--sl3);box-shadow:inset 0 0 0 2px var(--outv)}
+.m3 .sw.dis i{background:var(--outv)}
+.m3 .sw.dis.on{background:var(--outv);box-shadow:none}
+.m3 .sw.dis.on i{background:var(--sl0)}
+
+/* the control card */
+.pcard{background:var(--sl0);border-radius:24px;padding:14px 16px 8px;display:flex;flex-direction:column;flex:none;min-width:0}
+.phead{display:flex;align-items:center;gap:12px;padding-bottom:12px}
+.pico{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--pc);color:var(--on-pc);flex:none;position:relative}
+.pico .dot{position:absolute;right:-2px;bottom:-2px;width:12px;height:12px;border-radius:6px;background:var(--green);box-shadow:0 0 0 2px var(--sl0)}
+.pico.gone{background:var(--sl3);color:var(--out)}
+.pico.gone .dot{background:var(--out)}
+.stg{display:inline-flex;align-items:center;gap:8px;min-height:28px;padding:2px 12px 2px 10px;border-radius:14px;font-size:12px;line-height:16px;font-weight:600;flex:none;max-width:150px}
+.stg i{width:8px;height:8px;border-radius:4px;background:currentColor;flex:none}
+.stg.run{background:var(--pc);color:var(--on-pc)}
+.stg.run i{background:var(--p);animation:pulse 1.8s ease-in-out infinite}
+.stg.pause{background:var(--amberc);color:var(--amber)}
+.stg.idle{background:var(--sl3);color:var(--onv)}
+.stg.gone{box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv)}
+.pcard .note{margin-bottom:8px}
+.grp{display:flex;flex-direction:column;box-shadow:0 -1px 0 var(--outv)}
+.m3 .ghead{display:flex;align-items:center;gap:10px;min-height:48px;width:100%;color:var(--onv);border-radius:12px}
+.ghead .gl{font-size:13px;line-height:18px;font-weight:600;letter-spacing:.2px;color:var(--on);flex:none}
+.ghead .gs{flex:1;min-width:0;text-align:right;font-size:12px;line-height:16px;color:var(--onv)}
+.chev{transition:transform .22s ease}
+.chev.open{transform:rotate(180deg)}
+.gbody{display:flex;flex-direction:column;gap:8px;padding:0 0 14px}
+.prow{display:flex;gap:8px}
+.prow .btn{flex:1;min-width:0;padding:0 12px}
+.why{display:flex;align-items:center;gap:8px;font-size:13px;line-height:18px;color:var(--onv)}
+.seg{display:flex;border-radius:24px;box-shadow:inset 0 0 0 1px var(--out);overflow:hidden}
+.m3 .seg button{flex:1;min-width:0;min-height:48px;display:grid;place-items:center;font-size:13px;font-weight:600;color:var(--on);box-shadow:inset -1px 0 0 var(--out);transition:background-color .2s}
+.m3 .seg button:last-child{box-shadow:none}
+.m3 .seg button.sel{background:var(--p);color:var(--on-p)}
+.seg.off{box-shadow:inset 0 0 0 1px var(--outv)}
+.m3 .seg.off button{color:var(--out);box-shadow:inset -1px 0 0 var(--outv);cursor:not-allowed}
+.m3 .seg.off button:last-child{box-shadow:none}
+.m3 .seg.off button.sel{background:var(--sl3);color:var(--onv)}
+.trow{display:flex;align-items:center;gap:12px;min-height:52px}
+.tnm{font-size:15px;line-height:20px;display:flex;align-items:center;gap:8px;min-width:0}
+.tnow{display:flex;align-items:center;gap:4px}
+.mk.heat{color:var(--amber)}
+.mk.cool{color:var(--p)}
+.mk.hold{color:var(--green)}
+.stp{display:flex;align-items:center;background:var(--sl2);border-radius:24px;flex:none}
+.m3 .sb{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--p);transition:background-color .2s}
+.m3 .sb:hover{background:var(--sl3)}
+.m3 .sb.off{color:var(--out);cursor:not-allowed}
+.m3 .sb.off:hover{background:none}
+.sv{min-width:62px;text-align:center;font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.sv.off{color:var(--onv);font-weight:500}
+.frow{display:flex;flex-direction:column;padding-top:6px}
+.fnm{display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-width:0}
+.fnm .tnm{display:block}
+.fnm .sub{font-variant-numeric:tabular-nums;flex:none}
+.fct{display:flex;align-items:center;gap:10px}
+.m3 .swb{width:56px;height:48px;display:grid;place-items:center;flex:none;border-radius:16px}
+.rng{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:48px;margin:0;background:transparent;cursor:pointer;--rp:var(--p)}
+.rng:disabled{--rp:var(--out);cursor:not-allowed}
+.rng::-webkit-slider-runnable-track{height:14px;border-radius:7px;background:linear-gradient(to right,transparent var(--v),var(--sl4) var(--v)),repeating-linear-gradient(90deg,var(--rp) 0 3px,color-mix(in srgb,var(--rp) 50%,transparent) 3px 5px)}
+.rng::-moz-range-track{height:14px;border-radius:7px;background:linear-gradient(to right,transparent var(--v),var(--sl4) var(--v)),repeating-linear-gradient(90deg,var(--rp) 0 3px,color-mix(in srgb,var(--rp) 50%,transparent) 3px 5px)}
+.rng::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:6px;height:30px;margin-top:-8px;border-radius:3px;background:var(--rp);box-shadow:0 0 0 4px var(--sl0)}
+.rng::-moz-range-thumb{width:6px;height:30px;border:0;border-radius:3px;background:var(--rp);box-shadow:0 0 0 4px var(--sl0)}
+.tiles{display:flex;gap:8px}
+.m3 .lt{flex:1;min-width:0;min-height:64px;border-radius:18px;padding:8px 14px;display:flex;align-items:center;gap:12px;background:var(--sl2);color:var(--onv);transition:background-color .2s,color .2s}
+.lt .tnm{color:var(--on);display:block}
+.m3 .lt.on{background:var(--pc);color:var(--on-pc)}
+.lt.on .tnm,.lt.on .sub{color:inherit}
+.m3 .lt.off{cursor:not-allowed}
+.lt.off .tnm{color:var(--onv)}
+.m3 .swrow{display:flex;align-items:center;gap:12px;min-height:48px;width:100%;border-radius:12px;font-size:15px;color:var(--on)}
+.swrow .ic{color:var(--onv)}
+.m3 .swrow.off{cursor:not-allowed;color:var(--onv)}
+.mrow{display:flex;align-items:center;gap:12px;min-height:48px}
+.mrow .seg{flex:none;width:188px}
+.acts{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px}
+.acts .btn{flex:1 1 140px;min-width:0;padding:0 12px}
+.tstrip{position:absolute;left:12px;right:12px;bottom:88px;z-index:8}
+.tst{background:var(--inv);color:var(--on-inv);border-radius:16px;padding:0 0 0 16px;display:flex;align-items:center;gap:4px;box-shadow:var(--e3);font-size:13px;line-height:18px;min-height:48px}
+.tst .msg{flex:1;min-width:0;padding:6px 0}
+.m3 .tst .ib{color:inherit}
+.m3 .tst .ib:hover{background:transparent}
+.scrim{position:absolute;inset:0;background:var(--scrim);z-index:29}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:30;background:var(--sl1);color:var(--on);border-radius:28px 28px 0 0;padding:8px 20px 24px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--e3)}
+.sheet .grab{width:32px;height:4px;border-radius:2px;background:var(--out);align-self:center;margin-bottom:8px}
+.sheet .sico{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;background:var(--errc);color:var(--on-errc)}
+.sheet h2{font-size:20px;line-height:26px;font-weight:500}
+.sheet p{color:var(--onv);font-size:14px;line-height:20px}
+.sheet .jobline{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:16px;background:var(--sl2)}
+.lbar{height:10px;border-radius:5px;background:linear-gradient(to right,transparent var(--v),var(--sl4) var(--v)),repeating-linear-gradient(90deg,var(--p) 0 3px,color-mix(in srgb,var(--p) 50%,transparent) 3px 5px)}
+.sheet .sact{display:flex;gap:8px;padding-top:4px}
+.sheet .sact .btn{flex:1;min-width:0;padding:0 12px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<div class="bar">
+<h1 class="c1">Workshop</h1>
+<button class="ib" aria-label="Edit dashboard"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"></path></svg></button>
+<button class="ib" aria-label="More options"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button>
+</div>
+<div class="pg" tabindex="0" role="region" aria-label="Dashboard cards">
+<section class="pcard" aria-label="{{cardLabel}}">
+<div class="phead">
+<span class="{{picoCls}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,2H17V8H19V13H16.5L13,17H11L7.5,13H5V8H7V2M10,22H2V20H10A1,1 0 0,0 11,19V18H13V19A3,3 0 0,1 10,22Z"></path></svg><span class="dot" role="img" aria-label="{{onlineText}}"></span></span>
+<div class="grow"><h2 class="tm c1">{{name}}</h2><span class="sub c1">{{headSub}}</span></div>
+<span class="{{stgCls}}" role="status"><i aria-hidden="true"></i><span class="c1">{{stageText}}</span></span>
+</div>
+<sc-if value="{{offline}}" hint-placeholder-val="{{ false }}">
+<div class="note in" role="status"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg><span><b>The printer is offline</b>Offline since 18:03. The controls come back when it reconnects.</span></div>
+</sc-if>
+
+<div class="grp">
+<h3><button class="ghead" aria-expanded="{{printAria}}" aria-controls="g-print" onClick="{{ printFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M8,5.14V19.14L19,12.14L8,5.14Z"></path></svg><span class="gl">Print</span><span class="gs c1">{{printSum}}</span><svg class="{{printChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></h3>
+<sc-if value="{{printOpen}}" hint-placeholder-val="{{ true }}">
+<div class="gbody in" id="g-print">
+<div class="prow">
+<sc-if value="{{showPause}}" hint-placeholder-val="{{ true }}"><button class="{{pauseCls}}" aria-disabled="{{printOffAria}}" onClick="{{ pause }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M14,19H18V5H14M6,19H10V5H6V19Z"></path></svg>Pause</button></sc-if>
+<sc-if value="{{showResume}}" hint-placeholder-val="{{ false }}"><button class="btn fill" onClick="{{ resume }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M8,5.14V19.14L19,12.14L8,5.14Z"></path></svg>Resume</button></sc-if>
+<button class="{{stopCls}}" data-stop="1" aria-haspopup="dialog" aria-disabled="{{printOffAria}}" onClick="{{ askStop }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M18,18H6V6H18V18Z"></path></svg>Stop</button>
+</div>
+<sc-if value="{{hasPrintWhy}}" hint-placeholder-val="{{ false }}"><p class="why"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg>{{printWhy}}</p></sc-if>
+</div>
+</sc-if>
+</div>
+
+<div class="grp">
+<h3><button class="ghead" aria-expanded="{{speedAria}}" aria-controls="g-speed" onClick="{{ speedFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A3,3 0 0,1 9,13C9,11.88 9.61,10.9 10.5,10.39L20.21,4.77L14.68,14.35C14.18,15.33 13.17,16 12,16M12,3C13.81,3 15.5,3.5 16.97,4.32L14.87,5.53C14,5.19 13,5 12,5A8,8 0 0,0 4,13C4,15.21 4.89,17.21 6.34,18.65H6.35C6.74,19.04 6.74,19.67 6.35,20.06C5.96,20.45 5.32,20.45 4.93,20.07V20.07C3.12,18.26 2,15.76 2,13A10,10 0 0,1 12,3M22,13C22,15.76 20.88,18.26 19.07,20.07V20.07C18.68,20.45 18.05,20.45 17.66,20.06C17.27,19.67 17.27,19.04 17.66,18.65V18.65C19.11,17.2 20,15.21 20,13C20,12 19.81,11 19.46,10.1L20.67,8C21.5,9.5 22,11.18 22,13Z"></path></svg><span class="gl">Speed</span><span class="gs c1">{{speedSum}}</span><svg class="{{speedChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></h3>
+<sc-if value="{{speedOpen}}" hint-placeholder-val="{{ true }}">
+<div class="gbody in" id="g-speed">
+<div class="{{speedSeg}}" role="radiogroup" aria-label="Printing speed">
+<sc-for list="{{speeds}}" as="sp" hint-placeholder-count="4"><button class="{{sp.cls}}" role="radio" aria-checked="{{sp.aria}}" aria-disabled="{{sp.off}}" onClick="{{ sp.pick }}">{{sp.name}}</button></sc-for>
+</div>
+<p class="why">{{speedNote}}</p>
+</div>
+</sc-if>
+</div>
+
+<div class="grp">
+<h3><button class="ghead" aria-expanded="{{tempAria}}" aria-controls="g-temp" onClick="{{ tempFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M15,13V5A3,3 0 0,0 9,5V13A5,5 0 1,0 15,13M12,4A1,1 0 0,1 13,5V8H11V5A1,1 0 0,1 12,4Z"></path></svg><span class="gl">Temperature</span><span class="gs c1">{{tempSum}}</span><svg class="{{tempChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></h3>
+<sc-if value="{{tempOpen}}" hint-placeholder-val="{{ true }}">
+<div class="gbody in" id="g-temp" style="gap: 4px">
+<sc-for list="{{temps}}" as="t" hint-placeholder-count="4">
+<div class="trow">
+<span class="grow"><span class="tnm"><span class="c1">{{t.name}}</span><sc-if value="{{t.active}}" hint-placeholder-val="{{ false }}"><span class="tag">Active</span></sc-if></span><span class="sub tnow"><sc-if value="{{t.marked}}" hint-placeholder-val="{{ true }}"><svg class="{{t.markCls}}" aria-hidden="true" viewBox="0 0 24 24"><path d="{{t.markPath}}"></path></svg></sc-if><span class="c1">{{t.now}}</span></span></span>
+<div class="stp" role="group" aria-label="{{t.groupLabel}}">
+<button class="{{t.downCls}}" aria-label="{{t.downLabel}}" aria-disabled="{{t.downOff}}" onClick="{{ t.down }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H5V11H19V13Z"></path></svg></button>
+<output class="{{t.valCls}}" aria-live="polite">{{t.target}}</output>
+<button class="{{t.upCls}}" aria-label="{{t.upLabel}}" aria-disabled="{{t.upOff}}" onClick="{{ t.up }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg></button>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+<div class="grp">
+<h3><button class="ghead" aria-expanded="{{fansAria}}" aria-controls="g-fans" onClick="{{ fansFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,11A1,1 0 0,0 11,12A1,1 0 0,0 12,13A1,1 0 0,0 13,12A1,1 0 0,0 12,11M12.5,2C17,2 17.11,5.57 14.75,6.75C13.76,7.24 13.32,8.29 13.13,9.22C13.61,9.42 14.03,9.73 14.35,10.13C18.05,8.13 22.03,8.92 22.03,12.5C22.03,17 18.46,17.1 17.28,14.73C16.78,13.74 15.72,13.3 14.79,13.11C14.59,13.59 14.28,14 13.88,14.34C15.87,18.03 15.08,22 11.5,22C7,22 6.91,18.42 9.27,17.24C10.25,16.75 10.69,15.71 10.89,14.79C10.4,14.59 9.97,14.27 9.65,13.87C5.96,15.85 2,15.07 2,11.5C2,7 5.56,6.89 6.74,9.26C7.24,10.25 8.29,10.68 9.22,10.87C9.41,10.39 9.73,9.97 10.14,9.65C8.15,5.96 8.94,2 12.5,2Z"></path></svg><span class="gl">Fans</span><span class="gs c1">{{fansSum}}</span><svg class="{{fansChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></h3>
+<sc-if value="{{fansOpen}}" hint-placeholder-val="{{ true }}">
+<div class="gbody in" id="g-fans" style="gap: 0">
+<sc-for list="{{fans}}" as="f" hint-placeholder-count="4">
+<div class="frow">
+<span class="fnm"><span class="tnm c1">{{f.name}}</span><span class="sub">{{f.text}}</span></span>
+<div class="fct">
+<sc-if value="{{f.live}}" hint-placeholder-val="{{ true }}"><input class="rng" type="range" min="0" max="100" step="10" value="{{f.pct}}" style="{{f.fill}}" aria-label="{{f.sliderLabel}}" onInput="{{ f.set }}" onPointerDown="{{ f.grab }}" onPointerUp="{{ f.drop }}" onBlur="{{ f.drop }}"/></sc-if>
+<sc-if value="{{f.dead}}" hint-placeholder-val="{{ false }}"><input class="rng" type="range" min="0" max="100" step="10" value="{{f.pct}}" style="{{f.fill}}" aria-label="{{f.sliderLabel}}" disabled="disabled"/></sc-if>
+<button class="swb" role="switch" aria-checked="{{f.aria}}" aria-label="{{f.swLabel}}" aria-disabled="{{f.off}}" onClick="{{ f.flip }}"><span class="{{f.sw}}"><i></i></span></button>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+<div class="grp">
+<h3><button class="ghead" aria-expanded="{{lightsAria}}" aria-controls="g-lights" onClick="{{ lightsFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z"></path></svg><span class="gl">Lights</span><span class="gs c1">{{lightsSum}}</span><svg class="{{lightsChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></h3>
+<sc-if value="{{lightsOpen}}" hint-placeholder-val="{{ true }}">
+<div class="gbody in" id="g-lights">
+<div class="tiles">
+<sc-for list="{{lights}}" as="l" hint-placeholder-count="2"><button class="{{l.cls}}" role="switch" aria-label="{{l.name}}" aria-checked="{{l.aria}}" aria-disabled="{{l.off}}" onClick="{{ l.flip }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{l.icon}}"></path></svg><span class="grow"><span class="tnm c1">{{l.name}}</span><span class="sub">{{l.text}}</span></span></button></sc-for>
+</div>
+</div>
+</sc-if>
+</div>
+
+<div class="grp">
+<h3><button class="ghead" aria-expanded="{{moreAria}}" aria-controls="g-more" onClick="{{ moreFlip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,17V19H9V17H3M3,5V7H13V5H3M13,21V19H21V17H13V15H11V21H13M7,9V11H3V13H7V15H9V9H7M21,13V11H11V13H21M15,9H17V7H21V5H17V3H15V9Z"></path></svg><span class="gl">More</span><span class="gs c1">{{moreSum}}</span><svg class="{{moreChev}}" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></h3>
+<sc-if value="{{moreOpen}}" hint-placeholder-val="{{ true }}">
+<div class="gbody in" id="g-more" style="gap: 4px">
+<sc-if value="{{hasAirduct}}" hint-placeholder-val="{{ true }}">
+<div class="mrow"><span class="grow"><span class="tnm">Airduct mode</span></span>
+<div class="{{airSeg}}" role="radiogroup" aria-label="Airduct mode"><sc-for list="{{airModes}}" as="am" hint-placeholder-count="2"><button class="{{am.cls}}" role="radio" aria-checked="{{am.aria}}" aria-disabled="{{am.off}}" onClick="{{ am.pick }}">{{am.name}}</button></sc-for></div>
+</div>
+</sc-if>
+<sc-for list="{{switches}}" as="w" hint-placeholder-count="2"><button class="{{w.cls}}" role="switch" aria-checked="{{w.aria}}" aria-disabled="{{w.off}}" onClick="{{ w.flip }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="{{w.icon}}"></path></svg><span class="grow">{{w.name}}</span><span class="{{w.sw}}"><i></i></span></button></sc-for>
+<div class="acts">
+<sc-if value="{{hasBuzzer}}" hint-placeholder-val="{{ true }}"><button class="{{actCls}}" aria-disabled="{{allOffAria}}" onClick="{{ silence }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.84,22.73L18.11,20H3V19L5,17V11C5,9.86 5.29,8.73 5.83,7.72L1.11,3L2.39,1.73L22.11,21.46L20.84,22.73M19,15.8V11C19,7.9 16.97,5.17 14,4.29C14,4.19 14,4.1 14,4A2,2 0 0,0 12,2A2,2 0 0,0 10,4C10,4.1 10,4.19 10,4.29C9.39,4.47 8.8,4.74 8.26,5.09L19,15.8M12,23A2,2 0 0,0 14,21H10A2,2 0 0,0 12,23Z"></path></svg>Silence buzzer</button></sc-if>
+<button class="{{actCls}}" aria-disabled="{{allOffAria}}" onClick="{{ refresh }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg>Force refresh</button>
+<sc-if value="{{hasRack}}" hint-placeholder-val="{{ false }}">
+<button class="{{actCls}}" aria-disabled="{{allOffAria}}" onClick="{{ rackUp }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,20H11V8L5.5,13.5L4.08,12.08L12,4.16L19.92,12.08L18.5,13.5L13,8V20Z"></path></svg>Raise rack</button>
+<button class="{{actCls}}" aria-disabled="{{allOffAria}}" onClick="{{ rackDown }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,4H13V16L18.5,10.5L19.92,11.92L12,19.84L4.08,11.92L5.5,10.5L11,16V4Z"></path></svg>Lower rack</button>
+</sc-if>
+</div>
+</div>
+</sc-if>
+</div>
+</section>
+<div class="endsp" aria-hidden="true"></div>
+</div>
+
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}">
+<div class="tstrip"><div class="tst up" role="status"><span class="msg">{{toastText}}</span><button class="ib" aria-label="Dismiss" onClick="{{ toastHide }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div></div>
+</sc-if>
+
+<nav class="pbar" aria-label="Main">
+<button class="on" aria-current="page"><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"></path></svg></span>Home</button>
+<button><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></span>Search</button>
+<button aria-label="Pages, 21 updates"><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M13,3V9H21V3M13,21H21V11H13M3,21H11V15H3M3,13H11V3H3V13Z"></path></svg><span class="bdg" aria-hidden="true">21</span></span>Pages</button>
+<button aria-label="Settings, 4 updates"><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"></path></svg><span class="bdg" aria-hidden="true">4</span></span>Settings</button>
+<button><span class="pi"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg></span>Menu</button>
+</nav>
+
+<sc-if value="{{confirmOpen}}" hint-placeholder-val="{{ false }}">
+<div class="scrim fade" onClick="{{ keep }}"></div>
+<div class="sheet up" data-sheet="1" role="alertdialog" aria-modal="true" aria-labelledby="stop-title" aria-describedby="stop-text" onKeyDown="{{ sheetKey }}">
+<span class="grab" aria-hidden="true"></span>
+<span class="sico"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M18,18H6V6H18V18Z"></path></svg></span>
+<h2 id="stop-title">Stop this print?</h2>
+<p id="stop-text">It cannot be resumed.</p>
+<div class="jobline"><span class="tnm"><span class="c1">{{stopJob}}</span></span><sc-if value="{{stopHasBar}}" hint-placeholder-val="{{ true }}"><div class="lbar" style="{{stopFill}}" role="img" aria-label="{{stopDetail}}"></div></sc-if><span class="sub">{{stopDetail}}</span></div>
+<div class="sact"><button class="btn tonal" data-keep="1" onClick="{{ keep }}">Keep printing</button><button class="btn dfill" onClick="{{ stopNow }}">Stop print</button></div>
+</div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#7DD3A8","#FFB874","#D0BCFF"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"stage":{"editor":"enum","options":["after","paused","stop-confirm","idle","single","offline"],"default":"after"},"$preview":{"width":390,"height":844}}'>
+// Entity keys come from the bambu_lab integration: buttons pause / resume / stop / refresh / buzzer_silence /
+// hotend_rack_raise / hotend_rack_lower, select printing_speed and airduct_mode, numbers target_*_temperature,
+// fans cooling_fan / aux_fan / chamber_fan / exhaust_fan, lights chamber_light / heatbed_light, switches camera / prompt_sound.
+const PRINTERS = {
+  h2d: { name: 'Workshop H2D', model: 'H2D', dual: true, chamber: true, exhaust: true, heatbed: true, airduct: true, sound: true, rack: false, buzzer: true, job: 'Bracket v3', pct: 62, layer: 'Layer 236 of 380 · 62% done' },
+  p1s: { name: 'Office P1S', model: 'P1S', dual: false, chamber: false, exhaust: false, heatbed: false, airduct: false, sound: false, rack: false, buzzer: false, job: 'Cable clips x6', pct: 41, layer: 'Layer 82 of 200 · 41% done' }
+};
+const SPEEDS = [['silent', 'Silent', '50%'], ['standard', 'Standard', '100%'], ['sport', 'Sport', '124%'], ['ludicrous', 'Ludicrous', '166%']];
+const ICON = {
+  up: 'M13,20H11V8L5.5,13.5L4.08,12.08L12,4.16L19.92,12.08L18.5,13.5L13,8V20Z',
+  down: 'M11,4H13V16L18.5,10.5L19.92,11.92L12,19.84L4.08,11.92L5.5,10.5L11,16V4Z',
+  hold: 'M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z',
+  bulb: 'M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z',
+  bed: 'M3,4H21V8H19V20H17V8H7V20H5V8H3V4M8,10H16V12H8V10M8,14H16V16H8V14Z',
+  camera: 'M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z',
+  sound: 'M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z'
+};
+const GROUPS = ['print', 'speed', 'temp', 'fans', 'lights', 'more'];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.reset('after'); }
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  reset(s) {
+    const single = s === 'single';
+    this.pk = single ? 'p1s' : 'h2d';
+    this.st = s === 'paused' ? 'pause' : s === 'idle' ? 'idle' : s === 'offline' ? 'offline' : 'running';
+    const cold = this.st === 'idle' || this.st === 'offline';
+    this.confirm = s === 'stop-confirm';
+    this.speed = 'standard';
+    this.air = 'cooling';
+    this.open = { print: true, speed: true, temp: true, fans: true, lights: true, more: true };
+    this.toast = null;
+    if (single) {
+      this.temps = [{ k: 'nozzle', name: 'Nozzle', now: 219, target: 220, max: 300 }, { k: 'bed', name: 'Bed', now: 55, target: 55, max: 120 }];
+    } else if (cold) {
+      this.temps = [{ k: 'left', name: 'Left nozzle', now: 27, target: 0, max: 320 }, { k: 'right', name: 'Right nozzle', now: 26, target: 0, max: 320 }, { k: 'bed', name: 'Bed', now: 25, target: 0, max: 120 }, { k: 'chamber', name: 'Chamber', now: 24, target: 0, max: 65 }];
+    } else {
+      this.temps = [{ k: 'left', name: 'Left nozzle', now: 218, target: 220, max: 320, active: true }, { k: 'right', name: 'Right nozzle', now: 38, target: 0, max: 320 }, { k: 'bed', name: 'Bed', now: 65, target: 65, max: 120 }, { k: 'chamber', name: 'Chamber', now: 34, target: 0, max: 65 }];
+    }
+    const fan = (k, name, pct) => ({ k, name, pct: cold ? 0 : pct, on: !cold && pct > 0, last: pct || 100 });
+    this.fans = [fan('cooling', 'Part cooling fan', 100), fan('aux', 'Aux fan', 60), fan('chamber', 'Chamber fan', 40)];
+    if (!single) this.fans.push(fan('exhaust', 'Exhaust fan', 0));
+    this.lights = [{ k: 'chamber', name: 'Chamber light', on: true, icon: ICON.bulb }];
+    if (!single) this.lights.push({ k: 'heatbed', name: 'Heatbed light', on: false, icon: ICON.bed });
+    this.sw = [{ k: 'camera', name: 'Camera', on: true, icon: ICON.camera }];
+    if (!single) this.sw.push({ k: 'sound', name: 'Prompt sound', on: true, icon: ICON.sound });
+  }
+  say(text) {
+    this.toast = text;
+    try { clearTimeout(this._tt); this._tt = setTimeout(() => { this.toast = null; this.bump(); }, 3200); } catch (e) {}
+    this.bump();
+  }
+  // Finds an element in the board, whether it is rendered in the page or inside a shadow root.
+  find(sel) {
+    try {
+      if (this._root && this._root.querySelector) { const a = this._root.querySelector(sel); if (a) return a; }
+      if (typeof document === 'undefined') return null;
+      const b = document.querySelector(sel); if (b) return b;
+      const all = document.querySelectorAll('*');
+      for (let i = 0; i < all.length; i++) { const sr = all[i].shadowRoot; if (sr) { const c = sr.querySelector(sel); if (c) { this._root = sr; return c; } } }
+    } catch (e) {}
+    return null;
+  }
+  focusOn(sel) { try { setTimeout(() => { try { const el = this.find(sel); if (el) el.focus(); } catch (e) {} }, 60); } catch (e) {} }
+  // Keeps Tab inside the stop sheet while it is open.
+  trapTab(e) {
+    try {
+      const sheet = this.find('[data-sheet]'); if (!sheet) return;
+      const items = Array.prototype.slice.call(sheet.querySelectorAll('button'));
+      if (!items.length) return;
+      const root = sheet.getRootNode ? sheet.getRootNode() : document;
+      const i = items.indexOf(root.activeElement);
+      let next = null;
+      if (i < 0) next = items[0];
+      else if (e.shiftKey && i === 0) next = items[items.length - 1];
+      else if (!e.shiftKey && i === items.length - 1) next = items[0];
+      if (next) { if (e.preventDefault) e.preventDefault(); next.focus(); }
+    } catch (err) {}
+  }
+  keepRoot(e) { try { if (e && e.currentTarget && e.currentTarget.getRootNode) this._root = e.currentTarget.getRootNode(); } catch (err) {} }
+  closeSheet() { this.confirm = false; this.bump(); this.focusOn('[data-stop]'); }
+  escape() {
+    if (this._esc || typeof document === 'undefined') return;
+    this._esc = true;
+    try { document.addEventListener('keydown', (e) => { if (!this.confirm) return; if (e.key === 'Escape') this.closeSheet(); else if (e.key === 'Tab') this.trapTab(e); }, true); } catch (e) {}
+  }
+  renderVals() {
+    const v = this.base();
+    this.stage();
+    this.escape();
+    const P = PRINTERS[this.pk];
+    const st = this.st;
+    const offline = st === 'offline';
+    const printOff = st === 'idle' || offline;
+    const yes = (b) => (b ? 'true' : 'false');
+    // Move focus into the stop sheet whenever it appears, including when the board opens on that stage.
+    const sheetUp = this.confirm && !printOff;
+    if (sheetUp && !this._sheetFocus) { this._sheetFocus = true; this.focusOn('[data-keep]'); }
+    if (!sheetUp) this._sheetFocus = false;
+
+    // group disclosure state
+    GROUPS.forEach((g) => {
+      const o = !!this.open[g];
+      v[g + 'Open'] = o; v[g + 'Aria'] = yes(o); v[g + 'Chev'] = 'ic chev' + (o ? ' open' : '');
+      v[g + 'Flip'] = () => { const n = Object.assign({}, this.open); n[g] = !o; this.open = n; this.bump(); };
+    });
+
+    const speed = SPEEDS.find((x) => x[0] === this.speed) || SPEEDS[1];
+    const temps = this.temps.map((t) => {
+      const d = t.target - t.now;
+      let kind = '', word = '';
+      // With a target set: heating below it, cooling 3 °C or more above it, otherwise at target. With the target off: cooling while still warm.
+      if (t.target > 0) {
+        if (d >= 2) { kind = 'heat'; word = 'heating'; }
+        else if (d <= -3) { kind = 'cool'; word = 'cooling'; }
+        else { kind = 'hold'; word = 'at target'; }
+      } else if (t.now > 35) { kind = 'cool'; word = 'cooling'; }
+      // The first raise from Off jumps to a usable target instead of 5 °C.
+      const first = Math.min(t.max, t.k === 'bed' ? 60 : t.k === 'chamber' ? 35 : 220);
+      const isOff = t.target <= 0;
+      const set = (val) => { if (offline) return; const c = Math.max(0, Math.min(t.max, val)); if (c === t.target) return; this.temps = this.temps.map((x) => (x.k === t.k ? Object.assign({}, x, { target: c }) : x)); this.bump(); };
+      const downOff = offline || t.target <= 0, upOff = offline || t.target >= t.max;
+      const low = t.name.toLowerCase();
+      return {
+        name: t.name, active: !!t.active && !printOff, marked: !!kind && !offline,
+        markCls: 'ic xs mk ' + (kind || 'hold'), markPath: kind === 'heat' ? ICON.up : kind === 'cool' ? ICON.down : ICON.hold,
+        now: offline ? t.now + ' °C last seen' : t.now + ' °C now' + (word ? ' · ' + word : ''),
+        target: t.target > 0 ? t.target + ' °C' : 'Off', valCls: t.target > 0 && !offline ? 'sv' : 'sv off',
+        groupLabel: 'Target for the ' + low,
+        downLabel: 'Lower the ' + low + ' target by 5 °C', upLabel: isOff ? 'Set the ' + low + ' target to ' + first + ' °C' : 'Raise the ' + low + ' target by 5 °C',
+        downCls: downOff ? 'sb off' : 'sb', upCls: upOff ? 'sb off' : 'sb', downOff: yes(downOff), upOff: yes(upOff),
+        down: () => set(t.target - 5), up: () => set(isOff ? first : t.target + 5)
+      };
+    });
+    const nozzleMax = Math.max.apply(null, this.temps.filter((t) => t.k !== 'bed' && t.k !== 'chamber').map((t) => t.target));
+    const bedT = (this.temps.find((t) => t.k === 'bed') || { target: 0 }).target;
+    const tempSum = nozzleMax <= 0 && bedT <= 0 ? 'All off' : 'Nozzle ' + (nozzleMax > 0 ? nozzleMax + ' °C' : 'off') + ' · bed ' + (bedT > 0 ? bedT + ' °C' : 'off');
+
+    const setFan = (k, patch) => { if (offline) return; this.fans = this.fans.map((x) => (x.k === k ? Object.assign({}, x, patch) : x)); this.bump(); };
+    const fans = this.fans.map((f) => {
+      const pct = f.on ? f.pct : 0;
+      const low = f.name.toLowerCase();
+      return {
+        name: f.name, text: f.on ? pct + '%' : 'Off', pct: String(pct), fill: '--v: ' + pct + '%',
+        live: !offline, dead: offline, sliderLabel: 'Speed of the ' + low + ', percent', swLabel: f.name,
+        aria: yes(f.on), off: yes(offline), sw: 'sw' + (f.on ? ' on' : '') + (offline ? ' dis' : ''),
+        // 'last' is the speed to return to. A drag that ends at zero keeps the speed from before the drag.
+        grab: () => { this._drag = { k: f.k, from: f.on ? f.pct : 0, held: true, t: Date.now() }; },
+        drop: () => { if (this._drag) this._drag.held = false; },
+        set: (e) => {
+          const n = Math.max(0, Math.min(100, Math.round(Number(e.target.value) / 10) * 10));
+          const now = Date.now(); let d = this._drag;
+          if (!d || d.k !== f.k || (!d.held && now - d.t > 1200)) d = this._drag = { k: f.k, from: f.on ? f.pct : 0, held: false };
+          d.t = now;
+          setFan(f.k, n > 0 ? { pct: n, on: true, last: n } : { pct: 0, on: false, last: d.from || f.last });
+        },
+        flip: () => setFan(f.k, f.on ? { on: false, pct: 0 } : { on: true, pct: f.last || 100 })
+      };
+    });
+    const fansOn = this.fans.filter((f) => f.on).length;
+
+    const lights = this.lights.map((l) => ({
+      name: l.name, text: l.on ? 'On' : 'Off', icon: l.icon, aria: yes(l.on), off: yes(offline),
+      cls: 'lt' + (l.on && !offline ? ' on' : '') + (offline ? ' off' : ''),
+      flip: () => { if (offline) return; this.lights = this.lights.map((x) => (x.k === l.k ? Object.assign({}, x, { on: !x.on }) : x)); this.bump(); }
+    }));
+    const lightsOn = this.lights.filter((l) => l.on).length;
+
+    const switches = this.sw.map((w) => ({
+      name: w.name, icon: w.icon, aria: yes(w.on), off: yes(offline), cls: offline ? 'swrow off' : 'swrow',
+      sw: 'sw' + (w.on ? ' on' : '') + (offline ? ' dis' : ''),
+      flip: () => { if (offline) return; this.sw = this.sw.map((x) => (x.k === w.k ? Object.assign({}, x, { on: !x.on }) : x)); this.bump(); }
+    }));
+
+    const act = (text) => () => { if (offline) return; this.say(text); };
+    const jobLive = !!P.job && !printOff;
+    return Object.assign(v, {
+      cardLabel: '3D printer controls, ' + P.name, name: P.name,
+      headSub: offline ? P.model + ' · offline since 18:03' : P.model + (jobLive ? ' · ' + P.job : P.dual ? ' · dual nozzle' : ''),
+      picoCls: offline ? 'pico gone' : 'pico', onlineText: offline ? 'Offline' : 'Online', offline,
+      stgCls: 'stg ' + (st === 'running' ? 'run' : st === 'pause' ? 'pause' : st === 'idle' ? 'idle' : 'gone'),
+      stageText: st === 'running' ? 'Printing' : st === 'pause' ? 'Paused by user' : st === 'idle' ? 'Idle' : 'Offline',
+
+      printSum: st === 'running' ? 'Printing' : st === 'pause' ? 'Paused' : st === 'idle' ? 'Nothing is printing' : 'Offline',
+      showPause: st !== 'pause', showResume: st === 'pause',
+      pauseCls: printOff ? 'btn off' : 'btn tonal', stopCls: printOff ? 'btn off' : 'btn danger', printOffAria: yes(printOff),
+      hasPrintWhy: printOff, printWhy: offline ? 'The printer is offline' : 'Nothing is printing',
+      pause: () => { if (this.st !== 'running') return; this.st = 'pause'; this.say('Pause sent to ' + P.name); },
+      resume: () => { if (this.st !== 'pause') return; this.st = 'running'; this.say('Resume sent to ' + P.name); },
+      askStop: (e) => { if (printOff) return; this.keepRoot(e); this.confirm = true; this.bump(); },
+
+      speedSum: printOff ? 'Not printing' : speed[1],
+      speedSeg: printOff ? 'seg off' : 'seg',
+      speeds: SPEEDS.map((x) => ({ name: x[1], cls: x[0] === this.speed ? 'sel' : '', aria: yes(x[0] === this.speed), off: yes(printOff),
+        pick: () => { if (printOff || this.speed === x[0]) return; this.speed = x[0]; this.bump(); } })),
+      speedNote: offline ? 'The printer is offline' : printOff ? 'Speed can be changed while a print is running' : speed[1] + ' runs at ' + speed[2] + ' of the sliced speed',
+
+      temps, tempSum,
+      fans, fansSum: fansOn ? fansOn + ' of ' + this.fans.length + ' on' : 'All off',
+      lights, lightsSum: lightsOn ? lightsOn + ' of ' + this.lights.length + ' on' : 'All off',
+      moreSum: P.airduct ? 'Airduct ' + (this.air === 'heating' ? 'heating' : 'cooling') : '',
+      hasAirduct: P.airduct, airSeg: offline ? 'seg off' : 'seg',
+      airModes: [['cooling', 'Cooling'], ['heating', 'Heating']].map((x) => ({ name: x[1], cls: x[0] === this.air ? 'sel' : '', aria: yes(x[0] === this.air), off: yes(offline),
+        pick: () => { if (offline) return; this.air = x[0]; this.bump(); } })),
+      switches,
+      actCls: offline ? 'btn off' : 'btn tonal', allOffAria: yes(offline),
+      silence: act('Buzzer silenced'), refresh: act('Asked ' + P.name + ' for fresh data'),
+      hasBuzzer: P.buzzer, hasRack: P.rack, rackUp: act('Raising the hotend rack'), rackDown: act('Lowering the hotend rack'),
+
+      hasToast: !!this.toast && !this.confirm, toastText: this.toast || '', toastHide: () => { this.toast = null; this.bump(); },
+
+      confirmOpen: this.confirm && !printOff,
+      stopJob: P.job ? P.job + ' on ' + P.name : 'The print on ' + P.name,
+      stopHasBar: !!P.layer, stopFill: '--v: ' + P.pct + '%',
+      stopDetail: P.layer || 'The nozzle and bed will cool down.',
+      keep: () => this.closeSheet(),
+      stopNow: () => {
+        this.confirm = false; this.st = 'idle';
+        this.temps = this.temps.map((x) => Object.assign({}, x, { target: 0, active: false }));
+        this.say('Print stopped on ' + P.name); this.focusOn('[data-stop]');
+      },
+      sheetKey: (e) => { if (!e) return; this.keepRoot(e); if (e.key === 'Escape') { if (e.stopPropagation) e.stopPropagation(); this.closeSheet(); } }
+    });
+  }
+}
+</script>
+</body>
+</html>
