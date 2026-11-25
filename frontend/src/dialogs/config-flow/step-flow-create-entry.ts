@@ -145,25 +145,28 @@ class StepFlowCreateEntry extends LitElement {
                             ${
                               device.primary_config_entry &&
                               domains[device.primary_config_entry]
-                                ? html`<img
-                                    slot="graphic"
-                                    alt=${domainToName(
-                                      this.hass.localize,
-                                      domains[device.primary_config_entry]
-                                    )}
-                                    src=${brandsUrl(
-                                      {
-                                        domain:
-                                          domains[device.primary_config_entry],
-                                        type: "icon",
-                                        darkOptimized:
-                                          this.hass.themes?.darkMode,
-                                      },
-                                      this.hass.auth.data.hassUrl
-                                    )}
-                                    crossorigin="anonymous"
-                                    referrerpolicy="no-referrer"
-                                  />`
+                                ? html`<span class="brand-tile"
+                                    ><img
+                                      slot="graphic"
+                                      alt=${domainToName(
+                                        this.hass.localize,
+                                        domains[device.primary_config_entry]
+                                      )}
+                                      src=${brandsUrl(
+                                        {
+                                          domain:
+                                            domains[
+                                              device.primary_config_entry
+                                            ],
+                                          type: "icon",
+                                          darkOptimized:
+                                            this.hass.themes?.darkMode,
+                                        },
+                                        this.hass.auth.data.hassUrl
+                                      )}
+                                      crossorigin="anonymous"
+                                      referrerpolicy="no-referrer"
+                                  /></span>`
                                 : nothing
                             }
                             <div class="device-info-details">
@@ -354,11 +357,24 @@ class StepFlowCreateEntry extends LitElement {
           align-items: center;
           gap: var(--ha-space-2);
         }
-        .device-info img {
+        .brand-tile {
+          display: flex;
+          align-items: center;
+          justify-content: center;
           width: 40px;
           height: 40px;
           flex: none;
+          overflow: hidden;
           border-radius: var(--ha-border-radius-lg);
+          background: var(
+            --md-sys-color-surface-container-highest,
+            var(--ha-color-surface-tone-2, var(--divider-color))
+          );
+        }
+        .brand-tile img {
+          width: 32px;
+          height: 32px;
+          object-fit: contain;
         }
         .device-info-details {
           min-width: 0;

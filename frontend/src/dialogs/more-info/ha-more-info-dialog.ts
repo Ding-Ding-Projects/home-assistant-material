@@ -1717,7 +1717,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           scrollbar-gutter: stable;
           /* Buttons inside a sheet keep a 48 px touch target. */
           --ha-button-height: 48px;
-          --ha-favorite-color-button-size: 44px;
+          --ha-favorite-color-button-size: 48px;
         }
 
         /* Stable sheet height: the tabs sit at the foot, so every tab keeps at
