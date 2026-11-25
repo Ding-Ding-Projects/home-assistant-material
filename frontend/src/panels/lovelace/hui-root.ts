@@ -906,6 +906,17 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
     const locked = !this._editMode && this._pageLock.locked;
     const showFooter = !this.narrow && !this.embedded && !this._editMode;
 
+    const editingTitle = dashboardTitle
+      ? curViewConfig?.title
+        ? this.hass!.localize("ui.panel.lovelace.editor.editing_view", {
+            dashboard: dashboardTitle,
+            view: curViewConfig.title,
+          })
+        : this.hass!.localize("ui.panel.lovelace.editor.editing", {
+            dashboard: dashboardTitle,
+          })
+      : this.hass!.localize("ui.panel.lovelace.editor.header");
+
     // Wide windows: breadcrumb, a large title and the views as a segmented
     // control under it, with the tools at the end of the title row.
     const wideHeader = !this.narrow && !this.embedded;
@@ -939,24 +950,9 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
                       this._editMode
                         ? html`
                             <div class="main-title">
-                              ${
-                                dashboardTitle
-                                  ? curViewConfig?.title
-                                    ? this.hass!.localize(
-                                        "ui.panel.lovelace.editor.editing_view",
-                                        {
-                                          dashboard: dashboardTitle,
-                                          view: curViewConfig.title,
-                                        }
-                                      )
-                                    : this.hass!.localize(
-                                        "ui.panel.lovelace.editor.editing",
-                                        { dashboard: dashboardTitle }
-                                      )
-                                  : this.hass!.localize(
-                                      "ui.panel.lovelace.editor.header"
-                                    )
-                              }
+                              <span class="title-text" title=${editingTitle}
+                                >${editingTitle}</span
+                              >
                               <ha-icon-button
                                 slot="actionItems"
                                 .label=${this.hass!.localize(
@@ -1058,6 +1054,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
             "has-tab-bar": this._editMode && !wideHeader,
             "under-wide-head": wideHeader,
             "has-footer": showFooter,
+            "page-locked": locked,
             previewing: this._editMode && !!this._previewWidth,
           })}
           data-preview=${ifDefined(
@@ -2107,8 +2104,11 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           );
         }
         .edit-mode .header {
-          background-color: var(--app-header-edit-background-color, #455a64);
-          color: var(--app-header-edit-text-color, white);
+          background-color: var(
+            --app-header-edit-background-color,
+            var(--ha-color-surface-tone-2)
+          );
+          color: var(--app-header-edit-text-color, var(--primary-text-color));
         }
         .toolbar {
           border-bottom: var(--app-header-border-bottom, none);
@@ -2136,6 +2136,27 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           overflow: hidden;
           white-space: nowrap;
           min-width: 0;
+        }
+        /* While editing, the title text shortens and the pencil beside it
+           stays on screen. */
+        .edit-mode .main-title {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-1);
+          overflow: visible;
+          text-overflow: clip;
+        }
+        .main-title .title-text {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .main-title .edit-icon {
+          flex: none;
+        }
+        .edit-mode.narrow .main-title {
+          font-size: var(--ha-font-size-l);
         }
         .narrow .main-title {
           margin-inline-start: var(--ha-space-2);
@@ -2186,7 +2207,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
         .edit-mode .action-items ha-icon-button[disabled] {
           --ha-color-on-disabled-quiet: color-mix(
             in srgb,
-            var(--app-header-edit-text-color, #fff) 50%,
+            var(--app-header-edit-text-color, var(--primary-text-color)) 50%,
             transparent
           );
         }
@@ -2223,17 +2244,26 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           );
         }
         .edit-mode ha-tab-group::part(scroll-button) {
-          background-color: var(--app-header-edit-background-color, #455a64);
+          background-color: var(
+            --app-header-edit-background-color,
+            var(--ha-color-surface-tone-2)
+          );
           background: linear-gradient(
             90deg,
-            var(--app-header-edit-background-color, #455a64),
+            var(
+              --app-header-edit-background-color,
+              var(--ha-color-surface-tone-2)
+            ),
             transparent
           );
         }
         .edit-mode ha-tab-group::part(scroll-button-end) {
           background: linear-gradient(
             270deg,
-            var(--app-header-edit-background-color, #455a64),
+            var(
+              --app-header-edit-background-color,
+              var(--ha-color-surface-tone-2)
+            ),
             transparent
           );
         }
@@ -2249,9 +2279,15 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
         }
         .edit-mode ha-tab-group {
           flex-grow: 0;
-          color: var(--app-header-edit-text-color, #fff);
-          --ha-tab-active-text-color: var(--app-header-edit-text-color, #fff);
-          --ha-tab-indicator-color: var(--app-header-edit-text-color, #fff);
+          color: var(--app-header-edit-text-color, var(--primary-text-color));
+          --ha-tab-active-text-color: var(
+            --app-header-edit-text-color,
+            var(--primary-text-color)
+          );
+          --ha-tab-indicator-color: var(
+            --app-header-edit-text-color,
+            var(--primary-text-color)
+          );
         }
         ha-tab-group-tab {
           --ha-tab-group-tab-height: var(--header-height, 56px);
@@ -2284,7 +2320,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           margin-top: calc((var(--tab-bar-height, 56px) - 48px) / 2);
         }
         .edit-icon {
-          color: var(--accent-color);
+          color: var(--primary-color);
           padding: 0 8px;
           vertical-align: middle;
           --mdc-theme-text-disabled-on-light: var(--disabled-text-color);
@@ -2302,7 +2338,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           align-items: center;
         }
         #add-view ha-svg-icon {
-          background-color: var(--accent-color);
+          background-color: var(--primary-color);
           border-radius: var(--ha-border-radius-sm);
         }
         a {
@@ -2342,6 +2378,22 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           position: absolute;
           top: 100%;
           inset-inline: 0;
+          min-height: var(--ha-page-lock-banner-height, 40px);
+          box-sizing: border-box;
+        }
+        /* On wide windows the banner sits in the flow of the header, so the
+           view starts below it. */
+        .wide-header ha-page-lock-banner {
+          position: static;
+        }
+        /* On a phone the banner hangs under the fixed header, so the view
+           reserves its height. */
+        .narrow .page-locked {
+          padding-top: calc(
+            var(--header-height) + var(--safe-area-inset-top) +
+              var(--ha-page-lock-banner-height, 40px) +
+              var(--view-container-padding-top, 0px)
+          );
         }
         /* At least as high as the element it is embedded in, rather than the
            window, so that panel views fill it */
@@ -2398,8 +2450,14 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           display: none;
         }
         .exit-edit-mode {
-          --mdc-theme-primary: var(--app-header-edit-text-color, #fff);
-          --mdc-button-outline-color: var(--app-header-edit-text-color, #fff);
+          --mdc-theme-primary: var(
+            --app-header-edit-text-color,
+            var(--primary-text-color)
+          );
+          --mdc-button-outline-color: var(
+            --app-header-edit-text-color,
+            var(--primary-text-color)
+          );
         }
         /* A touch screen needs a 44 px button. */
         @media (pointer: coarse) {

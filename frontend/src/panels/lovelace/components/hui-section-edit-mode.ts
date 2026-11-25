@@ -408,6 +408,21 @@ export class HuiSectionEditMode extends LitElement {
           padding: 8px;
         }
 
+        /* A touch screen needs a 44 px button. */
+        @media (pointer: coarse) {
+          .section-header {
+            height: 42px;
+          }
+          .section-actions {
+            height: 44px;
+            --ha-icon-button-size: 44px;
+            --mdc-icon-size: 22px;
+          }
+          .handle {
+            padding: 12px;
+          }
+        }
+
         #strategy-icon {
           padding: var(--ha-space-2);
         }

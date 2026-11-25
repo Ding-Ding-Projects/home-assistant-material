@@ -324,6 +324,8 @@ export const colorStyles = css`
     --mdc-theme-error: var(--error-color);
     --app-header-text-color: var(--sidebar-text-color);
     --app-header-background-color: var(--primary-background-color);
+    --app-header-edit-background-color: var(--ha-color-surface-tone-2);
+    --app-header-edit-text-color: var(--primary-text-color);
     --app-header-border-bottom: none;
     --app-theme-color: var(--app-header-background-color);
     --mdc-checkbox-unchecked-color: rgba(var(--rgb-primary-text-color), 0.54);

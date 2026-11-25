@@ -236,6 +236,20 @@ abstract class HuiTtcCardBase extends LitElement implements LovelaceCard {
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    /* The agency's own words: three lines, and a tap shows all of them. */
+    .alert-text {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      cursor: pointer;
+    }
+    .alert-text.expanded {
+      -webkit-line-clamp: unset;
+      display: block;
+    }
     .secondary {
       font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);
@@ -512,6 +526,17 @@ class HuiTtcLeaveByCard extends HuiTtcCardBase {
 }
 
 class HuiTtcRouteAlertsCard extends HuiTtcCardBase {
+  @state() private _expandedAlerts = new Set<string>();
+
+  private _toggleAlert(ev: Event) {
+    const key = (ev.currentTarget as HTMLElement).dataset.alertKey!;
+    const next = new Set(this._expandedAlerts);
+    if (!next.delete(key)) {
+      next.add(key);
+    }
+    this._expandedAlerts = next;
+  }
+
   public static getStubConfig(): TtcCardConfig {
     return { type: "ttc-route-alerts" };
   }
@@ -529,7 +554,18 @@ class HuiTtcRouteAlertsCard extends HuiTtcCardBase {
                 html`<div class="row">
                   ${this._badge(route)}
                   <div class="text">
-                    <div class="strong ellipsis">${alert.text}</div>
+                    <div
+                      class=${`strong alert-text${
+                        this._expandedAlerts.has(`${route}|${alert.text}`)
+                          ? " expanded"
+                          : ""
+                      }`}
+                      title=${alert.text}
+                      data-alert-key=${`${route}|${alert.text}`}
+                      @click=${this._toggleAlert}
+                    >
+                      ${alert.text}
+                    </div>
                     <div class="secondary">
                       ${[alert.cause, this._clock(alert.last_updated)]
                         .filter(Boolean)

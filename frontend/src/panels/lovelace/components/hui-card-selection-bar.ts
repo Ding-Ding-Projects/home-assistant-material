@@ -8,10 +8,12 @@ import {
 } from "@mdi/js";
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, state } from "lit/decorators";
+import { customElement, query, state } from "lit/decorators";
+import { ifDefined } from "lit/directives/if-defined";
 import { fireEvent } from "../../../common/dom/fire_event";
 import type { LocalizeKeys } from "../../../common/translations/localize";
 import "../../../components/ha-button";
+import "../../../components/ha-icon-button";
 import "../../../components/ha-svg-icon";
 import { pushClipboardHistory } from "../editor/card-clipboard-history";
 import {
@@ -38,6 +40,18 @@ import {
 export class HuiCardSelectionBar extends LitElement {
   @state() private _count = 0;
 
+  @state() private _narrow = false;
+
+  @query(".bar") private _bar?: HTMLElement;
+
+  private _mediaQuery?: MediaQueryList;
+
+  private _resizeObserver?: ResizeObserver;
+
+  private _onMediaChange = (ev: MediaQueryListEvent) => {
+    this._narrow = ev.matches;
+  };
+
   private _changed = () => {
     this._count = normalizeSelection(cardSelection.paths).length;
   };
@@ -46,11 +60,41 @@ export class HuiCardSelectionBar extends LitElement {
     super.connectedCallback();
     this._changed();
     cardSelection.addEventListener(SELECTION_CHANGED_EVENT, this._changed);
+    this._mediaQuery = window.matchMedia("(max-width: 600px)");
+    this._narrow = this._mediaQuery.matches;
+    this._mediaQuery.addEventListener("change", this._onMediaChange);
+  }
+
+  protected firstUpdated(): void {
+    // Keep the end of the dashboard clear of the bar while it is shown.
+    this._resizeObserver = new ResizeObserver(() => this._reserveSpace());
+    this._resizeObserver.observe(this);
+  }
+
+  protected updated(): void {
+    this._reserveSpace();
+  }
+
+  private _reserveSpace() {
+    const bar = this._bar;
+    const root = document.documentElement.style;
+    if (!bar) {
+      root.removeProperty("--view-container-padding-bottom");
+      return;
+    }
+    const rect = bar.getBoundingClientRect();
+    const reserved = Math.max(0, window.innerHeight - rect.top) + 8;
+    root.setProperty("--view-container-padding-bottom", `${reserved}px`);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     cardSelection.removeEventListener(SELECTION_CHANGED_EVENT, this._changed);
+    this._mediaQuery?.removeEventListener("change", this._onMediaChange);
+    this._resizeObserver?.disconnect();
+    document.documentElement.style.removeProperty(
+      "--view-container-padding-bottom"
+    );
   }
 
   private _t(key: string, values?: Record<string, string | number>): string {
@@ -74,39 +118,44 @@ export class HuiCardSelectionBar extends LitElement {
           ${this._t("count", { count: this._count })}
         </span>
         <span class="hint">${this._t("hint")}</span>
-        <ha-button appearance="plain" @click=${this._copy}>
-          <ha-svg-icon slot="start" .path=${mdiContentCopy}></ha-svg-icon>
-          ${this._t("copy")}
-        </ha-button>
-        <ha-button appearance="plain" @click=${this._duplicate}>
-          <ha-svg-icon
-            slot="start"
-            .path=${mdiPlusCircleMultipleOutline}
-          ></ha-svg-icon>
-          ${this._t("duplicate")}
-        </ha-button>
-        <ha-button appearance="plain" @click=${this._move}>
-          <ha-svg-icon slot="start" .path=${mdiArrowRight}></ha-svg-icon>
-          ${this._t("move")}
-        </ha-button>
-        <ha-button appearance="plain" @click=${this._style}>
-          <ha-svg-icon slot="start" .path=${mdiPalette}></ha-svg-icon>
-          ${this._t("style")}
-        </ha-button>
-        <ha-button appearance="plain" variant="danger" @click=${this._delete}>
-          <ha-svg-icon slot="start" .path=${mdiDelete}></ha-svg-icon>
-          ${this._t("delete")}
-        </ha-button>
-        <ha-button
-          appearance="plain"
-          @click=${this._clear}
-          aria-label=${this._t("clear")}
-        >
-          <ha-svg-icon slot="start" .path=${mdiClose}></ha-svg-icon>
-          ${this._t("clear")}
-        </ha-button>
+        ${this._renderAction("copy", mdiContentCopy, this._copy)}
+        ${this._renderAction(
+          "duplicate",
+          mdiPlusCircleMultipleOutline,
+          this._duplicate
+        )}
+        ${this._renderAction("move", mdiArrowRight, this._move)}
+        ${this._renderAction("style", mdiPalette, this._style)}
+        ${this._renderAction("delete", mdiDelete, this._delete, true)}
+        ${this._renderAction("clear", mdiClose, this._clear)}
       </div>
     `;
+  }
+
+  private _renderAction(
+    key: string,
+    path: string,
+    handler: () => void,
+    danger = false
+  ) {
+    const label = this._t(key);
+    // A phone gets icon-only buttons, so the bar stays one row.
+    return this._narrow
+      ? html`<ha-icon-button
+          class=${danger ? "danger" : ""}
+          .label=${label}
+          .path=${path}
+          title=${label}
+          @click=${handler}
+        ></ha-icon-button>`
+      : html`<ha-button
+          appearance="plain"
+          variant=${ifDefined(danger ? "danger" : undefined)}
+          @click=${handler}
+        >
+          <ha-svg-icon slot="start" .path=${path}></ha-svg-icon>
+          ${label}
+        </ha-button>`;
   }
 
   private _clear = () => cardSelection.clear();
@@ -223,6 +272,9 @@ export class HuiCardSelectionBar extends LitElement {
     .hint {
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s, 12px);
+    }
+    ha-icon-button.danger {
+      color: var(--error-color);
     }
     @media (max-width: 600px) {
       :host {

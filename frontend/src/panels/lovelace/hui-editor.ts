@@ -248,9 +248,12 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
           --code-mirror-height: 100%;
           --app-header-background-color: var(
             --app-header-edit-background-color,
-            #455a64
+            var(--ha-color-surface-tone-2)
           );
-          --app-header-text-color: var(--app-header-edit-text-color, #fff);
+          --app-header-text-color: var(
+            --app-header-edit-text-color,
+            var(--primary-text-color)
+          );
         }
 
         .content {
@@ -258,6 +261,16 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
              the window less the header and less that inset; without the
              inset the status bar fell below the window bottom. */
           height: calc(100vh - var(--header-height) - var(--ha-space-8));
+          /* The small window on a phone, less the bars the page reserves. */
+          height: calc(
+            100dvh - var(
+                --total-top-app-bar-height,
+                var(--header-height)
+              ) - var(--safe-area-inset-top, 0px) - var(
+                --safe-area-inset-bottom,
+                0px
+              ) - var(--ha-dim-sum-reserved-height, 0px) - var(--ha-space-8)
+          );
           display: flex;
           flex-direction: column;
           gap: var(--ha-space-2);

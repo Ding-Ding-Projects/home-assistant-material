@@ -318,8 +318,11 @@ export class HuiCardOptions extends LitElement {
           font-weight: var(--ha-font-weight-medium);
           text-align: center;
           font-size: var(--ha-font-size-m);
-          background-color: var(--app-header-edit-background-color, #455a64);
-          color: var(--app-header-edit-text-color, white);
+          background-color: var(
+            --app-header-edit-background-color,
+            var(--ha-color-surface-tone-2)
+          );
+          color: var(--app-header-edit-text-color, var(--primary-text-color));
         }
 
         ha-icon-button {
