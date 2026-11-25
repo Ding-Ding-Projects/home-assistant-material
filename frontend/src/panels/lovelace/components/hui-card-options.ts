@@ -323,6 +323,7 @@ export class HuiCardOptions extends LitElement {
             var(--ha-color-surface-tone-2)
           );
           color: var(--app-header-edit-text-color, var(--primary-text-color));
+          border: 1px solid var(--divider-color);
         }
 
         ha-icon-button {

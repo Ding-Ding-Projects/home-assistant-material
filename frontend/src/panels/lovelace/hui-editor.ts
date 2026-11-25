@@ -269,11 +269,26 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
               ) - var(--safe-area-inset-top, 0px) - var(
                 --safe-area-inset-bottom,
                 0px
-              ) - var(--ha-dim-sum-reserved-height, 0px) - var(--ha-space-8)
+              ) - var(--ha-space-8)
           );
           display: flex;
           flex-direction: column;
           gap: var(--ha-space-2);
+        }
+
+        /* Only a phone page pads its end for the dim sum card. */
+        @media (max-width: 870px) {
+          .content {
+            height: calc(
+              100dvh - var(
+                  --total-top-app-bar-height,
+                  var(--header-height)
+                ) - var(--safe-area-inset-top, 0px) - var(
+                  --safe-area-inset-bottom,
+                  0px
+                ) - var(--ha-dim-sum-reserved-height, 0px) - var(--ha-space-8)
+            );
+          }
         }
 
         hui-entity-swap-panel {

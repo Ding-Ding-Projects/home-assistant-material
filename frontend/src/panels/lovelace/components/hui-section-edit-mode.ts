@@ -411,7 +411,7 @@ export class HuiSectionEditMode extends LitElement {
         /* A touch screen needs a 44 px button. */
         @media (pointer: coarse) {
           .section-header {
-            height: 42px;
+            height: 44px;
           }
           .section-actions {
             height: 44px;
@@ -419,7 +419,7 @@ export class HuiSectionEditMode extends LitElement {
             --mdc-icon-size: 22px;
           }
           .handle {
-            padding: 12px;
+            padding: 10px;
           }
         }
 

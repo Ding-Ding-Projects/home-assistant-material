@@ -63,13 +63,14 @@ export class HuiCardSelectionBar extends LitElement {
     this._mediaQuery = window.matchMedia("(max-width: 600px)");
     this._narrow = this._mediaQuery.matches;
     this._mediaQuery.addEventListener("change", this._onMediaChange);
-  }
-
-  protected firstUpdated(): void {
-    // Keep the end of the dashboard clear of the bar while it is shown.
+    // Keep the end of the dashboard clear of the bar while it is shown, also
+    // after the element is moved and when only the window changes size.
     this._resizeObserver = new ResizeObserver(() => this._reserveSpace());
     this._resizeObserver.observe(this);
+    window.addEventListener("resize", this._onWindowResize);
   }
+
+  private _onWindowResize = () => this._reserveSpace();
 
   protected updated(): void {
     this._reserveSpace();
@@ -92,6 +93,8 @@ export class HuiCardSelectionBar extends LitElement {
     cardSelection.removeEventListener(SELECTION_CHANGED_EVENT, this._changed);
     this._mediaQuery?.removeEventListener("change", this._onMediaChange);
     this._resizeObserver?.disconnect();
+    this._resizeObserver = undefined;
+    window.removeEventListener("resize", this._onWindowResize);
     document.documentElement.style.removeProperty(
       "--view-container-padding-bottom"
     );

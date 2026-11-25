@@ -529,6 +529,12 @@ class HuiTtcRouteAlertsCard extends HuiTtcCardBase {
   @state() private _expandedAlerts = new Set<string>();
 
   private _toggleAlert(ev: Event) {
+    if (ev instanceof KeyboardEvent && ev.key !== "Enter" && ev.key !== " ") {
+      return;
+    }
+    if (ev instanceof KeyboardEvent) {
+      ev.preventDefault();
+    }
     const key = (ev.currentTarget as HTMLElement).dataset.alertKey!;
     const next = new Set(this._expandedAlerts);
     if (!next.delete(key)) {
@@ -547,36 +553,39 @@ class HuiTtcRouteAlertsCard extends HuiTtcCardBase {
     const alerts = this._routes(overview).flatMap((route) =>
       route.alerts.map((alert) => ({ route: route.route, alert }))
     );
+    const keyOf = (index: number, route: string, text: string) =>
+      `${index}|${route}|${text}`;
     return html`${
         alerts.length
-          ? alerts.map(
-              ({ route, alert }) =>
-                html`<div class="row">
-                  ${this._badge(route)}
-                  <div class="text">
-                    <div
-                      class=${`strong alert-text${
-                        this._expandedAlerts.has(`${route}|${alert.text}`)
-                          ? " expanded"
-                          : ""
-                      }`}
-                      title=${alert.text}
-                      data-alert-key=${`${route}|${alert.text}`}
-                      @click=${this._toggleAlert}
-                    >
-                      ${alert.text}
-                    </div>
-                    <div class="secondary">
-                      ${[alert.cause, this._clock(alert.last_updated)]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </div>
-                  </div>
-                  <span class="secondary tone-${ttcStatusTone(alert.status)}"
-                    >${this._l(`status_${alert.status ?? "unknown"}`)}</span
+          ? alerts.map(({ route, alert }, index) => {
+              const alertKey = keyOf(index, route, alert.text);
+              const expanded = this._expandedAlerts.has(alertKey);
+              return html`<div class="row">
+                ${this._badge(route)}
+                <div class="text">
+                  <div
+                    class=${`strong alert-text${expanded ? " expanded" : ""}`}
+                    title=${alert.text}
+                    role="button"
+                    tabindex="0"
+                    aria-expanded=${expanded ? "true" : "false"}
+                    data-alert-key=${alertKey}
+                    @click=${this._toggleAlert}
+                    @keydown=${this._toggleAlert}
                   >
-                </div>`
-            )
+                    ${alert.text}
+                  </div>
+                  <div class="secondary">
+                    ${[alert.cause, this._clock(alert.last_updated)]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </div>
+                </div>
+                <span class="secondary tone-${ttcStatusTone(alert.status)}"
+                  >${this._l(`status_${alert.status ?? "unknown"}`)}</span
+                >
+              </div>`;
+            })
           : html`<div class="empty tone-good">${this._l("no_alerts")}</div>`
       }
       <div class="secondary">
