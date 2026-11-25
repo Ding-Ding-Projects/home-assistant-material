@@ -1,19 +1,265 @@
 {
  "format": 1,
- "generated": "2026-11-25T17:07:21Z",
+ "generated": "2026-11-25T18:59:30Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 564,
+ "newest_build": 569,
  "releases": [
   {
-   "build": 564,
-   "core": "2026.11.2.564",
-   "supervisor": "2026.11.0.564",
-   "os": "18.5.564",
+   "build": 569,
+   "core": "2026.11.2.569",
+   "supervisor": "2026.11.0.569",
+   "os": "18.5.569",
    "tag": null,
-   "source": "64b88d012",
-   "date": "2026-11-25T11:39:19-05:00",
+   "source": "50b086e5c",
+   "date": "2026-11-25T13:29:41-05:00",
    "previous_build": 557,
    "changes": [
+    {
+     "sha": "50b086e5c",
+     "date": "2026-11-25T13:29:41-05:00",
+     "title": "Canvas 46: boards for what the build 564 check found",
+     "areas": [
+      "design"
+     ],
+     "detail": "A new page, Found in the build check, draws the four fixes made after clicking through build 564 on a phone: the filter menu holding still while you type, the pattern workbench footer wrapping, and the Add integration list showing at once with a fallback icon for integrations that have no brand picture.\n\n[skip ci]",
+     "detail_yue": "瀏覽器親手撳過先畫板，四個位都有圖有真相。"
+    },
+    {
+     "sha": "b4c05880b",
+     "date": "2026-11-25T13:28:06-05:00",
+     "title": "Wide filter menus shrink with their search again",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Holding the opened height only matters on a phone, where the menu is a sheet anchored at its bottom. On a wide window the menu hangs from its top, so keeping its height left a tall empty box after a narrow search. The hold now applies below 600 px only, and never above 85 percent of the screen.",
+     "detail_yue": "大螢幕唔使撐住高度，搜完得一行就縮返細，唔好留個大吉位。"
+    },
+    {
+     "sha": "94b5830f1",
+     "date": "2026-11-25T13:27:14-05:00",
+     "title": "Keep the filter menu height and the add-integration list from fighting their layouts",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Follow-up to the phone fixes. The filter chip menu held its opened height through a bound style attribute, which replaced the whole inline style and wiped the sheet offset the dropdown sets on itself, so the sheet slipped behind the bars after opening. The height is now set and removed directly on the dropdown. The Add integration list no longer uses a calc built from an old chrome budget; on a phone it takes the space the sheet body has left (zero flex basis, with a floor), so safe-area insets and the footer are accounted for by the layout.",
+     "detail_yue": "修正：選單高度唔再洗甩個底部偏移，新增整合清單改為跟住版面填滿，冇再靠死數字。"
+    },
+    {
+     "sha": "cd142f6de",
+     "date": "2026-11-25T13:23:20-05:00",
+     "title": "Keep filter menus, the pattern footer, the add-integration list and brand icons steady on a phone",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Four small fixes seen at phone width. The filter chip menu now keeps the height it opened with while the person types in its search, so the search field no longer jumps to the bottom bar when the list shrinks. The pattern workbench footer note wraps instead of ending in three dots. The Add integration sheet gives its brand list a stated height, so the list is there as soon as the sheet opens instead of measuring zero rows while it animates in. Integrations with no brand picture show a neutral puzzle icon, because the icon component now asks the brands server for a plain not-found and no longer shows its \"icon not available\" picture.",
+     "detail_yue": "搵返個搜尋框落腳位：打字篩選嗰陣個選單唔再縮細亂跳，頁腳字句會斷行， 新增整合一開就見到清單，冇圖嘅整合有個拼圖仔頂住場。"
+    },
+    {
+     "sha": "5b841f9d0",
+     "date": "2026-11-25T13:07:58-05:00",
+     "title": "Roadmap: canvases 46 and 47, the shared filter menu and marketplace tests",
+     "areas": [
+      "docs"
+     ],
+     "detail": "Adds the two rounds of scroll and clipping fixes, the shared filter menu and the marketplace test repairs, each with what is and is not done and none ticked, since nothing here has been seen in a browser yet. The media player card look and the edit-mode menu buttons are called out as partly built.\n\n[skip ci]",
+     "detail_yue": "兩輪執位、共用篩選選單、市集測試，全部照實寫低，未睇過嘅一格都唔剔。"
+    },
+    {
+     "sha": "c8a901565",
+     "date": "2026-11-25T13:04:20-05:00",
+     "title": "Make security alert rows wrap reliably on narrow screens",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The severity menu and delete button now always drop to a second line on phones, so the row fits at 320 px. The onboarding language picker already has 56 px items, which is above the 48 px target, so it is left as is."
+    },
+    {
+     "sha": "26777326a",
+     "date": "2026-11-25T13:02:21-05:00",
+     "title": "Let Most active logbook names wrap and show in full on hover",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Names in the Most active list take two lines and carry a tooltip instead of being cut with three dots on one line."
+    },
+    {
+     "sha": "987a67ece",
+     "date": "2026-11-25T13:01:52-05:00",
+     "title": "Stop the to-do spinner from spinning forever and keep badge taps apart",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The to-do card now shows its loading spinner only while its items are really being fetched, so an unavailable list no longer spins endlessly. The mdi icon imports are back in alphabetical order. The touch area of the badge menu button is trimmed from 48 px to 40 px so it stays inside the gap between badges and cannot steal a neighbour's tap.",
+     "detail_yue": "等我哋叫個轉圈圈唔好無限轉落去啦，仲有啲徽章個掣唔好再搶隔離嘅嘢，大家排好隊，乖乖哋。"
+    },
+    {
+     "sha": "5baf18de2",
+     "date": "2026-11-25T13:01:52-05:00",
+     "title": "Make long names readable and touch targets bigger on security, onboarding, calendar, Marketplace and logbook",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Security alert names and areas now wrap on phones and show their full text on hover, and the severity menu and delete button are 48 px. The onboarding step list becomes one readable column on phones with summaries kept, and its language picker drops dead legacy styling. Calendar month arrows and day numbers are bigger touch targets. Marketplace Discover descriptions take two lines with a tooltip and keep their star and download numbers on phones. Logbook cause and most-active names take two lines with a tooltip."
+    },
+    {
+     "sha": "79b66a725",
+     "date": "2026-11-25T13:00:02-05:00",
+     "title": "Keep date circles round and keep the active foot tab in view",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The day cells in the date picker go back to a 44 px maximum width, so they stay circles on narrow screens while still being 48 px tall to touch. When the entity sheet puts its tabs at the foot and the row scrolls sideways, the selected tab is now scrolled into view when the view changes, and the row no longer clips vertically.",
+     "detail_yue": "呢次將日子格嘅闊度打返落 44 像素，圓形唔會變蛋形。底部分頁條郁嘅時候， 揀咗嘅分頁自動滾返入畫面，唔會匿埋喺邊度揾唔到。"
+    },
+    {
+     "sha": "03d7625a8",
+     "date": "2026-11-25T12:59:36-05:00",
+     "title": "Wrap long column names and keep value fields flexible",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Column names in the customize-columns dialog now wrap to two lines in 56 px rows instead of being cut off. The number field beside a slider shrinks with its row instead of overflowing at 320 px. Label chips no longer have hit areas that overlap their neighbours, and quick-control values are limited by their container rather than the screen width."
+    },
+    {
+     "sha": "1e2f01c3d",
+     "date": "2026-11-25T12:59:03-05:00",
+     "title": "Error screen spacing only without a toolbar; Pages sheet scrolls once",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The error screen adds the notch and home-bar spacing only when it is shown without its toolbar, because the toolbar layout already clears them, so the card no longer floats with extra empty space on phones with a notch. On short screens the Pages sheet is the only scroller and the page list no longer opens a second one inside it. Page cards switch to one column up to 380 px so the three 48 px tools stay on a single row, and the comment now says 48 px.",
+     "detail_yue": "錯誤頁唔使再重複計缺口位，個卡唔會再飄喺半空。 頁面清單細螢幕都淨係一條捲軸，三粒掣企一行，乾淨企理。"
+    },
+    {
+     "sha": "fdd96ce55",
+     "date": "2026-11-25T12:58:12-05:00",
+     "title": "Make dashboard cards easier to read and tap on a phone",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The dashboard page end now clears toasts and the surprise card, the starting card fits the visible screen, long card titles end in three dots and show their full text, and media, picture glance, to-do and edit-mode buttons reach 48 px on touch. The to-do card shows a spinner while loading and an icon when empty.",
+     "detail_yue": "Dashboard 嘅卡片喺電話上面睇得清楚啲、㩒得準啲，標題太長都有三點同埋成句字可以睇返。"
+    },
+    {
+     "sha": "4ee903c0c",
+     "date": "2026-11-25T12:57:58-05:00",
+     "title": "Log viewer height only follows the phone keyboard where the browser supports it",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The log box now uses the dynamic viewport height only inside an @supports check, so a browser without that unit keeps the older viewport height and the box can no longer lose its height cap.",
+     "detail_yue": "呢次將日誌框嘅 dvh 高度包入 @supports，舊瀏覽器照用 vh，個框就唔會變到無限高，穩陣啲。"
+    },
+    {
+     "sha": "dc029f6e3",
+     "date": "2026-11-25T12:55:40-05:00",
+     "title": "Fix clipped values and small targets in pickers, selectors and tables",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Quick-control state values show the full text on hover and fit up to 24 characters. Object selector rows wrap to two lines and carry tooltips. The slider number box grows to fit its value. The name and state content pickers use theme tokens, a working focus transition and a 48 px restore button. The statistics picker label has valid spacing. The customize-columns dialog uses the modern list row with a 48 px drag handle, and label chips plus the +N trigger in data tables get a 48 px touch area.",
+     "detail_yue": "廿四個字嘅長數值而家睇得晒，掣仔都夠大，手指一㩒就中，唔使再瞇埋眼。"
+    },
+    {
+     "sha": "ece876362",
+     "date": "2026-11-25T12:55:11-05:00",
+     "title": "Long names and addresses in Settings can be read in full, and dialogs fit the visible screen",
+     "areas": [
+      "interface"
+     ],
+     "detail": "People, role names, network storage addresses and discovered integration cards now wrap to two lines and show the full text as a tooltip instead of ending in three dots with no way to read the rest. The expose entities list, the create helper list, the logs box and the automation search bar are now sized from the visible screen height (dvh) so the last rows stay above the phone browser toolbar and keyboard, with the old vh value kept as fallback.",
+     "detail_yue": "Settings 啲長名同地址而家睇得晒，彈窗亦都跟住真正見到嘅屏幕高度， 最尾幾行唔會再畀手機瀏覽器工具列壓住，執生又靚仔。"
+    },
+    {
+     "sha": "89e9af2a1",
+     "date": "2026-11-25T12:54:56-05:00",
+     "title": "Make entity sheet controls, rows, links and the remove-favourite badge 48 px touch targets",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Mode selectors, chips, time steppers, date cells and speaker volume buttons rise from 44 to 48 px, Details and Related rows from 40 and 44 to 48 px, and the Show more links in the Activity and History headers get a 48 px hit area. The remove badge on a favourite grows to 24 px with a 16 px icon and an invisible 48 px touch area above the colour bubble. The selected chip and time column use the theme token instead of a fixed blue.",
+     "detail_yue": "粵語：撳掣大過隻手指頭先至叫做公道，全部加高到 48 像素；移除最愛嗰粒細波波都有咗大大個隱形感應區，唔會再撳錯去隔籬。"
+    },
+    {
+     "sha": "8f56e5ced",
+     "date": "2026-11-25T12:54:45-05:00",
+     "title": "Fix squeezed setup text, overlapping foot tabs, cut vacuum button and tall chat on phones",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Setup progress and loading steps drop their 100 px side padding so the description gets the full dialog width and long words wrap. The entity sheet's foot tabs keep their full labels and scroll sideways instead of overlapping. The vacuum \"Cleaning by area\" button grows with its text and wraps instead of cutting it, and aligns to the start in right-to-left layouts. The Assist chat minimum height is capped at 60% of the viewport so its message box stays reachable on a phone held sideways.",
+     "detail_yue": "粵語：設定步驟嘅字唔使再擠喺一條幼線度，底部分頁多過位就左右掃，唔會疊埋一齊；吸塵機按鈕有幾多字就長幾高，聊天框橫畫面都見到輸入欄，好食好抵！"
+    },
+    {
+     "sha": "f13a13e42",
+     "date": "2026-11-25T12:53:57-05:00",
+     "title": "Fix page frame clipping: Pages sheet, titles, toasts, create button, not-found",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The Pages sheet now scrolls as one piece on short or large-text screens and rises above the on-screen keyboard. The grabber pill is centred again. Phone page titles wrap instead of ending in three dots. Long unbroken words stay inside a toast. The undo toast and the create button lift above a notification toast. Not-found and error screens clear the bars. Header buttons, toolbar chips and Pages sheet controls are 48 px on touch, and the rail count badge no longer drops under 11 px text.",
+     "detail_yue": "呢次幫個框架執靚:頁面抽屜短畫面都捲得郁,鍵盤彈出都唔會俾佢壓住, 標題夠位就斷行,唔會再\"...\"咗事;吐司入面條長字唔會爆框, 新增掣唔會俾吐司蓋住;掣仔通通夠 48 像素,一指就㩒啱。"
+    },
+    {
+     "sha": "a2a053519",
+     "date": "2026-11-25T12:47:17-05:00",
+     "title": "Design canvas 47: scroll fixes and polish, round two",
+     "areas": [
+      "design"
+     ],
+     "detail": "A second survey, told to skip everything round one found, turned up 48 more places where content can't be reached or read: the Pages sheet squeezing its list to nothing on a short phone, toasts landing on the Create button, the entity sheet's logbook in its own little scroller, a missing comma that kept media card buttons at 40 px, and names and addresses cut to one line with no way to read them. 35 boards over six pages draw the fix for each, every search field with its working pattern workbench, and findings.md keeps the lines and agreed fixes. Two icons on canvas 46 drawn by hand are swapped for the real ones.",
+     "detail_yue": "第二輪又執到 48 個位，連少咗粒逗號都捉到。三十五塊板，搜尋格隔籬個 regex 掣一個都唔少。"
+    },
+    {
+     "sha": "f42a95165",
+     "date": "2026-11-25T12:21:53-05:00",
+     "title": "Marketplace tests match the package installer again",
+     "areas": [
+      "core"
+     ],
+     "detail": "Four marketplace tests had fallen behind on purpose-made changes: the restart repair for an uploaded integration is keyed by the name's slug (demo-x), the package installer adds a fourth recurring check, and two archive rules still carried the old store's name. The rules are renamed to say what they read, a repository manifest, with no change in behaviour. The other six reported failures came from a test machine without the frontend package, not from the code.",
+     "detail_yue": "測試追返上代碼：個 slug 有條槓、定時檢查多咗一個、舊名改晒做新名。 其餘六個係部測試機冇裝前端，唔關代碼事。"
+    },
+    {
+     "sha": "0d6b950c2",
+     "date": "2026-11-25T12:00:19-05:00",
+     "title": "Canvas 46: searchable filter menus on the automations board",
+     "areas": [
+      "design"
+     ],
+     "detail": "The Area, Label and Category menus on the automations board now show what the shared menu in the app does: an icon on every row, the search pinned at the top with a match count, the rows chosen on open listed first, a no-match state, and a pattern workbench that really opens and filters instead of only showing a message. Three icon paths that did not match the icon set are replaced with the real ones.",
+     "detail_yue": "篩選選單終於有得搜，regex 掣撳落去唔再係擺設，三粒畫錯嘅 icon 都換返正版。"
+    },
+    {
+     "sha": "c1da7710c",
+     "date": "2026-11-25T11:57:40-05:00",
+     "title": "Filter chips keep their size beside the search field",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The shared filter menu's host takes no box of its own, so the search row's rules that stop a chip from shrinking, and give it a 44 px height on touch screens, no longer reached it. The dropdown inside now carries both rules itself.",
+     "detail_yue": "個掣唔准再俾搜尋格逼到縮水，手指撳落去仲係夠大粒。"
+    },
+    {
+     "sha": "13f8cf556",
+     "date": "2026-11-25T11:55:13-05:00",
+     "title": "Canvas 46: every search field gets its pattern workbench",
+     "areas": [
+      "design"
+     ],
+     "detail": "Ten boards drew search fields with nothing beside them, while every search in the app has a pattern workbench button. Each of those fields now has the button, and it really works on the board: it opens the workbench for that field with flags, a plain-words reading of the pattern, a live count of the board's own rows that match, and Use pattern, which filters the list. A broken pattern says so and cannot be used. New pattern and pattern-invalid stages show both. The README now counts the built fixes correctly: 55 of 56, with the media player card look still to do.",
+     "detail_yue": "搜尋格隔籬冇咗個 regex 掣，好似叉燒飯冇咗叉燒。而家十塊板全部補返， 撳落去真係識揾、識數、識話你條式寫錯。"
+    },
+    {
+     "sha": "2007f4f70",
+     "date": "2026-11-25T11:55:05-05:00",
+     "title": "Automations and Devices filter menus get icons and a search field too",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The Category, Label, Area and Blueprint chip menus on the Automations page and the Area and Integration chip menus on the Devices page were still plain checkbox lists. They now match the Entities page: each row has its icon in a tonal circle (area, category, label with its colour, integration logo), a search field with the pattern workbench stays pinned at the top with a match count, a no-match message offers to clear the search, and the rows selected when the menu opened are listed first.\n\nAll three pages now use one shared chip menu component, so the menus cannot drift apart again. The Entities page behaves as before. The menu wording moved to a shared translation namespace in English and Cantonese.",
+     "detail_yue": "三個頁面嘅篩選清單而家用同一個零件，每行有圖示，頂部有搜尋， 搵唔到仲識講聲，再唔會一個頁面一個樣。"
+    },
     {
      "sha": "d52dbcb24",
      "date": "2026-11-25T11:36:40-05:00",
