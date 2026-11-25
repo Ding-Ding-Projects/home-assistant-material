@@ -633,7 +633,7 @@ export class HaEntityQuickControls extends LitElement {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: min(24ch, 40vw);
+      max-width: min(24ch, 100%);
     }
     ha-switch {
       /* The switch keeps a 48 px hit area without growing the row. */

@@ -337,15 +337,19 @@ export class DialogDataTableSettings extends LitElement {
         }
         ha-list-item-base {
           --ha-row-item-padding-inline: var(--ha-space-1);
-          min-height: 48px;
+          min-height: 56px;
         }
         .hidden {
           color: var(--disabled-text-color);
         }
         .title {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
           overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          white-space: normal;
+          overflow-wrap: anywhere;
         }
         .handle {
           cursor: move; /* fallback if grab cursor is unsupported */

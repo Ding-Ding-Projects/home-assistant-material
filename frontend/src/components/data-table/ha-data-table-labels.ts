@@ -258,7 +258,7 @@ class HaDataTableLabels extends LitElement {
     ha-label.plus::after {
       content: "";
       position: absolute;
-      inset: -14px -4px;
+      inset: -14px 0;
     }
 
     .measure {
