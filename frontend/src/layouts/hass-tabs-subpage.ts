@@ -832,7 +832,7 @@ export class HassTabsSubpage extends LitElement {
             var(--header-height, 0px) + var(--safe-area-inset-top, 0px)
           );
           padding-top: var(--safe-area-inset-top);
-          padding-inline-end: var(--safe-area-inset-right);
+          padding-right: var(--safe-area-inset-right);
           background-color: transparent;
           font-weight: var(--ha-font-weight-normal);
           box-sizing: border-box;
@@ -1078,6 +1078,7 @@ export class HassTabsSubpage extends LitElement {
         ha-menu-button {
           display: var(--ha-phone-menu-button-display, flex);
           flex-shrink: 0;
+          margin-inline-end: 24px;
           pointer-events: auto;
           color: var(--sidebar-icon-color);
         }
@@ -1137,7 +1138,7 @@ export class HassTabsSubpage extends LitElement {
           position: relative;
           width: 100%;
           box-sizing: border-box;
-          padding-inline-end: var(--safe-area-inset-right);
+          padding-right: var(--safe-area-inset-right);
           overflow: auto;
         }
         :host([narrow]) .content {

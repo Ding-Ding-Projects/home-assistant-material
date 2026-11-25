@@ -85,9 +85,6 @@ class HaMenuButton extends LitElement {
   protected willUpdate(changedProps: PropertyValues) {
     super.willUpdate(changedProps);
 
-    // An empty host must never paint its tonal circle.
-    this.toggleAttribute("hidden", !this._show);
-
     if (
       !changedProps.has("_narrow") &&
       !changedProps.has("_ui") &&
@@ -121,6 +118,13 @@ class HaMenuButton extends LitElement {
       this._attachNotifOnConnect = false;
       this._subscribeNotifications();
     }
+  }
+
+  protected updated(changedProps: PropertyValues) {
+    super.updated(changedProps);
+    // An empty host must never paint its tonal circle. Set after willUpdate
+    // has recomputed _show, so the attribute never lags one update behind.
+    this.toggleAttribute("hidden", !this._show || !this._ui);
   }
 
   private _subscribeNotifications() {

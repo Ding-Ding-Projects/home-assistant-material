@@ -130,7 +130,7 @@ export const haTopAppBarFixedStyles: CSSResultGroup = [
       box-sizing: border-box;
       display: block;
       width: 100%;
-      padding-inline-end: var(--safe-area-inset-right, 0px);
+      padding-right: var(--safe-area-inset-right, 0px);
       overflow: hidden;
     }
 
@@ -286,7 +286,7 @@ export const haTopAppBarFixedStyles: CSSResultGroup = [
       inset-inline-start: 0;
       inset-inline-end: 0;
       padding-bottom: var(--safe-area-inset-bottom);
-      padding-inline-end: var(--safe-area-inset-right);
+      padding-right: var(--safe-area-inset-right);
       overflow: auto;
     }
 

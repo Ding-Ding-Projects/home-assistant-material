@@ -108,6 +108,7 @@ class HassErrorScreen extends LitElement {
         :host {
           display: block;
           height: 100%;
+          overflow-y: auto;
           background-color: var(--primary-background-color);
         }
         .content {

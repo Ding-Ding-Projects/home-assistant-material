@@ -439,7 +439,7 @@ class HassSubpage extends LitElement {
         .toolbar {
           background-color: var(--app-header-background-color, transparent);
           padding-top: var(--safe-area-inset-top);
-          padding-inline-end: var(--safe-area-inset-right);
+          padding-right: var(--safe-area-inset-right);
         }
         :host([narrow]) .toolbar {
           padding-left: var(--safe-area-inset-left);
@@ -538,7 +538,7 @@ class HassSubpage extends LitElement {
           min-height: 0;
           box-sizing: border-box;
           padding-bottom: var(--safe-area-inset-bottom, 0px);
-          margin-inline-end: var(--safe-area-inset-right);
+          margin-right: var(--safe-area-inset-right);
           overflow-y: auto;
           overflow: auto;
         }
