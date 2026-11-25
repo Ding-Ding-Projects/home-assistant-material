@@ -77,7 +77,7 @@ export class HaLogbookStats extends LitElement {
             : undefined;
           const name = stateObj ? computeStateName(stateObj) : thing.name;
           return html`<div class="row">
-            <span class="name">${name}</span>
+            <span class="name" title=${name}>${name}</span>
             <span class="count">
               ${formatNumber(thing.count, this.hass.locale)}
             </span>
@@ -144,9 +144,11 @@ export class HaLogbookStats extends LitElement {
       font-size: var(--ha-font-size-m);
     }
     .name {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      overflow-wrap: anywhere;
     }
     .count {
       font-weight: var(--ha-font-weight-medium);
