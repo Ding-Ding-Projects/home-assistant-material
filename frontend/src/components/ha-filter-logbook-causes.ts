@@ -39,6 +39,7 @@ import type { HaListItemOption } from "./item/ha-list-item-option";
 import "./list/ha-list-selectable";
 import type { HaListSelectable } from "./list/ha-list-selectable";
 import "./user/ha-user-badge";
+import "./ha-filter-empty";
 import "./ha-filter-hidden-count";
 import "./input/ha-input-search";
 import type { HaInputSearch } from "./input/ha-input-search";
@@ -137,7 +138,16 @@ export class HaFilterLogbookCauses extends LitElement {
         .value=${this._filter}
         @input=${this._handleSearchChange}
       ></ha-input-search>
+      ${
+        !shownUsers.length && !shownGroups.length && this._filter
+          ? html`<ha-filter-empty
+              .search=${this._filter}
+              @filter-search-cleared=${this._clearSearch}
+            ></ha-filter-empty>`
+          : nothing
+      }
       <ha-list-selectable
+        ?hidden=${!shownUsers.length && !shownGroups.length && !!this._filter}
         multi
         controlled
         aria-label=${this._localize("ui.components.logbook.cause_filter.caption")}
@@ -177,7 +187,11 @@ export class HaFilterLogbookCauses extends LitElement {
         )}
       </ha-list-selectable>
       <ha-filter-hidden-count
-        .hiddenCount=${total - shownUsers.length - shownGroups.length}
+        .hiddenCount=${
+          shownUsers.length || shownGroups.length || !this._filter
+            ? total - shownUsers.length - shownGroups.length
+            : 0
+        }
         .total=${total}
       ></ha-filter-hidden-count>
     </div>`;
@@ -201,6 +215,10 @@ export class HaFilterLogbookCauses extends LitElement {
         }))
         .sort((a, b) => stringCompare(a.name, b.name, language))
   );
+
+  private _clearSearch() {
+    this._filter = undefined;
+  }
 
   private _handleSearchChange(ev: InputEvent) {
     this._filter = normalizeSearchText((ev.target as HaInputSearch).value);

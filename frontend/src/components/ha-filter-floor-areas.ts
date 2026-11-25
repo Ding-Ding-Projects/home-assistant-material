@@ -39,6 +39,7 @@ import "./ha-tree-indicator";
 import "./item/ha-list-item-option";
 import type { HaListItemOption } from "./item/ha-list-item-option";
 import "./list/ha-list-selectable";
+import "./ha-filter-empty";
 import "./ha-filter-hidden-count";
 import "./input/ha-input-search";
 import type { HaInputSearch } from "./input/ha-input-search";
@@ -153,6 +154,7 @@ export class HaFilterFloorAreas extends LitElement {
                 ></ha-input-search>
                 <ha-list-selectable
                   class="ha-scrollbar"
+                  ?hidden=${!!this._filter && !!optionCount(all) && !optionCount(areas)}
                   multi
                   @ha-list-item-selected=${this._handleAdded}
                   @ha-list-item-deselected=${this._handleRemoved}
@@ -195,10 +197,17 @@ export class HaFilterFloorAreas extends LitElement {
                     (area) => this._renderArea(area)
                   )}
                 </ha-list-selectable>
-                <ha-filter-hidden-count
-                  .hiddenCount=${optionCount(all) - optionCount(areas)}
-                  .total=${optionCount(all)}
-                ></ha-filter-hidden-count>
+                ${
+                  this._filter && optionCount(all) && !optionCount(areas)
+                    ? html`<ha-filter-empty
+                        .search=${this._filter}
+                        @filter-search-cleared=${this._clearSearch}
+                      ></ha-filter-empty>`
+                    : html`<ha-filter-hidden-count
+                        .hiddenCount=${optionCount(all) - optionCount(areas)}
+                        .total=${optionCount(all)}
+                      ></ha-filter-hidden-count>`
+                }
               </div>
             `
           : nothing
@@ -286,6 +295,10 @@ export class HaFilterFloorAreas extends LitElement {
         (val) => val !== removedItem.value
       ),
     };
+  }
+
+  private _clearSearch() {
+    this._filter = undefined;
   }
 
   private _handleSearchChange(ev: InputEvent) {

@@ -1,9 +1,8 @@
-import type { SelectedDetail } from "@material/mwc-list";
 import type { ContextType } from "@lit/context";
 import { mdiFilterVariantRemove } from "@mdi/js";
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { createRef, ref } from "lit/directives/ref";
 import { repeat } from "lit/directives/repeat";
 import memoizeOne from "memoize-one";
@@ -21,12 +20,15 @@ import { internationalizationContext, manifestsContext } from "../data/context";
 import type { IntegrationManifest } from "../data/integration";
 import { domainToName } from "../data/integration";
 import { haStyleScrollbar } from "../resources/styles";
-import "./ha-check-list-item";
 import "./ha-domain-icon";
 import "./ha-expansion-panel";
-import "./ha-list";
+import "./ha-filter-empty";
 import "./input/ha-input-search";
 import type { HaInputSearch } from "./input/ha-input-search";
+import "./item/ha-list-item-option";
+import type { HaListItemOption } from "./item/ha-list-item-option";
+import "./list/ha-list-selectable";
+import type { HaListSelectable } from "./list/ha-list-selectable";
 
 @customElement("ha-filter-integrations")
 export class HaFilterIntegrations extends LitElement {
@@ -53,6 +55,8 @@ export class HaFilterIntegrations extends LitElement {
   );
 
   @state() private _filter?: string;
+
+  @query("ha-list-selectable") private _list?: HaListSelectable;
 
   private _content = createRef<HTMLElement>();
 
@@ -85,51 +89,65 @@ export class HaFilterIntegrations extends LitElement {
       ${
         this._panel.showContent
           ? html`<div class="content" ${ref(this._content)}>
-              ${
-                manifests
-                  ? html`<ha-input-search
-                        appearance="outlined"
-                        .value=${this._filter}
-                        @input=${this._handleSearchChange}
-                      >
-                      </ha-input-search>
-                      <ha-list
-                        class="ha-scrollbar"
-                        @selected=${this._itemSelected}
-                        multi
-                      >
-                        ${repeat(
-                          this._integrations(
-                            this._localize,
-                            manifests,
-                            this._filter,
-                            this.value,
-                            this._i18n.locale.language
-                          ),
-                          (i) => i.domain,
-                          (integration) =>
-                            html`<ha-check-list-item
-                              .value=${integration.domain}
-                              .selected=${(this.value || []).includes(
-                                integration.domain
-                              )}
-                              graphic="icon"
-                            >
-                              <ha-domain-icon
-                                slot="graphic"
-                                .domain=${integration.domain}
-                                brand-fallback
-                              ></ha-domain-icon>
-                              ${integration.name}
-                            </ha-check-list-item>`
-                        )}
-                      </ha-list>`
-                  : nothing
-              }
+              ${manifests ? this._renderList(manifests) : nothing}
             </div>`
           : nothing
       }
     `;
+  }
+
+  private _renderList(manifests: IntegrationManifest[]) {
+    const integrations = this._integrations(
+      this._localize,
+      manifests,
+      this._filter,
+      this.value,
+      this._i18n.locale.language
+    );
+    const noMatch = !!this._filter && !integrations.length;
+
+    return html`<ha-input-search
+        appearance="outlined"
+        .value=${this._filter}
+        @input=${this._handleSearchChange}
+      >
+      </ha-input-search>
+      <ha-list-selectable
+        class="ha-scrollbar"
+        ?hidden=${noMatch}
+        multi
+        controlled
+        aria-label=${this._localize("ui.panel.config.integrations.caption")}
+        @ha-list-item-selected=${this._itemToggled}
+        @ha-list-item-deselected=${this._itemToggled}
+      >
+        ${repeat(
+          integrations,
+          (i) => i.domain,
+          (integration) =>
+            html`<ha-list-item-option
+              appearance="checkbox"
+              selection-position="end"
+              .value=${integration.domain}
+              .selected=${(this.value || []).includes(integration.domain)}
+            >
+              <ha-domain-icon
+                slot="start"
+                .domain=${integration.domain}
+                brand-fallback
+              ></ha-domain-icon>
+              <span slot="headline">${integration.name}</span>
+            </ha-list-item-option>`
+        )}
+      </ha-list-selectable>
+      ${
+        noMatch
+          ? html`<ha-filter-empty
+              .search=${this._filter}
+              @filter-search-cleared=${this._clearSearch}
+            ></ha-filter-empty>`
+          : nothing
+      }`;
   }
 
   private _expandedChanged(ev) {
@@ -164,31 +182,28 @@ export class HaFilterIntegrations extends LitElement {
         .sort((a, b) => stringCompare(a.name, b.name, language))
   );
 
-  private _itemSelected(ev: CustomEvent<SelectedDetail<Set<number>>>) {
-    if (!this._manifests) {
+  private _itemToggled(ev: CustomEvent<number>) {
+    const option = this._list?.items[ev.detail] as HaListItemOption | undefined;
+    const domain = option?.value;
+    if (!domain) {
       return;
     }
 
-    const integrations = this._integrations(
-      this._localize,
-      this._manifestList(this._manifests),
-      this._filter,
-      this.value,
-      this._i18n.locale.language
-    );
-
-    const visibleDomains = new Set(integrations.map((i) => i.domain));
-    const preserved = (this.value || []).filter((d) => !visibleDomains.has(d));
-    const selected = [...ev.detail.index]
-      .map((i) => integrations[i]?.domain)
-      .filter((d): d is string => !!d);
-
-    this.value = [...preserved, ...selected];
+    // Integrations chosen earlier that the search hides stay chosen.
+    const value = new Set(this.value || []);
+    if (!value.delete(domain)) {
+      value.add(domain);
+    }
+    this.value = [...value];
 
     fireEvent(this, "data-table-filter-changed", {
       value: this.value.length ? this.value : undefined,
       items: undefined,
     });
+  }
+
+  private _clearSearch() {
+    this._filter = undefined;
   }
 
   private _clearFilter(ev) {
@@ -210,7 +225,12 @@ export class HaFilterIntegrations extends LitElement {
       haStyleScrollbar,
       filterPanelStyles,
       css`
-        ha-list {
+        ha-list-selectable {
+          display: flex;
+          flex: 1;
+          min-height: 0;
+        }
+        ha-list-selectable::part(base) {
           flex: 1;
           min-height: 0;
         }
@@ -221,9 +241,6 @@ export class HaFilterIntegrations extends LitElement {
         .header ha-icon-button {
           margin-inline-start: auto;
           margin-inline-end: 8px;
-        }
-        ha-check-list-item {
-          --mdc-list-item-graphic-margin: var(--ha-space-4);
         }
         .badge {
           display: inline-block;

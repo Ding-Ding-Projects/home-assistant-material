@@ -27,15 +27,16 @@ import {
 import type { RelatedResult } from "../data/search";
 import { findRelated } from "../data/search";
 import { haStyleScrollbar } from "../resources/styles";
-import { loadVirtualizer } from "../resources/virtualizer";
-import "./ha-check-list-item";
 import "./ha-expansion-panel";
-import "./ha-list";
+import "./ha-filter-empty";
 import "./ha-state-icon";
 import "./input/ha-input-search";
 import type { HaInputSearch } from "./input/ha-input-search";
+import "./item/ha-list-item-option";
+import "./list/ha-list-selectable-virtualized";
+import type { HaListVirtualizedItem } from "./list/ha-list-virtualized";
 
-interface EntityItem {
+interface EntityItem extends HaListVirtualizedItem {
   stateObj: HassEntity;
   name: string;
 }
@@ -80,10 +81,6 @@ export class HaFilterEntities extends LitElement {
   public willUpdate(properties: PropertyValues<this>) {
     super.willUpdate(properties);
 
-    if (!this.hasUpdated) {
-      loadVirtualizer();
-    }
-
     if (
       properties.has("value") &&
       !deepEqual(this.value, properties.get("value"))
@@ -93,6 +90,16 @@ export class HaFilterEntities extends LitElement {
   }
 
   protected render() {
+    const entities = this._panel.showContent
+      ? this._entities(
+          this._states,
+          this._formatters,
+          this.type,
+          this._filter || "",
+          this._i18n.locale.language,
+          this.value
+        )
+      : [];
     return html`
       <ha-expansion-panel
         left-chevron
@@ -122,23 +129,21 @@ export class HaFilterEntities extends LitElement {
                   @input=${this._handleSearchChange}
                 >
                 </ha-input-search>
-                <ha-list class="ha-scrollbar" multi>
-                  <lit-virtualizer
-                    .items=${this._entities(
-                      this._states,
-                      this._formatters,
-                      this.type,
-                      this._filter || "",
-                      this._i18n.locale.language,
-                      this.value
-                    )}
-                    .keyFunction=${this._keyFunction}
-                    .renderItem=${this._renderItem}
-                    @click=${this._handleItemClick}
-                    @keydown=${this._handleItemKeydown}
-                  >
-                  </lit-virtualizer>
-                </ha-list>
+                ${
+                  this._filter && !entities.length
+                    ? html`<ha-filter-empty
+                        .search=${this._filter}
+                        @filter-search-cleared=${this._clearSearch}
+                      ></ha-filter-empty>`
+                    : html`<ha-list-selectable-virtualized
+                        multi
+                        class="ha-scrollbar"
+                        .rows=${entities}
+                        .rowRenderer=${this._renderItem}
+                        @ha-list-item-selected=${this._handleAdded}
+                        @ha-list-item-deselected=${this._handleRemoved}
+                      ></ha-list-selectable-virtualized>`
+                }
               </div>
             `
           : nothing
@@ -146,43 +151,50 @@ export class HaFilterEntities extends LitElement {
     `;
   }
 
-  private _keyFunction = (item?: EntityItem) => item?.stateObj.entity_id;
-
   private _renderItem = (item?: EntityItem) =>
     !item
       ? nothing
-      : html`<ha-check-list-item
-          tabindex="0"
+      : html`<ha-list-item-option
+          style="width: 100%;"
+          appearance="checkbox"
+          selection-position="end"
           .value=${item.stateObj.entity_id}
           .selected=${this.value?.includes(item.stateObj.entity_id) ?? false}
-          graphic="icon"
         >
           <ha-state-icon
-            slot="graphic"
+            slot="start"
             .stateObj=${item.stateObj}
           ></ha-state-icon>
-          ${item.name}
-        </ha-check-list-item>`;
+          <span slot="headline">${item.name}</span>
+        </ha-list-item-option>`;
 
-  private _handleItemKeydown(ev: KeyboardEvent) {
-    if (ev.key === "Enter" || ev.key === " ") {
-      ev.preventDefault();
-      this._handleItemClick(ev);
+  private _currentEntities() {
+    return this._entities(
+      this._states,
+      this._formatters,
+      this.type,
+      this._filter || "",
+      this._i18n.locale.language,
+      this.value
+    );
+  }
+
+  private _handleAdded(ev: CustomEvent<number>) {
+    const entityId = this._currentEntities()[ev.detail]?.stateObj.entity_id;
+    if (entityId) {
+      this.value = [...(this.value ?? []), entityId];
     }
   }
 
-  private _handleItemClick(ev) {
-    const listItem = ev.target.closest("ha-check-list-item");
-    const value = listItem?.value;
-    if (!value) {
-      return;
+  private _handleRemoved(ev: CustomEvent<number>) {
+    const entityId = this._currentEntities()[ev.detail]?.stateObj.entity_id;
+    if (entityId) {
+      this.value = (this.value ?? []).filter((val) => val !== entityId);
     }
-    if (this.value?.includes(value)) {
-      this.value = this.value?.filter((val) => val !== value);
-    } else {
-      this.value = [...(this.value || []), value];
-    }
-    listItem.selected = this.value?.includes(value);
+  }
+
+  private _clearSearch() {
+    this._filter = undefined;
   }
 
   private _expandedChanged(ev) {
@@ -206,6 +218,8 @@ export class HaFilterEntities extends LitElement {
       Object.values(states)
         .filter((stateObj) => !type || computeStateDomain(stateObj) !== type)
         .map((stateObj) => ({
+          id: stateObj.entity_id,
+          interactive: true,
           stateObj,
           name: formatters.formatEntityName(stateObj),
         }))
@@ -268,7 +282,7 @@ export class HaFilterEntities extends LitElement {
       haStyleScrollbar,
       filterPanelStyles,
       css`
-        ha-list {
+        ha-list-selectable-virtualized {
           flex: 1;
           min-height: 0;
         }
@@ -295,10 +309,6 @@ export class HaFilterEntities extends LitElement {
           text-align: center;
           padding: 0px 2px;
           color: var(--text-primary-color);
-        }
-        ha-check-list-item {
-          --mdc-list-item-graphic-margin: 16px;
-          width: 100%;
         }
         ha-input-search {
           display: block;

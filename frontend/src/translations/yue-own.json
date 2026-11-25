@@ -8580,6 +8580,10 @@
         "found_in_page": "喺頁入面搵到：{text}",
         "found_in_page_label": "喺頁入面搵到：",
         "pages_hidden": "搜尋收埋咗 {hidden} 頁。清除搜尋就會見返全部 {total} 頁，冇嘢刪走。",
+        "options_no_match": "冇選項符合「{search}」。",
+        "selection_kept": "你揀咗嘅選項會保留。",
+        "clear_search": "清除搜尋",
+        "loading_options": "載入緊選項",
         "options_hidden": "搜尋收埋咗 {hidden} 個選項。清除搜尋就會見返全部 {total} 個。",
         "items_hidden": "搜尋收埋咗 {hidden} 項。清除搜尋就會見返全部 {total} 項。",
         "search_pages": "搜尋呢啲頁"

@@ -44,6 +44,9 @@ export const filterPanelStyles = css`
     flex: 1;
     min-height: 0;
   }
+  .content [hidden] {
+    display: none !important;
+  }
   /* The list under the search field never shrinks to a sliver. */
   .content :is(ha-list, ha-list-selectable, ha-list-selectable-virtualized) {
     min-height: 160px;

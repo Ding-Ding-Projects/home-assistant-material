@@ -1,9 +1,8 @@
 import type { ContextType } from "@lit/context";
-import type { SelectedDetail } from "@material/mwc-list";
 import { mdiFilterVariantRemove } from "@mdi/js";
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { createRef, ref } from "lit/directives/ref";
 import { repeat } from "lit/directives/repeat";
 import memoizeOne from "memoize-one";
@@ -21,12 +20,15 @@ import type { LocalizeFunc } from "../common/translations/localize";
 import { internationalizationContext, statesContext } from "../data/context";
 import { domainToName } from "../data/integration";
 import { haStyleScrollbar } from "../resources/styles";
-import "./ha-check-list-item";
 import "./ha-domain-icon";
 import "./ha-expansion-panel";
-import "./ha-list";
+import "./ha-filter-empty";
 import "./input/ha-input-search";
 import type { HaInputSearch } from "./input/ha-input-search";
+import "./item/ha-list-item-option";
+import type { HaListItemOption } from "./item/ha-list-item-option";
+import "./list/ha-list-selectable";
+import type { HaListSelectable } from "./list/ha-list-selectable";
 
 @customElement("ha-filter-domains")
 export class HaFilterDomains extends LitElement {
@@ -49,6 +51,8 @@ export class HaFilterDomains extends LitElement {
   @property({ type: Boolean, reflect: true }) public expanded = false;
 
   @state() private _filter?: string;
+
+  @query("ha-list-selectable") private _list?: HaListSelectable;
 
   private _content = createRef<HTMLElement>();
 
@@ -74,48 +78,66 @@ export class HaFilterDomains extends LitElement {
           }
         </div>
       </ha-expansion-panel>
+      ${this._panel.showContent ? this._renderContent() : nothing}
+    `;
+  }
+
+  private _renderContent() {
+    const domains = this._domains(
+      this._states,
+      this._localize,
+      this._i18n.locale.language,
+      this._filter,
+      this.value
+    );
+    const noMatch = !!this._filter && !domains.length;
+
+    return html`<div class="content" ${ref(this._content)}>
+      <ha-input-search
+        appearance="outlined"
+        .value=${this._filter}
+        @input=${this._handleSearchChange}
+      >
+      </ha-input-search>
+      <ha-list-selectable
+        class="ha-scrollbar"
+        ?hidden=${noMatch}
+        multi
+        controlled
+        aria-label=${this._localize("ui.panel.config.domains.caption")}
+        @ha-list-item-selected=${this._handleItemToggled}
+        @ha-list-item-deselected=${this._handleItemToggled}
+      >
+        ${repeat(
+          domains,
+          (i) => i,
+          (domain) =>
+            html`<ha-list-item-option
+              appearance="checkbox"
+              selection-position="end"
+              .value=${domain}
+              .selected=${(this.value || []).includes(domain)}
+            >
+              <ha-domain-icon
+                slot="start"
+                .domain=${domain}
+                brand-fallback
+              ></ha-domain-icon>
+              <span slot="headline"
+                >${domainToName(this._localize, domain)}</span
+              >
+            </ha-list-item-option>`
+        )}
+      </ha-list-selectable>
       ${
-        this._panel.showContent
-          ? html`<div class="content" ${ref(this._content)}>
-              <ha-input-search
-                appearance="outlined"
-                .value=${this._filter}
-                @input=${this._handleSearchChange}
-              >
-              </ha-input-search>
-              <ha-list
-                class="ha-scrollbar"
-                @selected=${this._handleItemSelected}
-                multi
-              >
-                ${repeat(
-                  this._domains(
-                    this._states,
-                    this._localize,
-                    this._i18n.locale.language,
-                    this._filter,
-                    this.value
-                  ),
-                  (i) => i,
-                  (domain) =>
-                    html`<ha-check-list-item
-                      .value=${domain}
-                      .selected=${(this.value || []).includes(domain)}
-                      graphic="icon"
-                    >
-                      <ha-domain-icon
-                        slot="graphic"
-                        .domain=${domain}
-                        brand-fallback
-                      ></ha-domain-icon>
-                      ${domainToName(this._localize, domain)}
-                    </ha-check-list-item>`
-                )}
-              </ha-list>
-            </div>`
+        noMatch
+          ? html`<ha-filter-empty
+              .search=${this._filter}
+              @filter-search-cleared=${this._clearSearch}
+            ></ha-filter-empty>`
           : nothing
       }
-    `;
+    </div>`;
   }
 
   private _domains = memoizeOne(
@@ -146,27 +168,28 @@ export class HaFilterDomains extends LitElement {
     this.expanded = ev.detail.expanded;
   }
 
-  private _handleItemSelected(ev: CustomEvent<SelectedDetail<Set<number>>>) {
-    const domains = this._domains(
-      this._states,
-      this._localize,
-      this._i18n.locale.language,
-      this._filter,
-      this.value
-    );
+  private _handleItemToggled(ev: CustomEvent<number>) {
+    const option = this._list?.items[ev.detail] as HaListItemOption | undefined;
+    const domain = option?.value;
+    if (!domain) {
+      return;
+    }
 
-    const visibleDomains = new Set(domains);
-    const preserved = (this.value || []).filter((d) => !visibleDomains.has(d));
-    const selected = [...ev.detail.index]
-      .map((i) => domains[i])
-      .filter((d): d is string => !!d);
-
-    this.value = [...preserved, ...selected];
+    // Domains chosen earlier that the search hides stay chosen.
+    const value = new Set(this.value || []);
+    if (!value.delete(domain)) {
+      value.add(domain);
+    }
+    this.value = [...value];
 
     fireEvent(this, "data-table-filter-changed", {
       value: this.value.length ? this.value : undefined,
       items: undefined,
     });
+  }
+
+  private _clearSearch() {
+    this._filter = undefined;
   }
 
   private _clearFilter(ev) {
@@ -188,7 +211,12 @@ export class HaFilterDomains extends LitElement {
       haStyleScrollbar,
       filterPanelStyles,
       css`
-        ha-list {
+        ha-list-selectable {
+          display: flex;
+          flex: 1;
+          min-height: 0;
+        }
+        ha-list-selectable::part(base) {
           flex: 1;
           min-height: 0;
         }
@@ -199,9 +227,6 @@ export class HaFilterDomains extends LitElement {
         .header ha-icon-button {
           margin-inline-start: auto;
           margin-inline-end: 8px;
-        }
-        ha-check-list-item {
-          --mdc-list-item-graphic-margin: var(--ha-space-4);
         }
         .badge {
           display: inline-block;
