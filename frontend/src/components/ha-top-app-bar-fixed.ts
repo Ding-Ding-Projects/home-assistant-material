@@ -34,6 +34,7 @@ export const haTopAppBarFixedStyles: CSSResultGroup = [
       display: block;
       position: relative;
       height: 100vh;
+      height: 100dvh;
       overflow: hidden;
       /* Replaced by the measured height of the header once it is drawn. */
       --total-top-app-bar-height: calc(
@@ -129,7 +130,7 @@ export const haTopAppBarFixedStyles: CSSResultGroup = [
       box-sizing: border-box;
       display: block;
       width: 100%;
-      padding-right: var(--safe-area-inset-right, 0px);
+      padding-inline-end: var(--safe-area-inset-right, 0px);
       overflow: hidden;
     }
 
@@ -285,7 +286,7 @@ export const haTopAppBarFixedStyles: CSSResultGroup = [
       inset-inline-start: 0;
       inset-inline-end: 0;
       padding-bottom: var(--safe-area-inset-bottom);
-      padding-right: var(--safe-area-inset-right);
+      padding-inline-end: var(--safe-area-inset-right);
       overflow: auto;
     }
 
@@ -294,6 +295,7 @@ export const haTopAppBarFixedStyles: CSSResultGroup = [
       padding-left: var(--safe-area-inset-left);
       padding-bottom: calc(
         var(--safe-area-inset-bottom, 0px) +
+          var(--ha-toast-reserved-height, 0px) +
           var(--ha-dim-sum-reserved-height, 0px)
       );
     }
@@ -317,10 +319,7 @@ export const haTopAppBarFixedStyles: CSSResultGroup = [
       display: contents;
     }
     ha-page-lock-banner {
-      position: absolute;
-      top: 100%;
-      inset-inline: 0;
-      z-index: 1;
+      position: static;
     }
   `,
 ];

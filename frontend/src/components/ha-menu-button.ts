@@ -85,6 +85,9 @@ class HaMenuButton extends LitElement {
   protected willUpdate(changedProps: PropertyValues) {
     super.willUpdate(changedProps);
 
+    // An empty host must never paint its tonal circle.
+    this.toggleAttribute("hidden", !this._show);
+
     if (
       !changedProps.has("_narrow") &&
       !changedProps.has("_ui") &&
@@ -142,6 +145,9 @@ class HaMenuButton extends LitElement {
       /* The phone layout sets this to none: its bottom bar has a Menu item,
          so the same button is not repeated in every page header. */
       display: var(--ha-phone-menu-button-display, inline);
+    }
+    :host([hidden]) {
+      display: none !important;
     }
     .dot {
       pointer-events: none;

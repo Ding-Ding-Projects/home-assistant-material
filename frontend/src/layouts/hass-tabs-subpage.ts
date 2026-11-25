@@ -825,12 +825,6 @@ export class HassTabsSubpage extends LitElement {
           flex: none;
         }
 
-        ha-menu-button {
-          margin-right: 24px;
-          margin-inline-end: 24px;
-          margin-inline-start: initial;
-        }
-
         .toolbar {
           flex: none;
           font-size: var(--ha-font-size-xl);
@@ -838,7 +832,7 @@ export class HassTabsSubpage extends LitElement {
             var(--header-height, 0px) + var(--safe-area-inset-top, 0px)
           );
           padding-top: var(--safe-area-inset-top);
-          padding-right: var(--safe-area-inset-right);
+          padding-inline-end: var(--safe-area-inset-right);
           background-color: transparent;
           font-weight: var(--ha-font-weight-normal);
           box-sizing: border-box;
@@ -1081,7 +1075,12 @@ export class HassTabsSubpage extends LitElement {
           text-overflow: ellipsis;
           white-space: nowrap;
         }
-        ha-menu-button,
+        ha-menu-button {
+          display: var(--ha-phone-menu-button-display, flex);
+          flex-shrink: 0;
+          pointer-events: auto;
+          color: var(--sidebar-icon-color);
+        }
         ha-icon-button-arrow-prev,
         ::slotted([slot="toolbar-icon"]:not(slot)) {
           display: flex;
@@ -1138,7 +1137,7 @@ export class HassTabsSubpage extends LitElement {
           position: relative;
           width: 100%;
           box-sizing: border-box;
-          padding-right: var(--safe-area-inset-right);
+          padding-inline-end: var(--safe-area-inset-right);
           overflow: auto;
         }
         :host([narrow]) .content {

@@ -72,11 +72,11 @@ class HaPanelNotFound extends LitElement {
     }
     .content {
       color: var(--primary-text-color);
-      height: 100%;
+      min-height: 100%;
       display: flex;
       padding: var(--ha-space-4);
-      align-items: center;
-      justify-content: center;
+      align-items: safe center;
+      justify-content: safe center;
       box-sizing: border-box;
     }
     .panel {

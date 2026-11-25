@@ -1131,6 +1131,13 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
           padding-top: 0;
           min-height: fit-content;
         }
+        /* A short desktop window: the bottom items scroll inside the rail
+           instead of running onto the build stamp. */
+        :host(:not([narrow])) ha-list-nav.after-spacer {
+          min-height: 0;
+          flex: 0 1 auto;
+          overflow-y: auto;
+        }
 
         ha-list-item-button {
           flex-shrink: 0;
@@ -1351,6 +1358,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         }
 
         .provenance {
+          flex: none;
           display: flex;
           flex-direction: column;
           align-items: center;
