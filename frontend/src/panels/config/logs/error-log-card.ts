@@ -1124,26 +1124,6 @@ class ErrorLogCard extends LitElement {
       overflow: auto;
       min-height: var(--error-log-card-height, calc(100vh - 255px));
       max-height: var(--error-log-card-height, calc(100vh - 255px));
-      min-height: var(
-        --error-log-card-height,
-        calc(
-          100dvh -
-            255px - var(--safe-area-inset-top, 0px) - var(
-              --safe-area-inset-bottom,
-              0px
-            )
-        )
-      );
-      max-height: var(
-        --error-log-card-height,
-        calc(
-          100dvh -
-            255px - var(--safe-area-inset-top, 0px) - var(
-              --safe-area-inset-bottom,
-              0px
-            )
-        )
-      );
       border-top: 1px solid var(--divider-color);
       direction: ltr;
     }

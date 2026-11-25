@@ -1326,7 +1326,7 @@ export class HaConfigCameraRecording extends LitElement {
       }
       tr {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 1fr auto auto;
         border-bottom: 1px solid var(--divider-color);
         padding: var(--ha-space-2) 0;
       }
@@ -1348,7 +1348,8 @@ export class HaConfigCameraRecording extends LitElement {
         content: attr(data-label) ": ";
       }
       tr:not(.amount-row) td:nth-child(6) {
-        grid-column: 1 / -1;
+        grid-column: 3;
+        grid-row: 1;
         justify-self: end;
       }
       tr.amount-row td:nth-child(n) {

@@ -1349,13 +1349,13 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);
     }
+    ha-config-section .map-wrap {
+      flex: none;
+      min-height: 240px;
+      height: 240px;
+      margin-block-end: var(--ha-space-3);
+    }
     @media (max-width: 700px) {
-      ha-config-section .map-wrap {
-        flex: none;
-        min-height: 240px;
-        height: 240px;
-        margin-block-end: var(--ha-space-3);
-      }
       .flex {
         flex-direction: column;
       }
