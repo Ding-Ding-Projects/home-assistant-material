@@ -185,7 +185,11 @@ export class HaNumberSelector extends LitElement {
       margin-inline-start: 0;
     }
     ha-input::part(wa-input) {
-      width: 40px;
+      min-width: 40px;
+      width: 9ch;
+    }
+    ha-input:not(.single) {
+      max-width: 40%;
     }
     ha-input.single {
       flex: 1;

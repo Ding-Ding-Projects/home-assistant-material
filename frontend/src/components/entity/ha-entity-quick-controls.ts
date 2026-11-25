@@ -172,7 +172,9 @@ export class HaEntityQuickControls extends LitElement {
       case "value":
         return this.noValue
           ? nothing
-          : html`<span class="value"
+          : html`<span
+              class="value"
+              title=${this.hass.formatEntityState(stateObj)}
               >${this.hass.formatEntityState(stateObj)}</span
             >`;
       case "press":
@@ -197,7 +199,9 @@ export class HaEntityQuickControls extends LitElement {
     if (!control.toggle) {
       // A slider-only kind: the value sits in the slider's own section.
       return this.section === "main" && !this.noValue
-        ? html`<span class="value"
+        ? html`<span
+            class="value"
+            title=${this.hass.formatEntityState(stateObj)}
             >${this.hass.formatEntityState(stateObj)}</span
           >`
         : nothing;
@@ -629,7 +633,7 @@ export class HaEntityQuickControls extends LitElement {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 16ch;
+      max-width: min(24ch, 40vw);
     }
     ha-switch {
       /* The switch keeps a 48 px hit area without growing the row. */

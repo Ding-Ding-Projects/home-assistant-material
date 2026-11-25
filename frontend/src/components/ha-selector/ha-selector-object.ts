@@ -325,10 +325,14 @@ export class HaObjectSelector extends LitElement {
               `
             : nothing
         }
-        <div slot="headline" class="label">${label}</div>
+        <div slot="headline" class="label" title=${label}>${label}</div>
         ${
           description
-            ? html`<div slot="supporting-text" class="description">
+            ? html`<div
+                slot="supporting-text"
+                class="description"
+                title=${description}
+              >
                 ${description}
               </div>`
             : nothing
@@ -737,9 +741,13 @@ export class HaObjectSelector extends LitElement {
         }
         ha-list-item-base .label,
         ha-list-item-base .description {
-          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
           overflow: hidden;
-          white-space: nowrap;
+          white-space: normal;
+          overflow-wrap: anywhere;
         }
       `,
     ];

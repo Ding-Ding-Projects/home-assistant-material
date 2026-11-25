@@ -237,15 +237,28 @@ class HaDataTableLabels extends LitElement {
     .viewport {
       min-width: 0;
       width: 100%;
-      overflow: hidden;
+      /* Clip like overflow hidden, but leave room for the enlarged touch
+         areas of the chips that sit above and below the 22 px row. */
+      overflow: clip;
+      overflow-clip-margin: 14px;
     }
 
     ha-chip-set {
       display: flex;
       flex-wrap: nowrap;
       align-items: center;
-      overflow: hidden;
+      overflow: clip;
+      overflow-clip-margin: 14px;
       min-width: 0;
+    }
+
+    /* Clickable chips and the +N trigger are 20 px tall, so give them a
+       48 px touch area without changing how they look. */
+    ha-label[role="button"]::after,
+    ha-label.plus::after {
+      content: "";
+      position: absolute;
+      inset: -14px -4px;
     }
 
     .measure {
