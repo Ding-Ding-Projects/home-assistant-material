@@ -282,7 +282,12 @@ export class SecurityAlertsEditor extends LitElement {
       ha-settings-row {
         flex-wrap: wrap;
         row-gap: var(--ha-space-1);
-        --layout-flex_-_flex-basis: calc(100% - 40px);
+        /* With the prefix as display: contents, the text block is a direct
+           flex item of the row. Its basis is the row width minus the 24 px
+           badge and one gap, so the badge and text fill the first line and
+           the severity menu and delete button always drop to a second line
+           (118 + 48 px fits at 320 px). */
+        --layout-flex_-_flex-basis: calc(100% - 24px - var(--ha-space-3));
       }
       [slot="heading"],
       [slot="description"] {
