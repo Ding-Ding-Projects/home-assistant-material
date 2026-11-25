@@ -1715,9 +1715,9 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
              otherwise width-dependent content can flicker at the overflow
              threshold (#53228). */
           scrollbar-gutter: stable;
-          /* Buttons inside a sheet keep a 44 px touch target. */
-          --ha-button-height: 44px;
-          --ha-favorite-color-button-size: 44px;
+          /* Buttons inside a sheet keep a 48 px touch target. */
+          --ha-button-height: 48px;
+          --ha-favorite-color-button-size: 48px;
         }
 
         /* Stable sheet height: the tabs sit at the foot, so every tab keeps at
@@ -1772,7 +1772,10 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
         }
 
         .content-wrapper.tabs-at-foot .fade-bottom {
-          bottom: calc(44px + var(--ha-space-6));
+          bottom: calc(
+            48px + var(--ha-space-2) + 1px +
+              max(var(--safe-area-inset-bottom), var(--ha-space-2))
+          );
         }
 
         .title-text {
@@ -1812,8 +1815,8 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
         }
 
         .tab {
-          min-height: 44px;
-          min-width: 44px;
+          min-height: 48px;
+          min-width: 48px;
           padding: 0 var(--ha-space-4);
           border: none;
           border-radius: var(--ha-border-radius-pill);
@@ -1879,7 +1882,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           display: flex;
           align-items: center;
           gap: var(--ha-space-4);
-          min-height: 44px;
+          min-height: 48px;
           padding: var(--ha-space-2);
           border: none;
           border-radius: var(--ha-border-radius-xl);
@@ -1916,8 +1919,8 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           align-items: center;
           justify-content: center;
           flex: none;
-          width: 44px;
-          height: 44px;
+          width: 40px;
+          height: 40px;
           border-radius: var(--ha-border-radius-lg);
           background: var(--secondary-background-color);
         }
@@ -1946,8 +1949,8 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
         }
 
         .chip {
-          min-height: 44px;
-          min-width: 44px;
+          min-height: 48px;
+          min-width: 48px;
           padding: 0 var(--ha-space-4);
           border: 1px solid var(--divider-color);
           border-radius: var(--ha-border-radius-pill);
@@ -2001,8 +2004,8 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           }
 
           .icon-tile {
-            width: 32px;
-            height: 32px;
+            width: 40px;
+            height: 40px;
             border-radius: var(--ha-border-radius-lg);
             --mdc-icon-size: 20px;
           }

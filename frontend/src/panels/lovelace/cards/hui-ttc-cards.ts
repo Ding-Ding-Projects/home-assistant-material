@@ -236,6 +236,20 @@ abstract class HuiTtcCardBase extends LitElement implements LovelaceCard {
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    /* The agency's own words: three lines, and a tap shows all of them. */
+    .alert-text {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      cursor: pointer;
+    }
+    .alert-text.expanded {
+      -webkit-line-clamp: unset;
+      display: block;
+    }
     .secondary {
       font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);
@@ -512,6 +526,23 @@ class HuiTtcLeaveByCard extends HuiTtcCardBase {
 }
 
 class HuiTtcRouteAlertsCard extends HuiTtcCardBase {
+  @state() private _expandedAlerts = new Set<string>();
+
+  private _toggleAlert(ev: Event) {
+    if (ev instanceof KeyboardEvent && ev.key !== "Enter" && ev.key !== " ") {
+      return;
+    }
+    if (ev instanceof KeyboardEvent) {
+      ev.preventDefault();
+    }
+    const key = (ev.currentTarget as HTMLElement).dataset.alertKey!;
+    const next = new Set(this._expandedAlerts);
+    if (!next.delete(key)) {
+      next.add(key);
+    }
+    this._expandedAlerts = next;
+  }
+
   public static getStubConfig(): TtcCardConfig {
     return { type: "ttc-route-alerts" };
   }
@@ -522,25 +553,39 @@ class HuiTtcRouteAlertsCard extends HuiTtcCardBase {
     const alerts = this._routes(overview).flatMap((route) =>
       route.alerts.map((alert) => ({ route: route.route, alert }))
     );
+    const keyOf = (index: number, route: string, text: string) =>
+      `${index}|${route}|${text}`;
     return html`${
         alerts.length
-          ? alerts.map(
-              ({ route, alert }) =>
-                html`<div class="row">
-                  ${this._badge(route)}
-                  <div class="text">
-                    <div class="strong ellipsis">${alert.text}</div>
-                    <div class="secondary">
-                      ${[alert.cause, this._clock(alert.last_updated)]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </div>
-                  </div>
-                  <span class="secondary tone-${ttcStatusTone(alert.status)}"
-                    >${this._l(`status_${alert.status ?? "unknown"}`)}</span
+          ? alerts.map(({ route, alert }, index) => {
+              const alertKey = keyOf(index, route, alert.text);
+              const expanded = this._expandedAlerts.has(alertKey);
+              return html`<div class="row">
+                ${this._badge(route)}
+                <div class="text">
+                  <div
+                    class=${`strong alert-text${expanded ? " expanded" : ""}`}
+                    title=${alert.text}
+                    role="button"
+                    tabindex="0"
+                    aria-expanded=${expanded ? "true" : "false"}
+                    data-alert-key=${alertKey}
+                    @click=${this._toggleAlert}
+                    @keydown=${this._toggleAlert}
                   >
-                </div>`
-            )
+                    ${alert.text}
+                  </div>
+                  <div class="secondary">
+                    ${[alert.cause, this._clock(alert.last_updated)]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </div>
+                </div>
+                <span class="secondary tone-${ttcStatusTone(alert.status)}"
+                  >${this._l(`status_${alert.status ?? "unknown"}`)}</span
+                >
+              </div>`;
+            })
           : html`<div class="empty tone-good">${this._l("no_alerts")}</div>`
       }
       <div class="secondary">

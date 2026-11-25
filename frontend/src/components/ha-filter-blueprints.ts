@@ -1,9 +1,8 @@
 import type { ContextType } from "@lit/context";
-import type { SelectedDetail } from "@material/mwc-list";
 import { mdiFilterVariantRemove } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { createRef, ref } from "lit/directives/ref";
 import memoizeOne from "memoize-one";
 import { normalizeSearchText, searchMatcher } from "../common/regex/filter";
@@ -22,13 +21,16 @@ import { apiContext } from "../data/context";
 import type { RelatedResult } from "../data/search";
 import { findRelated } from "../data/search";
 import { haStyleScrollbar } from "../resources/styles";
-import "./ha-check-list-item";
 import "./ha-expansion-panel";
-import "./ha-icon-button";
-import "./ha-list";
+import "./ha-filter-empty";
 import "./ha-filter-hidden-count";
+import "./ha-icon-button";
 import "./input/ha-input-search";
 import type { HaInputSearch } from "./input/ha-input-search";
+import "./item/ha-list-item-option";
+import type { HaListItemOption } from "./item/ha-list-item-option";
+import "./list/ha-list-selectable";
+import type { HaListSelectable } from "./list/ha-list-selectable";
 
 @customElement("ha-filter-blueprints")
 export class HaFilterBlueprints extends LitElement {
@@ -50,6 +52,8 @@ export class HaFilterBlueprints extends LitElement {
   @state() private _blueprints?: Blueprints;
 
   @state() private _filter?: string;
+
+  @query("ha-list-selectable") private _list?: HaListSelectable;
 
   private _content = createRef<HTMLElement>();
 
@@ -95,7 +99,7 @@ export class HaFilterBlueprints extends LitElement {
                 ${
                   this._blueprints
                     ? this._renderList(this._blueprints)
-                    : nothing
+                    : html`<ha-filter-empty mode="loading"></ha-filter-empty>`
                 }
               </div>
             `
@@ -125,27 +129,45 @@ export class HaFilterBlueprints extends LitElement {
   private _renderList(blueprints: Blueprints) {
     const usable = this._usable(blueprints);
     const shown = this._shown(usable, this._filter);
+    const noMatch = !!this._filter && !!usable.length && !shown.length;
     return html`
       <ha-input-search
         appearance="outlined"
         .value=${this._filter}
         @input=${this._handleSearchChange}
       ></ha-input-search>
-      <ha-list @selected=${this._blueprintsSelected} multi class="ha-scrollbar">
+      <ha-list-selectable
+        class="ha-scrollbar"
+        ?hidden=${noMatch}
+        multi
+        controlled
+        aria-label=${this._localize("ui.panel.config.blueprint.caption")}
+        @ha-list-item-selected=${this._blueprintToggled}
+        @ha-list-item-deselected=${this._blueprintToggled}
+      >
         ${shown.map(
           ([id, blueprint]) =>
-            html`<ha-check-list-item
+            html`<ha-list-item-option
+              appearance="checkbox"
+              selection-position="end"
               .value=${id}
               .selected=${(this.value || []).includes(id)}
             >
-              ${blueprint.metadata.name || id}
-            </ha-check-list-item>`
+              <span slot="headline">${blueprint.metadata.name || id}</span>
+            </ha-list-item-option>`
         )}
-      </ha-list>
-      <ha-filter-hidden-count
-        .hiddenCount=${usable.length - shown.length}
-        .total=${usable.length}
-      ></ha-filter-hidden-count>
+      </ha-list-selectable>
+      ${
+        noMatch
+          ? html`<ha-filter-empty
+              .search=${this._filter}
+              @filter-search-cleared=${this._clearSearch}
+            ></ha-filter-empty>`
+          : html`<ha-filter-hidden-count
+              .hiddenCount=${usable.length - shown.length}
+              .total=${usable.length}
+            ></ha-filter-hidden-count>`
+      }
     `;
   }
 
@@ -164,23 +186,20 @@ export class HaFilterBlueprints extends LitElement {
     this.expanded = ev.detail.expanded;
   }
 
-  private async _blueprintsSelected(
-    ev: CustomEvent<SelectedDetail<Set<number>>>
-  ) {
-    const shown = this._shown(this._usable(this._blueprints!), this._filter);
-    const shownIds = new Set(shown.map(([id]) => id));
-
-    // Blueprints chosen earlier that the search now hides stay chosen.
-    const value = (this.value || []).filter((id) => !shownIds.has(id));
-
-    for (const index of ev.detail.index) {
-      const blueprintId = shown[index]?.[0];
-      if (blueprintId) {
-        value.push(blueprintId);
-      }
+  private _blueprintToggled(ev: CustomEvent<number>) {
+    const option = this._list?.items[ev.detail] as HaListItemOption | undefined;
+    const blueprintId = option?.value;
+    if (!blueprintId) {
+      return;
     }
 
-    if (!value.length) {
+    // Blueprints chosen earlier that the search hides stay chosen.
+    const value = new Set(this.value || []);
+    if (!value.delete(blueprintId)) {
+      value.add(blueprintId);
+    }
+
+    if (!value.size) {
       fireEvent(this, "data-table-filter-changed", {
         value: [],
         items: undefined,
@@ -189,7 +208,11 @@ export class HaFilterBlueprints extends LitElement {
       return;
     }
 
-    this.value = value;
+    this.value = [...value];
+  }
+
+  private _clearSearch() {
+    this._filter = undefined;
   }
 
   private async _findRelated() {
@@ -247,7 +270,12 @@ export class HaFilterBlueprints extends LitElement {
       haStyleScrollbar,
       filterPanelStyles,
       css`
-        ha-list {
+        ha-list-selectable {
+          display: flex;
+          flex: 1;
+          min-height: 0;
+        }
+        ha-list-selectable::part(base) {
           flex: 1;
           min-height: 0;
         }

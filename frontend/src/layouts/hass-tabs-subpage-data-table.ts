@@ -1200,7 +1200,12 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         }
         ${
           this.empty && !this.loading
-            ? html`<div class="center">
+            ? html`<div
+                class="center"
+                style=${styleMap({
+                  "padding-bottom": `calc(16px + var(--safe-area-inset-bottom, 0px) + var(--ha-toast-reserved-height, 0px) + ${endSpace}px)`,
+                })}
+              >
                 <slot name="empty">
                   <ha-empty-state
                     tone="start"
@@ -1232,7 +1237,10 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                         >
                           ${
                             titleRow
-                              ? html`<h1 class="narrow-title">
+                              ? html`<h1
+                                  class="narrow-title"
+                                  title=${this._pageTitle}
+                                >
                                   ${this._pageTitle}
                                 </h1>`
                               : html`<slot name="header"></slot>`
@@ -1245,7 +1253,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                   .narrow=${this.narrow}
                   row-cards
                   style=${styleMap({
-                    "--data-table-empty-row-height": `calc(var(--safe-area-inset-bottom, 0px) + ${endSpace}px)`,
+                    "--data-table-empty-row-height": `calc(var(--safe-area-inset-bottom, 0px) + var(--ha-toast-reserved-height, 0px) + ${endSpace}px)`,
                   })}
                   .columns=${this.columns}
                   .data=${this.data}
@@ -2521,9 +2529,10 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       flex: 1;
       min-width: 0;
       padding-block: 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
     /* The same heavy, wrapping title the wide page header carries. */
     .narrow-title {
@@ -2531,7 +2540,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       margin: 0;
       padding: var(--ha-space-2) var(--ha-space-1) var(--ha-space-1);
       font: inherit;
-      font-size: 22px;
+      font-size: clamp(16px, 5.6vw, 22px);
       font-weight: 700;
       letter-spacing: -0.02em;
       line-height: var(--ha-line-height-condensed);
@@ -2578,8 +2587,9 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     }
     .center {
       display: flex;
-      align-items: center;
-      justify-content: center;
+      align-items: safe center;
+      justify-content: safe center;
+      overflow-y: auto;
       text-align: center;
       box-sizing: border-box;
       height: 100%;

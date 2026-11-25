@@ -23,12 +23,12 @@ export const AssistantSetupStyles = [
     }
     @media all and (max-width: 450px), all and (max-height: 500px) {
       :host {
-        min-height: 100%;
+        min-height: min(400px, 60dvh);
         height: auto;
       }
       .content img {
-        margin-top: 68px;
-        margin-bottom: 68px;
+        margin-top: var(--ha-space-6);
+        margin-bottom: var(--ha-space-6);
       }
     }
     .footer {

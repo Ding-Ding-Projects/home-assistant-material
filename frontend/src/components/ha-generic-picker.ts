@@ -109,6 +109,9 @@ export class HaGenericPicker extends PickerMixin(LitElement) {
 
   @property({ type: Boolean, attribute: "no-sort" }) public noSort = false;
 
+  /** Lets a long chosen value wrap instead of ending in an ellipsis. */
+  @property({ type: Boolean }) public multiline = false;
+
   // Skip the "unknown value" highlight and note for a value that is not in the
   // list but that the value renderer presents on its own.
   @property({ type: Boolean, attribute: "no-unknown-state" })
@@ -224,6 +227,7 @@ export class HaGenericPicker extends PickerMixin(LitElement) {
                     .disabled=${this.disabled}
                     .invalid=${this.invalid}
                     .hideClearIcon=${this.hideClearIcon}
+                    ?multiline=${this.multiline || this._narrow}
                   >
                     <slot name="start"></slot>
                   </ha-picker-field>`
@@ -491,7 +495,7 @@ export class HaGenericPicker extends PickerMixin(LitElement) {
         wa-popover {
           --wa-space-l: 0;
           /* The surface of a dropdown menu, not of a dialog. */
-          --wa-panel-border-radius: var(--ha-border-radius-md);
+          --wa-panel-border-radius: var(--ha-border-radius-2xl);
         }
 
         wa-popover::part(dialog)::backdrop {
@@ -506,16 +510,30 @@ export class HaGenericPicker extends PickerMixin(LitElement) {
           );
           display: flex;
           flex-direction: column;
-          box-shadow: var(--ha-box-shadow-m);
+          box-shadow: var(--ha-shadow-overlay, var(--ha-box-shadow-m));
+          padding: var(--ha-space-2) 0;
+          box-sizing: border-box;
           height: fit-content;
-          min-height: var(--body-min-height, 0);
-          max-height: min(70vh, 500px);
+          /* Never taller than the space the popup measured around the field. */
+          min-height: min(
+            var(--body-min-height, 0px),
+            var(--auto-size-available-height, 100dvh)
+          );
+          max-height: min(
+            70vh,
+            500px,
+            var(--auto-size-available-height, 100dvh)
+          );
           overflow: hidden;
         }
 
         @media (max-height: 1000px) {
           wa-popover::part(body) {
-            max-height: min(70vh, 400px);
+            max-height: min(
+              70vh,
+              400px,
+              var(--auto-size-available-height, 100dvh)
+            );
           }
         }
 
@@ -526,7 +544,7 @@ export class HaGenericPicker extends PickerMixin(LitElement) {
           --ha-bottom-sheet-max-width: 600px;
           --ha-bottom-sheet-padding: 0;
           --ha-bottom-sheet-surface-background: var(--card-background-color);
-          --ha-bottom-sheet-border-radius: var(--ha-border-radius-2xl);
+          --ha-bottom-sheet-border-radius: var(--ha-border-radius-3xl);
           --ha-bottom-sheet-content-padding: 0 var(--safe-area-inset-right)
             var(--safe-area-inset-bottom) var(--safe-area-inset-left);
         }

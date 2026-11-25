@@ -780,6 +780,23 @@ export class HaConfigLogs extends LitElement {
         :host {
           user-select: initial;
         }
+        /* On a phone the log box leaves room for the heading block, the
+           toolbar and the device and phone bar insets, so it is the only
+           scroller. Wide screens keep the original height. */
+        @media all and (max-width: 700px) {
+          :host {
+            --error-log-card-height: max(
+              240px,
+              calc(
+                100dvh -
+                  300px - var(--safe-area-inset-top, 0px) - var(
+                    --safe-area-inset-bottom,
+                    0px
+                  )
+              )
+            );
+          }
+        }
         .main {
           display: flex;
           height: 100%;

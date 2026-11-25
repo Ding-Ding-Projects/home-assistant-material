@@ -194,7 +194,9 @@ class HaLogbookEntry extends LitElement {
           ${
             layout === "timeline"
               ? html`<div class="time">
-                  <span class="time-content">${renderedTime}</span>
+                  <span class="time-content" title=${renderedTime}
+                    >${renderedTime}</span
+                  >
                 </div>`
               : nothing
           }
@@ -509,8 +511,18 @@ class HaLogbookEntry extends LitElement {
         }
 
         .entry.layout-timeline {
-          grid-template-columns: 72px 36px minmax(0, 1fr);
+          /* The time column grows with the time font so it is the same width on
+             every row and the node rail stays in line. */
+          grid-template-columns:
+            calc(6.5 * var(--ha-font-size-s)) 36px
+            minmax(0, 1fr);
           grid-auto-rows: minmax(72px, auto);
+        }
+
+        .entry.layout-timeline.time-am-pm {
+          grid-template-columns:
+            calc(8 * var(--ha-font-size-s)) 36px
+            minmax(0, 1fr);
         }
 
         .entry.layout-list,
@@ -569,6 +581,7 @@ class HaLogbookEntry extends LitElement {
         }
 
         .time-content {
+          font-variant-numeric: tabular-nums;
           overflow: hidden;
           white-space: nowrap;
           text-overflow: ellipsis;

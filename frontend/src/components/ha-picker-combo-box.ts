@@ -1072,13 +1072,20 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
           --ha-row-item-padding-inline: 0;
           --ha-row-item-gap: 0;
           --ha-row-item-min-height: 36px;
-          --ha-list-item-focus-radius: 0;
+          --_picker-row-radius: var(--ha-dropdown-item-border-radius, 14px);
+          --ha-list-item-focus-radius: var(--_picker-row-radius);
           --ha-list-item-selected-background: var(
-            --ha-color-fill-primary-quiet-resting
+            --ha-color-primary-container,
+            var(--ha-color-fill-primary-quiet-resting)
           );
           --ha-list-item-active-background: var(
             --ha-color-fill-neutral-quiet-hover
           );
+        }
+
+        .list ha-list-item-option {
+          margin-inline: var(--ha-space-2);
+          border-radius: var(--_picker-row-radius);
         }
 
         @media (prefers-color-scheme: dark) {

@@ -246,7 +246,9 @@ class HuiPictureGlanceCard extends LitElement implements LovelaceCard {
         <div class="box">
           ${
             this._config.title
-              ? html`<div class="title">${this._config.title}</div>`
+              ? html`<div class="title" title=${this._config.title}>
+                  ${this._config.title}
+                </div>`
               : ""
           }
           <div class="row">
@@ -368,8 +370,13 @@ class HuiPictureGlanceCard extends LitElement implements LovelaceCard {
       display: flex;
       justify-content: space-between;
       flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      row-gap: var(--ha-space-1);
     }
     .box .title {
+      flex: 1 1 auto;
+      min-width: 6em;
       font-weight: var(--ha-font-weight-medium);
       margin-left: 8px;
       margin-inline-start: 8px;
@@ -409,6 +416,7 @@ class HuiPictureGlanceCard extends LitElement implements LovelaceCard {
     .row {
       display: flex;
       flex-direction: row;
+      flex-wrap: wrap;
     }
     .wrapper {
       display: flex;

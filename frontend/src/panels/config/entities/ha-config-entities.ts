@@ -2370,9 +2370,6 @@ ${rejected
         ha-assist-chip {
           --ha-assist-chip-container-shape: 10px;
         }
-        ha-dropdown::part(menu) {
-          --auto-size-available-width: calc(50vw - var(--ha-space-4));
-        }
         ha-dropdown-item::part(submenu) {
           max-width: calc(60vw - var(--ha-space-8));
           max-height: calc(100vh - var(--ha-space-8));

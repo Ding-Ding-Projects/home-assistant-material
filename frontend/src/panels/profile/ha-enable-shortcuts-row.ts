@@ -6,6 +6,7 @@ import type { HASSDomTargetEvent } from "../../common/dom/fire_event";
 import "../../components/ha-switch";
 import type { HaSwitch } from "../../components/ha-switch";
 import "../../components/item/ha-row-item";
+import { profileRowStyle } from "./profile-row-style";
 import type { HomeAssistant } from "../../types";
 
 @customElement("ha-enable-shortcuts-row")
@@ -42,6 +43,8 @@ class HaEnableShortcutsRow extends LitElement {
 
     fireEvent(this, "hass-enable-shortcuts", enabled);
   }
+
+  static styles = profileRowStyle;
 }
 
 declare global {

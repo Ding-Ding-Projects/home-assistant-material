@@ -271,6 +271,9 @@ export class HaAutomationLiveState extends LitElement {
     }
     @media all and (max-width: 450px) {
       .state {
+        max-width: 100%;
+      }
+      .state .more {
         display: none;
       }
     }

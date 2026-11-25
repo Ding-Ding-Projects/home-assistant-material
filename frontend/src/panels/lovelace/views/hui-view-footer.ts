@@ -334,6 +334,13 @@ export class HuiViewFooter extends LitElement {
     }
 
     @media (pointer: coarse) {
+      .actions-container {
+        height: 42px;
+      }
+      .actions {
+        height: 44px;
+        --ha-icon-button-size: 44px;
+      }
       .add {
         height: 44px;
       }

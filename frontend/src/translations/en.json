@@ -1491,6 +1491,10 @@
         "found_in_page": "Found in the page: {text}",
         "found_in_page_label": "Found in the page:",
         "pages_hidden": "{hidden, plural, one {# page is hidden by the search.} other {# pages are hidden by the search.}} Clear it to see all {total}. Nothing is removed.",
+        "options_no_match": "No option matches “{search}”.",
+        "selection_kept": "Your chosen options are kept.",
+        "clear_search": "Clear search",
+        "loading_options": "Loading options",
         "options_hidden": "{hidden, plural, one {# option is hidden by the search.} other {# options are hidden by the search.}} Clear it to see all {total}.",
         "items_hidden": "{hidden, plural, one {# item is hidden by the search.} other {# items are hidden by the search.}} Clear it to see all {total}.",
         "search_pages": "Search these pages"

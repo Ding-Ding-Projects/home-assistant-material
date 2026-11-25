@@ -1607,7 +1607,10 @@ export class QuickBar extends LitElement {
       css`
         :host {
           --dialog-surface-margin-top: var(--ha-space-10);
-          --ha-dialog-min-height: 620px;
+          --ha-dialog-min-height: min(
+            620px,
+            calc(100dvh - var(--ha-space-10) - var(--ha-space-10))
+          );
           --ha-bottom-sheet-height: calc(
             100vh - max(var(--safe-area-inset-top), 48px)
           );

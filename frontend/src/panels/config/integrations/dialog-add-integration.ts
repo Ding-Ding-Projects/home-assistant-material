@@ -439,6 +439,13 @@ class AddIntegrationDialog extends LitElement {
     return html`<ha-dialog
       .open=${this._open}
       header-title=${headerTitle}
+      ?flexcontent=${!showingBrandView}
+      style=${styleMap({
+        // On a phone the sheet gets a fixed height, so the header and the
+        // search stay put and only the brand list scrolls
+        "--ha-dialog-min-height":
+          this._narrow && !showingBrandView ? "88dvh" : undefined,
+      })}
       @closed=${this._dialogClosed}
     >
       ${
@@ -456,7 +463,20 @@ class AddIntegrationDialog extends LitElement {
               }
               ${this._renderBrandView(pickedIntegration, flowsInProgress)}
             `
-          : this._renderAll(integrations)
+          : html`
+              ${this._renderAll(integrations)}
+              <div slot="footer" class="guided-footer">
+                <button
+                  type="button"
+                  class="link"
+                  @click=${this._openGuidedSetup}
+                >
+                  ${this._modeLocalize(
+                    "ui.panel.config.integrations.config_flow.guided_setup_link"
+                  )}
+                </button>
+              </div>
+            `
       }
     </ha-dialog>`;
   }
@@ -609,25 +629,20 @@ class AddIntegrationDialog extends LitElement {
               .rowRenderer=${this._renderRow}
               style=${styleMap({
                 width: `${this._width}px`,
-                // Leave room for the dialog margin, header and search on
-                // short screens, so only the list scrolls
+                // On a phone the list fills the sheet body (see the flex rule
+                // in the styles); on a wide screen it has a bounded height
                 height: this._narrow
-                  ? "calc(100vh - 184px - var(--safe-area-inset-top, 0px) - var(--safe-area-inset-bottom, 0px))"
+                  ? undefined
                   : "min(500px, calc(var(--safe-height) - var(--ha-space-20) - 184px))",
+                flex: this._narrow ? "1 1 auto" : undefined,
+                "min-height": this._narrow ? "0" : undefined,
               })}
             >
             </ha-list-virtualized>`
           : html`<div class="flex center">
               <ha-spinner></ha-spinner>
             </div>`
-      }
-      <p class="guided">
-        <button type="button" class="link" @click=${this._openGuidedSetup}>
-          ${this._modeLocalize(
-            "ui.panel.config.integrations.config_flow.guided_setup_link"
-          )}
-        </button>
-      </p>`;
+      }`;
   }
 
   private _openGuidedSetup(): void {
@@ -894,8 +909,12 @@ class AddIntegrationDialog extends LitElement {
       ha-list-virtualized {
         position: relative;
       }
-      p.guided {
-        padding: var(--ha-space-2) var(--ha-space-4);
+      ha-input-search {
+        flex: none;
+      }
+      .guided-footer {
+        justify-content: center;
+        padding-block: var(--ha-space-2);
       }
       button.link {
         background: none;

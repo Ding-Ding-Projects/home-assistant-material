@@ -1109,6 +1109,7 @@ class HaPanelHistory extends LitElement {
       css`
         ha-top-app-bar-fixed {
           height: 100vh;
+          height: 100dvh;
           overflow-x: hidden;
           overflow-y: visible;
         }

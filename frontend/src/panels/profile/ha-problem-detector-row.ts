@@ -11,6 +11,7 @@ import { unignoreAll } from "../../common/problems/problem-store";
 import "../../components/ha-button";
 import "../../components/ha-switch";
 import "../../components/item/ha-row-item";
+import { profileRowStyle } from "./profile-row-style";
 import type { HomeAssistant } from "../../types";
 
 /**
@@ -95,6 +96,8 @@ export class HaProblemDetectorRow extends LitElement {
   private _pulseChanged(ev: Event) {
     writeProblemSettings({ pulse: (ev.target as HTMLInputElement).checked });
   }
+
+  static styles = profileRowStyle;
 }
 
 declare global {

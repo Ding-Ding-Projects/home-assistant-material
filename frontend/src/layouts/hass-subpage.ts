@@ -461,7 +461,12 @@ class HassSubpage extends LitElement {
           text-decoration: none;
         }
 
-        ha-menu-button,
+        ha-menu-button {
+          display: var(--ha-phone-menu-button-display, flex);
+          align-items: center;
+          pointer-events: auto;
+          color: var(--sidebar-icon-color);
+        }
         ha-icon-button-arrow-prev,
         ::slotted([slot="toolbar-icon"]) {
           display: flex;

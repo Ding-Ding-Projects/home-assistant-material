@@ -1,6 +1,6 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import { ResizeController } from "@lit-labs/observers/resize-controller";
-import { mdiChevronDown, mdiPlus, mdiRefresh } from "@mdi/js";
+import { mdiCheck, mdiChevronDown, mdiPlus, mdiRefresh } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
@@ -13,8 +13,8 @@ import "../../components/ha-dropdown";
 import "../../components/ha-dropdown-item";
 import type { HaDropdownItem } from "../../components/ha-dropdown-item";
 import "../../components/ha-icon-button";
-import "../../components/ha-list";
-import "../../components/ha-list-item";
+import "../../components/item/ha-list-item-button";
+import "../../components/list/ha-list-nav";
 import "../../components/ha-spinner";
 import "../../components/ha-state-icon";
 import "../../components/ha-svg-icon";
@@ -29,6 +29,7 @@ import { fetchIntegrationManifest } from "../../data/integration";
 import { showConfigFlowDialog } from "../../dialogs/config-flow/show-dialog-config-flow";
 import { panelIsReady } from "../../layouts/panel-ready";
 import { SubscribeMixin } from "../../mixins/subscribe-mixin";
+import { paneListStyles } from "../../resources/pane-list-styles";
 import { haStyle } from "../../resources/styles";
 import type { CalendarViewChanged, HomeAssistant } from "../../types";
 import "./ha-full-calendar";
@@ -178,21 +179,38 @@ class PanelCalendar extends SubscribeMixin(LitElement) {
         ></ha-icon-button>
         ${
           showPane
-            ? html`<ha-list slot="pane" multi>${calendarItems}</ha-list>${
+            ? html`<ha-list-nav
+                  slot="pane"
+                  class="pane-list"
+                  .ariaLabel=${this.hass.localize(
+                    "ui.components.calendar.my_calendars"
+                  )}
+                >
+                  ${this._calendars.map((cal) => this._renderPaneRow(cal))}
+                </ha-list-nav>
+                ${
                   this.hass.user?.is_admin
-                    ? html`<ha-list-item
-                        graphic="icon"
+                    ? html`<ha-list-nav
                         slot="pane-footer"
-                        @click=${this._addCalendar}
-                      >
-                        <ha-svg-icon
-                          .path=${mdiPlus}
-                          slot="graphic"
-                        ></ha-svg-icon>
-                        ${this.hass.localize(
+                        class="pane-footer"
+                        .ariaLabel=${this.hass.localize(
                           "ui.components.calendar.create_calendar"
                         )}
-                      </ha-list-item>`
+                      >
+                        <ha-list-item-button
+                          class="pane-row"
+                          @click=${this._addCalendar}
+                        >
+                          <span slot="start" class="pane-tile">
+                            <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
+                          </span>
+                          <span slot="headline"
+                            >${this.hass.localize(
+                              "ui.components.calendar.create_calendar"
+                            )}</span
+                          >
+                        </ha-list-item-button>
+                      </ha-list-nav>`
                     : nothing
                 }`
             : nothing
@@ -234,12 +252,51 @@ class PanelCalendar extends SubscribeMixin(LitElement) {
     this._events.subscribe(this.hass, calendars, this._start, this._end);
   }
 
+  private _renderPaneRow(cal: (typeof this._calendars)[number]) {
+    const checked = !this._deSelectedCalendars.includes(cal.entity_id);
+    return html`<ha-list-item-button
+      class="pane-row ${checked ? "selected" : ""}"
+      role="checkbox"
+      aria-checked=${checked ? "true" : "false"}
+      .entityId=${cal.entity_id}
+      @click=${this._togglePaneCalendar}
+    >
+      <span slot="start" class="pane-tile">
+        <ha-state-icon
+          .stateObj=${cal}
+          style="--icon-primary-color: ${cal.backgroundColor}"
+        ></ha-state-icon>
+      </span>
+      <span slot="headline">${cal.name}</span>
+      ${
+        checked
+          ? html`<span slot="end" class="pane-check"
+              ><ha-svg-icon .path=${mdiCheck}></ha-svg-icon
+            ></span>`
+          : nothing
+      }
+    </ha-list-item-button>`;
+  }
+
+  private _togglePaneCalendar(ev: Event) {
+    ev.stopPropagation();
+    const entityId = (ev.currentTarget as HTMLElement & { entityId: string })
+      .entityId;
+    this._toggleCalendar(
+      entityId,
+      !this._deSelectedCalendars.includes(entityId)
+    );
+  }
+
   private _requestSelected(ev: Event) {
     ev.stopPropagation();
     const item = ev.currentTarget as HaDropdownItem;
     const entityId = item.value as string;
-    const checked = item.checked;
+    this._toggleCalendar(entityId, item.checked);
+  }
 
+  /** `checked` is whether the calendar is shown before the change. */
+  private _toggleCalendar(entityId: string, checked: boolean) {
     if (!checked) {
       this._deSelectedCalendars = this._deSelectedCalendars.filter(
         (cal) => cal !== entityId
@@ -303,6 +360,7 @@ class PanelCalendar extends SubscribeMixin(LitElement) {
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      paneListStyles,
       css`
         :host {
           display: block;
@@ -320,6 +378,18 @@ class PanelCalendar extends SubscribeMixin(LitElement) {
               )
           );
         }
+        /* Wide pages draw a footer under the page, so the calendar stops above it. */
+        :host(:not([narrow])) .page {
+          height: calc(
+            100vh - var(
+                --total-top-app-bar-height,
+                var(--header-height, 0px)
+              ) - var(--safe-area-inset-top, 0px) - var(
+                --safe-area-inset-bottom,
+                0px
+              ) - var(--ha-page-footer-height, 40px)
+          );
+        }
         ha-full-calendar {
           --calendar-header-padding: 12px;
           --calendar-border-radius: var(--ha-border-radius-square);
@@ -331,14 +401,14 @@ class PanelCalendar extends SubscribeMixin(LitElement) {
           --ha-font-size-m: var(--ha-font-size-l);
         }
 
-        ha-dropdown-item {
+        ha-dropdown ha-dropdown-item {
           padding-left: 32px;
           padding-inline-start: 32px;
           padding-inline-end: initial;
           --icon-primary-color: var(--ha-color-fill-neutral-loud-resting);
         }
 
-        ha-dropdown-item[aria-checked="true"] {
+        ha-dropdown ha-dropdown-item[aria-checked="true"] {
           --icon-primary-color: var(--primary-color);
         }
 

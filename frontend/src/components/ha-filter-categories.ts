@@ -43,7 +43,8 @@ import type { HaDropdownSelectEvent } from "./ha-dropdown";
 import "./ha-dropdown-item";
 import "./ha-expansion-panel";
 import "./ha-icon";
-import "./ha-list-item";
+import "./ha-filter-empty";
+import "./item/ha-list-item-button";
 import "./item/ha-list-item-option";
 import "./list/ha-list-selectable";
 import "./ha-filter-hidden-count";
@@ -185,6 +186,7 @@ export class HaFilterCategories extends LitElement {
                 ></ha-input-search>
                 <ha-list-selectable
                   class="ha-scrollbar"
+                  ?hidden=${this._noMatch()}
                   multi
                   aria-label=${this._localize(
                     "ui.panel.config.category.caption"
@@ -250,22 +252,45 @@ export class HaFilterCategories extends LitElement {
                       </ha-list-item-option>`
                   )}
                 </ha-list-selectable>
-                <ha-filter-hidden-count
-                  .hiddenCount=${
-                    this._categories.length -
-                    this._shown(this._categories, this._filter).length
-                  }
-                  .total=${this._categories.length}
-                ></ha-filter-hidden-count>
-                <ha-list-item graphic="icon" @click=${this._addCategory}>
-                  <ha-svg-icon slot="graphic" .path=${mdiPlus}></ha-svg-icon>
-                  ${this._localize("ui.panel.config.category.editor.add")}
-                </ha-list-item>
+                ${
+                  this._noMatch()
+                    ? html`<ha-filter-empty
+                        .search=${this._filter}
+                        @filter-search-cleared=${this._clearSearch}
+                      ></ha-filter-empty>`
+                    : html`<ha-filter-hidden-count
+                        .hiddenCount=${
+                          this._categories.length -
+                          this._shown(this._categories, this._filter).length
+                        }
+                        .total=${this._categories.length}
+                      ></ha-filter-hidden-count>`
+                }
+                <ha-list-item-button
+                  .headline=${this._localize(
+                    "ui.panel.config.category.editor.add"
+                  )}
+                  @click=${this._addCategory}
+                >
+                  <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                </ha-list-item-button>
               </div>
             `
           : nothing
       }
     `;
+  }
+
+  private _noMatch(): boolean {
+    return (
+      !!this._filter &&
+      !!this._categories.length &&
+      !this._shown(this._categories, this._filter).length
+    );
+  }
+
+  private _clearSearch() {
+    this._filter = undefined;
   }
 
   private _handleAction(ev: HaDropdownSelectEvent) {
@@ -431,9 +456,14 @@ export class HaFilterCategories extends LitElement {
         }
         ha-list-item-option ha-icon-button {
           --ha-icon-button-size: 32px;
+          position: relative;
         }
-        ha-list-item {
-          --mdc-list-item-graphic-margin: var(--ha-space-4);
+        /* A 48 px touch area, so a thumb aimed at the menu button does not
+           toggle the row's checkbox. */
+        ha-list-item-option ha-icon-button::after {
+          content: "";
+          position: absolute;
+          inset: -8px;
         }
         ha-dropdown-item {
           font-size: var(--ha-font-size-m);

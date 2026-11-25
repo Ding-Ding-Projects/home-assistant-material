@@ -230,9 +230,14 @@ export class HaPickerField extends PickerMixin(LitElement) {
           height: 1px;
           width: 100%;
           background-color: var(--ha-color-border-neutral-loud);
-          transform:
-            height 180ms ease-in-out,
-            background-color 180ms ease-in-out;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+          .field:after {
+            transition:
+              height 180ms ease-in-out,
+              background-color 180ms ease-in-out;
+          }
         }
 
         .field:focus-within:after {
@@ -254,6 +259,13 @@ export class HaPickerField extends PickerMixin(LitElement) {
           color: var(--secondary-text-color);
           --ha-icon-button-size: 32px;
           --ha-icon-button-padding-inline: var(--ha-space-1);
+          position: relative;
+        }
+        /* A 48 px touch area, kept inside the field so it never covers the arrow. */
+        .clear::after {
+          content: "";
+          position: absolute;
+          inset: -8px 0;
         }
         .arrow {
           --mdc-icon-size: 20px;

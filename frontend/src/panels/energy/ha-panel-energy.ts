@@ -3,11 +3,12 @@ import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { navigate } from "../../common/navigate";
 import { sanitizeNavigationPath } from "../../common/url/sanitize-navigation-path";
-import "../../components/ha-alert";
 import "../../components/ha-icon-button-arrow-prev";
 import "../../components/ha-menu-button";
 import type { EnergyFrontendSystemData } from "../../data/frontend";
 import { fetchFrontendSystemData } from "../../data/frontend";
+import "../../layouts/hass-error-screen";
+import "../../layouts/hass-loading-screen";
 import type { LovelaceConfig } from "../../data/lovelace/config/types";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant, PanelInfo } from "../../types";
@@ -133,21 +134,26 @@ class PanelEnergy extends LitElement {
   protected render() {
     if (this._error) {
       return html`
-        <div class="centered">
-          <ha-alert alert-type="error">
-            ${this.hass.localize("ui.panel.energy.error_loading_preferences", {
-              error: this._error,
-            })}
-          </ha-alert>
-        </div>
+        <hass-error-screen
+          .hass=${this.hass}
+          .narrow=${this.narrow}
+          rootnav
+          show-reload
+          .error=${this.hass.localize(
+            "ui.panel.energy.error_loading_preferences",
+            { error: this._error }
+          )}
+        ></hass-error-screen>
       `;
     }
 
     if (!this._lovelace) {
       return html`
-        <div class="centered">
-          <ha-spinner size="large"></ha-spinner>
-        </div>
+        <hass-loading-screen
+          .hass=${this.hass}
+          .narrow=${this.narrow}
+          rootnav
+        ></hass-loading-screen>
       `;
     }
 
@@ -192,15 +198,10 @@ class PanelEnergy extends LitElement {
       haStyle,
       css`
         :host {
+          display: block;
+          height: 100%;
           --ha-view-sections-column-max-width: 100%;
           user-select: none;
-        }
-        .centered {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
       `,
     ];

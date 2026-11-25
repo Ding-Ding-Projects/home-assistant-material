@@ -35,6 +35,7 @@ import {
 import { domainToName } from "../data/integration";
 import "./ha-domain-icon";
 import "./ha-expansion-panel";
+import "./ha-filter-empty";
 import "./ha-icon-button";
 import "./ha-svg-icon";
 import "./ha-tree-indicator";
@@ -133,19 +134,28 @@ export class HaFilterEntityTypes extends LitElement {
         @input=${this._handleSearchChange}
       >
       </ha-input-search>
-      <ha-list-selectable
-        multi
-        controlled
-        aria-label=${this._localize("ui.components.filter-entity-types.caption")}
-        @ha-list-item-selected=${this._handleItemToggled}
-        @ha-list-item-deselected=${this._handleItemToggled}
-      >
-        ${repeat(
-          rows,
-          (row) => row.key,
-          (row) => this._renderRow(row, rtl)
-        )}
-      </ha-list-selectable>
+      ${
+        rows.length || !this._filter
+          ? html`<ha-list-selectable
+              multi
+              controlled
+              aria-label=${this._localize(
+                "ui.components.filter-entity-types.caption"
+              )}
+              @ha-list-item-selected=${this._handleItemToggled}
+              @ha-list-item-deselected=${this._handleItemToggled}
+            >
+              ${repeat(
+                rows,
+                (row) => row.key,
+                (row) => this._renderRow(row, rtl)
+              )}
+            </ha-list-selectable>`
+          : html`<ha-filter-empty
+              .search=${this._filter}
+              @filter-search-cleared=${this._clearSearch}
+            ></ha-filter-empty>`
+      }
     </div>`;
   }
 
@@ -412,6 +422,10 @@ export class HaFilterEntityTypes extends LitElement {
     });
   }
 
+  private _clearSearch() {
+    this._filter = undefined;
+  }
+
   private _handleSearchChange(ev: InputEvent) {
     const target = ev.target as HaInputSearch;
     this._filter = normalizeSearchText(target.value);
@@ -465,6 +479,14 @@ export class HaFilterEntityTypes extends LitElement {
         }
         ha-list-item-option ha-icon-button {
           --ha-icon-button-size: 32px;
+          position: relative;
+        }
+        /* A 48 px touch area, so a thumb aimed at the chevron does not toggle
+           the row's checkbox. */
+        ha-list-item-option ha-icon-button::after {
+          content: "";
+          position: absolute;
+          inset: -8px;
         }
         .child::part(base) {
           padding-inline-start: 48px;

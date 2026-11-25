@@ -511,7 +511,7 @@ class PanelMediaBrowser extends LitElement {
           height: calc(
             100vh -
               (
-                148px +
+                148px + var(--ha-page-footer-height, 40px) +
                   var(--total-top-app-bar-height, var(--header-height, 0px)) +
                   var(--safe-area-inset-top, 0px) +
                   var(--safe-area-inset-bottom, 0px)
@@ -545,7 +545,7 @@ class PanelMediaBrowser extends LitElement {
           height: calc(
             100vh -
               (
-                100px +
+                100px + var(--ha-page-footer-height, 40px) +
                   var(--total-top-app-bar-height, var(--header-height, 0px)) +
                   var(--safe-area-inset-top, 0px) +
                   var(--safe-area-inset-bottom, 0px)
@@ -587,6 +587,13 @@ class PanelMediaBrowser extends LitElement {
                 --safe-area-inset-right,
                 0px
               )
+          );
+        }
+        /* Wide pages draw a footer line; the player sits on top of it, not over it. */
+        :host(:not([narrow])) ha-bar-media-player {
+          bottom: calc(
+            var(--ha-page-footer-height, 40px) +
+              var(--safe-area-inset-bottom, 0px)
           );
         }
         :host([narrow]) ha-bar-media-player {

@@ -150,6 +150,11 @@ export class HuiTileCard extends LitElement implements LovelaceCard {
       rows++;
       min_columns = 3;
     }
+
+    // The large number under the tile needs a row of its own.
+    if (this._config?.appearance === "big-number") {
+      rows++;
+    }
     return {
       columns,
       rows,
@@ -416,6 +421,16 @@ export class HuiTileCard extends LitElement implements LovelaceCard {
           var(--tile-color) 22%,
           var(--card-background-color)
         );
+      }
+      /* Keep the large number inside the card even in a fixed-height cell. */
+      ha-card[data-appearance="big-number"] {
+        display: flex;
+        flex-direction: column;
+      }
+      ha-card[data-appearance="big-number"] ha-tile-container {
+        height: auto;
+        flex: 1 1 auto;
+        min-height: 0;
       }
       .big-state {
         padding: 0 var(--ha-space-4) var(--ha-space-3);

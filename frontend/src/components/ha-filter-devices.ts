@@ -25,6 +25,7 @@ import {
 import type { RelatedResult } from "../data/search";
 import { findRelated } from "../data/search";
 import "./ha-expansion-panel";
+import "./ha-filter-empty";
 import "./input/ha-input-search";
 import type { HaInputSearch } from "./input/ha-input-search";
 import "./item/ha-list-item-option";
@@ -117,18 +118,31 @@ export class HaFilterDevices extends LitElement {
                 @keydown=${this._handleSearchKeydown}
               >
               </ha-input-search>
-              <ha-list-selectable-virtualized
-                multi
-                .rows=${this._devices(
+              ${
+                this._filter &&
+                !this._devices(
                   this._devicesReg,
-                  this._filter || "",
+                  this._filter,
                   this._localize,
                   this._i18n.locale.language
-                )}
-                .rowRenderer=${this._renderItem}
-                @ha-list-item-selected=${this._handleAdded}
-                @ha-list-item-deselected=${this._handleRemoved}
-              ></ha-list-selectable-virtualized>
+                ).length
+                  ? html`<ha-filter-empty
+                      .search=${this._filter}
+                      @filter-search-cleared=${this._clearSearch}
+                    ></ha-filter-empty>`
+                  : html`<ha-list-selectable-virtualized
+                      multi
+                      .rows=${this._devices(
+                        this._devicesReg,
+                        this._filter || "",
+                        this._localize,
+                        this._i18n.locale.language
+                      )}
+                      .rowRenderer=${this._renderItem}
+                      @ha-list-item-selected=${this._handleAdded}
+                      @ha-list-item-deselected=${this._handleRemoved}
+                    ></ha-list-selectable-virtualized>`
+              }
             </div>`
           : nothing
       }
@@ -172,6 +186,10 @@ export class HaFilterDevices extends LitElement {
 
   private _expandedChanged(ev) {
     this.expanded = ev.detail.expanded;
+  }
+
+  private _clearSearch() {
+    this._filter = undefined;
   }
 
   private _handleSearchChange(ev: InputEvent) {
