@@ -291,9 +291,13 @@ export class HaConfigCameraRecording extends LitElement {
                       }
                     </td>
                     <td>${this._renderState(cam)}</td>
-                    <td>${this._time(cam.newest)}</td>
-                    <td>${cam.waiting}</td>
-                    <td>${this._time(cam.oldest)}</td>
+                    <td data-label=${this._l("newest")}>
+                      ${this._time(cam.newest)}
+                    </td>
+                    <td data-label=${this._l("waiting")}>${cam.waiting}</td>
+                    <td data-label=${this._l("oldest")}>
+                      ${this._time(cam.oldest)}
+                    </td>
                     <td>
                       <ha-button
                         size="small"
@@ -1336,7 +1340,16 @@ export class HaConfigCameraRecording extends LitElement {
       td:nth-child(3),
       td:nth-child(4),
       td:nth-child(5) {
-        display: none;
+        grid-column: 1 / -1;
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+      }
+      td[data-label]::before {
+        content: attr(data-label) ": ";
+      }
+      tr:not(.amount-row) td:nth-child(6) {
+        grid-column: 1 / -1;
+        justify-self: end;
       }
       tr.amount-row td:nth-child(n) {
         display: block;
