@@ -540,7 +540,9 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
                   <span slot="introduction">
                     ${hass.localize("ui.panel.config.zone.introduction")}
                   </span>
+                  ${this._renderMap()}
                   <ha-card outlined>${listBox}</ha-card>
+                  ${this._renderYamlDetail()}
                 </ha-config-section>
               `
             : ""
@@ -551,31 +553,7 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
                 <div class="flex">
                   <div class="overflow">${listBox}</div>
                   <div class="detail">
-                    <div
-                      class="map-wrap"
-                      tabindex="0"
-                      role="group"
-                      aria-label=${hass.localize(
-                        "ui.panel.config.zone.map_label"
-                      )}
-                      @keydown=${this._mapKeydown}
-                    >
-                      <ha-locations-editor
-                        .locations=${this._getZones(
-                          this._storageItems,
-                          this._stateItems,
-                          hass.formatEntityName,
-                          this._zoneEntityIds,
-                          this._pendingEdits,
-                          this._entityReg,
-                          this._colorVersion
-                        )}
-                        @location-updated=${this._locationUpdated}
-                        @radius-updated=${this._radiusUpdated}
-                        @marker-clicked=${this._markerClicked}
-                      ></ha-locations-editor>
-                    </div>
-                    ${this._renderForm()}
+                    ${this._renderMap()} ${this._renderForm()}
                   </div>
                 </div>
               `
@@ -591,6 +569,52 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
         }
       </hass-tabs-subpage>
     `;
+  }
+
+  private _renderMap() {
+    const hass = this.hass;
+    if (!this._storageItems || !this._stateItems) {
+      return nothing;
+    }
+    return html`
+      <div
+        class="map-wrap"
+        tabindex="0"
+        role="group"
+        aria-label=${hass.localize("ui.panel.config.zone.map_label")}
+        @keydown=${this._mapKeydown}
+      >
+        <ha-locations-editor
+          .locations=${this._getZones(
+            this._storageItems,
+            this._stateItems,
+            hass.formatEntityName,
+            this._zoneEntityIds,
+            this._pendingEdits,
+            this._entityReg,
+            this._colorVersion
+          )}
+          @location-updated=${this._locationUpdated}
+          @radius-updated=${this._radiusUpdated}
+          @marker-clicked=${this._markerClicked}
+        ></ha-locations-editor>
+      </div>
+    `;
+  }
+
+  // On a phone a tapped YAML zone cannot be edited, so show its details
+  // (read only) with the reason, instead of only highlighting its row
+  private _renderYamlDetail() {
+    const selected = this._selectedId ? this._selection() : undefined;
+    if (
+      !selected ||
+      selected.id !== this._selectedId ||
+      selected.editable ||
+      selected.id === HOME_ZONE_ENTITY_ID
+    ) {
+      return nothing;
+    }
+    return html`<div class="yaml-detail">${this._renderForm()}</div>`;
   }
 
   // The selected zone, or home (then the first zone) before one is chosen
@@ -1285,6 +1309,9 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
       border-radius: var(--ha-border-radius-3xl);
       overflow: hidden;
     }
+    .yaml-detail {
+      margin-block-start: var(--ha-space-3);
+    }
     .map-wrap:focus-visible {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
@@ -1323,6 +1350,12 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
       font-size: var(--ha-font-size-s);
     }
     @media (max-width: 700px) {
+      ha-config-section .map-wrap {
+        flex: none;
+        min-height: 240px;
+        height: 240px;
+        margin-block-end: var(--ha-space-3);
+      }
       .flex {
         flex-direction: column;
       }
