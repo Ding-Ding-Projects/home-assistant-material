@@ -1756,15 +1756,17 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           order: 2;
           border-top: 1px solid var(--divider-color);
           flex-wrap: nowrap;
+          overflow-x: auto;
+          scrollbar-width: none;
           gap: var(--ha-space-1);
           padding: var(--ha-space-2) var(--ha-space-3)
             max(var(--safe-area-inset-bottom), var(--ha-space-2));
         }
 
         .content-wrapper.tabs-at-foot .tab {
-          flex: 1 1 0;
-          min-width: 0;
-          padding: 0 var(--ha-space-1);
+          flex: 1 0 auto;
+          min-width: 48px;
+          padding: 0 var(--ha-space-2);
         }
 
         .content-wrapper.tabs-at-foot .content {
