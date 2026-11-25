@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Zones on a phone: a map, and a reason for YAML zones</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.m3 .btn{padding:0 24px}
+.m3 .btn.text{padding:0 14px}
+.tod{background:var(--amberc);color:var(--amber);flex:none;white-space:nowrap}
+.pbar{position:absolute;left:12px;right:12px;bottom:calc(12px + var(--inset,0px));height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);z-index:7;display:flex;align-items:center;justify-content:space-around;padding:0 8px}
+.pbar span{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;line-height:14px;font-weight:600;color:var(--onv);min-width:60px}
+.pbar span.on{color:var(--on)}
+.pbar span.on .ic{background:var(--pc);color:var(--on-pc);border-radius:14px;width:52px;height:28px;padding:2px 14px}
+.homei{position:absolute;left:50%;bottom:8px;width:134px;height:5px;border-radius:3px;background:var(--on);opacity:.55;transform:translateX(-50%);z-index:8}
+.card{background:var(--sl0);border-radius:20px}
+.box{width:20px;height:20px;border-radius:4px;box-shadow:inset 0 0 0 2px var(--out);display:grid;place-items:center;flex:none;transition:background-color .2s}
+.box svg{width:16px;height:16px;fill:var(--on-p);opacity:0}
+.box.on{background:var(--p);box-shadow:none}
+.box.on svg{opacity:1}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--sl2);border-radius:24px;padding:4px;gap:4px}
+.m3 .seg button{min-height:40px;padding:0 16px;border-radius:20px;font-size:14px;font-weight:600;color:var(--onv);position:relative;white-space:nowrap}
+.m3 .seg button::after{content:"";position:absolute;inset:-4px 0}
+.m3 .seg button.sel{background:var(--pc);color:var(--on-pc)}
+.wrapany{overflow-wrap:anywhere}
+.pg{flex:1;min-height:0;overflow-y:auto;padding:0 12px 172px;display:flex;flex-direction:column;gap:12px}
+.map{position:relative;height:240px;border-radius:20px;overflow:hidden;background:var(--sl2);flex:none}
+.map svg.bg{position:absolute;inset:0;width:100%;height:100%}
+.zc{position:absolute;border-radius:50%;transform:translate(-50%,-50%);transition:box-shadow .25s,background-color .25s}
+.zl{position:absolute;transform:translate(-50%,-50%);font-size:11px;line-height:14px;font-weight:600;color:var(--on);background:var(--sl0);border-radius:8px;padding:1px 6px;white-space:nowrap}
+.mapcap{position:absolute;left:8px;bottom:8px;right:8px;display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:12px;background:var(--sl0);font-size:12px;line-height:16px;color:var(--onv)}
+.zlist{padding:6px;display:flex;flex-direction:column;flex:none}
+.m3 .zrow{display:flex;align-items:center;gap:12px;min-height:60px;padding:6px 10px;border-radius:14px;width:100%;color:var(--on)}
+.m3 .zrow.act{background:var(--pc);color:var(--on-pc)}
+.zrow.act .sub{color:inherit;opacity:.85}
+.zrow > .ic{color:var(--onv)}
+.zdot{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;flex:none}
+.intro{padding:4px 8px 0;display:flex;flex-direction:column;gap:6px;flex:none}
+.m3 .fab{position:absolute;right:16px;bottom:92px;z-index:4;min-height:56px;padding:0 20px 0 16px;border-radius:16px;background:var(--pc);color:var(--on-pc);display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;box-shadow:var(--e3)}
+.m3 .scrim{position:absolute;inset:0;background:var(--scrim);z-index:8}
+.zsheet{position:absolute;left:0;right:0;bottom:0;z-index:9;background:var(--sl0);border-radius:28px 28px 0 0;display:flex;flex-direction:column;max-height:88%;box-shadow:var(--e3)}
+.grab{width:32px;height:4px;border-radius:2px;background:var(--out);opacity:.5;margin:10px auto 2px;flex:none}
+.zbody{flex:1;min-height:0;overflow-y:auto;padding:4px 20px 12px;display:flex;flex-direction:column;gap:12px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14px}
+.facts dt{color:var(--onv)}
+.facts dd{margin:0;text-align:right;overflow-wrap:anywhere}
+.zfoot{flex:none;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding:8px 16px 16px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<div class="bar">
+<button class="ib" aria-label="Back to areas and zones"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></button>
+<h1>Zones</h1>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><span class="tag tod">Today</span></sc-if>
+<button class="ib" aria-label="Help for zones"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,18H13V16H11V18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6A4,4 0 0,0 8,10H10A2,2 0 0,1 12,8A2,2 0 0,1 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10A4,4 0 0,0 12,6Z"></path></svg></button>
+</div>
+<div class="pg">
+<sc-if value="{{isAfter}}" hint-placeholder-val="{{ true }}"><div class="map in" role="img" aria-label="{{mapLabel}}">
+<svg class="bg" viewBox="0 0 366 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+<path d="M-10 190 C60 170 110 215 190 196 S320 150 380 172 V250 H-10Z" style="fill: var(--sl3)"></path>
+<path d="M-10 62 H380 M-10 132 H380 M70 -10 V250 M178 -10 V250 M290 -10 V250" style="stroke: var(--sl4); stroke-width: 7; fill: none"></path>
+<path d="M-10 20 L380 100 M120 250 L330 -10" style="stroke: var(--sl4); stroke-width: 3; fill: none"></path>
+<rect x="88" y="76" width="74" height="44" rx="6" style="fill: var(--sl3)"></rect>
+<rect x="196" y="12" width="78" height="38" rx="6" style="fill: var(--sl3)"></rect>
+<rect x="306" y="78" width="46" height="42" rx="6" style="fill: var(--sl3)"></rect>
+</svg>
+<sc-for list="{{zones}}" as="z" hint-placeholder-count="5"><span class="zc" style="left: {{z.x}}; top: {{z.y}}; width: {{z.d}}; height: {{z.d}}; background: color-mix(in srgb, {{z.color}} {{z.fill}}, transparent); box-shadow: inset 0 0 0 {{z.ring}} {{z.color}}"></span><span class="zl" style="left: {{z.x}}; top: {{z.ly}}">{{z.short}}</span></sc-for>
+<div class="mapcap"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 4C14.2 4 16 5.8 16 8C16 10.1 13.9 13.5 12 15.9C10.1 13.4 8 10.1 8 8C8 5.8 9.8 4 12 4M12 2C8.7 2 6 4.7 6 8C6 12.5 12 19 12 19S18 12.4 18 8C18 4.7 15.3 2 12 2M12 6C10.9 6 10 6.9 10 8S10.9 10 12 10 14 9.1 14 8 13.1 6 12 6M20 19C20 21.2 16.4 23 12 23S4 21.2 4 19C4 17.7 5.2 16.6 7.1 15.8L7.7 16.7C6.7 17.2 6 17.8 6 18.5C6 19.9 8.7 21 12 21S18 19.9 18 18.5C18 17.8 17.3 17.2 16.2 16.7L16.8 15.8C18.8 16.6 20 17.7 20 19Z"></path></svg><span style="flex: 1; min-width: 0">{{mapText}}</span></div>
+</div></sc-if>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><div class="intro">
+<span class="tl">Zones</span>
+<span class="sub">Zones allow you to specify certain regions on Earth. When a person is within a zone, the state will take the name from the zone. Zones can also be used as a trigger or condition inside automation setups.</span>
+</div></sc-if>
+<div class="card zlist" role="list" aria-label="Zones">
+<sc-for list="{{zones}}" as="z" hint-placeholder-count="5"><button class="{{z.cls}}" onClick="{{ z.tap }}" aria-label="{{z.label}}">
+<span class="zdot" style="background: color-mix(in srgb, {{z.color}} 26%, transparent); color: {{z.color}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{z.icon}}"></path></svg></span>
+<span class="grow"><span class="bl wrapany">{{z.name}}</span><span class="sub">{{z.meta}}</span></span>
+<sc-if value="{{z.yaml}}" hint-placeholder-val="{{ false }}"><span class="tag">YAML</span></sc-if>
+<svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="{{z.end}}"></path></svg>
+</button></sc-for>
+</div>
+</div>
+<button class="fab"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg>Add zone</button>
+<nav class="pbar" aria-label="Main"><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5.69L17 10.19V18H15V12H9V18H7V10.19L12 5.69M12 3L2 12H5V20H11V14H13V20H19V12H22"></path></svg>Home</span><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 9V7C21 5.35 19.65 4 18 4H14C13.23 4 12.53 4.3 12 4.78C11.47 4.3 10.77 4 10 4H6C4.35 4 3 5.35 3 7V9C1.35 9 0 10.35 0 12V17C0 18.65 1.35 20 3 20V22H5V20H19V22H21V20C22.65 20 24 18.65 24 17V12C24 10.35 22.65 9 21 9M14 6H18C18.55 6 19 6.45 19 7V9.78C18.39 10.33 18 11.12 18 12V14H13V7C13 6.45 13.45 6 14 6M5 7C5 6.45 5.45 6 6 6H10C10.55 6 11 6.45 11 7V14H6V12C6 11.12 5.61 10.33 5 9.78V7M22 17C22 17.55 21.55 18 21 18H3C2.45 18 2 17.55 2 17V12C2 11.45 2.45 11 3 11S4 11.45 4 12V16H20V12C20 11.45 20.45 11 21 11S22 11.45 22 12V17Z"></path></svg>Rooms</span><span class="on"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"></path></svg>Settings</span><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,12A2,2 0 0,1 18,10A2,2 0 0,1 20,12A2,2 0 0,1 18,14A2,2 0 0,1 16,12M10,12A2,2 0 0,1 12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12M4,12A2,2 0 0,1 6,10A2,2 0 0,1 8,12A2,2 0 0,1 6,14A2,2 0 0,1 4,12Z"></path></svg>More</span></nav>
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}"><div class="toast up" role="status" style="bottom: 160px"><span style="flex: 1">{{toast}}</span><button class="btn text" onClick="{{ hideToast }}">Dismiss</button></div></sc-if>
+<sc-if value="{{sheet}}" hint-placeholder-val="{{ false }}"><button class="scrim" aria-label="Close the zone details" onClick="{{ closeSheet }}" style="width: 100%; height: 100%"></button>
+<div class="zsheet up" role="dialog" aria-modal="true" aria-labelledby="z-title">
+<div class="grab" aria-hidden="true"></div>
+<div class="hrow" style="padding: 0 8px 0 20px; min-height: 56px"><h1 id="z-title" class="tl" style="flex: 1; min-width: 0">{{sName}}</h1><span class="tag">Read only</span><button class="ib" aria-label="Close" onClick="{{ closeSheet }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div>
+<div class="zbody">
+<div class="note"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6C4.89 2 4 2.9 4 4V20C4 21.11 4.89 22 6 22H18C19.11 22 20 21.11 20 20V8L14 2M18 20H6V4H13V9H18V20M9.54 15.65L11.63 17.74L10.35 19L7 15.65L10.35 12.3L11.63 13.56L9.54 15.65M17 15.65L13.65 19L12.38 17.74L14.47 15.65L12.38 13.56L13.65 12.3L17 15.65Z"></path></svg><span>This zone is set in <span class="mono">configuration.yaml</span>, so it cannot be changed here. Edit it in that file, then reload zones from Developer tools.</span></div>
+<dl class="facts"><dt>Latitude</dt><dd class="mono">{{sLat}}</dd><dt>Longitude</dt><dd class="mono">{{sLon}}</dd><dt>Radius</dt><dd>{{sRadius}}</dd><dt>Passive</dt><dd>No</dd><dt>Entity</dt><dd class="mono">{{sEntity}}</dd></dl>
+</div>
+<div class="zfoot"><button class="btn text" onClick="{{ copyYaml }}">Copy as YAML</button><button class="btn tonal" onClick="{{ closeSheet }}">Show on map</button></div>
+</div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","yaml-zone","before"]},"$preview":{"width":390,"height":844}}'>
+const ZI = { home: "M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z", work: "M10,2H14A2,2 0 0,1 16,4V6H20A2,2 0 0,1 22,8V19A2,2 0 0,1 20,21H4C2.89,21 2,20.1 2,19V8C2,6.89 2.89,6 4,6H8V4C8,2.89 8.89,2 10,2M14,6V4H10V6H14Z", school: "M12,3L1,9L12,15L21,10.09V17H23V9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z", plant: "M2,22V20C2,20 7,18 12,18C17,18 22,20 22,20V22H2M11.3,9.1C10.1,5.2 4,6.1 4,6.1C4,6.1 4.2,13.9 9.9,12.7C9.5,9.8 8,9 8,9C10.8,9 11,12.4 11,12.4V17C11.3,17 11.7,17 12,17C12.3,17 12.7,17 13,17V12.8C13,12.8 13,8.9 16,7.9C16,7.9 14,10.9 14,12.9C21,13.6 21,4 21,4C21,4 12.1,3 11.3,9.1Z", train: "M12,2C8,2 4,2.5 4,6V15.5A3.5,3.5 0 0,0 7.5,19L6,20.5V21H8.23L10.23,19H14L16,21H18V20.5L16.5,19A3.5,3.5 0 0,0 20,15.5V6C20,2.5 16.42,2 12,2M7.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,14A1.5,1.5 0 0,1 9,15.5A1.5,1.5 0 0,1 7.5,17M11,10H6V6H11V10M13,10V6H18V10H13M16.5,17A1.5,1.5 0 0,1 15,15.5A1.5,1.5 0 0,1 16.5,14A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 16.5,17Z", edit: "M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z", off: "M18.66,2C18.4,2 18.16,2.09 17.97,2.28L16.13,4.13L19.88,7.88L21.72,6.03C22.11,5.64 22.11,5 21.72,4.63L19.38,2.28C19.18,2.09 18.91,2 18.66,2M3.28,4L2,5.28L8.5,11.75L4,16.25V20H7.75L12.25,15.5L18.72,22L20,20.72L13.5,14.25L9.75,10.5L3.28,4M15.06,5.19L11.03,9.22L14.78,12.97L18.81,8.94L15.06,5.19Z" };
+const ZONES = [
+  { id: 'home', name: 'Home', icon: ZI.home, color: '#98CBFF', x: 34, y: 41, d: 72, src: 'home', radius: '100 m', lat: '12.3456', lon: '65.4321' },
+  { id: 'work', name: 'Work', icon: ZI.work, color: '#E0A526', x: 74, y: 16, d: 54, src: 'ui', radius: '150 m', lat: '12.3611', lon: '65.4502' },
+  { id: 'school', name: 'School', icon: ZI.school, color: '#A58AD6', x: 14, y: 72, d: 46, src: 'ui', radius: '120 m', lat: '12.3302', lon: '65.4117' },
+  { id: 'plot', name: 'Allotment plot', short: 'Allotment', icon: ZI.plant, color: '#4CAF6A', x: 58, y: 78, d: 40, src: 'yaml', radius: '60 m', lat: '12.3340', lon: '65.4398' },
+  { id: 'station', name: 'Station, east platform', short: 'Station', icon: ZI.train, color: '#E5645A', x: 84, y: 52, d: 50, src: 'yaml', radius: '150 m', lat: '12.3489', lon: '65.4630' }
+];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.reset('after'); }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+
+reset(s) { this.sel = s === 'after' ? 'home' : 'station'; this.sheet = s === 'yaml-zone'; this.toast = null; }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const before = s === 'before';
+    const cur = ZONES.find((z) => z.id === this.sel) || ZONES[0];
+    const say = (t) => { this.toast = t; this.bump(); };
+    return Object.assign(v, {
+      isBefore: before, isAfter: !before,
+      mapLabel: 'Map with ' + ZONES.length + ' zones. ' + cur.name + ' is highlighted.',
+      mapText: cur.name + ' · radius ' + cur.radius + (cur.src === 'yaml' ? ' · from YAML' : ''),
+      zones: ZONES.map((z) => {
+        const on = z.id === this.sel;
+        const yaml = z.src === 'yaml';
+        return {
+          name: z.name, icon: z.icon, color: z.color, yaml, end: yaml ? ZI.off : ZI.edit,
+          meta: 'Radius ' + z.radius + (z.src === 'home' ? ' · where your system is' : ''),
+          cls: on ? 'zrow act' : 'zrow',
+          label: z.name + (yaml ? ', from YAML, read only' : ', edit'),
+          x: z.x + '%', y: z.y + '%', ly: 'calc(' + z.y + '% ' + (z.y > 60 ? '- ' : '+ ') + (z.d / 2 + 14) + 'px)', short: z.short || z.name, d: (on ? z.d + 8 : z.d) + 'px', fill: on ? '40%' : '22%', ring: on ? '3px' : '1.5px',
+          tap: () => {
+            this.sel = z.id; this.toast = null;
+            if (yaml) { if (before) { this.bump(); return; } this.sheet = true; this.bump(); return; }
+            say('Opens the edit dialog for ' + z.name);
+          }
+        };
+      }),
+      sheet: this.sheet && !before, sName: cur.name, sLat: cur.lat, sLon: cur.lon, sRadius: cur.radius, sEntity: 'zone.' + cur.id,
+      closeSheet: () => { this.sheet = false; if (this._s === 'yaml-zone') this._s = 'after'; this.bump(); },
+      copyYaml: () => { this.sheet = false; if (this._s === 'yaml-zone') this._s = 'after'; say('Copied the YAML for ' + cur.name); },
+      hasToast: !!this.toast, toast: this.toast || '', hideToast: () => { this.toast = null; this.bump(); }
+    });
+  }
+}
+</script>
+</body>
+</html>

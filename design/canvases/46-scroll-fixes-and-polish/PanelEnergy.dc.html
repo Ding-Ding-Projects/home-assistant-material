@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Energy loading and error states, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.tdy{display:inline-flex;align-items:center;min-height:24px;padding:2px 12px;border-radius:12px;background:var(--amberc);color:var(--amber);font-size:12px;line-height:16px;font-weight:700;letter-spacing:.4px;flex:none;white-space:nowrap}
+.ph{background:var(--surf)}
+.frame{height:860px;display:flex;flex-direction:column;overflow:hidden;position:relative;background:var(--surf);container-type:inline-size}
+.abar{display:flex;align-items:center;gap:8px;min-height:64px;padding:8px 12px 8px 4px;flex:none}
+.abar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500;overflow-wrap:anywhere}
+.foot{flex:none;height:40px;display:flex;align-items:center;gap:20px;padding:0 20px;font-size:12px;line-height:16px;color:var(--onv);box-shadow:inset 0 1px 0 var(--outv);white-space:nowrap;overflow:hidden}
+.foot span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.navp{position:absolute;left:12px;right:12px;bottom:12px;height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);display:flex;align-items:center;justify-content:space-around;padding:0 8px;z-index:6}
+.m3 .ni{min-width:64px;min-height:48px;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;line-height:14px;font-weight:600;color:var(--onv);padding:0 10px}
+.m3 .ni.sel{background:var(--pc);color:var(--on-pc)}
+.sw{width:52px;height:32px;border-radius:16px;box-shadow:inset 0 0 0 2px var(--out);background:var(--sl4);display:flex;align-items:center;padding:0 8px;flex:none;transition:background-color .2s;position:relative}
+.sw::after{content:"";position:absolute;inset:-8px 0}
+.sw i{display:block;width:16px;height:16px;border-radius:12px;background:var(--out);transition:all .2s cubic-bezier(.2,0,0,1)}
+.sw.on{box-shadow:none;background:var(--p);justify-content:flex-end;padding:0 4px}
+.sw.on i{width:24px;height:24px;background:var(--on-p)}
+.demo{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 16px 4px;padding:8px 12px;border-radius:16px;border:1.5px dashed var(--outv);flex:none}
+.m3 .tile{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--pc);color:var(--on-pc);flex:none}
+.ebody{flex:1;min-height:0;overflow-y:auto;padding:8px 16px 100px;display:flex;flex-direction:column;gap:12px}
+.ecard{background:var(--sl0);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.bars{display:flex;align-items:flex-end;gap:6px;height:110px}
+.bars i{flex:1;border-radius:6px 6px 2px 2px;background:var(--p);opacity:.85}
+.kv{display:flex;align-items:center;gap:12px;min-height:48px}
+.kv b{font-weight:500;font-size:16px;font-variant-numeric:tabular-nums}
+.stagebox .acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.detail{font-family:'Roboto Mono',ui-monospace,Menlo,monospace;font-size:12px;line-height:18px;background:var(--sl2);border-radius:12px;padding:8px 12px;color:var(--onv);overflow-wrap:anywhere;max-width:100%}
+.oalert{display:flex;gap:12px;padding:10px 12px;margin:0;border-radius:4px;background:color-mix(in srgb,var(--err) 16%,transparent);color:var(--on);font-size:14px;line-height:20px;align-self:flex-start;width:100%}
+.oalert svg{color:var(--err)}
+.ospin{width:48px;height:48px;border-radius:24px;border:4px solid var(--sl4);border-top-color:var(--p);margin:0}
+.blank{flex:1}
+.anno{position:absolute;left:12px;right:12px;bottom:88px;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px;border-radius:16px;border:1.5px dashed var(--outv);background:var(--surf)}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<sc-if value="{{hasHeader}}" hint-placeholder-val="{{ true }}">
+<div class="bar">
+<button class="ib" aria-label="Open the sidebar"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg></button>
+<h1>Energy</h1>
+<sc-if value="{{isReady}}" hint-placeholder-val="{{ false }}"><button class="ib" aria-label="Energy settings"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{ true }}">
+<div class="lin" style="margin: 0 16px; flex: none"><span></span></div>
+<div class="ebody" aria-busy="true">
+<span class="sub" role="status">Loading your energy settings</span>
+<div class="ecard"><span class="sk" style="height: 16px; width: 46%"></span><span class="sk" style="height: 110px; border-radius: 16px"></span></div>
+<div class="ecard"><span class="sk" style="height: 16px; width: 38%"></span><span class="sk" style="height: 40px"></span><span class="sk" style="height: 40px"></span><span class="sk" style="height: 40px; width: 80%"></span></div>
+<div class="ecard"><span class="sk" style="height: 16px; width: 52%"></span><span class="sk" style="height: 64px; border-radius: 16px"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{isError}}" hint-placeholder-val="{{ false }}">
+<div class="stagebox in" role="alert" style="padding-bottom: 110px">
+<span class="big" style="background: var(--errc); color: var(--on-errc)"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"></path></svg></span>
+<span class="tm" style="color: var(--on)">Energy settings could not be loaded</span>
+<span class="sub">Home Assistant did not answer when this page asked for your energy preferences. Nothing was changed.</span>
+<span class="detail">An error occurred loading energy preferences: Connection lost</span>
+<div class="acts">
+<button class="btn fill" onClick="{{ retry }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg>Try again</button>
+<button class="btn tonal" onClick="{{ leave }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg>Back to Overview</button>
+</div>
+<sc-if value="{{tried}}" hint-placeholder-val="{{ false }}"><span class="sub" role="status">{{triedText}}</span></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{isReady}}" hint-placeholder-val="{{ false }}">
+<div class="ebody">
+<div class="ecard in"><span class="tm">Energy usage</span><span class="sub">Today, by the hour</span>
+<div class="bars" aria-hidden="true"><i style="height: 22%"></i><i style="height: 18%"></i><i style="height: 16%"></i><i style="height: 30%"></i><i style="height: 58%"></i><i style="height: 44%"></i><i style="height: 36%"></i><i style="height: 52%"></i><i style="height: 78%"></i><i style="height: 96%"></i><i style="height: 64%"></i><i style="height: 40%"></i></div></div>
+<div class="ecard in"><span class="tm">Sources</span>
+<div class="kv"><span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,2V13H10V22L17,10H13L17,2H7Z"></path></svg></span><span class="grow"><span class="bl">Grid</span><span class="sub">Imported today</span></span><b>7.4 kWh</b></div>
+<div class="kv"><span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"></path></svg></span><span class="grow"><span class="bl">Home</span><span class="sub">Used today</span></span><b>9.1 kWh</b></div></div>
+</div>
+</sc-if>
+<sc-if value="{{isLeft}}" hint-placeholder-val="{{ false }}">
+<div class="stagebox in"><span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"></path></svg></span><span class="tm" style="color: var(--on)">This would open Overview</span><button class="btn tonal" onClick="{{ backToError }}">Return to the error state</button></div>
+</sc-if>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{oldErr}}" hint-placeholder-val="{{ true }}"><div class="oalert" role="alert"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"></path></svg><span>An error occurred loading energy preferences: Connection lost</span></div></sc-if>
+<sc-if value="{{oldLoad}}" hint-placeholder-val="{{ false }}"><div class="ospin spin" role="status" aria-label="Loading"></div></sc-if>
+<div class="blank"></div>
+<div class="anno"><span class="tdy">Today</span><span class="sub" style="flex: 1; min-width: 120px">No header, no menu, no retry.</span>
+<button class="{{errChip}}" aria-pressed="{{errAria}}" onClick="{{ showErr }}">Error</button><button class="{{loadChip}}" aria-pressed="{{loadAria}}" onClick="{{ showLoad }}">Loading</button></div>
+</sc-if>
+<nav class="navp" aria-label="Main pages"><button class="ni"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"></path></svg>Overview</button><button class="ni sel" aria-current="page"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,2V13H10V22L17,10H13L17,2H7Z"></path></svg>Energy</button><button class="ni"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"></path></svg>Activity</button><button class="ni"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg>More</button></nav>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"loading","options":["loading","error","before"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'loading'; this.old = 'err'; this.tries = 0; this._t = null; this._auto = false; }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'loading';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+  reset(s) { this._auto = false; if (s !== 'loading') { this.old = 'err'; } }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const before = s === 'before';
+    const stop = () => { if (this._t) { clearTimeout(this._t); this._t = null; } };
+    return Object.assign(v, {
+      hasHeader: !before,
+      isLoading: s === 'loading', isError: s === 'error', isReady: s === 'ready', isLeft: s === 'left', isBefore: before,
+      retry: () => {
+        stop(); this.tries += 1; const ok = this.tries % 2 === 0;
+        this.go('loading'); this._auto = true;
+        this._t = setTimeout(() => { this._t = null; if (this._s === 'loading' && this._auto) this.go(ok ? 'ready' : 'error'); }, 1400);
+      },
+      tried: this.tries > 0, triedText: 'Tried again ' + this.tries + (this.tries === 1 ? ' time' : ' times') + '. Still no answer.',
+      leave: () => { stop(); this.go('left'); },
+      backToError: () => this.go('error'),
+      oldErr: this.old === 'err', oldLoad: this.old === 'load',
+      errChip: this.old === 'err' ? 'chip sel' : 'chip', errAria: this.old === 'err' ? 'true' : 'false',
+      loadChip: this.old === 'load' ? 'chip sel' : 'chip', loadAria: this.old === 'load' ? 'true' : 'false',
+      showErr: () => { this.old = 'err'; this.bump(); },
+      showLoad: () => { this.old = 'load'; this.bump(); }
+    });
+  }
+}
+</script>
+</body>
+</html>

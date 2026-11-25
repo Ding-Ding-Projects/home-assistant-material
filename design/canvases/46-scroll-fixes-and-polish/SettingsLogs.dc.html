@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Logs, raw view: one scroller</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.m3 .btn{padding:0 24px}
+.m3 .btn.text{padding:0 14px}
+.tod{background:var(--amberc);color:var(--amber);flex:none;white-space:nowrap}
+.pbar{position:absolute;left:12px;right:12px;bottom:calc(12px + var(--inset,0px));height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);z-index:7;display:flex;align-items:center;justify-content:space-around;padding:0 8px}
+.pbar span{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;line-height:14px;font-weight:600;color:var(--onv);min-width:60px}
+.pbar span.on{color:var(--on)}
+.pbar span.on .ic{background:var(--pc);color:var(--on-pc);border-radius:14px;width:52px;height:28px;padding:2px 14px}
+.homei{position:absolute;left:50%;bottom:8px;width:134px;height:5px;border-radius:3px;background:var(--on);opacity:.55;transform:translateX(-50%);z-index:8}
+.card{background:var(--sl0);border-radius:20px}
+.box{width:20px;height:20px;border-radius:4px;box-shadow:inset 0 0 0 2px var(--out);display:grid;place-items:center;flex:none;transition:background-color .2s}
+.box svg{width:16px;height:16px;fill:var(--on-p);opacity:0}
+.box.on{background:var(--p);box-shadow:none}
+.box.on svg{opacity:1}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--sl2);border-radius:24px;padding:4px;gap:4px}
+.m3 .seg button{min-height:40px;padding:0 16px;border-radius:20px;font-size:14px;font-weight:600;color:var(--onv);position:relative;white-space:nowrap}
+.m3 .seg button::after{content:"";position:absolute;inset:-4px 0}
+.m3 .seg button.sel{background:var(--pc);color:var(--on-pc)}
+.wrapany{overflow-wrap:anywhere}
+.lhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 16px 8px;flex:none}
+.ltool{display:flex;align-items:center;gap:4px;padding:4px 8px 8px 12px;flex:none;background:var(--surf)}
+.logbox{flex:1;min-height:0;margin:0 12px 88px;border-radius:16px;background:var(--sl0);overflow-y:auto;display:flex;flex-direction:column-reverse}
+.loginner{padding:10px 12px 6px;flex:none}
+.ln{font-family:'Roboto Mono',ui-monospace,Menlo,monospace;font-size:12px;line-height:17px;overflow-wrap:anywhere;padding:2px 0;color:var(--on)}
+.tm2{color:var(--onv)}
+.lv{font-weight:600}
+.lv.w{color:var(--amber)}
+.lv.e{color:var(--err)}
+.lv.i{color:var(--green)}
+.newest{display:flex;align-items:center;gap:8px;padding:8px 0 4px;font-size:12px;line-height:16px;color:var(--onv);font-family:Roboto,system-ui,sans-serif}
+.dotlive{width:8px;height:8px;border-radius:4px;background:var(--green);flex:none;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.pg{flex:1;min-height:0;overflow-y:auto;padding:0 12px 92px;display:flex;flex-direction:column;gap:8px}
+.ecard{padding:12px 14px;display:flex;gap:12px;flex:none}
+.oldcol{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
+.oldcol .ohead{padding:4px 16px 12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;flex:none}
+.oldcol h2{font-size:28px;line-height:36px;font-weight:400;margin:0}
+.oldcol .ltool{position:sticky;top:0;z-index:2;min-height:56px}
+.oldcol .logbox{flex:none;height:589px;margin:0 12px 12px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 12px 16px;flex:none}
+.tile{padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<div class="bar">
+<button class="ib" aria-label="Back to system"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></button>
+<h1>Logs</h1>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><span class="tag tod">Today</span></sc-if>
+<button class="ib" aria-label="More"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button>
+</div>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><div class="oldcol">
+<div class="ohead"><h2>Logs</h2><span class="sub">The newest lines are at the end. 3 errors and 5 warnings since the last restart at 06:12.</span><button class="chip" aria-haspopup="listbox">Source: Home Assistant Core<svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button></div>
+<div class="ltool"><div class="seg" role="group" aria-label="View">
+<button class="{{sumCls}}" aria-pressed="{{sumAria}}" onClick="{{ showSummary }}">Summary</button>
+<button class="{{rawCls}}" aria-pressed="{{rawAria}}" onClick="{{ showRaw }}">Raw</button>
+</div>
+<span style="flex: 1"></span>
+<button class="ib" aria-label="Download the full log"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"></path></svg></button>
+<button class="ib" aria-label="Refresh" onClick="{{ refresh }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg></button></div>
+<div class="logbox" role="log" aria-label="Raw log"><div class="loginner"><sc-for list="{{lines}}" as="l" hint-placeholder-count="14"><div class="ln"><span class="tm2">{{l.time}}</span> <span class="{{l.cls}}">{{l.level}}</span> {{l.text}}</div></sc-for></div></div>
+<div class="tiles"><div class="card tile"><span class="tm">3</span><span class="sub">Errors</span></div><div class="card tile"><span class="tm">5</span><span class="sub">Warnings</span></div><div class="card tile"><span class="tm">{{lineCount}}</span><span class="sub">Lines</span></div></div>
+</div></sc-if>
+<sc-if value="{{isAfter}}" hint-placeholder-val="{{ true }}">
+<div class="lhead"><button class="chip" aria-haspopup="listbox">Source: Home Assistant Core<svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button><span class="sub" role="status" style="flex: 1; min-width: 120px">{{headText}}</span></div>
+<div class="ltool"><div class="seg" role="group" aria-label="View">
+<button class="{{sumCls}}" aria-pressed="{{sumAria}}" onClick="{{ showSummary }}">Summary</button>
+<button class="{{rawCls}}" aria-pressed="{{rawAria}}" onClick="{{ showRaw }}">Raw</button>
+</div>
+<span style="flex: 1"></span>
+<button class="ib" aria-label="Download the full log"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"></path></svg></button>
+<button class="ib" aria-label="Refresh" onClick="{{ refresh }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg></button></div>
+<sc-if value="{{isRaw}}" hint-placeholder-val="{{ true }}"><div class="logbox" role="log" aria-label="Raw log" tabindex="0"><div class="loginner"><sc-for list="{{lines}}" as="l" hint-placeholder-count="14"><div class="ln"><span class="tm2">{{l.time}}</span> <span class="{{l.cls}}">{{l.level}}</span> {{l.text}}</div></sc-for>
+<div class="newest"><span class="dotlive" aria-hidden="true"></span><span style="flex: 1">Newest line {{newest}} · following</span></div></div></div></sc-if>
+<sc-if value="{{isSummary}}" hint-placeholder-val="{{ false }}"><div class="pg" role="list" aria-label="Errors and warnings">
+<sc-for list="{{issues}}" as="e" hint-placeholder-count="5"><div class="card ecard"><span class="{{e.tag}}">{{e.level}}</span><span class="grow"><span class="bl wrapany">{{e.text}}</span><span class="sub">{{e.meta}}</span></span></div></sc-for>
+</div></sc-if>
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{ false }}"><div class="logbox" style="flex-direction: column; overflow: hidden" aria-busy="true" aria-label="Loading the log"><div class="loginner" style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{skel}}" as="k" hint-placeholder-count="14"><span class="sk" style="height: 12px; width: {{k.w}}; border-radius: 6px"></span></sc-for>
+</div></div></sc-if>
+<sc-if value="{{isError}}" hint-placeholder-val="{{ false }}"><div class="stagebox in" role="alert" style="margin-bottom: 88px">
+<span class="big" style="background: var(--errc); color: var(--on-errc)"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"></path></svg></span>
+<span class="tm" style="color: var(--on)">The log could not be loaded</span>
+<span class="sub">Home Assistant Core did not answer. The log itself is unchanged, and you can still download it.</span>
+<button class="btn fill" onClick="{{ retry }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg>Try again</button>
+</div></sc-if>
+</sc-if>
+<nav class="pbar" aria-label="Main"><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5.69L17 10.19V18H15V12H9V18H7V10.19L12 5.69M12 3L2 12H5V20H11V14H13V20H19V12H22"></path></svg>Home</span><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 9V7C21 5.35 19.65 4 18 4H14C13.23 4 12.53 4.3 12 4.78C11.47 4.3 10.77 4 10 4H6C4.35 4 3 5.35 3 7V9C1.35 9 0 10.35 0 12V17C0 18.65 1.35 20 3 20V22H5V20H19V22H21V20C22.65 20 24 18.65 24 17V12C24 10.35 22.65 9 21 9M14 6H18C18.55 6 19 6.45 19 7V9.78C18.39 10.33 18 11.12 18 12V14H13V7C13 6.45 13.45 6 14 6M5 7C5 6.45 5.45 6 6 6H10C10.55 6 11 6.45 11 7V14H6V12C6 11.12 5.61 10.33 5 9.78V7M22 17C22 17.55 21.55 18 21 18H3C2.45 18 2 17.55 2 17V12C2 11.45 2.45 11 3 11S4 11.45 4 12V16H20V12C20 11.45 20.45 11 21 11S22 11.45 22 12V17Z"></path></svg>Rooms</span><span class="on"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"></path></svg>Settings</span><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,12A2,2 0 0,1 18,10A2,2 0 0,1 20,12A2,2 0 0,1 18,14A2,2 0 0,1 16,12M10,12A2,2 0 0,1 12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12M4,12A2,2 0 0,1 6,10A2,2 0 0,1 8,12A2,2 0 0,1 6,14A2,2 0 0,1 4,12Z"></path></svg>More</span></nav>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","loading","error","before"]},"$preview":{"width":390,"height":844}}'>
+const SRC = [
+  ['INFO', '(MainThread) [homeassistant.core] Starting Home Assistant'],
+  ['INFO', '(MainThread) [homeassistant.setup] Setup of domain sensor took 0.4 seconds'],
+  ['WARNING', '(MainThread) [homeassistant.components.sensor] sensor.greenhouse_humidity is taking over 10 seconds to update'],
+  ['INFO', '(MainThread) [homeassistant.components.automation.morning_lights] Morning lights: running automation actions'],
+  ['ERROR', '(MainThread) [homeassistant.components.camera] Error fetching a still image from camera.porch: timeout after 10 seconds'],
+  ['INFO', '(SyncWorker_3) [homeassistant.components.recorder] Purging old statistics finished'],
+  ['WARNING', '(MainThread) [homeassistant.helpers.entity] Update of light.hallway_ceiling is taking over 10 seconds'],
+  ['INFO', '(MainThread) [homeassistant.components.zha] Device 0x4A2C (Seedling shelf plug) joined the network'],
+  ['ERROR', '(MainThread) [homeassistant.components.mqtt] Unable to connect to the broker at 192.0.2.14: connection refused'],
+  ['INFO', '(MainThread) [homeassistant.components.mqtt] Connected to the broker at 192.0.2.14 after 2 retries'],
+  ['WARNING', '(MainThread) [homeassistant.components.template] Template variable warning: sensor.fridge_power is unavailable when rendering the daily energy summary'],
+  ['INFO', '(MainThread) [homeassistant.components.backup] Automatic backup created in 41 seconds']
+];
+const ISSUES = [
+  ['Error', 'Unable to connect to the broker at 192.0.2.14: connection refused', 'MQTT · 19:31 · happened 3 times'],
+  ['Error', 'Error fetching a still image from camera.porch: timeout after 10 seconds', 'Camera · 18:57'],
+  ['Warning', 'sensor.greenhouse_humidity is taking over 10 seconds to update', 'Sensor · 19:44 · happened 4 times'],
+  ['Warning', 'Update of light.hallway_ceiling is taking over 10 seconds', 'Entity · 19:12'],
+  ['Warning', 'sensor.fridge_power is unavailable when rendering the daily energy summary', 'Template · 17:40']
+];
+function two(n) { return n < 10 ? '0' + n : '' + n; }
+function makeLines(extra) {
+  const out = [];
+  const total = 42 + extra;
+  for (let i = 0; i < total; i += 1) {
+    const back = (total - 1 - i) * 47;
+    const sec = 19 * 3600 + 49 * 60 + 12 + extra * 3 - back;
+    const src = SRC[i % SRC.length];
+    out.push({ time: two(Math.floor(sec / 3600)) + ':' + two(Math.floor(sec / 60) % 60) + ':' + two(sec % 60), level: src[0], text: src[1], cls: 'lv ' + (src[0] === 'ERROR' ? 'e' : src[0] === 'WARNING' ? 'w' : 'i') });
+  }
+  return out;
+}
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.reset('after'); }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+
+reset(s) { this.view = 'raw'; this.extra = 0; }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const before = s === 'before';
+    const lines = makeLines(this.extra);
+    const raw = this.view === 'raw';
+    const busy = s === 'loading' || s === 'error';
+    return Object.assign(v, {
+      isBefore: before, isAfter: !before,
+      isRaw: !before && !busy && raw, isSummary: !before && !busy && !raw, isLoading: s === 'loading', isError: s === 'error',
+      lines, lineCount: lines.length, newest: lines[lines.length - 1].time,
+      headText: busy ? (s === 'loading' ? 'Loading the log' : 'Not loaded') : '3 errors · 5 warnings · ' + lines.length + ' lines',
+      sumCls: raw ? '' : 'sel', rawCls: raw ? 'sel' : '', sumAria: raw ? 'false' : 'true', rawAria: raw ? 'true' : 'false',
+      showSummary: () => { this.view = 'summary'; this.bump(); }, showRaw: () => { this.view = 'raw'; this.bump(); },
+      refresh: () => { this.extra += 1; if (this._s === 'error' || this._s === 'loading') this._s = 'after'; this.bump(); },
+      retry: () => { this._s = 'after'; this.bump(); },
+      skel: ['92%', '78%', '96%', '60%', '88%', '70%', '94%', '52%', '84%', '90%', '66%', '95%', '74%', '58%'].map((w) => ({ w })),
+      issues: ISSUES.map((e) => ({ level: e[0], text: e[1], meta: e[2], tag: e[0] === 'Error' ? 'tag e' : 'tag' }))
+    });
+  }
+}
+</script>
+</body>
+</html>

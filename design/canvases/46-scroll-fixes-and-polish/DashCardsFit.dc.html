@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cards that fit, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn{padding:0 24px}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+
+.hd{flex:none;background:var(--sl2);position:relative;z-index:3}
+.hd.slate{background:#455A64;color:#fff;--onv:#fff;--p:#fff;--sl3:rgba(255,255,255,.12)}
+.hd.slate .btn.fill{background:#03A9F4;color:#fff}
+.tb{display:flex;align-items:center;min-height:56px;padding:0 4px}
+.tb h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:400;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m3 .ib.n{width:40px;position:relative}
+.m3 .ib.n::after{content:"";position:absolute;inset:0 -4px}
+.m3 .btn.sm{min-height:40px;padding:0 14px;position:relative;flex:none}
+.m3 .btn.sm::after{content:"";position:absolute;inset:-4px 0}
+.vtabs{display:flex;align-items:center;overflow-x:auto;scrollbar-width:none;padding:0 4px}
+.m3 .vt{min-height:48px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--onv);white-space:nowrap;flex:none;position:relative;opacity:.8}
+.m3 .vt.sel{color:var(--p);opacity:1}
+.m3 .vt.sel::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--p)}
+.view{flex:1;min-height:0;overflow-y:auto;padding:4px 16px 24px}
+.sech{font-size:20px;line-height:28px;font-weight:400;padding:14px 4px 8px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.card{background:var(--sl1);border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);position:relative;min-width:0}
+.m3 .tilec{min-height:56px;padding:8px 10px;display:flex;align-items:center;gap:10px;width:100%}
+.tdot{width:36px;height:36px;border-radius:18px;display:grid;place-items:center;flex:none}
+.tn{font-size:14px;line-height:20px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ts{font-size:12px;line-height:16px;color:var(--onv);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.em .card{outline:1px dashed var(--out);outline-offset:1px}
+.today{position:absolute;right:12px;bottom:12px;z-index:9;display:inline-flex;align-items:center;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--amberc);color:var(--amber);font-size:12px;line-height:16px;font-weight:700;box-shadow:var(--e3)}
+.scrim{position:absolute;inset:0;background:var(--scrim);z-index:6}
+
+.cgrid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:56px;gap:8px}
+.thermo{grid-row:span 3;display:flex;flex-direction:column}
+.thermo.old{grid-row:span 2;display:block;height:120px}
+.thermo .feat{display:flex;align-items:center;margin:0 10px;height:42px;border-radius:12px;background:var(--sl3);flex:none}
+.thermo.old .feat{margin-top:7px}
+.m3 .feat button{width:48px;height:42px;display:grid;place-items:center;color:var(--onv);position:relative}
+.m3 .feat button::after{content:"";position:absolute;inset:-3px 0}
+.feat span{flex:1;text-align:center;font-size:14px;font-weight:500}
+.bigs{font-size:32px;line-height:36px;font-weight:400;padding:0 12px 12px;margin-top:auto}
+.thermo.old .bigs{margin-top:7px}
+.over{z-index:1;background:var(--sl1)}
+.pg{overflow:hidden;margin-top:8px}
+.pg .img{display:block;width:100%;height:170px}
+.box{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);color:#fff;padding:4px 8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;row-gap:0;min-height:48px}
+.box .ttl{flex:1 1 auto;min-width:6em;margin:0 8px;font-size:16px;line-height:40px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.box .row{display:flex;flex-wrap:wrap}
+.m3 .box .w{width:40px;height:40px;display:grid;place-items:center;color:#fff;opacity:.75;border-radius:20px;position:relative}
+.m3 .box .w::after{content:"";position:absolute;inset:-4px}
+.m3 .box .w.on{color:#FFC107;opacity:1}
+.box.old{flex-wrap:nowrap}
+.box.old .ttl{flex:0 1 auto;min-width:0}
+.box.old .row{flex-wrap:nowrap;flex:none}
+.box.old .w::after{display:none}
+.al{margin-top:8px;padding:6px 0 8px}
+.al h2{font-size:20px;line-height:28px;font-weight:400;padding:8px 16px}
+.m3 .arow{display:flex;align-items:flex-start;gap:12px;padding:8px 8px 8px 16px;width:100%;min-height:56px}
+.rb{min-width:36px;height:28px;border-radius:8px;padding:0 6px;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff;flex:none;margin-top:2px}
+.atx{font-size:14px;line-height:20px;font-weight:500;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.atx.open{display:block;overflow:visible}
+.atx.one{display:block;white-space:nowrap;text-overflow:ellipsis}
+.ast{font-size:12px;line-height:20px;font-weight:600;white-space:nowrap;flex:none;margin-top:2px}
+.arow.old{padding-right:16px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<div class="hd">
+<div class="tb"><button class="ib" aria-label="Open the sidebar"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg></button><h1>Home</h1><button class="ib" aria-label="Dashboard menu"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button></div>
+</div>
+<div class="view">
+<div class="sech">Climate</div>
+<div class="cgrid">
+<sc-for list="{{thermos}}" as="h" hint-placeholder-count="2">
+<div class="{{h.cls}}">
+<div class="tilec" style="height: 56px"><span class="tdot" style="background: color-mix(in srgb, #E5645A 22%, transparent); color: #E5645A"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M15,13V5A3,3 0 0,0 9,5V13A5,5 0 1,0 15,13M12,4A1,1 0 0,1 13,5V8H11V5A1,1 0 0,1 12,4Z"></path></svg></span><span class="grow"><span class="tn">{{h.name}}</span><span class="ts">{{h.state}}</span></span></div>
+<div class="feat"><button aria-label="Lower the target for {{h.name}}" onClick="{{ h.down }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H5V11H19V13Z"></path></svg></button><span>{{h.target}}</span><button aria-label="Raise the target for {{h.name}}" onClick="{{ h.up }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg></button></div>
+<div class="bigs" aria-label="Current temperature {{h.now}}">{{h.now}}</div>
+</div>
+</sc-for>
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="4"><div class="card over"><div class="tilec"><span class="tdot" style="background: color-mix(in srgb, {{t.color}} 22%, transparent); color: {{t.color}}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="{{t.icon}}"></path></svg></span><span class="grow"><span class="tn">{{t.name}}</span><span class="ts">{{t.state}}</span></span></div></div></sc-for>
+</div>
+
+<div class="sech">Front porch</div>
+<div class="card pg">
+<svg class="img" viewBox="0 0 358 170" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Sample camera picture of a porch at dusk"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#27304A"/><stop offset="1" stop-color="#B8734F"/></linearGradient></defs><rect width="358" height="170" fill="url(#sky)"/><rect y="118" width="358" height="52" fill="#2B2A2E"/><rect x="36" y="38" width="120" height="96" fill="#3C3A40"/><rect x="74" y="66" width="38" height="68" fill="#5B4636"/><circle cx="104" cy="102" r="2.5" fill="#F2C744"/><rect x="124" y="60" width="22" height="26" fill="#F2C744" opacity=".8"/><path d="M26,40L96,10L166,40Z" fill="#2A282D"/><rect x="230" y="84" width="6" height="50" fill="#1E1D21"/><circle cx="233" cy="70" r="26" fill="#22382B"/><circle cx="300" cy="96" r="18" fill="#22382B"/><rect x="297" y="106" width="5" height="28" fill="#1E1D21"/></svg>
+<div class="{{boxCls}}">
+<div class="ttl" title="Front porch camera">Front porch camera</div>
+<div class="row"><sc-for list="{{infos}}" as="e" hint-placeholder-count="5"><button class="w" aria-label="{{e.label}}" title="{{e.label}}" onClick="{{ e.tap }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{e.icon}}"></path></svg></button></sc-for></div>
+<div class="row"><sc-for list="{{toggles}}" as="e" hint-placeholder-count="4"><button class="{{e.cls}}" role="switch" aria-checked="{{e.aria}}" aria-label="{{e.label}}" title="{{e.label}}" onClick="{{ e.tap }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{e.icon}}"></path></svg></button></sc-for></div>
+</div>
+</div>
+
+<div class="card al">
+<h2>Route alerts</h2>
+<sc-for list="{{alerts}}" as="a" hint-placeholder-count="2">
+<sc-if value="{{isAfter}}" hint-placeholder-val="{{ true }}">
+<button class="arow" aria-expanded="{{a.aria}}" title="{{a.text}}" onClick="{{ a.tap }}">
+<span class="rb" style="background: {{a.color}}">{{a.route}}</span>
+<span class="grow"><span class="{{a.cls}}">{{a.text}}</span><span class="ts">{{a.meta}}</span></span>
+<span class="ast" style="color: {{a.tone}}">{{a.status}}</span>
+<span style="color: var(--onv); margin-top: 2px"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="{{a.chev}}"></path></svg></span>
+</button>
+</sc-if>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}">
+<div class="arow old">
+<span class="rb" style="background: {{a.color}}">{{a.route}}</span>
+<span class="grow"><span class="atx one">{{a.text}}</span><span class="ts">{{a.meta}}</span></span>
+<span class="ast" style="color: {{a.tone}}">{{a.status}}</span>
+</div>
+</sc-if>
+</sc-for>
+</div>
+</div>
+<sc-if value="{{hasMsg}}" hint-placeholder-val="{{ false }}"><div class="toast pop" role="status" style="{{toastStyle}}"><span style="flex: 1">{{msg}}</span><button class="btn text" onClick="{{ dismiss }}">Dismiss</button></div></sc-if>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><span class="today">Today</span></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","before"]},"$preview":{"width":390,"height":844}}'>
+const DEF = "after";
+const P = {"dotsV":"M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z","lock":"M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z","thermo":"M15,13V5A3,3 0 0,0 9,5V13A5,5 0 1,0 15,13M12,4A1,1 0 0,1 13,5V8H11V5A1,1 0 0,1 12,4Z","bulb":"M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z","down":"M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z","up":"M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z","power":"M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13","tv":"M21,17H3V5H21M21,3H3A2,2 0 0,0 1,5V17A2,2 0 0,0 3,19H8V21H16V19H21A2,2 0 0,0 23,17V5A2,2 0 0,0 21,3Z","refresh":"M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"};
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = DEF; this.reset(DEF); }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? DEF;
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  say(m) { this.msg = m; this.bump(); }
+
+  reset() { this.msg = ''; this.target = [21, 19]; this.tog = [true, false, false, true]; this.open = [false, false]; }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const before = s === 'before';
+    const off = 'var(--onv)';
+    const deg = (n) => n.toFixed(1) + ' °C';
+    const step = (i, d) => () => { this.target[i] = Math.max(10, Math.min(28, this.target[i] + d)); this.bump(); };
+    const NAMES = ['Living room', 'Bedroom'];
+    const NOW = ['21.5 °C', '19.0 °C'];
+    const AL = [
+      { route: '29', color: '#C4352B', status: 'Detour', tone: 'var(--amber)', meta: 'Signal fault · 19:42', text: 'No service between Maple Square and Harbour Road because of a signal fault. Shuttle buses run every 6 minutes from stop B on Cedar Street. Allow 15 to 20 minutes more for your trip. Regular service is expected to resume by 21:30.' },
+      { route: '510', color: '#1F6A3B', status: 'Delay', tone: 'var(--amber)', meta: 'Road works · 19:20', text: 'Cars are held for up to 8 minutes near Orchard Loop.' }
+    ];
+    const TG = [['Porch light', P.bulb], ['Path lights', P.bulb], ['Garage light', P.bulb], ['Recording', P.power]];
+    const INF = [['Motion: clear', P.refresh], ['Front door: locked', P.lock], ['Porch temperature: 9 °C', P.thermo], ['Doorbell: idle', P.tv], ['Camera settings', P.dotsV]];
+    return Object.assign(v, {
+      isAfter: !before, isBefore: before,
+      thermos: NAMES.map((n, i) => ({ name: n, state: 'Heat · target ' + deg(this.target[i]), target: deg(this.target[i]), now: NOW[i], cls: before ? 'card thermo old' : 'card thermo', up: step(i, 0.5), down: step(i, -0.5) })),
+      tiles: [
+        { name: 'Floor heating', state: 'Idle', icon: P.thermo, color: off },
+        { name: 'Air purifier', state: 'Auto', icon: P.power, color: '#4CAF6A' },
+        { name: 'Bathroom fan', state: 'Off', icon: P.power, color: off },
+        { name: 'Humidifier', state: 'On · 45%', icon: P.power, color: '#3FB7B0' }
+      ],
+      boxCls: before ? 'box old' : 'box',
+      infos: INF.map((e) => ({ label: e[0], icon: e[1], tap: () => this.say(e[0]) })),
+      toggles: TG.map((e, i) => ({ label: e[0] + (this.tog[i] ? ', on' : ', off'), icon: e[1], cls: this.tog[i] ? 'w on' : 'w', aria: String(this.tog[i]), tap: () => { this.tog[i] = !this.tog[i]; this.bump(); } })),
+      alerts: AL.map((a, i) => Object.assign({}, a, { cls: this.open[i] ? 'atx open' : 'atx', aria: String(this.open[i]), chev: this.open[i] ? P.up : P.down, tap: () => { this.open[i] = !this.open[i]; this.bump(); } })),
+      hasMsg: !!this.msg, msg: this.msg, toastStyle: '', dismiss: () => this.say('')
+    });
+  }
+}
+</script>
+</body>
+</html>

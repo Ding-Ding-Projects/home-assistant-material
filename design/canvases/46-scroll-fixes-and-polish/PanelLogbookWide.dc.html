@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Activity on a wide window</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.tdy{display:inline-flex;align-items:center;min-height:24px;padding:2px 12px;border-radius:12px;background:var(--amberc);color:var(--amber);font-size:12px;line-height:16px;font-weight:700;letter-spacing:.4px;flex:none;white-space:nowrap}
+.ph{background:var(--surf)}
+.frame{height:860px;display:flex;flex-direction:column;overflow:hidden;position:relative;background:var(--surf);container-type:inline-size}
+.abar{display:flex;align-items:center;gap:8px;min-height:64px;padding:8px 12px 8px 4px;flex:none}
+.abar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500;overflow-wrap:anywhere}
+.foot{flex:none;height:40px;display:flex;align-items:center;gap:20px;padding:0 20px;font-size:12px;line-height:16px;color:var(--onv);box-shadow:inset 0 1px 0 var(--outv);white-space:nowrap;overflow:hidden}
+.foot span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.navp{position:absolute;left:12px;right:12px;bottom:12px;height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);display:flex;align-items:center;justify-content:space-around;padding:0 8px;z-index:6}
+.m3 .ni{min-width:64px;min-height:48px;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;line-height:14px;font-weight:600;color:var(--onv);padding:0 10px}
+.m3 .ni.sel{background:var(--pc);color:var(--on-pc)}
+.sw{width:52px;height:32px;border-radius:16px;box-shadow:inset 0 0 0 2px var(--out);background:var(--sl4);display:flex;align-items:center;padding:0 8px;flex:none;transition:background-color .2s;position:relative}
+.sw::after{content:"";position:absolute;inset:-8px 0}
+.sw i{display:block;width:16px;height:16px;border-radius:12px;background:var(--out);transition:all .2s cubic-bezier(.2,0,0,1)}
+.sw.on{box-shadow:none;background:var(--p);justify-content:flex-end;padding:0 4px}
+.sw.on i{width:24px;height:24px;background:var(--on-p)}
+.demo{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 16px 4px;padding:8px 12px;border-radius:16px;border:1.5px dashed var(--outv);flex:none}
+.m3 .tile{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--pc);color:var(--on-pc);flex:none}
+.tb{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-height:56px;padding:6px 16px;flex:none;box-shadow:inset 0 -1px 0 var(--outv)}
+.tb > *{flex-shrink:0;max-width:100%}
+.tb.old{flex-wrap:nowrap;height:56px;padding:0 16px;overflow-x:auto;scrollbar-width:none}
+.tb.old::-webkit-scrollbar{display:none}
+.dnav{display:flex;align-items:center;min-width:0}
+.m3 .dnav .chip{flex:0 1 auto;min-width:0;white-space:normal;padding:6px 14px;font-variant-numeric:tabular-nums;font-weight:500}
+.m3 .tb.old .dnav .chip{flex:none;white-space:nowrap}
+.cn{font-weight:700;color:var(--p)}
+.day{padding:12px 16px 4px;flex:none}
+.ents{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
+.ent{display:grid;column-gap:12px;padding:0 16px;grid-template-columns:calc(6.5 * var(--fs)) 36px minmax(0,1fr);min-height:64px;align-items:stretch;flex:none}
+.ents.old .ent{grid-template-columns:72px 36px minmax(0,1fr)}
+.ent .tcol{display:flex;flex-direction:column;justify-content:center;text-align:end;font-size:var(--fs);line-height:1.4;color:var(--onv);overflow:hidden}
+.ent .tc{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.ent .nd{position:relative;display:flex;align-items:center;justify-content:center}
+.ent .nd::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%);background:var(--outv)}
+.ent .nd i{position:relative;width:32px;height:32px;border-radius:16px;background:var(--sl3);display:grid;place-items:center;color:var(--onv);box-shadow:0 0 0 2px var(--surf)}
+.ent .nd i svg{width:18px;height:18px}
+.ent .ct{display:flex;flex-direction:column;justify-content:center;padding:10px 0;min-width:0}
+.ent .ct b{font-weight:500;color:var(--on);font-size:calc(var(--fs) * 1.17);line-height:1.4;overflow-wrap:anywhere}
+.ent .ct span{color:var(--onv);font-size:var(--fs);line-height:1.4;overflow-wrap:anywhere}
+
+.wrow{flex:1;min-height:0;display:flex}
+.side{flex:0 0 240px;background:var(--sl0);padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.side .brand{padding:6px 12px 14px;font-size:18px;line-height:24px;font-weight:500}
+.m3 .sn{display:flex;align-items:center;gap:14px;min-height:48px;padding:0 14px;border-radius:24px;font-size:14px;font-weight:500;color:var(--onv);width:100%}
+.m3 .sn:hover{background:var(--sl2)}
+.m3 .sn.sel{background:var(--pc);color:var(--on-pc)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.m3 .tb .chip{min-height:40px}
+@container (max-width: 940px){.side{flex-basis:72px}.side .brand,.sn span{display:none}.m3 .sn{justify-content:center;padding:0}}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="frame">
+<div class="wrow">
+<nav class="side" aria-label="Sidebar">
+<div class="brand">Home</div>
+<button class="sn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"></path></svg><span>Overview</span></button>
+<button class="sn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,2V13H10V22L17,10H13L17,2H7Z"></path></svg><span>Energy</span></button>
+<button class="sn sel" aria-current="page"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"></path></svg><span>Activity</span></button>
+<button class="sn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z"></path></svg><span>Calendar</span></button>
+<button class="sn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,5H21V7H7V5M7,13V11H21V13H7M4,4.5A1.5,1.5 0 0,1 5.5,6A1.5,1.5 0 0,1 4,7.5A1.5,1.5 0 0,1 2.5,6A1.5,1.5 0 0,1 4,4.5M4,10.5A1.5,1.5 0 0,1 5.5,12A1.5,1.5 0 0,1 4,13.5A1.5,1.5 0 0,1 2.5,12A1.5,1.5 0 0,1 4,10.5M7,19V17H21V19H7M4,16.5A1.5,1.5 0 0,1 5.5,18A1.5,1.5 0 0,1 4,19.5A1.5,1.5 0 0,1 2.5,18A1.5,1.5 0 0,1 4,16.5Z"></path></svg><span>To-do lists</span></button>
+<button class="sn"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,3V12.26C11.5,12.09 11,12 10.5,12C8,12 6,14 6,16.5C6,19 8,21 10.5,21C13,21 15,19 15,16.5V6H19V3H12Z"></path></svg><span>Media</span></button>
+</nav>
+<div class="main">
+<div class="abar" style="padding-left: 20px">
+<h1>Activity</h1>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><span class="tdy">Today</span></sc-if>
+<button class="ib" aria-label="Refresh"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg></button>
+</div>
+<div class="{{tbCls}}" role="toolbar" aria-label="Activity filters" tabindex="0">
+<sc-for list="{{pills}}" as="p" hint-placeholder-count="4"><button class="{{p.cls}}" aria-pressed="{{p.aria}}" onClick="{{ p.toggle }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="{{p.icon}}"></path></svg>{{p.name}}<span class="cn">{{p.count}}</span></button></sc-for>
+<sc-if value="{{anyPill}}" hint-placeholder-val="{{ true }}"><button class="btn text" onClick="{{ clearPills }}">Clear filters</button></sc-if>
+<div class="dnav"><button class="ib" aria-label="Previous day"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z"></path></svg></button><span class="chip">24 Nov 2026, 00:00 to 25 Nov 2026, 00:00</span><button class="ib" aria-label="Next day"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg></button></div>
+</div>
+
+<div class="demo" role="group" aria-label="Board control: text size"><span class="lm">TEXT SIZE</span>
+<sc-for list="{{sizes}}" as="z" hint-placeholder-count="4"><button class="{{z.cls}}" aria-pressed="{{z.aria}}" onClick="{{ z.pick }}">{{z.label}}</button></sc-for>
+<span class="sub">{{sizeNote}}</span></div>
+<div class="day lm">WEDNESDAY 25 NOVEMBER</div>
+<div class="{{entsCls}}" style="--fs: {{fs}}; {{entsPad}}" tabindex="0" aria-label="Activity entries">
+<sc-for list="{{log}}" as="e" hint-placeholder-count="8">
+<div class="ent">
+<div class="tcol"><span class="tc" title="{{e.tip}}">{{e.time}}</span></div>
+<div class="nd"><i><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{e.icon}}"></path></svg></i></div>
+<div class="ct"><b>{{e.name}}</b><span>{{e.msg}}</span></div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+<div class="foot"><span>Home Assistant 2026.11</span><span>Frontend build 46</span><span>English</span><span>Unlocked</span><span style="flex: 1; text-align: right">Press M to open the menu</span></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","before"]},"$preview":{"width":1280,"height":860}}'>
+const SIZES = [['100%', 12], ['125%', 15], ['150%', 18], ['200%', 24]];
+const LOG = [['23:59:59', 'M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z', 'Hallway ceiling', 'Turned off, triggered by automation Goodnight'], ['23:59:58', 'M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z', 'Goodnight', 'Triggered by time'], ['23:41:07', 'M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z', 'Front door lock', 'Locked'], ['22:15:30', 'M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z', 'Hallway motion', 'Cleared, no motion detected'], ['22:13:02', 'M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z', 'Hallway motion', 'Detected motion'], ['21:04:44', 'M12,11A1,1 0 0,0 11,12A1,1 0 0,0 12,13A1,1 0 0,0 13,12A1,1 0 0,0 12,11M12.5,2C17,2 17.11,5.57 14.75,6.75C13.76,7.24 13.32,8.29 13.13,9.22C13.61,9.42 14.03,9.73 14.35,10.13C18.05,8.13 22.03,8.92 22.03,12.5C22.03,17 18.46,17.1 17.28,14.73C16.78,13.74 15.72,13.3 14.79,13.11C14.59,13.59 14.28,14 13.88,14.34C15.87,18.03 15.08,22 11.5,22C7,22 6.91,18.42 9.27,17.24C10.25,16.75 10.69,15.71 10.89,14.79C10.4,14.59 9.97,14.27 9.65,13.87C5.96,15.85 2,15.07 2,11.5C2,7 5.56,6.89 6.74,9.26C7.24,10.25 8.29,10.68 9.22,10.87C9.41,10.39 9.73,9.97 10.14,9.65C8.15,5.96 8.94,2 12.5,2Z', 'Bedroom fan', 'Turned on, triggered by action Fan: Turn on'], ['19:49:10', 'M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z', 'Kitchen counter', 'Turned on'], ['19:48:51', 'M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z', 'Phone of the house', 'Arrived at Home'], ['18:30:00', 'M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z', 'Evening lights', 'Triggered by sunset'], ['17:02:19', 'M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z', 'Front door lock', 'Unlocked with the keypad'], ['16:45:33', 'M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z', 'Porch motion', 'Detected motion']];
+const PILLS = [['Sources', 'M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z', 3], ['Types', 'M7,5H21V7H7V5M7,13V11H21V13H7M4,4.5A1.5,1.5 0 0,1 5.5,6A1.5,1.5 0 0,1 4,7.5A1.5,1.5 0 0,1 2.5,6A1.5,1.5 0 0,1 4,4.5M4,10.5A1.5,1.5 0 0,1 5.5,12A1.5,1.5 0 0,1 4,13.5A1.5,1.5 0 0,1 2.5,12A1.5,1.5 0 0,1 4,10.5M7,19V17H21V19H7M4,16.5A1.5,1.5 0 0,1 5.5,18A1.5,1.5 0 0,1 4,19.5A1.5,1.5 0 0,1 2.5,18A1.5,1.5 0 0,1 4,16.5Z', 2], ['Integrations', 'M7,2V13H10V22L17,10H13L17,2H7Z', 1], ['Causes', 'M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z', 2]];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.size = 1; this.pon = { 0: 1, 1: 1, 2: 1, 3: 1 }; }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+  reset(s) { this.size = s === 'before' ? 3 : 1; }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const before = s === 'before';
+    return Object.assign(v, {
+      isBefore: before,
+      tbCls: before ? 'tb old' : 'tb',
+      entsCls: before ? 'ents old' : 'ents',
+      fs: SIZES[this.size][1] + 'px',
+      sizeNote: 'Row times are set at ' + SIZES[this.size][1] + ' px',
+      sizes: SIZES.map((z, i) => ({ label: z[0], cls: i === this.size ? 'chip sel' : 'chip', aria: i === this.size ? 'true' : 'false', pick: () => { this.size = i; this.bump(); } })),
+      log: LOG.map((e) => ({ time: e[0], tip: before ? '' : e[0], icon: e[1], name: e[2], msg: e[3] })),
+      entsPad: 'padding-bottom: 16px',
+      pills: PILLS.map((p, i) => {
+        const on = !!this.pon[i];
+        return { name: p[0], icon: p[1], count: on ? String(p[2]) : '', cls: on ? 'chip sel' : 'chip', aria: on ? 'true' : 'false', toggle: () => { const o = Object.assign({}, this.pon); if (o[i]) delete o[i]; else o[i] = 1; this.pon = o; this.bump(); } };
+      }),
+      anyPill: Object.keys(this.pon).length > 0,
+      clearPills: () => { this.pon = {}; this.bump(); }
+    });
+  }
+}
+</script>
+</body>
+</html>

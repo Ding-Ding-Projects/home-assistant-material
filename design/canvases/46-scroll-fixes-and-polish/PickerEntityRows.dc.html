@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Entity picker rows and the chosen value, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+
+.srch{display:flex;align-items:center;gap:8px;min-height:56px;margin:0 12px;padding:0 4px 0 16px;border-radius:28px;background:var(--sl2);color:var(--onv);flex:none}
+.srch input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:48px;color:var(--on)}
+.srch .cnt{font-size:12px;font-weight:600;color:var(--onv);white-space:nowrap;padding-right:8px}
+.anyrow{display:flex;align-items:center;gap:12px;padding:10px 16px 6px;flex:none}
+.list{flex:1;min-height:0;overflow-y:auto;padding:0 8px 12px;display:flex;flex-direction:column}
+.sec{padding:14px 12px 6px}
+.m3 .frow{display:flex;align-items:center;gap:14px;min-height:56px;padding:6px 12px;border-radius:16px;width:100%;transition:background-color .2s}
+.m3 .frow:hover{background:var(--sl2)}
+.m3 .frow.on{background:var(--pc);color:var(--on-pc)}
+.m3 .frow.on .sub{color:inherit;opacity:.85}
+.m3 .frow.on .lead{background:var(--p);color:var(--on-p)}
+.box{width:20px;height:20px;border-radius:4px;box-shadow:inset 0 0 0 2px var(--out);display:grid;place-items:center;flex:none;margin:0 6px;transition:background-color .2s}
+.box svg{width:16px;height:16px;fill:var(--on-p);opacity:0}
+.box.on{background:var(--p);box-shadow:none}
+.box.on svg{opacity:1}
+.ffoot{flex:none;padding:10px 16px 16px;background:var(--sl0);display:flex;gap:8px}
+.ffoot .btn{flex:1}
+.panel{background:var(--sl0);border-radius:28px;display:flex;flex-direction:column;overflow:hidden}
+.fwrap{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.fwrap .panel.side{flex:0 1 380px;height:720px;padding-top:12px}
+.fwrap .panel.main{flex:1 1 480px;padding:16px;gap:4px;min-width:0}
+.trow{display:flex;align-items:center;gap:14px;min-height:56px;padding:6px 8px;border-radius:16px}
+.trow:hover{background:var(--sl2)}
+
+.m3 .btn{padding:0 24px}
+.m3 .btn.text{padding:0 14px}
+.tag.t{background:var(--amberc);color:var(--amber);flex:none}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.grab{width:32px;height:4px;border-radius:2px;background:var(--out);opacity:.5;margin:10px auto 2px;flex:none}
+.fl{display:flex;flex-direction:column;gap:6px}
+.badge{width:32px;height:32px;border-radius:16px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.badge .ic{width:20px;height:20px}
+.m3 .pf{display:flex;align-items:center;min-height:56px;border-radius:12px;background:var(--sl2);width:100%;position:relative;overflow:hidden}
+.pf::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--out);pointer-events:none;transition:height .18s ease-in-out,background-color .18s ease-in-out}
+.pf.foc::after{height:2px;background:var(--p)}
+.pf.old::after{transition:none}
+.m3 .pf .trig{display:flex;align-items:center;gap:12px;flex:1;min-width:0;min-height:56px;padding:6px 0 6px 16px}
+.pf .txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.pf .txt .bl,.pf .txt .sub{overflow-wrap:anywhere}
+.pf.old .txt .bl,.pf.old .txt .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m3 .pf .clr{width:32px;height:32px;border-radius:16px;display:grid;place-items:center;color:var(--onv);flex:none;position:relative;margin:0 8px}
+.m3 .pf .clr::after{content:"";position:absolute;inset:-8px}
+.m3 .pf.old .clr{margin:0 -8px 0 0}
+.m3 .pf.old .clr::after{content:none}
+.m3 .pf .arr{width:48px;min-height:56px;display:grid;place-items:center;color:var(--onv);flex:none}
+.m3 .pf.old .arr{width:32px}
+.m3 .prow{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;margin:0 8px;border-radius:14px;width:calc(100% - 16px);flex:none;transition:background-color .2s}
+.m3 .prow:hover{background:var(--sl3)}
+.m3 .prow.on{background:var(--pc);color:var(--on-pc)}
+.m3 .prow.on .sub{color:inherit;opacity:.85}
+.prow .txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.prow .txt .bl{overflow-wrap:anywhere}
+.prow .txt .sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m3 .prow.old{margin:0;border-radius:0;width:100%;padding:6px 16px}
+.m3 .prow.old.on{background:color-mix(in srgb,var(--p) 14%,transparent);color:inherit}
+.prow.old .txt .bl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .dom{font-size:13px;line-height:18px;color:var(--onv);align-self:flex-end;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}
+.psr{display:flex;align-items:center;gap:8px;min-height:48px;margin:8px 8px 6px;padding:0 2px 0 14px;border-radius:24px;background:var(--sl3);color:var(--onv);flex:none}
+.psr input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px;color:var(--on)}
+.psr.old{border-radius:0;margin:0;background:transparent;box-shadow:inset 0 -1px 0 var(--outv);min-height:52px;padding-left:16px}
+.plist{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;padding:2px 0 8px}
+.menu{background:var(--sl3);border-radius:20px;padding:8px;box-shadow:var(--e3);display:flex;flex-direction:column;min-width:196px}
+.m3 .mi{display:flex;align-items:center;gap:12px;min-height:48px;padding:0 14px 0 12px;border-radius:14px;font-size:14px;width:100%}
+.m3 .mi:hover{background:var(--sl4)}
+.m3 .mi.sel{background:var(--pc);color:var(--on-pc)}
+.m3 .mi.danger{color:var(--err)}
+.pmini{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:20px 16px;color:var(--onv)}
+
+.sheet{position:absolute;left:0;right:0;top:48px;bottom:0;z-index:5;background:var(--sl1);border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--e3)}
+.sheet.old{border-radius:20px 20px 0 0}
+.shead{display:flex;align-items:center;gap:4px;padding:0 4px 0 20px;min-height:52px;flex:none}
+.fscroll{flex:1;min-height:0;overflow-y:auto;padding:4px 16px 96px;display:flex;flex-direction:column;gap:14px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph" style="background: var(--sl0)">
+<div class="bar"><button class="ib" aria-label="Back"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></button><h1>Hallway night light</h1>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><span class="tag t">Today</span></sc-if>
+<button class="btn text">Save</button></div>
+<div class="fscroll">
+<p class="sub">Turns a light on when someone walks past and the room is dark.</p>
+<sc-for list="{{fields}}" as="f" hint-placeholder-count="3">
+<div class="fl"><span class="lm">{{f.label}}</span>
+<div class="{{f.cls}}">
+<button class="trig" aria-haspopup="dialog" title="{{f.title}}" onClick="{{ f.open }}"><span class="badge"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{f.icon}}"></path></svg></span><span class="txt"><span class="bl">{{f.name}}</span><span class="sub">{{f.sup}}</span></span></button>
+<sc-if value="{{f.has}}" hint-placeholder-val="{{ true }}"><button class="clr" aria-label="{{f.clearLabel}}" onClick="{{ f.clear }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></sc-if>
+<button class="arr" aria-label="{{f.openLabel}}" onClick="{{ f.open }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,10L12,15L17,10H7Z"></path></svg></button>
+</div></div>
+</sc-for>
+<div class="fl"><label class="lm" for="pe-time">ONLY AFTER</label><div class="field"><input id="pe-time" value="19:49" inputmode="numeric"/><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"></path></svg></div></div>
+<div class="note"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"></path></svg><span>{{noteText}}</span></div>
+</div>
+<sc-if value="{{sheetOpen}}" hint-placeholder-val="{{ true }}">
+<div class="scrim" style="z-index: 4" onClick="{{ closeSheet }}"></div>
+<div class="{{sheetCls}}" role="dialog" aria-modal="true" aria-label="{{sheetTitle}}">
+<div class="grab" aria-hidden="true"></div>
+<div class="shead"><h2 class="tm" style="flex: 1">{{sheetTitle}}</h2><button class="ib" aria-label="Close the list" onClick="{{ closeSheet }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></div>
+<div class="psr" style="margin: 0 12px 6px">
+<svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg>
+<input type="search" value="{{query}}" onInput="{{ setQuery }}" placeholder="Search entities" aria-label="Search entities"/>
+<span class="lm" role="status" style="white-space: nowrap; padding-right: 8px">{{countText}}</span>
+<sc-if value="{{hasQuery}}" hint-placeholder-val="{{ false }}"><button class="ib" aria-label="Clear search" onClick="{{ clearQuery }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></sc-if>
+</div>
+<div class="plist" role="listbox" aria-label="Entities">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+<button class="{{r.cls}}" role="option" aria-selected="{{r.aria}}" title="{{r.title}}" onClick="{{ r.pick }}">
+<span class="badge"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{r.icon}}"></path></svg></span>
+<span class="txt"><span class="bl">{{r.name}}</span><span class="sub">{{r.sup}}</span></span>
+<sc-if value="{{r.showDom}}" hint-placeholder-val="{{ false }}"><span class="dom">{{r.dom}}</span></sc-if>
+</button>
+</sc-for>
+<sc-if value="{{noRows}}" hint-placeholder-val="{{ false }}">
+<div class="pmini in"><span class="tm" style="color: var(--on)">No entity matches "{{query}}"</span><span class="sub">The field keeps its current entity.</span><button class="btn tonal" onClick="{{ clearQuery }}">Clear search</button></div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}">
+<div class="toast up" role="status" style="z-index: 3"><span style="flex: 1">{{toastText}}</span><button class="btn text" onClick="{{ undo }}">Undo</button></div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","field","before","before-field"]},"$preview":{"width":390,"height":844}}'>
+const ENTS = [{"name":"Kitchen motion sensor illuminance","area":"Kitchen","device":"Kitchen motion sensor","dom":"Sensor","icon":"M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"},{"name":"Kitchen motion sensor battery","area":"Kitchen","device":"Kitchen motion sensor","dom":"Sensor","icon":"M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"},{"name":"Kitchen motion sensor occupancy","area":"Kitchen","device":"Kitchen motion sensor","dom":"Binary sensor","icon":"M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"},{"name":"Kitchen motion sensor temperature","area":"Kitchen","device":"Kitchen motion sensor","dom":"Sensor","icon":"M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"},{"name":"Living room ceiling light","area":"Living room","device":"Ceiling light","dom":"Light","icon":"M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z"},{"name":"Living room floor lamp","area":"Living room","device":"Floor lamp","dom":"Light","icon":"M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z"},{"name":"Upstairs hallway motion sensor occupancy","area":"Upstairs hallway","device":"Hallway multisensor","dom":"Binary sensor","icon":"M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"},{"name":"Front door contact","area":"Entrance","device":"Front door sensor","dom":"Binary sensor","icon":"M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"},{"name":"Grow shelf plug","area":"Utility room","device":"Grow shelf plug","dom":"Switch","icon":"M18.4 1.6C18 1.2 17.5 1 17 1H7C6.5 1 6 1.2 5.6 1.6C5.2 2 5 2.5 5 3V21C5 21.5 5.2 22 5.6 22.4C6 22.8 6.5 23 7 23H17C17.5 23 18 22.8 18.4 22.4C18.8 22 19 21.5 19 21V3C19 2.5 18.8 2 18.4 1.6M16 7C16 7.6 15.6 8 15 8H9C8.4 8 8 7.6 8 7V5C8 4.4 8.4 4 9 4H15C15.6 4 16 4.4 16 5V7Z"},{"name":"Thermostat","area":"Living room","device":"Thermostat","dom":"Climate","icon":"M16.95,16.95L14.83,14.83C15.55,14.1 16,13.1 16,12C16,11.26 15.79,10.57 15.43,10L17.6,7.81C18.5,9 19,10.43 19,12C19,13.93 18.22,15.68 16.95,16.95M12,5C13.57,5 15,5.5 16.19,6.4L14,8.56C13.43,8.21 12.74,8 12,8A4,4 0 0,0 8,12C8,13.1 8.45,14.1 9.17,14.83L7.05,16.95C5.78,15.68 5,13.93 5,12A7,7 0 0,1 12,5M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12C22,6.47 17.5,2 12,2Z"},{"name":"Bedroom fan","area":"Bedroom","device":"Bedroom fan","dom":"Fan","icon":"M12,11A1,1 0 0,0 11,12A1,1 0 0,0 12,13A1,1 0 0,0 13,12A1,1 0 0,0 12,11M12.5,2C17,2 17.11,5.57 14.75,6.75C13.76,7.24 13.32,8.29 13.13,9.22C13.61,9.42 14.03,9.73 14.35,10.13C18.05,8.13 22.03,8.92 22.03,12.5C22.03,17 18.46,17.1 17.28,14.73C16.78,13.74 15.72,13.3 14.79,13.11C14.59,13.59 14.28,14 13.88,14.34C15.87,18.03 15.08,22 11.5,22C7,22 6.91,18.42 9.27,17.24C10.25,16.75 10.69,15.71 10.89,14.79C10.4,14.59 9.97,14.27 9.65,13.87C5.96,15.85 2,15.07 2,11.5C2,7 5.56,6.89 6.74,9.26C7.24,10.25 8.29,10.68 9.22,10.87C9.41,10.39 9.73,9.97 10.14,9.65C8.15,5.96 8.94,2 12.5,2Z"},{"name":"Porch camera","area":"Entrance","device":"Porch camera","dom":"Camera","icon":"M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"},{"name":"Coffee maker","area":"Kitchen","device":"Coffee maker","dom":"Switch","icon":"M18.4 1.6C18 1.2 17.5 1 17 1H7C6.5 1 6 1.2 5.6 1.6C5.2 2 5 2.5 5 3V21C5 21.5 5.2 22 5.6 22.4C6 22.8 6.5 23 7 23H17C17.5 23 18 22.8 18.4 22.4C18.8 22 19 21.5 19 21V3C19 2.5 18.8 2 18.4 1.6M16 7C16 7.6 15.6 8 15 8H9C8.4 8 8 7.6 8 7V5C8 4.4 8.4 4 9 4H15C15.6 4 16 4.4 16 5V7Z"},{"name":"Washing machine power","area":"Utility room","device":"Washing machine plug","dom":"Sensor","icon":"M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"}];
+const LABELS = ['Motion sensor', 'Light level sensor', 'Light to turn on'];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.reset('after'); }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+
+  reset(s) { this.q = ''; this.vals = [6, 0, 4]; this.open = (s === 'after' || s === 'before') ? 1 : -1; this.undoVal = null; this.toast = ''; }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const before = s === 'before' || s === 'before-field';
+    const q = this.q.trim().toLowerCase();
+    const shown = ENTS.map((e, i) => ({ e, i })).filter((x) => !q || x.e.name.toLowerCase().includes(q) || x.e.area.toLowerCase().includes(q));
+    const cur = this.open >= 0 ? this.vals[this.open] : null;
+    return Object.assign(v, {
+      isBefore: before,
+      fields: LABELS.map((label, k) => {
+        const e = this.vals[k] === null ? null : ENTS[this.vals[k]];
+        return {
+          label: label.toUpperCase(),
+          cls: 'pf' + (this.open === k ? ' foc' : '') + (before ? ' old' : ''),
+          has: !!e, icon: e ? e.icon : 'M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z',
+          name: e ? e.name : 'Choose an entity', sup: e ? e.area + ' \u203A ' + e.device : 'Nothing chosen yet',
+          title: e && !before ? e.name + ', ' + e.area + ', ' + e.device : '',
+          clearLabel: 'Clear ' + label.toLowerCase(), openLabel: 'Open the list for ' + label.toLowerCase(),
+          open: () => { this.open = k; this.q = ''; this.toast = ''; this.bump(); },
+          clear: () => { this.undoVal = { k, was: this.vals[k] }; const n = this.vals.slice(); n[k] = null; this.vals = n; this.toast = label + ' cleared'; this.bump(); }
+        };
+      }),
+      noteText: before
+        ? 'Today the chosen value is one line: long names end in three dots and nothing shows the rest. The 32 px clear button touches the arrow.'
+        : 'A long value wraps to a second line and the field grows. Hold or hover a field to read the full name, area and device.',
+      sheetOpen: this.open >= 0, sheetCls: before ? 'sheet old up' : 'sheet up',
+      sheetTitle: this.open >= 0 ? LABELS[this.open] : '',
+      closeSheet: () => { this.open = -1; this.bump(); },
+      query: this.q, hasQuery: this.q.length > 0,
+      setQuery: (e) => { this.q = e.target.value; this.bump(); },
+      clearQuery: () => { this.q = ''; this.bump(); },
+      countText: q ? shown.length + ' of ' + ENTS.length : ENTS.length + ' entities',
+      noRows: shown.length === 0,
+      rows: shown.map((x) => {
+        const on = x.i === cur;
+        return {
+          name: x.e.name, icon: x.e.icon, dom: x.e.dom, showDom: before,
+          title: before ? '' : x.e.name,
+          sup: before ? x.e.area + ' \u203A ' + x.e.device : x.e.area + ' \u00B7 ' + x.e.dom,
+          cls: 'prow' + (before ? ' old' : '') + (on ? ' on' : ''), aria: String(on),
+          pick: () => { const n = this.vals.slice(); n[this.open] = x.i; this.vals = n; this.open = -1; this.bump(); }
+        };
+      }),
+      hasToast: !!this.toast && this.open < 0, toastText: this.toast,
+      undo: () => { if (this.undoVal) { const n = this.vals.slice(); n[this.undoVal.k] = this.undoVal.was; this.vals = n; } this.toast = ''; this.bump(); }
+    });
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wide window: script alerts, integration names, About links</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.m3 .btn{padding:0 24px}
+.m3 .btn.text{padding:0 14px}
+.tod{background:var(--amberc);color:var(--amber);flex:none;white-space:nowrap}
+.pbar{position:absolute;left:12px;right:12px;bottom:calc(12px + var(--inset,0px));height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);z-index:7;display:flex;align-items:center;justify-content:space-around;padding:0 8px}
+.pbar span{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;line-height:14px;font-weight:600;color:var(--onv);min-width:60px}
+.pbar span.on{color:var(--on)}
+.pbar span.on .ic{background:var(--pc);color:var(--on-pc);border-radius:14px;width:52px;height:28px;padding:2px 14px}
+.homei{position:absolute;left:50%;bottom:8px;width:134px;height:5px;border-radius:3px;background:var(--on);opacity:.55;transform:translateX(-50%);z-index:8}
+.card{background:var(--sl0);border-radius:20px}
+.box{width:20px;height:20px;border-radius:4px;box-shadow:inset 0 0 0 2px var(--out);display:grid;place-items:center;flex:none;transition:background-color .2s}
+.box svg{width:16px;height:16px;fill:var(--on-p);opacity:0}
+.box.on{background:var(--p);box-shadow:none}
+.box.on svg{opacity:1}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--sl2);border-radius:24px;padding:4px;gap:4px}
+.m3 .seg button{min-height:40px;padding:0 16px;border-radius:20px;font-size:14px;font-weight:600;color:var(--onv);position:relative;white-space:nowrap}
+.m3 .seg button::after{content:"";position:absolute;inset:-4px 0}
+.m3 .seg button.sel{background:var(--pc);color:var(--on-pc)}
+.wrapany{overflow-wrap:anywhere}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.panel{background:var(--sl0);border-radius:28px;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.escroll{height:680px;overflow-y:auto;position:relative}
+.stick{position:sticky;top:0;z-index:5;background:var(--sl0);display:flex;flex-direction:column;gap:8px;padding:12px clamp(12px,3vw,32px);box-shadow:0 1px 0 var(--outv)}
+.stick.old{height:72px;padding:0;gap:0;background:transparent;box-shadow:none}
+.stick.old .oldalerts{position:absolute;top:0;left:clamp(12px,3vw,32px);right:clamp(12px,3vw,32px);z-index:1;display:flex;flex-direction:column;gap:8px;padding-top:8px}
+.stick.old .moderow{position:relative;z-index:2;background:var(--sl0);min-height:72px;padding:0 clamp(12px,3vw,32px)}
+.moderow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:48px}
+.al{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:6px 6px 6px 14px;border-radius:16px;min-height:56px;font-size:14px;line-height:20px}
+.al.err{background:var(--errc);color:var(--on-errc)}
+.al.info{background:var(--pc);color:var(--on-pc)}
+.m3 .al .btn.text{color:inherit;text-decoration:underline}
+.steps{display:flex;flex-direction:column;gap:10px;padding:16px clamp(12px,3vw,32px) 32px;max-width:860px;width:100%;margin:0 auto}
+.stepc{display:flex;align-items:center;gap:14px;padding:12px 8px 12px 14px;border-radius:20px;background:var(--sl2);min-height:72px}
+.stepc.bad{box-shadow:inset 0 0 0 2px var(--err)}
+.num{width:28px;height:28px;border-radius:14px;display:grid;place-items:center;background:var(--sl4);font-size:13px;font-weight:600;flex:none}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:12px}
+.m3 .icard{position:relative;display:flex;align-items:center;gap:16px;padding:14px 12px 14px 16px;border-radius:20px;background:var(--sl0);min-height:80px;width:100%;color:var(--on)}
+.m3 .icard:hover{background:var(--sl1)}
+.itile{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);font-size:18px;font-weight:600;flex:none}
+.iname{font-size:16px;line-height:22px;font-weight:500}
+.iname.one{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iname.two{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:break-word}
+.icard > .ic{color:var(--onv)}
+.icard.tip:hover::after,.icard.tip:focus-visible::after{content:attr(data-full);position:absolute;left:16px;right:16px;top:calc(100% - 6px);z-index:6;background:var(--inv);color:var(--on-inv);border-radius:8px;padding:6px 10px;font-size:12px;line-height:16px;font-weight:500;box-shadow:var(--e3);text-align:left}
+.acols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.acols .panel{flex:1 1 360px;padding:8px}
+.acols .panel.out{box-shadow:inset 0 0 0 1px var(--outv)}
+.vrow{display:flex;align-items:center;gap:12px;min-height:48px;padding:4px 12px;flex-wrap:wrap}
+.m3 .prow{display:flex;align-items:center;gap:16px;min-height:60px;padding:6px 12px;border-radius:16px;width:100%;color:var(--on)}
+.m3 .prow:hover{background:var(--sl2)}
+.prow > .ic{color:var(--onv)}
+.ptile{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--pc);color:var(--on-pc);flex:none}
+.ptile.old{border-radius:20px;color:#fff}
+.srchw{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 16px;border-radius:24px;background:var(--sl0);color:var(--onv);flex:1 1 220px;max-width:420px}
+.srchw input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px;color:var(--on)}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="wd">
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><div class="top"><span class="tag tod">Today</span><span class="sub">Show today's</span><div class="seg" role="group" aria-label="Which page">
+<sc-for list="{{views}}" as="w" hint-placeholder-count="3"><button class="{{w.cls}}" aria-pressed="{{w.aria}}" onClick="{{ w.pick }}">{{w.name}}</button></sc-for>
+</div></div></sc-if>
+<sc-if value="{{isScript}}" hint-placeholder-val="{{ true }}"><div class="top">
+<button class="ib" aria-label="Back to scripts"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></button>
+<h1 class="tl" style="flex: 1; min-width: 160px">Evening wind-down</h1>
+<span class="sub">Scrolled past the description</span>
+<button class="btn tonal"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M8,5.14V19.14L19,12.14L8,5.14Z"></path></svg>Run</button>
+<button class="btn fill">Save</button>
+</div>
+<div class="panel">
+<div class="escroll" tabindex="0" aria-label="Script steps">
+<sc-if value="{{isAfter}}" hint-placeholder-val="{{ true }}"><div class="stick">
+<sc-for list="{{alerts}}" as="a" hint-placeholder-count="2"><div class="{{a.cls}}" role="{{a.role}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{a.icon}}"></path></svg><span class="wrapany" style="flex: 1; min-width: 200px">{{a.text}}</span><sc-if value="{{a.has2}}" hint-placeholder-val="{{ false }}"><button class="btn text" onClick="{{ a.do2 }}">{{a.b2}}</button></sc-if><button class="btn text" onClick="{{ a.do1 }}">{{a.b1}}</button></div></sc-for>
+<sc-if value="{{noAlerts}}" hint-placeholder-val="{{ false }}"><div class="hrow"><span class="sub" style="flex: 1">No alerts. The mode row sits at the top on its own.</span><button class="btn text" onClick="{{ restore }}">Show the alerts again</button></div></sc-if>
+<div class="moderow">
+<div class="seg" role="group" aria-label="Editor"><button class="sel" aria-pressed="true">Visual</button><button aria-pressed="false">YAML</button></div>
+<button class="chip" aria-haspopup="listbox">Mode: Single<svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button>
+<span class="sub" style="flex: 1; min-width: 80px">6 steps</span>
+<button class="ib" aria-label="Search the steps"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></button>
+</div>
+</div></sc-if>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><div class="stick old"><div class="oldalerts"><sc-for list="{{alerts}}" as="a" hint-placeholder-count="2"><div class="{{a.cls}}" role="{{a.role}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{a.icon}}"></path></svg><span class="wrapany" style="flex: 1; min-width: 200px">{{a.text}}</span><sc-if value="{{a.has2}}" hint-placeholder-val="{{ false }}"><button class="btn text" onClick="{{ a.do2 }}">{{a.b2}}</button></sc-if><button class="btn text" onClick="{{ a.do1 }}">{{a.b1}}</button></div></sc-for></div><div class="moderow">
+<div class="seg" role="group" aria-label="Editor"><button class="sel" aria-pressed="true">Visual</button><button aria-pressed="false">YAML</button></div>
+<button class="chip" aria-haspopup="listbox">Mode: Single<svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button>
+<span class="sub" style="flex: 1; min-width: 80px">6 steps</span>
+<button class="ib" aria-label="Search the steps"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg></button>
+</div></div></sc-if>
+<div class="steps">
+<sc-for list="{{steps}}" as="t" hint-placeholder-count="6"><div class="{{t.cls}}"><span class="num">{{t.n}}</span><span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{t.icon}}"></path></svg></span><span class="grow"><span class="bl wrapany">{{t.title}}</span><span class="sub">{{t.meta}}</span></span><button class="ib" aria-label="{{t.more}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button></div></sc-for>
+<div><button class="btn tonal"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg>Add action</button></div>
+</div>
+</div>
+</div></sc-if>
+<sc-if value="{{isInt}}" hint-placeholder-val="{{ false }}"><div class="top">
+<h1 class="tl" style="flex: 1; min-width: 160px">Integrations</h1>
+<div class="srchw"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg><input type="search" value="{{query}}" onInput="{{ setQuery }}" placeholder="Search integrations" aria-label="Search integrations"/></div>
+<button class="btn fill"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg>Add integration</button>
+</div>
+<span class="sub" role="status">{{intText}}</span>
+<div class="igrid">
+<sc-for list="{{cards}}" as="c" hint-placeholder-count="9"><button class="{{c.cls}}" title="{{c.title}}" data-full="{{c.name}}" aria-label="{{c.aria}}"><span class="itile" aria-hidden="true">{{c.letter}}</span><span class="grow"><span class="{{c.nameCls}}">{{c.name}}</span><span class="sub">{{c.meta}}</span><sc-if value="{{c.pillBelow}}" hint-placeholder-val="{{ false }}"><span><span class="tag e" style="margin-top: 4px">{{c.pill}}</span></span></sc-if></span><sc-if value="{{c.pillSide}}" hint-placeholder-val="{{ false }}"><span class="tag e" style="flex: none">{{c.pill}}</span></sc-if><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg></button></sc-for>
+</div>
+<sc-if value="{{noCards}}" hint-placeholder-val="{{ false }}"><div class="stagebox"><span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M9,2A7,7 0 0,1 16,9C16,10.5 15.5,12 14.61,13.19L15.41,14H16L22,20L20,22L14,16V15.41L13.19,14.61C12,15.5 10.5,16 9,16A7,7 0 0,1 2,9A7,7 0 0,1 9,2M11.12,5.46L9,7.59L6.88,5.46L5.46,6.88L7.59,9L5.46,11.12L6.88,12.54L9,10.41L11.12,12.54L12.54,11.12L10.41,9L12.54,6.88L11.12,5.46Z"></path></svg></span><span class="tm" style="color: var(--on)">No integration matches "{{query}}"</span><span class="sub">Clear the search to see all of them.</span></div></sc-if>
+</sc-if>
+<sc-if value="{{isAbout}}" hint-placeholder-val="{{ false }}"><div class="top">
+<button class="ib" aria-label="Back to settings"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></button>
+<h1 class="tl" style="flex: 1; min-width: 160px">About</h1>
+</div>
+<div class="acols">
+<div class="panel">
+<div class="vrow" style="min-height: 72px"><span class="itile"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21.8,13H20V21H13V17.67L15.79,14.88L16.5,15C17.66,15 18.6,14.06 18.6,12.9C18.6,11.74 17.66,10.8 16.5,10.8A2.1,2.1 0 0,0 14.4,12.9L14.5,13.61L13,15.13V9.65C13.66,9.29 14.1,8.6 14.1,7.8A2.1,2.1 0 0,0 12,5.7A2.1,2.1 0 0,0 9.9,7.8C9.9,8.6 10.34,9.29 11,9.65V15.13L9.5,13.61L9.6,12.9A2.1,2.1 0 0,0 7.5,10.8A2.1,2.1 0 0,0 5.4,12.9A2.1,2.1 0 0,0 7.5,15L8.21,14.88L11,17.67V21H4V13H2.25C1.83,13 1.42,13 1.42,12.79C1.43,12.57 1.85,12.15 2.28,11.72L11,3C11.33,2.67 11.67,2.33 12,2.33C12.33,2.33 12.67,2.67 13,3L17,7V6H19V9L21.78,11.78C22.18,12.18 22.59,12.59 22.6,12.8C22.6,13 22.2,13 21.8,13M7.5,12A0.9,0.9 0 0,1 8.4,12.9A0.9,0.9 0 0,1 7.5,13.8A0.9,0.9 0 0,1 6.6,12.9A0.9,0.9 0 0,1 7.5,12M16.5,12C17,12 17.4,12.4 17.4,12.9C17.4,13.4 17,13.8 16.5,13.8A0.9,0.9 0 0,1 15.6,12.9A0.9,0.9 0 0,1 16.5,12M12,6.9C12.5,6.9 12.9,7.3 12.9,7.8C12.9,8.3 12.5,8.7 12,8.7C11.5,8.7 11.1,8.3 11.1,7.8C11.1,7.3 11.5,6.9 12,6.9Z"></path></svg></span><span class="grow"><span class="tm">Home Assistant, Material build</span><span class="sub">Build 2026.11.3-m46 · up to date, checked 19:49</span></span></div>
+<sc-for list="{{versions}}" as="r" hint-placeholder-count="5"><div class="vrow"><span class="sub" style="flex: 1; min-width: 140px">{{r.k}}</span><span class="mono wrapany">{{r.v}}</span></div></sc-for>
+<div class="note" style="margin: 8px"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,3C10.73,3 9.6,3.8 9.18,5H3V7H4.95L2,14C1.53,16 3,17 5.5,17C8,17 9.56,16 9,14L6.05,7H9.17C9.5,7.85 10.15,8.5 11,8.83V20H2V22H22V20H13V8.82C13.85,8.5 14.5,7.85 14.82,7H17.95L15,14C14.53,16 16,17 18.5,17C21,17 22.56,16 22,14L19.05,7H21V5H14.83C14.4,3.8 13.27,3 12,3M12,5A1,1 0 0,1 13,6A1,1 0 0,1 12,7A1,1 0 0,1 11,6A1,1 0 0,1 12,5M5.5,10.25L7,14H4L5.5,10.25M18.5,10.25L20,14H17L18.5,10.25Z"></path></svg><span>This build is made independently. It is not made or endorsed by the Home Assistant project.</span></div>
+</div>
+<div class="{{pagesCls}}">
+<sc-for list="{{pages}}" as="p" hint-placeholder-count="4"><button class="prow"><span class="{{p.tile}}" style="{{p.style}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{p.icon}}"></path></svg></span><span class="grow"><span class="bl">{{p.name}}</span><sc-if value="{{p.hasSub}}" hint-placeholder-val="{{ false }}"><span class="sub">{{p.sub}}</span></sc-if></span><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="{{p.end}}"></path></svg></button></sc-for>
+</div>
+</div></sc-if>
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}"><div class="toast up" role="status" style="left: auto; width: min(420px, calc(100% - 24px))"><span style="flex: 1">{{toast}}</span><button class="btn text" onClick="{{ hideToast }}">Dismiss</button></div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"script","options":["script","integrations","about","before"]},"$preview":{"width":1280,"height":860}}'>
+const WI = { err: "M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z", draft: "M4 19H10V21H4C2.89 21 2 20.1 2 19V5C2 3.9 2.89 3 4 3H16L20 7V9.12L18 11.12V7.83L15.17 5H4V19M14 10V6H5V10H14M20.42 12.3C20.31 12.19 20.18 12.13 20.04 12.13C19.9 12.13 19.76 12.19 19.65 12.3L18.65 13.3L20.7 15.35L21.7 14.35C21.92 14.14 21.92 13.79 21.7 13.58L20.42 12.3M12 19.94V22H14.06L20.12 15.93L18.07 13.88L12 19.94M14 15C14 13.34 12.66 12 11 12S8 13.34 8 15 9.34 18 11 18C11.04 18 11.08 18 11.13 18L14 15.13C14 15.09 14 15.05 14 15", lamp: "M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z", timer: "M12,20A7,7 0 0,1 5,13A7,7 0 0,1 12,6A7,7 0 0,1 19,13A7,7 0 0,1 12,20M19.03,7.39L20.45,5.97C20,5.46 19.55,5 19.04,4.56L17.62,6C16.07,4.74 14.12,4 12,4A9,9 0 0,0 3,13A9,9 0 0,0 12,22C17,22 21,17.97 21,13C21,10.88 20.26,8.93 19.03,7.39M11,14H13V8H11M15,1H9V3H15V1Z", blinds: "M3,2H21A1,1 0 0,1 22,3V5A1,1 0 0,1 21,6H20V13A1,1 0 0,1 19,14H13V16.17C14.17,16.58 15,17.69 15,19A3,3 0 0,1 12,22A3,3 0 0,1 9,19C9,17.69 9.83,16.58 11,16.17V14H5A1,1 0 0,1 4,13V6H3A1,1 0 0,1 2,5V3A1,1 0 0,1 3,2M12,18A1,1 0 0,0 11,19A1,1 0 0,0 12,20A1,1 0 0,0 13,19A1,1 0 0,0 12,18Z", thermo: "M16.95,16.95L14.83,14.83C15.55,14.1 16,13.1 16,12C16,11.26 15.79,10.57 15.43,10L17.6,7.81C18.5,9 19,10.43 19,12C19,13.93 18.22,15.68 16.95,16.95M12,5C13.57,5 15,5.5 16.19,6.4L14,8.56C13.43,8.21 12.74,8 12,8A4,4 0 0,0 8,12C8,13.1 8.45,14.1 9.17,14.83L7.05,16.95C5.78,15.68 5,13.93 5,12A7,7 0 0,1 12,5M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12C22,6.47 17.5,2 12,2Z", speaker: "M12,12A3,3 0 0,0 9,15A3,3 0 0,0 12,18A3,3 0 0,0 15,15A3,3 0 0,0 12,12M12,20A5,5 0 0,1 7,15A5,5 0 0,1 12,10A5,5 0 0,1 17,15A5,5 0 0,1 12,20M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8C10.89,8 10,7.1 10,6C10,4.89 10.89,4 12,4M17,2H7C5.89,2 5,2.89 5,4V20A2,2 0 0,0 7,22H17A2,2 0 0,0 19,20V4C19,2.89 18.1,2 17,2Z", bell: "M10 21H14C14 22.1 13.1 23 12 23S10 22.1 10 21M21 19V20H3V19L5 17V11C5 7.9 7 5.2 10 4.3V4C10 2.9 10.9 2 12 2S14 2.9 14 4V4.3C17 5.2 19 7.9 19 11V17L21 19M17 11C17 8.2 14.8 6 12 6S7 8.2 7 11V18H17V11Z",
+  keyboard: "M19,10H17V8H19M19,13H17V11H19M16,10H14V8H16M16,13H14V11H16M16,17H8V15H16M7,10H5V8H7M7,13H5V11H7M8,11H10V13H8M8,8H10V10H8M11,11H13V13H11M11,8H13V10H11M20,5H4C2.89,5 2,5.89 2,7V17A2,2 0 0,0 4,19H20A2,2 0 0,0 22,17V7C22,5.89 21.1,5 20,5Z", thanks: "M11.43 9.67C11.47 9.78 11.5 9.88 11.5 10V15.22C11.5 15.72 11.31 16.2 10.97 16.57L8.18 19.62L4.78 16.22L6 15L8.8 2.86C8.92 2.36 9.37 2 9.89 2C10.5 2 11 2.5 11 3.11V8.07C10.84 8.03 10.67 8 10.5 8C9.4 8 8.5 8.9 8.5 10V13C8.5 13.28 8.72 13.5 9 13.5S9.5 13.28 9.5 13V10C9.5 9.45 9.95 9 10.5 9C10.69 9 10.85 9.07 11 9.16C11.12 9.23 11.21 9.32 11.3 9.42C11.33 9.46 11.36 9.5 11.38 9.55C11.4 9.59 11.42 9.63 11.43 9.67M2 19L6 22L7.17 20.73L3.72 17.28L2 19M18 15L15.2 2.86C15.08 2.36 14.63 2 14.11 2C13.5 2 13 2.5 13 3.11V8.07C13.16 8.03 13.33 8 13.5 8C14.6 8 15.5 8.9 15.5 10V13C15.5 13.28 15.28 13.5 15 13.5S14.5 13.28 14.5 13V10C14.5 9.45 14.05 9 13.5 9C13.31 9 13.15 9.07 13 9.16C12.88 9.23 12.79 9.32 12.71 9.42C12.68 9.46 12.64 9.5 12.62 9.55C12.6 9.59 12.58 9.63 12.57 9.67C12.53 9.78 12.5 9.88 12.5 10V15.22C12.5 15.72 12.69 16.2 13.03 16.57L15.82 19.62L19.22 16.22L18 15M20.28 17.28L16.83 20.73L18 22L22 19L20.28 17.28Z", help: "M10,19H13V22H10V19M12,2C17.35,2.22 19.68,7.62 16.5,11.67C15.67,12.67 14.33,13.33 13.67,14.17C13,15 13,16 13,17H10C10,15.33 10,13.92 10.67,12.92C11.33,11.92 12.67,11.33 13.5,10.67C15.92,8.43 15.32,5.26 12,5A3,3 0 0,0 9,8H6A6,6 0 0,1 12,2Z", doc: "M13,9H18.5L13,3.5V9M6,2H14L20,8V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V4C4,2.89 4.89,2 6,2M15,18V16H6V18H15M18,14V12H6V14H18Z", out: "M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z", next: "M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z" };
+const SCRIPT = [
+  ['lamp', 'Dim Living room lamp to 30% over 10 seconds', 'Light: turn on'],
+  ['blinds', 'Close the blinds in the living room and dining area', 'Cover: close'],
+  ['thermo', 'Set the heating to night temperature', 'Climate: set temperature · the target is missing'],
+  ['timer', 'Wait 15 minutes', 'Delay'],
+  ['speaker', 'Stop playback on every speaker downstairs', 'Media player: stop'],
+  ['bell', 'Tell the family group that the house is settling for the night', 'Notification']
+];
+const INTS = [
+  ['Google Generative AI Conversation', '1 service', ''], ['Universal Devices ISY/IoX', '14 devices · 96 entities', ''], ['Nederlandse Spoorwegen (NS)', '2 services · 8 entities', '1 failed'],
+  ['Zigbee Home Automation', '23 devices · 141 entities', ''], ['ESPHome', '6 devices · 58 entities', ''], ['Meteorological forecast and severe weather alerts', '1 service · 12 entities', ''],
+  ['MQTT', '9 devices · 40 entities', 'Needs attention'], ['Sun', '1 service · 9 entities', ''], ['Local calendar', '2 entries', ''],
+  ['Network printer status and supply levels', '1 device · 7 entities', ''], ['Matter', '4 devices · 19 entities', ''], ['Mobile app', '3 devices · 44 entities', ''],
+  ['Thread', '1 service', ''], ['Bluetooth', '2 devices · 5 entities', ''], ['Shopping list', '1 entry', ''], ['Generic camera', '3 devices · 3 entities', '']
+];
+const VERSIONS = [['Core', '2026.11.3'], ['Frontend', '20261120.0'], ['Supervisor', '2026.11.1'], ['Operating system', '16.3'], ['Installation method', 'Home Assistant OS']];
+const PAGES = [['Shortcuts', 'keyboard', '#9e4dd1', 0, 'Keyboard shortcuts for this window'], ['Thanks to', 'thanks', '#3B808E', 1, ''], ['Help', 'help', '#B1345C', 1, ''], ['License', 'doc', '#518C43', 1, '']];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'script'; this.reset('script'); }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'script';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+
+reset(s) { this.gone = {}; this.toast = null; this.q = ''; if (s !== 'before') this.view = s; else if (!this.view) this.view = 'script'; }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const before = s === 'before';
+    const view = this.view;
+    const say = (t) => { this.toast = t; this.bump(); };
+    const drop = (k, t) => () => { const g = Object.assign({}, this.gone); g[k] = 1; this.gone = g; this.toast = t; this.bump(); };
+    const alerts = [];
+    if (!this.gone.err) alerts.push({ cls: 'al err', role: 'alert', icon: WI.err, text: 'Step 3 cannot be saved: the action "Set the heating to night temperature" has no target.', has2: false, b2: '', do2: () => {}, b1: 'Show step 3', do1: drop('err', 'Scrolls to step 3 and opens it') });
+    if (!this.gone.draft) alerts.push({ cls: 'al info', role: 'status', icon: WI.draft, text: 'A draft from 19:42 was restored. It is not saved yet.', has2: true, b2: 'Discard', do2: drop('draft', 'Draft discarded'), b1: 'Keep editing', do1: drop('draft', 'Draft kept') });
+    const q = this.q.trim().toLowerCase();
+    const ints = INTS.filter((c) => !q || c[0].toLowerCase().includes(q));
+    return Object.assign(v, {
+      isBefore: before, isAfter: !before,
+      isScript: view === 'script', isInt: view === 'integrations', isAbout: view === 'about',
+      views: [['script', 'Script editor'], ['integrations', 'Integrations'], ['about', 'About']].map((w) => ({ name: w[1], cls: view === w[0] ? 'sel' : '', aria: view === w[0] ? 'true' : 'false', pick: () => { this.view = w[0]; this.toast = null; this.bump(); } })),
+      alerts, noAlerts: alerts.length === 0, restore: () => { this.gone = {}; this.toast = null; this.bump(); },
+      steps: SCRIPT.map((t, i) => ({ n: i + 1, icon: WI[t[0]], title: t[1], meta: t[2], cls: i === 2 && !this.gone.err ? 'stepc bad' : 'stepc', more: 'More actions for step ' + (i + 1) })),
+      query: this.q, setQuery: (e) => { this.q = e.target.value; this.bump(); },
+      intText: ints.length + ' of ' + INTS.length + ' integrations' + (before ? '' : ' · long names wrap to two lines'),
+      cards: ints.map((c) => {
+        const long = c[0].length > 22;
+        return { name: c[0], meta: c[1], letter: c[0].charAt(0), pillBelow: !!c[2] && !before, pillSide: !!c[2] && before, pill: c[2], title: before ? '' : c[0],
+          aria: c[0] + ', ' + c[1] + (c[2] ? ', ' + c[2] : ''), nameCls: before ? 'iname one' : 'iname two', cls: !before && long ? 'icard tip' : 'icard' };
+      }),
+      noCards: ints.length === 0,
+      versions: VERSIONS.map((r) => ({ k: r[0], v: r[1] })),
+      pagesCls: before ? 'panel out' : 'panel',
+      pages: PAGES.map((p) => ({ name: p[0], icon: WI[p[1]], tile: before ? 'ptile old' : 'ptile', style: before ? 'background: ' + p[2] : '', end: p[3] ? WI.out : WI.next, hasSub: !before && !p[3], sub: p[4] })),
+      hasToast: !!this.toast, toast: this.toast || '', hideToast: () => { this.toast = null; this.bump(); }
+    });
+  }
+}
+</script>
+</body>
+</html>

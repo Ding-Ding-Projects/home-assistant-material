@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Integration setup flow, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.dash{position:absolute;inset:0;padding:72px 16px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
+.dash span{height:84px;border-radius:20px;background:var(--sl2)}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;background:var(--sl0);border-radius:28px 28px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--e3)}
+.grab{width:32px;height:4px;border-radius:2px;background:var(--out);opacity:.5;margin:10px auto;flex:none}
+.shead{display:flex;align-items:center;gap:4px;padding:0 4px;min-height:56px;flex:none}
+.shead h1{flex:1;min-width:0;font-size:20px;line-height:26px;font-weight:500;overflow-wrap:anywhere}
+.shead h1.pad{padding-left:16px}
+.sbody{flex:1;min-height:0;overflow-y:auto}
+.sfoot{flex:none;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:8px 16px 16px;background:var(--sl0)}
+.today{position:absolute;left:8px;top:8px;right:8px;z-index:40;display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:none}
+.today>*{pointer-events:auto}
+.today .tag{box-shadow:var(--e3)}
+.m3 .mini{min-height:28px;padding:0 10px;border-radius:14px;background:var(--sl3);color:var(--onv);font-size:12px;font-weight:600;position:relative;box-shadow:var(--e3)}
+.m3 .mini::after{content:"";position:absolute;inset:-10px -2px}
+.m3 .mini.sel{background:var(--pc);color:var(--on-pc)}
+.sw{width:52px;height:32px;border-radius:16px;box-shadow:inset 0 0 0 2px var(--out);background:var(--sl4);display:flex;align-items:center;padding:0 8px;flex:none;transition:background-color .2s}
+.sw i{display:block;width:16px;height:16px;border-radius:12px;background:var(--out);transition:all .2s cubic-bezier(.2,0,0,1)}
+.sw.on{box-shadow:none;background:var(--p);justify-content:flex-end;padding:0 4px}
+.sw.on i{width:24px;height:24px;background:var(--on-p)}
+.fbody{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
+.opts{display:flex;flex-direction:column;gap:2px;margin:0 -8px}
+.m3 .orow{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px;border-radius:16px;width:100%;transition:background-color .2s}
+.m3 .orow:hover{background:var(--sl2)}
+.orow .sub{overflow-wrap:anywhere}
+.opts.old{margin:0;gap:0}
+.m3 .opts.old .orow{padding:8px 24px;min-height:72px;border-radius:0}
+.m3 .opts.old .orow:hover{background:var(--sl3)}
+.m3 .sum{display:flex;align-items:center;gap:10px;min-height:48px;width:100%;color:var(--onv);font-size:13px;font-weight:600;border-radius:12px}
+.m3 .sum.old{min-height:44px;font-weight:400}
+.gnote{background:var(--sl2);border-radius:16px;padding:14px 16px 6px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:18px;color:var(--onv)}
+.gnote b{color:var(--on)}
+.gnote .lnk{display:inline-flex;align-items:center;gap:6px;color:var(--p);font-weight:600;min-height:48px}
+.gsheet{position:absolute;left:0;right:0;bottom:0;z-index:11;max-height:70%;overflow:auto;background:var(--sl1);border-radius:24px 24px 0 0;box-shadow:var(--e3);padding:16px 24px 24px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:18px}
+.gsheet .lnk{display:inline-flex;align-items:center;gap:6px;color:var(--p)}
+.gsheet .cls{display:flex;justify-content:flex-end}
+.homei{position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--on);opacity:.75;z-index:30;pointer-events:none}
+.homez{position:absolute;left:0;right:0;bottom:0;height:34px;z-index:29;pointer-events:none;background:repeating-linear-gradient(135deg,transparent 0 6px,color-mix(in srgb,var(--err) 30%,transparent) 6px 8px)}
+.sfoot.safe{padding-bottom:30px}
+.hero{display:flex;align-items:center;gap:14px}
+.hero .tile{width:56px;height:56px;border-radius:20px;background:var(--greenc);color:var(--green);display:grid;place-items:center;flex:none}
+.dev{background:var(--sl2);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.dev .brand{width:40px;height:40px;border-radius:16px;background:var(--pc);color:var(--on-pc);display:grid;place-items:center;flex:none}
+.dev .grow{overflow-wrap:anywhere}
+.dev .field,.dev .pick{background:var(--sl3)}
+.m3 .pick{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.fld{display:flex;flex-direction:column;flex:1;min-width:0}
+.fld input{min-height:24px!important;font-size:16px}
+.odevs{display:flex;flex-direction:column;gap:8px}
+.odev{border:1px solid var(--outv);padding:6px;border-radius:4px}
+.odev .obrand{width:40px;height:40px;display:grid;place-items:center;color:var(--onv);flex:none}
+.ofield{border:1px solid var(--out);border-radius:4px;min-height:56px;padding:6px 12px;margin-top:8px;display:flex;flex-direction:column;justify-content:center}
+.ofield input{border:0;background:transparent;outline:none;font-size:16px;width:100%;padding:0}
+.m3 .ofield.b{flex-direction:row;align-items:center;justify-content:flex-start;width:100%;gap:8px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><div class="today"><span class="tag e">Today</span><button class="{{b1}}" onClick="{{ toMenu }}">Menu</button><button class="{{b2}}" onClick="{{ toForm }}">Note</button><button class="{{b3}}" onClick="{{ toSuccess }}">Devices</button><span class="tag">{{todayText}}</span></div></sc-if>
+<div class="bar" aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0"><span class="ib"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></span><h1>Integrations</h1></div>
+<div class="dash" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<div class="scrim"></div>
+<div class="sheet up" role="dialog" aria-modal="true" aria-labelledby="fl-title">
+<div class="grab" aria-hidden="true"></div>
+<div class="shead">
+<sc-if value="{{canBack}}" hint-placeholder-val="{{ false }}"><button class="ib" aria-label="Back" onClick="{{ toMenu }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></button></sc-if>
+<h1 id="fl-title" class="{{titleCls}}">{{title}}</h1>
+<button class="ib" aria-label="Close" onClick="{{ toMenu }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button>
+</div>
+<div class="sbody fbody">
+<sc-if value="{{isMenu}}" hint-placeholder-val="{{ true }}">
+<p class="bl">Brightleaf Hub can be found on your network or added by its address.</p>
+<div class="{{optsCls}}">
+<sc-for list="{{opts}}" as="o" hint-placeholder-count="3">
+<button class="orow" onClick="{{ o.go }}"><span class="grow"><span class="bl">{{o.name}}</span><span class="sub">{{o.desc}}</span></span><span style="color: var(--onv)"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg></span></button>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{isForm}}" hint-placeholder-val="{{ false }}">
+<p class="bl">Enter the address shown on the hub's own screen.</p>
+<label class="field"><span class="fld"><span class="lm">HOST</span><input type="text" value="{{host}}" onInput="{{ setHost }}" aria-label="Host"/></span></label>
+<label class="field"><span class="fld"><span class="lm">PORT</span><input type="text" value="8443" aria-label="Port" readonly/></span></label>
+<button class="{{sumCls}}" aria-expanded="{{noteAria}}" onClick="{{ toggleNote }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"></path></svg><span style="flex: 1">About this step</span><sc-if value="{{isNew}}" hint-placeholder-val="{{ true }}"><span>{{chev}}</span></sc-if></button>
+<sc-if value="{{noteInline}}" hint-placeholder-val="{{ false }}">
+<div class="gnote in" role="region" aria-label="About this step">
+<p><b>What this step is for.</b> Home Assistant needs the address to talk to Brightleaf Hub. Nothing is sent outside your home network.</p>
+<p><b>Needed first.</b> The hub is switched on, joined to the same network, and local control is turned on in its settings.</p>
+<span class="hrow" style="justify-content: space-between; flex-wrap: wrap"><button class="lnk">Documentation <svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"></path></svg></button><button class="btn text" onClick="{{ toggleNote }}">Close</button></span>
+</div>
+</sc-if>
+</sc-if>
+<sc-if value="{{isSuccess}}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{isNew}}" hint-placeholder-val="{{ true }}">
+<div class="hero in"><span class="tile"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span><span class="grow"><span class="tm">Brightleaf Hub is set up</span><span class="sub">2 devices were found. Give each a name and an area.</span></span></div>
+<sc-for list="{{devs}}" as="d" hint-placeholder-count="2">
+<div class="dev in">
+<div class="hrow" style="gap: 12px"><span class="brand"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 6.5C19.3 6.5 18 7.8 18 9.5V9.7L16 10.4C15.4 9.2 14.2 8.3 12.8 8.1V5.9C14 5.6 15 4.4 15 3C15 1.3 13.7 0 12 0S9 1.3 9 3C9 4.4 10 5.6 11.2 5.9V8.1C9.9 8.3 8.7 9.2 8 10.4L6 9.7V9.5C6 7.8 4.7 6.5 3 6.5S0 7.8 0 9.5 1.3 12.5 3 12.5C4.1 12.5 5 11.9 5.5 11.1L7.5 11.8C7.3 13.1 7.7 14.5 8.6 15.5L7.2 17.3C6.8 17.1 6.4 17 6 17C4.3 17 3 18.3 3 20S4.3 23 6 23 9 21.7 9 20C9 19.3 8.8 18.7 8.4 18.2L9.8 16.4C11.2 17.2 12.8 17.2 14.2 16.4L15.6 18.2C15.2 18.7 15 19.3 15 20C15 21.7 16.3 23 18 23S21 21.7 21 20 19.7 17 18 17C17.6 17 17.1 17.1 16.8 17.3L15.4 15.5C16.3 14.5 16.7 13.1 16.5 11.8L18.5 11.1C19 11.9 20 12.5 21 12.5C22.7 12.5 24 11.2 24 9.5S22.7 6.5 21 6.5M3 10.5C2.5 10.5 2 10.1 2 9.5S2.5 8.5 3 8.5 4 8.9 4 9.5 3.5 10.5 3 10.5M6 21C5.4 21 5 20.5 5 20S5.4 19 6 19 7 19.5 7 20 6.6 21 6 21M11 3C11 2.5 11.4 2 12 2S13 2.5 13 3 12.6 4 12 4 11 3.5 11 3M12 15C10.6 15 9.5 13.9 9.5 12.5S10.6 10 12 10 14.5 11.1 14.5 12.5 13.4 15 12 15M18 19C18.5 19 19 19.5 19 20S18.5 21 18 21 17 20.5 17 20 17.5 19 18 19M21 10.5C20.5 10.5 20 10.1 20 9.5S20.5 8.5 21 8.5 22 8.9 22 9.5 21.5 10.5 21 10.5Z"></path></svg></span><span class="grow"><span class="bl">{{d.model}}</span><span class="sub">{{d.maker}}</span></span></div>
+<label class="field"><span class="fld"><span class="lm">DEVICE NAME</span><input type="text" value="{{d.name}}" onInput="{{ d.setName }}" aria-label="Device name"/></span></label>
+<button class="pick" aria-label="Area, {{d.area}}. Press to change" onClick="{{ d.pickArea }}"><span style="color: var(--onv)"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12.5 7C12.5 5.89 13.39 5 14.5 5H18C19.1 5 20 5.9 20 7V9.16C18.84 9.57 18 10.67 18 11.97V14H12.5V7M6 11.96V14H11.5V7C11.5 5.89 10.61 5 9.5 5H6C4.9 5 4 5.9 4 7V9.15C5.16 9.56 6 10.67 6 11.96M20.66 10.03C19.68 10.19 19 11.12 19 12.12V15H5V12C5 10.9 4.11 10 3 10S1 10.9 1 12V17C1 18.1 1.9 19 3 19V21H5V19H19V21H21V19C22.1 19 23 18.1 23 17V12C23 10.79 21.91 9.82 20.66 10.03Z"></path></svg></span><span class="grow"><span class="lm">AREA</span><span class="bl">{{d.area}}</span></span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,10L12,15L17,10H7Z"></path></svg></button>
+</div>
+</sc-for>
+</sc-if>
+<sc-if value="{{isOld}}" hint-placeholder-val="{{ false }}">
+<p>Created configuration for Brightleaf Hub.</p>
+<p>We found the following devices:</p>
+<div class="odevs">
+<sc-for list="{{devs}}" as="d" hint-placeholder-count="2">
+<div class="odev">
+<div class="hrow"><span class="obrand"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 6.5C19.3 6.5 18 7.8 18 9.5V9.7L16 10.4C15.4 9.2 14.2 8.3 12.8 8.1V5.9C14 5.6 15 4.4 15 3C15 1.3 13.7 0 12 0S9 1.3 9 3C9 4.4 10 5.6 11.2 5.9V8.1C9.9 8.3 8.7 9.2 8 10.4L6 9.7V9.5C6 7.8 4.7 6.5 3 6.5S0 7.8 0 9.5 1.3 12.5 3 12.5C4.1 12.5 5 11.9 5.5 11.1L7.5 11.8C7.3 13.1 7.7 14.5 8.6 15.5L7.2 17.3C6.8 17.1 6.4 17 6 17C4.3 17 3 18.3 3 20S4.3 23 6 23 9 21.7 9 20C9 19.3 8.8 18.7 8.4 18.2L9.8 16.4C11.2 17.2 12.8 17.2 14.2 16.4L15.6 18.2C15.2 18.7 15 19.3 15 20C15 21.7 16.3 23 18 23S21 21.7 21 20 19.7 17 18 17C17.6 17 17.1 17.1 16.8 17.3L15.4 15.5C16.3 14.5 16.7 13.1 16.5 11.8L18.5 11.1C19 11.9 20 12.5 21 12.5C22.7 12.5 24 11.2 24 9.5S22.7 6.5 21 6.5M3 10.5C2.5 10.5 2 10.1 2 9.5S2.5 8.5 3 8.5 4 8.9 4 9.5 3.5 10.5 3 10.5M6 21C5.4 21 5 20.5 5 20S5.4 19 6 19 7 19.5 7 20 6.6 21 6 21M11 3C11 2.5 11.4 2 12 2S13 2.5 13 3 12.6 4 12 4 11 3.5 11 3M12 15C10.6 15 9.5 13.9 9.5 12.5S10.6 10 12 10 14.5 11.1 14.5 12.5 13.4 15 12 15M18 19C18.5 19 19 19.5 19 20S18.5 21 18 21 17 20.5 17 20 17.5 19 18 19M21 10.5C20.5 10.5 20 10.1 20 9.5S20.5 8.5 21 8.5 22 8.9 22 9.5 21.5 10.5 21 10.5Z"></path></svg></span><span class="grow"><span>{{d.model}}</span><span class="sub">{{d.maker}}</span></span></div>
+<label class="ofield"><span class="lm" style="font-weight: 400">Device name</span><input type="text" value="{{d.name}}" onInput="{{ d.setName }}" aria-label="Device name"/></label>
+<button class="ofield b" onClick="{{ d.pickArea }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12.5 7C12.5 5.89 13.39 5 14.5 5H18C19.1 5 20 5.9 20 7V9.16C18.84 9.57 18 10.67 18 11.97V14H12.5V7M6 11.96V14H11.5V7C11.5 5.89 10.61 5 9.5 5H6C4.9 5 4 5.9 4 7V9.15C5.16 9.56 6 10.67 6 11.96M20.66 10.03C19.68 10.19 19 11.12 19 12.12V15H5V12C5 10.9 4.11 10 3 10S1 10.9 1 12V17C1 18.1 1.9 19 3 19V21H5V19H19V21H21V19C22.1 19 23 18.1 23 17V12C23 10.79 21.91 9.82 20.66 10.03Z"></path></svg><span class="grow"><span class="lm" style="font-weight: 400">Area</span><span class="bl">{{d.area}}</span></span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,10L12,15L17,10H7Z"></path></svg></button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</sc-if>
+</div>
+<sc-if value="{{isForm}}" hint-placeholder-val="{{ false }}"><div class="sfoot safe"><button class="btn fill" onClick="{{ toSuccess }}">Submit</button></div></sc-if>
+<sc-if value="{{isSuccess}}" hint-placeholder-val="{{ false }}"><div class="sfoot safe"><button class="btn fill" onClick="{{ finish }}">Finish</button></div></sc-if>
+</div>
+<sc-if value="{{noteSheet}}" hint-placeholder-val="{{ false }}">
+<div class="scrim" style="z-index: 10" onClick="{{ toggleNote }}"></div>
+<div class="gsheet up" role="dialog" aria-label="About this step">
+<h2 class="tm">About this step</h2>
+<p><b>What this step is for.</b> Home Assistant needs the address to talk to Brightleaf Hub. Nothing is sent outside your home network.</p>
+<p><b>Needed first.</b> The hub is switched on, joined to the same network, and local control is turned on in its settings.</p>
+<span class="lnk">Documentation <svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"></path></svg></span>
+<div class="cls"><button class="btn text" onClick="{{ toggleNote }}">Close</button></div>
+</div>
+<div class="homez" aria-hidden="true"></div>
+</sc-if>
+<div class="homei" aria-hidden="true"></div>
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}"><div class="toast up" role="status"><span style="flex: 1">{{toast}}</span></div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"menu","options":["menu","guidance","success","before"]},"$preview":{"width":390,"height":844}}'>
+const DEFAULT_STAGE = 'menu';
+const AREAS = ['Hallway', 'Kitchen', 'Greenhouse', 'Living room', 'No area'];
+const OPTS = [
+  ['Find hubs on my network', 'Looks for Brightleaf hubs that answer on this network. Takes about ten seconds.'],
+  ['Enter the address by hand', 'Use this when the hub is on another network segment or has a fixed address.'],
+  ['Restore from a backup file', 'Bring back the devices and names saved from an earlier installation.']
+];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = DEFAULT_STAGE; this.view = 'menu'; this.note = false; this.host = '192.0.2.24'; this.toast = '';
+    this.devs = [{ model: 'Brightleaf Hub H2', maker: 'Brightleaf Labs', name: 'Brightleaf Hub', area: 0 }, { model: 'Soil probe SP-10', maker: 'Brightleaf Labs', name: 'Soil probe, raised bed', area: 2 }]; }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? DEFAULT_STAGE;
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+  say(t) { this.toast = t; this.bump(); clearTimeout(this._tt); this._tt = setTimeout(() => { this.toast = ''; this.bump(); }, 3600); }
+
+  reset(s) { this.toast = ''; this.view = s === 'guidance' ? 'form' : s === 'success' ? 'success' : 'menu'; this.note = s === 'guidance'; }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const old = s === 'before';
+    const view = this.view;
+    const set = (vw, note) => { this.view = vw; this.note = !!note; this.bump(); };
+    const todayText = view === 'menu' ? 'Old list rows, indented twice: option text starts 40 px in.' : view === 'form' ? 'The note opens as a sheet; its Close button reaches into the home bar zone (striped).' : 'Thin 4 px boxes with 6 px padding around each device.';
+    return Object.assign(v, {
+      isBefore: old, isNew: !old, isOld: old, todayText,
+      b1: view === 'menu' ? 'mini sel' : 'mini', b2: view === 'form' ? 'mini sel' : 'mini', b3: view === 'success' ? 'mini sel' : 'mini',
+      isMenu: view === 'menu', isForm: view === 'form', isSuccess: view === 'success',
+      canBack: view === 'form', titleCls: view === 'form' ? '' : 'pad',
+      title: view === 'success' ? (old ? 'Success' : 'Brightleaf Hub') : 'Set up Brightleaf Hub',
+      optsCls: old ? 'opts old' : 'opts',
+      opts: OPTS.map((o) => ({ name: o[0], desc: o[1], go: () => set('form', false) })),
+      host: this.host, setHost: (e) => { this.host = e.target.value; this.bump(); },
+      sumCls: old ? 'sum old' : 'sum', noteAria: this.note ? 'true' : 'false', chev: this.note ? 'Hide' : 'Show',
+      noteInline: view === 'form' && this.note && !old, noteSheet: view === 'form' && this.note && old,
+      toggleNote: () => { this.note = !this.note; this.bump(); },
+      toMenu: () => set('menu', false), toForm: () => set('form', old), toSuccess: () => set('success', false),
+      finish: () => { this.view = 'menu'; this.note = false; this.say('Brightleaf Hub added with 2 devices'); },
+      devs: this.devs.map((d) => ({
+        model: d.model, maker: d.maker, name: d.name, area: AREAS[d.area],
+        setName: (e) => { d.name = e.target.value; this.bump(); },
+        pickArea: () => { d.area = (d.area + 1) % AREAS.length; this.bump(); }
+      })),
+      toast: this.toast, hasToast: !!this.toast
+    });
+  }
+}
+</script>
+</body>
+</html>

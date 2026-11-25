@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rows that keep their facts on a phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.m3 .btn{padding:0 24px}
+.m3 .btn.text{padding:0 14px}
+.tod{background:var(--amberc);color:var(--amber);flex:none;white-space:nowrap}
+.pbar{position:absolute;left:12px;right:12px;bottom:calc(12px + var(--inset,0px));height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);z-index:7;display:flex;align-items:center;justify-content:space-around;padding:0 8px}
+.pbar span{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;line-height:14px;font-weight:600;color:var(--onv);min-width:60px}
+.pbar span.on{color:var(--on)}
+.pbar span.on .ic{background:var(--pc);color:var(--on-pc);border-radius:14px;width:52px;height:28px;padding:2px 14px}
+.homei{position:absolute;left:50%;bottom:8px;width:134px;height:5px;border-radius:3px;background:var(--on);opacity:.55;transform:translateX(-50%);z-index:8}
+.card{background:var(--sl0);border-radius:20px}
+.box{width:20px;height:20px;border-radius:4px;box-shadow:inset 0 0 0 2px var(--out);display:grid;place-items:center;flex:none;transition:background-color .2s}
+.box svg{width:16px;height:16px;fill:var(--on-p);opacity:0}
+.box.on{background:var(--p);box-shadow:none}
+.box.on svg{opacity:1}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--sl2);border-radius:24px;padding:4px;gap:4px}
+.m3 .seg button{min-height:40px;padding:0 16px;border-radius:20px;font-size:14px;font-weight:600;color:var(--onv);position:relative;white-space:nowrap}
+.m3 .seg button::after{content:"";position:absolute;inset:-4px 0}
+.m3 .seg button.sel{background:var(--pc);color:var(--on-pc)}
+.wrapany{overflow-wrap:anywhere}
+.pg{flex:1;min-height:0;overflow-y:auto;padding:0 12px 96px;display:flex;flex-direction:column;gap:10px}
+.bstrip{display:flex;align-items:center;gap:8px;padding:0 12px 8px;flex:none;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px 6px}
+.stats div{display:flex;flex-direction:column;padding:8px 10px;border-radius:12px;background:var(--sl2)}
+.stats b{font-size:16px;line-height:22px;font-weight:500}
+.stats span{font-size:12px;line-height:16px;color:var(--onv)}
+.cam{padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px;box-shadow:inset 0 1px 0 var(--outv)}
+.facts{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:13px;line-height:18px;color:var(--onv)}
+.facts b{font-weight:600;color:var(--on)}
+.amt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.m3 .btn.sm{min-height:36px;padding:0 12px;position:relative}
+.m3 .btn.sm::after{content:"";position:absolute;inset:-6px 0}
+.sec{padding:8px 6px 0}
+.step{display:flex;align-items:flex-start;gap:12px;padding:10px 4px 10px 12px;flex:none}
+.step .lead{margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.m3 .lchip{display:inline-flex;align-items:center;gap:4px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600;max-width:100%;position:relative}
+.m3 .lchip::after{content:"";position:absolute;inset:-12px 0}
+.lchip .lb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.lchip .more{opacity:.7;flex:none}
+.m3 .lchip.miss{background:var(--amberc);color:var(--amber)}
+.m3 .lchip.pass{background:var(--greenc);color:var(--green)}
+.m3 .lchip.fail{background:var(--amberc);color:var(--amber)}
+.lchip .ic{width:14px;height:14px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<div class="bar">
+<button class="ib" aria-label="Back"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></button>
+<h1>{{pageTitle}}</h1>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><span class="tag tod">Today</span></sc-if>
+<sc-if value="{{isLive}}" hint-placeholder-val="{{ false }}"><button class="btn text">Save</button></sc-if>
+</div>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><div class="bstrip"><span class="sub">Show today's</span><div class="seg" role="group" aria-label="Which page"><button class="{{bRecCls}}" aria-pressed="{{bRecAria}}" onClick="{{ pickRec }}">Recording</button><button class="{{bLiveCls}}" aria-pressed="{{bLiveAria}}" onClick="{{ pickLive }}">Editor</button></div></div></sc-if>
+<sc-if value="{{isRec}}" hint-placeholder-val="{{ true }}"><div class="pg">
+<div class="card" style="padding: 12px 0 0; flex: none">
+<div class="hrow" style="padding: 0 14px 8px"><span class="tm" style="flex: 1">This system</span><span class="sub">Keeps 14 days</span></div>
+<div class="stats"><div><b>{{recCount}}</b><span>recording</span></div><div><b>41.2 GB</b><span>used of 200 GB</span></div><div><b>{{waitTotal}}</b><span>waiting to copy</span></div><div><b>3 min ago</b><span>last copy</span></div></div>
+<sc-for list="{{cams}}" as="c" hint-placeholder-count="3"><div class="cam">
+<div class="hrow"><span class="bl wrapany" style="flex: 1; min-width: 0">{{c.name}}</span><span class="{{c.tag}}">{{c.state}}</span><button class="btn text sm" onClick="{{ c.toggle }}" aria-label="{{c.actLabel}}">{{c.act}}</button></div>
+<sc-if value="{{c.facts}}" hint-placeholder-val="{{ true }}"><div class="facts"><span><b>Newest</b> {{c.newest}}</span><span><b>Waiting</b> {{c.waiting}}</span><span><b>Oldest</b> {{c.oldest}}</span></div></sc-if>
+<div class="amt"><div class="seg" role="group" aria-label="{{c.amtLabel}}"><button class="{{c.a0}}" onClick="{{ c.p0 }}">All day</button><button class="{{c.a1}}" onClick="{{ c.p1 }}">Light</button><button class="{{c.a2}}" onClick="{{ c.p2 }}">Off</button></div><span class="sub">{{c.today}}</span></div>
+</div></sc-for>
+</div>
+</div></sc-if>
+<sc-if value="{{isLive}}" hint-placeholder-val="{{ false }}"><div class="pg">
+<sc-for list="{{steps}}" as="t" hint-placeholder-count="6"><sc-if value="{{t.head}}" hint-placeholder-val="{{ false }}"><div class="sec lm">{{t.headText}}</div></sc-if>
+<div class="card step">
+<span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{t.icon}}"></path></svg></span>
+<span class="grow"><span class="bl wrapany">{{t.title}}</span>
+<sc-if value="{{t.anyChip}}" hint-placeholder-val="{{ false }}"><span class="chips">
+<sc-if value="{{t.showState}}" hint-placeholder-val="{{ false }}"><button class="{{t.chipCls}}" onClick="{{ t.tip }}" aria-label="{{t.full}}"><sc-if value="{{t.missing}}" hint-placeholder-val="{{ false }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M13 14H11V9H13M13 18H11V16H13M1 21H23L12 2L1 21Z"></path></svg></sc-if><span class="lb">{{t.chip}}</span><sc-if value="{{t.hasMore}}" hint-placeholder-val="{{ false }}"><span class="more">{{t.more}}</span></sc-if></button></sc-if>
+<sc-if value="{{t.hasVerdict}}" hint-placeholder-val="{{ false }}"><span class="{{t.vCls}}">{{t.verdict}}</span></sc-if>
+</span></sc-if>
+</span>
+<button class="ib" aria-label="{{t.moreLabel}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button>
+</div></sc-for>
+</div></sc-if>
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}"><div class="toast up" role="status" style="bottom: 92px"><span class="wrapany" style="flex: 1; min-width: 0">{{toast}}</span><button class="btn text" onClick="{{ hideToast }}">Dismiss</button></div></sc-if>
+<nav class="pbar" aria-label="Main"><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5.69L17 10.19V18H15V12H9V18H7V10.19L12 5.69M12 3L2 12H5V20H11V14H13V20H19V12H22"></path></svg>Home</span><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 9V7C21 5.35 19.65 4 18 4H14C13.23 4 12.53 4.3 12 4.78C11.47 4.3 10.77 4 10 4H6C4.35 4 3 5.35 3 7V9C1.35 9 0 10.35 0 12V17C0 18.65 1.35 20 3 20V22H5V20H19V22H21V20C22.65 20 24 18.65 24 17V12C24 10.35 22.65 9 21 9M14 6H18C18.55 6 19 6.45 19 7V9.78C18.39 10.33 18 11.12 18 12V14H13V7C13 6.45 13.45 6 14 6M5 7C5 6.45 5.45 6 6 6H10C10.55 6 11 6.45 11 7V14H6V12C6 11.12 5.61 10.33 5 9.78V7M22 17C22 17.55 21.55 18 21 18H3C2.45 18 2 17.55 2 17V12C2 11.45 2.45 11 3 11S4 11.45 4 12V16H20V12C20 11.45 20.45 11 21 11S22 11.45 22 12V17Z"></path></svg>Rooms</span><span class="on"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"></path></svg>Settings</span><span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,12A2,2 0 0,1 18,10A2,2 0 0,1 20,12A2,2 0 0,1 18,14A2,2 0 0,1 16,12M10,12A2,2 0 0,1 12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12M4,12A2,2 0 0,1 6,10A2,2 0 0,1 8,12A2,2 0 0,1 6,14A2,2 0 0,1 4,12Z"></path></svg>More</span></nav>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"recording","options":["recording","live-state","before"]},"$preview":{"width":390,"height":844}}'>
+const SI = { motion: "M10,0.2C9,0.2 8.2,1 8.2,2C8.2,3 9,3.8 10,3.8C11,3.8 11.8,3 11.8,2C11.8,1 11,0.2 10,0.2M15.67,1A7.33,7.33 0 0,0 23,8.33V7A6,6 0 0,1 17,1H15.67M18.33,1C18.33,3.58 20.42,5.67 23,5.67V4.33C21.16,4.33 19.67,2.84 19.67,1H18.33M21,1A2,2 0 0,0 23,3V1H21M7.92,4.03C7.75,4.03 7.58,4.06 7.42,4.11L2,5.8V11H3.8V7.33L5.91,6.67L2,22H3.8L6.67,13.89L9,17V22H10.8V15.59L8.31,11.05L9.04,8.18L10.12,10H15V8.2H11.38L9.38,4.87C9.08,4.37 8.54,4.03 7.92,4.03Z", door: "M8,3C6.89,3 6,3.89 6,5V21H18V5C18,3.89 17.11,3 16,3H8M8,5H16V19H8V5M13,11V13H15V11H13Z", sun: "M3,12H7A5,5 0 0,1 12,7A5,5 0 0,1 17,12H21A1,1 0 0,1 22,13A1,1 0 0,1 21,14H3A1,1 0 0,1 2,13A1,1 0 0,1 3,12M5,16H19A1,1 0 0,1 20,17A1,1 0 0,1 19,18H5A1,1 0 0,1 4,17A1,1 0 0,1 5,16M17,20A1,1 0 0,1 18,21A1,1 0 0,1 17,22H7A1,1 0 0,1 6,21A1,1 0 0,1 7,20H17M15,12A3,3 0 0,0 12,9A3,3 0 0,0 9,12H15M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7Z", lamp: "M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z", play: "M8,5.14V19.14L19,12.14L8,5.14Z", bell: "M10 21H14C14 22.1 13.1 23 12 23S10 22.1 10 21M21 19V20H3V19L5 17V11C5 7.9 7 5.2 10 4.3V4C10 2.9 10.9 2 12 2S14 2.9 14 4V4.3C17 5.2 19 7.9 19 11V17L21 19M17 11C17 8.2 14.8 6 12 6S7 8.2 7 11V18H17V11Z" };
+const CAMS = [
+  { name: 'Porch camera', state: 'recording', amt: 0, newest: '19:49', waiting: 2, oldest: '11 Nov 06:10', today: '1.8 GB today' },
+  { name: 'Greenhouse camera, north bench', state: 'recording', amt: 1, newest: '19:12', waiting: 0, oldest: '11 Nov 07:02', today: '310 MB today' },
+  { name: 'Garage camera', state: 'paused', amt: 2, newest: '23 Nov 22:41', waiting: 2, oldest: '12 Nov 15:30', today: '0 MB today' }
+];
+const STEPS = [
+  { sec: 'WHEN', icon: 'motion', title: 'When Hallway motion detects motion', ids: ['binary_sensor.hallway_motion'], state: 'Clear' },
+  { sec: 'WHEN', icon: 'door', title: 'When Garage side door opens', ids: ['binary_sensor.garage_side_door'], state: null },
+  { sec: 'AND IF', icon: 'sun', title: 'If the sun is below the horizon', ids: ['sun.sun'], state: 'Below horizon', verdict: 'pass' },
+  { sec: 'AND IF', icon: 'lamp', title: 'If Living room lamp and two more lights are off', ids: ['light.living_room_lamp', 'light.reading_corner', 'light.window_strip'], state: 'On', verdict: 'fail' },
+  { sec: 'THEN DO', icon: 'play', title: 'Turn on Hallway ceiling at 40%', ids: [] },
+  { sec: 'THEN DO', icon: 'bell', title: 'Send a notification to the family group', ids: [] }
+];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'recording'; this.reset('recording'); }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'recording';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+
+reset(s) { this.cams = CAMS.map((c) => Object.assign({}, c)); this.toast = null; if (s !== 'before') this.surface = s === 'live-state' ? 'live' : 'rec'; else if (!this.surface) this.surface = 'rec'; }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const before = s === 'before';
+    const live = this.surface === 'live';
+    const pick = (x) => () => { this.surface = x; this.toast = null; this.bump(); };
+    let last = null;
+    return Object.assign(v, {
+      isBefore: before, isRec: !live, isLive: live,
+      pageTitle: live ? 'Morning lights' : 'Camera recording',
+      bRecCls: live ? '' : 'sel', bLiveCls: live ? 'sel' : '', bRecAria: live ? 'false' : 'true', bLiveAria: live ? 'true' : 'false',
+      pickRec: pick('rec'), pickLive: pick('live'),
+      recCount: this.cams.filter((c) => c.state === 'recording').length + ' of ' + this.cams.length,
+      waitTotal: this.cams.reduce((a, c) => a + c.waiting, 0),
+      cams: this.cams.map((c, i) => {
+        const rec = c.state === 'recording';
+        const set = (k) => () => { this.cams[i].amt = k; this.bump(); };
+        return {
+          name: c.name, state: rec ? 'Recording' : 'Paused', tag: rec ? 'tag g' : 'tag', act: rec ? 'Pause' : 'Resume',
+          actLabel: (rec ? 'Pause ' : 'Resume ') + c.name, toggle: () => { this.cams[i].state = rec ? 'paused' : 'recording'; this.bump(); },
+          facts: !before, newest: c.newest, waiting: c.waiting === 1 ? '1 clip' : c.waiting + ' clips', oldest: c.oldest, today: c.today,
+          amtLabel: 'Recording amount for ' + c.name,
+          a0: c.amt === 0 ? 'sel' : '', a1: c.amt === 1 ? 'sel' : '', a2: c.amt === 2 ? 'sel' : '', p0: set(0), p1: set(1), p2: set(2)
+        };
+      }),
+      steps: STEPS.map((t) => {
+        const head = t.sec !== last; last = t.sec;
+        const has = t.ids.length > 0;
+        const missing = has && t.state === null;
+        const text = missing ? 'Not found' : t.state;
+        const full = has ? t.ids[0] + ': ' + text + (t.ids.length > 1 ? ', and ' + (t.ids.length - 1) + ' more: ' + t.ids.slice(1).join(', ') : '') : '';
+        const showState = has && !before;
+        return {
+          head, headText: t.sec, icon: SI[t.icon], title: t.title, moreLabel: 'More actions for: ' + t.title,
+          showState, anyChip: showState || !!t.verdict, missing, chip: text || '', full,
+          chipCls: 'lchip' + (missing ? ' miss' : ''), hasMore: t.ids.length > 1, more: '+' + (t.ids.length - 1),
+          tip: () => { this.toast = full; this.bump(); },
+          hasVerdict: !!t.verdict, verdict: t.verdict === 'pass' ? 'Passes now' : 'Does not pass now', vCls: 'lchip ' + (t.verdict || '')
+        };
+      }),
+      hasToast: !!this.toast, toast: this.toast || '', hideToast: () => { this.toast = null; this.bump(); }
+    });
+  }
+}
+</script>
+</body>
+</html>

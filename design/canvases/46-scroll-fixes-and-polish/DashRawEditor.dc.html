@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Raw configuration editor, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn{padding:0 24px}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+
+.hd{flex:none;background:var(--sl2);position:relative;z-index:3}
+.hd.slate{background:#455A64;color:#fff;--onv:#fff;--p:#fff;--sl3:rgba(255,255,255,.12)}
+.hd.slate .btn.fill{background:#03A9F4;color:#fff}
+.tb{display:flex;align-items:center;min-height:56px;padding:0 4px}
+.tb h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:400;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m3 .ib.n{width:40px;position:relative}
+.m3 .ib.n::after{content:"";position:absolute;inset:0 -4px}
+.m3 .btn.sm{min-height:40px;padding:0 14px;position:relative;flex:none}
+.m3 .btn.sm::after{content:"";position:absolute;inset:-4px 0}
+.vtabs{display:flex;align-items:center;overflow-x:auto;scrollbar-width:none;padding:0 4px}
+.m3 .vt{min-height:48px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--onv);white-space:nowrap;flex:none;position:relative;opacity:.8}
+.m3 .vt.sel{color:var(--p);opacity:1}
+.m3 .vt.sel::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--p)}
+.view{flex:1;min-height:0;overflow-y:auto;padding:4px 16px 24px}
+.sech{font-size:20px;line-height:28px;font-weight:400;padding:14px 4px 8px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.card{background:var(--sl1);border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);position:relative;min-width:0}
+.m3 .tilec{min-height:56px;padding:8px 10px;display:flex;align-items:center;gap:10px;width:100%}
+.tdot{width:36px;height:36px;border-radius:18px;display:grid;place-items:center;flex:none}
+.tn{font-size:14px;line-height:20px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ts{font-size:12px;line-height:16px;color:var(--onv);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.em .card{outline:1px dashed var(--out);outline-offset:1px}
+.today{position:absolute;right:12px;bottom:12px;z-index:9;display:inline-flex;align-items:center;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--amberc);color:var(--amber);font-size:12px;line-height:16px;font-weight:700;box-shadow:var(--e3)}
+.scrim{position:absolute;inset:0;background:var(--scrim);z-index:6}
+
+.brt{flex:none;height:52px;background:var(--sl4);display:flex;align-items:center;gap:8px;padding:0 12px}
+.brt .url{flex:1;min-width:0;height:36px;border-radius:18px;background:var(--sl1);display:flex;align-items:center;gap:8px;padding:0 14px;font-size:13px;color:var(--onv);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brb{flex:none;height:48px;background:var(--sl4);display:flex;align-items:center;justify-content:space-around;color:var(--onv);position:relative;z-index:4}
+.app{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
+.app.old{display:block;overflow-y:auto;scrollbar-width:none}
+.hd .ttl{flex:1;min-width:0;display:flex;flex-direction:column;padding-left:4px}
+.hd .ttl .tx{font-size:18px;line-height:24px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hd .ttl .ts{color:inherit;opacity:.8}
+.content{flex:1;min-height:0;display:flex;flex-direction:column}
+.app.old .content{height:756px}
+.yaml{flex:1;min-height:0;overflow:auto;background:var(--sl0);padding:8px 0;font-size:13px;line-height:22px;cursor:text}
+.m3 .yl{display:flex;width:100%;min-height:22px;white-space:nowrap}
+.yl .no{width:40px;flex:none;text-align:right;padding-right:10px;color:var(--out);user-select:none}
+.yl.cur{background:var(--sl2)}
+.yl.bad{background:var(--errc);color:var(--on-errc)}
+.yk{color:var(--p)}
+.sbr{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:4px 8px 6px 12px;background:var(--sl2);box-shadow:0 -1px 0 var(--outv)}
+.sbr .chipx{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border-radius:14px;background:var(--sl4);font-size:12px;font-weight:600;white-space:nowrap}
+.sbr .chipx.ok{background:var(--greenc);color:var(--green)}
+.sbr .chipx.no{background:var(--errc);color:var(--on-errc)}
+.m3 .sbr .btn.text{padding:0 10px;font-size:13px}
+.errl{flex:none;padding:8px 16px;background:var(--errc);color:var(--on-errc);font-size:13px;line-height:18px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<div class="brt" aria-hidden="true"><span class="url"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"></path></svg>home.example:8123/home/0?edit=1</span><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg></div>
+<div class="{{appCls}}">
+<div class="{{hdCls}}">
+<div class="tb">
+<button class="ib" aria-label="Close the editor" onClick="{{ close }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button>
+<div class="ttl"><span class="tx">Edit configuration</span><span class="ts" role="status">{{saveState}}</span></div>
+<button class="{{saveCls}}" aria-disabled="{{saveOff}}" onClick="{{ save }}">Save</button>
+</div>
+</div>
+<div class="content">
+<sc-if value="{{isInvalid}}" hint-placeholder-val="{{ false }}"><div class="errl" role="alert">Line 14: bad indentation of a mapping entry. Fix it to save.</div></sc-if>
+<div class="yaml mono" role="textbox" aria-multiline="true" aria-label="Dashboard configuration in YAML" tabindex="0" onClick="{{ pickLine }}">
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="30"><div class="{{l.cls}}" data-n="{{l.no}}"><span class="no">{{l.no}}</span><span style="padding-left: {{l.pad}}px"><span class="yk">{{l.key}}</span>{{l.val}}</span></div></sc-for>
+</div>
+<div class="sbr">
+<span class="chipx" role="status">{{posText}}</span>
+<span class="{{validCls}}" role="status">{{validText}}</span>
+<span style="flex: 1"></span>
+<button class="btn text" onClick="{{ goLine }}">Go to line</button>
+<button class="btn text" onClick="{{ swap }}">Swap entity</button>
+</div>
+</div>
+</div>
+<div class="brb" aria-hidden="true"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M16,12A2,2 0 0,1 18,10A2,2 0 0,1 20,12A2,2 0 0,1 18,14A2,2 0 0,1 16,12M10,12A2,2 0 0,1 12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12M4,12A2,2 0 0,1 6,10A2,2 0 0,1 8,12A2,2 0 0,1 6,14A2,2 0 0,1 4,12Z"></path></svg></div>
+<sc-if value="{{hasMsg}}" hint-placeholder-val="{{ false }}"><div class="toast pop" role="status" style="{{toastStyle}}"><span style="flex: 1">{{msg}}</span><button class="btn text" onClick="{{ dismiss }}">Dismiss</button></div></sc-if>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><span class="today" style="bottom: 60px">Today: the status bar is below the screen</span></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","invalid","before"]},"$preview":{"width":390,"height":844}}'>
+const DEF = "after";
+const P = {};
+const Y = [
+  [0, 'title:', ' Home'], [0, 'views:', ''], [1, '- title:', ' Living room'], [2, 'path:', ' living-room'], [2, 'type:', ' sections'], [2, 'max_columns:', ' 4'], [2, 'sections:', ''],
+  [3, '- type:', ' grid'], [4, 'cards:', ''], [5, '- type:', ' heading'], [6, 'heading:', ' Living room'], [5, '- type:', ' tile'], [6, 'entity:', ' light.ceiling_light'], [6, 'features:', ''],
+  [7, '- type:', ' light-brightness'], [5, '- type:', ' tile'], [6, 'entity:', ' light.floor_lamp'], [5, '- type:', ' tile'], [6, 'entity:', ' climate.living_room'], [6, 'appearance:', ' big-number'],
+  [5, '- type:', ' tile'], [6, 'entity:', ' cover.window_blind'], [3, '- type:', ' grid'], [4, 'cards:', ''], [5, '- type:', ' heading'], [6, 'heading:', ' Media'], [5, '- type:', ' tile'], [6, 'entity:', ' media_player.television'],
+  [5, '- type:', ' tile'], [6, 'entity:', ' media_player.speaker'], [1, '- title:', ' Kitchen'], [2, 'path:', ' kitchen'], [2, 'type:', ' sections'], [2, 'sections:', ''], [3, '- type:', ' grid'], [4, 'cards:', ''],
+  [5, '- type:', ' tile'], [6, 'entity:', ' light.counter_lights'], [5, '- type:', ' tile'], [6, 'entity:', ' switch.extractor_fan'], [5, '- type:', ' picture-glance'], [6, 'title:', ' Front porch camera'], [6, 'camera_image:', ' camera.front_porch'], [6, 'entities:', ''],
+  [7, '- light.porch_light', ''], [7, '- lock.front_door', '']
+];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = DEF; this.reset(DEF); }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? DEF;
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  say(m) { this.msg = m; this.bump(); }
+
+  reset(s) { this.msg = ''; this.line = s === 'invalid' ? 14 : 12; this.saved = false; }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const before = s === 'before';
+    const bad = s === 'invalid';
+    return Object.assign(v, {
+      isBefore: before, isInvalid: bad,
+      appCls: before ? 'app old' : 'app', hdCls: before ? 'hd slate' : 'hd',
+      saveState: bad ? 'Cannot save yet' : (this.saved ? 'Saved' : 'Unsaved changes'),
+      saveCls: bad ? 'btn off sm' : 'btn fill sm', saveOff: String(bad),
+      save: () => { if (bad) return; this.saved = true; this.say('Configuration saved'); },
+      close: () => this.say('The editor closes and the dashboard returns'),
+      lines: Y.map((r, i) => ({ no: i + 1, pad: r[0] * 12 + (bad && i === 13 ? 6 : 0), key: r[1], val: r[2], cls: bad && i === 13 ? 'yl bad' : (i + 1 === this.line ? 'yl cur' : 'yl') })),
+      pickLine: (e) => {
+        if (!e) return;
+        const row = e.target && e.target.closest ? e.target.closest('[data-n]') : null;
+        let n = row ? Number(row.getAttribute('data-n')) : 0;
+        const box = e.currentTarget;
+        if (!n && box && box.getBoundingClientRect) {
+          const r = box.getBoundingClientRect();
+          const k = box.offsetHeight ? r.height / box.offsetHeight : 1;
+          n = Math.floor(((e.clientY - r.top) / (k || 1) + box.scrollTop - 8) / 22) + 1;
+        }
+        if (n >= 1 && n <= Y.length) { this.line = n; this.bump(); }
+      },
+      posText: 'Ln ' + this.line + ', Col 5',
+      validCls: bad ? 'chipx no' : 'chipx ok', validText: bad ? 'Invalid YAML' : 'Valid YAML',
+      goLine: () => { this.line = this.line >= 40 ? 1 : this.line + 10; this.say('Jumped to line ' + this.line); },
+      swap: () => this.say('Swap entity opens above the editor'),
+      hasMsg: !!this.msg, msg: this.msg, toastStyle: 'bottom: 116px', dismiss: () => this.say('')
+    });
+  }
+}
+</script>
+</body>
+</html>

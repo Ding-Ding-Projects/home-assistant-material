@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Calendar on a wide window</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+.tdy{display:inline-flex;align-items:center;min-height:24px;padding:2px 12px;border-radius:12px;background:var(--amberc);color:var(--amber);font-size:12px;line-height:16px;font-weight:700;letter-spacing:.4px;flex:none;white-space:nowrap}
+.ph{background:var(--surf)}
+.frame{height:860px;display:flex;flex-direction:column;overflow:hidden;position:relative;background:var(--surf);container-type:inline-size}
+.abar{display:flex;align-items:center;gap:8px;min-height:64px;padding:8px 12px 8px 4px;flex:none}
+.abar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500;overflow-wrap:anywhere}
+.foot{flex:none;height:40px;display:flex;align-items:center;gap:20px;padding:0 20px;font-size:12px;line-height:16px;color:var(--onv);box-shadow:inset 0 1px 0 var(--outv);white-space:nowrap;overflow:hidden}
+.foot span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.navp{position:absolute;left:12px;right:12px;bottom:12px;height:64px;border-radius:32px;background:var(--sl3);box-shadow:var(--e3);display:flex;align-items:center;justify-content:space-around;padding:0 8px;z-index:6}
+.m3 .ni{min-width:64px;min-height:48px;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;line-height:14px;font-weight:600;color:var(--onv);padding:0 10px}
+.m3 .ni.sel{background:var(--pc);color:var(--on-pc)}
+.sw{width:52px;height:32px;border-radius:16px;box-shadow:inset 0 0 0 2px var(--out);background:var(--sl4);display:flex;align-items:center;padding:0 8px;flex:none;transition:background-color .2s;position:relative}
+.sw::after{content:"";position:absolute;inset:-8px 0}
+.sw i{display:block;width:16px;height:16px;border-radius:12px;background:var(--out);transition:all .2s cubic-bezier(.2,0,0,1)}
+.sw.on{box-shadow:none;background:var(--p);justify-content:flex-end;padding:0 4px}
+.sw.on i{width:24px;height:24px;background:var(--on-p)}
+.demo{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 16px 4px;padding:8px 12px;border-radius:16px;border:1.5px dashed var(--outv);flex:none}
+.m3 .tile{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--pc);color:var(--on-pc);flex:none}
+.cbody{flex:1;min-height:0;display:flex}
+.pane{flex:0 0 250px;min-width:0;padding:4px 0 12px 12px;display:flex;flex-direction:column;overflow-y:auto}
+.pcard{background:var(--sl0);border-radius:24px;padding:8px;display:flex;flex-direction:column;gap:2px}
+.pcard .sec{padding:8px 10px 6px}
+.m3 .prow{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 10px;border-radius:16px;width:100%;transition:background-color .2s}
+.m3 .prow:hover{background:var(--sl2)}
+.m3 .prow .bl{font-size:14px;line-height:20px;font-weight:500;overflow-wrap:anywhere}
+.m3 .prow .sub{font-size:12px;line-height:16px}
+.m3 .prow.off .tile{background:var(--sl3)!important;color:var(--out)!important}
+.m3 .prow.off .bl{color:var(--onv)}
+.m3 .tile.add{background:var(--sl3);color:var(--onv)}
+.cbx{width:20px;height:20px;border-radius:4px;box-shadow:inset 0 0 0 2px var(--out);display:grid;place-items:center;flex:none;margin-right:2px}
+.cbx svg{width:16px;height:16px;fill:var(--on-p);opacity:0}
+.cbx.on{background:var(--p);box-shadow:none}
+.cbx.on svg{opacity:1}
+.pane.old{padding:0;box-shadow:inset -1px 0 0 var(--outv);overflow:visible}
+.m3 .orow{display:flex;align-items:center;gap:16px;height:48px;padding:0 16px 0 32px;width:100%;font-size:14px;color:var(--on)}
+.m3 .orow svg{color:var(--out)}
+.m3 .orow.on svg{color:var(--p)}
+.ofoot{margin-top:auto;box-shadow:inset 0 1px 0 var(--outv)}
+.m3 .ofoot .orow{padding-left:16px;gap:32px}
+.content{flex:1;min-width:0;min-height:0;overflow:hidden}
+.content.old{overflow:auto}
+.page{height:100%;display:flex;flex-direction:column;position:relative;padding:0 12px 0 16px}
+.content.old .page{height:calc(100% + 40px);padding:0}
+.phd{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;padding:4px 4px 10px;flex:none}
+.content.old .phd{padding:4px 16px 10px}
+.chead{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;padding:6px 8px;flex:none;background:var(--sl0);border-radius:24px 24px 0 0}
+.content.old .chead{border-radius:0;box-shadow:inset 0 1px 0 var(--outv)}
+.chead .mt{flex:1;min-width:120px;font-size:18px;line-height:24px;font-weight:500;padding:0 8px}
+.seg{display:flex;border-radius:20px;box-shadow:inset 0 0 0 1px var(--outv);overflow:hidden}
+.m3 .seg button{min-height:40px;padding:0 14px;font-size:13px;font-weight:600;color:var(--onv);position:relative}
+.m3 .seg button::after{content:"";position:absolute;inset:-4px 0}
+.m3 .seg button.sel{background:var(--sc);color:var(--on-sc)}
+.wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));flex:none;background:var(--sl0);padding:2px 0 6px}
+.wk span{text-align:center;font-size:12px;line-height:16px;font-weight:600;color:var(--onv)}
+.grid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(5,minmax(0,1fr));gap:1px;background:var(--outv);border-radius:0 0 24px 24px;overflow:hidden;margin-bottom:12px}
+.content.old .grid{border-radius:0;margin-bottom:0}
+.cell{background:var(--sl0);padding:6px 6px 4px;display:flex;flex-direction:column;gap:3px;min-width:0;overflow:hidden}
+.cell .dn{font-size:12px;line-height:20px;font-weight:600;color:var(--onv);width:24px;height:20px;text-align:center;border-radius:10px;flex:none}
+.cell.now .dn{background:var(--p);color:var(--on-p)}
+.ev{display:block;font-size:12px;line-height:16px;padding:2px 6px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--on);flex:none}
+.more{font-size:12px;line-height:16px;color:var(--onv);padding:0 6px;font-weight:600}
+.m3 .fab{position:absolute;right:28px;bottom:28px;min-height:56px;padding:0 20px 0 16px;border-radius:16px;background:var(--pc);color:var(--on-pc);display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;box-shadow:var(--e3);z-index:3}
+.content.old .fab{right:16px;bottom:16px}
+.toast{left:auto;right:24px;bottom:56px;max-width:420px}
+@container (max-width: 900px){.pane{flex-basis:210px}.ev{font-size:11px}}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="frame">
+<div class="abar">
+<button class="ib" aria-label="Open the sidebar"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg></button>
+<h1>My calendars</h1>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}"><span class="tdy">Today</span></sc-if>
+<button class="ib" aria-label="Refresh"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg></button>
+</div>
+<div class="cbody">
+<sc-if value="{{isAfter}}" hint-placeholder-val="{{ true }}">
+<aside class="pane" aria-label="Calendars">
+<div class="pcard in">
+<div class="sec lm">CALENDARS</div>
+<sc-for list="{{cals}}" as="c" hint-placeholder-count="4">
+<button class="{{c.cls}}" role="checkbox" aria-checked="{{c.aria}}" onClick="{{ c.toggle }}">
+<span class="tile" style="background: color-mix(in srgb, {{c.hex}} 24%, transparent); color: {{c.hex}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z"></path></svg></span>
+<span class="grow"><span class="bl">{{c.name}}</span><span class="sub">{{c.meta}}</span></span>
+<span class="{{c.box}}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"></path></svg></span>
+</button>
+</sc-for>
+<button class="prow" onClick="{{ newCal }}"><span class="tile add"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg></span><span class="grow"><span class="bl">New calendar</span></span></button>
+</div>
+</aside>
+</sc-if>
+<sc-if value="{{isBefore}}" hint-placeholder-val="{{ false }}">
+<aside class="pane old" aria-label="Calendars">
+<sc-for list="{{cals}}" as="c" hint-placeholder-count="4">
+<button class="{{c.old}}" role="checkbox" aria-checked="{{c.aria}}" onClick="{{ c.toggle }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{c.oldIcon}}"></path></svg><span>{{c.name}}</span></button>
+</sc-for>
+<div class="ofoot"><button class="orow" onClick="{{ newCal }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg><span>Create calendar</span></button></div>
+</aside>
+</sc-if>
+<div class="{{contentCls}}" tabindex="0" aria-label="Calendar">
+<div class="page">
+<div class="phd"><span class="tl">Calendar</span><span class="sub">{{summary}}</span></div>
+<div class="chead">
+<button class="ib" aria-label="Previous month"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z"></path></svg></button>
+<button class="ib" aria-label="Next month"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg></button>
+<span class="mt">November 2026</span>
+<button class="btn text">Today</button>
+<div class="seg" role="radiogroup" aria-label="View"><button class="sel" role="radio" aria-checked="true">Month</button><button role="radio" aria-checked="false">Week</button><button role="radio" aria-checked="false">Day</button><button role="radio" aria-checked="false">List</button></div>
+</div>
+<div class="wk" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+<div class="grid">
+<sc-for list="{{cells}}" as="d" hint-placeholder-count="35">
+<div class="{{d.cls}}">
+<span class="dn">{{d.n}}</span>
+<sc-if value="{{d.has1}}" hint-placeholder-val="{{ false }}"><span class="ev" title="{{d.t1}}" style="background: color-mix(in srgb, {{d.h1}} 30%, transparent)">{{d.t1}}</span></sc-if>
+<sc-if value="{{d.has2}}" hint-placeholder-val="{{ false }}"><span class="ev" title="{{d.t2}}" style="background: color-mix(in srgb, {{d.h2}} 30%, transparent)">{{d.t2}}</span></sc-if>
+<sc-if value="{{d.hasMore}}" hint-placeholder-val="{{ false }}"><span class="more" title="{{d.moreTitle}}">{{d.more}}</span></sc-if>
+</div>
+</sc-for>
+</div>
+<button class="fab" onClick="{{ addEvent }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg>Add event</button>
+</div>
+</div>
+</div>
+<div class="foot"><span>Home Assistant 2026.11</span><span>Frontend build 46</span><span>English</span><span>Unlocked</span><span style="flex: 1; text-align: right">Press M to open the menu</span></div>
+<sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="toast up" role="status"><span style="flex: 1">{{toastText}}</span><button class="btn text" onClick="{{ hideToast }}">OK</button></div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"after","options":["after","before"]},"$preview":{"width":1280,"height":860}}'>
+const CALS = [['Household', '#98CBFF'], ['Work shifts', '#F2C744'], ['School', '#9BD6A4'], ['Birthdays', '#E7A6C8']];
+const EVENTS = [[2, 'Bin day', 0], [4, 'Dentist 09:30', 0], [5, 'Early shift 06:00', 1], [6, 'Early shift 06:00', 1], [9, 'Swimming 16:15', 2], [11, 'Late shift 14:00', 1], [12, 'Late shift 14:00', 1], [14, 'Birthday: Pip', 3], [16, 'Bin day', 0], [18, 'Science fair', 2], [19, 'Team planning 10:00', 1], [21, 'Book club 19:30', 0], [23, 'Swimming 16:15', 2], [25, 'Boiler service 13:00', 0], [25, 'Late shift 14:00', 1], [25, 'Parents evening 18:00', 2], [27, 'Birthday: Odo', 3], [30, 'Bin day', 0]];
+const BOX_ON = 'M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z';
+const BOX_OFF = 'M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z';
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'after'; this.off = {}; this.toast = ''; }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'after';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+  reset(s) { this.toast = ''; }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const before = s === 'before';
+    const shown = EVENTS.filter((e) => !this.off[e[2]]);
+    const cells = [];
+    for (let n = 1; n <= 35; n++) {
+      const day = n <= 30 ? n : n - 30;
+      const ev = n <= 30 ? shown.filter((e) => e[0] === n) : [];
+      cells.push({
+        n: day, cls: 'cell' + (n === 25 ? ' now' : ''),
+        has1: ev.length > 0, t1: ev[0] ? ev[0][1] : '', h1: ev[0] ? CALS[ev[0][2]][1] : '#000',
+        has2: ev.length > 1, t2: ev[1] ? ev[1][1] : '', h2: ev[1] ? CALS[ev[1][2]][1] : '#000',
+        hasMore: ev.length > 2, more: '+' + (ev.length - 2) + ' more', moreTitle: ev.slice(2).map((e) => e[1]).join(', ')
+      });
+    }
+    return Object.assign(v, {
+      isAfter: !before, isBefore: before,
+      contentCls: before ? 'content old' : 'content',
+      summary: shown.length + ' events this month',
+      cells,
+      cals: CALS.map((c, i) => {
+        const on = !this.off[i];
+        const count = EVENTS.filter((e) => e[2] === i).length;
+        return {
+          name: c[0], hex: c[1], meta: on ? count + ' events this month' : 'Hidden',
+          cls: on ? 'prow' : 'prow off', box: on ? 'cbx on' : 'cbx', aria: on ? 'true' : 'false',
+          old: on ? 'orow on' : 'orow', oldIcon: on ? BOX_ON : BOX_OFF,
+          toggle: () => { const o = Object.assign({}, this.off); if (o[i]) delete o[i]; else o[i] = 1; this.off = o; this.bump(); }
+        };
+      }),
+      newCal: () => { this.toast = 'This would open the new calendar dialog.'; this.bump(); },
+      addEvent: () => { this.toast = 'This would open the new event dialog for 25 November.'; this.bump(); },
+      toast: this.toast !== '', toastText: this.toast,
+      hideToast: () => { this.toast = ''; this.bump(); }
+    });
+  }
+}
+</script>
+</body>
+</html>
