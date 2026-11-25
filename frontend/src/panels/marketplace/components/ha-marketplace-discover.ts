@@ -3,6 +3,7 @@ import { mdiCheckCircle, mdiDownload, mdiStar } from "@mdi/js";
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { ifDefined } from "lit/directives/if-defined";
 import memoizeOne from "memoize-one";
 import { consume } from "../../../common/decorators/consume";
 import { transform } from "../../../common/decorators/transform";
@@ -146,7 +147,12 @@ export class HaMarketplaceDiscover extends LitElement {
             ${localize(`ui.panel.marketplace.common.type.${repository.category}`)}
           </span>
         </div>
-        <div class="description">${repository.description}</div>
+        <div
+          class="description"
+          title=${ifDefined(repository.description || undefined)}
+        >
+          ${repository.description}
+        </div>
       </div>
       ${
         repository.installed
@@ -216,9 +222,7 @@ export class HaMarketplaceDiscover extends LitElement {
           margin: 0;
           font-size: var(--ha-font-size-xl);
           font-weight: var(--ha-font-weight-medium);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          overflow-wrap: anywhere;
         }
 
         .see-all {
@@ -286,10 +290,12 @@ export class HaMarketplaceDiscover extends LitElement {
         }
 
         .description {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
           overflow: hidden;
+          overflow-wrap: anywhere;
           color: var(--secondary-text-color);
-          text-overflow: ellipsis;
-          white-space: nowrap;
         }
 
         .numbers {
@@ -325,8 +331,14 @@ export class HaMarketplaceDiscover extends LitElement {
         }
 
         @media (max-width: 600px) {
+          .row {
+            flex-wrap: wrap;
+            row-gap: var(--ha-space-1);
+          }
+
           .numbers {
-            display: none;
+            flex-basis: 100%;
+            margin-inline-start: calc(36px + var(--ha-space-4));
           }
         }
       `,
