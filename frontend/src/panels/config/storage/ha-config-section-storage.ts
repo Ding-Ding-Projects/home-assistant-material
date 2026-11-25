@@ -400,7 +400,10 @@ class HaConfigSectionStorage extends LitElement {
           <span class="title mount-state-${mount.state || "unknown"}">
             ${mount.name}
           </span>
-          <span class="sub mount-address">
+          <span
+            class="sub mount-address"
+            title=${supervisorMountDescription(mount)}
+          >
             ${supervisorMountDescription(mount)}
           </span>
           ${this._renderMountUsage(mount)}
@@ -694,9 +697,13 @@ class HaConfigSectionStorage extends LitElement {
       color: var(--warning-color);
     }
     .mount-address {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
       overflow: hidden;
+      overflow-wrap: anywhere;
       text-overflow: ellipsis;
-      white-space: nowrap;
     }
     .mount-usage {
       display: flex;

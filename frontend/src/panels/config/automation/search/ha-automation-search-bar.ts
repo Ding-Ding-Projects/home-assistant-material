@@ -561,6 +561,7 @@ export class HaAutomationSearchBar extends LitElement {
       box-sizing: border-box;
       max-width: 100%;
       max-height: calc(100vh - 160px);
+      max-height: calc(100dvh - 160px);
       overflow-y: auto;
     }
     .row {
