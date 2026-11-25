@@ -9,6 +9,7 @@ import {
   queryAll,
   state,
 } from "lit/decorators";
+import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
 import { assert } from "superstruct";
 import { ensureArray } from "../../../common/array/ensure-array";
@@ -84,6 +85,14 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
 
   private _observedModeRow?: HTMLDivElement;
 
+  // The sticky error and draft alerts slotted in above the editor. The mode
+  // row sticks below them so neither covers the other.
+  @state() private _alertsHeight = 0;
+
+  private _alertsObserver?: ResizeObserver;
+
+  private _observedAlerts?: HTMLElement;
+
   @queryAll("ha-editor-hero, .card, ha-automation-helpers-panel")
   private _entryBlocks?: NodeListOf<Element>;
 
@@ -129,6 +138,9 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
     this._modeRowObserver?.disconnect();
     this._modeRowObserver = undefined;
     this._observedModeRow = undefined;
+    this._alertsObserver?.disconnect();
+    this._alertsObserver = undefined;
+    this._observedAlerts = undefined;
     super.disconnectedCallback();
   }
 
@@ -171,6 +183,21 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
           this._modeRowHeight = this._modeRow?.offsetHeight ?? 0;
         });
         this._modeRowObserver.observe(this._modeRow);
+      }
+    }
+    const alerts =
+      this.querySelector<HTMLElement>(":scope > .alert-wrapper") ?? undefined;
+    if (alerts !== this._observedAlerts) {
+      this._alertsObserver?.disconnect();
+      this._observedAlerts = alerts;
+      if (alerts) {
+        this._alertsHeight = alerts.offsetHeight;
+        this._alertsObserver ??= new ResizeObserver(() => {
+          this._alertsHeight = this._observedAlerts?.offsetHeight ?? 0;
+        });
+        this._alertsObserver.observe(alerts);
+      } else {
+        this._alertsHeight = 0;
       }
     }
     if (this._openFields && changedProps.has("config")) {
@@ -230,7 +257,12 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
         .config=${this.config}
       ></ha-editor-hero>
 
-      <div class="mode-row" role="group" aria-labelledby="mode-label">
+      <div
+        class="mode-row"
+        role="group"
+        aria-labelledby="mode-label"
+        style=${styleMap({ insetBlockStart: `${this._alertsHeight}px` })}
+      >
         <span id="mode-label" class="mode-label">
           ${this.hass.localize("ui.panel.config.script.editor.board.mode_label")}
         </span>
@@ -321,7 +353,7 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
       }
       <ha-automation-search-bar
         .hass=${this.hass}
-        .stickyOffset=${this._modeRowHeight}
+        .stickyOffset=${this._modeRowHeight + this._alertsHeight}
       ></ha-automation-search-bar>
       <section class="card" aria-labelledby="sequence-heading">
         <div class="header">
