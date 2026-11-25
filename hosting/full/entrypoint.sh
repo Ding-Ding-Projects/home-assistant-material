@@ -34,6 +34,26 @@ fi
 cp "${DATA}/machine-id" /etc/machine-id
 
 # ---------------------------------------------------------------------------------------------
+# SSH, keys only. The Supervisor keeps the authorized keys of the SSH access page in its data
+# folder (/data/ssh/authorized_keys inside it), which is this folder here. Password logins are
+# off, and the host key stays on the data volume so clients do not see it change on a restart.
+# ---------------------------------------------------------------------------------------------
+SSH_PORT="${HA_FULL_SSH_PORT:-22222}"
+SSH_DIR="${SUPERVISOR_DATA}/ssh"
+SSH_HOST_KEY="${DATA}/ssh_host_ed25519_key"
+DROPBEAR_PID=
+start_ssh() {
+  mkdir -p "${SSH_DIR}" && chmod 700 "${SSH_DIR}"
+  [ -e "${SSH_DIR}/authorized_keys" ] || { : > "${SSH_DIR}/authorized_keys"; }
+  chmod 600 "${SSH_DIR}/authorized_keys"
+  [ -s "${SSH_HOST_KEY}" ] || dropbearkey -t ed25519 -f "${SSH_HOST_KEY}" >/dev/null 2>&1
+  dropbear -F -E -s -g -r "${SSH_HOST_KEY}" -D "${SSH_DIR}" -p "${SSH_PORT}" >/var/log/dropbear.log 2>&1 &
+  DROPBEAR_PID=$!
+  log "SSH answers on port ${SSH_PORT} for the keys on the SSH access page."
+}
+start_ssh
+
+# ---------------------------------------------------------------------------------------------
 # The inner Docker engine. Its storage lives on the data volume, which must be a Linux
 # filesystem (a named volume, not a Windows or macOS folder).
 # ---------------------------------------------------------------------------------------------
@@ -72,6 +92,7 @@ stop_all() {
   others="$(docker ps --quiet 2>/dev/null)"
   # shellcheck disable=SC2086
   [ -n "${others}" ] && docker stop --time 30 ${others} >/dev/null 2>&1
+  [ -n "${DROPBEAR_PID}" ] && kill -TERM "${DROPBEAR_PID}" 2>/dev/null
   if [ -n "${DOCKERD_PID}" ]; then
     kill -TERM "${DOCKERD_PID}" 2>/dev/null
     wait "${DOCKERD_PID}" 2>/dev/null

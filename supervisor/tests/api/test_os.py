@@ -1,5 +1,6 @@
 """Test OS API."""
 
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
 from aiohttp.test_utils import TestClient
@@ -14,6 +15,7 @@ from supervisor.dbus.agent.boards.interface import BoardProxy
 from supervisor.exceptions import DBusError as SupervisorDBusError, HostError
 from supervisor.host.control import SystemControl
 from supervisor.os.manager import OSManager
+from supervisor.os.ssh_keys import ContainerAuthorizedKeys
 from supervisor.resolution.const import ContextType, IssueType, SuggestionType
 from supervisor.resolution.data import Issue, Suggestion
 
@@ -1125,3 +1127,191 @@ async def test_api_os_ssh_authorized_keys_no_os(
     assert resp.status == 400
     result = await resp.json()
     assert "no Home Assistant OS available" in result["message"]
+
+
+TEST_SSH_KEY_ECDSA = "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBIOixE/C4G8nvrwWVvN6ru4PFCKt7Ktq5otWPgLSZFII2iwhMVEcxkBJLDLoi08D0SAZMuJphT9BW9ItvBzFgNM= second@example"
+# The fingerprint OpenSSH prints, in the URL-safe form that fits in a path
+TEST_SSH_KEY_ED25519_PATH_FINGERPRINT = "XtqCfiQl-C_yppPd4-0-mdScwPJe3sqxe1TozjBSA20"
+
+
+@pytest.mark.parametrize("os_agent_version", ["1.11.0"], indirect=True)
+@pytest.mark.usefixtures("os_available", "os_agent_version")
+async def test_api_os_ssh_authorized_keys_remove(
+    api_client_with_prefix: tuple[TestClient, str],
+    coresys: CoreSys,
+    os_agent_services: dict[str, DBusServiceMock],
+):
+    """Test removing one key keeps the others and ends running sessions."""
+    api_client, prefix = api_client_with_prefix
+    system_service: SystemService = os_agent_services["agent_system"]
+    system_service.response_list_ssh_auth_keys = [
+        TEST_SSH_KEY_ED25519,
+        TEST_SSH_KEY_ECDSA,
+    ]
+    system_service.AddSSHAuthKey.calls.clear()
+    system_service.ClearSSHAuthKeys.calls.clear()
+
+    with (
+        patch.object(coresys.host.services, "start", new=AsyncMock()) as start,
+        patch.object(coresys.host.services, "stop", new=AsyncMock()) as stop,
+    ):
+        resp = await api_client.delete(
+            f"{prefix}/os/ssh/authorized_keys/{TEST_SSH_KEY_ED25519_PATH_FINGERPRINT}"
+        )
+    assert resp.status == 200
+
+    assert system_service.ClearSSHAuthKeys.calls == [()]
+    assert system_service.AddSSHAuthKey.calls == [(TEST_SSH_KEY_ECDSA,)]
+    stop.assert_called_once_with("dropbear.service")
+    start.assert_called_once_with("dropbear.service")
+
+
+@pytest.mark.parametrize("os_agent_version", ["1.11.0"], indirect=True)
+@pytest.mark.usefixtures("os_available", "os_agent_version")
+async def test_api_os_ssh_authorized_keys_remove_last(
+    api_client_with_prefix: tuple[TestClient, str],
+    coresys: CoreSys,
+    os_agent_services: dict[str, DBusServiceMock],
+):
+    """Test removing the last key turns the service off."""
+    api_client, prefix = api_client_with_prefix
+    system_service: SystemService = os_agent_services["agent_system"]
+    system_service.response_list_ssh_auth_keys = [TEST_SSH_KEY_ED25519]
+    system_service.AddSSHAuthKey.calls.clear()
+
+    with (
+        patch.object(coresys.host.services, "start", new=AsyncMock()) as start,
+        patch.object(coresys.host.services, "stop", new=AsyncMock()) as stop,
+    ):
+        resp = await api_client.delete(
+            f"{prefix}/os/ssh/authorized_keys/{TEST_SSH_KEY_ED25519_PATH_FINGERPRINT}"
+        )
+    assert resp.status == 200
+
+    assert system_service.AddSSHAuthKey.calls == []
+    stop.assert_called_once_with("dropbear.service")
+    start.assert_not_called()
+
+
+@pytest.mark.parametrize("os_agent_version", ["1.11.0"], indirect=True)
+@pytest.mark.usefixtures("os_available", "os_agent_version")
+async def test_api_os_ssh_authorized_keys_remove_unknown(
+    api_client_with_prefix: tuple[TestClient, str],
+    os_agent_services: dict[str, DBusServiceMock],
+):
+    """Test an unknown fingerprint changes nothing."""
+    api_client, prefix = api_client_with_prefix
+    system_service: SystemService = os_agent_services["agent_system"]
+    system_service.response_list_ssh_auth_keys = [TEST_SSH_KEY_ECDSA]
+    system_service.ClearSSHAuthKeys.calls.clear()
+
+    resp = await api_client.delete(
+        f"{prefix}/os/ssh/authorized_keys/{TEST_SSH_KEY_ED25519_PATH_FINGERPRINT}"
+    )
+    assert resp.status == 404
+    assert system_service.ClearSSHAuthKeys.calls == []
+
+
+@pytest.mark.parametrize("os_agent_version", ["1.11.0"], indirect=True)
+@pytest.mark.usefixtures("os_available", "os_agent_version")
+async def test_api_os_ssh_authorized_keys_remove_failure_restores(
+    api_client_with_prefix: tuple[TestClient, str],
+    coresys: CoreSys,
+    os_agent_services: dict[str, DBusServiceMock],
+):
+    """Test the original keys are written back when re-adding fails."""
+    api_client, prefix = api_client_with_prefix
+    system_service: SystemService = os_agent_services["agent_system"]
+    system_service.response_list_ssh_auth_keys = [
+        TEST_SSH_KEY_ED25519,
+        TEST_SSH_KEY_ECDSA,
+    ]
+    system_service.response_add_ssh_auth_key = DBusError(ErrorType.FAILED, "boom")
+    system_service.AddSSHAuthKey.calls.clear()
+    system_service.ClearSSHAuthKeys.calls.clear()
+
+    with patch.object(coresys.host.services, "stop", new=AsyncMock()) as stop:
+        resp = await api_client.delete(
+            f"{prefix}/os/ssh/authorized_keys/{TEST_SSH_KEY_ED25519_PATH_FINGERPRINT}"
+        )
+    assert resp.status == 400
+    # Cleared once for the removal and once for the restore
+    assert len(system_service.ClearSSHAuthKeys.calls) == 2
+    stop.assert_not_called()
+
+
+async def test_api_os_ssh_authorized_keys_remove_bad_fingerprint(
+    api_client_with_prefix: tuple[TestClient, str],
+):
+    """Test a malformed fingerprint does not reach the handler."""
+    api_client, prefix = api_client_with_prefix
+    resp = await api_client.delete(f"{prefix}/os/ssh/authorized_keys/{'a' * 43}!")
+    assert resp.status == 404
+
+
+@pytest.fixture(name="container_ssh_keys")
+def fixture_container_ssh_keys(
+    coresys: CoreSys, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> ContainerAuthorizedKeys:
+    """Run as the full hosting mode, with the key file in a temporary folder."""
+    monkeypatch.setenv("SUPERVISOR_CONTAINER_HOST", "1")
+    keys = ContainerAuthorizedKeys(tmp_path / "ssh" / "authorized_keys")
+    monkeypatch.setattr(coresys.os, "_container_ssh_keys", keys)
+    return keys
+
+
+async def test_api_os_ssh_container_host(
+    api_client_with_prefix: tuple[TestClient, str],
+    coresys: CoreSys,
+    container_ssh_keys: ContainerAuthorizedKeys,
+):
+    """Test the same endpoints work on a container host, with no OS Agent."""
+    api_client, prefix = api_client_with_prefix
+
+    resp = await api_client.get(f"{prefix}/os/ssh/authorized_keys")
+    assert resp.status == 200
+    assert (await resp.json())["data"] == {"keys": [], "mode": "container"}
+
+    for key in (TEST_SSH_KEY_ED25519, TEST_SSH_KEY_ECDSA):
+        resp = await api_client.post(
+            f"{prefix}/os/ssh/authorized_keys", json={"key": key + "\n"}
+        )
+        assert resp.status == 200
+    assert await coresys.run_in_executor(container_ssh_keys.list) == [TEST_SSH_KEY_ED25519, TEST_SSH_KEY_ECDSA]
+
+    resp = await api_client.delete(
+        f"{prefix}/os/ssh/authorized_keys/{TEST_SSH_KEY_ED25519_PATH_FINGERPRINT}"
+    )
+    assert resp.status == 200
+    assert await coresys.run_in_executor(container_ssh_keys.list) == [TEST_SSH_KEY_ECDSA]
+
+    resp = await api_client.delete(
+        f"{prefix}/os/ssh/authorized_keys/{TEST_SSH_KEY_ED25519_PATH_FINGERPRINT}"
+    )
+    assert resp.status == 404
+
+    resp = await api_client.delete(f"{prefix}/os/ssh/authorized_keys")
+    assert resp.status == 200
+    assert await coresys.run_in_executor(container_ssh_keys.list) == []
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "hello world",
+        "-----BEGIN OPENSSH PRIVATE KEY-----",
+        f"{TEST_SSH_KEY_ED25519}\n{TEST_SSH_KEY_ECDSA}",
+    ],
+    ids=["not a key", "private key", "two lines"],
+)
+async def test_api_os_ssh_container_host_rejects_bad_key(
+    api_client_with_prefix: tuple[TestClient, str],
+    coresys: CoreSys,
+    container_ssh_keys: ContainerAuthorizedKeys,
+    key: str,
+):
+    """Test a container host checks the key itself, since no OS Agent does."""
+    api_client, prefix = api_client_with_prefix
+    resp = await api_client.post(f"{prefix}/os/ssh/authorized_keys", json={"key": key})
+    assert resp.status == 400
+    assert await coresys.run_in_executor(container_ssh_keys.list) == []

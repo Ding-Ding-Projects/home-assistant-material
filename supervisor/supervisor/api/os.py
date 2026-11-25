@@ -40,6 +40,7 @@ from ..const import (
 from ..coresys import CoreSysAttributes
 from ..exceptions import APIError, APINotFound, BoardInvalidError
 from ..homeassistant.const import LANDINGPAGE
+from ..os.ssh_keys import normalise_fingerprint, parse_key
 from ..resolution.const import ContextType, IssueType, SuggestionType
 from ..resolution.data import Issue
 from ..utils import version_is_new_enough
@@ -55,6 +56,7 @@ from .const import (
     ATTR_DRIVE_ID,
     ATTR_KEY,
     ATTR_KEYS,
+    ATTR_MODE,
     ATTR_MODEL,
     ATTR_OFFLINE_UPDATE,
     ATTR_STATUS,
@@ -146,6 +148,20 @@ def ssh_auth_key(value: Any) -> str:
 
 
 SCHEMA_SSH_AUTHORIZED_KEY = vol.Schema({vol.Required(ATTR_KEY): ssh_auth_key})
+
+
+def container_ssh_key(value: Any) -> str:
+    """Check a public key before it is written without OS Agent's help."""
+    key = ssh_auth_key(value)
+    if parse_key(key) is None:
+        raise vol.Invalid("Not a valid SSH public key")
+    return key
+
+
+SCHEMA_CONTAINER_SSH_KEY = vol.Schema({vol.Required(ATTR_KEY): container_ssh_key})
+
+SSH_MODE_OS = "os"
+SSH_MODE_CONTAINER = "container"
 # pylint: enable=no-value-for-parameter
 
 
@@ -266,6 +282,10 @@ class APIOS(CoreSysAttributes):
     @api_process
     async def ssh_authorized_keys_list(self, request: web.Request) -> dict[str, Any]:
         """Return root's SSH authorized keys on the host."""
+        if self.sys_os.container_host:
+            keys = await self.sys_run_in_executor(self.sys_os.container_ssh_keys.list)
+            return {ATTR_KEYS: keys, ATTR_MODE: SSH_MODE_CONTAINER}
+
         if (
             not self.sys_dbus.agent.is_connected
             or self.sys_dbus.agent.version < SSH_KEYS_LIST_MIN_OS_AGENT_VERSION
@@ -276,18 +296,50 @@ class APIOS(CoreSysAttributes):
                 _LOGGER.debug,
             )
 
-        return {ATTR_KEYS: await self.sys_dbus.agent.system.list_ssh_auth_keys()}
+        return {
+            ATTR_KEYS: await self.sys_dbus.agent.system.list_ssh_auth_keys(),
+            ATTR_MODE: SSH_MODE_OS,
+        }
 
     @api_process
     async def ssh_authorized_keys_add(self, request: web.Request) -> None:
         """Add an SSH authorized key for root on the host."""
+        if self.sys_os.container_host:
+            body = await api_validate(SCHEMA_CONTAINER_SSH_KEY, request)
+            await self.sys_run_in_executor(
+                self.sys_os.container_ssh_keys.add, body[ATTR_KEY]
+            )
+            return
+
         body = await api_validate(SCHEMA_SSH_AUTHORIZED_KEY, request)
         await asyncio.shield(self.sys_os.add_ssh_authorized_key(body[ATTR_KEY]))
 
     @api_process
-    def ssh_authorized_keys_clear(self, request: web.Request) -> Awaitable[None]:
+    async def ssh_authorized_keys_clear(self, request: web.Request) -> None:
         """Remove all SSH authorized keys of root on the host."""
-        return asyncio.shield(self.sys_os.clear_ssh_authorized_keys())
+        if self.sys_os.container_host:
+            await self.sys_run_in_executor(self.sys_os.container_ssh_keys.clear)
+            return
+
+        await asyncio.shield(self.sys_os.clear_ssh_authorized_keys())
+
+    @api_process
+    async def ssh_authorized_keys_remove(self, request: web.Request) -> None:
+        """Remove one SSH authorized key of root on the host, by fingerprint."""
+        fingerprint = normalise_fingerprint(request.match_info["fingerprint"])
+        if fingerprint is None:
+            raise APIError("Not a valid SSH key fingerprint")
+
+        if self.sys_os.container_host:
+            removed = await self.sys_run_in_executor(
+                self.sys_os.container_ssh_keys.remove, fingerprint
+            )
+        else:
+            removed = await asyncio.shield(
+                self.sys_os.remove_ssh_authorized_key(fingerprint)
+            )
+        if not removed:
+            raise APINotFound("No SSH authorized key has that fingerprint")
 
     @api_process
     async def list_data(self, request: web.Request) -> dict[str, Any]:

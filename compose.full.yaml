@@ -40,6 +40,9 @@ services:
       # The core answers on port 80 inside the outer container. Published on every network
       # interface, so other devices on the network can reach it.
       - "${HA_MATERIAL_PORT:-8123}:80"
+      # SSH with your own public key, no passwords. Add keys on Settings > System > SSH access.
+      # Keep this port inside your home network: do not forward it on your router.
+      - "${HA_MATERIAL_SSH_PORT:-22222}:22222"
     volumes:
       - ha-material-full-data:/var/lib/ha-material
     environment:

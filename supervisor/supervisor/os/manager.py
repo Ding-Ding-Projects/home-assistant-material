@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 import logging
+import os
 from pathlib import Path, PurePath
 import re
 from uuid import uuid4
@@ -38,7 +39,12 @@ from ..host.const import HostFeature
 from ..jobs.const import JobConcurrency, JobCondition
 from ..jobs.decorator import Job
 from ..jobs.job_group import JobGroup
-from ..resolution.const import ContextType, IssueType, SuggestionType
+from ..resolution.const import (
+    ENV_CONTAINER_HOST,
+    ContextType,
+    IssueType,
+    SuggestionType,
+)
 from .data_disk import DataDisk
 from .offline_pack import INSTALL_ORDER, PackPartKind, PackVerifyError
 from .offline_update import (
@@ -47,6 +53,7 @@ from .offline_update import (
     OfflineUpdates,
     OfflineUpdateVerdict,
 )
+from .ssh_keys import ContainerAuthorizedKeys, key_fingerprint
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -135,6 +142,19 @@ class OSManager(JobGroup):
         self._slots: dict[str, SlotStatus] | None = None
         self._update_lock = asyncio.Lock()
         self._offline_updates = OfflineUpdates(coresys)
+        self._container_ssh_keys = ContainerAuthorizedKeys(
+            coresys.config.path_supervisor / "ssh" / "authorized_keys"
+        )
+
+    @property
+    def container_host(self) -> bool:
+        """Return true in the full hosting mode, where no OS runs under the Supervisor."""
+        return os.environ.get(ENV_CONTAINER_HOST) == "1"
+
+    @property
+    def container_ssh_keys(self) -> ContainerAuthorizedKeys:
+        """Return the authorized keys file of a container host."""
+        return self._container_ssh_keys
 
     @property
     def available(self) -> bool:
@@ -884,3 +904,60 @@ class OSManager(JobGroup):
                 f"SSH authorized keys cleared, but can't stop dropbear: {err!s}",
                 _LOGGER.error,
             ) from err
+
+    @Job(
+        name="os_manager_remove_ssh_authorized_key",
+        conditions=[JobCondition.HAOS],
+        on_condition=HassOSJobError,
+        concurrency=JobConcurrency.GROUP_QUEUE,
+        internal=True,
+    )
+    async def remove_ssh_authorized_key(self, fingerprint: str) -> bool:
+        """Remove the SSH authorized key with that fingerprint on the host.
+
+        OS Agent can only append and clear, so the list is read, filtered,
+        cleared and written back as one job. Return False when no key matches.
+        """
+        _LOGGER.info("Removing SSH authorized key %s on host", fingerprint)
+        try:
+            keys = await self.sys_dbus.agent.system.list_ssh_auth_keys()
+        except DBusError as err:
+            raise HassOSError(
+                f"Can't list SSH authorized keys: {err!s}", _LOGGER.error
+            ) from err
+
+        remaining = [key for key in keys if key_fingerprint(key) != fingerprint]
+        if len(remaining) == len(keys):
+            return False
+
+        try:
+            await self.sys_dbus.agent.system.clear_ssh_auth_keys()
+            for key in remaining:
+                await self.sys_dbus.agent.system.add_ssh_auth_key(key)
+        except DBusError as err:
+            await self._restore_ssh_authorized_keys(keys)
+            raise HassOSError(
+                f"Can't remove SSH authorized key: {err!s}", _LOGGER.error
+            ) from err
+
+        # Established sessions survive until the service stops, so end them
+        # and start it again when keys remain.
+        try:
+            await self.sys_host.services.stop(DROPBEAR_SERVICE)
+            if remaining:
+                await self.sys_host.services.start(DROPBEAR_SERVICE)
+        except (HostError, DBusError) as err:
+            raise HassOSError(
+                f"SSH authorized key removed, but can't restart dropbear: {err!s}",
+                _LOGGER.error,
+            ) from err
+        return True
+
+    async def _restore_ssh_authorized_keys(self, keys: list[str]) -> None:
+        """Write the original keys back after a failed removal."""
+        try:
+            await self.sys_dbus.agent.system.clear_ssh_auth_keys()
+            for key in keys:
+                await self.sys_dbus.agent.system.add_ssh_auth_key(key)
+        except DBusError as err:
+            _LOGGER.critical("Can't restore SSH authorized keys: %s", err)

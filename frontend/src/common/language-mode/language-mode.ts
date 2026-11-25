@@ -56,6 +56,7 @@ export const YUE_PREFIXES = [
   "ui.panel.config.device_health.",
   "ui.panel.config.helpers.demo.",
   "ui.panel.config.cloud_host.",
+  "ui.panel.config.ssh_access.",
   "ui.panel.config.tools.nav.",
   "ui.components.web-rtc-player.state.",
   "ui.components.camera_timeline.not_kept_by_choice",
