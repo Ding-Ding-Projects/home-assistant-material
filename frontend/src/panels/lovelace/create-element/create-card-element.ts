@@ -119,6 +119,8 @@ const LAZY_LOAD_TYPES = {
   "grow-light-card": () => import("../cards/hui-grow-light-card"),
   "grow-light-overview-card": () =>
     import("../cards/hui-grow-light-overview-card"),
+  "printer-status-card": () => import("../cards/hui-printer-status-card"),
+  "printer-controls-card": () => import("../cards/hui-printer-controls-card"),
   "plant-status": () => import("../cards/hui-plant-status-card"),
   "recovery-mode": () => import("../cards/hui-recovery-mode-card"),
   "toggle-group": () => import("../cards/hui-toggle-group-card"),
