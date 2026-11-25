@@ -2,7 +2,6 @@ import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
   mdiDelete,
   mdiDotsVertical,
-  mdiMagnifyRemoveOutline,
   mdiEye,
   mdiEyeOff,
   mdiMenuDown,
@@ -33,10 +32,6 @@ import {
 import { computeDomain } from "../../../common/entity/compute_domain";
 import { computeEntityEntryName } from "../../../common/entity/compute_entity_name_display";
 import { isEmptyEntityDomainFilter } from "../../../common/entity/entity_domain_filter";
-import {
-  normalizeSearchText,
-  searchMatcher,
-} from "../../../common/regex/filter";
 import {
   deleteEntity,
   isDeletableEntity,
@@ -72,9 +67,12 @@ import "../../../components/ha-checkbox";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
-import type { HaDropdownItem } from "../../../components/ha-dropdown-item";
-import "../../../components/ha-domain-icon";
 import "../../../components/ha-entity-id-icon";
+import "../../../components/ha-filter-chip-menu";
+import type {
+  FilterChipOption,
+  FilterChipSelectDetail,
+} from "../../../components/ha-filter-chip-menu";
 import "../../../components/ha-filter-devices";
 import "../../../components/ha-filter-domains";
 import "../../../components/ha-filter-floor-areas";
@@ -86,8 +84,6 @@ import "../../../components/ha-icon";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-icon-next";
 import "../../../components/ha-svg-icon";
-import "../../../components/input/ha-input-search";
-import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type { CloudStatus } from "../../../data/cloud";
 import type { ConfigEntry, SubEntry } from "../../../data/config_entries";
 import { getConfigEntries, getSubEntries } from "../../../data/config_entries";
@@ -200,12 +196,6 @@ const getVoiceAssistantIds = (
     (vaId) => exposedEntities?.[entityId]?.[vaId]
   );
 
-interface ChipOption {
-  value: string;
-  label: string;
-  icon?: string;
-}
-
 @customElement("ha-config-entities")
 export class HaConfigEntities extends LitElement {
   // Draws the page again when the language mode changes.
@@ -288,22 +278,6 @@ export class HaConfigEntities extends LitElement {
   private _notesRequested = false;
 
   @state() private _expandedFilter?: string;
-
-  /** Search text of each chip menu, cleared each time the menu opens. */
-  @state() private _chipSearch: Record<"domain" | "area", string> = {
-    domain: "",
-    area: "",
-  };
-
-  /**
-   * What each chip menu had selected when it last opened. Those rows sit at
-   * the top; a row ticked while the menu is open keeps its place until the
-   * menu opens again, so rows never jump under a finger.
-   */
-  @state() private _chipPinned: Record<"domain" | "area", string[]> = {
-    domain: [],
-    area: [],
-  };
 
   @consume({ context: labelsContext, subscribe: true })
   @state()
@@ -906,7 +880,7 @@ export class HaConfigEntities extends LitElement {
       </ha-dropdown-item>`;
 
   private _areaOptions = memoize(
-    (areas: HomeAssistant["areas"]): ChipOption[] =>
+    (areas: HomeAssistant["areas"]): FilterChipOption[] =>
       Object.values(areas)
         .map((area) => ({
           value: area.area_id,
@@ -923,9 +897,10 @@ export class HaConfigEntities extends LitElement {
           Object.keys(states).map((entityId) => computeDomain(entityId))
         ),
       ]
-        .map((domain): ChipOption => ({
+        .map((domain): FilterChipOption => ({
           value: domain,
           label: domainToName(localize, domain),
+          domain,
         }))
         .sort((a, b) => a.label.localeCompare(b.label))
   );
@@ -966,211 +941,30 @@ export class HaConfigEntities extends LitElement {
               count: total,
             });
 
-    const search = this._chipSearch[chip];
-    const matches = searchMatcher(normalizeSearchText(search));
-    const shown = options.filter((option) =>
-      matches(option.label, option.value)
-    );
-    const pinned = this._chipPinned[chip];
-    const top = shown.filter((option) => pinned.includes(option.value));
-    const rest = shown.filter((option) => !pinned.includes(option.value));
-
-    return html`<ha-dropdown
+    return html`<ha-filter-chip-menu
       slot="filter-chips"
-      class="chip-menu"
+      .kind=${chip}
       data-chip=${chip}
-      @wa-show=${this._handleChipShow}
-      @wa-select=${this._handleChipSelect}
-    >
-      <ha-assist-chip
-        slot="trigger"
-        .active=${total > 0}
-        .label=${localize(
-          chip === "area"
-            ? "ui.panel.config.entities.picker.chip_area"
-            : "ui.panel.config.entities.picker.chip_domain",
-          { value }
-        )}
-      >
-        <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
-      </ha-assist-chip>
-      <div class="chip-search" @keydown=${this._handleChipSearchKeydown}>
-        <ha-input-search
-          appearance="outlined"
-          data-chip=${chip}
-          .value=${search}
-          .label=${localize(
-            chip === "area"
-              ? "ui.panel.config.entities.picker.chip_search_area"
-              : "ui.panel.config.entities.picker.chip_search_domain"
-          )}
-          .patternSamples=${options.map((option) => option.label)}
-          @input=${this._handleChipSearch}
-        ></ha-input-search>
-        <span class="chip-count" role="status">
-          ${
-            search
-              ? localize("ui.panel.config.entities.picker.chip_match_count", {
-                  shown: shown.length,
-                  total: options.length,
-                })
-              : localize(
-                  chip === "area"
-                    ? "ui.panel.config.entities.picker.chip_total_area"
-                    : "ui.panel.config.entities.picker.chip_total_domain",
-                  { count: options.length }
-                )
-          }
-        </span>
-      </div>
-      <ha-dropdown-item value="__any" .disabled=${total === 0}>
-        ${localize("ui.panel.config.entities.picker.chip_clear")}
-      </ha-dropdown-item>
-      <wa-divider></wa-divider>
-      ${
-        shown.length
-          ? nothing
-          : html`<div class="chip-empty">
-              <ha-svg-icon .path=${mdiMagnifyRemoveOutline}></ha-svg-icon>
-              <span class="chip-empty-title">
-                ${localize("ui.panel.config.entities.picker.chip_no_match", {
-                  query: search,
-                })}
-              </span>
-              <span>
-                ${localize("ui.panel.config.entities.picker.chip_no_match_hint")}
-              </span>
-              <ha-button
-                appearance="filled"
-                variant="neutral"
-                data-chip=${chip}
-                @click=${this._clearChipSearch}
-              >
-                ${localize("ui.panel.config.entities.picker.chip_clear_search")}
-              </ha-button>
-            </div>`
-      }
-      ${
-        top.length
-          ? html`<div class="chip-section">
-              ${localize("ui.panel.config.entities.picker.chip_section_selected")}
-            </div>`
-          : nothing
-      }
-      ${top.map((option) => this._renderChipOption(chip, option, selected))}
-      ${
-        top.length && rest.length
-          ? html`<div class="chip-section">
-              ${localize("ui.panel.config.entities.picker.chip_section_other")}
-            </div>`
-          : nothing
-      }
-      ${rest.map((option) => this._renderChipOption(chip, option, selected))}
-    </ha-dropdown>`;
+      .localize=${localize}
+      .options=${options}
+      .selected=${selected}
+      .total=${total}
+      .fallbackPath=${chip === "area" ? mdiTextureBox : undefined}
+      .clearLabel=${localize("ui.panel.config.entities.picker.chip_clear")}
+      .chipLabel=${localize(
+        chip === "area"
+          ? "ui.panel.config.entities.picker.chip_area"
+          : "ui.panel.config.entities.picker.chip_domain",
+        { value }
+      )}
+      @chip-select=${this._handleChipSelect}
+    ></ha-filter-chip-menu>`;
   }
 
-  private _renderChipOption(
-    chip: "domain" | "area",
-    option: ChipOption,
-    selected: string[]
-  ) {
-    const checked = selected.includes(option.value);
-    return html`<ha-dropdown-item
-      class="chip-option"
-      .value=${option.value}
-      .selected=${checked}
-    >
-      <span slot="icon" class="chip-lead">
-        ${
-          chip === "domain"
-            ? html`<ha-domain-icon
-                .domain=${option.value}
-                brand-fallback
-              ></ha-domain-icon>`
-            : option.icon
-              ? html`<ha-icon .icon=${option.icon}></ha-icon>`
-              : html`<ha-svg-icon .path=${mdiTextureBox}></ha-svg-icon>`
-        }
-      </span>
-      ${option.label}
-      <ha-checkbox
-        slot="details"
-        tabindex="-1"
-        aria-hidden="true"
-        .checked=${checked}
-      ></ha-checkbox>
-    </ha-dropdown-item>`;
-  }
-
-  private _handleChipShow(ev: Event) {
-    // Nested popups, such as the pattern workbench, fire their own show events.
-    if (ev.target !== ev.currentTarget) {
-      return;
-    }
+  private _handleChipSelect(ev: HASSDomEvent<FilterChipSelectDetail>) {
     const chip = (ev.currentTarget as HTMLElement).dataset.chip as
       "domain" | "area";
-    this._chipSearch = { ...this._chipSearch, [chip]: "" };
-    this._chipPinned = {
-      ...this._chipPinned,
-      [chip]: [...this._chipSelection(chip).selected],
-    };
-  }
-
-  private _handleChipSearch(ev: Event) {
-    const target = ev.target as HaInputSearch;
-    const chip = target.dataset.chip as "domain" | "area";
-    this._chipSearch = { ...this._chipSearch, [chip]: target.value ?? "" };
-  }
-
-  private _clearChipSearch(ev: Event) {
-    ev.stopPropagation();
-    const target = ev.currentTarget as HTMLElement;
-    const chip = target.dataset.chip as "domain" | "area";
-    this._chipSearch = { ...this._chipSearch, [chip]: "" };
-    target
-      .closest("ha-dropdown")
-      ?.querySelector<HaInputSearch>("ha-input-search")
-      ?.focus();
-  }
-
-  // The menu moves focus to the item whose name starts with a typed letter,
-  // which would pull focus out of the search field on every key. Arrow down
-  // steps from the field into the rows.
-  private _handleChipSearchKeydown(ev: KeyboardEvent) {
-    if (ev.key === "Escape" || ev.key === "Tab") {
-      return;
-    }
-    ev.stopPropagation();
-    if (ev.key !== "ArrowDown") {
-      return;
-    }
-    ev.preventDefault();
-    const menu = (ev.currentTarget as HTMLElement).closest("ha-dropdown");
-    const items = [
-      ...(menu?.querySelectorAll<HaDropdownItem>("ha-dropdown-item") ?? []),
-    ].filter((item) => !item.disabled);
-    const first =
-      items.find((item) => item.classList.contains("chip-option")) ?? items[0];
-    if (!first) {
-      return;
-    }
-    items.forEach((item) => {
-      item.active = item === first;
-    });
-    first.focus();
-  }
-
-  private _handleChipSelect(ev: HaDropdownSelectEvent) {
-    const chip = (ev.currentTarget as HTMLElement).dataset.chip as
-      "domain" | "area";
-    const picked = ev.detail.item.value;
-    if (!picked) {
-      return;
-    }
-    if (picked !== "__any") {
-      // Keep the menu open to pick several
-      ev.preventDefault();
-    }
+    const picked = ev.detail.value;
 
     const { selected } = this._chipSelection(chip);
     const next =
@@ -2377,86 +2171,6 @@ ${rejected
         }
         ha-dropdown ha-assist-chip {
           --ha-assist-chip-trailing-space: 8px;
-        }
-
-        /* Domain and area chip menus: the search stays pinned at the top of
-           the menu while the rows scroll under it. */
-        .chip-menu::part(menu) {
-          padding-top: 0;
-          min-width: min(320px, calc(100vw - var(--ha-space-4)));
-        }
-        .chip-search {
-          position: sticky;
-          top: 0;
-          z-index: 1;
-          display: flex;
-          flex-direction: column;
-          gap: var(--ha-space-1);
-          padding: var(--ha-space-2) 0 var(--ha-space-1);
-          background: var(
-            --wa-color-surface-raised,
-            var(--card-background-color)
-          );
-        }
-        .chip-search ha-input-search {
-          display: block;
-        }
-        .chip-count {
-          padding-inline: var(--ha-space-2);
-          font-size: var(--ha-font-size-s);
-          font-weight: var(--ha-font-weight-medium);
-          color: var(--secondary-text-color);
-        }
-        .chip-section {
-          padding: var(--ha-space-3) var(--ha-space-3) var(--ha-space-1);
-          font-size: var(--ha-font-size-s);
-          font-weight: var(--ha-font-weight-medium);
-          letter-spacing: 0.4px;
-          color: var(--secondary-text-color);
-        }
-        .chip-option {
-          --ha-dropdown-item-min-height: var(--ha-space-12);
-        }
-        .chip-lead {
-          display: grid;
-          place-items: center;
-          width: var(--ha-space-8);
-          height: var(--ha-space-8);
-          border-radius: var(--ha-border-radius-circle);
-          background: var(
-            --ha-color-secondary-container,
-            var(--ha-color-fill-neutral-normal-resting)
-          );
-          color: var(
-            --ha-color-on-secondary-container,
-            var(--primary-text-color)
-          );
-          --mdc-icon-size: 20px;
-        }
-        .chip-option[selected] .chip-lead {
-          background: var(--primary-color);
-          color: var(--text-primary-color);
-        }
-        .chip-option ha-checkbox {
-          pointer-events: none;
-        }
-        .chip-empty {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: var(--ha-space-2);
-          padding: var(--ha-space-6) var(--ha-space-4);
-          text-align: center;
-          color: var(--secondary-text-color);
-          font-size: var(--ha-font-size-s);
-        }
-        .chip-empty > ha-svg-icon {
-          --mdc-icon-size: 40px;
-        }
-        .chip-empty-title {
-          font-size: var(--ha-font-size-l);
-          font-weight: var(--ha-font-weight-medium);
-          color: var(--primary-text-color);
         }
       `,
     ];

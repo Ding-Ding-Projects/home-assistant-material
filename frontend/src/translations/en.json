@@ -706,6 +706,26 @@
       "last": "Last"
     },
     "components": {
+      "filter_chip_menu": {
+        "match_count": "{shown} of {total}",
+        "no_match": "Nothing matches \"{query}\"",
+        "no_match_hint": "Check the spelling or search for part of a name. Your selection is unchanged.",
+        "clear_search": "Clear search",
+        "section_selected": "Selected when opened",
+        "section_other": "All others",
+        "search_domain": "Search domains",
+        "total_domain": "{count, plural,\n  one {# domain}\n  other {# domains}\n}",
+        "search_area": "Search areas",
+        "total_area": "{count, plural,\n  one {# area}\n  other {# areas}\n}",
+        "search_category": "Search categories",
+        "total_category": "{count, plural,\n  one {# category}\n  other {# categories}\n}",
+        "search_label": "Search labels",
+        "total_label": "{count, plural,\n  one {# label}\n  other {# labels}\n}",
+        "search_blueprint": "Search blueprints",
+        "total_blueprint": "{count, plural,\n  one {# blueprint}\n  other {# blueprints}\n}",
+        "search_integration": "Search integrations",
+        "total_integration": "{count, plural,\n  one {# integration}\n  other {# integrations}\n}"
+      },
       "camera_timeline": {
         "label": "Camera timeline",
         "today": "Today",
@@ -17546,16 +17566,6 @@
             "chip_any": "any",
             "chip_count": "{count} selected",
             "chip_clear": "Any",
-            "chip_search_domain": "Search domains",
-            "chip_search_area": "Search areas",
-            "chip_match_count": "{shown} of {total}",
-            "chip_total_domain": "{count, plural,\n  one {# domain}\n  other {# domains}\n}",
-            "chip_total_area": "{count, plural,\n  one {# area}\n  other {# areas}\n}",
-            "chip_no_match": "Nothing matches \"{query}\"",
-            "chip_no_match_hint": "Check the spelling or search for part of a name. Your selection is unchanged.",
-            "chip_clear_search": "Clear search",
-            "chip_section_selected": "Selected when opened",
-            "chip_section_other": "All others",
             "footer": "Showing {shown} of {total}. Tick rows to change many at once.",
             "filtering_by_config_entry": "Filtering by config entry",
             "status": {

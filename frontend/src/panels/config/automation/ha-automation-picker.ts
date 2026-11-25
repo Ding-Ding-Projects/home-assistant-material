@@ -8,9 +8,11 @@ import {
   mdiDotsVertical,
   mdiDownload,
   mdiExclamationThick,
+  mdiFileDocumentOutline,
   mdiHelpCircleOutline,
   mdiHistory,
   mdiInformationOutline,
+  mdiLabelOutline,
   mdiMenuDown,
   mdiOpenInNew,
   mdiPlay,
@@ -78,6 +80,11 @@ import type {
   HaDropdownSelectEvent,
 } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
+import "../../../components/ha-filter-chip-menu";
+import type {
+  FilterChipOption,
+  FilterChipSelectDetail,
+} from "../../../components/ha-filter-chip-menu";
 import "../../../components/ha-filter-blueprints";
 import "../../../components/ha-filter-categories";
 import "../../../components/ha-filter-devices";
@@ -662,22 +669,26 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
   // The options of a filter chip, which drives the same filter as the pane
   private _chipOptions(
     chip: "category" | "label" | "area" | "blueprint"
-  ): { value: string; label: string }[] {
-    let options: { value: string; label: string }[];
+  ): FilterChipOption[] {
+    let options: FilterChipOption[];
     if (chip === "category") {
       options = (this._categories ?? []).map((category) => ({
         value: category.category_id,
         label: category.name,
+        icon: category.icon ?? undefined,
       }));
     } else if (chip === "label") {
       options = (this._labels ?? []).map((label) => ({
         value: label.label_id,
         label: label.name,
+        icon: label.icon ?? undefined,
+        color: label.color ?? undefined,
       }));
     } else if (chip === "area") {
       options = Object.values(this.hass.areas).map((area) => ({
         value: area.area_id,
         label: area.name,
+        icon: area.icon ?? undefined,
       }));
     } else {
       options = Object.entries(this._blueprints ?? {}).flatMap(
@@ -732,47 +743,33 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
               count: total,
             });
 
-    return html`<ha-dropdown
+    return html`<ha-filter-chip-menu
       slot="filter-chips"
+      .kind=${chip}
       data-chip=${chip}
-      @wa-select=${this._handleChipSelect}
-    >
-      <ha-assist-chip
-        slot="trigger"
-        .active=${total > 0}
-        .label=${localize(`ui.panel.config.automation.picker.chip_${chip}`, {
-          value,
-        })}
-      >
-        <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
-      </ha-assist-chip>
-      <ha-dropdown-item value="__any" .disabled=${total === 0}>
-        ${localize("ui.panel.config.automation.picker.chip_clear")}
-      </ha-dropdown-item>
-      <wa-divider></wa-divider>
-      ${options.map(
-        (option) =>
-          html`<ha-dropdown-item .value=${option.value}>
-            <ha-checkbox
-              slot="icon"
-              .checked=${selected.includes(option.value)}
-            ></ha-checkbox>
-            ${option.label}
-          </ha-dropdown-item>`
-      )}
-    </ha-dropdown>`;
+      .localize=${localize}
+      .options=${options}
+      .selected=${selected}
+      .total=${total}
+      .fallbackPath=${
+        {
+          category: mdiTag,
+          label: mdiLabelOutline,
+          area: mdiTextureBox,
+          blueprint: mdiFileDocumentOutline,
+        }[chip]
+      }
+      .clearLabel=${localize("ui.panel.config.automation.picker.chip_clear")}
+      .chipLabel=${localize(`ui.panel.config.automation.picker.chip_${chip}`, {
+        value,
+      })}
+      @chip-select=${this._handleChipSelect}
+    ></ha-filter-chip-menu>`;
   }
 
-  private _handleChipSelect(ev: HaDropdownSelectEvent) {
+  private _handleChipSelect(ev: HASSDomEvent<FilterChipSelectDetail>) {
     const chip = (ev.currentTarget as HTMLElement).dataset.chip!;
-    const picked = ev.detail.item.value;
-    if (!picked) {
-      return;
-    }
-    if (picked !== "__any") {
-      // Keep the menu open to pick several
-      ev.preventDefault();
-    }
+    const picked = ev.detail.value;
 
     const { selected } = this._chipSelected(chip);
     const next =

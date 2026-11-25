@@ -56,6 +56,11 @@ import "../../../components/ha-button";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
+import "../../../components/ha-filter-chip-menu";
+import type {
+  FilterChipOption,
+  FilterChipSelectDetail,
+} from "../../../components/ha-filter-chip-menu";
 import "../../../components/ha-filter-floor-areas";
 import "../../../components/ha-filter-integrations";
 import "../../../components/ha-filter-labels";
@@ -984,10 +989,15 @@ export class HaConfigDeviceDashboard extends LitElement {
     });
   }
 
-  private _areaOptions = memoizeOne((areas: HomeAssistant["areas"]) =>
-    Object.values(areas)
-      .map((area) => ({ value: area.area_id, label: area.name }))
-      .sort((a, b) => a.label.localeCompare(b.label))
+  private _areaOptions = memoizeOne(
+    (areas: HomeAssistant["areas"]): FilterChipOption[] =>
+      Object.values(areas)
+        .map((area) => ({
+          value: area.area_id,
+          label: area.name,
+          icon: area.icon ?? undefined,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label))
   );
 
   private _integrationOptions = memoizeOne(
@@ -1000,9 +1010,10 @@ export class HaConfigDeviceDashboard extends LitElement {
         (manifests ?? []).map((manifest) => [manifest.domain, manifest])
       );
       return [...new Set((entries ?? []).map((entry) => entry.domain))]
-        .map((domain) => ({
+        .map((domain): FilterChipOption => ({
           value: domain,
           label: domainToName(localize, domain, manifestLookup.get(domain)),
+          domain,
         }))
         .sort((a, b) => a.label.localeCompare(b.label));
     }
@@ -1048,51 +1059,30 @@ export class HaConfigDeviceDashboard extends LitElement {
               count: total,
             });
 
-    return html`<ha-dropdown
+    return html`<ha-filter-chip-menu
       slot="filter-chips"
+      .kind=${chip}
       data-chip=${chip}
-      @wa-select=${this._handleChipSelect}
-    >
-      <ha-assist-chip
-        slot="trigger"
-        .active=${total > 0}
-        .label=${localize(
-          chip === "area"
-            ? "ui.panel.config.devices.picker.chip_area"
-            : "ui.panel.config.devices.picker.chip_integration",
-          { value }
-        )}
-      >
-        <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
-      </ha-assist-chip>
-      <ha-dropdown-item value="__any" .disabled=${total === 0}>
-        ${localize("ui.panel.config.devices.picker.chip_clear")}
-      </ha-dropdown-item>
-      <wa-divider></wa-divider>
-      ${options.map(
-        (option) =>
-          html`<ha-dropdown-item .value=${option.value}>
-            <ha-checkbox
-              slot="icon"
-              .checked=${selected.includes(option.value)}
-            ></ha-checkbox>
-            ${option.label}
-          </ha-dropdown-item>`
+      .localize=${localize}
+      .options=${options}
+      .selected=${selected}
+      .total=${total}
+      .fallbackPath=${chip === "area" ? mdiTextureBox : undefined}
+      .clearLabel=${localize("ui.panel.config.devices.picker.chip_clear")}
+      .chipLabel=${localize(
+        chip === "area"
+          ? "ui.panel.config.devices.picker.chip_area"
+          : "ui.panel.config.devices.picker.chip_integration",
+        { value }
       )}
-    </ha-dropdown>`;
+      @chip-select=${this._handleChipSelect}
+    ></ha-filter-chip-menu>`;
   }
 
-  private _handleChipSelect(ev: HaDropdownSelectEvent) {
+  private _handleChipSelect(ev: HASSDomEvent<FilterChipSelectDetail>) {
     const chip = (ev.currentTarget as HTMLElement).dataset.chip as
       "area" | "integration";
-    const picked = ev.detail.item.value;
-    if (!picked) {
-      return;
-    }
-    if (picked !== "__any") {
-      // Keep the menu open to pick several
-      ev.preventDefault();
-    }
+    const picked = ev.detail.value;
 
     const { selected } = this._chipSelection(chip);
     const next =

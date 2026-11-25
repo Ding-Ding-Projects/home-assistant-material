@@ -64,9 +64,9 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Entities in the filter pane of a list",
   },
   {
-    file: "panels/config/entities/ha-config-entities.ts",
+    file: "components/ha-filter-chip-menu.ts",
     searches:
-      "Domains and areas in the Domain and Area chip menus of the entities list",
+      "Rows in the filter chip menus of the entities, automations and devices lists (domain, area, category, label, blueprint, integration)",
   },
   {
     file: "components/ha-filter-entity-types.ts",

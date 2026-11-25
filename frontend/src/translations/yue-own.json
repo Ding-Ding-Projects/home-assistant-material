@@ -5345,16 +5345,6 @@
             "chip_any": "任何",
             "chip_count": "揀咗 {count} 個",
             "chip_clear": "任何",
-            "chip_search_domain": "搵網域",
-            "chip_search_area": "搵區域",
-            "chip_match_count": "{total} 個入面有 {shown} 個",
-            "chip_total_domain": "{count} 個網域",
-            "chip_total_area": "{count} 個區域",
-            "chip_no_match": "冇嘢配到「{query}」",
-            "chip_no_match_hint": "睇下串錯字未，或者淨係搵名嘅一部分。你揀咗嘅嘢冇變。",
-            "chip_clear_search": "清除搜尋",
-            "chip_section_selected": "打開時已揀",
-            "chip_section_other": "其他",
             "footer": "顯示緊 {total} 個入面嘅 {shown} 個。剔選幾行就可以一次過改。",
             "filtering_by_config_entry": "按設定項目篩選緊",
             "status": {
@@ -8372,6 +8362,26 @@
       }
     },
     "components": {
+      "filter_chip_menu": {
+        "match_count": "{total} 個入面有 {shown} 個",
+        "no_match": "冇嘢配到「{query}」",
+        "no_match_hint": "睇下串錯字未，或者淨係搵名嘅一部分。你揀咗嘅嘢冇變。",
+        "clear_search": "清除搜尋",
+        "section_selected": "打開時已揀",
+        "section_other": "其他",
+        "search_domain": "搵網域",
+        "total_domain": "{count} 個網域",
+        "search_area": "搵區域",
+        "total_area": "{count} 個區域",
+        "search_category": "搵類別",
+        "total_category": "{count} 個類別",
+        "search_label": "搵標籤",
+        "total_label": "{count} 個標籤",
+        "search_blueprint": "搵藍圖",
+        "total_blueprint": "{count} 個藍圖",
+        "search_integration": "搵整合",
+        "total_integration": "{count} 個整合"
+      },
       "subpage-data-table": {
         "filters": "篩選",
         "more": "更多",
