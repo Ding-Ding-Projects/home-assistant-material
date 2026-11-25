@@ -582,11 +582,15 @@ export class BarMediaPlayer extends SubscribeMixin(LitElement) {
       display: flex;
       height: 100px;
       box-sizing: border-box;
+      /* Same height as before, so the browse heights in the panel still fit. */
       background: var(
-        --ha-card-background,
-        var(--card-background-color, white)
+        --md-sys-color-surface-container,
+        var(--ha-card-background, var(--card-background-color))
       );
-      border-top: 1px solid var(--divider-color);
+      border-start-start-radius: var(--ha-border-radius-4xl);
+      border-start-end-radius: var(--ha-border-radius-4xl);
+      box-shadow: var(--ha-box-shadow-l);
+      overflow: hidden;
       margin-right: var(--safe-area-inset-right);
       transition:
         width var(--ha-animation-duration-normal) ease,
@@ -614,8 +618,8 @@ export class BarMediaPlayer extends SubscribeMixin(LitElement) {
       display: flex;
       align-items: center;
       width: 100%;
-      margin-right: 16px;
-      margin-inline-end: 16px;
+      margin-right: var(--ha-space-4);
+      margin-inline-end: var(--ha-space-4);
       margin-inline-start: initial;
 
       text-overflow: ellipsis;
@@ -731,11 +735,14 @@ export class BarMediaPlayer extends SubscribeMixin(LitElement) {
 
     .app img {
       height: 68px;
-      margin: 16px 0 16px 16px;
+      margin: var(--ha-space-4) 0 var(--ha-space-4) var(--ha-space-4);
+      border-radius: var(--ha-border-radius-lg);
     }
 
     :host([narrow]) {
       height: 57px;
+      border-start-start-radius: var(--ha-border-radius-xl);
+      border-start-end-radius: var(--ha-border-radius-xl);
     }
 
     :host([narrow]) .controls-progress {

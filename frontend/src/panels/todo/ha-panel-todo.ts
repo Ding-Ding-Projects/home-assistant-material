@@ -30,8 +30,8 @@ import type { HaDropdownSelectEvent } from "../../components/ha-dropdown";
 import "../../components/ha-dropdown-item";
 import type { HaDropdownItem } from "../../components/ha-dropdown-item";
 import "../../components/ha-icon-button";
-import "../../components/ha-list";
-import "../../components/ha-list-item";
+import "../../components/item/ha-list-item-button";
+import "../../components/list/ha-list-nav";
 import "../../components/ha-state-icon";
 import "../../components/ha-svg-icon";
 import "../../components/ha-two-pane-top-app-bar-fixed";
@@ -46,6 +46,7 @@ import {
   showConfirmationDialog,
 } from "../../dialogs/generic/show-dialog-box";
 import { showVoiceCommandDialog } from "../../dialogs/voice-command-dialog/show-ha-voice-command-dialog";
+import { paneListStyles } from "../../resources/pane-list-styles";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
 import "../lovelace/cards/hui-card";
@@ -179,13 +180,14 @@ class PanelTodo extends LitElement {
       ? this.hass.states[this._entityId]
       : undefined;
     const showPane = this._showPaneController.value ?? !this.narrow;
-    const listItems = getTodoLists(
+    const lists = getTodoLists(
       this.hass.states,
       this.hass.entities,
       this.hass.formatEntityName,
       this.hass.locale.language,
       false
-    ).map(
+    );
+    const listItems = lists.map(
       (list) =>
         html`<ha-dropdown-item
           @click=${this._setEntityId}
@@ -238,17 +240,29 @@ class PanelTodo extends LitElement {
               : this.hass.localize("panel.todo")
           }
         </div>
-        <ha-list slot="pane" activatable>${listItems}</ha-list>
+        <ha-list-nav
+          slot="pane"
+          class="pane-list"
+          .ariaLabel=${this.hass.localize("panel.todo")}
+        >
+          ${lists.map((list) => this._renderPaneRow(list))}
+        </ha-list-nav>
         ${
           showPane && this.hass.user?.is_admin
-            ? html`<ha-list-item
-                graphic="icon"
+            ? html`<ha-list-nav
                 slot="pane-footer"
-                @click=${this._addList}
+                class="pane-footer"
+                .ariaLabel=${this.hass.localize("ui.panel.todo.create_list")}
               >
-                <ha-svg-icon .path=${mdiPlus} slot="graphic"></ha-svg-icon>
-                ${this.hass.localize("ui.panel.todo.create_list")}
-              </ha-list-item>`
+                <ha-list-item-button class="pane-row" @click=${this._addList}>
+                  <span slot="start" class="pane-tile">
+                    <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
+                  </span>
+                  <span slot="headline"
+                    >${this.hass.localize("ui.panel.todo.create_list")}</span
+                  >
+                </ha-list-item-button>
+              </ha-list-nav>`
             : nothing
         }
         <ha-dropdown
@@ -333,6 +347,37 @@ class PanelTodo extends LitElement {
         }
       </ha-two-pane-top-app-bar-fixed>
     `;
+  }
+
+  private _renderPaneRow(list: ReturnType<typeof getTodoLists>[number]) {
+    const selected = list.entity_id === this._entityId;
+    const count = Number(this.hass.states[list.entity_id]?.state);
+    return html`<ha-list-item-button
+      class="pane-row ${selected ? "selected" : ""}"
+      aria-current=${selected ? "true" : "false"}
+      .entityId=${list.entity_id}
+      @click=${this._selectPaneList}
+    >
+      <span slot="start" class="pane-tile">
+        <ha-state-icon .stateObj=${list}></ha-state-icon>
+      </span>
+      <span slot="headline">${list.name}</span>
+      ${
+        Number.isFinite(count)
+          ? html`<span slot="supporting-text"
+              >${this.hass.localize("ui.panel.todo.items_left", {
+                count,
+              })}</span
+            >`
+          : nothing
+      }
+    </ha-list-item-button>`;
+  }
+
+  private _selectPaneList(ev: Event) {
+    this._entityId = (
+      ev.currentTarget as HTMLElement & { entityId: string }
+    ).entityId;
   }
 
   private async _addList(): Promise<void> {
@@ -439,6 +484,7 @@ class PanelTodo extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      paneListStyles,
       css`
         :host {
           display: block;
