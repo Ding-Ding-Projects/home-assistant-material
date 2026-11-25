@@ -1,11 +1,11 @@
 import type { List } from "@material/mwc-list/mwc-list";
 import {
   mdiClock,
-  mdiFormatListChecks,
   mdiDelete,
   mdiDeleteSweep,
   mdiDotsVertical,
   mdiDragHorizontalVariant,
+  mdiFormatListChecks,
   mdiPlus,
   mdiSort,
 } from "@mdi/js";
@@ -553,9 +553,11 @@ export class HuiTodoListCard extends LitElement implements LovelaceCard {
           <ha-list wrapFocus multi>
             ${
               !this._items
-                ? html`<div class="loading">
-                    <ha-spinner size="small"></ha-spinner>
-                  </div>`
+                ? !unavailable && this._unsubItems
+                  ? html`<div class="loading">
+                      <ha-spinner size="small"></ha-spinner>
+                    </div>`
+                  : nothing
                 : !uncheckedItems.length && !itemsWithoutStatus.length
                   ? html`<div class="empty">
                       <ha-svg-icon .path=${mdiFormatListChecks}></ha-svg-icon>

@@ -303,11 +303,12 @@ export class HuiBadgeEditMode extends LitElement {
           --mdc-icon-size: 16px;
         }
         @media (pointer: coarse) {
-          /* Keep the small visible circle, answer to a 48 px touch area */
+          /* Keep the small visible circle with a 40 px touch area that stays
+             inside the gap between badges so it never steals a neighbour's tap */
           .more ha-icon-button::after {
             content: "";
             position: absolute;
-            inset: -12px;
+            inset: -8px;
           }
         }
       `,
