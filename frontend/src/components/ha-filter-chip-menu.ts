@@ -104,14 +104,6 @@ export class HaFilterChipMenu extends LitElement {
    */
   @state() private _pinned: string[] = [];
 
-  /**
-   * The height of the menu once it opened with every row listed. Filtering
-   * keeps that height, so a menu that sits against the bottom of a phone, or
-   * flips above the chip, does not shrink and carry the search field away
-   * from the finger that is typing in it.
-   */
-  @state() private _openHeight = 0;
-
   protected render(): TemplateResult {
     const localize = this.localize;
     const search = this._search;
@@ -124,7 +116,6 @@ export class HaFilterChipMenu extends LitElement {
 
     return html`<ha-dropdown
       class="chip-menu"
-      style=${this._openHeight ? `--chip-menu-open-height: ${this._openHeight}px` : ""}
       @wa-show=${this._handleShow}
       @wa-after-show=${this._handleAfterShow}
       @wa-after-hide=${this._handleAfterHide}
@@ -258,17 +249,27 @@ export class HaFilterChipMenu extends LitElement {
     if (ev.target !== ev.currentTarget) {
       return;
     }
-    const menu = (ev.currentTarget as HTMLElement).shadowRoot?.querySelector(
-      '[part~="menu"]'
-    );
-    this._openHeight = Math.round(menu?.getBoundingClientRect().height ?? 0);
+    // The height of the menu once it opened with every row listed. Filtering
+    // keeps that height, so a menu that sits against the bottom of a phone, or
+    // flips above the chip, does not shrink and carry the search field away
+    // from the finger that is typing in it. It is set directly on the
+    // dropdown, because a bound style attribute would wipe the sheet offset
+    // the dropdown sets on itself.
+    const dropdown = ev.currentTarget as HTMLElement;
+    const menu = dropdown.shadowRoot?.querySelector('[part~="menu"]');
+    const height = Math.round(menu?.getBoundingClientRect().height ?? 0);
+    if (height) {
+      dropdown.style.setProperty("--chip-menu-open-height", `${height}px`);
+    }
   }
 
   private _handleAfterHide(ev: Event) {
     if (ev.target !== ev.currentTarget) {
       return;
     }
-    this._openHeight = 0;
+    (ev.currentTarget as HTMLElement).style.removeProperty(
+      "--chip-menu-open-height"
+    );
   }
 
   private _handleSearch(ev: Event) {

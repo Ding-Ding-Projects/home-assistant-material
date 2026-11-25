@@ -629,17 +629,16 @@ class AddIntegrationDialog extends LitElement {
               .rowRenderer=${this._renderRow}
               style=${styleMap({
                 width: `${this._width}px`,
-                // On a phone the list fills the sheet body. The height is
-                // stated outright (the sheet is 88dvh tall, less the header,
-                // search and footer) rather than left to a percentage chain
-                // inside flex boxes with no definite height, which let the
-                // virtualizer measure zero rows while the sheet opened. On a
-                // wide screen it has a bounded height.
+                // On a phone the list takes whatever the sheet body has left
+                // (a zero flex basis, so the size comes from the layout and
+                // not from a percentage that has nothing definite to resolve
+                // against), with a floor so it can never collapse to no rows.
+                // On a wide screen it has a bounded height.
                 height: this._narrow
-                  ? "calc(88dvh - 184px)"
+                  ? undefined
                   : "min(500px, calc(var(--safe-height) - var(--ha-space-20) - 184px))",
-                flex: this._narrow ? "1 1 auto" : undefined,
-                "min-height": this._narrow ? "0" : undefined,
+                flex: this._narrow ? "1 1 0" : undefined,
+                "min-height": this._narrow ? "200px" : undefined,
               })}
             >
             </ha-list-virtualized>`
