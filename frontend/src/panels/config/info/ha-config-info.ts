@@ -18,7 +18,6 @@ import {
 import type { CSSResultGroup, TemplateResult, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
-import { styleMap } from "lit/directives/style-map";
 import { applyPersonalVocabulary } from "../../../common/vocabulary/personal-vocabulary";
 import type { LocalizeKeys } from "../../../common/translations/localize";
 import {
@@ -57,25 +56,21 @@ const PAGES = [
     name: "thanks",
     path: "/developers/credits/",
     iconPath: mdiHandsPray,
-    iconColor: "#3B808E",
   },
   {
     name: "help",
     path: "/community",
     iconPath: mdiHelp,
-    iconColor: "#B1345C",
   },
   {
     name: "license",
     path: "/developers/license/",
     iconPath: mdiFileDocument,
-    iconColor: "#518C43",
   },
 ] as const satisfies readonly {
   name: string;
   path: string;
   iconPath: string;
-  iconColor: string;
 }[];
 
 type UpdateStatus = "current" | "available" | undefined;
@@ -347,7 +342,7 @@ class HaConfigInfo extends LitElement {
             </div>
           </div>
 
-          <ha-card outlined class="pages">
+          <ha-card class="pages">
             <ha-list-base>
               <ha-list-item-button @click=${this._showShortcuts}>
                 <div slot="start" class="icon-background shortcuts">
@@ -365,11 +360,7 @@ class HaConfigInfo extends LitElement {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <div
-                      slot="start"
-                      class="icon-background"
-                      style=${styleMap({ backgroundColor: page.iconColor })}
-                    >
+                    <div slot="start" class="icon-background">
                       <ha-svg-icon .path=${page.iconPath}></ha-svg-icon>
                     </div>
                     <span slot="headline">
@@ -761,7 +752,6 @@ class HaConfigInfo extends LitElement {
         .icon-background ha-svg-icon {
           height: 24px;
           width: 24px;
-          color: #fff;
         }
 
         .icon-background {
@@ -770,11 +760,12 @@ class HaConfigInfo extends LitElement {
           justify-content: center;
           width: 40px;
           height: 40px;
-          border-radius: var(--ha-border-radius-circle);
-        }
-
-        .icon-background.shortcuts {
-          background-color: #9e4dd1;
+          border-radius: var(--ha-border-radius-lg);
+          background: var(
+            --ha-color-fill-primary-quiet-resting,
+            var(--secondary-background-color)
+          );
+          color: var(--ha-color-on-primary-quiet, var(--primary-color));
         }
 
         .custom-ui {

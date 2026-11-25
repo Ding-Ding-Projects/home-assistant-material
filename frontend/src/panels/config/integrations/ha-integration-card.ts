@@ -160,7 +160,12 @@ export class HaIntegrationCard extends LitElement {
               @error=${this._onImageError}
               @load=${this._onImageLoad}
             />
-            <span slot="headline" class="name" role="heading" aria-level="3"
+            <span
+              slot="headline"
+              class="name"
+              role="heading"
+              aria-level="3"
+              title=${domainName}
               >${domainName}</span
             >
             ${this._renderSupportingText()}
@@ -469,10 +474,13 @@ export class HaIntegrationCard extends LitElement {
           overflow: visible;
         }
         .name {
-          display: block;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
           overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          overflow-wrap: anywhere;
+          white-space: normal;
         }
         /* The brand icon sits on a soft rounded tile, as on the board. */
         img {
