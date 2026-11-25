@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tile card editor, loading</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+
+.dash{position:absolute;inset:0;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
+.dash span{height:84px;border-radius:20px;background:var(--sl2)}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet{position:absolute;left:0;right:0;top:36px;bottom:0;background:var(--sl0);border-radius:28px 28px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--e3)}
+.grab{width:32px;height:4px;border-radius:2px;background:var(--out);opacity:.5;margin:10px auto 2px;flex:none}
+.ehead{display:flex;align-items:center;gap:4px;padding:0 4px 0 20px;min-height:52px;flex:none}
+.ehead h1{flex:1;min-width:0;font-size:20px;line-height:26px;font-weight:500}
+.esrch{display:flex;align-items:center;gap:8px;min-height:48px;margin:4px 16px 0;padding:0 2px 0 14px;border-radius:24px;background:var(--sl2);color:var(--onv);flex:none}
+.esrch input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px;color:var(--on)}
+.tabs{display:flex;flex:none;margin-top:4px;box-shadow:inset 0 -1px 0 var(--outv)}
+.m3 .tab{flex:1;min-height:48px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--onv);position:relative}
+.m3 .tab.sel{color:var(--p)}
+.m3 .tab.sel::after{content:"";position:absolute;left:22%;right:22%;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--p)}
+.pv{flex:none;margin:12px 16px 0;padding:10px 12px 12px;border-radius:20px;background:var(--sl2);display:flex;flex-direction:column;gap:8px}
+.tile{background:var(--sl0);border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:10px;transition:background-color .25s}
+.tile .dot{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;flex:none;transition:background-color .25s,color .25s}
+.tslide{height:36px;border-radius:12px;background:var(--sl3);overflow:hidden}
+.tslide b{display:block;height:100%;width:60%;border-radius:12px;transition:background-color .25s}
+.ghost{border-radius:16px;border:1.5px dashed var(--out);min-height:64px;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 14px;color:var(--onv);font-size:13px;text-align:center}
+.ebody{flex:1;min-height:0;overflow-y:auto;padding:14px 16px 20px;display:flex;flex-direction:column;gap:14px}
+.fl{display:flex;flex-direction:column;gap:6px}
+.m3 .pick{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 12px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.m3 .pick.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.swr{display:flex;gap:0;flex-wrap:wrap}
+.m3 .swb{width:48px;height:48px;display:grid;place-items:center;border-radius:24px}
+.swb i{display:block;width:32px;height:32px;border-radius:16px;box-shadow:inset 0 0 0 1px var(--outv)}
+.swb.sel i{box-shadow:0 0 0 2px var(--sl0),0 0 0 4px var(--on)}
+.m3 .srow{display:flex;align-items:center;gap:12px;min-height:56px;padding:4px 4px 4px 12px;border-radius:16px;background:var(--sl2);width:100%}
+.sw{width:52px;height:32px;border-radius:16px;box-shadow:inset 0 0 0 2px var(--out);background:var(--sl4);display:flex;align-items:center;padding:0 8px;flex:none;margin-right:8px;transition:background-color .2s}
+.sw i{display:block;width:16px;height:16px;border-radius:12px;background:var(--out);transition:all .2s cubic-bezier(.2,0,0,1)}
+.sw.on{box-shadow:none;background:var(--p);justify-content:flex-end;padding:0 4px}
+.sw.on i{width:24px;height:24px;background:var(--on-p)}
+.efoot{flex:none;display:flex;align-items:center;gap:8px;padding:8px 12px 14px;background:var(--sl0);box-shadow:0 -1px 0 var(--outv)}
+.strip{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;flex:none}
+.m3 .ctab{min-height:48px;padding:0 16px;border-radius:16px;background:var(--sl2);display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--onv);white-space:nowrap;flex:none}
+.m3 .ctab.sel{background:var(--pc);color:var(--on-pc)}
+.dlg{position:relative;z-index:2;width:100%;max-width:1040px;margin:auto;background:var(--sl0);border-radius:28px;box-shadow:var(--e3);display:flex;flex-direction:column;overflow:hidden;max-height:820px}
+.cols{display:flex;flex-wrap:wrap-reverse;min-height:0;flex:1;overflow:hidden}
+.cols .left{flex:1 1 440px;min-width:0;display:flex;flex-direction:column;min-height:0;max-height:620px}
+.cols .right{flex:1 1 320px;min-width:0;padding:4px 16px 16px 0;display:flex;flex-direction:column;gap:8px}
+.cols .right .pv{margin:12px 0 0 16px}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="ph">
+<div class="dash" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<div class="scrim"></div>
+<div class="sheet up" role="dialog" aria-modal="true" aria-labelledby="ed-title">
+<div class="grab" aria-hidden="true"></div>
+
+<div class="ehead">
+<h1 id="ed-title">{{title}}</h1>
+<button class="ib" aria-label="More options"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button>
+<button class="ib" aria-label="Close without saving"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button>
+</div>
+<div class="esrch">
+<svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg>
+<input type="search" value="{{query}}" onInput="{{ setQuery }}" placeholder="Search this dialog" aria-label="Search this dialog"/>
+<sc-if value="{{hasQuery}}" hint-placeholder-val="{{ false }}"><span class="lm" role="status" style="white-space: nowrap">{{matchText}}</span><button class="ib" aria-label="Clear search" onClick="{{ clearQuery }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></sc-if>
+</div>
+<div class="tabs" role="tablist" aria-label="Card settings">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><button class="{{t.cls}}" role="tab" aria-selected="{{t.aria}}" onClick="{{ t.pick }}">{{t.name}}</button></sc-for>
+</div>
+
+<div class="pv" aria-label="Live preview">
+<div class="hrow"><span class="lm" style="flex: 1">LIVE PREVIEW</span><span class="sub">{{pvNote}}</span></div>
+<sc-if value="{{pvOk}}" hint-placeholder-val="{{ true }}">
+<div class="tile">
+<div class="hrow" style="gap: 12px"><span class="dot" style="background: color-mix(in srgb, {{color}} 24%, transparent); color: {{color}}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z"></path></svg></span><span class="grow"><span class="tm">{{name}}</span><span class="sub">On · 60%</span></span></div>
+<sc-if value="{{featBright}}" hint-placeholder-val="{{ true }}"><div class="tslide" aria-hidden="true"><b style="background: {{color}}"></b></div></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{pvEmpty}}" hint-placeholder-val="{{ false }}"><div class="ghost"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20M4,6V18H20V6H4Z"></path></svg><span>Pick an entity to see the card here.</span></div></sc-if>
+<sc-if value="{{pvErr}}" hint-placeholder-val="{{ false }}"><div class="ghost" style="border-color: var(--err); color: var(--err)"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"></path></svg><span>Entity not found: light.kitchen_counter</span></div></sc-if>
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{ false }}"><span class="sk" style="height: 64px; border-radius: 16px"></span></sc-if>
+</div>
+
+<div class="ebody" role="tabpanel" aria-labelledby="ed-title">
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{ false }}">
+<span class="sub" role="status">Loading the card configuration</span>
+<span class="sk" style="height: 56px; border-radius: 16px"></span><span class="sk" style="height: 56px; border-radius: 16px"></span><span class="sk" style="height: 56px; border-radius: 16px"></span><span class="sk" style="height: 48px; width: 70%; border-radius: 16px"></span><span class="sk" style="height: 56px; border-radius: 16px"></span>
+</sc-if>
+<sc-if value="{{tConfig}}" hint-placeholder-val="{{ true }}">
+<sc-if value="{{isStack}}" hint-placeholder-val="{{ false }}">
+<div class="fl">
+<span class="lm">CARDS IN THIS STACK</span>
+<div class="strip" role="tablist" aria-label="Cards in this stack">
+<sc-for list="{{cards}}" as="c" hint-placeholder-count="3"><button class="{{c.cls}}" role="tab" aria-selected="{{c.aria}}" onClick="{{ c.pick }}">{{c.label}}</button></sc-for>
+<button class="ctab" aria-label="Add a card to this stack" onClick="{{ addCard }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg>Add</button>
+</div>
+<div class="hrow" style="gap: 0"><span class="sub" style="flex: 1">{{stackText}}</span>
+<button class="ib" aria-label="Move this card earlier" onClick="{{ moveEarlier }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></button>
+<button class="ib" aria-label="Move this card later" onClick="{{ moveLater }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M4,11V13H16L10.5,18.5L11.92,19.92L19.84,12L11.92,4.08L10.5,5.5L16,11H4Z"></path></svg></button>
+<button class="ib" aria-label="Remove this card from the stack" onClick="{{ removeCard }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H16V19H8V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z"></path></svg></button></div>
+</div>
+</sc-if>
+<sc-if value="{{isErr}}" hint-placeholder-val="{{ false }}"><div class="note bad" role="alert"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"></path></svg><span>light.kitchen_counter was not found. It may have been renamed or removed. Pick another entity to save this card.</span></div></sc-if>
+<sc-if value="{{fEntity}}" hint-placeholder-val="{{ true }}">
+<div class="fl"><span class="lm">ENTITY</span>
+<button class="{{entClass}}" onClick="{{ pickEntity }}" aria-label="Entity: {{entName}}. Change entity">
+<span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z"></path></svg></span>
+<span class="grow"><span class="bl">{{entName}}</span><span class="sub mono">{{entId}}</span></span>
+<svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,10L12,15L17,10H7Z"></path></svg></button>
+<sc-if value="{{pvEmpty}}" hint-placeholder-val="{{ false }}"><span class="sub">Required. Tap the field to pick the sample entity.</span></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{fName}}" hint-placeholder-val="{{ true }}">
+<div class="fl"><label class="lm" for="ed-name">NAME</label>
+<div class="field"><input id="ed-name" value="{{name}}" onInput="{{ setName }}"/></div></div>
+</sc-if>
+<sc-if value="{{fIcon}}" hint-placeholder-val="{{ true }}">
+<div class="fl"><span class="lm">ICON</span>
+<button class="pick" aria-label="Icon: lightbulb. Change icon"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z"></path></svg><span class="grow"><span class="bl">mdi:lightbulb</span><span class="sub">From the entity</span></span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,10L12,15L17,10H7Z"></path></svg></button></div>
+</sc-if>
+<sc-if value="{{fColor}}" hint-placeholder-val="{{ true }}">
+<div class="fl"><span class="lm">COLOR: {{colorName}}</span>
+<div class="swr" role="radiogroup" aria-label="Color">
+<sc-for list="{{swatches}}" as="w" hint-placeholder-count="6"><button class="{{w.cls}}" role="radio" aria-checked="{{w.aria}}" aria-label="{{w.name}}" onClick="{{ w.pick }}"><i style="background: {{w.hex}}"></i></button></sc-for>
+</div></div>
+</sc-if>
+<sc-if value="{{fFeatures}}" hint-placeholder-val="{{ true }}">
+<div class="fl"><span class="lm">FEATURES</span>
+<sc-for list="{{feats}}" as="f" hint-placeholder-count="2">
+<button class="srow" role="switch" aria-checked="{{f.aria}}" onClick="{{ f.toggle }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z"></path></svg><span class="grow"><span class="bl">{{f.name}}</span><span class="sub">{{f.text}}</span></span><span class="{{f.sw}}"><i></i></span></button>
+</sc-for>
+<div><button class="btn tonal"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg>Add feature</button></div></div>
+</sc-if>
+<sc-if value="{{fTap}}" hint-placeholder-val="{{ true }}">
+<div class="fl"><span class="lm">TAP BEHAVIOR</span>
+<button class="pick" aria-label="Tap behavior: Toggle. Change"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M10,9A1,1 0 0,1 11,8A1,1 0 0,1 12,9V13.47L13.21,13.6L18.15,15.79C18.68,16.03 19,16.56 19,17.14V21.5C18.97,22.32 18.32,22.97 17.5,23H11C10.62,23 10.26,22.85 10,22.57L5.1,18.37L5.84,17.6C6.03,17.39 6.3,17.28 6.58,17.28H6.8L10,19V9M11,5A4,4 0 0,1 15,9C15,10.5 14.2,11.77 13,12.46V11.24C13.61,10.69 14,9.89 14,9A3,3 0 0,0 11,6A3,3 0 0,0 8,9C8,9.89 8.39,10.69 9,11.24V12.46C7.8,11.77 7,10.5 7,9A4,4 0 0,1 11,5Z"></path></svg><span class="grow"><span class="bl">Toggle</span><span class="sub">Hold opens more info</span></span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7,10L12,15L17,10H7Z"></path></svg></button></div>
+</sc-if>
+<sc-if value="{{noMatch}}" hint-placeholder-val="{{ false }}">
+<div class="stagebox in" style="padding: 20px 8px"><span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M9,2A7,7 0 0,1 16,9C16,10.5 15.5,12 14.61,13.19L15.41,14H16L22,20L20,22L14,16V15.41L13.19,14.61C12,15.5 10.5,16 9,16A7,7 0 0,1 2,9A7,7 0 0,1 9,2M11.12,5.46L9,7.59L6.88,5.46L5.46,6.88L7.59,9L5.46,11.12L6.88,12.54L9,10.41L11.12,12.54L12.54,11.12L10.41,9L12.54,6.88L11.12,5.46Z"></path></svg></span><span class="tm" style="color: var(--on)">No setting matches "{{query}}"</span><span class="sub">Try "color", "name" or "tap".</span><button class="btn tonal" onClick="{{ clearQuery }}">Clear search</button></div>
+</sc-if>
+</sc-if>
+<sc-if value="{{tStyle}}" hint-placeholder-val="{{ false }}">
+<sc-for list="{{styleRows}}" as="f" hint-placeholder-count="3">
+<button class="srow" role="switch" aria-checked="{{f.aria}}" onClick="{{ f.toggle }}"><span class="grow"><span class="bl">{{f.name}}</span><span class="sub">{{f.text}}</span></span><span class="{{f.sw}}"><i></i></span></button>
+</sc-for>
+</sc-if>
+<sc-if value="{{tVis}}" hint-placeholder-val="{{ false }}">
+<div class="stagebox" style="padding: 24px 8px"><span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z"></path></svg></span><span class="tm" style="color: var(--on)">Always shown</span><span class="sub">Add a condition to show this card only for a state, a person, a screen size or a time.</span><button class="btn tonal"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg>Add condition</button></div>
+</sc-if>
+<sc-if value="{{tLayout}}" hint-placeholder-val="{{ false }}">
+<div class="fl"><label class="lm" for="ed-cols">WIDTH: {{cols}} OF 12 COLUMNS</label><input id="ed-cols" type="range" min="3" max="12" step="3" value="{{cols}}" onInput="{{ setCols }}" style="width: 100%; min-height: 48px; accent-color: var(--p)"/></div>
+<div class="fl"><label class="lm" for="ed-rows">HEIGHT: {{rowsN}} ROWS</label><input id="ed-rows" type="range" min="1" max="4" value="{{rowsN}}" onInput="{{ setRows }}" style="width: 100%; min-height: 48px; accent-color: var(--p)"/></div>
+<div class="note"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"></path></svg><span>On a phone the section is one card wide, so every width above 6 columns fills the row.</span></div>
+</sc-if>
+</div>
+
+<div class="efoot">
+<button class="ib" aria-label="Show code editor"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M8,3A2,2 0 0,0 6,5V9A2,2 0 0,1 4,11H3V13H4A2,2 0 0,1 6,15V19A2,2 0 0,0 8,21H10V19H8V14A2,2 0 0,0 6,12A2,2 0 0,0 8,10V5H10V3M16,3A2,2 0 0,1 18,5V9A2,2 0 0,0 20,11H21V13H20A2,2 0 0,0 18,15V19A2,2 0 0,1 16,21H14V19H16V14A2,2 0 0,1 18,12A2,2 0 0,1 16,10V5H14V3H16Z"></path></svg></button>
+<span class="sub" style="flex: 1" role="status">{{footText}}</span>
+<button class="btn text" onClick="{{ cancel }}">Cancel</button>
+<button class="{{saveClass}}" aria-disabled="{{saveOff}}" onClick="{{ save }}">Save</button>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"loading","options":["config","no-entity","loading","error","stack"]},"$preview":{"width":390,"height":844}}'>
+const SW = [['Accent', 'var(--p)'], ['Amber', '#E0A526'], ['Green', '#4CAF6A'], ['Red', '#E5645A'], ['Purple', '#A58AD6'], ['Teal', '#3FB7B0']];
+const FIELDS = { fEntity: 'entity', fName: 'name', fIcon: 'icon', fColor: 'color', fFeatures: 'features brightness color temperature', fTap: 'tap behavior hold toggle' };
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'config'; this.reset('config'); }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'loading';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+
+  reset(s) {
+    this.tab = 'Config'; this.q = ''; this.name = 'Kitchen counter'; this.color = 0; this.msg = '';
+    this.feat = { bright: true, temp: false }; this.style = { vertical: false, hideState: false, picture: false };
+    this.cols = 6; this.rowsN = 1; this.cards = ['Tile', 'Gauge', 'Entities']; this.card = 0;
+  }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const isStack = s === 'stack';
+    const loading = s === 'loading';
+    const q = this.q.trim().toLowerCase();
+    const show = {}; let n = 0;
+    Object.keys(FIELDS).forEach((k) => { show[k] = !loading && (!q || FIELDS[k].includes(q)); if (show[k]) n += 1; });
+    const total = Object.keys(FIELDS).length;
+    const canSave = s === 'config' || isStack;
+    const sw = (on) => (on ? 'sw on' : 'sw');
+    const flip = (o, k) => () => { o[k] = !o[k]; this.bump(); };
+    const tab = loading ? '' : this.tab;
+    const move = (d) => () => { const j = this.card + d; if (j < 0 || j >= this.cards.length) return; const c = this.cards.slice(); const t = c[this.card]; c[this.card] = c[j]; c[j] = t; this.cards = c; this.card = j; this.bump(); };
+    return Object.assign(v, show, {
+      title: isStack ? 'Vertical stack card configuration' : 'Tile card configuration',
+      isStack, isLoading: loading, isErr: s === 'error',
+      query: this.q, hasQuery: this.q.length > 0, matchText: n + ' of ' + total,
+      setQuery: (e) => { this.q = e.target.value; this.tab = 'Config'; this.bump(); },
+      clearQuery: () => { this.q = ''; this.bump(); },
+      noMatch: !loading && n === 0,
+      tabs: ['Config', 'Style', 'Visibility', 'Layout'].map((t) => ({ name: t, cls: this.tab === t ? 'tab sel' : 'tab', aria: this.tab === t ? 'true' : 'false', pick: () => { this.tab = t; this.bump(); } })),
+      tConfig: tab === 'Config', tStyle: tab === 'Style', tVis: tab === 'Visibility', tLayout: tab === 'Layout',
+      pvOk: s === 'config' || isStack, pvEmpty: s === 'no-entity', pvErr: s === 'error',
+      pvNote: isStack ? 'Card ' + (this.card + 1) + ' of ' + this.cards.length : (canSave ? 'Updates as you type' : ''),
+      name: this.name, setName: (e) => { this.name = e.target.value; this.bump(); },
+      color: SW[this.color][1], colorName: SW[this.color][0].toUpperCase(),
+      swatches: SW.map((w, i) => ({ name: w[0], hex: w[1], cls: i === this.color ? 'swb sel' : 'swb', aria: i === this.color ? 'true' : 'false', pick: () => { this.color = i; this.bump(); } })),
+      featBright: this.feat.bright,
+      feats: [
+        { name: 'Light brightness', text: 'A slider under the name', aria: String(this.feat.bright), sw: sw(this.feat.bright), toggle: flip(this.feat, 'bright') },
+        { name: 'Light color temperature', text: 'Warm to cool slider', aria: String(this.feat.temp), sw: sw(this.feat.temp), toggle: flip(this.feat, 'temp') }
+      ],
+      styleRows: [
+        { name: 'Vertical layout', text: 'Icon above the name', aria: String(this.style.vertical), sw: sw(this.style.vertical), toggle: flip(this.style, 'vertical') },
+        { name: 'Hide state', text: 'Show the name only', aria: String(this.style.hideState), sw: sw(this.style.hideState), toggle: flip(this.style, 'hideState') },
+        { name: 'Show entity picture', text: 'Use the picture instead of the icon', aria: String(this.style.picture), sw: sw(this.style.picture), toggle: flip(this.style, 'picture') }
+      ],
+      entName: s === 'no-entity' ? 'Choose an entity' : 'Kitchen counter',
+      entId: s === 'no-entity' ? 'No entity chosen yet' : 'light.kitchen_counter',
+      entClass: s === 'error' ? 'pick bad' : 'pick',
+      pickEntity: () => { if (this._s === 'no-entity' || this._s === 'error') { this._s = 'config'; this.bump(); } },
+      cols: this.cols, rowsN: this.rowsN,
+      setCols: (e) => { this.cols = Number(e.target.value); this.bump(); },
+      setRows: (e) => { this.rowsN = Number(e.target.value); this.bump(); },
+      cards: this.cards.map((c, i) => ({ label: (i + 1) + '  ' + c, cls: i === this.card ? 'ctab sel' : 'ctab', aria: i === this.card ? 'true' : 'false', pick: () => { this.card = i; this.bump(); } })),
+      stackText: 'Card ' + (this.card + 1) + ' of ' + this.cards.length + ': ' + this.cards[this.card],
+      addCard: () => { this.cards = this.cards.concat(['Tile']); this.card = this.cards.length - 1; this.bump(); },
+      moveEarlier: move(-1), moveLater: move(1),
+      removeCard: () => { if (this.cards.length < 2) return; this.cards = this.cards.filter((c, i) => i !== this.card); this.card = Math.max(0, this.card - 1); this.bump(); },
+      footText: this.msg,
+      saveClass: canSave ? 'btn fill' : 'btn off', saveOff: canSave ? 'false' : 'true',
+      save: () => { if (!canSave) return; this.msg = 'Saved'; this.bump(); },
+      cancel: () => { const k = this._s; this.reset(k); this.msg = 'Changes discarded'; this.bump(); }
+    });
+  }
+}
+</script>
+</body>
+</html>

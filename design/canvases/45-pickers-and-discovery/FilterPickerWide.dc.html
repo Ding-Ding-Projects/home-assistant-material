@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Filter by type on a wide window</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.m3{--ac:#98CBFF;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);--p:color-mix(in srgb,var(--ac) 55%,#00131f);--on-p:#FFFFFF;--pc:color-mix(in srgb,var(--ac) 34%,#FFFFFF);--on-pc:color-mix(in srgb,var(--ac) 30%,#000000);font-family:Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e3:0 6px 16px rgba(0,0,0,.6);--p:var(--ac);--on-p:#071019;--pc:color-mix(in srgb,var(--ac) 30%,#12161A);--on-pc:color-mix(in srgb,var(--ac) 30%,#FFFFFF)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 input{font:inherit;color:inherit}
+.m3 h1,.m3 h2,.m3 p{margin:0}
+.m3 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:40px;height:40px}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:500}
+.bl{font-size:16px;line-height:24px}
+.sub{font-size:13px;line-height:18px;color:var(--onv)}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px;color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:8px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none;transition:background-color .2s}
+.ib:hover{background:var(--sl3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:24px;font-size:14px;font-weight:600;white-space:nowrap;transition:filter .2s,transform .2s cubic-bezier(.2,0,0,1)}
+.m3 .btn.fill{background:var(--p);color:var(--on-p)}
+.m3 .btn.tonal{background:var(--sc);color:var(--on-sc)}
+.m3 .btn.text{color:var(--p);padding:0 14px}
+.m3 .btn.off{background:var(--sl4);color:var(--out);cursor:not-allowed}
+.btn:hover{filter:brightness(1.07)}
+.m3 .chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;font-weight:600;white-space:nowrap;flex:none;position:relative}
+.m3 .chip::after{content:"";position:absolute;inset:-6px 0}
+.m3 .chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.note{display:flex;gap:12px;padding:12px 14px;border-radius:16px;background:var(--sl2);color:var(--onv);font-size:13px;line-height:18px}
+.note.bad{background:var(--errc);color:var(--on-errc)}
+.field{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out);width:100%}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.field input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:44px}
+.sk{display:block;border-radius:12px;background:linear-gradient(90deg,var(--sl2) 25%,var(--sl4) 50%,var(--sl2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.in{animation:rise .35s cubic-bezier(.2,0,0,1) both}
+.pop{animation:pop .28s cubic-bezier(.2,0,0,1) both}
+.up{animation:up .32s cubic-bezier(.2,0,0,1) both}
+.spin{animation:spin 1s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+.lin{height:4px;border-radius:2px;background:var(--sl4);overflow:hidden}
+.lin span{display:block;width:36%;height:100%;border-radius:2px;background:var(--p);animation:slide 1.4s cubic-bezier(.4,0,.2,1) infinite}
+.ph{width:390px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.wd{min-height:var(--wh,860px);position:relative;overflow:hidden;padding:20px clamp(16px,3vw,40px) 32px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:4px;min-height:64px;padding:8px 8px 8px 4px;flex:none}
+.bar h1{flex:1;min-width:0;font-size:22px;line-height:28px;font-weight:500}
+.stagebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px 24px;color:var(--onv)}
+.stagebox .big{width:72px;height:72px;border-radius:36px;display:grid;place-items:center;background:var(--sl2);color:var(--onv)}
+.toast{position:absolute;left:12px;right:12px;bottom:16px;z-index:8;background:var(--inv);color:var(--on-inv);border-radius:16px;padding:10px 6px 10px 16px;display:flex;align-items:center;gap:8px;box-shadow:var(--e3)}
+.toast .btn.text{color:inherit;text-decoration:underline}
+.still *{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){.m3 *{animation:none!important;transition:none!important}}
+
+.srch{display:flex;align-items:center;gap:8px;min-height:56px;margin:0 12px;padding:0 4px 0 16px;border-radius:28px;background:var(--sl2);color:var(--onv);flex:none}
+.srch input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;min-height:48px;color:var(--on)}
+.srch .cnt{font-size:12px;font-weight:600;color:var(--onv);white-space:nowrap;padding-right:8px}
+.anyrow{display:flex;align-items:center;gap:12px;padding:10px 16px 6px;flex:none}
+.list{flex:1;min-height:0;overflow-y:auto;padding:0 8px 12px;display:flex;flex-direction:column}
+.sec{padding:14px 12px 6px}
+.m3 .frow{display:flex;align-items:center;gap:14px;min-height:56px;padding:6px 12px;border-radius:16px;width:100%;transition:background-color .2s}
+.m3 .frow:hover{background:var(--sl2)}
+.m3 .frow.on{background:var(--pc);color:var(--on-pc)}
+.m3 .frow.on .sub{color:inherit;opacity:.85}
+.m3 .frow.on .lead{background:var(--p);color:var(--on-p)}
+.box{width:20px;height:20px;border-radius:4px;box-shadow:inset 0 0 0 2px var(--out);display:grid;place-items:center;flex:none;margin:0 6px;transition:background-color .2s}
+.box svg{width:16px;height:16px;fill:var(--on-p);opacity:0}
+.box.on{background:var(--p);box-shadow:none}
+.box.on svg{opacity:1}
+.ffoot{flex:none;padding:10px 16px 16px;background:var(--sl0);display:flex;gap:8px}
+.ffoot .btn{flex:1}
+.panel{background:var(--sl0);border-radius:28px;display:flex;flex-direction:column;overflow:hidden}
+.fwrap{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.fwrap .panel.side{flex:0 1 380px;height:720px;padding-top:12px}
+.fwrap .panel.main{flex:1 1 480px;padding:16px;gap:4px;min-width:0}
+.trow{display:flex;align-items:center;gap:14px;min-height:56px;padding:6px 8px;border-radius:16px}
+.trow:hover{background:var(--sl2)}
+</style>
+</helmet>
+<div class="{{shell}}" style="--ac: {{accent}}">
+<div class="wd">
+<div class="hrow" style="flex-wrap: wrap; gap: 12px">
+<h1 class="tl" style="flex: 1">Entities</h1>
+<span class="sub">{{tableText}}</span>
+</div>
+<div class="fwrap">
+<div class="panel side">
+<div class="hrow" style="padding: 4px 8px 8px 20px"><span class="tm" style="flex: 1">Filter by type</span><button class="btn text" onClick="{{ pickAny }}">Reset</button></div>
+
+<div class="srch">
+<svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg>
+<input type="search" value="{{query}}" onInput="{{ setQuery }}" placeholder="Search types" aria-label="Search entity types"/>
+<span class="cnt" role="status">{{countText}}</span>
+<sc-if value="{{hasQuery}}" hint-placeholder-val="{{ false }}"><button class="ib" aria-label="Clear search" onClick="{{ clearQuery }}"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></sc-if>
+</div>
+<div class="anyrow">
+<button class="{{anyClass}}" aria-pressed="{{anyAria}}" onClick="{{ pickAny }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M0.41,13.41L6,19L7.41,17.58L1.83,12M22.24,5.58L11.66,16.17L7.5,12L6.07,13.41L11.66,19L23.66,7M18,7L16.59,5.58L10.24,11.93L11.66,13.34L18,7Z"></path></svg>Any</button>
+<span class="sub">{{selText}}</span>
+</div>
+<sc-if value="{{isList}}" hint-placeholder-val="{{ true }}">
+<div class="list" role="group" aria-label="Entity types">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+<sc-if value="{{r.head}}" hint-placeholder-val="{{ false }}"><div class="sec lm">{{r.headText}}</div></sc-if>
+<button class="{{r.cls}}" role="checkbox" aria-checked="{{r.aria}}" onClick="{{ r.toggle }}">
+<span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{r.icon}}"></path></svg></span>
+<span class="grow"><span class="bl">{{r.name}}</span><span class="sub">{{r.meta}}</span></span>
+<span class="{{r.box}}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"></path></svg></span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+<div class="stagebox in">
+<span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M9,2A7,7 0 0,1 16,9C16,10.5 15.5,12 14.61,13.19L15.41,14H16L22,20L20,22L14,16V15.41L13.19,14.61C12,15.5 10.5,16 9,16A7,7 0 0,1 2,9A7,7 0 0,1 9,2M11.12,5.46L9,7.59L6.88,5.46L5.46,6.88L7.59,9L5.46,11.12L6.88,12.54L9,10.41L11.12,12.54L12.54,11.12L10.41,9L12.54,6.88L11.12,5.46Z"></path></svg></span>
+<span class="tm" style="color: var(--on)">No type matches "{{query}}"</span>
+<span class="sub">Check the spelling, or search for part of a name such as "sens". Your selection is unchanged.</span>
+<button class="btn tonal" onClick="{{ clearQuery }}">Clear search</button>
+</div>
+</sc-if>
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{ false }}">
+<div class="list" aria-busy="true" aria-label="Loading entity types">
+<div class="sec lm">Loading types</div>
+<sc-for list="{{skel}}" as="k" hint-placeholder-count="7">
+<div class="frow"><span class="sk" style="width: 40px; height: 40px; border-radius: 20px"></span><span class="grow" style="gap: 6px"><span class="sk" style="height: 14px; width: {{k.w}}"></span><span class="sk" style="height: 10px; width: 72px"></span></span><span class="sk" style="width: 20px; height: 20px; border-radius: 4px; margin: 0 6px"></span></div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{isError}}" hint-placeholder-val="{{ false }}">
+<div class="stagebox in" role="alert">
+<span class="big" style="background: var(--errc); color: var(--on-errc)"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"></path></svg></span>
+<span class="tm" style="color: var(--on)">Entity types could not be loaded</span>
+<span class="sub">The connection to Home Assistant dropped while reading the list. Your current filter is unchanged.</span>
+<button class="btn fill" onClick="{{ retry }}"><svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg>Try again</button>
+</div>
+</sc-if>
+</div>
+<div class="panel main">
+<div class="hrow" style="flex-wrap: wrap; padding: 0 8px 8px">
+<span class="lm">Showing</span>
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="3"><button class="chip sel" onClick="{{ c.remove }}" aria-label="{{c.label}}">{{c.name}}<svg class="ic s" aria-hidden="true" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></sc-for>
+<sc-if value="{{noChips}}" hint-placeholder-val="{{ false }}"><span class="chip sel">Any type</span></sc-if>
+</div>
+<sc-for list="{{ents}}" as="e" hint-placeholder-count="8">
+<div class="trow in">
+<span class="lead"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="{{e.icon}}"></path></svg></span>
+<span class="grow"><span class="bl">{{e.name}}</span><span class="sub mono">{{e.id}}</span></span>
+<span class="tag">{{e.type}}</span>
+<span class="sub" style="width: 88px; text-align: right">{{e.state}}</span>
+</div>
+</sc-for>
+<sc-if value="{{noEnts}}" hint-placeholder-val="{{ false }}"><div class="stagebox"><span class="big"><svg class="ic l" aria-hidden="true" viewBox="0 0 24 24"><path d="M2.39 1.73L1.11 3L9 10.89V15.87C8.96 16.16 9.06 16.47 9.29 16.7L13.3 20.71C13.69 21.1 14.32 21.1 14.71 20.71C14.94 20.5 15.04 20.18 15 19.88V16.89L20.84 22.73L22.11 21.46L15 14.35V14.34L13 12.35L11 10.34L4.15 3.5L2.39 1.73M6.21 3L8.2 5H16.96L13.11 9.91L15 11.8V10.75L19.79 4.62C20.13 4.19 20.05 3.56 19.62 3.22C19.43 3.08 19.22 3 19 3H6.21M11 12.89L13 14.89V17.58L11 15.58V12.89Z"></path></svg></span><span class="tm" style="color: var(--on)">No sample entities of these types</span><span class="sub">Pick another type on the left, or choose Any.</span></div></sc-if>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#98CBFF","options":["#98CBFF","#9BD6A4","#F2C744","#D4BEE6"]},"motion":{"editor":"boolean","default":true},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"stage":{"editor":"enum","default":"normal","options":["normal","no-match","loading","error"]},"$preview":{"width":1280,"height":860}}'>
+const DOMAINS = [{"id":"ai_task","name":"AI task","icon":"M12,1L9,9L1,12L9,15L12,23L15,15L23,12L15,9L12,1Z","count":2},{"id":"alarm_control_panel","name":"Alarm control panel","icon":"M11,13H13V16H16V11H18L12,6L6,11H8V16H11V13M12,1L21,5V11C21,16.55 17.16,21.74 12,23C6.84,21.74 3,16.55 3,11V5L12,1Z","count":1},{"id":"automation","name":"Automation","icon":"M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z","count":34},{"id":"binary_sensor","name":"Binary sensor","icon":"M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z","count":41},{"id":"button","name":"Button","icon":"M13 5C15.21 5 17 6.79 17 9C17 10.5 16.2 11.77 15 12.46V11.24C15.61 10.69 16 9.89 16 9C16 7.34 14.66 6 13 6S10 7.34 10 9C10 9.89 10.39 10.69 11 11.24V12.46C9.8 11.77 9 10.5 9 9C9 6.79 10.79 5 13 5M20 20.5C19.97 21.32 19.32 21.97 18.5 22H13C12.62 22 12.26 21.85 12 21.57L8 17.37L8.74 16.6C8.93 16.39 9.2 16.28 9.5 16.28H9.7L12 18V9C12 8.45 12.45 8 13 8S14 8.45 14 9V13.47L15.21 13.6L19.15 15.79C19.68 16.03 20 16.56 20 17.14V20.5M20 2H4C2.9 2 2 2.9 2 4V12C2 13.11 2.9 14 4 14H8V12L4 12L4 4H20L20 12H18V14H20V13.96L20.04 14C21.13 14 22 13.09 22 12V4C22 2.9 21.11 2 20 2Z","count":18},{"id":"calendar","name":"Calendar","icon":"M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z","count":3},{"id":"camera","name":"Camera","icon":"M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z","count":4},{"id":"climate","name":"Climate","icon":"M16.95,16.95L14.83,14.83C15.55,14.1 16,13.1 16,12C16,11.26 15.79,10.57 15.43,10L17.6,7.81C18.5,9 19,10.43 19,12C19,13.93 18.22,15.68 16.95,16.95M12,5C13.57,5 15,5.5 16.19,6.4L14,8.56C13.43,8.21 12.74,8 12,8A4,4 0 0,0 8,12C8,13.1 8.45,14.1 9.17,14.83L7.05,16.95C5.78,15.68 5,13.93 5,12A7,7 0 0,1 12,5M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12C22,6.47 17.5,2 12,2Z","count":5},{"id":"cover","name":"Cover","icon":"M3 4H21V8H19V20H17V8H7V20H5V8H3V4M8 9H16V11H8V9M8 12H16V14H8V12M8 15H16V17H8V15M8 18H16V20H8V18Z","count":6},{"id":"device_tracker","name":"Device tracker","icon":"M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z","count":9},{"id":"fan","name":"Fan","icon":"M12,11A1,1 0 0,0 11,12A1,1 0 0,0 12,13A1,1 0 0,0 13,12A1,1 0 0,0 12,11M12.5,2C17,2 17.11,5.57 14.75,6.75C13.76,7.24 13.32,8.29 13.13,9.22C13.61,9.42 14.03,9.73 14.35,10.13C18.05,8.13 22.03,8.92 22.03,12.5C22.03,17 18.46,17.1 17.28,14.73C16.78,13.74 15.72,13.3 14.79,13.11C14.59,13.59 14.28,14 13.88,14.34C15.87,18.03 15.08,22 11.5,22C7,22 6.91,18.42 9.27,17.24C10.25,16.75 10.69,15.71 10.89,14.79C10.4,14.59 9.97,14.27 9.65,13.87C5.96,15.85 2,15.07 2,11.5C2,7 5.56,6.89 6.74,9.26C7.24,10.25 8.29,10.68 9.22,10.87C9.41,10.39 9.73,9.97 10.14,9.65C8.15,5.96 8.94,2 12.5,2Z","count":3},{"id":"humidifier","name":"Humidifier","icon":"M11 9C8.79 9 7 10.79 7 13S8.79 17 11 17 15 15.21 15 13 13.21 9 11 9M11 15C9.9 15 9 14.11 9 13S9.9 11 11 11 13 11.9 13 13 12.11 15 11 15M7 4H14C16.21 4 18 5.79 18 8V9H16V8C16 6.9 15.11 6 14 6H7C5.9 6 5 6.9 5 8V20H16V18H18V22H3V8C3 5.79 4.79 4 7 4M19 10.5C19 10.5 21 12.67 21 14C21 15.1 20.1 16 19 16S17 15.1 17 14C17 12.67 19 10.5 19 10.5","count":1},{"id":"light","name":"Light","icon":"M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z","count":27},{"id":"lock","name":"Lock","icon":"M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z","count":2},{"id":"media_player","name":"Media player","icon":"M1,10V12A9,9 0 0,1 10,21H12C12,14.92 7.07,10 1,10M1,14V16A5,5 0 0,1 6,21H8A7,7 0 0,0 1,14M1,18V21H4A3,3 0 0,0 1,18M21,3H3C1.89,3 1,3.89 1,5V8H3V5H21V19H14V21H21A2,2 0 0,0 23,19V5C23,3.89 22.1,3 21,3Z","count":8},{"id":"scene","name":"Scene","icon":"M17.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,9A1.5,1.5 0 0,1 19,10.5A1.5,1.5 0 0,1 17.5,12M14.5,8A1.5,1.5 0 0,1 13,6.5A1.5,1.5 0 0,1 14.5,5A1.5,1.5 0 0,1 16,6.5A1.5,1.5 0 0,1 14.5,8M9.5,8A1.5,1.5 0 0,1 8,6.5A1.5,1.5 0 0,1 9.5,5A1.5,1.5 0 0,1 11,6.5A1.5,1.5 0 0,1 9.5,8M6.5,12A1.5,1.5 0 0,1 5,10.5A1.5,1.5 0 0,1 6.5,9A1.5,1.5 0 0,1 8,10.5A1.5,1.5 0 0,1 6.5,12M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A1.5,1.5 0 0,0 13.5,19.5C13.5,19.11 13.35,18.76 13.11,18.5C12.88,18.23 12.73,17.88 12.73,17.5A1.5,1.5 0 0,1 14.23,16H16A5,5 0 0,0 21,11C21,6.58 16.97,3 12,3Z","count":12},{"id":"script","name":"Script","icon":"M17.8,20C17.4,21.2 16.3,22 15,22H5C3.3,22 2,20.7 2,19V18H5L14.2,18C14.6,19.2 15.7,20 17,20H17.8M19,2C20.7,2 22,3.3 22,5V6H20V5C20,4.4 19.6,4 19,4C18.4,4 18,4.4 18,5V18H17C16.4,18 16,17.6 16,17V16H5V5C5,3.3 6.3,2 8,2H19M8,6V8H15V6H8M8,10V12H14V10H8Z","count":15},{"id":"sensor","name":"Sensor","icon":"M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z","count":163},{"id":"switch","name":"Switch","icon":"M18.4 1.6C18 1.2 17.5 1 17 1H7C6.5 1 6 1.2 5.6 1.6C5.2 2 5 2.5 5 3V21C5 21.5 5.2 22 5.6 22.4C6 22.8 6.5 23 7 23H17C17.5 23 18 22.8 18.4 22.4C18.8 22 19 21.5 19 21V3C19 2.5 18.8 2 18.4 1.6M16 7C16 7.6 15.6 8 15 8H9C8.4 8 8 7.6 8 7V5C8 4.4 8.4 4 9 4H15C15.6 4 16 4.4 16 5V7Z","count":38},{"id":"update","name":"Update","icon":"M20.54,5.23C20.83,5.57 21,6 21,6.5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V6.5C3,6 3.17,5.57 3.46,5.23L4.84,3.55C5.12,3.21 5.53,3 6,3H18C18.47,3 18.88,3.21 19.15,3.55L20.54,5.23M5.12,5H18.87L17.93,4H5.93L5.12,5M12,9.5L6.5,15H10V17H14V15H17.5L12,9.5Z","count":22},{"id":"vacuum","name":"Vacuum","icon":"M12,2C14.65,2 17.19,3.06 19.07,4.93L17.65,6.35C16.15,4.85 14.12,4 12,4C9.88,4 7.84,4.84 6.35,6.35L4.93,4.93C6.81,3.06 9.35,2 12,2M3.66,6.5L5.11,7.94C4.39,9.17 4,10.57 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,10.57 19.61,9.17 18.88,7.94L20.34,6.5C21.42,8.12 22,10.04 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12C2,10.04 2.58,8.12 3.66,6.5M12,6A6,6 0 0,1 18,12C18,13.59 17.37,15.12 16.24,16.24L14.83,14.83C14.08,15.58 13.06,16 12,16C10.94,16 9.92,15.58 9.17,14.83L7.76,16.24C6.63,15.12 6,13.59 6,12A6,6 0 0,1 12,6M12,8A1,1 0 0,0 11,9A1,1 0 0,0 12,10A1,1 0 0,0 13,9A1,1 0 0,0 12,8Z","count":1},{"id":"weather","name":"Weather","icon":"M12.74,5.47C15.1,6.5 16.35,9.03 15.92,11.46C17.19,12.56 18,14.19 18,16V16.17C18.31,16.06 18.65,16 19,16A3,3 0 0,1 22,19A3,3 0 0,1 19,22H6A4,4 0 0,1 2,18A4,4 0 0,1 6,14H6.27C5,12.45 4.6,10.24 5.5,8.26C6.72,5.5 9.97,4.24 12.74,5.47M11.93,7.3C10.16,6.5 8.09,7.31 7.31,9.07C6.85,10.09 6.93,11.22 7.41,12.13C8.5,10.83 10.16,10 12,10C12.7,10 13.38,10.12 14,10.34C13.94,9.06 13.18,7.86 11.93,7.3M13.55,3.64C13,3.4 12.45,3.23 11.88,3.12L14.37,1.82L15.27,4.71C14.76,4.29 14.19,3.93 13.55,3.64M6.09,4.44C5.6,4.79 5.17,5.19 4.8,5.63L4.91,2.82L7.87,3.5C7.25,3.71 6.65,4.03 6.09,4.44M18,9.71C17.91,9.12 17.78,8.55 17.59,8L19.97,9.5L17.92,11.73C18.03,11.08 18.05,10.4 18,9.71M3.04,11.3C3.11,11.9 3.24,12.47 3.43,13L1.06,11.5L3.1,9.28C3,9.93 2.97,10.61 3.04,11.3M19,18H16V16A4,4 0 0,0 12,12A4,4 0 0,0 8,16H6A2,2 0 0,0 4,18A2,2 0 0,0 6,20H19A1,1 0 0,0 20,19A1,1 0 0,0 19,18Z","count":2}];
+const ENTS = [
+  ['Kitchen counter', 'light.kitchen_counter', 'light', 'On'], ['Hallway ceiling', 'light.hallway_ceiling', 'light', 'Off'],
+  ['Living room temperature', 'sensor.living_room_temperature', 'sensor', '21.4 °C'], ['Fridge power', 'sensor.fridge_power', 'sensor', '48 W'],
+  ['Coffee maker', 'switch.coffee_maker', 'switch', 'Off'], ['Grow shelf plug', 'switch.grow_shelf_plug', 'switch', 'On'],
+  ['Front door', 'binary_sensor.front_door', 'binary_sensor', 'Closed'], ['Thermostat', 'climate.thermostat', 'climate', 'Heat'],
+  ['Porch camera', 'camera.porch', 'camera', 'Idle'], ['Morning lights', 'automation.morning_lights', 'automation', 'On'],
+  ['Front door lock', 'lock.front_door', 'lock', 'Locked'], ['Bedroom fan', 'fan.bedroom', 'fan', 'Off']
+];
+const BY = {}; DOMAINS.forEach((d) => { BY[d.id] = d; });
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { n: 0 }; this._p = null; this._s = 'normal'; this.q = ''; this.sel = { light: 1, sensor: 1, switch: 1 }; this.pinned = { light: 1, sensor: 1, switch: 1 }; }
+
+  base() {
+    const accent = this.props.accent ?? '#98CBFF';
+    const motion = this.props.motion ?? true;
+    const theme = this.props.theme ?? 'dark';
+    return { accent, shell: 'm3' + (theme === 'dark' ? ' dark' : '') + (motion ? '' : ' still') };
+  }
+  bump() { this.setState({ n: this.state.n + 1 }); }
+  stage() {
+    const p = this.props.stage ?? 'normal';
+    if (p !== this._p) { this._p = p; this._s = p; this.reset(p); }
+    return this._s;
+  }
+  go(s) { this._s = s; this.reset(s); this.bump(); }
+
+  reset(s) { this.q = s === 'no-match' ? 'zzq' : ''; }
+  renderVals() {
+    const v = this.base();
+    const s = this.stage();
+    const q = this.q.trim().toLowerCase();
+    const shown = DOMAINS.filter((d) => !q || d.name.toLowerCase().includes(q));
+    const top = shown.filter((d) => this.pinned[d.id]);
+    const rest = shown.filter((d) => !this.pinned[d.id]);
+    const ordered = top.concat(rest);
+    const picked = DOMAINS.filter((d) => this.sel[d.id]);
+    const busy = s === 'loading' || s === 'error';
+    const toggle = (id) => { const n = Object.assign({}, this.sel); if (n[id]) delete n[id]; else n[id] = 1; this.sel = n; this.bump(); };
+    const total = (picked.length ? picked : DOMAINS).reduce((a, d) => a + d.count, 0);
+    const ents = ENTS.filter((e) => !picked.length || this.sel[e[2]]);
+    return Object.assign(v, {
+      query: this.q, hasQuery: this.q.length > 0,
+      setQuery: (e) => { this.q = e.target.value; if (this._s === 'no-match') this._s = 'normal'; this.bump(); },
+      clearQuery: () => { this.q = ''; if (this._s === 'no-match') this._s = 'normal'; this.bump(); },
+      countText: busy ? '' : (q ? shown.length + ' of ' + DOMAINS.length : DOMAINS.length + ' types'),
+      anyClass: picked.length ? 'chip' : 'chip sel', anyAria: picked.length ? 'false' : 'true',
+      pickAny: () => { this.sel = {}; this.bump(); },
+      selText: picked.length ? picked.length + ' selected' : 'Every type is shown',
+      isList: !busy && shown.length > 0, isEmpty: !busy && shown.length === 0, isLoading: s === 'loading', isError: s === 'error',
+      retry: () => this.go('normal'),
+      skel: ['62%', '48%', '70%', '40%', '56%', '66%', '44%'].map((w) => ({ w })),
+      rows: ordered.map((d, i) => {
+        const on = !!this.sel[d.id];
+        const firstTop = top.length > 0 && i === 0;
+        const firstRest = i === top.length;
+        return {
+          name: d.name, icon: d.icon, meta: d.count === 1 ? '1 entity' : d.count + ' entities',
+          head: firstTop || firstRest, headText: firstTop ? 'Selected when opened' : (top.length ? 'All other types' : 'All types'),
+          cls: on ? 'frow on' : 'frow', aria: on ? 'true' : 'false', box: on ? 'box on' : 'box', toggle: () => toggle(d.id)
+        };
+      }),
+      applyText: 'Show ' + total + ' entities',
+      tableText: total + ' entities match. ' + ents.length + ' sample rows shown.',
+      chips: picked.map((d) => ({ name: d.name, label: 'Remove ' + d.name + ' from the filter', remove: () => toggle(d.id) })),
+      noChips: picked.length === 0,
+      ents: ents.map((e) => ({ name: e[0], id: e[1], type: BY[e[2]].name, icon: BY[e[2]].icon, state: e[3] })),
+      noEnts: ents.length === 0
+    });
+  }
+}
+</script>
+</body>
+</html>
