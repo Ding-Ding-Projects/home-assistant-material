@@ -339,10 +339,15 @@ class StepFlowCreateEntry extends LitElement {
           flex-direction: column;
         }
         .device {
-          border: 1px solid var(--divider-color);
-          padding: 6px;
-          border-radius: var(--ha-border-radius-sm);
-          display: inline-block;
+          background: var(
+            --ha-color-surface-tone-1,
+            var(--secondary-background-color)
+          );
+          padding: var(--ha-space-4);
+          border-radius: var(--ha-border-radius-xl);
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-3);
         }
         .device-info {
           display: flex;
@@ -352,8 +357,12 @@ class StepFlowCreateEntry extends LitElement {
         .device-info img {
           width: 40px;
           height: 40px;
+          flex: none;
+          border-radius: var(--ha-border-radius-lg);
         }
         .device-info-details {
+          min-width: 0;
+          overflow-wrap: anywhere;
           display: flex;
           flex-direction: column;
           justify-content: center;

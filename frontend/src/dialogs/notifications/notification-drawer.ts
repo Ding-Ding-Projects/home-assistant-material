@@ -319,7 +319,9 @@ export class HuiNotificationDrawer extends KeyboardShortcutMixin(LitElement) {
     }
 
     :host([narrow]) .list-container {
-      flex: 1 0 240px;
+      flex: none;
+      overflow: visible;
+      min-height: 0;
     }
 
     .notification {

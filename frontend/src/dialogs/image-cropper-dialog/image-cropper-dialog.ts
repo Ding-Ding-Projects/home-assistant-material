@@ -193,7 +193,9 @@ export class HaImagecropperDialog extends DirtyStateProviderMixin<Cropper.Data>(
           max-width: 640px;
         }
         img {
+          display: block;
           max-width: 100%;
+          max-height: min(60dvh, 480px);
         }
         .container.round .cropper-view-box,
         .container.round .cropper-face {

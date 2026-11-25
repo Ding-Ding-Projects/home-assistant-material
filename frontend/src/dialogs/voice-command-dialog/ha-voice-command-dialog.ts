@@ -294,26 +294,16 @@ export class HaVoiceCommandDialog extends LitElement {
         }
         ha-dropdown {
           display: flex;
-          --mdc-theme-on-primary: var(--text-primary-color);
-          --mdc-theme-primary: var(--primary-color);
-          margin-top: -4px;
-          margin-bottom: 0;
-          margin-right: 0;
-          margin-inline-end: 0;
-          margin-left: -9px;
-          margin-inline-start: -9px;
         }
+        /* The button is 32px tall; the invisible extension keeps the
+           touch target at 48px. Clicks on it reach the trigger itself. */
         ha-dropdown ha-button {
-          --ha-button-height: var(--ha-space-5);
+          position: relative;
         }
-        ha-dropdown ha-button::part(base) {
-          margin-left: 5px;
-          padding: 0;
-        }
-        @media (prefers-color-scheme: dark) {
-          ha-dropdown ha-button {
-            --ha-button-theme-lighter-color: rgba(255, 255, 255, 0.1);
-          }
+        ha-dropdown ha-button::after {
+          content: "";
+          position: absolute;
+          inset: calc(var(--ha-space-2) * -1) 0;
         }
         ha-dropdown ha-button::part(base) {
           border: 1px solid var(--outline-color);
@@ -336,7 +326,6 @@ export class HaVoiceCommandDialog extends LitElement {
           color: var(--primary-text-color);
         }
         ha-dropdown ha-button ha-svg-icon {
-          height: var(--ha-space-7);
           margin-left: var(--ha-space-1);
           margin-inline-start: var(--ha-space-1);
           margin-inline-end: initial;

@@ -143,6 +143,7 @@ export class HaVoiceAssistantSetupDialog extends LitElement {
     return html`
       <ha-dialog
         .open=${this._open}
+        flexcontent
         header-title="Voice Satellite setup"
         prevent-scrim-close
         @closed=${this._dialogClosed}
@@ -374,10 +375,11 @@ export class HaVoiceAssistantSetupDialog extends LitElement {
         ha-dialog {
           --dialog-content-padding: 0;
         }
-        @media all and (max-width: 450px), all and (max-height: 500px) {
-          .content {
-            height: calc(100vh - 56px);
-          }
+        .content {
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
         }
         .skip-btn {
           margin-top: 6px;

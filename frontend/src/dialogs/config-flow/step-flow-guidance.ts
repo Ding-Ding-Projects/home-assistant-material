@@ -176,22 +176,36 @@ export class StepFlowGuidance extends LitElement {
       bottom: 0;
       z-index: 11;
       max-height: 70vh;
+      max-height: 70dvh;
       overflow: auto;
       box-sizing: border-box;
-      padding: var(--ha-space-4) var(--ha-space-6) var(--ha-space-6);
+      padding: var(--ha-space-4) var(--ha-space-6)
+        calc(var(--ha-space-6) + var(--safe-area-inset-bottom, 0px));
       background: var(--card-background-color);
       color: var(--primary-text-color);
       border-radius: var(--ha-border-radius-xl, 24px)
         var(--ha-border-radius-xl, 24px) 0 0;
       box-shadow: var(--ha-box-shadow-l, 0 4px 16px rgba(0, 0, 0, 0.3));
     }
-    @media (min-width: 900px) {
+    /* Above 600px the dialog is transformed, which would make a fixed note
+       sit inside the dialog box and get cut off, so the note flows inside
+       the dialog body and scrolls with it. */
+    @media (min-width: 601px) {
+      .scrim {
+        display: none;
+      }
       .note {
-        inset-inline-start: auto;
-        inset-inline-end: var(--ha-space-4);
-        bottom: var(--ha-space-4);
-        width: 280px;
+        position: static;
+        inset: auto;
+        max-height: none;
+        padding-bottom: var(--ha-space-4);
+        margin-top: var(--ha-space-2);
         border-radius: var(--ha-border-radius-xl, 24px);
+        background: var(
+          --ha-color-surface-tone-1,
+          var(--secondary-background-color)
+        );
+        box-shadow: none;
       }
     }
     h3 {
