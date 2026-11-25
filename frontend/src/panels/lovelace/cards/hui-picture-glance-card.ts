@@ -286,6 +286,10 @@ class HuiPictureGlanceCard extends LitElement implements LovelaceCard {
       `;
     }
 
+    const stateText = entityConf.attribute
+      ? `${entityConf.prefix ?? ""}${stateObj.attributes[entityConf.attribute]}${entityConf.suffix ?? ""}`
+      : this.hass.formatEntityState(stateObj);
+
     return html`
       <div class="wrapper">
         <ha-icon-button
@@ -317,7 +321,7 @@ class HuiPictureGlanceCard extends LitElement implements LovelaceCard {
           this._config!.show_state !== true && entityConf.show_state !== true
             ? html`<div class="state"></div>`
             : html`
-                <div class="state">
+                <div class="state" .title=${stateText}>
                   ${
                     entityConf.attribute
                       ? html`
@@ -422,6 +426,19 @@ class HuiPictureGlanceCard extends LitElement implements LovelaceCard {
       display: flex;
       flex-direction: column;
       width: 40px;
+    }
+    @media (pointer: coarse) {
+      ha-icon-button {
+        --ha-icon-button-size: 48px;
+      }
+      .wrapper {
+        width: auto;
+        min-width: 48px;
+        max-width: 72px;
+      }
+      .state {
+        line-height: 16px;
+      }
     }
   `;
 }

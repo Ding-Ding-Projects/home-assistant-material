@@ -2362,7 +2362,9 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           padding-right: var(--view-container-inset-right);
           padding-bottom: calc(
             var(--view-container-inset-bottom) +
-              var(--view-container-padding-bottom, 0px)
+              var(--view-container-padding-bottom, 0px) +
+              var(--ha-toast-reserved-height, 0px) +
+              var(--ha-dim-sum-reserved-height, 0px)
           );
         }
         /* The page footer follows the view, at the foot of the window or

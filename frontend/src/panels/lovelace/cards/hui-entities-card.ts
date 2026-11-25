@@ -226,7 +226,7 @@ class HuiEntitiesCard extends LitElement implements LovelaceCard {
             ? ""
             : html`
                 <h1 class="card-header">
-                  <div class="name">
+                  <div class="name" .title=${this._config.title ?? ""}>
                     ${
                       this._config.icon
                         ? html`

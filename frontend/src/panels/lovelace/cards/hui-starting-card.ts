@@ -62,6 +62,7 @@ export class HuiStartingCard extends LitElement implements LovelaceCard {
     :host {
       display: block;
       height: calc(100vh - var(--header-height));
+      height: calc(100dvh - var(--header-height));
     }
     ha-spinner {
       margin-bottom: 20px;
@@ -71,7 +72,7 @@ export class HuiStartingCard extends LitElement implements LovelaceCard {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: safe center;
     }
   `;
 }

@@ -302,6 +302,14 @@ export class HuiBadgeEditMode extends LitElement {
           --ha-icon-button-size: 24px;
           --mdc-icon-size: 16px;
         }
+        @media (pointer: coarse) {
+          /* Keep the small visible circle, answer to a 48 px touch area */
+          .more ha-icon-button::after {
+            content: "";
+            position: absolute;
+            inset: -12px;
+          }
+        }
       `,
     ];
   }

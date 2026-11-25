@@ -141,7 +141,7 @@ export class HuiHumidifierCard extends LitElement implements LovelaceCard {
 
     return html`
       <ha-card role="group" aria-labelledby="title">
-        <p class="title" id="title">${name}</p>
+        <p class="title" id="title" .title=${name}>${name}</p>
         <div class="container">
           <ha-state-control-humidifier-humidity
             style=${styleMap({

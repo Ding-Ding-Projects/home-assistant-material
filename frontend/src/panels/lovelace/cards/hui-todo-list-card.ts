@@ -1,6 +1,7 @@
 import type { List } from "@material/mwc-list/mwc-list";
 import {
   mdiClock,
+  mdiFormatListChecks,
   mdiDelete,
   mdiDeleteSweep,
   mdiDotsVertical,
@@ -50,6 +51,7 @@ import "../../../components/ha-list";
 import "../../../components/ha-markdown-element";
 import "../../../components/ha-relative-time";
 import "../../../components/ha-sortable";
+import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
@@ -551,13 +553,18 @@ export class HuiTodoListCard extends LitElement implements LovelaceCard {
           <ha-list wrapFocus multi>
             ${
               !this._items
-                ? nothing
+                ? html`<div class="loading">
+                    <ha-spinner size="small"></ha-spinner>
+                  </div>`
                 : !uncheckedItems.length && !itemsWithoutStatus.length
-                  ? html`<p class="empty">
-                      ${this._i18n.localize(
-                        "ui.panel.lovelace.cards.todo-list.no_unchecked_items"
-                      )}
-                    </p>`
+                  ? html`<div class="empty">
+                      <ha-svg-icon .path=${mdiFormatListChecks}></ha-svg-icon>
+                      <p>
+                        ${this._i18n.localize(
+                          "ui.panel.lovelace.cards.todo-list.no_unchecked_items"
+                        )}
+                      </p>
+                    </div>`
                   : this._reordering
                     ? html`<div class="header" role="separator">
                           <h2>
@@ -1086,7 +1093,26 @@ export class HuiTodoListCard extends LitElement implements LovelaceCard {
 
     .empty {
       padding: var(--ha-space-4) var(--ha-space-8);
-      display: inline-block;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .empty ha-svg-icon {
+      --mdc-icon-size: 32px;
+      color: var(--secondary-text-color);
+    }
+
+    .empty p {
+      margin: var(--ha-space-2) 0 0;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 96px;
     }
 
     .item {
@@ -1163,6 +1189,23 @@ export class HuiTodoListCard extends LitElement implements LovelaceCard {
       cursor: grab;
       height: 24px;
       padding: 0 4px;
+    }
+
+    @media (pointer: coarse) {
+      .addRow ha-icon-button {
+        --ha-icon-button-size: 48px;
+      }
+
+      .handle {
+        height: 48px;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+      }
+
+      ha-check-list-item {
+        min-height: 48px;
+      }
     }
 
     .deleteItemButton {

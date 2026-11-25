@@ -190,7 +190,9 @@ export class HuiCalendarCard
       <ha-card>
         ${
           this._config.title
-            ? html`<div class="header">${this._config.title}</div>`
+            ? html`<div class="header" .title=${this._config.title}>
+                ${this._config.title}
+              </div>`
             : nothing
         }
         <ha-full-calendar
@@ -328,6 +330,7 @@ export class HuiCalendarCard
       padding-inline-start: 8px;
       direction: var(--direction);
       white-space: nowrap;
+      overflow: hidden;
       text-overflow: ellipsis;
     }
 
