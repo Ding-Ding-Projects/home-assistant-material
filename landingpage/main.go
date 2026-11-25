@@ -52,6 +52,8 @@ func main() {
 	http.HandleFunc("/supervisor-api/resolution/", httpSupervisorProxy)
 	http.HandleFunc("/supervisor-api/network/", httpSupervisorProxy)
 	http.HandleFunc("/supervisor-api/jobs/", httpSupervisorProxy)
+	// Only the backup routes a restore during first start needs
+	http.HandleFunc("/supervisor-api/backups/", httpSupervisorProxy)
 
 	// Serve static help files
 	staticFiles := http.FileServer(http.Dir(wwwRoot))

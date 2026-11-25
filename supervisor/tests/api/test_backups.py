@@ -1099,6 +1099,7 @@ async def test_download_content_disposition(
         ("get", "/backups/bad/info"),
         ("delete", "/backups/bad"),
         ("post", "/backups/bad/restore/full"),
+        ("post", "/backups/bad/restore/full/when_ready"),
         ("post", "/backups/bad/restore/partial"),
         ("get", "/backups/bad/download"),
     ],

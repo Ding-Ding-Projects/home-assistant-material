@@ -952,10 +952,18 @@ class RestAPI(CoreSysAttributes):
                 web.post("/backups/thaw", api_backups.thaw),
                 web.post("/backups/new/full", api_backups.backup_full),
                 web.post("/backups/new/upload", api_backups.upload),
+                web.get("/backups/restore/pending", api_backups.pending_restore_info),
+                web.delete(
+                    "/backups/restore/pending", api_backups.pending_restore_clear
+                ),
                 web.get("/backups/delete_proof", api_backups.delete_proof_info),
                 web.post("/backups/delete_proof", api_backups.delete_proof_set),
                 web.delete("/backups/{slug}", api_backups.remove),
                 web.post("/backups/{slug}/restore/full", api_backups.restore_full),
+                web.post(
+                    "/backups/{slug}/restore/full/when_ready",
+                    api_backups.restore_full_when_ready,
+                ),
                 web.get("/backups/{slug}/download", api_backups.download),
             ]
         )

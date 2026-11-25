@@ -13,6 +13,29 @@ import (
 	"strings"
 )
 
+var (
+	// A backup slug is a short hex id made by the Supervisor
+	backupSlug         = `[0-9a-f]{1,64}`
+	regexBackupInfo    = regexp.MustCompile(`^/` + backupSlug + `/info$`)
+	regexBackupRestore = regexp.MustCompile(`^/` + backupSlug + `/restore/full/when_ready$`)
+)
+
+// backupsProxyAllowed reports whether a method and path below /backups may be
+// forwarded. Everything else the backup API offers stays unreachable from here.
+func backupsProxyAllowed(method string, cleanPath string) bool {
+	switch {
+	case method == http.MethodPost && cleanPath == "/new/upload":
+		return true
+	case method == http.MethodGet && regexBackupInfo.MatchString(cleanPath):
+		return true
+	case method == http.MethodPost && regexBackupRestore.MatchString(cleanPath):
+		return true
+	case (method == http.MethodGet || method == http.MethodDelete) && cleanPath == "/restore/pending":
+		return true
+	}
+	return false
+}
+
 var regexASCII = regexp.MustCompile(`\x1b\[\d+m`)
 
 func httpRedirect(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +141,12 @@ func httpSupervisorProxy(w http.ResponseWriter, r *http.Request) {
 	if cleanPath != remainderPath {
 		http.Error(w, "Forbidden: Invalid path", http.StatusForbidden)
 		log.Printf("Blocked path traversal attempt: %s", cleanPath)
+		return
+	}
+
+	if subPath == "backups" && !backupsProxyAllowed(r.Method, cleanPath) {
+		http.Error(w, "Forbidden: Invalid path", http.StatusForbidden)
+		log.Printf("Blocked backup request: %s %s", r.Method, cleanPath)
 		return
 	}
 

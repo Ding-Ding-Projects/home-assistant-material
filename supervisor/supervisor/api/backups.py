@@ -66,6 +66,8 @@ from .const import (
     ATTR_ADDITIONAL_LOCATIONS,
     ATTR_BACKGROUND,
     ATTR_LOCATION_ATTRIBUTES,
+    ATTR_PENDING_RESTORE,
+    ATTR_REMOVE_BACKUP,
     ATTR_LOCATIONS,
     CONTENT_TYPE_TAR,
 )
@@ -186,6 +188,10 @@ SCHEMA_BACKUP_PARTIAL = SCHEMA_BACKUP_FULL.extend(
         vol.Optional(ATTR_FOLDERS): SCHEMA_FOLDERS_V2,
         vol.Optional(ATTR_HOMEASSISTANT): vol.Boolean(),
     }
+)
+
+SCHEMA_PENDING_RESTORE_CLEAR = vol.Schema(
+    {vol.Optional(ATTR_REMOVE_BACKUP, default=False): vol.Boolean()}
 )
 
 SCHEMA_OPTIONS = vol.Schema({vol.Optional(ATTR_DAYS_UNTIL_STALE): days_until_stale})
@@ -525,6 +531,33 @@ class APIBackups(CoreSysAttributes):
             f"An error occurred during restore of {backup.slug}, check job '{job_id}' or supervisor logs for details",
             job_id=job_id,
         )
+
+    @api_process
+    async def restore_full_when_ready(self, request: web.Request):
+        """Queue a full restore that starts once Home Assistant is installed."""
+        backup = self._extract_slug(request)
+        body = await api_validate(
+            vol.Schema({vol.Optional(ATTR_PASSWORD): vol.Maybe(str)}), request
+        )
+        return await self.sys_backups.queue_restore_when_ready(
+            backup, body.get(ATTR_PASSWORD)
+        )
+
+    @api_process
+    async def pending_restore_info(self, request: web.Request) -> dict[str, Any]:
+        """Return the queued, running or finished restore, if any."""
+        return {ATTR_PENDING_RESTORE: self.sys_backups.pending_restore.record}
+
+    @api_process
+    async def pending_restore_clear(self, request: web.Request) -> None:
+        """Cancel a queued restore or dismiss a failed or finished one."""
+        body = await api_validate(SCHEMA_PENDING_RESTORE_CLEAR, request)
+        pending = self.sys_backups.pending_restore
+        record = pending.record
+        await pending.clear()
+        if body[ATTR_REMOVE_BACKUP] and record:
+            if backup := self.sys_backups.get(record["slug"]):
+                await self.sys_backups.remove(backup)
 
     @api_process
     async def restore_partial(self, request: web.Request):

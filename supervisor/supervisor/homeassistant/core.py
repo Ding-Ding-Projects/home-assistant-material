@@ -393,6 +393,9 @@ class HomeAssistantCore(JobGroup):
         with suppress(DockerError):
             await self.instance.cleanup()
 
+        # A backup queued while Core was installing restores by itself now
+        self.sys_backups.pending_restore.start()
+
     @Job(
         name="home_assistant_core_update",
         conditions=[

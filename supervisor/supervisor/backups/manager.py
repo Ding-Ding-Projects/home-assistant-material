@@ -51,6 +51,7 @@ from .const import (
     BackupType,
     RestoreJobStage,
 )
+from .pending_restore import PendingRestore
 from .utils import create_slug
 from .validate import ALL_FOLDERS, SCHEMA_BACKUPS_CONFIG
 
@@ -70,6 +71,7 @@ class BackupManager(FileConfiguration, JobGroup):
         self._backups: dict[str, Backup] = {}
         self._thaw_task: Awaitable[None] | None = None
         self._thaw_event: asyncio.Event = asyncio.Event()
+        self.pending_restore = PendingRestore(coresys)
 
     @property
     def list_backups(self) -> list[Backup]:
@@ -292,6 +294,22 @@ class BackupManager(FileConfiguration, JobGroup):
     async def load(self) -> None:
         """Load exists backups data."""
         await self.reload()
+        await self.pending_restore.load()
+
+    async def queue_restore_when_ready(
+        self, backup: Backup, password: str | None
+    ) -> dict:
+        """Queue a full restore that starts by itself once Core is installed."""
+        if backup.sys_type != BackupType.FULL:
+            raise BackupInvalidError(
+                f"{backup.slug} is only a partial backup!", _LOGGER.error
+            )
+        await self._validate_backup_location(backup, password)
+        record = await self.pending_restore.queue(
+            backup.slug, backup.name, backup.size_bytes, password
+        )
+        self.pending_restore.start()
+        return record
 
     async def reload(self, location: str | None | type[DEFAULT] = DEFAULT) -> bool:
         """Load exists backups."""
