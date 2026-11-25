@@ -56,8 +56,8 @@ describe("filterCameras", () => {
     expect(names("/^front/")).toEqual([]);
   });
 
-  it("matches nothing for a broken pattern", () => {
-    expect(names("/(front/")).toEqual([]);
+  it("keeps every camera for a broken pattern", () => {
+    expect(names("/(front/")).toHaveLength(3);
   });
 });
 

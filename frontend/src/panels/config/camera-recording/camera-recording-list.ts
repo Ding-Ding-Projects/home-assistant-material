@@ -1,4 +1,4 @@
-import { searchMatcher } from "../../../common/regex/filter";
+import { regexQuery, searchMatcher } from "../../../common/regex/filter";
 
 /** The key that tells one camera of one recording place apart. */
 export const cameraKey = (entryId: string, entityId: string): string =>
@@ -27,14 +27,15 @@ export const cameraSearchValues = (fields: CameraSearchFields): string[] => [
 /**
  * Keeps the cameras that match the search text. Plain text matches any of a
  * camera's texts ignoring case; `/pattern/flags` is tested as written; an
- * unusable pattern matches nothing. Empty text keeps every camera.
+ * unusable pattern keeps every camera, so the page can say what is wrong
+ * with it instead of showing an empty list. Empty text keeps every camera.
  */
 export const filterCameras = <T>(
   cameras: readonly T[],
   query: string,
   fieldsOf: (camera: T) => CameraSearchFields
 ): T[] => {
-  if (!query.trim()) {
+  if (!query.trim() || regexQuery(query)?.error) {
     return [...cameras];
   }
   const matches = searchMatcher(query);

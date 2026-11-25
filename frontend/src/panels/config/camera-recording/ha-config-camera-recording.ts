@@ -1,4 +1,5 @@
 import {
+  mdiAlertCircleOutline,
   mdiChevronDown,
   mdiCog,
   mdiMagnify,
@@ -10,7 +11,8 @@ import {
 import type { HassEntity } from "home-assistant-js-websocket";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
+import { repeat } from "lit/directives/repeat";
 import { formatShortDateTimeWithConditionalYear } from "../../../common/datetime/format_date_time";
 import { relativeTime } from "../../../common/datetime/relative_time";
 import { storage } from "../../../common/decorators/storage";
@@ -19,6 +21,7 @@ import {
   withLanguageMode,
 } from "../../../common/language-mode/language-mode";
 import { navigate } from "../../../common/navigate";
+import { regexQuery } from "../../../common/regex/filter";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-button-toggle-group";
@@ -30,6 +33,7 @@ import "../../../components/ha-slider";
 import "../../../components/ha-switch";
 import "../../../components/entity/ha-entity-picker";
 import "../../../components/ha-svg-icon";
+import "../../../components/skeleton/ha-skeleton-text";
 import "./ha-camera-recording-places";
 import "./ha-camera-watched-settings";
 import {
@@ -131,6 +135,8 @@ export class HaConfigCameraRecording extends LitElement {
 
   @state() private _testing = new Set<string>();
 
+  @query("ha-input-search") private _searchField?: HTMLElement;
+
   private _timer?: number;
 
   public connectedCallback() {
@@ -184,11 +190,33 @@ export class HaConfigCameraRecording extends LitElement {
         back-path="/config/system"
         .header=${this._l("caption")}
       >
-        <div class="content">
+        <div class="content" aria-busy=${this._status ? "false" : "true"}>
           <p class="intro">${this._l("description")}</p>
           ${
             this._error
               ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
+              : nothing
+          }
+          ${
+            this._problem
+              ? html`<ha-alert alert-type="error" role="alert"
+                  >${this._problem}</ha-alert
+                >`
+              : nothing
+          }
+          ${
+            !this._status && !this._error
+              ? html`<ha-card>
+                  <div
+                    class="card-content loading"
+                    role="status"
+                    aria-label=${this._l("loading")}
+                  >
+                    <ha-skeleton-text></ha-skeleton-text>
+                    <ha-skeleton-text></ha-skeleton-text>
+                    <ha-skeleton-text></ha-skeleton-text>
+                  </div>
+                </ha-card>`
               : nothing
           }
           ${
@@ -275,7 +303,8 @@ export class HaConfigCameraRecording extends LitElement {
       return nothing;
     }
     const keys = this._shownKeys();
-    const searching = this._query.trim() !== "";
+    const patternError = regexQuery(this._query)?.error;
+    const searching = this._query.trim() !== "" && !patternError;
     const expanded = this._expanded;
     const allOpen =
       keys.length > 0 && keys.every((key) => expanded.includes(key));
@@ -291,6 +320,18 @@ export class HaConfigCameraRecording extends LitElement {
           .patternSamples=${samples}
           @input=${this._queryChanged}
         ></ha-input-search>
+        ${
+          patternError
+            ? html`<p class="pattern-error" role="alert">
+                <ha-svg-icon .path=${mdiAlertCircleOutline}></ha-svg-icon>
+                ${this._l("search.pattern_error", {
+                  reason: withLanguageMode(this.hass.localize)(
+                    `ui.regex.filter_error.${patternError}` as any
+                  ),
+                })}
+              </p>`
+            : nothing
+        }
         <div class="count-row">
           <span class="count" role="status"
             >${
@@ -304,6 +345,7 @@ export class HaConfigCameraRecording extends LitElement {
               ? html`<ha-button
                   appearance="plain"
                   size="small"
+                  class="tall"
                   aria-label=${this._l(
                     allOpen
                       ? "search.collapse_all_label"
@@ -323,7 +365,11 @@ export class HaConfigCameraRecording extends LitElement {
                 <p>
                   ${this._l("search.no_match", { query: this._query.trim() })}
                 </p>
-                <ha-button appearance="plain" @click=${this._clearSearch}>
+                <ha-button
+                  appearance="plain"
+                  class="tall"
+                  @click=${this._clearSearch}
+                >
                   ${this._l("search.clear")}
                 </ha-button>
               </div>`
@@ -337,8 +383,12 @@ export class HaConfigCameraRecording extends LitElement {
     this._query = (ev.target as HTMLInputElement).value ?? "";
   }
 
-  private _clearSearch() {
+  private async _clearSearch() {
     this._query = "";
+    // The button that was pressed leaves with the no-match card, so focus
+    // goes to the search field instead of falling back to the page.
+    await this.updateComplete;
+    this._searchField?.focus();
   }
 
   private _toggleAll() {
@@ -425,7 +475,15 @@ export class HaConfigCameraRecording extends LitElement {
           ${
             dest.error
               ? html`<ha-alert alert-type="warning"
-                  >${this._l("copy_problem", { error: dest.error })}</ha-alert
+                  >${this._l("copy_problem", { error: dest.error })}
+                  <ha-button
+                    slot="action"
+                    appearance="plain"
+                    size="small"
+                    @click=${this._load}
+                  >
+                    ${this._l("try_again")}
+                  </ha-button></ha-alert
                 >`
               : nothing
           }
@@ -475,25 +533,74 @@ export class HaConfigCameraRecording extends LitElement {
           <span>${this._l("oldest")}</span>
           <span></span>
         </div>
-        ${shown.map((cam) => this._renderCameraRow(dest, cam))}
+        ${repeat(
+          shown,
+          (cam) => cameraKey(dest.entry_id, cam.entity_id),
+          (cam) => this._renderCameraRow(dest, cam)
+        )}
       </div>
     `;
   }
 
-  private _summary(cam: RecordingCameraStatus): string {
-    const amount = this._l(`amount.${this._activeAmount(cam)}`);
-    let rest: string;
-    if (this._activeAmount(cam) === "light" && !cam.newest) {
-      rest = this._l("row.events_today", { count: cam.events_today });
-    } else if (cam.newest) {
-      rest = this._l("row.newest_waiting", {
-        time: this._time(cam.newest),
-        count: cam.waiting,
-      });
-    } else {
-      rest = this._l("row.nothing_kept");
+  /** True when the camera has a problem worth showing while its row is folded. */
+  private _hasProblem(cam: RecordingCameraStatus): boolean {
+    return (
+      !!cam.error &&
+      cam.state !== "recording" &&
+      cam.state !== "paused" &&
+      !cam.provider_only
+    );
+  }
+
+  /** A short phrase for a camera with a problem, in the language it is built for. */
+  private _problemPhrase(
+    cam: RecordingCameraStatus,
+    part: (key: string, values?: Record<string, string | number>) => string
+  ): string {
+    const prefix = "ui.panel.config.camera_recording.row";
+    const since = cam.newest ? "_since" : "";
+    const time = this._time(cam.newest);
+    if (cam.state === "no_stream") {
+      return part(`${prefix}.no_video${since}`, { time });
     }
-    return `${amount} · ${rest}`;
+    if (cam.state === "reconnecting") {
+      return part(`${prefix}.trying_again${since}`, { time });
+    }
+    return cam.error ?? "";
+  }
+
+  // Each language half is built whole and then joined by the language mode,
+  // so the both-languages line does not run one language into the other.
+  private _summary(cam: RecordingCameraStatus): string {
+    const prefix = "ui.panel.config.camera_recording";
+    const active = this._activeAmount(cam);
+    return composeForMode(
+      this.hass.localize as unknown as (
+        key: string,
+        values?: Record<string, string | number>
+      ) => string,
+      (part) => {
+        let rest: string;
+        if (this._hasProblem(cam)) {
+          rest = this._problemPhrase(cam, part);
+        } else if (active === "light" && !cam.newest) {
+          rest = part(`${prefix}.row.events_today`, {
+            count: cam.events_today,
+          });
+        } else if (cam.newest) {
+          rest = part(`${prefix}.row.newest_waiting`, {
+            time: this._time(cam.newest),
+            count: cam.waiting,
+          });
+        } else {
+          rest = part(`${prefix}.row.nothing_kept`);
+        }
+        return part(`${prefix}.row.summary`, {
+          amount: part(`${prefix}.amount.${active}`),
+          rest,
+        });
+      }
+    );
   }
 
   private _renderCameraRow(
@@ -517,7 +624,7 @@ export class HaConfigCameraRecording extends LitElement {
             .rowKey=${key}
             @click=${this._toggleRow}
           >
-            <span class="lead"
+            <span class="lead ${this._leadTone(cam)}"
               ><ha-svg-icon .path=${mdiVideo}></ha-svg-icon
             ></span>
             <span class="main">
@@ -526,13 +633,32 @@ export class HaConfigCameraRecording extends LitElement {
               >
               <span class="summary">${this._summary(cam)}</span>
               <span class="eid">${cam.entity_id}</span>
+              ${
+                this._hasProblem(cam)
+                  ? html`<span class="err">${this._composeProblem(cam)}</span>`
+                  : nothing
+              }
             </span>
             <span class="cell"
-              >${this._l(`amount.${this._activeAmount(cam)}`)}</span
+              ><span class="sr">${this._l("amount.title")}: </span>${this._l(
+                `amount.${this._activeAmount(cam)}`
+              )}</span
             >
-            <span class="cell">${this._time(cam.newest)}</span>
-            <span class="cell">${cam.waiting}</span>
-            <span class="cell">${this._time(cam.oldest)}</span>
+            <span class="cell"
+              ><span class="sr">${this._l("newest")}: </span>${this._time(
+                cam.newest
+              )}</span
+            >
+            <span class="cell"
+              ><span class="sr">${this._l("waiting")}: </span>${
+                cam.waiting
+              }</span
+            >
+            <span class="cell"
+              ><span class="sr">${this._l("oldest")}: </span>${this._time(
+                cam.oldest
+              )}</span
+            >
             <ha-svg-icon class="chev" .path=${mdiChevronDown}></ha-svg-icon>
           </button>
           <ha-icon-button
@@ -570,19 +696,15 @@ export class HaConfigCameraRecording extends LitElement {
                 </div>
                 ${notes}
                 <div class="cols">
-                  <div class="col">
-                    <div class="grp g1">${parts.main}</div>
-                    <div class="grp g3">${parts.rest}</div>
-                  </div>
-                  <div class="col">
-                    <div class="grp g2">${parts.check}</div>
-                    <div class="grp g4">
-                      <ha-camera-watched-settings
-                        .hass=${this.hass}
-                        .entryId=${dest.entry_id}
-                        .entityId=${cam.entity_id}
-                      ></ha-camera-watched-settings>
-                    </div>
+                  <div class="grp g1">${parts.main}</div>
+                  <div class="grp g2">${parts.check}</div>
+                  <div class="grp g3">${parts.rest}</div>
+                  <div class="grp g4">
+                    <ha-camera-watched-settings
+                      .hass=${this.hass}
+                      .entryId=${dest.entry_id}
+                      .entityId=${cam.entity_id}
+                    ></ha-camera-watched-settings>
                   </div>
                 </div>
               </div>`
@@ -590,6 +712,21 @@ export class HaConfigCameraRecording extends LitElement {
         }
       </div>
     `;
+  }
+
+  private _composeProblem(cam: RecordingCameraStatus): string {
+    return composeForMode(
+      this.hass.localize as unknown as (
+        key: string,
+        values?: Record<string, string | number>
+      ) => string,
+      (part) => this._problemPhrase(cam, part)
+    );
+  }
+
+  private _leadTone(cam: RecordingCameraStatus): string {
+    const tone = cam.provider_only ? "off" : (STATE_TONES[cam.state] ?? "off");
+    return tone === "ok" || tone === "warn" ? tone : "";
   }
 
   private _renderPill(cam: RecordingCameraStatus) {
@@ -645,7 +782,7 @@ export class HaConfigCameraRecording extends LitElement {
       <div class="amount-head">
         <span class="amount-title">${this._l("amount.title")}</span>
         <ha-button-toggle-group
-          size="s"
+          size="m"
           .buttons=${buttons}
           .active=${active}
           .entryId=${dest.entry_id}
@@ -865,6 +1002,7 @@ export class HaConfigCameraRecording extends LitElement {
             ? html`<div class="check-test">
                 <ha-button
                   size="small"
+                  class="tall"
                   appearance="filled"
                   .disabled=${!canTest || testing}
                   .entryId=${dest.entry_id}
@@ -1152,7 +1290,6 @@ export class HaConfigCameraRecording extends LitElement {
             </div>`
           : nothing
       }
-      ${this._problem ? html`<ha-alert alert-type="error">${this._problem}</ha-alert>` : nothing}
     `;
   }
 
@@ -1293,6 +1430,11 @@ export class HaConfigCameraRecording extends LitElement {
       target.entity
     );
     await this._load();
+    await this.updateComplete;
+    // A search on a state can remove the row whose button was just pressed.
+    if (!target.isConnected) {
+      this._searchField?.focus();
+    }
   }
 
   private async _configure(ev: Event) {
@@ -1405,7 +1547,7 @@ export class HaConfigCameraRecording extends LitElement {
         display: flex;
         align-items: center;
         gap: var(--ha-space-3);
-        min-height: 44px;
+        min-height: 48px;
       }
       .live {
         display: flex;
@@ -1435,7 +1577,7 @@ export class HaConfigCameraRecording extends LitElement {
         display: flex;
         align-items: center;
         gap: var(--ha-space-2);
-        min-height: 44px;
+        min-height: 48px;
         font-size: var(--ha-font-size-s);
       }
       .kind {
@@ -1443,7 +1585,7 @@ export class HaConfigCameraRecording extends LitElement {
       }
       button.link {
         align-self: flex-start;
-        min-height: 44px;
+        min-height: 48px;
         padding: 0;
         border: none;
         background: none;
@@ -1541,6 +1683,41 @@ export class HaConfigCameraRecording extends LitElement {
         min-height: 48px;
         padding-inline-start: var(--ha-space-4);
       }
+      ha-button.tall {
+        --ha-button-height: 48px;
+      }
+      .pattern-error {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--ha-space-2);
+        margin: 0;
+        padding-inline: var(--ha-space-4);
+        color: var(--error-color);
+        font-size: var(--ha-font-size-s);
+        overflow-wrap: anywhere;
+      }
+      .loading {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-3);
+      }
+      .loading ha-skeleton-text {
+        --ha-skeleton-text-width: 100%;
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+      .err {
+        display: none;
+        color: var(--error-color);
+        font-size: var(--ha-font-size-s);
+        overflow-wrap: anywhere;
+      }
       .count {
         color: var(--secondary-text-color);
         font-size: var(--ha-font-size-s);
@@ -1571,7 +1748,8 @@ export class HaConfigCameraRecording extends LitElement {
       /* One folding row per camera. Under about 700 px the row is a name, a
        state and one summary line; wider, it carries the columns. */
       .cameras {
-        --cols: 40px minmax(0, 2.3fr) repeat(4, minmax(0, 1fr)) 24px;
+        --cols: 40px minmax(190px, 2.3fr) minmax(96px, 1fr) minmax(96px, 1fr)
+          minmax(96px, 1fr) minmax(84px, 0.9fr) 24px;
         display: flex;
         flex-direction: column;
         margin-top: var(--ha-space-3);
@@ -1608,8 +1786,8 @@ export class HaConfigCameraRecording extends LitElement {
         grid-template-columns: 36px minmax(0, 1fr) 24px;
         align-items: center;
         gap: var(--ha-space-3);
-        padding: var(--ha-space-2) var(--ha-space-1) var(--ha-space-2)
-          var(--ha-space-2);
+        padding-block: var(--ha-space-2);
+        padding-inline: var(--ha-space-2) var(--ha-space-1);
         border: none;
         border-radius: var(--ha-border-radius-lg);
         background: none;
@@ -1638,7 +1816,15 @@ export class HaConfigCameraRecording extends LitElement {
         background: var(--secondary-background-color);
         color: var(--secondary-text-color);
       }
-      .camera.open .lead {
+      .lead.ok {
+        background: color-mix(in srgb, var(--success-color) 22%, transparent);
+        color: var(--success-color);
+      }
+      .lead.warn {
+        background: color-mix(in srgb, var(--warning-color) 25%, transparent);
+        color: var(--warning-color);
+      }
+      .camera.open .lead:not(.ok):not(.warn) {
         background: var(--card-background-color);
       }
       .main {
@@ -1702,12 +1888,13 @@ export class HaConfigCameraRecording extends LitElement {
         overflow-wrap: anywhere;
       }
       .facts i {
+        min-width: 0;
+        overflow-wrap: anywhere;
         font-style: normal;
         font-size: var(--ha-font-size-s);
         color: var(--secondary-text-color);
       }
-      .cols,
-      .col {
+      .cols {
         display: contents;
       }
       .grp {
@@ -1719,32 +1906,25 @@ export class HaConfigCameraRecording extends LitElement {
       .grp:empty {
         display: none;
       }
-      .g1 {
-        order: 1;
-      }
-      .g2 {
-        order: 2;
-      }
-      .g3 {
-        order: 3;
-      }
-      .g4 {
-        order: 4;
-      }
       .camera.open .check {
         background: var(--card-background-color);
       }
 
-      @container (min-width: 720px) {
+      @container (min-width: 860px) {
         .col-head {
           display: grid;
           grid-template-columns: var(--cols);
           gap: var(--ha-space-3);
-          padding: var(--ha-space-1) 60px var(--ha-space-2) var(--ha-space-3);
+          padding-block: var(--ha-space-1) var(--ha-space-2);
+          padding-inline: var(--ha-space-3) 60px;
           box-shadow: inset 0 -1px 0 var(--divider-color);
           color: var(--secondary-text-color);
           font-size: var(--ha-font-size-s);
           font-weight: var(--ha-font-weight-medium);
+        }
+        .col-head > span {
+          min-width: 0;
+          overflow-wrap: anywhere;
         }
         .disclosure {
           grid-template-columns: var(--cols);
@@ -1760,6 +1940,9 @@ export class HaConfigCameraRecording extends LitElement {
           font-size: var(--ha-font-size-s);
           overflow-wrap: anywhere;
         }
+        .err {
+          display: block;
+        }
         .cell {
           display: block;
           min-width: 0;
@@ -1771,14 +1954,23 @@ export class HaConfigCameraRecording extends LitElement {
         .cols {
           display: grid;
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-          gap: var(--ha-space-4) var(--ha-space-6, 28px);
+          grid-template-areas:
+            "main check"
+            "rest watched";
+          gap: var(--ha-space-3) var(--ha-space-6, 28px);
           align-items: start;
         }
-        .col {
-          display: flex;
-          flex-direction: column;
-          gap: var(--ha-space-3);
-          min-width: 0;
+        .g1 {
+          grid-area: main;
+        }
+        .g2 {
+          grid-area: check;
+        }
+        .g3 {
+          grid-area: rest;
+        }
+        .g4 {
+          grid-area: watched;
         }
       }
     `,
