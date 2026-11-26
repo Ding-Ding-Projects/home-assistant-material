@@ -29,8 +29,9 @@ async def test_user_flow(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
     )
-    assert result["type"] is FlowResultType.FORM
-
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "manual"}
+    )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], USER_INPUT
     )
@@ -52,6 +53,9 @@ async def test_user_flow_uses_the_printer_login(
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
     )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "manual"}
+    )
     await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
 
     assert fake_mqtt.client.credentials == ("bblp", ACCESS_CODE)
@@ -67,10 +71,13 @@ async def test_user_flow_cannot_connect(
         DOMAIN, context={"source": SOURCE_USER}
     )
     result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "manual"}
+    )
+    result = await hass.config_entries.flow.async_configure(
         result["flow_id"], USER_INPUT
     )
     assert result["type"] is FlowResultType.FORM
-    assert result["errors"] == {"base": "cannot_connect"}
+    assert result["errors"] == {CONF_HOST: "cannot_connect"}
 
     fake_mqtt.connect_error = False
     result = await hass.config_entries.flow.async_configure(
@@ -84,6 +91,9 @@ async def test_user_flow_invalid_auth(hass: HomeAssistant, fake_mqtt: FakeMqtt) 
     fake_mqtt.reason = BAD_AUTH
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "manual"}
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], USER_INPUT
@@ -100,6 +110,9 @@ async def test_already_configured(
     mock_config_entry.add_to_hass(hass)
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "manual"}
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], USER_INPUT
@@ -139,3 +152,42 @@ async def test_reauth_invalid_auth(
 
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {CONF_ACCESS_CODE: "invalid_auth"}
+
+
+@pytest.mark.usefixtures("fake_mqtt")
+async def test_connection_preview(hass: HomeAssistant) -> None:
+    """Testing a printer creates no entry until the owner confirms."""
+    flow = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    configure = hass.config_entries.flow.async_configure
+    await configure(flow["flow_id"], {"next_step_id": "manual"})
+    result = await configure(flow["flow_id"], {**USER_INPUT, "test_only": True})
+    assert result["step_id"] == "tested"
+    assert not hass.config_entries.async_entries(DOMAIN)
+    result = await configure(flow["flow_id"], {})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert "test_only" not in result["data"]
+
+
+async def test_initial_search(hass: HomeAssistant) -> None:
+    """A fresh instance can choose a discovered printer before entering a code."""
+    from unittest.mock import patch
+    from homeassistant.components.printer_door.discovery import PrinterAnnouncement
+
+    flow = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    with patch(
+        "homeassistant.components.printer_door.config_flow.async_find_printers",
+        return_value=[PrinterAnnouncement(HOST, SERIAL, "P1S", "Studio")],
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            flow["flow_id"], {"next_step_id": "search"}
+        )
+    assert result["description_placeholders"]["count"] == "1"
+    result = await hass.config_entries.flow.async_configure(
+        flow["flow_id"], {"printer": SERIAL}
+    )
+    assert result["step_id"] == "discovery_confirm"
+    assert result["description_placeholders"]["host"] == HOST

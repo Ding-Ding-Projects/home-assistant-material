@@ -256,3 +256,23 @@ def async_release(hass: HomeAssistant, entry_id: str) -> None:
     if not discovery.async_remove_user(entry_id):
         discovery.async_stop()
         hass.data.pop(DATA_DISCOVERY, None)
+
+
+async def async_find_printers(hass: HomeAssistant) -> list[PrinterAnnouncement]:
+    """Collect local announcements for a bounded user-initiated setup search."""
+    found: dict[str, PrinterAnnouncement] = {}
+
+    class SearchListener(PrinterDiscovery):
+        @callback
+        def async_handle_packet(self, data: bytes) -> None:
+            if printer := parse_notify(data):
+                found[printer.serial] = printer
+
+    listener = SearchListener(hass)
+    try:
+        await listener.async_start()
+        if listener.listening:
+            await asyncio.sleep(10)
+    finally:
+        listener.async_stop()
+    return list(found.values())

@@ -14,7 +14,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import CONF_ACCESS_CODE, CONF_SERIAL, DOMAIN
-from .discovery import CONF_MODEL
+from .discovery import CONF_MODEL, async_find_printers
 from .link import CannotConnect, InvalidAuth, check_connection
 
 ACCESS_CODE_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
@@ -31,6 +31,49 @@ class PrinterDoorConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        """Choose between listening for announcements and entering an address."""
+        return self.async_show_menu(step_id="user", menu_options=["search", "manual"])
+
+    async def async_step_search(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Listen briefly, then let the owner choose a printer or enter its address."""
+        if user_input is None:
+            self._candidates = {
+                printer.serial: printer
+                for printer in await async_find_printers(self.hass)
+                if not self.hass.config_entries.async_entry_for_domain_unique_id(
+                    DOMAIN, printer.serial
+                )
+            }
+        elif user_input["printer"] == "__manual__":
+            return await self.async_step_manual()
+        else:
+            printer = self._candidates[user_input["printer"]]
+            return await self.async_step_integration_discovery(
+                {
+                    CONF_HOST: printer.host,
+                    CONF_SERIAL: printer.serial,
+                    CONF_MODEL: printer.model,
+                    CONF_NAME: printer.name,
+                }
+            )
+        options = {
+            serial: f"{printer.name or printer.model or serial} ({serial}, {printer.host})"
+            for serial, printer in self._candidates.items()
+        }
+        options["__manual__"] = "Enter address manually"
+        return self.async_show_form(
+            step_id="search",
+            data_schema=probatio.Schema(
+                {probatio.Required("printer"): probatio.In(options)}
+            ),
+            description_placeholders={"count": str(len(self._candidates))},
+        )
+
+    async def async_step_manual(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Handle the first step."""
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -40,7 +83,12 @@ class PrinterDoorConfigFlow(ConfigFlow, domain=DOMAIN):
             errors = await self._async_validate(
                 user_input[CONF_HOST], user_input[CONF_ACCESS_CODE]
             )
+            if "base" in errors:
+                errors[CONF_HOST] = errors.pop("base")
             if not errors:
+                if user_input.get("test_only"):
+                    self._tested = {**user_input, CONF_SERIAL: serial}
+                    return await self.async_step_tested()
                 return self.async_create_entry(
                     title=user_input[CONF_NAME],
                     data={
@@ -54,13 +102,33 @@ class PrinterDoorConfigFlow(ConfigFlow, domain=DOMAIN):
                 probatio.Required(CONF_NAME, default="3D printer"): str,
                 probatio.Required(CONF_HOST): str,
                 probatio.Required(CONF_SERIAL): str,
+                probatio.Optional("test_only", default=False): bool,
                 probatio.Required(CONF_ACCESS_CODE): ACCESS_CODE_SELECTOR,
             }
         )
         return self.async_show_form(
-            step_id="user",
+            step_id="manual",
             data_schema=self.add_suggested_values_to_schema(schema, user_input),
             errors=errors,
+        )
+
+    async def async_step_tested(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Create an entry only after the owner accepts the successful check."""
+        if user_input is not None:
+            self._abort_if_unique_id_configured()
+            return self.async_create_entry(
+                title=self._tested[CONF_NAME],
+                data={
+                    key: self._tested[key]
+                    for key in (CONF_HOST, CONF_SERIAL, CONF_ACCESS_CODE)
+                },
+            )
+        return self.async_show_form(
+            step_id="tested",
+            data_schema=probatio.Schema({}),
+            description_placeholders={"host": self._tested[CONF_HOST]},
         )
 
     @override
