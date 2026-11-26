@@ -81,6 +81,7 @@ import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
 import { documentationUrl } from "../../../util/documentation-url";
+import { integrationGuideUrl } from "../../../util/integration-guide-url";
 import { fileDownload } from "../../../util/file_download";
 import "./ha-config-entry-row";
 import type { HaConfigEntryRow } from "./ha-config-entry-row";
@@ -416,9 +417,7 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
       (!this._manifest?.single_config_entry ||
         (normalData.length === 0 && attentionData.length === 0));
 
-    const documentationLink = this._manifest?.is_built_in
-      ? documentationUrl(this.hass, `/integrations/${this._manifest.domain}`)
-      : this._manifest?.documentation;
+    const documentationLink = integrationGuideUrl(this._manifest);
 
     return html`
       <hass-subpage

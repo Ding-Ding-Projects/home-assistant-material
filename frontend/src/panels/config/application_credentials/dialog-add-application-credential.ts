@@ -27,6 +27,7 @@ import { DirtyStateProviderMixin } from "../../../mixins/dirty-state-provider-mi
 import { haStyleDialog } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
+import { integrationGuideUrl } from "../../../util/integration-guide-url";
 import type { AddApplicationCredentialDialogParams } from "./show-dialog-add-application-credential";
 
 interface CredentialFormState {
@@ -107,9 +108,7 @@ export class DialogAddApplicationCredential extends DirtyStateProviderMixin<Cred
     const selectedDomainName = this._params.selectedDomain
       ? domainToName(this.hass.localize, this._domain!)
       : "";
-    const documentationLink = this._manifest?.is_built_in
-      ? documentationUrl(this.hass, `/integrations/${this._domain}`)
-      : this._manifest?.documentation;
+    const documentationLink = integrationGuideUrl(this._manifest);
     return html`
       <ha-dialog
         .open=${this._open}

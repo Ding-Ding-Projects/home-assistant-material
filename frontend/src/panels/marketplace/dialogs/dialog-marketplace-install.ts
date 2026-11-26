@@ -1,3 +1,4 @@
+import { integrationGuideUrl } from "../../../util/integration-guide-url";
 import type { RenderItemFunction } from "@lit-labs/virtualizer/virtualize";
 import type { ContextType } from "@lit/context";
 import type { CSSResultGroup } from "lit";
@@ -610,7 +611,18 @@ export class DialogMarketplaceInstall extends DialogMixin<MarketplaceInstallDial
       ),
       dismissText: this._i18n.localize("ui.common.close"),
       confirm: () => {
-        navigate(`/marketplace/repository/${repository.id}`);
+        const guide =
+          repository.category === "integration" && repository.domain
+            ? integrationGuideUrl({
+                domain: repository.domain,
+                is_built_in: false,
+              })
+            : undefined;
+        if (guide) {
+          window.open(guide, "_blank", "noopener,noreferrer");
+        } else {
+          navigate(`/marketplace/repository/${repository.id}`);
+        }
       },
     });
   }
