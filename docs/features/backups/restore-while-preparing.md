@@ -2,7 +2,7 @@
 
 On a first start the page shows "Preparing Home Assistant" for many minutes while Core downloads. A backup used to be restorable only after that finished, from the welcome step. The preparing page now has a card, **Restore a backup while you wait**: upload a backup, check it, and press **Continue**. The restore is queued on the server and carries on by itself, so the page can be closed.
 
-State: source built, Supervisor, landing page server and frontend unit tests pass; not yet seen in a browser against a running first start. The Core side of the onboarding note is not built (see the end). Until it is built, the progress and failure views are only reachable while the landing page is still served (see "What happens when Core is installed").
+State: source built, Supervisor, landing page server, Core onboarding views and frontend unit tests pass; not yet seen in a browser against a running first start. The Core onboarding routes are built (see "How it works"), so the progress and failure views are reachable after the install too.
 
 ## What the person does
 
@@ -16,7 +16,7 @@ When Core answers again the page reloads to the usual sign-in screen.
 
 ## What happens when Core is installed
 
-Pulling the Core image stops the landing page container, so the landing page is gone as soon as the install ends. With a restore queued, the Supervisor does not start an empty Core first: it starts the restore, which starts Core with the restored configuration, so onboarding is never offered for the empty system. This is why the progress, failed, **Try again** and **Set up without the backup** views of the landing page card can only be seen before the install ends. After that the person reaches the Core address, which answers once the restore has finished. A failed restore has no screen on the landing page then; its failure message is kept in the record and is meant for the Core onboarding route that is not built yet.
+Pulling the Core image stops the landing page container, so the landing page is gone as soon as the install ends. With a restore queued, the Supervisor does not start an empty Core first: it starts the restore, which starts Core with the restored configuration, so onboarding is never offered for the empty system. This is why the progress, failed, **Try again** and **Set up without the backup** views of the landing page card can only be seen before the install ends. After that the person reaches the Core address, which answers once the restore has finished. A failed restore has no screen on the landing page then; its failure message is kept in the record and is shown by the Core onboarding page through the routes below.
 
 ## Safety
 
@@ -34,7 +34,13 @@ Pulling the Core image stops the landing page container, so the landing page is 
   - `POST /backups/{slug}/restore/full/when_ready` (optional `password`) validates the backup and key, then stores one pending record in the Supervisor data folder. The password goes in its own file with mode 600 and is deleted as soon as the restore has used it.
   - When Core's install finishes and the Supervisor is running, the Supervisor starts the full restore by itself, in place of the first start of Core. A Supervisor restart while queued carries on; one during the restore marks it failed. A Supervisor update in the way keeps it queued. The restore is the ordinary full restore job, so its progress is in the jobs API.
   - `GET /backups/restore/pending` returns the record (`queued`, `running`, `done`, `failed`, with the failure message kept). `DELETE` cancels a queued restore or dismisses a finished or failed one; it is refused while the restore is running. `remove_backup: true` also deletes the uploaded backup.
-- **Onboarding** (`frontend/src/onboarding`): when a pending or finished restore exists, the welcome step is replaced by its progress, then by the sign-in note or the failure.
+- **Onboarding** (`frontend/src/onboarding`): when a pending or finished restore exists, the welcome step is replaced by its progress, then by the sign-in note or the failure. A failed restore offers **Try again** (a protected backup asks for its key) and **Set up without the backup**, which asks first and then removes the uploaded backup.
+- **Core routes** (`core/homeassistant/components/onboarding/views.py`), all without sign in, not registered once onboarding is done (404), and 404 without a Supervisor:
+  - `GET /api/onboarding/restore/pending` returns `pending_restore` with only `name`, `state`, `size_bytes`, `protected`, `error`, `queued_at`, `started_at` and `finished_at` (never the slug, job id or key), or `null`.
+  - `DELETE /api/onboarding/restore/pending` (`remove_backup`) discards the record, and the uploaded backup when asked.
+  - `POST /api/onboarding/restore/pending/retry` (optional `password`) asks the Supervisor to run a failed restore again.
+  - Changes are spaced at least two seconds apart (429 otherwise), so a key cannot be guessed quickly.
+- **Supervisor retry** (`POST /backups/restore/pending/retry`): only for a failed record. It checks the key against the backup first, then queues the restore again and starts it at once when Core is idle. The landing page proxy does not forward it.
 
 ## Limits
 
@@ -42,4 +48,4 @@ Pulling the Core image stops the landing page container, so the landing page is 
 - Only a full backup can be queued.
 - The restore cannot be cancelled once it has started.
 - Differences from the design board, on purpose: the preparing intro keeps its existing logo and bar, and the "Step 1 of 3" strip on the phone card is not built.
-- The onboarding screen reads `GET /api/onboarding/restore/pending`, a Core route that does not exist yet. Until it does, onboarding shows its ordinary welcome step.
+- The onboarding page shows no backup date, step or progress percentage: the record keeps only the state, the error and the times.

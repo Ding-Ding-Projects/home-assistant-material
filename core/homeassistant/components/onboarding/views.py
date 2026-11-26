@@ -27,6 +27,8 @@ from homeassistant.helpers.translation import async_get_translations
 from homeassistant.setup import async_wait_component
 
 if TYPE_CHECKING:
+    from homeassistant.components.hassio.handler import HassIO
+
     from . import OnboardingData, OnboardingStorage, OnboardingStoreData
 
 from .const import (
@@ -40,6 +42,21 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# What the onboarding page may learn about a backup restore queued during
+# first start. The key and the Supervisor's internal ids are never passed on.
+PENDING_RESTORE_FIELDS = (
+    "name",
+    "state",
+    "size_bytes",
+    "protected",
+    "error",
+    "queued_at",
+    "started_at",
+    "finished_at",
+)
+# These views have no sign in, so a restore key cannot be guessed at speed
+PENDING_RESTORE_MIN_INTERVAL = 2.0
+
 
 async def async_setup(
     hass: HomeAssistant, data: OnboardingStoreData, store: OnboardingStorage
@@ -52,6 +69,8 @@ async def async_setup(
     hass.http.register_view(CoreConfigOnboardingView(data, store))
     hass.http.register_view(IntegrationOnboardingView(data, store))
     hass.http.register_view(WaitIntegrationOnboardingView(data))
+    hass.http.register_view(PendingRestoreOnboardingView(data))
+    hass.http.register_view(PendingRestoreRetryOnboardingView(data))
 
 
 class OnboardingPlatformProtocol(Protocol):
@@ -366,6 +385,133 @@ class WaitIntegrationOnboardingView(NoAuthBaseOnboardingView):
                 "integration_loaded": await async_wait_component(hass, domain),
             }
         )
+
+
+def _hassio_api_error() -> type[Exception]:
+    """Return the Supervisor client's error; hassio imports onboarding."""
+    from homeassistant.components.hassio.handler import (  # noqa: PLC0415
+        HassioAPIError,
+    )
+
+    return HassioAPIError
+
+
+class _PendingRestoreBaseView(NoAuthBaseOnboardingView):
+    """Base class for the views on a restore queued during first start.
+
+    They exist only while onboarding is not done, and only on a Supervisor
+    installation. Changes are spaced out so the key cannot be guessed quickly.
+    """
+
+    def __init__(self, data: OnboardingStoreData) -> None:
+        """Initialize the view."""
+        super().__init__(data)
+        self._last_change = 0.0
+
+    def _async_client(self, request: web.Request) -> HassIO:
+        """Return the Supervisor client, or raise when there is no Supervisor."""
+        if self._data["done"]:
+            raise HTTPUnauthorized
+        # hassio imports onboarding, so it can only be imported here
+        from homeassistant.components.hassio.const import (  # noqa: PLC0415
+            DATA_COMPONENT,
+        )
+
+        hass = request.app[KEY_HASS]
+        if (client := hass.data.get(DATA_COMPONENT)) is None:
+            raise web.HTTPNotFound
+        return client
+
+    def _async_check_interval(self, request: web.Request) -> None:
+        """Refuse a change that follows the last one too closely."""
+        now = request.app[KEY_HASS].loop.time()
+        if now - self._last_change < PENDING_RESTORE_MIN_INTERVAL:
+            raise web.HTTPTooManyRequests
+        self._last_change = now
+
+
+class PendingRestoreOnboardingView(_PendingRestoreBaseView):
+    """Report, and discard, a restore queued during first start."""
+
+    url = "/api/onboarding/restore/pending"
+    name = "api:onboarding:restore:pending"
+    max_body_size = MAX_UNAUTHENTICATED_BODY_SIZE
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Return the queued, running or finished restore, if any."""
+        client = self._async_client(request)
+        try:
+            result = await client.send_command(
+                "/backups/restore/pending", method="get", source="core.onboarding"
+            )
+        except _hassio_api_error() as err:
+            _LOGGER.debug("Could not read the pending restore: %s", err)
+            return self.json_message(
+                "The restore status is not available", HTTPStatus.BAD_GATEWAY
+            )
+        # Onboarding may have completed while waiting
+        if self._data["done"]:
+            raise HTTPUnauthorized
+        record = (result.get("data") or {}).get("pending_restore")
+        return self.json(
+            {
+                "pending_restore": (
+                    {key: record.get(key) for key in PENDING_RESTORE_FIELDS}
+                    if record
+                    else None
+                )
+            }
+        )
+
+    @RequestDataValidator(
+        probatio.Schema({probatio.Optional("remove_backup", default=False): bool})
+    )
+    async def delete(self, request: web.Request, data: dict[str, bool]) -> web.Response:
+        """Dismiss the restore, and optionally remove the uploaded backup."""
+        client = self._async_client(request)
+        self._async_check_interval(request)
+        try:
+            await client.send_command(
+                "/backups/restore/pending",
+                method="delete",
+                payload={"remove_backup": data["remove_backup"]},
+                source="core.onboarding",
+            )
+        except _hassio_api_error() as err:
+            _LOGGER.debug("Could not discard the pending restore: %s", err)
+            return self.json_message(
+                "The restore could not be discarded", HTTPStatus.CONFLICT
+            )
+        return self.json_message("Restore discarded")
+
+
+class PendingRestoreRetryOnboardingView(_PendingRestoreBaseView):
+    """Run a failed restore again."""
+
+    url = "/api/onboarding/restore/pending/retry"
+    name = "api:onboarding:restore:pending:retry"
+    max_body_size = MAX_UNAUTHENTICATED_BODY_SIZE
+
+    @RequestDataValidator(
+        probatio.Schema({probatio.Optional("password"): probatio.Any(None, str)})
+    )
+    async def post(self, request: web.Request, data: dict[str, Any]) -> web.Response:
+        """Queue the failed restore again, with the key if it has one."""
+        client = self._async_client(request)
+        self._async_check_interval(request)
+        try:
+            await client.send_command(
+                "/backups/restore/pending/retry",
+                payload={"password": data.get("password")},
+                timeout=60,
+                source="core.onboarding",
+            )
+        except _hassio_api_error() as err:
+            _LOGGER.debug("Could not retry the pending restore: %s", err)
+            return self.json_message(
+                "The restore could not be started again", HTTPStatus.CONFLICT
+            )
+        return self.json_message("Restore queued again")
 
 
 @callback

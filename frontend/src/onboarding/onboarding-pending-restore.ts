@@ -11,6 +11,12 @@ import "../components/ha-button";
 import "../components/ha-svg-icon";
 import "../components/progress/ha-progress-bar";
 import type { OnboardingPendingRestore } from "../data/onboarding-pending-restore";
+import {
+  discardOnboardingPendingRestore,
+  retryOnboardingPendingRestore,
+} from "../data/onboarding-pending-restore";
+import { showConfirmationDialog } from "../dialogs/generic/show-dialog-box";
+import "../components/input/ha-input";
 import { onBoardingStyles } from "./styles";
 
 declare global {
@@ -30,6 +36,12 @@ declare global {
 class OnboardingPendingRestoreView extends LitElement {
   @property({ attribute: false }) public restore!: OnboardingPendingRestore;
 
+  @state() private _password = "";
+
+  @state() private _busy = false;
+
+  @state() private _actionFailed = false;
+
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
@@ -40,6 +52,7 @@ class OnboardingPendingRestoreView extends LitElement {
 
   protected render(): TemplateResult {
     const { state: restoreState, name, error } = this.restore;
+    const protectedBackup = this.restore.protected === true;
     const prefix = "ui.panel.page-onboarding.restore_pending";
     const active = restoreState === "queued" || restoreState === "running";
     return html`
@@ -66,6 +79,26 @@ class OnboardingPendingRestoreView extends LitElement {
             ></ha-progress-bar>`
           : nothing
       }
+      ${
+        restoreState === "failed" && protectedBackup
+          ? html`<ha-input
+              type="password"
+              password-toggle
+              autocomplete="off"
+              .label=${this._t(`${prefix}.password_label`)}
+              .value=${this._password}
+              .disabled=${this._busy}
+              @input=${this._passwordChanged}
+            ></ha-input>`
+          : nothing
+      }
+      ${
+        this._actionFailed
+          ? html`<ha-alert alert-type="error" role="alert">
+              ${this._t(`${prefix}.action_failed`)}
+            </ha-alert>`
+          : nothing
+      }
       <div class="actions">
         ${
           restoreState === "done"
@@ -76,16 +109,64 @@ class OnboardingPendingRestoreView extends LitElement {
                   ${this._t(`${prefix}.reload`)}
                 </ha-button>`
             : restoreState === "failed"
-              ? html`<ha-button @click=${this._dismiss}>
-                  ${this._t(`${prefix}.continue`)}
-                </ha-button>`
+              ? html`<ha-button
+                    .disabled=${this._busy || (protectedBackup && !this._password)}
+                    @click=${this._retry}
+                  >
+                    ${this._t(`${prefix}.retry`)}
+                  </ha-button>
+                  <ha-button
+                    appearance="plain"
+                    variant="danger"
+                    .disabled=${this._busy}
+                    @click=${this._discard}
+                  >
+                    ${this._t(`${prefix}.set_up_without`)}
+                  </ha-button>`
               : nothing
         }
       </div>
     `;
   }
 
-  private _dismiss() {
+  private _passwordChanged(ev: Event) {
+    this._password = (ev.target as HTMLInputElement).value;
+  }
+
+  private async _retry() {
+    this._busy = true;
+    this._actionFailed = false;
+    const ok = await retryOnboardingPendingRestore(
+      this.restore.protected ? this._password : undefined
+    );
+    this._busy = false;
+    if (!ok) {
+      this._actionFailed = true;
+      return;
+    }
+    this._password = "";
+    fireEvent(this, "pending-restore-recheck");
+  }
+
+  private async _discard() {
+    const prefix = "ui.panel.page-onboarding.restore_pending";
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._t(`${prefix}.discard_title`),
+      text: this._t(`${prefix}.discard_text`),
+      confirmText: this._t(`${prefix}.discard_confirm`),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._busy = true;
+    this._actionFailed = false;
+    const ok = await discardOnboardingPendingRestore();
+    this._busy = false;
+    if (!ok) {
+      this._actionFailed = true;
+      return;
+    }
     fireEvent(this, "pending-restore-dismiss");
   }
 

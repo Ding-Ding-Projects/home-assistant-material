@@ -956,6 +956,10 @@ class RestAPI(CoreSysAttributes):
                 web.delete(
                     "/backups/restore/pending", api_backups.pending_restore_clear
                 ),
+                web.post(
+                    "/backups/restore/pending/retry",
+                    api_backups.pending_restore_retry,
+                ),
                 web.get("/backups/delete_proof", api_backups.delete_proof_info),
                 web.post("/backups/delete_proof", api_backups.delete_proof_set),
                 web.delete("/backups/{slug}", api_backups.remove),

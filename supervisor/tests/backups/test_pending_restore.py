@@ -527,3 +527,57 @@ async def test_api_check_password_reports_a_wrong_key(
         )
     assert resp.status == 400
     assert coresys.backups.pending_restore.record is None
+
+
+async def test_retry_requeues_a_failed_restore_with_a_new_key(
+    coresys: CoreSys, pending: PendingRestore, tmp_path: Path
+) -> None:
+    """Try again runs the same backup again, with the key asked for anew."""
+    await pending.queue(SLUG, "Full backup", 1, "old")
+    pending._record["state"] = PendingRestoreState.FAILED
+    pending._record["error"] = "No space left"
+    await coresys.core.set_state(CoreState.RUNNING)
+    coresys.homeassistant.version = "2026.11.3"
+
+    with (
+        patch.object(coresys.backups, "get", return_value=object()),
+        patch.object(coresys.backups, "_validate_backup_location", AsyncMock()),
+        patch.object(pending, "_restore", AsyncMock(return_value=True)),
+    ):
+        record = await coresys.backups.retry_pending_restore("new")
+        assert record["state"] == PendingRestoreState.QUEUED
+        assert record["error"] is None
+        await coresys.block_till_done(wait_background_tasks=True)
+
+    assert pending.record["state"] == PendingRestoreState.DONE
+    assert not (tmp_path / FILE_PENDING_RESTORE_PASSWORD).exists()
+
+
+async def test_retry_refused_unless_the_restore_failed(
+    coresys: CoreSys, pending: PendingRestore
+) -> None:
+    """Only a failed restore can be tried again."""
+    with pytest.raises(BackupError):
+        await coresys.backups.retry_pending_restore(None)
+    await pending.queue(SLUG, "Full backup", 1, None)
+    with pytest.raises(BackupError):
+        await coresys.backups.retry_pending_restore(None)
+
+
+async def test_retry_with_a_wrong_key_changes_nothing(
+    coresys: CoreSys, pending: PendingRestore
+) -> None:
+    """A key that does not open the backup leaves the failed record as it was."""
+    await pending.queue(SLUG, "Full backup", 1, "old")
+    pending._record["state"] = PendingRestoreState.FAILED
+    with (
+        patch.object(coresys.backups, "get", return_value=object()),
+        patch.object(
+            coresys.backups,
+            "_validate_backup_location",
+            AsyncMock(side_effect=BackupInvalidError("Invalid password")),
+        ),
+        pytest.raises(BackupInvalidError),
+    ):
+        await coresys.backups.retry_pending_restore("wrong")
+    assert pending.record["state"] == PendingRestoreState.FAILED

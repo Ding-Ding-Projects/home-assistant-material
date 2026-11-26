@@ -349,6 +349,22 @@ class BackupManager(FileConfiguration, JobGroup):
             self.pending_restore.start()
         return record
 
+    async def retry_pending_restore(self, password: str | None) -> dict:
+        """Run a failed first-start restore again, with a key asked for anew."""
+        record = self.pending_restore.record
+        if record is None or record["state"] != "failed":
+            raise BackupError(
+                "There is no failed restore to try again", _LOGGER.warning
+            )
+        backup = self.get(record["slug"])
+        if backup is None:
+            raise BackupError("The uploaded backup is gone", _LOGGER.warning)
+        await self._validate_backup_location(backup, password)
+        record = await self.pending_restore.retry(password)
+        if self.sys_homeassistant.core.active_job is None:
+            self.pending_restore.start()
+        return record
+
     async def reload(self, location: str | None | type[DEFAULT] = DEFAULT) -> bool:
         """Load exists backups."""
 

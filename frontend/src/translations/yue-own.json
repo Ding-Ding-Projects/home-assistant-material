@@ -642,7 +642,14 @@
           "sign_in": "去登入",
           "keep_waiting": "等緊系統再回應。",
           "continue": "當新系統設定",
-          "reload": "再檢查"
+          "reload": "再檢查",
+          "retry": "再試一次",
+          "set_up_without": "唔用備份直接設定",
+          "password_label": "備份加密金鑰",
+          "action_failed": "做唔到。等一陣再試。",
+          "discard_title": "唔用備份直接設定？",
+          "discard_text": "已上載嘅備份會喺呢部系統刪除，然後你當新系統設定 Home Assistant。",
+          "discard_confirm": "刪除備份"
         },
         "integration": {
           "skip": "暫時跳過",

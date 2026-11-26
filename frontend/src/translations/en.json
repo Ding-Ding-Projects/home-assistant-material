@@ -26813,7 +26813,14 @@
           "continue": "Set up as new",
           "sign_in": "Go to sign-in",
           "keep_waiting": "Waiting for the system to answer again.",
-          "reload": "Check again"
+          "reload": "Check again",
+          "retry": "Try again",
+          "set_up_without": "Set up without the backup",
+          "password_label": "Backup encryption key",
+          "action_failed": "That did not work. Wait a moment and try again.",
+          "discard_title": "Set up without the backup?",
+          "discard_text": "The uploaded backup will be removed from this system and you will set up Home Assistant as new.",
+          "discard_confirm": "Remove the backup"
         },
         "restore": {
           "header": "Restore a backup",

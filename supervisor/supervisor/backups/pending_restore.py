@@ -155,6 +155,30 @@ class PendingRestore(CoreSysAttributes):
         await self._save()
         return dict(self._record)
 
+    async def retry(self, password: str | None) -> dict[str, Any]:
+        """Queue the failed restore again; the caller has validated the key."""
+        record = self._record
+        if record is None or record["state"] != PendingRestoreState.FAILED:
+            raise BackupError("There is no failed restore to try again")
+        record.update(
+            {
+                "protected": password is not None,
+                "state": PendingRestoreState.QUEUED,
+                "first_start": True,
+                "queued_at": utcnow().isoformat(),
+                "started_at": None,
+                "finished_at": None,
+                "job_id": None,
+                "error": None,
+            }
+        )
+        if password is not None:
+            await self.sys_run_in_executor(self._write_password, password)
+        else:
+            await self.sys_run_in_executor(self._delete_password)
+        await self._save()
+        return dict(record)
+
     async def clear(self) -> None:
         """Drop the record and any stored password."""
         if self._record and self._record["state"] == PendingRestoreState.RUNNING:

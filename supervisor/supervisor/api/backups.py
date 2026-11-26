@@ -572,6 +572,19 @@ class APIBackups(CoreSysAttributes):
         return {ATTR_PENDING_RESTORE: self.sys_backups.pending_restore.record}
 
     @api_process
+    async def pending_restore_retry(self, request: web.Request):
+        """Run a failed first-start restore again."""
+        body = await api_validate(
+            vol.Schema({vol.Optional(ATTR_PASSWORD): vol.Maybe(str)}), request
+        )
+        try:
+            return await self.sys_backups.retry_pending_restore(
+                body.get(ATTR_PASSWORD)
+            )
+        except BackupInvalidError as err:
+            raise APIError(str(err)) from err
+
+    @api_process
     async def pending_restore_clear(self, request: web.Request) -> None:
         """Cancel a queued restore or dismiss a failed or finished one."""
         body = await api_validate(SCHEMA_PENDING_RESTORE_CLEAR, request)
