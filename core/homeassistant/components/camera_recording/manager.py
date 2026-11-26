@@ -115,6 +115,7 @@ from .live import (
     probe_duration,
     whep_source,
 )
+from .problem_log import ProblemLog, mask_secrets
 from .recorder import CameraRecorder, RecorderState
 
 SEGMENT_NAME = re.compile(r"^\d{8}T\d{6}Z(?:-event)?\.(?:mp4|jpg)$")
@@ -319,6 +320,7 @@ class RecordingManager:
         self._limited_attempt: dict[str, int] = {}
         self.live_starts: dict[str, list[float]] = {}
         self.live_active: dict[str, EventRecord] = {}
+        self._live_problems: dict[str, ProblemLog] = {}
         self.live_waiting: dict[str, EventRecord] = {}
         self.live_covered: dict[str, list[EventRecord]] = {}
         self.last_heard: dict[str, tuple[float, str | None]] = {}
@@ -405,7 +407,12 @@ class RecordingManager:
         await self._async_scan()
         for cam in self.cameras:
             recorder = CameraRecorder(
-                self.hass, cam, self.folder(cam), self.segment_seconds, self._changed
+                self.hass,
+                cam,
+                self.folder(cam),
+                self.segment_seconds,
+                self._changed,
+                self.destination.kind,
             )
             self.recorders[cam] = recorder
             self._apply_mode(cam)
@@ -414,6 +421,7 @@ class RecordingManager:
             else:
                 recorder.start()
             self._note_mode(cam)
+            self._log_start(cam)
         self._unsubs.append(
             async_track_time_interval(
                 self.hass,
@@ -552,6 +560,39 @@ class RecordingManager:
             recorder.configure(self.folder(entity_id), self.segment_seconds)
             self.planners.pop(entity_id, None)
             self._unwatch_sources(entity_id)
+
+    @callback
+    def _log_start(self, entity_id: str) -> None:
+        """Say once at start what each camera will do and why it may not record."""
+        place = self.destination.kind
+        if self.hass.states.get(entity_id) is None:
+            LOGGER.warning(
+                "Camera %s is set up to be recorded to %s but no such camera exists",
+                entity_id,
+                place,
+            )
+        if entity_id in self.paused:
+            LOGGER.info(
+                "Recording of %s to %s is paused and will not record until resumed",
+                entity_id,
+                place,
+            )
+            return
+        mode, reason = self.effective_mode(entity_id)
+        chosen = self.modes[entity_id].mode
+        if reason == "no_event_source":
+            LOGGER.warning(
+                "Camera %s is set to %s but has no event source, so it records "
+                "%s instead (place: %s)",
+                entity_id,
+                chosen,
+                mode,
+                place,
+            )
+        else:
+            LOGGER.info(
+                "Camera %s records %s to %s", entity_id, mode, place
+            )
 
     @callback
     def _note_mode(self, entity_id: str) -> None:
@@ -1136,6 +1177,7 @@ class RecordingManager:
         folder = self.folder(cam)
         part = folder / f".{name}.part"
         reason: ClipReason | None = None
+        added = False
         try:
             if access is None or source is None:
                 reason = ClipReason.UNSUPPORTED
@@ -1144,6 +1186,7 @@ class RecordingManager:
                     lambda: folder.mkdir(parents=True, exist_ok=True)
                 )
                 await access.add(stream, source)
+                added = True
                 await async_record_clip(
                     get_ffmpeg_manager(self.hass).binary,
                     f"{access.rtsp_base}/{stream}",
@@ -1158,6 +1201,8 @@ class RecordingManager:
                 )
                 if size and (duration is None or duration >= MIN_KEEP_SECONDS):
                     await self.hass.async_add_executor_job(part.replace, folder / name)
+                    if cam in self._live_problems:
+                        self._live_problems[cam].recovered("saved a clip again")
                     self._live_saved(cam, record, name, size, duration, length)
                 elif size:
                     reason = ClipReason.STREAM_ENDED
@@ -1169,12 +1214,31 @@ class RecordingManager:
             raise
         except Exception as err:  # noqa: BLE001
             reason = classify_error(err)
+            problems = self._live_problems.setdefault(
+                cam, ProblemLog(LOGGER, f"Live clip of {cam}")
+            )
+            problems.failed(
+                f"failed ({reason.value}): {type(err).__name__}",
+                key=f"{reason.value} {type(err).__name__}",
+            )
+            LOGGER.debug(
+                "Live clip of %s failed: %s", cam, mask_secrets(str(err))
+            )
         finally:
-            if access is not None:
+            if added and access is not None:
                 try:
                     await access.remove(stream)
-                except Exception:  # noqa: BLE001
-                    LOGGER.debug("Could not remove the temporary stream of %s", cam)
+                except Exception as err:  # noqa: BLE001
+                    LOGGER.warning(
+                        "Could not remove the temporary stream of %s: %s",
+                        cam,
+                        type(err).__name__,
+                    )
+                    LOGGER.debug(
+                        "Temporary stream removal of %s failed: %s",
+                        cam,
+                        mask_secrets(str(err)),
+                    )
             component = self.hass.data.get(CAMERA_DATA)
             camera = component.get_entity(cam) if component else None
             if camera is not None and session.camera_session:

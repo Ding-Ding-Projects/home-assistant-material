@@ -2,15 +2,28 @@
 
 import asyncio
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from contextlib import suppress
 from enum import StrEnum
+import logging
 import os
 from pathlib import Path
+import re
 import time
+import traceback
+from typing import Any
+from urllib.parse import unquote
 
-from homeassistant.components.camera import async_get_stream_source
+from homeassistant.components.camera import (
+    async_get_stream_source,
+    get_camera_from_entity_id,
+)
 from homeassistant.components.ffmpeg import get_ffmpeg_manager
+from homeassistant.components.stream import (
+    CONF_RTSP_TRANSPORT,
+    CONF_USE_WALLCLOCK_AS_TIMESTAMPS,
+)
+from homeassistant.const import CONF_VERIFY_SSL
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
@@ -24,8 +37,18 @@ from .const import (
     SEGMENT_TIME_FORMAT,
 )
 
+from .problem_log import ProblemLog, comparison_key, mask_secrets, source_summary
+
 STABLE_RUN_SECONDS = 120
 STOP_TIMEOUT = 10
+SOCKET_TIMEOUT_SECONDS = 15
+# A run that has produced no video this long after it started is cut and retried.
+FIRST_FILE_SECONDS = 60
+# So is a run whose newest file has stopped growing for this long.
+STALL_SECONDS = 60
+WATCHDOG_INTERVAL_SECONDS = 10
+STDERR_LINES = 20
+OWN_SEGMENT = re.compile(r"^\d{8}T\d{6}Z" + re.escape(SEGMENT_SUFFIX) + r"$")
 
 
 class RecorderState(StrEnum):
@@ -41,12 +64,25 @@ class RecorderState(StrEnum):
 
 
 def build_command(
-    binary: str, source: str, folder: Path, segment_seconds: int
+    binary: str,
+    source: str,
+    folder: Path,
+    segment_seconds: int,
+    stream_options: Mapping[str, Any] | None = None,
 ) -> list[str]:
     """The ffmpeg command: video copied as it is, audio to AAC, one file per segment."""
-    command = [binary, "-hide_banner", "-loglevel", "error", "-nostdin", "-y"]
+    options = stream_options or {}
+    command = [binary, "-hide_banner", "-loglevel", "warning", "-nostdin", "-y"]
+    timeout = str(SOCKET_TIMEOUT_SECONDS * 1_000_000)
     if source.startswith(("rtsp://", "rtsps://")):
-        command += ["-rtsp_transport", "tcp"]
+        transport = options.get(CONF_RTSP_TRANSPORT) or "tcp"
+        command += ["-rtsp_transport", str(transport), "-timeout", timeout]
+    elif source.startswith(("http://", "https://")):
+        command += ["-rw_timeout", timeout]
+    if source.startswith(("rtsps://", "https://")):
+        command += ["-tls_verify", "1" if options.get(CONF_VERIFY_SSL) else "0"]
+    if options.get(CONF_USE_WALLCLOCK_AS_TIMESTAMPS):
+        command += ["-use_wallclock_as_timestamps", "1"]
     command += [
         "-i",
         source,
@@ -85,21 +121,33 @@ class CameraRecorder:
         folder: Path,
         segment_seconds: int,
         on_change: Callable[[], None],
+        place: str = "",
     ) -> None:
         """Set up the recorder. Nothing runs until start."""
         self.hass = hass
         self.entity_id = entity_id
         self.folder = folder
         self.segment_seconds = segment_seconds
+        self.place = place
         self._on_change = on_change
         self.state = RecorderState.STOPPED
         self.last_error: str | None = None
         self.no_source = False
         self.retry_at: float | None = None
         self.started_at: float | None = None
+        self.source_text: str | None = None
+        self._source: str | None = None
+        self.stderr_tail: list[str] = []
+        self.last_exit_code: int | None = None
+        self.problems = ProblemLog(LOGGER, f"Recording {entity_id}")
         self._task: asyncio.Task[None] | None = None
         self._process: asyncio.subprocess.Process | None = None
         self._stopping = False
+        self._cut_reason: str | None = None
+        self._failures = 0
+        self._no_stream_attempts = 0
+        self._limited_attempts = 0
+        self._no_stream_noted = False
 
     @property
     def running(self) -> bool:
@@ -107,10 +155,26 @@ class CameraRecorder:
         return self._task is not None and not self._task.done()
 
     def _set(self, state: RecorderState, error: str | None = None) -> None:
+        if state != self.state:
+            LOGGER.log(
+                logging.INFO if state is RecorderState.RECORDING else logging.DEBUG,
+                "Recording %s changed from %s to %s (place: %s)",
+                self.entity_id,
+                self.state,
+                state,
+                self.place or "unknown",
+            )
         self.state = state
         if error is not None:
-            self.last_error = error
+            self.last_error = mask_secrets(error)
         self._on_change()
+
+    def _suffix(self, delay: float | None = None) -> str:
+        place = self.place or "unknown"
+        suffix = f" [camera: {self.entity_id}, place: {place}, state: {self.state}"
+        if delay is not None:
+            suffix += f", retry in {delay:.0f} s"
+        return suffix + "]"
 
     def start(self) -> None:
         """Start recording in the background."""
@@ -154,79 +218,244 @@ class CameraRecorder:
         finally:
             self.retry_at = None
 
+    def _why_no_source(self) -> tuple[str, bool]:
+        """Why there is no stream, and whether that is how the camera is meant to be."""
+        entity_state = self.hass.states.get(self.entity_id)
+        if entity_state is None:
+            return "the camera entity does not exist", False
+        if entity_state.state in ("unavailable", "unknown"):
+            return f"the camera is {entity_state.state}", False
+        return "the camera integration returned no stream address", True
+
+    def _stream_options(self) -> Mapping[str, Any]:
+        try:
+            return get_camera_from_entity_id(self.hass, self.entity_id).stream_options
+        except HomeAssistantError:
+            return {}
+
+    def _redact(self, text: str) -> str:
+        """The text with the exact stream address, in any spelling, hidden."""
+        if self._source:
+            for variant in {self._source, unquote(self._source)}:
+                text = text.replace(variant, self.source_text or "the stream")
+        return mask_secrets(text)
+
+    def _segment_sizes(self) -> dict[str, int]:
+        """The recorder's own segments, by name. Event and live clips are not these."""
+        sizes: dict[str, int] = {}
+        try:
+            with os.scandir(self.folder) as entries:
+                for entry in entries:
+                    if OWN_SEGMENT.match(entry.name):
+                        with suppress(OSError):
+                            sizes[entry.name] = entry.stat().st_size
+        except OSError:
+            pass
+        return sizes
+
+    async def _watch_output(
+        self,
+        process: asyncio.subprocess.Process,
+        baseline: dict[str, int],
+        started: float,
+    ) -> None:
+        """Cut a run that wrote nothing or stalled, and note when it is healthy."""
+        previous = baseline
+        last_progress = started
+        seen = False
+        stable = False
+        while process.returncode is None:
+            await asyncio.sleep(WATCHDOG_INTERVAL_SECONDS)
+            if process.returncode is not None:
+                return
+            sizes = await self.hass.async_add_executor_job(self._segment_sizes)
+            now = time.monotonic()
+            if any(size != previous.get(name) for name, size in sizes.items()):
+                last_progress = now
+                if not seen:
+                    seen = True
+                    self._set(RecorderState.RECORDING)
+            previous = sizes
+            if seen and not stable and now - started >= STABLE_RUN_SECONDS:
+                stable = True
+                self._failures = 0
+                self.problems.recovered()
+            limit = STALL_SECONDS if seen else FIRST_FILE_SECONDS
+            if now - last_progress >= limit:
+                what = "no new video was written" if seen else "no video was written"
+                self._cut_reason = (
+                    f"{what} in {limit} s although ffmpeg stayed connected to "
+                    f"{self.source_text}"
+                )
+                with suppress(ProcessLookupError):
+                    process.kill()
+                return
+
     async def _run(self) -> None:
-        attempt = 0
-        no_stream_attempt = 0
-        limited_attempt = 0
         while not self._stopping:
-            error: str | None = None
             try:
-                source = await async_get_stream_source(self.hass, self.entity_id)
-            except HomeAssistantError as err:
-                source = None
-                error = str(err)
-                self.last_error = error
-            if not source:
-                self.no_source = error is None
-                if is_rate_limited(error):
-                    delay = wait_for_attempt(limited_attempt, RATE_LIMIT_WAIT_SECONDS)
-                    limited_attempt += 1
-                    self._set(RecorderState.LIMITED, error)
-                else:
-                    delay = wait_for_attempt(no_stream_attempt, NO_STREAM_WAIT_SECONDS)
-                    no_stream_attempt += 1
-                    self._set(
-                        RecorderState.NO_STREAM,
-                        error or "The camera does not offer a video stream",
-                    )
-                await self._wait(delay)
-                continue
-            self.no_source = False
-            limited_attempt = 0
-            no_stream_attempt = 0
-
-            await self.hass.async_add_executor_job(
-                lambda: self.folder.mkdir(parents=True, exist_ok=True)
-            )
-            command = build_command(
-                get_ffmpeg_manager(self.hass).binary,
-                source,
-                self.folder,
-                self.segment_seconds,
-            )
-            started = time.monotonic()
-            try:
-                self._process = await asyncio.create_subprocess_exec(
-                    *command,
-                    stdin=asyncio.subprocess.DEVNULL,
-                    stdout=asyncio.subprocess.DEVNULL,
-                    stderr=asyncio.subprocess.PIPE,
-                    env={**os.environ, "TZ": "UTC"},
+                delay = await self._attempt()
+            except asyncio.CancelledError:
+                raise
+            except Exception as err:  # noqa: BLE001
+                message = f"unexpected {type(err).__name__}: {self._redact(str(err))}"
+                LOGGER.debug(
+                    "Recording %s hit an unexpected error:\n%s",
+                    self.entity_id,
+                    self._redact("".join(traceback.format_exception(err))),
                 )
-            except OSError as err:
-                self._set(RecorderState.RECONNECTING, f"Could not start ffmpeg: {err}")
-            else:
-                self.started_at = time.time()
-                self._set(RecorderState.RECORDING)
-                tail: deque[str] = deque(maxlen=5)
-                if self._process.stderr is not None:
-                    async for line in self._process.stderr:
-                        tail.append(line.decode(errors="replace").strip())
-                code = await self._process.wait()
-                self._process = None
-                if self._stopping:
-                    return
-                # ffmpeg's last line names the cause; earlier lines repeat it with addresses.
-                message = next(
-                    (t for t in reversed(tail) if t), f"ffmpeg stopped with code {code}"
-                )
-                LOGGER.warning("Recording %s stopped: %s", self.entity_id, message)
+                delay = self._backoff()
                 self._set(RecorderState.RECONNECTING, message)
-
-            if time.monotonic() - started > STABLE_RUN_SECONDS:
-                attempt = 0
-            delay = RESTART_BACKOFF_SECONDS[
-                min(attempt, len(RESTART_BACKOFF_SECONDS) - 1)
-            ]
-            attempt += 1
+                self.problems.failed(
+                    message,
+                    suffix=self._suffix(delay),
+                    key=comparison_key(message),
+                )
+            if delay is None:
+                return
             await self._wait(delay)
+
+    def _backoff(self) -> float:
+        delay = RESTART_BACKOFF_SECONDS[
+            min(self._failures, len(RESTART_BACKOFF_SECONDS) - 1)
+        ]
+        self._failures += 1
+        return delay
+
+    async def _attempt(self) -> float | None:
+        """One try to get a stream and record it. Returns the wait before the next."""
+        error: str | None = None
+        try:
+            async with asyncio.timeout(10):
+                source = await async_get_stream_source(self.hass, self.entity_id)
+        except HomeAssistantError as err:
+            source = None
+            error = self._redact(str(err))
+            self.last_error = error
+        except TimeoutError:
+            source = None
+            error = "the camera did not give its stream address within 10 s"
+            self.last_error = error
+        if not source:
+            self.no_source = error is None
+            if is_rate_limited(error):
+                delay = wait_for_attempt(
+                    self._limited_attempts, RATE_LIMIT_WAIT_SECONDS
+                )
+                self._limited_attempts += 1
+                self._set(RecorderState.LIMITED, error)
+                summary = f"the camera provider is limiting requests ({error})"
+            else:
+                delay = wait_for_attempt(
+                    self._no_stream_attempts, NO_STREAM_WAIT_SECONDS
+                )
+                self._no_stream_attempts += 1
+                reason, expected = (error, False) if error else self._why_no_source()
+                self._set(
+                    RecorderState.NO_STREAM,
+                    error or "The camera does not offer a video stream",
+                )
+                if expected:
+                    if not self._no_stream_noted:
+                        self._no_stream_noted = True
+                        LOGGER.info(
+                            "Recording %s has nothing to record continuously: %s. "
+                            "Events can still be kept through the provider%s",
+                            self.entity_id,
+                            reason,
+                            self._suffix(),
+                        )
+                    return delay
+                summary = f"no stream to record, {reason}"
+            self.problems.failed(
+                summary, suffix=self._suffix(delay), key=comparison_key(summary)
+            )
+            return delay
+        self.no_source = False
+        self._limited_attempts = 0
+        self._no_stream_attempts = 0
+        self._no_stream_noted = False
+
+        await self.hass.async_add_executor_job(
+            lambda: self.folder.mkdir(parents=True, exist_ok=True)
+        )
+        options = self._stream_options()
+        command = build_command(
+            get_ffmpeg_manager(self.hass).binary,
+            source,
+            self.folder,
+            self.segment_seconds,
+            options,
+        )
+        self._source = source
+        self.source_text = source_summary(source)
+        LOGGER.debug(
+            "Recording %s starts ffmpeg from %s into %s with stream options %s",
+            self.entity_id,
+            self.source_text,
+            self.folder,
+            sorted(options),
+        )
+        baseline = await self.hass.async_add_executor_job(self._segment_sizes)
+        started = time.monotonic()
+        self._cut_reason = None
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *command,
+                stdin=asyncio.subprocess.DEVNULL,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.PIPE,
+                env={**os.environ, "TZ": "UTC"},
+            )
+        except OSError as err:
+            message = f"could not start ffmpeg: {self._redact(str(err))}"
+            delay = self._backoff()
+            self._set(RecorderState.RECONNECTING, message)
+            self.problems.failed(
+                message, suffix=self._suffix(delay), key=comparison_key(message)
+            )
+            return delay
+
+        self._process = process
+        tail: deque[str] = deque(maxlen=STDERR_LINES)
+        watchdog: asyncio.Task[None] | None = None
+        try:
+            self.started_at = time.time()
+            self._set(RecorderState.STARTING)
+            watchdog = asyncio.create_task(
+                self._watch_output(process, baseline, started)
+            )
+            if process.stderr is not None:
+                async for line in process.stderr:
+                    tail.append(self._redact(line.decode(errors="replace").strip()))
+            code = await process.wait()
+        finally:
+            if watchdog is not None:
+                watchdog.cancel()
+                with suppress(asyncio.CancelledError):
+                    await watchdog
+            if process.returncode is None:
+                with suppress(ProcessLookupError):
+                    process.kill()
+                with suppress(TimeoutError):
+                    await asyncio.wait_for(process.wait(), STOP_TIMEOUT)
+            self._process = None
+        self.last_exit_code = code
+        self.stderr_tail = [line for line in tail if line]
+        if self._stopping:
+            return None
+        # ffmpeg's last line names the cause; earlier lines repeat it with addresses.
+        last = self.stderr_tail[-1] if self.stderr_tail else "no output"
+        message = self._cut_reason or f"ffmpeg exited with code {code}: {last}"
+        if time.monotonic() - started > STABLE_RUN_SECONDS:
+            self._failures = 0
+        delay = self._backoff()
+        self._set(RecorderState.RECONNECTING, message)
+        detail = "\n".join(f"    ffmpeg: {line}" for line in self.stderr_tail)
+        self.problems.failed(
+            message,
+            suffix=self._suffix(delay),
+            detail=detail,
+            key=comparison_key(message),
+        )
+        return delay

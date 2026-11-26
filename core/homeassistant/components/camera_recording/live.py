@@ -41,6 +41,7 @@ from .const import (
     LOGGER,
 )
 from .events import ClipReason
+from .problem_log import mask_secrets
 from .sdp import has_ice_credentials, prepare_offer, restore_answer
 
 MAX_OFFER_BYTES = 65536
@@ -207,7 +208,9 @@ def _warn_refusal_once(entity_id: str, detail: str) -> None:
     if entity_id in _REFUSALS_LOGGED:
         return
     _REFUSALS_LOGGED.add(entity_id)
-    LOGGER.warning("%s refused a live recording offer: %s", entity_id, detail[:300])
+    LOGGER.warning(
+        "%s refused a live recording offer: %s", entity_id, mask_secrets(detail)[:300]
+    )
 
 
 def classify_offer_failure(text: str) -> ClipReason:
@@ -298,9 +301,16 @@ class LiveOfferView(HomeAssistantView):
             )
             sdp = await asyncio.wait_for(answer, LIVE_OFFER_TIMEOUT_SECONDS)
         except TimeoutError:
+            _warn_refusal_once(
+                session.entity_id,
+                f"no answer to the live offer within {LIVE_OFFER_TIMEOUT_SECONDS} s",
+            )
             session.failure = ClipReason.TIMED_OUT
             return web.Response(status=504)
         except LiveOfferError as err:
+            _warn_refusal_once(
+                session.entity_id, f"the offer was refused ({err.reason.value})"
+            )
             session.failure = err.reason
             return web.Response(
                 status=429 if err.reason is ClipReason.RATE_LIMITED else 502
