@@ -11538,7 +11538,9 @@
           "not_recorded_title": "呢部攝錄機冇錄影",
           "not_recorded_body": "事件有列出，不過暫時冇為佢哋留片。"
         },
-        "recorded": "已錄影"
+        "recorded": "已錄影",
+        "drag_release": "放手就由呢度開始播",
+        "drag_gap": "呢度冇錄到嘢。放手會跳去下一段錄影"
       },
       "data-table": {
         "search": "搜尋",

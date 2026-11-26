@@ -801,7 +801,9 @@
           "keep_clips_note": "Uses the clips the camera service already keeps. Nothing leaves the home.",
           "keep_clips_live": "Uses the camera's live video for about {seconds} seconds per event. Nothing leaves the home.",
           "live_on": "Live video is recorded for about {seconds} seconds around each event."
-        }
+        },
+        "drag_release": "Let go to play from here",
+        "drag_gap": "Nothing was kept here. Let go to jump to the next recording"
       },
       "action-field-adapter": {
         "amount": "Number of days or weeks",

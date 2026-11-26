@@ -22,6 +22,7 @@ import yueSource from "../../translations/yue-own.json";
 export const YUE_PREFIXES = [
   "ui.components.empty-state.",
   "ui.components.top_bar_search.",
+  "ui.components.filter_chip_menu.",
   "ui.components.action-editors.",
   "ui.components.automation-editors.",
   "ui.panel.config.updates.progress.",

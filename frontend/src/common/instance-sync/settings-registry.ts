@@ -337,6 +337,11 @@ export const SYNCED_KEY_RULES: SyncedKeyRule[] = [
     kind: "json",
     holds: "Media browser player picked",
   },
+  {
+    exact: "camera-recording-open-rows",
+    kind: "json",
+    holds: "Camera recording rows left open",
+  },
   { exact: "selectedTodoEntity", kind: "json", holds: "To-do list picked" },
 ];
 
