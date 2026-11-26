@@ -118,6 +118,10 @@ export const YUE_PREFIXES = [
   "ui.panel.lovelace.cards.security_alarm.",
   "ui.panel.lovelace.cards.dashboards_list.",
   "ui.panel.lovelace.cards.room_lights.",
+  // The 3D printer cards and their editors.
+  "ui.panel.lovelace.cards.printer_status.",
+  "ui.panel.lovelace.cards.printer_controls.",
+  "ui.panel.lovelace.editor.card.printer-",
   "ui.panel.config.lovelace.resources.detail.",
   "ui.panel.config.apps.info.needs_os_title",
   "ui.panel.config.apps.info.no_store_text",
