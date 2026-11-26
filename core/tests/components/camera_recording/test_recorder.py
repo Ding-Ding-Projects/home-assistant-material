@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 
 from .conftest import CAMERA
 
-RTSPS = "rtsps://bblp:12345678@192.168.1.50:322/streaming/live/1"
+RTSPS = "rtsps://bblp:12345678@203.0.113.50:322/streaming/live/1"
 
 
 def test_command_copies_video_into_segments() -> None:

@@ -32,7 +32,7 @@ KEEP = {
     "default_mode": "all_day",
 }
 SSH_INPUT = {
-    CONF_HOST: "192.168.1.40",
+    CONF_HOST: "203.0.113.7",
     CONF_PORT: 22,
     CONF_USERNAME: "cams",
     CONF_PASSWORD: "secret",
@@ -105,7 +105,7 @@ async def test_failed_test_explains(hass: HomeAssistant) -> None:
     """A failed step is shown with its reason, and setup stays on the form."""
     failed = TestResult(
         [
-            TestStep("reach", True, "192.168.1.40:22"),
+            TestStep("reach", True, "203.0.113.7:22"),
             TestStep("sign_in", True),
             TestStep("open_folder", False, "Permission denied"),
         ]

@@ -11,16 +11,16 @@ from homeassistant.components.camera_recording.problem_log import (
     source_summary,
 )
 
-RTSPS = "rtsps://bblp:12345678@192.168.1.50:322/streaming/live/1"
+RTSPS = "rtsps://bblp:12345678@203.0.113.50:322/streaming/live/1"
 
 
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        (RTSPS, "rtsps://***@192.168.1.50:322/streaming/live/1"),
+        (RTSPS, "rtsps://***@203.0.113.50:322/streaming/live/1"),
         (
             f"Input #0, rtsp, from '{RTSPS}':",
-            "Input #0, rtsp, from 'rtsps://***@192.168.1.50:322/streaming/live/1':",
+            "Input #0, rtsp, from 'rtsps://***@203.0.113.50:322/streaming/live/1':",
         ),
         (
             "http://cam/video?token=abc123&channel=1&api_key=zzz",
@@ -41,7 +41,7 @@ def test_mask_secrets(text: str, expected: str) -> None:
 
 def test_source_summary_has_scheme_and_host_only() -> None:
     """The summary never carries a user, a path or a query."""
-    assert source_summary(RTSPS) == "rtsps://192.168.1.50:322"
+    assert source_summary(RTSPS) == "rtsps://203.0.113.50:322"
     assert "12345678" not in source_summary(RTSPS)
 
 
@@ -80,11 +80,11 @@ def test_problem_log_masks_credentials(caplog: pytest.LogCaptureFixture) -> None
 @pytest.mark.parametrize(
     ("text", "secrets"),
     [
-        ("rtsp://admin:pa/ss@192.168.1.10/stream: Invalid argument", ["pa/ss", "admin"]),
-        ("rtsp://admin:pa'ss@192.168.1.10/stream: Invalid", ["pa'ss", "admin"]),
-        ("rtsp://admin:P@ss/w0rd@192.168.1.10/stream", ["P@ss", "w0rd", "admin"]),
+        ("rtsp://admin:pa/ss@203.0.113.7/stream: Invalid argument", ["pa/ss", "admin"]),
+        ("rtsp://admin:pa'ss@203.0.113.7/stream: Invalid", ["pa'ss", "admin"]),
+        ("rtsp://admin:P@ss/w0rd@203.0.113.7/stream", ["P@ss", "w0rd", "admin"]),
         (
-            "rtsp://192.168.1.10:554/user=admin_password=S3cret_channel=1_stream=0.sdp?real_stream",
+            "rtsp://203.0.113.7:554/user=admin_password=S3cret_channel=1_stream=0.sdp?real_stream",
             ["S3cret", "admin"],
         ),
         ("rtsp://cam/user=admin&password=S3cret&channel=1", ["S3cret", "admin"]),
@@ -101,13 +101,13 @@ def test_mask_secrets_in_odd_addresses(text: str, secrets: list[str]) -> None:
 @pytest.mark.parametrize(
     "source",
     [
-        "rtsp://admin:pa/ss@192.168.1.10/stream",
-        "rtsp://admin:P@ss/w0rd@192.168.1.10/stream",
+        "rtsp://admin:pa/ss@203.0.113.7/stream",
+        "rtsp://admin:P@ss/w0rd@203.0.113.7/stream",
     ],
 )
 def test_source_summary_survives_odd_passwords(source: str) -> None:
     """The host is taken after the last at sign, so no part of the login is shown."""
-    assert source_summary(source) == "rtsp://192.168.1.10"
+    assert source_summary(source) == "rtsp://203.0.113.7"
 
 
 def test_detail_is_written_once_and_repeats_get_rarer(

@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from .conftest import CAMERA
 from .test_init import setup_entry
 
-RTSPS = "rtsps://bblp:12345678@192.168.1.50:322/streaming/live/1"
+RTSPS = "rtsps://bblp:12345678@203.0.113.50:322/streaming/live/1"
 
 
 @pytest.mark.usefixtures("no_ffmpeg", "remote_store")
@@ -27,13 +27,13 @@ async def test_diagnostics_have_no_credentials(
     await setup_entry(hass, remote_entry)
     recorder = remote_entry.runtime_data.recorders[CAMERA]
     recorder.last_error = f"Could not open {RTSPS}"
-    recorder.source_text = "rtsps://192.168.1.50:322"
+    recorder.source_text = "rtsps://203.0.113.50:322"
     recorder.stderr_tail = [f"{RTSPS}: Connection refused"]
     recorder.last_exit_code = 1
 
     result = await async_get_config_entry_diagnostics(hass, remote_entry)
     camera = result["cameras"][CAMERA]
-    assert camera["recorder"]["source"] == "rtsps://192.168.1.50:322"
+    assert camera["recorder"]["source"] == "rtsps://203.0.113.50:322"
     assert camera["recorder"]["last_exit_code"] == 1
     assert camera["chosen_mode"] == "all_day"
     assert camera["camera_state"] == "idle"

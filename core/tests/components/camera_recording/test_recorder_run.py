@@ -167,7 +167,7 @@ async def test_connected_but_silent_run_is_cut(
     assert recorder.state is RecorderState.RECONNECTING
     text = caplog.text
     assert "no video was written" in text
-    assert "rtsps://192.168.1.50:322" in text
+    assert "rtsps://203.0.113.50:322" in text
     assert "12345678" not in text
     assert "resumed" not in text
 
@@ -260,8 +260,8 @@ async def test_secret_in_unexpected_error_is_not_logged(
     """A credential that an error echoes is hidden, debug logging included."""
     hass.states.async_set(CAMERA, "idle")
     recorder = make_recorder(hass, tmp_path)
-    recorder._source = "rtsp://admin:pa/ss@192.168.1.10/stream"
-    recorder.source_text = "rtsp://192.168.1.10"
+    recorder._source = "rtsp://admin:pa/ss@203.0.113.7/stream"
+    recorder.source_text = "rtsp://203.0.113.7"
 
     async def explode() -> float | None:
         raise ValueError(f"cannot open {recorder._source}?x")
