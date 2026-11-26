@@ -20,7 +20,7 @@ type GuideManifest = Pick<
   "domain" | "is_built_in" | "documentation"
 >;
 
-export const integrationGuideUrl = (manifest?: GuideManifest) => {
+export const integrationGuideUrl = (manifest?: GuideManifest | null) => {
   if (!manifest) {
     return undefined;
   }

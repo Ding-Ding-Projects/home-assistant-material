@@ -193,48 +193,61 @@ describe("dialog-marketplace-install", () => {
     }
   );
 
-  it("points at the documentation of an integration without a setup", async () => {
-    const dialog = await openInstallDialog(
-      {
-        repository: repositoryInfo("1", {
-          installed: false,
-          domain: "example",
-        }),
-      },
-      mockConnection(async (message: { type: string }) =>
-        message.type === "marketplace/repository/info"
-          ? repositoryInfo("1", {
-              installed: true,
-              domain: "example",
-              config_flow: false,
-              status: "pending-restart",
-            } as Partial<RepositoryInfo>)
-          : null
-      )
-    );
-    await settle(dialog);
+  it.each(["example", "edge_tts"])(
+    "opens documentation for %s after installation without setup",
+    async (domain) => {
+      const open = vi.spyOn(window, "open").mockImplementation(() => null);
+      const dialog = await openInstallDialog(
+        {
+          repository: repositoryInfo("1", {
+            installed: false,
+            domain,
+          }),
+        },
+        mockConnection(async (message: { type: string }) =>
+          message.type === "marketplace/repository/info"
+            ? repositoryInfo("1", {
+                installed: true,
+                domain,
+                config_flow: false,
+                status: "pending-restart",
+              } as Partial<RepositoryInfo>)
+            : null
+        )
+      );
+      await settle(dialog);
 
-    dialog
-      .shadowRoot!.querySelector("ha-button[slot=primaryAction]")!
-      .dispatchEvent(new Event("click"));
-    await settle(dialog);
-    await settle(dialog);
+      dialog
+        .shadowRoot!.querySelector("ha-button[slot=primaryAction]")!
+        .dispatchEvent(new Event("click"));
+      await settle(dialog);
+      await settle(dialog);
 
-    expect(showConfigFlowDialog).not.toHaveBeenCalled();
-    const params = vi.mocked(showConfirmationDialog).mock.lastCall![1];
-    expect(params.title).toBe(
-      "ui.panel.marketplace.dialog_install.installed_title"
-    );
-    expect(params.text).toBe(
-      "ui.panel.marketplace.dialog_install.installed_without_set_up"
-    );
-    expect(params.confirmText).toBe(
-      "ui.panel.marketplace.dialog_install.view_documentation"
-    );
+      expect(showConfigFlowDialog).not.toHaveBeenCalled();
+      const params = vi.mocked(showConfirmationDialog).mock.lastCall![1];
+      expect(params.title).toBe(
+        "ui.panel.marketplace.dialog_install.installed_title"
+      );
+      expect(params.text).toBe(
+        "ui.panel.marketplace.dialog_install.installed_without_set_up"
+      );
+      expect(params.confirmText).toBe(
+        "ui.panel.marketplace.dialog_install.view_documentation"
+      );
 
-    params.confirm!();
-    expect(navigate).toHaveBeenCalledWith("/marketplace/repository/1");
-  });
+      params.confirm!();
+      if (domain === "edge_tts") {
+        expect(open).toHaveBeenCalledWith(
+          "https://ding-ding-projects.github.io/home-assistant-integrations-documentation/integrations/edge_tts/",
+          "_blank",
+          "noopener,noreferrer"
+        );
+      } else {
+        expect(navigate).toHaveBeenCalledWith("/marketplace/repository/1");
+      }
+      open.mockRestore();
+    }
+  );
 
   it.each([
     {

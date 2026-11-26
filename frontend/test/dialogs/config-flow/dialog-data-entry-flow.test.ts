@@ -8,6 +8,7 @@ import type {
   DataEntryFlowStepMenu,
   DataEntryFlowStepProgress,
 } from "../../../src/data/data_entry_flow";
+import type { IntegrationManifest } from "../../../src/data/integration";
 import "../../../src/dialogs/config-flow/dialog-data-entry-flow";
 import type { FlowConfig } from "../../../src/dialogs/config-flow/show-dialog-data-entry-flow";
 import type { HomeAssistant } from "../../../src/types";
@@ -152,13 +153,17 @@ const nextTask = () =>
     setTimeout(resolve, 0);
   });
 
-const openDialog = async (initialStep: DataEntryFlowStep = formStep) => {
+const openDialog = async (
+  initialStep: DataEntryFlowStep = formStep,
+  manifest?: IntegrationManifest
+) => {
   vi.mocked(flowConfig.createFlow).mockResolvedValueOnce(initialStep);
   const dialog = document.createElement("dialog-data-entry-flow");
   dialog.hass = hass;
   document.body.append(dialog);
   await dialog.showDialog({
     startFlowHandler: "test",
+    manifest,
     flowConfig,
   });
   await nextTask();
@@ -173,6 +178,18 @@ describe("dialog-data-entry-flow dismissal", () => {
   afterEach(() => {
     document.body.replaceChildren();
     vi.clearAllMocks();
+  });
+
+  it("links the selected integration to its own guide", async () => {
+    const dialog = await openDialog(formStep, {
+      domain: "hue",
+      name: "Philips Hue",
+      is_built_in: true,
+    });
+    const help = dialog.shadowRoot!.querySelector<HTMLAnchorElement>("a.help");
+    expect(help?.href).toBe(
+      "https://ding-ding-projects.github.io/home-assistant-integrations-documentation/integrations/hue/"
+    );
   });
 
   it("allows clean forms to be dismissed", async () => {
@@ -228,7 +245,7 @@ describe("dialog-data-entry-flow dismissal", () => {
     const step = dialog.shadowRoot!.querySelector("step-flow-menu")!;
     await step.updateComplete;
 
-    step.shadowRoot!.querySelector<HTMLElement>("ha-list-item")!.click();
+    step.shadowRoot!.querySelector<HTMLElement>("ha-list-item-button")!.click();
     await dialog.updateComplete;
 
     expect(innerDialog(dialog).preventScrimClose).toBe(true);

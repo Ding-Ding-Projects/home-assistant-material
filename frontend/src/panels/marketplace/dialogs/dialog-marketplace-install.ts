@@ -1,4 +1,3 @@
-import { integrationGuideUrl } from "../../../util/integration-guide-url";
 import type { RenderItemFunction } from "@lit-labs/virtualizer/virtualize";
 import type { ContextType } from "@lit/context";
 import type { CSSResultGroup } from "lit";
@@ -31,6 +30,7 @@ import {
   connectionContext,
   internationalizationContext,
 } from "../../../data/context";
+import { integrationGuideUrl } from "../../../util/integration-guide-url";
 import { DialogMixin } from "../../../dialogs/dialog-mixin";
 import { showConfigFlowDialog } from "../../../dialogs/config-flow/show-dialog-config-flow";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
