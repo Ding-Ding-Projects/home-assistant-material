@@ -80,6 +80,23 @@ test('job retry reuses its durable identity and rejects changed upload ownership
   const resumed = new BackupJobs(manager, uploads); assert.equal(resumed.list().jobs[0].id, first.id); assert.equal(resumed.list().jobs[0].state, 'needs_resume');
 });
 
+test('full-mode instances publish a free SSH port and pass it to the image; old ones have none', async () => {
+  const text = backupCompose({ backupHostingFull: true, slug: 'ssh-one', prefix: 'ham', port: 8124, tag: 'latest', timezone: 'UTC', sshPort: 22223 });
+  assert.match(text, /- "22223:22222"/); assert.match(text, /HA_MATERIAL_SSH_PORT: "22223"/);
+  const old = backupCompose({ backupHostingFull: true, slug: 'ssh-two', prefix: 'ham', port: 8125, tag: 'latest', timezone: 'UTC' });
+  assert.doesNotMatch(old, /22222|HA_MATERIAL_SSH_PORT/);
+  const { Manager } = require('../src/backend/manager');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ham-ssh-'));
+  const m = new Manager(dir, { portCheck: async (p) => p !== 22223 });
+  m.db.instances.push({ id: 'a', target: 'docker', port: 8123, sshPort: 22222, slug: 'a', backups: [] });
+  const b = await m.allocate({ target: 'docker', name: 'B' }, { id: 'b', hostingJobId: 'job-b' });
+  assert.equal(b.sshPort, 22224); // 22222 belongs to another instance, 22223 is busy on this computer
+  assert.notEqual(b.sshPort, b.port);
+  const c = await m.allocate({ target: 'docker', name: 'C' }, { id: 'c', hostingJobId: 'job-c' });
+  assert.equal(c.sshPort, 22225);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('full backup targets have independent full-mode volumes and no source mount', () => {
   const text = backupCompose({ backupHostingFull: true, slug: 'backup-one', prefix: 'ham', port: 8124, tag: 'latest', timezone: 'UTC' });
   assert.match(text, /home-assistant-material-full:latest/); assert.match(text, /name: ham-backup-one-data/); assert.match(text, /8124:80/); assert.doesNotMatch(text, /docker\.sock|\/config:/);

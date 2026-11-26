@@ -231,6 +231,17 @@ class Manager extends EventEmitter {
     return { target: targetId, hostId: hostId || '', name, port, tag: 'latest', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', memoryMb: 4096, cpus: 2, diskGb: 0, memoryLimit: '', backupsOn: true };
   }
 
+  // The first free host port from 22222 up for a full-mode instance's SSH server. It avoids every port
+  // another instance on the same host already uses (web or SSH) and this instance's own web port.
+  async freeSshPort(targetId, hostId, webPort) {
+    const sameHost = (i) => (targetId === 'ssh' ? i.target === 'ssh' && i.hostId === hostId : i.target !== 'ssh');
+    const taken = [webPort];
+    for (const i of this.db.instances.filter(sameHost)) { taken.push(i.port); if (i.sshPort) taken.push(i.sshPort); }
+    // A remote host's ports cannot be probed from here, so only the recorded ones are avoided there.
+    const check = targetId === 'ssh' ? async () => true : (this.portCheck || portFree);
+    return freePort(22222, taken, check);
+  }
+
   async allocate(opts, { id, hostingJobId, signal } = {}) {
     const before = this.allocationTail;
     let release;
@@ -250,7 +261,7 @@ class Manager extends EventEmitter {
     if (o.target !== 'vmware' && o.target !== 'pi') {
       if (!Number.isInteger(selectedPort) || selectedPort < 1 || selectedPort > 65535) throw new Error('Choose a port from 1 to 65535.');
       const sameHost = (instance) => o.target === 'ssh' ? instance.target === 'ssh' && instance.hostId === o.hostId : instance.target !== 'ssh';
-      if (this.db.instances.some((instance) => sameHost(instance) && instance.port === selectedPort)) throw Object.assign(new Error('port_in_use'), { code: 'port_in_use' });
+      if (this.db.instances.some((instance) => sameHost(instance) && (instance.port === selectedPort || instance.sshPort === selectedPort))) throw Object.assign(new Error('port_in_use'), { code: 'port_in_use' });
       if (o.target !== 'ssh' && !(await (this.portCheck || portFree)(selectedPort))) throw Object.assign(new Error('port_in_use'), { code: 'port_in_use' });
       if (signal?.aborted) throw Object.assign(new Error('cancelled'), { code: 'cancelled' });
     }
@@ -261,6 +272,8 @@ class Manager extends EventEmitter {
       created: new Date().toISOString(), state: 'deploying', url: '', lanUrl: '', backups: [], backupsOn: o.backupsOn !== false, notes: ''
     };
     if (hostingJobId) Object.assign(inst, { hostingJobId, backupHostingFull: ['docker', 'ssh'].includes(o.target), prefix: 'ham' });
+    // A full-mode instance also publishes its SSH port (container port 22222), chosen like the web port.
+    if (inst.backupHostingFull) inst.sshPort = await this.freeSshPort(o.target, o.hostId, inst.port);
     inst.dir = path.join(this.dir, 'instances', inst.slug);
     this.db.instances.push(inst);
     this.save();
