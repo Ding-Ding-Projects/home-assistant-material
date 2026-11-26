@@ -2,7 +2,7 @@
 
 On a first start the page shows "Preparing Home Assistant" for many minutes while Core downloads. A backup used to be restorable only after that finished, from the welcome step. The preparing page now has a card, **Restore a backup while you wait**: upload a backup, check it, and press **Continue**. The restore is queued on the server and carries on by itself, so the page can be closed.
 
-State: source built, Supervisor and landing page server tests pass; not yet seen in a browser against a running first start. The Core side of the onboarding note is not built (see the end).
+State: source built, Supervisor, landing page server and frontend unit tests pass; not yet seen in a browser against a running first start. The Core side of the onboarding note is not built (see the end). Until it is built, the progress and failure views are only reachable while the landing page is still served (see "What happens when Core is installed").
 
 ## What the person does
 
@@ -14,14 +14,25 @@ State: source built, Supervisor and landing page server tests pass; not yet seen
 
 When Core answers again the page reloads to the usual sign-in screen.
 
+## What happens when Core is installed
+
+Pulling the Core image stops the landing page container, so the landing page is gone as soon as the install ends. With a restore queued, the Supervisor does not start an empty Core first: it starts the restore, which starts Core with the restored configuration, so onboarding is never offered for the empty system. This is why the progress, failed, **Try again** and **Set up without the backup** views of the landing page card can only be seen before the install ends. After that the person reaches the Core address, which answers once the restore has finished. A failed restore has no screen on the landing page then; its failure message is kept in the record and is meant for the Core onboarding route that is not built yet.
+
+## Safety
+
+- The landing page has no sign in, so its proxy only passes requests that come from the page itself: a request that changes something needs the `X-Requested-With` header, a matching `Origin` when there is one, and a JSON (or, for the upload, multipart) body. No query string is forwarded.
+- The Supervisor only queues a restore while Home Assistant is not installed, and only a restore queued then may start by itself. A restore that was running when the Supervisor stopped is marked failed ("interrupted") and is never run again automatically; the person chooses **Try again**, which asks for the key again.
+- A backup newer than any available Supervisor, or too large for the free space, is refused when it is queued. A backup whose slug is not a plain name is refused on import.
+- An uploaded backup that is never queued can be discarded (`DELETE /backups/restore/pending` with its `slug`) at first start. The card does this when a different file is chosen.
+
 ## How it works
 
-- **Landing page** (`frontend/landing-page`): the card is `landing-page-restore`; the preparing page, logs and network check stay on the left. The columns stack at phone width. Strings are under `landing-page.restore` in `en.json`, with Cantonese in `yue-own.json`.
+- **Landing page** (`frontend/landing-page`): the card is `landing-page-restore`; the preparing page, logs and network check stay on the left. The columns stack at phone width, with the backup card directly under the progress. Strings are under `landing-page.restore` in `en.json`, with Cantonese in `yue-own.json`.
 - **Landing page server** (`landingpage/`): forwards only `POST /backups/new/upload`, `GET /backups/{slug}/info`, `POST /backups/{slug}/check_password`, `POST /backups/{slug}/restore/full/when_ready` and `GET`/`DELETE /backups/restore/pending`. Anything else under `/backups` is refused, path traversal checks stay, and the upload is streamed with no size limit.
 - **Supervisor** (`supervisor/backups/pending_restore.py`):
   - `POST /backups/{slug}/check_password` checks a key without restoring.
   - `POST /backups/{slug}/restore/full/when_ready` (optional `password`) validates the backup and key, then stores one pending record in the Supervisor data folder. The password goes in its own file with mode 600 and is deleted as soon as the restore has used it.
-  - When Core's install finishes and the Supervisor is running, the Supervisor starts the full restore by itself. A Supervisor restart while queued carries on; one during the restore queues it again. The restore is the ordinary full restore job, so its progress is in the jobs API.
+  - When Core's install finishes and the Supervisor is running, the Supervisor starts the full restore by itself, in place of the first start of Core. A Supervisor restart while queued carries on; one during the restore marks it failed. A Supervisor update in the way keeps it queued. The restore is the ordinary full restore job, so its progress is in the jobs API.
   - `GET /backups/restore/pending` returns the record (`queued`, `running`, `done`, `failed`, with the failure message kept). `DELETE` cancels a queued restore or dismisses a finished or failed one; it is refused while the restore is running. `remove_backup: true` also deletes the uploaded backup.
 - **Onboarding** (`frontend/src/onboarding`): when a pending or finished restore exists, the welcome step is replaced by its progress, then by the sign-in note or the failure.
 
@@ -30,4 +41,5 @@ When Core answers again the page reloads to the usual sign-in screen.
 - One restore can be queued at a time.
 - Only a full backup can be queued.
 - The restore cannot be cancelled once it has started.
+- Differences from the design board, on purpose: the preparing intro keeps its existing logo and bar, and the "Step 1 of 3" strip on the phone card is not built.
 - The onboarding screen reads `GET /api/onboarding/restore/pending`, a Core route that does not exist yet. Until it does, onboarding shows its ordinary welcome step.

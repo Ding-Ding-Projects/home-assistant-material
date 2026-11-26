@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeRestoreSteps,
   formatClock,
+  normalizeUploadedBackup,
   uploadRate,
 } from "../../landing-page/src/data/restore";
 
@@ -44,7 +45,7 @@ describe("computeRestoreSteps", () => {
     ]);
   });
 
-  it("marks the restore step failed and leaves the later steps waiting", () => {
+  it("marks the restore step failed and the later steps not started", () => {
     const steps = computeRestoreSteps({
       pending: { state: "failed" },
       coreProgress: -1,
@@ -52,8 +53,8 @@ describe("computeRestoreSteps", () => {
     expect(steps.map((s) => s.state)).toEqual([
       "done",
       "failed",
-      "waiting",
-      "waiting",
+      "not_started",
+      "not_started",
     ]);
   });
 
@@ -79,11 +80,12 @@ describe("uploadRate", () => {
     });
   });
 
-  it("does not divide by zero before any time has passed", () => {
-    expect(uploadRate(0, 100, 0)).toEqual({
-      bytesPerSecond: 0,
-      secondsLeft: 0,
-    });
+  it("has no speed or time before any time has passed", () => {
+    expect(uploadRate(0, 100, 0)).toEqual({});
+  });
+
+  it("has no speed or time while nothing has been sent yet", () => {
+    expect(uploadRate(0, 100, 500)).toEqual({});
   });
 });
 
@@ -95,5 +97,41 @@ describe("formatClock", () => {
 
   it("gives nothing for a date it cannot read", () => {
     expect(formatClock("not a date", "en")).toBe("");
+  });
+});
+
+describe("normalizeUploadedBackup", () => {
+  const base = {
+    slug: "7fed74c8",
+    name: "Full backup",
+    date: "2026-11-25T10:00:00+00:00",
+    size_bytes: 1234,
+    protected: false,
+    homeassistant: "2026.11.0",
+  };
+
+  it("keeps the apps of the current shape", () => {
+    const backup = normalizeUploadedBackup({
+      ...base,
+      apps: [{ slug: "core_ssh", name: "SSH" }],
+      folders: ["ssl"],
+    });
+    expect(backup.apps).toHaveLength(1);
+  });
+
+  it("reads the apps of the first API version, which calls them addons", () => {
+    const backup = normalizeUploadedBackup({
+      ...base,
+      addons: [{ slug: "core_ssh", name: "SSH" }],
+      folders: ["ssl", "addons/local"],
+    });
+    expect(backup.apps).toEqual([{ slug: "core_ssh", name: "SSH" }]);
+    expect(backup.folders).toEqual(["ssl", "addons/local"]);
+  });
+
+  it("never leaves the lists undefined", () => {
+    const backup = normalizeUploadedBackup({ ...base } as any);
+    expect(backup.apps).toEqual([]);
+    expect(backup.folders).toEqual([]);
   });
 });

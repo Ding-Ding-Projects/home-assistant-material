@@ -3,6 +3,8 @@ import {
   mdiBackupRestore,
   mdiCheck,
   mdiCheckCircle,
+  mdiEye,
+  mdiEyeOff,
   mdiFileDocumentOutline,
   mdiInformation,
   mdiLoading,
@@ -22,6 +24,7 @@ import { formatBytes } from "../../../src/common/file-drop/format-bytes";
 import "../../../src/components/ha-alert";
 import "../../../src/components/ha-button";
 import "../../../src/components/ha-card";
+import "../../../src/components/ha-icon-button";
 import "../../../src/components/ha-svg-icon";
 import "../../../src/components/input/ha-input";
 import "../../../src/components/progress/ha-progress-bar";
@@ -31,6 +34,7 @@ import {
   checkBackupPassword,
   clearPendingRestore,
   computeRestoreSteps,
+  discardUploadedBackup,
   formatClock,
   getPendingRestore,
   getUploadedBackup,
@@ -48,7 +52,7 @@ const POLL_SECONDS = 2;
 const FULL_RESTORE_JOB = "backup_manager_full_restore";
 
 type Phase = "idle" | "uploading" | "details" | "pending";
-type KeyState = "idle" | "checking" | "ok" | "bad" | "empty";
+type KeyState = "idle" | "checking" | "ok" | "bad" | "empty" | "failed";
 
 const STEP_KEYS: Record<RestoreStep["id"], LandingPageKeys> = {
   prepare: "restore.step_prepare",
@@ -105,9 +109,23 @@ class LandingPageRestore extends LitElement {
 
   @state() private _removing = false;
 
+  @state() private _keyVisible = false;
+
+  @state() private _keyError = "";
+
+  /** The backup was queued, cancelled, and is still uploaded. */
+  @state() private _cancelled = false;
+
+  /** A short text for screen readers, changed only at upload milestones. */
+  @state() private _announcement = "";
+
   @query(".file-input") private _fileInput?: HTMLInputElement;
 
   @query("[data-focus]") private _focusTarget?: HTMLElement;
+
+  @query("[data-heading]") private _headingTarget?: HTMLElement;
+
+  @query(".cancel-btn") private _cancelButton?: HTMLElement;
 
   private _upload?: BackupUpload;
 
@@ -115,22 +133,54 @@ class LandingPageRestore extends LitElement {
 
   private _timer?: number;
 
+  private _polling = false;
+
+  /**
+   * Counts every change the person makes. A poll that started before a change
+   * and answers after it is out of date and must not overwrite the new state.
+   */
+  private _seq = 0;
+
+  private _lastKey = "";
+
+  private _milestone = 0;
+
   public connectedCallback() {
     super.connectedCallback();
-    this._refresh();
+    // A file dropped outside the zone would open in the browser and leave this
+    // page, which abandons an upload in progress.
+    window.addEventListener("dragover", this._blockDrop);
+    window.addEventListener("drop", this._blockDrop);
+    if (!this._polling) {
+      this._polling = true;
+      this._refresh();
+    }
   }
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener("dragover", this._blockDrop);
+    window.removeEventListener("drop", this._blockDrop);
     window.clearTimeout(this._timer);
     this._upload?.abort();
   }
 
+  private _blockDrop = (ev: DragEvent) => {
+    ev.preventDefault();
+  };
+
   protected updated(changed: PropertyValues) {
-    if (changed.has("_phase") && this._phase === "details") {
-      this.updateComplete.then(() =>
-        this._focusTarget?.focus({ preventScroll: true })
-      );
+    if (changed.has("_phase")) {
+      if (this._phase === "details") {
+        this.updateComplete.then(() =>
+          this._focusTarget?.focus({ preventScroll: true })
+        );
+      } else if (this._phase === "pending" && changed.get("_phase")) {
+        // The button the person pressed is gone: put focus on the new heading
+        this.updateComplete.then(() =>
+          this._headingTarget?.focus({ preventScroll: true })
+        );
+      }
     }
   }
 
@@ -143,10 +193,12 @@ class LandingPageRestore extends LitElement {
   }
 
   private async _refresh() {
+    window.clearTimeout(this._timer);
+    const seq = this._seq;
     try {
       const record = await getPendingRestore();
       this._available = true;
-      if (!this._queuing && !this._removing) {
+      if (seq === this._seq && !this._queuing && !this._removing) {
         this._pending = record ?? undefined;
         if (record) {
           this._phase = "pending";
@@ -162,6 +214,10 @@ class LandingPageRestore extends LitElement {
       if (err instanceof RestoreApiError && err.status === 404) {
         this._available = false;
       }
+    }
+    if (!this.isConnected) {
+      this._polling = false;
+      return;
     }
     this._timer = window.setTimeout(() => this._refresh(), POLL_SECONDS * 1000);
   }
@@ -252,19 +308,14 @@ class LandingPageRestore extends LitElement {
       </div>
       ${
         this._error
-          ? html`<ha-alert
-              alert-type="error"
-              .title=${this._error.title ?? ""}
-              role="alert"
+          ? html`<ha-alert alert-type="error" .title=${this._error.title ?? ""}
               >${this._error.text}</ha-alert
             >`
           : nothing
       }
       ${
         this._note
-          ? html`<ha-alert alert-type="info" role="status"
-              >${this._note}</ha-alert
-            >`
+          ? html`<ha-alert alert-type="info">${this._note}</ha-alert>`
           : nothing
       }
       <p class="sub">${this._t("restore.no_backup_needed")}</p>
@@ -280,7 +331,12 @@ class LandingPageRestore extends LitElement {
     this._dragging = true;
   }
 
-  private _dragLeave() {
+  private _dragLeave(ev: DragEvent) {
+    // Moving over the button or text inside the zone also fires dragleave
+    const to = ev.relatedTarget as Node | null;
+    if (to && (ev.currentTarget as Node).contains(to)) {
+      return;
+    }
     this._dragging = false;
   }
 
@@ -312,15 +368,27 @@ class LandingPageRestore extends LitElement {
     this._total = file.size;
     this._elapsedMs = 0;
     this._uploadStart = Date.now();
+    this._milestone = 0;
+    this._announcement = "";
+    this._cancelled = false;
     this._phase = "uploading";
     this._upload = uploadBackup(file, ({ loaded, total }) => {
       this._loaded = loaded;
       this._total = total;
       this._elapsedMs = Date.now() - this._uploadStart;
+      // Screen readers hear only every quarter, not every progress event
+      const quarter = total ? Math.floor((loaded / total) * 4) * 25 : 0;
+      if (quarter > this._milestone && quarter < 100) {
+        this._milestone = quarter;
+        this._announcement = this._t("restore.upload_milestone", {
+          percent: quarter,
+        });
+      }
     });
     const current = this._upload;
     current.result
       .then(async (slug) => {
+        this._announcement = this._t("restore.upload_complete");
         this._backup = await getUploadedBackup(slug);
         this._key = "";
         this._keyState = "idle";
@@ -331,8 +399,11 @@ class LandingPageRestore extends LitElement {
           return;
         }
         this._phase = "idle";
+        // The Supervisor answers a file that is not a backup with its generic
+        // message. Any other message, such as a full disk, is shown as it is.
         this._error =
-          err.status === 400 || err.status === 200
+          err.status === 200 ||
+          (err.status === 400 && /^Unknown error/.test(err.message))
             ? {
                 title: this._t("restore.not_backup_title"),
                 text: this._t("restore.not_backup", { name: file.name }),
@@ -352,6 +423,9 @@ class LandingPageRestore extends LitElement {
       this._total,
       this._elapsedMs
     );
+    const bytes = (n: number) => (n <= 0 ? "0 KB" : formatBytes(n));
+    // Once every byte is sent the Supervisor finishes the import by itself
+    const sent = this._total > 0 && this._loaded >= this._total;
     return html`
       <div class="file-row">
         <ha-svg-icon .path=${mdiFileDocumentOutline}></ha-svg-icon>
@@ -366,15 +440,27 @@ class LandingPageRestore extends LitElement {
         .label=${this._t("restore.upload_label")}
       ></ha-progress-bar>
       <div class="actions">
-        <span class="sub grow num" role="status">
-          ${this._t("restore.upload_progress", {
-            done: formatBytes(this._loaded),
-            total: formatBytes(this._total),
-            speed: formatBytes(bytesPerSecond),
-            time: secondsLeft,
-          })}
+        <span class="sub grow num">
+          ${
+            bytesPerSecond === undefined || secondsLeft === undefined
+              ? this._t("restore.upload_progress_start", {
+                  done: bytes(this._loaded),
+                  total: bytes(this._total),
+                })
+              : this._t("restore.upload_progress", {
+                  done: bytes(this._loaded),
+                  total: bytes(this._total),
+                  speed: bytes(bytesPerSecond),
+                  time: secondsLeft,
+                })
+          }
         </span>
-        <ha-button appearance="plain" @click=${this._cancelUpload}>
+        <span class="visually-hidden" role="status">${this._announcement}</span>
+        <ha-button
+          appearance="plain"
+          .disabled=${sent}
+          @click=${this._cancelUpload}
+        >
           ${this._t("restore.cancel")}
         </ha-button>
       </div>
@@ -426,9 +512,18 @@ class LandingPageRestore extends LitElement {
     const canGo =
       !this._queuing && (!backup.protected || this._keyState === "ok");
     return html`
-      <ha-alert alert-type="success" role="status"
-        >${this._note ?? this._t("restore.checked")}</ha-alert
-      >
+      ${
+        this._cancelled
+          ? html`<ha-alert alert-type="info"
+              >${this._note}
+              ${this._t("restore.still_uploaded", {
+                size: formatBytes(backup.size_bytes),
+              })}</ha-alert
+            >`
+          : html`<ha-alert alert-type="success"
+              >${this._note ?? this._t("restore.checked")}</ha-alert
+            >`
+      }
       <dl class="kv">
         <dt>${this._t("restore.name")}</dt>
         <dd class="strong">${backup.name}</dd>
@@ -455,9 +550,7 @@ class LandingPageRestore extends LitElement {
       <p class="sub">${this._t("restore.replace_warning")}</p>
       ${
         this._error
-          ? html`<ha-alert alert-type="error" role="alert"
-              >${this._error.text}</ha-alert
-            >`
+          ? html`<ha-alert alert-type="error">${this._error.text}</ha-alert>`
           : nothing
       }
       <div class="actions">
@@ -468,14 +561,17 @@ class LandingPageRestore extends LitElement {
         <ha-button
           .disabled=${!canGo}
           .loading=${this._queuing}
-          aria-describedby="continue-help"
           @click=${this._continue}
           data-focus
         >
-          ${this._t("restore.continue")}
+          ${
+            this._cancelled
+              ? this._t("restore.restore_this")
+              : this._t("restore.continue")
+          }
         </ha-button>
       </div>
-      <span id="continue-help" class="sub">
+      <span class="sub">
         ${
           canGo
             ? this._t("restore.continue_help_ready")
@@ -498,12 +594,14 @@ class LandingPageRestore extends LitElement {
   }
 
   private _renderKey() {
-    const bad = this._keyState === "bad" || this._keyState === "empty";
+    const bad =
+      this._keyState === "bad" ||
+      this._keyState === "empty" ||
+      this._keyState === "failed";
     return html`
       <div class="key">
         <ha-input
-          type="password"
-          password-toggle
+          type=${this._keyVisible ? "text" : "password"}
           autocomplete="off"
           autocapitalize="characters"
           spellcheck="false"
@@ -512,30 +610,44 @@ class LandingPageRestore extends LitElement {
           .placeholder=${this._t("restore.key_placeholder")}
           .value=${this._key}
           .disabled=${this._keyState === "ok"}
-          aria-invalid=${bad ? "true" : "false"}
-          aria-describedby="key-help"
+          .invalid=${bad}
+          .hint=${this._t("restore.key_help")}
           @input=${this._keyInput}
           @keydown=${this._keyKey}
-        ></ha-input>
+        >
+          <ha-icon-button
+            slot="end"
+            .path=${this._keyVisible ? mdiEyeOff : mdiEye}
+            .label=${
+              this._keyVisible
+                ? this._t("restore.key_hide_button")
+                : this._t("restore.key_show_button")
+            }
+            @click=${this._toggleKey}
+          ></ha-icon-button>
+        </ha-input>
         ${
           bad
-            ? html`<ha-alert alert-type="error" role="alert">
+            ? html`<ha-alert alert-type="error">
                 ${
                   this._keyState === "empty"
                     ? this._t("restore.key_empty")
-                    : this._t("restore.key_bad")
+                    : this._keyState === "failed"
+                      ? this._t("restore.key_check_failed", {
+                          error: this._keyError,
+                        })
+                      : this._t("restore.key_bad")
                 }
               </ha-alert>`
             : nothing
         }
         ${
           this._keyState === "ok"
-            ? html`<ha-alert alert-type="success" role="status"
+            ? html`<ha-alert alert-type="success"
                 >${this._t("restore.key_ok")}</ha-alert
               >`
             : nothing
         }
-        <span id="key-help" class="sub">${this._t("restore.key_help")}</span>
         ${
           this._keyState === "ok"
             ? nothing
@@ -554,6 +666,10 @@ class LandingPageRestore extends LitElement {
         }
       </div>
     `;
+  }
+
+  private _toggleKey() {
+    this._keyVisible = !this._keyVisible;
   }
 
   private _keyInput(ev: Event) {
@@ -582,16 +698,30 @@ class LandingPageRestore extends LitElement {
     try {
       await checkBackupPassword(this._backup.slug, key);
       this._keyState = "ok";
-    } catch (_err) {
-      this._keyState = "bad";
+    } catch (err: any) {
+      // Only the Supervisor's own answer means the key is wrong. A network
+      // error or a refused request says nothing about the key.
+      if (err instanceof RestoreApiError && err.status === 400) {
+        this._keyState = "bad";
+      } else {
+        this._keyError = err?.message ?? "";
+        this._keyState = "failed";
+      }
     }
   }
 
   private _chooseAnother() {
+    const slug = this._backup?.slug;
     this._phase = "idle";
     this._note = undefined;
     this._error = undefined;
     this._backup = undefined;
+    this._cancelled = false;
+    this._keyVisible = false;
+    if (slug) {
+      // The file is no longer wanted: do not leave it on a small disk
+      discardUploadedBackup(slug).catch(() => undefined);
+    }
   }
 
   private async _continue() {
@@ -599,19 +729,23 @@ class LandingPageRestore extends LitElement {
       return;
     }
     this._queuing = true;
+    this._seq++;
     this._error = undefined;
     try {
+      this._lastKey = this._backup.protected ? this._key.trim() : "";
       this._pending = await queueBackupRestore(
         this._backup.slug,
-        this._backup.protected ? this._key.trim() : undefined
+        this._lastKey || undefined
       );
       this._phase = "pending";
       this._key = "";
+      this._cancelled = false;
     } catch (err: any) {
       this._error = {
         text: this._t("restore.continue_failed", { error: err.message }),
       };
     }
+    this._seq++;
     this._queuing = false;
   }
 
@@ -621,12 +755,23 @@ class LandingPageRestore extends LitElement {
     return this._t(STEP_KEYS[step.id]);
   }
 
-  private _stepState(step: RestoreStep): string {
+  private _stepState(step: RestoreStep, record: PendingRestore): string {
+    const at = (iso: string | null) =>
+      iso ? formatClock(iso, this.language) : "";
     if (step.state === "done") {
-      return this._t("restore.state_done");
+      const time = step.id === "restore" ? at(record.finished_at) : "";
+      return time
+        ? this._t("restore.state_done_at", { time })
+        : this._t("restore.state_done");
     }
     if (step.state === "failed") {
-      return this._t("restore.state_failed");
+      const time = at(record.finished_at);
+      return time
+        ? this._t("restore.state_failed_at", { time })
+        : this._t("restore.state_failed");
+    }
+    if (step.state === "not_started") {
+      return this._t("restore.state_not_started");
     }
     if (step.state === "active") {
       return step.progress !== undefined
@@ -636,7 +781,10 @@ class LandingPageRestore extends LitElement {
         : this._t("restore.state_active");
     }
     if (step.id === "restore") {
-      return this._t("restore.state_restore_waiting");
+      const time = at(record.queued_at);
+      return time
+        ? this._t("restore.state_queued_at", { time })
+        : this._t("restore.state_restore_waiting");
     }
     return step.id === "ready"
       ? this._t("restore.state_ready_waiting")
@@ -651,7 +799,11 @@ class LandingPageRestore extends LitElement {
     });
     return html`
       <span class="label" id="steps-label"
-        >${this._t("restore.steps_label")}</span
+        >${
+          record.state === "failed"
+            ? this._t("restore.steps_label_failed")
+            : this._t("restore.steps_label")
+        }</span
       >
       <ol class="steps" aria-labelledby="steps-label">
         ${steps.map(
@@ -678,7 +830,7 @@ class LandingPageRestore extends LitElement {
               </span>
               <span class="grow">
                 <span class="step-name">${this._stepTitle(step)}</span>
-                <span class="sub">${this._stepState(step)}</span>
+                <span class="sub">${this._stepState(step, record)}</span>
                 ${
                   step.state === "active" && step.progress !== undefined
                     ? html`<ha-progress-bar
@@ -710,7 +862,7 @@ class LandingPageRestore extends LitElement {
           <ha-svg-icon .path=${done ? mdiCheckCircle : mdiCheck}></ha-svg-icon>
         </span>
         <div class="grow">
-          <h2>
+          <h2 tabindex="-1" data-heading>
             ${
               done
                 ? this._t("restore.done_title")
@@ -738,6 +890,11 @@ class LandingPageRestore extends LitElement {
           time: formatClock(record.queued_at, this.language),
         })}
       </ha-alert>
+      ${
+        this._error
+          ? html`<ha-alert alert-type="error">${this._error.text}</ha-alert>`
+          : nothing
+      }
       ${record.state === "queued" ? this._renderCancel() : nothing}
       ${
         running
@@ -781,7 +938,11 @@ class LandingPageRestore extends LitElement {
     }
     return html`
       <div class="actions">
-        <ha-button appearance="plain" @click=${this._askCancel}>
+        <ha-button
+          class="cancel-btn"
+          appearance="plain"
+          @click=${this._askCancel}
+        >
           ${this._t("restore.cancel_restore")}
         </ha-button>
         <span class="sub grow">${this._t("restore.cancel_note")}</span>
@@ -790,6 +951,7 @@ class LandingPageRestore extends LitElement {
   }
 
   private _askCancel() {
+    this._error = undefined;
     this._confirmCancel = true;
     this.updateComplete.then(() =>
       this._focusTarget?.focus({ preventScroll: true })
@@ -798,25 +960,38 @@ class LandingPageRestore extends LitElement {
 
   private _keepRestore() {
     this._confirmCancel = false;
+    // The confirm box is gone, so focus goes back to the button that opened it
+    this.updateComplete.then(() =>
+      this._cancelButton?.focus({ preventScroll: true })
+    );
   }
 
   private async _cancelRestore() {
     this._confirmCancel = false;
     const record = this._pending;
     this._removing = true;
+    this._seq++;
+    this._error = undefined;
     try {
       await clearPendingRestore(false);
       this._pending = undefined;
       if (record) {
         this._backup = await getUploadedBackup(record.slug);
-        this._key = "";
-        this._keyState = "idle";
+        // The key was accepted a moment ago and lives only in this page's
+        // memory, so one press queues the backup again
+        const keep = this._backup.protected && this._lastKey;
+        this._key = keep ? this._lastKey : "";
+        this._keyState = keep ? "ok" : "idle";
         this._note = this._t("restore.cancelled_note");
+        this._cancelled = true;
         this._phase = "details";
       }
-    } catch (_err) {
-      // The record stays; the next poll shows the real state
+    } catch (err: any) {
+      this._error = {
+        text: this._t("restore.cancel_failed", { error: err?.message ?? "" }),
+      };
     }
+    this._seq++;
     this._removing = false;
   }
 
@@ -825,15 +1000,16 @@ class LandingPageRestore extends LitElement {
       return this._renderWithout();
     }
     return html`
-      <ha-alert
-        alert-type="error"
-        .title=${this._t("restore.failed_title")}
-        role="alert"
-      >
+      <ha-alert alert-type="error" .title=${this._t("restore.failed_title")}>
         ${this._t("restore.failed_text", { error: record.error ?? "" })}
       </ha-alert>
       ${this._renderSteps(record)}
       <p class="sub">${this._t("restore.failed_safe")}</p>
+      ${
+        this._error
+          ? html`<ha-alert alert-type="error">${this._error.text}</ha-alert>`
+          : nothing
+      }
       <div class="stack">
         <ha-button @click=${this._tryAgain} .loading=${this._queuing}>
           ${this._t("restore.try_again")}
@@ -851,6 +1027,8 @@ class LandingPageRestore extends LitElement {
       return;
     }
     this._queuing = true;
+    this._seq++;
+    this._error = undefined;
     try {
       await clearPendingRestore(false);
       const backup = await getUploadedBackup(record.slug);
@@ -860,6 +1038,7 @@ class LandingPageRestore extends LitElement {
         this._key = "";
         this._keyState = "idle";
         this._note = undefined;
+        this._cancelled = false;
         this._pending = undefined;
         this._phase = "details";
       } else {
@@ -870,11 +1049,17 @@ class LandingPageRestore extends LitElement {
         text: this._t("restore.continue_failed", { error: err.message }),
       };
     }
+    this._seq++;
     this._queuing = false;
   }
 
   private _askWithout() {
+    this._error = undefined;
     this._confirmWithout = true;
+    // Focus the safe choice, never the button that deletes the backup
+    this.updateComplete.then(() =>
+      this._focusTarget?.focus({ preventScroll: true })
+    );
   }
 
   private _renderWithout() {
@@ -889,18 +1074,14 @@ class LandingPageRestore extends LitElement {
         </div>
       </div>
       <div class="stack">
-        <ha-button
-          @click=${this._withoutGo}
-          .loading=${this._removing}
-          data-focus
-        >
+        <ha-button @click=${this._withoutGo} .loading=${this._removing}>
           ${
             this._removing
               ? this._t("restore.without_busy")
               : this._t("restore.without_go")
           }
         </ha-button>
-        <ha-button appearance="plain" @click=${this._withoutBack}>
+        <ha-button appearance="plain" data-focus @click=${this._withoutBack}>
           ${this._t("restore.back_to_restore")}
         </ha-button>
       </div>
@@ -913,6 +1094,8 @@ class LandingPageRestore extends LitElement {
 
   private async _withoutGo() {
     this._removing = true;
+    this._seq++;
+    this._error = undefined;
     try {
       await clearPendingRestore(true);
       this._pending = undefined;
@@ -925,12 +1108,26 @@ class LandingPageRestore extends LitElement {
       };
       this._confirmWithout = false;
     }
+    this._seq++;
     this._removing = false;
   }
 
   static styles = css`
     :host {
       display: block;
+      /* Touch targets are 48 px on a phone */
+      --ha-button-height: 48px;
+    }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
     .card-content {
       display: flex;
@@ -1163,7 +1360,8 @@ class LandingPageRestore extends LitElement {
       padding-top: var(--ha-space-1);
       font-weight: var(--ha-font-weight-medium);
     }
-    .step.waiting .step-name {
+    .step.waiting .step-name,
+    .step.not_started .step-name {
       color: var(--secondary-text-color);
       font-weight: var(--ha-font-weight-normal);
     }

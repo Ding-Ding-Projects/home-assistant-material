@@ -27,6 +27,23 @@ export interface UploadedBackup {
   folders: string[];
 }
 
+/**
+ * The info route the landing page reaches is the Supervisor's first version,
+ * which calls the apps "addons". Both shapes are accepted.
+ */
+interface RawUploadedBackup extends Omit<UploadedBackup, "apps"> {
+  apps?: { slug: string; name: string }[];
+  addons?: { slug: string; name: string }[];
+}
+
+export const normalizeUploadedBackup = (
+  raw: RawUploadedBackup
+): UploadedBackup => ({
+  ...raw,
+  apps: raw.apps ?? raw.addons ?? [],
+  folders: raw.folders ?? [],
+});
+
 export class RestoreApiError extends Error {
   public constructor(
     message: string,
@@ -52,10 +69,18 @@ const parse = async <T>(response: Response): Promise<T> => {
   return body.data as T;
 };
 
+// A page on another site cannot add a custom header without a preflight
+// request, which the landing page server never approves. Every request that
+// changes something carries it.
+const CHANGE_HEADERS = {
+  "Content-Type": "application/json",
+  "X-Requested-With": "landing-page",
+};
+
 const post = (path: string, body?: unknown) =>
   fetch(`/supervisor-api/${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: CHANGE_HEADERS,
     body: JSON.stringify(body ?? {}),
   });
 
@@ -72,8 +97,19 @@ export const clearPendingRestore = async (
   await parse(
     await fetch("/supervisor-api/backups/restore/pending", {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: CHANGE_HEADERS,
       body: JSON.stringify({ remove_backup: removeBackup }),
+    })
+  );
+};
+
+/** Removes a backup that was uploaded but never queued. */
+export const discardUploadedBackup = async (slug: string): Promise<void> => {
+  await parse(
+    await fetch("/supervisor-api/backups/restore/pending", {
+      method: "DELETE",
+      headers: CHANGE_HEADERS,
+      body: JSON.stringify({ slug }),
     })
   );
 };
@@ -81,7 +117,11 @@ export const clearPendingRestore = async (
 export const getUploadedBackup = async (
   slug: string
 ): Promise<UploadedBackup> =>
-  parse(await fetch(`/supervisor-api/backups/${slug}/info`));
+  normalizeUploadedBackup(
+    await parse<RawUploadedBackup>(
+      await fetch(`/supervisor-api/backups/${slug}/info`)
+    )
+  );
 
 export const checkBackupPassword = async (
   slug: string,
@@ -119,6 +159,7 @@ export const uploadBackup = (
   const xhr = new XMLHttpRequest();
   const result = new Promise<string>((resolve, reject) => {
     xhr.open("POST", "/supervisor-api/backups/new/upload");
+    xhr.setRequestHeader("X-Requested-With", "landing-page");
     xhr.upload.onprogress = (ev) => {
       if (ev.lengthComputable) {
         onProgress({ loaded: ev.loaded, total: ev.total });
@@ -146,7 +187,8 @@ export const uploadBackup = (
   return { result, abort: () => xhr.abort() };
 };
 
-export type StepState = "done" | "active" | "waiting" | "failed";
+export type StepState =
+  "done" | "active" | "waiting" | "failed" | "not_started";
 
 export interface RestoreStep {
   id: "prepare" | "restore" | "start" | "ready";
@@ -194,22 +236,29 @@ export const computeRestoreSteps = ({
           : { id: "restore", state: "waiting" },
     finished
       ? { id: "start", state: "active" }
-      : { id: "start", state: "waiting" },
-    { id: "ready", state: "waiting" },
+      : { id: "start", state: failed ? "not_started" : "waiting" },
+    { id: "ready", state: failed ? "not_started" : "waiting" },
   ];
 };
 
-/** Speed in bytes a second and whole seconds left, from the upload so far. */
+/**
+ * Speed in bytes a second and whole seconds left, from the upload so far.
+ * Both are undefined until there is a speed to work from.
+ */
 export const uploadRate = (
   loaded: number,
   total: number,
   elapsedMs: number
-): { bytesPerSecond: number; secondsLeft: number } => {
+): { bytesPerSecond?: number; secondsLeft?: number } => {
   const bytesPerSecond =
     elapsedMs > 0 ? Math.round((loaded / elapsedMs) * 1000) : 0;
-  const secondsLeft =
-    bytesPerSecond > 0 ? Math.ceil((total - loaded) / bytesPerSecond) : 0;
-  return { bytesPerSecond, secondsLeft: Math.max(0, secondsLeft) };
+  if (bytesPerSecond <= 0) {
+    return {};
+  }
+  return {
+    bytesPerSecond,
+    secondsLeft: Math.max(0, Math.ceil((total - loaded) / bytesPerSecond)),
+  };
 };
 
 /** A time in 24 hour form, "13:42". */

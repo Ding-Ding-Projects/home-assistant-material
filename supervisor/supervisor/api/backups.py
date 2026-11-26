@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import errno
 from io import BufferedWriter
 import logging
 from pathlib import Path
@@ -60,15 +61,17 @@ from ..const import (
     Folder,
 )
 from ..coresys import CoreSysAttributes
-from ..exceptions import APIError, APIForbidden, APINotFound
+from ..exceptions import APIError, APIForbidden, APINotFound, BackupInvalidError
+from ..homeassistant.const import LANDINGPAGE
 from ..mounts.const import MountUsage
+from ..resolution.const import MINIMUM_FREE_SPACE_THRESHOLD
 from .const import (
     ATTR_ADDITIONAL_LOCATIONS,
     ATTR_BACKGROUND,
     ATTR_LOCATION_ATTRIBUTES,
+    ATTR_LOCATIONS,
     ATTR_PENDING_RESTORE,
     ATTR_REMOVE_BACKUP,
-    ATTR_LOCATIONS,
     CONTENT_TYPE_TAR,
 )
 from .utils import api_process, api_validate, background_task
@@ -191,7 +194,11 @@ SCHEMA_BACKUP_PARTIAL = SCHEMA_BACKUP_FULL.extend(
 )
 
 SCHEMA_PENDING_RESTORE_CLEAR = vol.Schema(
-    {vol.Optional(ATTR_REMOVE_BACKUP, default=False): vol.Boolean()}
+    {
+        vol.Optional(ATTR_REMOVE_BACKUP, default=False): vol.Boolean(),
+        # Discard an uploaded backup that was never queued
+        vol.Optional(ATTR_SLUG): str,
+    }
 )
 
 SCHEMA_OPTIONS = vol.Schema({vol.Optional(ATTR_DAYS_UNTIL_STALE): days_until_stale})
@@ -539,9 +546,12 @@ class APIBackups(CoreSysAttributes):
         body = await api_validate(
             vol.Schema({vol.Optional(ATTR_PASSWORD): vol.Maybe(str)}), request
         )
-        return await self.sys_backups.queue_restore_when_ready(
-            backup, body.get(ATTR_PASSWORD)
-        )
+        try:
+            return await self.sys_backups.queue_restore_when_ready(
+                backup, body.get(ATTR_PASSWORD)
+            )
+        except BackupInvalidError as err:
+            raise APIError(str(err)) from err
 
     @api_process
     async def check_password(self, request: web.Request) -> None:
@@ -550,7 +560,11 @@ class APIBackups(CoreSysAttributes):
         body = await api_validate(
             vol.Schema({vol.Optional(ATTR_PASSWORD): vol.Maybe(str)}), request
         )
-        await self.sys_backups.check_password(backup, body.get(ATTR_PASSWORD))
+        try:
+            await self.sys_backups.check_password(backup, body.get(ATTR_PASSWORD))
+        except BackupInvalidError as err:
+            # A wrong key is the caller's mistake, not an unexpected failure
+            raise APIError(str(err)) from err
 
     @api_process
     async def pending_restore_info(self, request: web.Request) -> dict[str, Any]:
@@ -563,6 +577,19 @@ class APIBackups(CoreSysAttributes):
         body = await api_validate(SCHEMA_PENDING_RESTORE_CLEAR, request)
         pending = self.sys_backups.pending_restore
         record = pending.record
+        if slug := body.get(ATTR_SLUG):
+            # Only while Home Assistant is not installed yet, and never the
+            # backup a restore is queued or running from
+            version = self.sys_homeassistant.version
+            if version is not None and version != LANDINGPAGE:
+                raise APIError(
+                    "An uploaded backup can only be discarded at first start"
+                )
+            if pending.active and record and record["slug"] == slug:
+                raise APIError("That backup is waiting to be restored")
+            if backup := self.sys_backups.get(slug):
+                await self.sys_backups.remove(backup)
+            return
         await pending.clear()
         if body[ATTR_REMOVE_BACKUP] and record:
             if backup := self.sys_backups.get(record["slug"]):
@@ -707,6 +734,22 @@ class APIBackups(CoreSysAttributes):
             except vol.Invalid as ex:
                 raise APIError(humanize_error(filename, ex)) from None
 
+        if (
+            self.sys_homeassistant.version is not None
+            and self.sys_homeassistant.version == LANDINGPAGE
+            and request.content_length
+            and (free_gib := await self.sys_host.info.free_space()) is not None
+        ):
+            # The Home Assistant image is pulled onto the same disk meanwhile
+            needed_gib = (
+                request.content_length / 2**30 + MINIMUM_FREE_SPACE_THRESHOLD + 2
+            )
+            if free_gib < needed_gib:
+                raise APIError(
+                    "There is not enough free space to store the backup: "
+                    f"{free_gib:.1f} GiB free, about {needed_gib:.1f} GiB needed"
+                )
+
         tmp_path = await self.sys_backups.get_upload_path_for_location(location)
         temp_dir: TemporaryDirectory | None = None
         backup_file_stream: BufferedWriter | None = None
@@ -749,6 +792,10 @@ class APIBackups(CoreSysAttributes):
             if location in {LOCATION_CLOUD_BACKUP, None}:
                 self.sys_resolution.check_oserror(err)
             _LOGGER.error("Can't write new backup file: %s", err)
+            if err.errno == errno.ENOSPC:
+                raise APIError(
+                    "There is not enough free space to store the backup"
+                ) from err
             return False
 
         except asyncio.CancelledError:

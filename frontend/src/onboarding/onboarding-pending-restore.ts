@@ -17,6 +17,7 @@ declare global {
   interface HASSDomEvents {
     "pending-restore-dismiss": undefined;
     "pending-restore-recheck": undefined;
+    "pending-restore-sign-in": undefined;
   }
 }
 
@@ -67,18 +68,18 @@ class OnboardingPendingRestoreView extends LitElement {
       }
       <div class="actions">
         ${
-          active
-            ? nothing
-            : html`<ha-button @click=${this._dismiss}>
-                ${this._t(`${prefix}.continue`)}
-              </ha-button>`
-        }
-        ${
           restoreState === "done"
-            ? html`<ha-button appearance="plain" @click=${this._recheck}>
-                ${this._t(`${prefix}.reload`)}
-              </ha-button>`
-            : nothing
+            ? html`<ha-button @click=${this._signIn}>
+                  ${this._t(`${prefix}.sign_in`)}
+                </ha-button>
+                <ha-button appearance="plain" @click=${this._recheck}>
+                  ${this._t(`${prefix}.reload`)}
+                </ha-button>`
+            : restoreState === "failed"
+              ? html`<ha-button @click=${this._dismiss}>
+                  ${this._t(`${prefix}.continue`)}
+                </ha-button>`
+              : nothing
         }
       </div>
     `;
@@ -86,6 +87,10 @@ class OnboardingPendingRestoreView extends LitElement {
 
   private _dismiss() {
     fireEvent(this, "pending-restore-dismiss");
+  }
+
+  private _signIn() {
+    fireEvent(this, "pending-restore-sign-in");
   }
 
   private _recheck() {

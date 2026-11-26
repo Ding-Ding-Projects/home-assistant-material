@@ -368,6 +368,28 @@ class HaLandingPage extends provideLiteI18nMixin(LandingPageBaseElement) {
       .wide-row {
         grid-column: 1 / -1;
       }
+      /*
+       * On a phone the backup card sits right under the progress, above the
+       * logs, as on the design board. The two columns dissolve so their
+       * children can be put in that order.
+       */
+      @media (max-width: 959px) {
+        .col {
+          display: contents;
+        }
+        .intro {
+          order: 0;
+        }
+        landing-page-restore {
+          order: 1;
+        }
+        .col.main > ha-card {
+          order: 2;
+        }
+        .footer {
+          order: 3;
+        }
+      }
       .footer {
         padding-top: 8px;
         display: flex;

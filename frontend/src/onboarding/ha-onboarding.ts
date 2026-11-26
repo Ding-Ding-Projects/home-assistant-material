@@ -113,7 +113,12 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
 
   @state() private _pendingRestore?: OnboardingPendingRestore;
 
+  /** True once the server has answered about a queued restore, or has not. */
+  @state() private _pendingRestoreChecked = false;
+
   private _pendingTimer?: number;
+
+  private _pendingMisses = 0;
 
   @state() private _steps?: OnboardingStep[];
 
@@ -179,12 +184,41 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
   // and then its result in place of the welcome step; poll while it is active.
   private _checkPendingRestore = async () => {
     window.clearTimeout(this._pendingTimer);
-    this._pendingRestore = (await fetchOnboardingPendingRestore()) ?? undefined;
+    const result = await fetchOnboardingPendingRestore();
+    const previous = this._pendingRestore?.state;
+    const wasActive = previous === "queued" || previous === "running";
+
+    if (result.status === "unreachable" && wasActive) {
+      // A restore stops Core on purpose. Keep the last known state on screen
+      // and ask again, slower the longer it takes.
+      this._pendingMisses++;
+      this._pendingTimer = window.setTimeout(
+        this._checkPendingRestore,
+        Math.min(3000 * 2 ** Math.min(this._pendingMisses, 3), 24000)
+      );
+      return;
+    }
+
+    this._pendingMisses = 0;
+    this._pendingRestoreChecked = true;
+    if (result.status === "record") {
+      this._pendingRestore = result.restore;
+    } else if (wasActive && result.status === "none") {
+      // The restore ran and its record is gone: the restored system is up
+      location.reload();
+      return;
+    } else {
+      this._pendingRestore = undefined;
+    }
     const restoreState = this._pendingRestore?.state;
     if (restoreState === "queued" || restoreState === "running") {
       this._pendingTimer = window.setTimeout(this._checkPendingRestore, 3000);
     }
   };
+
+  private _signInAfterRestore() {
+    location.reload();
+  }
 
   private _dismissPendingRestore() {
     window.clearTimeout(this._pendingTimer);
@@ -287,11 +321,18 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
       </onboarding-restore-backup>`;
     }
 
+    // Do not draw the welcome step until the server has said whether a
+    // restore is queued, or it would flash up and then be swapped away
+    if (this._init && !this._pendingRestoreChecked) {
+      return nothing;
+    }
+
     if (this._init && this._pendingRestore) {
       return html`<onboarding-pending-restore
         .restore=${this._pendingRestore}
         @pending-restore-dismiss=${this._dismissPendingRestore}
         @pending-restore-recheck=${this._checkPendingRestore}
+        @pending-restore-sign-in=${this._signInAfterRestore}
       ></onboarding-pending-restore>`;
     }
 

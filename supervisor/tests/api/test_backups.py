@@ -718,6 +718,12 @@ async def test_cloud_backup_core_only(api_client: TestClient, mock_full_backup: 
     assert resp.status == 403
 
 
+@pytest.fixture(autouse=True)
+def fixture_plenty_of_space(coresys: CoreSys) -> None:
+    """Give uploads room, as they check the free space before Core is installed."""
+    coresys.hardware.disk.get_disk_free_space = lambda _path: 500.0
+
+
 async def test_upload_download(
     api_client: TestClient, coresys: CoreSys, tmp_supervisor_data: Path
 ):
