@@ -1,25 +1,48 @@
-import { mdiCog, mdiPause, mdiPlay, mdiPlus } from "@mdi/js";
+import {
+  mdiAlertCircleOutline,
+  mdiChevronDown,
+  mdiCog,
+  mdiMagnify,
+  mdiPause,
+  mdiPlay,
+  mdiPlus,
+  mdiVideo,
+} from "@mdi/js";
 import type { HassEntity } from "home-assistant-js-websocket";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
+import { repeat } from "lit/directives/repeat";
+import { formatShortDateTimeWithConditionalYear } from "../../../common/datetime/format_date_time";
 import { relativeTime } from "../../../common/datetime/relative_time";
+import { storage } from "../../../common/decorators/storage";
 import {
   composeForMode,
   withLanguageMode,
 } from "../../../common/language-mode/language-mode";
 import { navigate } from "../../../common/navigate";
+import { regexQuery } from "../../../common/regex/filter";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-button-toggle-group";
 import "../../../components/ha-card";
 import "../../../components/ha-checkbox";
+import "../../../components/ha-icon-button";
+import "../../../components/input/ha-input-search";
 import "../../../components/ha-slider";
 import "../../../components/ha-switch";
 import "../../../components/entity/ha-entity-picker";
 import "../../../components/ha-svg-icon";
+import "../../../components/skeleton/ha-skeleton-text";
 import "./ha-camera-recording-places";
 import "./ha-camera-watched-settings";
+import {
+  cameraKey,
+  filterCameras,
+  readExpanded,
+  setExpanded,
+  toggleExpanded,
+} from "./camera-recording-list";
 import {
   amountKey,
   fetchRecordingStatus,
@@ -39,6 +62,7 @@ import {
 import { getConfigEntry } from "../../../data/config_entries";
 import { showOptionsFlowDialog } from "../../../dialogs/config-flow/show-dialog-options-flow";
 import "../../../layouts/hass-subpage";
+import { haMotionKeyframes } from "../../../resources/motion-styles";
 import type { HomeAssistant } from "../../../types";
 import { bytesToString } from "../../../util/bytes-to-string";
 
@@ -98,7 +122,20 @@ export class HaConfigCameraRecording extends LitElement {
 
   @state() private _open = new Set<string>();
 
+  @state() private _query = "";
+
+  /** Keys of the folded-open camera rows, remembered across reloads. */
+  @state()
+  @storage({
+    key: "camera-recording-open-rows",
+    state: true,
+    subscribe: false,
+  })
+  private _openRows?: string[];
+
   @state() private _testing = new Set<string>();
+
+  @query("ha-input-search") private _searchField?: HTMLElement;
 
   private _timer?: number;
 
@@ -153,11 +190,33 @@ export class HaConfigCameraRecording extends LitElement {
         back-path="/config/system"
         .header=${this._l("caption")}
       >
-        <div class="content">
+        <div class="content" aria-busy=${this._status ? "false" : "true"}>
           <p class="intro">${this._l("description")}</p>
           ${
             this._error
               ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
+              : nothing
+          }
+          ${
+            this._problem
+              ? html`<ha-alert alert-type="error" role="alert"
+                  >${this._problem}</ha-alert
+                >`
+              : nothing
+          }
+          ${
+            !this._status && !this._error
+              ? html`<ha-card>
+                  <div
+                    class="card-content loading"
+                    role="status"
+                    aria-label=${this._l("loading")}
+                  >
+                    <ha-skeleton-text></ha-skeleton-text>
+                    <ha-skeleton-text></ha-skeleton-text>
+                    <ha-skeleton-text></ha-skeleton-text>
+                  </div>
+                </ha-card>`
               : nothing
           }
           ${
@@ -173,6 +232,7 @@ export class HaConfigCameraRecording extends LitElement {
                 </ha-card>`
               : nothing
           }
+          ${this._renderSearch()}
           ${(this._status ?? []).map((dest) => this._renderDestination(dest))}
           <ha-camera-recording-places
             .hass=${this.hass}
@@ -189,6 +249,158 @@ export class HaConfigCameraRecording extends LitElement {
         </div>
       </hass-subpage>
     `;
+  }
+
+  private get _expanded(): string[] {
+    return readExpanded(this._openRows);
+  }
+
+  private _name(cam: RecordingCameraStatus): string {
+    return (
+      (this.hass.states[cam.entity_id]?.attributes.friendly_name as
+        string | undefined) ?? cam.entity_id
+    );
+  }
+
+  private _activeAmount(cam: RecordingCameraStatus): RecordingAmount {
+    return cam.provider_only
+      ? cam.effective_mode === "off"
+        ? "off"
+        : "light"
+      : cam.effective_mode;
+  }
+
+  private _stateText(cam: RecordingCameraStatus): string {
+    return this._l(
+      cam.provider_only
+        ? "states.event_clips"
+        : (`states.${cam.state}` as "states.recording")
+    );
+  }
+
+  private _shown(dest: RecordingDestinationStatus): RecordingCameraStatus[] {
+    return filterCameras(dest.cameras, this._query, (cam) => ({
+      name: this._name(cam),
+      entityId: cam.entity_id,
+      state: this._stateText(cam),
+      amount: this._l(`amount.${this._activeAmount(cam)}`),
+      place: dest.label,
+    }));
+  }
+
+  private _shownKeys(): string[] {
+    return (this._status ?? []).flatMap((dest) =>
+      this._shown(dest).map((cam) => cameraKey(dest.entry_id, cam.entity_id))
+    );
+  }
+
+  private _renderSearch() {
+    const total = (this._status ?? []).reduce(
+      (sum, dest) => sum + dest.cameras.length,
+      0
+    );
+    if (!total) {
+      return nothing;
+    }
+    const keys = this._shownKeys();
+    const patternError = regexQuery(this._query)?.error;
+    const searching = this._query.trim() !== "" && !patternError;
+    const expanded = this._expanded;
+    const allOpen =
+      keys.length > 0 && keys.every((key) => expanded.includes(key));
+    const samples = (this._status ?? []).flatMap((dest) =>
+      dest.cameras.flatMap((cam) => [this._name(cam), cam.entity_id])
+    );
+    return html`
+      <div class="search" role="search">
+        <ha-input-search
+          appearance="outlined"
+          .label=${this._l("search.label")}
+          .value=${this._query}
+          .patternSamples=${samples}
+          @input=${this._queryChanged}
+        ></ha-input-search>
+        ${
+          patternError
+            ? html`<p class="pattern-error" role="alert">
+                <ha-svg-icon .path=${mdiAlertCircleOutline}></ha-svg-icon>
+                ${this._l("search.pattern_error", {
+                  reason: withLanguageMode(this.hass.localize)(
+                    `ui.regex.filter_error.${patternError}` as any
+                  ),
+                })}
+              </p>`
+            : nothing
+        }
+        <div class="count-row">
+          <span class="count" role="status"
+            >${
+              searching
+                ? this._l("search.count_of", { shown: keys.length, total })
+                : this._l("search.count", { count: total })
+            }</span
+          >
+          ${
+            keys.length
+              ? html`<ha-button
+                  appearance="plain"
+                  size="small"
+                  class="tall"
+                  aria-label=${this._l(
+                    allOpen
+                      ? "search.collapse_all_label"
+                      : "search.expand_all_label"
+                  )}
+                  @click=${this._toggleAll}
+                >
+                  ${this._l(allOpen ? "search.collapse_all" : "search.expand_all")}
+                </ha-button>`
+              : nothing
+          }
+        </div>
+        ${
+          searching && !keys.length
+            ? html`<div class="no-match" role="status">
+                <ha-svg-icon .path=${mdiMagnify}></ha-svg-icon>
+                <p>
+                  ${this._l("search.no_match", { query: this._query.trim() })}
+                </p>
+                <ha-button
+                  appearance="plain"
+                  class="tall"
+                  @click=${this._clearSearch}
+                >
+                  ${this._l("search.clear")}
+                </ha-button>
+              </div>`
+            : nothing
+        }
+      </div>
+    `;
+  }
+
+  private _queryChanged(ev: Event) {
+    this._query = (ev.target as HTMLInputElement).value ?? "";
+  }
+
+  private async _clearSearch() {
+    this._query = "";
+    // The button that was pressed leaves with the no-match card, so focus
+    // goes to the search field instead of falling back to the page.
+    await this.updateComplete;
+    this._searchField?.focus();
+  }
+
+  private _toggleAll() {
+    const keys = this._shownKeys();
+    const expanded = this._expanded;
+    const allOpen = keys.every((key) => expanded.includes(key));
+    this._openRows = setExpanded(expanded, keys, !allOpen);
+  }
+
+  private _toggleRow(ev: Event) {
+    const key = (ev.currentTarget as HTMLElement & { rowKey: string }).rowKey;
+    this._openRows = toggleExpanded(this._expanded, key);
   }
 
   private _renderDestination(dest: RecordingDestinationStatus) {
@@ -263,72 +475,19 @@ export class HaConfigCameraRecording extends LitElement {
           ${
             dest.error
               ? html`<ha-alert alert-type="warning"
-                  >${this._l("copy_problem", { error: dest.error })}</ha-alert
+                  >${this._l("copy_problem", { error: dest.error })}
+                  <ha-button
+                    slot="action"
+                    appearance="plain"
+                    size="small"
+                    @click=${this._load}
+                  >
+                    ${this._l("try_again")}
+                  </ha-button></ha-alert
                 >`
               : nothing
           }
-          <table>
-            <thead>
-              <tr>
-                <th>${this._l("camera")}</th>
-                <th>${this._l("state")}</th>
-                <th>${this._l("newest")}</th>
-                <th>${this._l("waiting")}</th>
-                <th>${this._l("oldest")}</th>
-                <th>
-                  <span class="visually-hidden">${this._l("actions")}</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              ${dest.cameras.map(
-                (cam) => html`
-                  <tr>
-                    <td>
-                      ${
-                        this.hass.states[cam.entity_id]?.attributes
-                          .friendly_name ?? cam.entity_id
-                      }
-                    </td>
-                    <td>${this._renderState(cam)}</td>
-                    <td data-label=${this._l("newest")}>
-                      ${this._time(cam.newest)}
-                    </td>
-                    <td data-label=${this._l("waiting")}>${cam.waiting}</td>
-                    <td data-label=${this._l("oldest")}>
-                      ${this._time(cam.oldest)}
-                    </td>
-                    <td>
-                      <ha-button
-                        size="small"
-                        appearance="plain"
-                        .entity=${cam.entity_id}
-                        .entryId=${dest.entry_id}
-                        .paused=${cam.state !== "paused"}
-                        @click=${this._togglePause}
-                      >
-                        <ha-svg-icon
-                          slot="start"
-                          .path=${cam.state === "paused" ? mdiPlay : mdiPause}
-                        ></ha-svg-icon>
-                        ${this._l(cam.state === "paused" ? "resume" : "pause")}
-                      </ha-button>
-                    </td>
-                  </tr>
-                  <tr class="amount-row">
-                    <td colspan="6">
-                      ${this._renderAmount(dest, cam)}
-                      <ha-camera-watched-settings
-                        .hass=${this.hass}
-                        .entryId=${dest.entry_id}
-                        .entityId=${cam.entity_id}
-                      ></ha-camera-watched-settings>
-                    </td>
-                  </tr>
-                `
-              )}
-            </tbody>
-          </table>
+          ${this._renderCameraList(dest)}
         </div>
         <div class="card-actions">
           <ha-button
@@ -356,31 +515,255 @@ export class HaConfigCameraRecording extends LitElement {
     `;
   }
 
-  private _renderState(cam: RecordingCameraStatus) {
-    const key = amountKey(cam);
-    if (cam.provider_only) {
-      const kept = cam.event_clips > 0;
-      return html`<span class="pill ${kept ? "ok" : "warn"}"
-          >${this._l("states.event_clips")}</span
-        >
-        <div class="problem">${this._l("provider_only_note")}</div>`;
+  private _renderCameraList(dest: RecordingDestinationStatus) {
+    const shown = this._shown(dest);
+    if (!shown.length) {
+      return this._query.trim() && this._shownKeys().length
+        ? html`<p class="none-here">${this._l("search.none_here")}</p>`
+        : nothing;
     }
-    return html`<span class="pill ${STATE_TONES[cam.state] ?? "off"}"
-        >${this._l(`states.${cam.state}`)}</span
-      >
-      ${
-        key === "light" && cam.state === "recording"
-          ? html`<div class="problem">${this._l("light_short")}</div>`
-          : nothing
-      }
-      ${
-        cam.error && cam.state !== "recording"
-          ? html`<div class="problem">${cam.error}</div>`
-          : nothing
-      }`;
+    return html`
+      <div class="cameras">
+        <div class="col-head" aria-hidden="true">
+          <span></span>
+          <span>${this._l("camera")}</span>
+          <span>${this._l("amount.title")}</span>
+          <span>${this._l("newest")}</span>
+          <span>${this._l("waiting")}</span>
+          <span>${this._l("oldest")}</span>
+          <span></span>
+        </div>
+        ${repeat(
+          shown,
+          (cam) => cameraKey(dest.entry_id, cam.entity_id),
+          (cam) => this._renderCameraRow(dest, cam)
+        )}
+      </div>
+    `;
   }
 
-  private _renderAmount(
+  /** True when the camera has a problem worth showing while its row is folded. */
+  private _hasProblem(cam: RecordingCameraStatus): boolean {
+    return (
+      !!cam.error &&
+      cam.state !== "recording" &&
+      cam.state !== "paused" &&
+      !cam.provider_only
+    );
+  }
+
+  /** A short phrase for a camera with a problem, in the language it is built for. */
+  private _problemPhrase(
+    cam: RecordingCameraStatus,
+    part: (key: string, values?: Record<string, string | number>) => string
+  ): string {
+    const prefix = "ui.panel.config.camera_recording.row";
+    const since = cam.newest ? "_since" : "";
+    const time = this._time(cam.newest);
+    if (cam.state === "no_stream") {
+      return part(`${prefix}.no_video${since}`, { time });
+    }
+    if (cam.state === "reconnecting") {
+      return part(`${prefix}.trying_again${since}`, { time });
+    }
+    return cam.error ?? "";
+  }
+
+  // Each language half is built whole and then joined by the language mode,
+  // so the both-languages line does not run one language into the other.
+  private _summary(cam: RecordingCameraStatus): string {
+    const prefix = "ui.panel.config.camera_recording";
+    const active = this._activeAmount(cam);
+    return composeForMode(
+      this.hass.localize as unknown as (
+        key: string,
+        values?: Record<string, string | number>
+      ) => string,
+      (part) => {
+        let rest: string;
+        if (this._hasProblem(cam)) {
+          rest = this._problemPhrase(cam, part);
+        } else if (active === "light" && !cam.newest) {
+          rest = part(`${prefix}.row.events_today`, {
+            count: cam.events_today,
+          });
+        } else if (cam.newest) {
+          rest = part(`${prefix}.row.newest_waiting`, {
+            time: this._time(cam.newest),
+            count: cam.waiting,
+          });
+        } else {
+          rest = part(`${prefix}.row.nothing_kept`);
+        }
+        return part(`${prefix}.row.summary`, {
+          amount: part(`${prefix}.amount.${active}`),
+          rest,
+        });
+      }
+    );
+  }
+
+  private _renderCameraRow(
+    dest: RecordingDestinationStatus,
+    cam: RecordingCameraStatus
+  ) {
+    const key = cameraKey(dest.entry_id, cam.entity_id);
+    const open = this._expanded.includes(key);
+    const regionId = `camera-${key}`;
+    const name = this._name(cam);
+    const paused = cam.state === "paused";
+    const notes = this._renderNotes(cam);
+    const parts = this._renderAmountParts(dest, cam);
+    return html`
+      <div class="camera ${open ? "open" : ""}">
+        <div class="camera-head">
+          <button
+            class="disclosure"
+            aria-expanded=${open ? "true" : "false"}
+            aria-controls=${regionId}
+            .rowKey=${key}
+            @click=${this._toggleRow}
+          >
+            <span class="lead ${this._leadTone(cam)}"
+              ><ha-svg-icon .path=${mdiVideo}></ha-svg-icon
+            ></span>
+            <span class="main">
+              <span class="top"
+                ><span class="name">${name}</span>${this._renderPill(cam)}</span
+              >
+              <span class="summary">${this._summary(cam)}</span>
+              <span class="eid">${cam.entity_id}</span>
+              ${
+                this._hasProblem(cam)
+                  ? html`<span class="err">${this._composeProblem(cam)}</span>`
+                  : nothing
+              }
+            </span>
+            <span class="cell"
+              ><span class="sr">${this._l("amount.title")}: </span>${this._l(
+                `amount.${this._activeAmount(cam)}`
+              )}</span
+            >
+            <span class="cell"
+              ><span class="sr">${this._l("newest")}: </span>${this._time(
+                cam.newest
+              )}</span
+            >
+            <span class="cell"
+              ><span class="sr">${this._l("waiting")}: </span>${
+                cam.waiting
+              }</span
+            >
+            <span class="cell"
+              ><span class="sr">${this._l("oldest")}: </span>${this._time(
+                cam.oldest
+              )}</span
+            >
+            <ha-svg-icon class="chev" .path=${mdiChevronDown}></ha-svg-icon>
+          </button>
+          <ha-icon-button
+            .path=${paused ? mdiPlay : mdiPause}
+            .label=${this._l(
+              paused ? "row.resume_camera" : "row.pause_camera",
+              {
+                name,
+              }
+            )}
+            .entity=${cam.entity_id}
+            .entryId=${dest.entry_id}
+            .paused=${!paused}
+            @click=${this._togglePause}
+          ></ha-icon-button>
+        </div>
+        ${
+          open
+            ? html`<div
+                class="body"
+                id=${regionId}
+                role="region"
+                aria-label=${this._l("row.settings_of", { name })}
+              >
+                <div class="facts">
+                  <span
+                    ><b>${this._time(cam.newest)}</b
+                    ><i>${this._l("newest")}</i></span
+                  >
+                  <span><b>${cam.waiting}</b><i>${this._l("waiting")}</i></span>
+                  <span
+                    ><b>${this._time(cam.oldest)}</b
+                    ><i>${this._l("oldest")}</i></span
+                  >
+                </div>
+                ${notes}
+                <div class="cols">
+                  <div class="grp g1">${parts.main}</div>
+                  <div class="grp g2">${parts.check}</div>
+                  <div class="grp g3">${parts.rest}</div>
+                  <div class="grp g4">
+                    <ha-camera-watched-settings
+                      .hass=${this.hass}
+                      .entryId=${dest.entry_id}
+                      .entityId=${cam.entity_id}
+                    ></ha-camera-watched-settings>
+                  </div>
+                </div>
+              </div>`
+            : html`<div class="body" id=${regionId} hidden></div>`
+        }
+      </div>
+    `;
+  }
+
+  private _composeProblem(cam: RecordingCameraStatus): string {
+    return composeForMode(
+      this.hass.localize as unknown as (
+        key: string,
+        values?: Record<string, string | number>
+      ) => string,
+      (part) => this._problemPhrase(cam, part)
+    );
+  }
+
+  private _leadTone(cam: RecordingCameraStatus): string {
+    const tone = cam.provider_only ? "off" : (STATE_TONES[cam.state] ?? "off");
+    return tone === "ok" || tone === "warn" ? tone : "";
+  }
+
+  private _renderPill(cam: RecordingCameraStatus) {
+    if (cam.provider_only) {
+      return html`<span class="pill ${cam.event_clips > 0 ? "ok" : "warn"}"
+        >${this._l("states.event_clips")}</span
+      >`;
+    }
+    return html`<span class="pill ${STATE_TONES[cam.state] ?? "off"}"
+      >${this._l(`states.${cam.state}`)}</span
+    >`;
+  }
+
+  /** The lines that used to sit under the state in the table. */
+  private _renderNotes(cam: RecordingCameraStatus) {
+    const key = amountKey(cam);
+    if (cam.provider_only) {
+      return html`<div class="problem">${this._l("provider_only_note")}</div>`;
+    }
+    return html`${
+      key === "light" && cam.state === "recording"
+        ? html`<div class="problem">${this._l("light_short")}</div>`
+        : nothing
+    }
+    ${
+      cam.error && cam.state !== "recording"
+        ? html`<div class="problem">${cam.error}</div>`
+        : nothing
+    }`;
+  }
+
+  /**
+   * The settings of an open camera, in three parts: how much to keep, the
+   * recording check, and what follows it. They sit in two columns on a wide
+   * window and in this order on a narrow one.
+   */
+  private _renderAmountParts(
     dest: RecordingDestinationStatus,
     cam: RecordingCameraStatus
   ) {
@@ -392,76 +775,67 @@ export class HaConfigCameraRecording extends LitElement {
       buttons.push({ value: "light", label: this._l("amount.light") });
     }
     buttons.push({ value: "off", label: this._l("amount.off") });
-    const active: RecordingAmount = cam.provider_only
-      ? cam.effective_mode === "off"
-        ? "off"
-        : "light"
-      : cam.effective_mode;
+    const active = this._activeAmount(cam);
     const open = this._open.has(cam.entity_id);
     const mb = bytesToString(cam.bytes_today);
-    return html`
-      <div class="amount">
-        <div class="amount-head">
-          <span class="amount-title"
-            >${this._l("amount.title")} ·
-            ${
-              this.hass.states[cam.entity_id]?.attributes.friendly_name ??
-              cam.entity_id
-            }</span
-          >
-          <ha-button-toggle-group
-            size="s"
-            .buttons=${buttons}
-            .active=${active}
-            .entryId=${dest.entry_id}
-            .entity=${cam.entity_id}
-            @value-changed=${this._amountChanged}
-          ></ha-button-toggle-group>
-        </div>
-        <p class="amount-text">
-          ${
-            cam.provider_only
-              ? this._l("amount.provider_only", { days: dest.keep_days })
-              : this._l(`amount.explain_${active}`, {
-                  pre: cam.pre,
-                  post: cam.post,
-                })
-          }
-        </p>
-        ${
-          active === "light"
-            ? html`<p class="amount-today">
-                ${this._l("amount.today", { count: cam.events_today, size: mb })}
-              </p>`
-            : nothing
-        }
-        ${
-          cam.mode_reason === "no_event_source" ||
-          (!cam.light_possible && !cam.provider_only)
-            ? html`<p class="amount-note">
-                ${this._l("amount.no_event_source")}
-              </p>`
-            : nothing
-        }
-        ${
-          cam.cap_hit
-            ? html`<p class="amount-note">
-                ${this._l("amount.cap_hit", {
-                  minutes: Math.round(cam.max_clip / 60),
-                })}
-              </p>`
-            : nothing
-        }
-        ${cam.provider_only ? this._renderLive(dest, cam) : nothing}
-        ${cam.check ? this._renderCheck(dest, cam, cam.check) : nothing}
-        <p class="amount-note">${this._l("amount.keeps_existing")}</p>
-        ${
-          active === "light" && !cam.provider_only
-            ? this._renderLightSettings(dest, cam, open)
-            : nothing
-        }
+    const main = html`
+      <div class="amount-head">
+        <span class="amount-title">${this._l("amount.title")}</span>
+        <ha-button-toggle-group
+          size="m"
+          .buttons=${buttons}
+          .active=${active}
+          .entryId=${dest.entry_id}
+          .entity=${cam.entity_id}
+          @value-changed=${this._amountChanged}
+        ></ha-button-toggle-group>
       </div>
+      <p class="amount-text">
+        ${
+          cam.provider_only
+            ? this._l("amount.provider_only", { days: dest.keep_days })
+            : this._l(`amount.explain_${active}`, {
+                pre: cam.pre,
+                post: cam.post,
+              })
+        }
+      </p>
+      ${
+        active === "light"
+          ? html`<p class="amount-today">
+              ${this._l("amount.today", { count: cam.events_today, size: mb })}
+            </p>`
+          : nothing
+      }
+      ${
+        cam.mode_reason === "no_event_source" ||
+        (!cam.light_possible && !cam.provider_only)
+          ? html`<p class="amount-note">
+              ${this._l("amount.no_event_source")}
+            </p>`
+          : nothing
+      }
+      ${
+        cam.cap_hit
+          ? html`<p class="amount-note">
+              ${this._l("amount.cap_hit", {
+                minutes: Math.round(cam.max_clip / 60),
+              })}
+            </p>`
+          : nothing
+      }
+      ${cam.provider_only ? this._renderLive(dest, cam) : nothing}
     `;
+    const check = cam.check ? this._renderCheck(dest, cam, cam.check) : nothing;
+    const rest = html`
+      <p class="amount-note">${this._l("amount.keeps_existing")}</p>
+      ${
+        active === "light" && !cam.provider_only
+          ? this._renderLightSettings(dest, cam, open)
+          : nothing
+      }
+    `;
+    return { main, check, rest };
   }
 
   private _renderLive(
@@ -628,6 +1002,7 @@ export class HaConfigCameraRecording extends LitElement {
             ? html`<div class="check-test">
                 <ha-button
                   size="small"
+                  class="tall"
                   appearance="filled"
                   .disabled=${!canTest || testing}
                   .entryId=${dest.entry_id}
@@ -915,7 +1290,6 @@ export class HaConfigCameraRecording extends LitElement {
             </div>`
           : nothing
       }
-      ${this._problem ? html`<ha-alert alert-type="error">${this._problem}</ha-alert>` : nothing}
     `;
   }
 
@@ -1036,10 +1410,11 @@ export class HaConfigCameraRecording extends LitElement {
     if (!seconds) {
       return "—";
     }
-    return new Date(seconds * 1000).toLocaleString(this.hass.locale.language, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
+    return formatShortDateTimeWithConditionalYear(
+      new Date(seconds * 1000),
+      this.hass.locale,
+      this.hass.config
+    );
   }
 
   private async _togglePause(ev: Event) {
@@ -1055,6 +1430,11 @@ export class HaConfigCameraRecording extends LitElement {
       target.entity
     );
     await this._load();
+    await this.updateComplete;
+    // A search on a state can remove the row whose button was just pressed.
+    if (!target.isConnected) {
+      this._searchField?.focus();
+    }
   }
 
   private async _configure(ev: Event) {
@@ -1070,293 +1450,531 @@ export class HaConfigCameraRecording extends LitElement {
     navigate("/config/integrations/dashboard/add?domain=camera_recording");
   }
 
-  static styles: CSSResultGroup = css`
-    .content {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: var(--ha-space-4);
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-4);
-    }
-    .intro {
-      margin: 0;
-      color: var(--secondary-text-color);
-    }
-    .empty {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: var(--ha-space-3);
-    }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: var(--ha-space-3);
-      margin-bottom: var(--ha-space-4);
-    }
-    .stats div {
-      display: flex;
-      flex-direction: column;
-      padding: var(--ha-space-3) var(--ha-space-4);
-      border-radius: var(--ha-border-radius-lg);
-      background: var(--secondary-background-color);
-    }
-    .stats b {
-      font-size: var(--ha-font-size-xl);
-    }
-    .stats span {
-      color: var(--secondary-text-color);
-      font-size: var(--ha-font-size-s);
-    }
-    .meter {
-      height: 10px;
-      border-radius: 5px;
-      background: var(--secondary-background-color);
-      overflow: hidden;
-      margin-bottom: var(--ha-space-4);
-    }
-    .meter span {
-      display: block;
-      height: 100%;
-      background: var(--primary-color);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: var(--ha-space-3);
-    }
-    th,
-    td {
-      text-align: start;
-      padding: var(--ha-space-2);
-      border-bottom: 1px solid var(--divider-color);
-      vertical-align: middle;
-    }
-    th {
-      font-size: var(--ha-font-size-s);
-      color: var(--secondary-text-color);
-      font-weight: var(--ha-font-weight-medium);
-    }
-    .pill {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: var(--ha-border-radius-pill);
-      font-size: var(--ha-font-size-s);
-      font-weight: var(--ha-font-weight-medium);
-      background: var(--secondary-background-color);
-    }
-    .pill.ok {
-      background: color-mix(in srgb, var(--success-color) 22%, transparent);
-    }
-    .pill.warn {
-      background: color-mix(in srgb, var(--warning-color) 25%, transparent);
-    }
-    .pill.busy {
-      background: color-mix(in srgb, var(--info-color) 22%, transparent);
-    }
-    .amount-row td {
-      padding-top: 0;
-    }
-    .amount {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-1);
-      min-width: 0;
-    }
-    .amount-head {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--ha-space-2);
-    }
-    .amount-title {
-      font-size: var(--ha-font-size-s);
-      color: var(--secondary-text-color);
-      min-width: 0;
-      overflow-wrap: anywhere;
-    }
-    .amount p {
-      margin: 0;
-      font-size: var(--ha-font-size-s);
-      overflow-wrap: anywhere;
-    }
-    .amount-note,
-    .amount-today {
-      color: var(--secondary-text-color);
-    }
-    .live-switch {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-3);
-      min-height: 44px;
-    }
-    .live {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-2);
-    }
-    .sliders {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--ha-space-2);
-    }
-    .sliders label {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-1);
-      font-size: var(--ha-font-size-s);
-    }
-    .sliders ha-slider {
-      width: 100%;
-      margin-block: var(--ha-space-3);
-    }
-    .sources {
-      display: flex;
-      flex-direction: column;
-    }
-    .source {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-2);
-      min-height: 44px;
-      font-size: var(--ha-font-size-s);
-    }
-    .kind {
-      color: var(--secondary-text-color);
-    }
-    button.link {
-      align-self: flex-start;
-      min-height: 44px;
-      padding: 0;
-      border: none;
-      background: none;
-      color: var(--primary-color);
-      font: inherit;
-      font-size: var(--ha-font-size-s);
-      cursor: pointer;
-    }
-    .keep {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-1);
-      font-size: var(--ha-font-size-s);
-      margin-bottom: var(--ha-space-3);
-    }
-    /* The slider's touch area reaches past its own box, so it needs room
-       above and below or it sits over the label. */
-    .keep ha-slider {
-      width: 100%;
-      margin-block: var(--ha-space-3);
-    }
-    .check {
-      margin-top: var(--ha-space-2);
-      padding: var(--ha-space-3);
-      border-radius: var(--ha-border-radius-lg);
-      background: var(--secondary-background-color);
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-2);
-      min-width: 0;
-    }
-    .check h3 {
-      margin: 0;
-      font-size: var(--ha-font-size-m);
-      font-weight: var(--ha-font-weight-medium);
-    }
-    .check dl {
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-    }
-    .check-row {
-      display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-      gap: var(--ha-space-2);
-      padding: var(--ha-space-1) 0;
-      border-bottom: 1px solid var(--divider-color);
-      font-size: var(--ha-font-size-s);
-    }
-    .check-row:last-child {
-      border-bottom: none;
-    }
-    .check dt {
-      color: var(--secondary-text-color);
-      overflow-wrap: anywhere;
-    }
-    .check dd {
-      margin: 0;
-      overflow-wrap: anywhere;
-    }
-    .check-test {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: var(--ha-space-2);
-    }
-    .check-result {
-      margin: 0;
-      font-size: var(--ha-font-size-s);
-    }
-    .check-result.bad {
-      color: var(--error-color);
-    }
-    @media (max-width: 450px) {
-      .check-row {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 0;
+  static styles: CSSResultGroup = [
+    haMotionKeyframes,
+    css`
+      .content {
+        container-type: inline-size;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: var(--ha-space-4);
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-4);
       }
-    }
-    .problem {
-      font-size: var(--ha-font-size-s);
-      color: var(--secondary-text-color);
-      margin-top: var(--ha-space-1);
-    }
-    .visually-hidden {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-    }
-    @media (max-width: 700px) {
-      thead {
+      .intro {
+        margin: 0;
+        color: var(--secondary-text-color);
+      }
+      .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--ha-space-3);
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: var(--ha-space-3);
+        margin-bottom: var(--ha-space-4);
+      }
+      .stats div {
+        display: flex;
+        flex-direction: column;
+        padding: var(--ha-space-3) var(--ha-space-4);
+        border-radius: var(--ha-border-radius-lg);
+        background: var(--secondary-background-color);
+      }
+      .stats b {
+        font-size: var(--ha-font-size-xl);
+      }
+      .stats span {
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
+      }
+      .meter {
+        height: 10px;
+        border-radius: 5px;
+        background: var(--secondary-background-color);
+        overflow: hidden;
+        margin-bottom: var(--ha-space-4);
+      }
+      .meter span {
+        display: block;
+        height: 100%;
+        background: var(--primary-color);
+      }
+      .pill {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: var(--ha-border-radius-pill);
+        font-size: var(--ha-font-size-s);
+        font-weight: var(--ha-font-weight-medium);
+        background: var(--secondary-background-color);
+      }
+      .pill.ok {
+        background: color-mix(in srgb, var(--success-color) 22%, transparent);
+      }
+      .pill.warn {
+        background: color-mix(in srgb, var(--warning-color) 25%, transparent);
+      }
+      .pill.busy {
+        background: color-mix(in srgb, var(--info-color) 22%, transparent);
+      }
+      .amount-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--ha-space-2);
+      }
+      .amount-title {
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .grp p {
+        margin: 0;
+        font-size: var(--ha-font-size-s);
+        overflow-wrap: anywhere;
+      }
+      .amount-note,
+      .amount-today {
+        color: var(--secondary-text-color);
+      }
+      .live-switch {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3);
+        min-height: 48px;
+      }
+      .live {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-2);
+      }
+      .sliders {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--ha-space-2);
+      }
+      .sliders label {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        font-size: var(--ha-font-size-s);
+      }
+      .sliders ha-slider {
+        width: 100%;
+        margin-block: var(--ha-space-3);
+      }
+      .sources {
+        display: flex;
+        flex-direction: column;
+      }
+      .source {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-2);
+        min-height: 48px;
+        font-size: var(--ha-font-size-s);
+      }
+      .kind {
+        color: var(--secondary-text-color);
+      }
+      button.link {
+        align-self: flex-start;
+        min-height: 48px;
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--primary-color);
+        font: inherit;
+        font-size: var(--ha-font-size-s);
+        cursor: pointer;
+      }
+      .keep {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        font-size: var(--ha-font-size-s);
+        margin-bottom: var(--ha-space-3);
+      }
+      /* The slider's touch area reaches past its own box, so it needs room
+       above and below or it sits over the label. */
+      .keep ha-slider {
+        width: 100%;
+        margin-block: var(--ha-space-3);
+      }
+      .check {
+        margin-top: var(--ha-space-2);
+        padding: var(--ha-space-3);
+        border-radius: var(--ha-border-radius-lg);
+        background: var(--secondary-background-color);
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-2);
+        min-width: 0;
+      }
+      .check h3 {
+        margin: 0;
+        font-size: var(--ha-font-size-m);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .check dl {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .check-row {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+        gap: var(--ha-space-2);
+        padding: var(--ha-space-1) 0;
+        border-bottom: 1px solid var(--divider-color);
+        font-size: var(--ha-font-size-s);
+      }
+      .check-row:last-child {
+        border-bottom: none;
+      }
+      .check dt {
+        color: var(--secondary-text-color);
+        overflow-wrap: anywhere;
+      }
+      .check dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .check-test {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--ha-space-2);
+      }
+      .check-result {
+        margin: 0;
+        font-size: var(--ha-font-size-s);
+      }
+      .check-result.bad {
+        color: var(--error-color);
+      }
+      @media (max-width: 450px) {
+        .check-row {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 0;
+        }
+      }
+      .problem {
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+        margin-top: var(--ha-space-1);
+      }
+      .search {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+      }
+      .count-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--ha-space-2);
+        min-height: 48px;
+        padding-inline-start: var(--ha-space-4);
+      }
+      ha-button.tall {
+        --ha-button-height: 48px;
+      }
+      .pattern-error {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--ha-space-2);
+        margin: 0;
+        padding-inline: var(--ha-space-4);
+        color: var(--error-color);
+        font-size: var(--ha-font-size-s);
+        overflow-wrap: anywhere;
+      }
+      .loading {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-3);
+      }
+      .loading ha-skeleton-text {
+        --ha-skeleton-text-width: 100%;
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+      .err {
+        display: none;
+        color: var(--error-color);
+        font-size: var(--ha-font-size-s);
+        overflow-wrap: anywhere;
+      }
+      .count {
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
+      }
+      .no-match {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--ha-space-2);
+        padding: var(--ha-space-4);
+        border-radius: var(--ha-border-radius-xl);
+        background: var(--card-background-color);
+        color: var(--secondary-text-color);
+        text-align: center;
+      }
+      .no-match p {
+        margin: 0;
+        color: var(--primary-text-color);
+        overflow-wrap: anywhere;
+      }
+      .none-here {
+        margin: 0;
+        padding: var(--ha-space-3) var(--ha-space-2);
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
+      }
+
+      /* One folding row per camera. Under about 700 px the row is a name, a
+       state and one summary line; wider, it carries the columns. */
+      .cameras {
+        --cols: 40px minmax(190px, 2.3fr) minmax(96px, 1fr) minmax(96px, 1fr)
+          minmax(96px, 1fr) minmax(84px, 0.9fr) 24px;
+        display: flex;
+        flex-direction: column;
+        margin-top: var(--ha-space-3);
+      }
+      .col-head {
         display: none;
       }
-      tr {
+      .camera {
+        border-radius: var(--ha-border-radius-lg);
+        transition: background-color var(--ha-animation-duration-normal, 200ms)
+          ease;
+      }
+      .camera + .camera {
+        box-shadow: 0 -1px 0 var(--divider-color);
+      }
+      .camera.open {
+        background: var(--secondary-background-color);
+        box-shadow: none;
+      }
+      .camera.open + .camera {
+        box-shadow: none;
+      }
+      .camera-head {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-1);
+        padding-inline-end: var(--ha-space-1);
+      }
+      .disclosure {
+        flex: 1;
+        min-width: 0;
+        min-height: 68px;
         display: grid;
-        grid-template-columns: 1fr auto auto;
-        border-bottom: 1px solid var(--divider-color);
-        padding: var(--ha-space-2) 0;
-      }
-      td {
+        grid-template-columns: 36px minmax(0, 1fr) 24px;
+        align-items: center;
+        gap: var(--ha-space-3);
+        padding-block: var(--ha-space-2);
+        padding-inline: var(--ha-space-2) var(--ha-space-1);
         border: none;
-        padding: var(--ha-space-1) var(--ha-space-2);
+        border-radius: var(--ha-border-radius-lg);
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: start;
+        cursor: pointer;
       }
-      tr.amount-row {
-        display: block;
+      .disclosure:hover {
+        background: color-mix(
+          in srgb,
+          var(--primary-text-color) 5%,
+          transparent
+        );
       }
-      td:nth-child(3),
-      td:nth-child(4),
-      td:nth-child(5) {
-        grid-column: 1 / -1;
+      .disclosure:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+      .lead {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--secondary-background-color);
+        color: var(--secondary-text-color);
+      }
+      .lead.ok {
+        background: color-mix(in srgb, var(--success-color) 22%, transparent);
+        color: var(--success-color);
+      }
+      .lead.warn {
+        background: color-mix(in srgb, var(--warning-color) 25%, transparent);
+        color: var(--warning-color);
+      }
+      .camera.open .lead:not(.ok):not(.warn) {
+        background: var(--card-background-color);
+      }
+      .main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 2px var(--ha-space-2);
+      }
+      .name {
+        font-size: var(--ha-font-size-l);
+        font-weight: var(--ha-font-weight-medium);
+        overflow-wrap: anywhere;
+        min-width: 0;
+      }
+      .summary {
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
+        overflow-wrap: anywhere;
+      }
+      .eid,
+      .cell {
+        display: none;
+      }
+      .chev {
+        color: var(--secondary-text-color);
+        transition: transform var(--ha-animation-duration-normal, 200ms) ease;
+      }
+      .camera.open .chev {
+        transform: rotate(180deg);
+      }
+      .body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-3);
+        padding: var(--ha-space-1) var(--ha-space-3) var(--ha-space-4);
+        animation: ha-rise var(--ha-animation-duration-normal, 200ms) ease both;
+      }
+      .body[hidden] {
+        display: none;
+      }
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--ha-space-2);
+        padding: var(--ha-space-2) var(--ha-space-3);
+        border-radius: var(--ha-border-radius-lg);
+        background: var(--card-background-color);
+      }
+      .facts span {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .facts b {
+        font-weight: var(--ha-font-weight-medium);
+        overflow-wrap: anywhere;
+      }
+      .facts i {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        font-style: normal;
         font-size: var(--ha-font-size-s);
         color: var(--secondary-text-color);
       }
-      td[data-label]::before {
-        content: attr(data-label) ": ";
+      .cols {
+        display: contents;
       }
-      tr:not(.amount-row) td:nth-child(6) {
-        grid-column: 3;
-        grid-row: 1;
-        justify-self: end;
+      .grp {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        min-width: 0;
       }
-      tr.amount-row td:nth-child(n) {
-        display: block;
+      .grp:empty {
+        display: none;
       }
-    }
-  `;
+      .camera.open .check {
+        background: var(--card-background-color);
+      }
+
+      @container (min-width: 860px) {
+        .col-head {
+          display: grid;
+          grid-template-columns: var(--cols);
+          gap: var(--ha-space-3);
+          padding-block: var(--ha-space-1) var(--ha-space-2);
+          padding-inline: var(--ha-space-3) 60px;
+          box-shadow: inset 0 -1px 0 var(--divider-color);
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .col-head > span {
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+        .disclosure {
+          grid-template-columns: var(--cols);
+          padding-inline-start: var(--ha-space-3);
+        }
+        .summary,
+        .facts {
+          display: none;
+        }
+        .eid {
+          display: block;
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+          overflow-wrap: anywhere;
+        }
+        .err {
+          display: block;
+        }
+        .cell {
+          display: block;
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+        .body {
+          padding-inline: 64px var(--ha-space-4);
+        }
+        .cols {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          grid-template-areas:
+            "main check"
+            "rest watched";
+          gap: var(--ha-space-3) var(--ha-space-6, 28px);
+          align-items: start;
+        }
+        .g1 {
+          grid-area: main;
+        }
+        .g2 {
+          grid-area: check;
+        }
+        .g3 {
+          grid-area: rest;
+        }
+        .g4 {
+          grid-area: watched;
+        }
+      }
+    `,
+  ];
 }
 
 declare global {
