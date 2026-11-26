@@ -112,6 +112,8 @@ product never restarts or shuts down the computer. The article lists what was an
 verified: in particular the release job that publishes the outer image has not been run yet,
 and the currently published Supervisor image needs the next release before this mode is healthy.
 
+SSH with your own public key, no passwords, is managed on Settings > System > SSH access, on the operating system and in the full mode (port 22222, published by `compose.full.yaml` as `HA_MATERIAL_SSH_PORT`). See [`docs/features/hosting/ssh-access.md`](docs/features/hosting/ssh-access.md).
+
 ## Operating system images
 
 Each [release](https://github.com/Ding-Ding-Projects/home-assistant-material/releases) that

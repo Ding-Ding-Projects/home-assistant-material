@@ -1,5 +1,6 @@
 import {
   mdiBrain,
+  mdiKeyVariant,
   mdiBusClock,
   mdiShieldHome,
   mdiThermometerLow,
@@ -778,6 +779,14 @@ export const configSections: Record<string, PageNavigation[]> = {
       iconPath: mdiCloudOutline,
       iconColor: "#1E7FB8",
       core: true,
+      adminOnly: true,
+    },
+    {
+      path: "/config/ssh-access",
+      translationKey: "ssh_access",
+      iconPath: mdiKeyVariant,
+      iconColor: "#6D4C41",
+      component: "hassio",
       adminOnly: true,
     },
     {

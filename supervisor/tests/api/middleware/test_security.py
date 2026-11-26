@@ -262,6 +262,11 @@ ROLE_PATHS = [
     ("get", "/os/ssh/authorized_keys", set()),
     ("post", "/os/ssh/authorized_keys", set()),
     ("delete", "/os/ssh/authorized_keys", set()),
+    (
+        "delete",
+        "/os/ssh/authorized_keys/XtqCfiQl-C_yppPd4-0-mdScwPJe3sqxe1TozjBSA20",
+        set(),
+    ),
     ("get", "/time/info", set(ROLE_ALL)),
     ("post", "/time/options", {"admin", "manager"}),
     ("post", "/addons/self/sys_options", set()),
