@@ -88,13 +88,14 @@ test('full-mode instances publish a free SSH port and pass it to the image; old 
   const { Manager } = require('../src/backend/manager');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ham-ssh-'));
   const m = new Manager(dir, { portCheck: async (p) => p !== 22223 });
+  try {
   m.db.instances.push({ id: 'a', target: 'docker', port: 8123, sshPort: 22222, slug: 'a', backups: [] });
   const b = await m.allocate({ target: 'docker', name: 'B' }, { id: 'b', hostingJobId: 'job-b' });
   assert.equal(b.sshPort, 22224); // 22222 belongs to another instance, 22223 is busy on this computer
   assert.notEqual(b.sshPort, b.port);
   const c = await m.allocate({ target: 'docker', name: 'C' }, { id: 'c', hostingJobId: 'job-c' });
   assert.equal(c.sshPort, 22225);
-  fs.rmSync(dir, { recursive: true, force: true });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 test('full backup targets have independent full-mode volumes and no source mount', () => {

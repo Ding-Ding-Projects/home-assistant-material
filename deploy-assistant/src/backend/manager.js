@@ -225,7 +225,7 @@ class Manager extends EventEmitter {
   async defaults(targetId, hostId) {
     const n = this.db.instances.length + 1;
     const name = 'Home ' + n;
-    const taken = this.db.instances.filter((i) => (targetId === 'ssh' ? i.hostId === hostId : i.target !== 'ssh')).map((i) => i.port);
+    const taken = this.db.instances.filter((i) => (targetId === 'ssh' ? i.hostId === hostId : i.target !== 'ssh')).flatMap((i) => (i.sshPort ? [i.port, i.sshPort] : [i.port]));
     const start = targetId === 'virtualbox' ? 8180 : 8123;
     const port = targetId === 'vmware' ? 0 : targetId === 'ssh' ? (taken.length ? Math.max(...taken) + 1 : 8123) : await freePort(start, taken, this.portCheck);
     return { target: targetId, hostId: hostId || '', name, port, tag: 'latest', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', memoryMb: 4096, cpus: 2, diskGb: 0, memoryLimit: '', backupsOn: true };
