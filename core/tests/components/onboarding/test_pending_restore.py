@@ -224,3 +224,54 @@ async def test_changes_are_spaced_out(
     assert first.status == HTTPStatus.OK
     assert second.status == HTTPStatus.TOO_MANY_REQUESTS
     assert supervisor.send_command.await_count == 1
+
+
+@pytest.mark.parametrize(
+    ("method", "url", "kwargs"),
+    [
+        ("get", URL, {}),
+        ("delete", URL, {"json": {"remove_backup": True}}),
+        ("post", f"{URL}/retry", {"json": {}}),
+    ],
+)
+async def test_refused_while_onboarding_is_unfinished_but_the_user_exists(
+    hass: HomeAssistant,
+    hass_storage: dict[str, Any],
+    hass_client_no_auth: ClientSessionGenerator,
+    supervisor: Mock,
+    method: str,
+    url: str,
+    kwargs: dict[str, Any],
+) -> None:
+    """Views are registered, but the in-handler guard still answers 401."""
+    await _setup(hass, hass_storage, [])
+    client = await hass_client_no_auth()
+    # Onboarding finishes after the views were registered
+    hass.data[DOMAIN].steps["done"] = ["user", "core_config", "integration"]
+
+    resp = await getattr(client, method)(url, **kwargs)
+
+    assert resp.status == HTTPStatus.UNAUTHORIZED
+    supervisor.send_command.assert_not_called()
+
+
+async def test_get_refused_when_onboarding_finishes_during_the_call(
+    hass: HomeAssistant,
+    hass_storage: dict[str, Any],
+    hass_client_no_auth: ClientSessionGenerator,
+    supervisor: Mock,
+) -> None:
+    """A record fetched just as onboarding completes is not handed out."""
+    await _setup(hass, hass_storage, [])
+    client = await hass_client_no_auth()
+
+    async def finish(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        hass.data[DOMAIN].steps["done"] = ["user", "core_config", "integration"]
+        return {"data": {"pending_restore": RECORD}}
+
+    supervisor.send_command.side_effect = finish
+
+    resp = await client.get(URL)
+
+    assert resp.status == HTTPStatus.UNAUTHORIZED
+    assert "Full backup" not in await resp.text()

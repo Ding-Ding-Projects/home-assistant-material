@@ -51,23 +51,27 @@ export const fetchOnboardingPendingRestore =
     }
   };
 
-/** Send a change; true when the server accepted it. */
+/** Send a change; the HTTP status, or 0 when the server could not be reached. */
 const sendChange = async (
   method: "POST" | "DELETE",
   path: string,
   body: Record<string, unknown>
-): Promise<boolean> => {
+): Promise<number> => {
   try {
     const response = await fetch(`${__HASS_URL__}${path}`, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    return response.ok;
+    return response.status;
   } catch (_err) {
-    return false;
+    return 0;
   }
 };
+
+/** True for a successful HTTP status from a change. */
+export const isChangeAccepted = (status: number) =>
+  status >= 200 && status < 300;
 
 /** Run the failed restore again, with its key when the backup is protected. */
 export const retryOnboardingPendingRestore = (password?: string) =>

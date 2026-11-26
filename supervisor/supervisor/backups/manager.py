@@ -343,7 +343,10 @@ class BackupManager(FileConfiguration, JobGroup):
             )
 
         record = await self.pending_restore.queue(
-            backup.slug, backup.name, backup.size_bytes, password
+            backup.slug,
+            backup.name,
+            backup.size_bytes,
+            password if backup.protected else None,
         )
         if self.sys_homeassistant.core.active_job is None:
             self.pending_restore.start()
@@ -360,7 +363,10 @@ class BackupManager(FileConfiguration, JobGroup):
         if backup is None:
             raise BackupError("The uploaded backup is gone", _LOGGER.warning)
         await self._validate_backup_location(backup, password)
-        record = await self.pending_restore.retry(password)
+        # A key given for an unprotected backup must not be recorded
+        record = await self.pending_restore.retry(
+            password if backup.protected else None
+        )
         if self.sys_homeassistant.core.active_job is None:
             self.pending_restore.start()
         return record

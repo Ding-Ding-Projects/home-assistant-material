@@ -13,6 +13,7 @@ import "../components/progress/ha-progress-bar";
 import type { OnboardingPendingRestore } from "../data/onboarding-pending-restore";
 import {
   discardOnboardingPendingRestore,
+  isChangeAccepted,
   retryOnboardingPendingRestore,
 } from "../data/onboarding-pending-restore";
 import { showConfirmationDialog } from "../dialogs/generic/show-dialog-box";
@@ -40,7 +41,7 @@ class OnboardingPendingRestoreView extends LitElement {
 
   @state() private _busy = false;
 
-  @state() private _actionFailed = false;
+  @state() private _actionFailed: false | "retry" | "rate" | "discard" = false;
 
   @state()
   @consumeLocalize()
@@ -95,7 +96,9 @@ class OnboardingPendingRestoreView extends LitElement {
       ${
         this._actionFailed
           ? html`<ha-alert alert-type="error" role="alert">
-              ${this._t(`${prefix}.action_failed`)}
+              ${this._t(
+                `${prefix}.${this._actionFailed === "retry" ? "retry_failed" : "action_failed"}`
+              )}
             </ha-alert>`
           : nothing
       }
@@ -136,15 +139,17 @@ class OnboardingPendingRestoreView extends LitElement {
   private async _retry() {
     this._busy = true;
     this._actionFailed = false;
-    const ok = await retryOnboardingPendingRestore(
+    const status = await retryOnboardingPendingRestore(
       this.restore.protected ? this._password : undefined
     );
     this._busy = false;
-    if (!ok) {
-      this._actionFailed = true;
-      return;
+    if (isChangeAccepted(status)) {
+      this._password = "";
+    } else {
+      this._actionFailed = status === 429 ? "rate" : "retry";
     }
-    this._password = "";
+    // Either way ask again: the Supervisor may have started the restore after
+    // the request timed out, and the page must not keep showing a stale failure
     fireEvent(this, "pending-restore-recheck");
   }
 
@@ -161,10 +166,10 @@ class OnboardingPendingRestoreView extends LitElement {
     }
     this._busy = true;
     this._actionFailed = false;
-    const ok = await discardOnboardingPendingRestore();
+    const status = await discardOnboardingPendingRestore();
     this._busy = false;
-    if (!ok) {
-      this._actionFailed = true;
+    if (!isChangeAccepted(status)) {
+      this._actionFailed = "discard";
       return;
     }
     fireEvent(this, "pending-restore-dismiss");

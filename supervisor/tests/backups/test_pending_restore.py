@@ -540,7 +540,7 @@ async def test_retry_requeues_a_failed_restore_with_a_new_key(
     coresys.homeassistant.version = "2026.11.3"
 
     with (
-        patch.object(coresys.backups, "get", return_value=object()),
+        patch.object(coresys.backups, "get", return_value=Mock(protected=True)),
         patch.object(coresys.backups, "_validate_backup_location", AsyncMock()),
         patch.object(pending, "_restore", AsyncMock(return_value=True)),
     ):
@@ -581,3 +581,46 @@ async def test_retry_with_a_wrong_key_changes_nothing(
     ):
         await coresys.backups.retry_pending_restore("wrong")
     assert pending.record["state"] == PendingRestoreState.FAILED
+
+
+async def test_api_retry_refusals_are_client_errors(
+    api_client: TestClient, coresys: CoreSys, pending: PendingRestore
+) -> None:
+    """A stale page or a wrong key is refused with a 400 and no error report."""
+    with patch("supervisor.api.utils.async_capture_exception") as capture:
+        # No failed record yet
+        resp = await api_client.post("/backups/restore/pending/retry", json={})
+        assert resp.status == 400
+
+        # A failed record whose key does not open the backup
+        await pending.queue(SLUG, "Full backup", 1, "old")
+        pending._record["state"] = PendingRestoreState.FAILED
+        with (
+            patch.object(coresys.backups, "get", return_value=object()),
+            patch.object(
+                coresys.backups,
+                "_validate_backup_location",
+                AsyncMock(side_effect=BackupInvalidError("Invalid password")),
+            ),
+        ):
+            resp = await api_client.post(
+                "/backups/restore/pending/retry", json={"password": "wrong"}
+            )
+        assert resp.status == 400
+    capture.assert_not_called()
+    assert pending.record["state"] == PendingRestoreState.FAILED
+
+
+async def test_retry_ignores_a_key_for_an_unprotected_backup(
+    coresys: CoreSys, pending: PendingRestore, tmp_path: Path
+) -> None:
+    """The record and the key file follow the backup, not the key that was sent."""
+    await pending.queue(SLUG, "Full backup", 1, None)
+    pending._record["state"] = PendingRestoreState.FAILED
+    with (
+        patch.object(coresys.backups, "get", return_value=Mock(protected=False)),
+        patch.object(coresys.backups, "_validate_backup_location", AsyncMock()),
+    ):
+        record = await coresys.backups.retry_pending_restore("stray")
+    assert record["protected"] is False
+    assert not (tmp_path / FILE_PENDING_RESTORE_PASSWORD).exists()

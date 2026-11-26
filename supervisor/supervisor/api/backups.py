@@ -61,7 +61,13 @@ from ..const import (
     Folder,
 )
 from ..coresys import CoreSysAttributes
-from ..exceptions import APIError, APIForbidden, APINotFound, BackupInvalidError
+from ..exceptions import (
+    APIError,
+    APIForbidden,
+    APINotFound,
+    BackupError,
+    BackupInvalidError,
+)
 from ..homeassistant.const import LANDINGPAGE
 from ..mounts.const import MountUsage
 from ..resolution.const import MINIMUM_FREE_SPACE_THRESHOLD
@@ -581,7 +587,8 @@ class APIBackups(CoreSysAttributes):
             return await self.sys_backups.retry_pending_restore(
                 body.get(ATTR_PASSWORD)
             )
-        except BackupInvalidError as err:
+        except BackupError as err:
+            # A refusal (no failed record, backup gone, wrong key) is expected
             raise APIError(str(err)) from err
 
     @api_process
