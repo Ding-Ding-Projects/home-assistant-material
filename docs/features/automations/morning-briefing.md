@@ -2,7 +2,7 @@
 
 A helper that sends one notification each morning summarizing the home: the weather, transit
 alerts, your grow lights and anything else you pick. Sections with nothing to say are left out, and
-when nothing at all is worth saying it still sends a short "All quiet." line.
+when nothing at all is worth saying it sends "All quiet." when its selected sources were readable. Missing sources are listed explicitly, including when none could be checked. Companion app notifications include shortcuts to the first three unavailable entities.
 
 Add it from **Settings > Devices & services > Helpers > Create helper > Morning briefing**.
 
@@ -15,7 +15,7 @@ Add it from **Settings > Devices & services > Helpers > Create helper > Morning 
 | Send to | One or more `notify` actions, listed from the actions Home Assistant has. Type a custom action such as `notify.mobile_app_phone` if it is not listed. |
 | Weather | Optional `weather` entity. Today's daily forecast is used through the `weather.get_forecasts` action; if that fails, the current condition and temperature are used. |
 | Transit alerts | Optional `sensor` or `binary_sensor` entities. Only those with something to report are listed; states such as `ok`, `none`, `off`, `normal`, `unknown` and `unavailable` are skipped. |
-| Extra entities | Optional. Each is listed as a line with its name and state (and unit). Unknown and unavailable entities are skipped. |
+| Extra entities | Optional. Each is listed as a line with its name and state (and unit). Unavailable selections are reported by name. |
 
 All of them except the name can be changed later from the helper's **Options**.
 

@@ -177,6 +177,12 @@ def _grow_light_lines(hass: HomeAssistant) -> list[str]:
     return lines
 
 
+def unavailable_sources(hass: HomeAssistant, sources: BriefingSources) -> list[str]:
+    """Return each selected source with no usable state, in briefing order."""
+    selected = ([sources.weather] if sources.weather else []) + sources.transit + sources.extra
+    return [entity for entity in dict.fromkeys(selected) if _readable(hass, entity) is None]
+
+
 async def async_compose_message(hass: HomeAssistant, sources: BriefingSources) -> str:
     """Return the text of one briefing. Empty sections are left out."""
     now = dt_util.now()
@@ -192,6 +198,16 @@ async def async_compose_message(hass: HomeAssistant, sources: BriefingSources) -
         for entity_id in sources.extra
         if (value := _readable(hass, entity_id)) is not None
     )
+    if missing := unavailable_sources(hass, sources):
+        selected = set(sources.transit + sources.extra)
+        if sources.weather:
+            selected.add(sources.weather)
+        checked = len(selected) - len(missing)
+        if checked == 0:
+            lines.append("Couldn’t check your selected sources.")
+        elif not lines:
+            lines.append(f"No alerts from {checked} checked source{'s' if checked != 1 else ''}.")
+        lines.extend(f"{_label(hass, entity)}: unavailable." for entity in missing)
     if not lines:
         lines.append("All quiet.")
     return "\n".join([f"Good morning, it is {now:%H:%M}.", *lines])
