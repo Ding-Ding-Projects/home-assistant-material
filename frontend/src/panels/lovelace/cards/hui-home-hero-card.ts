@@ -30,6 +30,7 @@ import {
   featuredRoom,
   lockFacts,
   playingMedia,
+  recentHomeChanges,
 } from "../../../common/home/home-hero";
 import { playArrival } from "../../../common/motion/drama";
 import { navigate } from "../../../common/navigate";
@@ -532,18 +533,7 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
         new Date(end).toISOString()
       );
       if (request !== this._recentRequest) return;
-      this._recent = events
-        .filter(
-          (entry) =>
-            entry.entity_id &&
-            entry.state !== undefined &&
-            hass.states[entry.entity_id] &&
-            /^(light|lock|switch|cover|climate|binary_sensor)\./.test(
-              entry.entity_id
-            )
-        )
-        .sort((a, b) => b.when - a.when)
-        .slice(0, 5);
+      this._recent = recentHomeChanges(events, hass.states, hass.entities);
     } catch {
       if (request === this._recentRequest) this._recentFailed = true;
     }

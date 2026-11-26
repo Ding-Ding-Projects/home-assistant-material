@@ -1,5 +1,7 @@
 """Tests for the Printer door config flow."""
 
+from unittest.mock import patch
+
 import pytest
 from pytest_homeassistant.common import MockConfigEntry
 
@@ -8,6 +10,7 @@ from homeassistant.components.printer_door.const import (
     CONF_SERIAL,
     DOMAIN,
 )
+from homeassistant.components.printer_door.discovery import PrinterAnnouncement
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import HomeAssistant
@@ -172,8 +175,6 @@ async def test_connection_preview(hass: HomeAssistant) -> None:
 
 async def test_initial_search(hass: HomeAssistant) -> None:
     """A fresh instance can choose a discovered printer before entering a code."""
-    from unittest.mock import patch
-    from homeassistant.components.printer_door.discovery import PrinterAnnouncement
 
     flow = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}

@@ -3,13 +3,19 @@
 from collections.abc import Callable
 from datetime import datetime, time, timedelta
 import logging
+from typing import Any
 
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
-from .compose import BriefingSources, _label, async_compose_message, unavailable_sources
+from .compose import (
+    BriefingSources,
+    async_compose_message,
+    source_label,
+    unavailable_sources,
+)
 from .const import EVENT_SENT
 
 _LOGGER = logging.getLogger(__name__)
@@ -109,10 +115,14 @@ class Briefing:
         missing = unavailable_sources(self.hass, self.sources)
         for target in self.targets:
             domain, _, service = target.partition(".")
-            payload: dict = {"message": message, "title": TITLE}
+            payload: dict[str, Any] = {"message": message, "title": TITLE}
             if domain == "notify" and service.startswith("mobile_app_"):
                 actions = [
-                    {"action": "URI", "title": _label(self.hass, entity), "uri": f"entityId:{entity}"}
+                    {
+                        "action": "URI",
+                        "title": source_label(self.hass, entity),
+                        "uri": f"entityId:{entity}",
+                    }
                     for entity in missing[:3]
                 ]
                 if actions:

@@ -13,7 +13,7 @@ It is a local push integration: the printer sends its state over MQTT, nothing g
 
 ## Setup
 
-Go to Settings, Devices and services, Add integration, and choose Printer door. Enter a name, the IP address, the serial number and the access code. The form connects to the printer to check the details before it saves anything. Each serial number can be added once.
+Go to Settings, Devices and services, Add integration, and choose Printer door. Choose **Find a printer on my network** to listen for ten seconds, then select a printer and confirm its LAN access code. Choose **Enter address manually** to supply its name, address, serial number and access code. The **Test connection before adding** option checks these details and lets you review success before creating the entry. The form connects to the printer to check the details before it saves anything. Each serial number can be added once.
 
 If you already have one printer set up, other Bambu Lab printers on the same network appear in Discovered by themselves (see below). Choose Configure, confirm the name and enter the access code; the address and serial number are filled in for you.
 
@@ -28,7 +28,7 @@ While at least one printer is configured, the integration listens for these anno
 - **Address changes.** Printers are matched by serial number, never by address. When a configured printer announces itself at a new address (for example after the router hands out a new DHCP lease), the stored address is updated and the printer reconnects at once. An info line in the log records the old and new address. The access code is never logged.
 - **New printers.** A serial number that is not configured yet starts a discovery flow, so the printer shows up in Discovered with its name and model. Only the access code is needed. Each printer and address is offered once while the listener runs; ignoring it in Discovered keeps it hidden.
 - **Ports in use.** The listener shares its ports with other programs (address reuse). If a port still cannot be opened, a warning is logged and discovery continues on the other port. Manual setup and the existing printers keep working either way.
-- **Limits.** Discovery only starts after the first printer has been added by hand, and only sees printers on the same network segment as Home Assistant (multicast does not cross routers). Home Assistant in a container needs host networking to receive the announcements. Reserving a fixed address for each printer in the router is still the most reliable setup.
+- **Limits.** Continuous discovery starts after the first printer is configured. Both continuous discovery and the setup search see printers on the same network segment as Home Assistant (multicast does not cross routers). Home Assistant in a container needs host networking to receive the announcements. Reserving a fixed address for each printer in the router is still the most reliable setup.
 
 ## Entities
 

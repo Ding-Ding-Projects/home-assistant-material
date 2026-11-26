@@ -5,6 +5,7 @@ import {
   featuredRoom,
   lockFacts,
   playingMedia,
+  recentHomeChanges,
 } from "../../../src/common/home/home-hero";
 
 // Protects the large cards on Home: which room is featured, what its
@@ -125,5 +126,32 @@ describe("the other cards", () => {
         {}
       )
     ).toBe("media_player.kitchen");
+  });
+});
+
+describe("recentHomeChanges", () => {
+  it("shows five newest visible state changes and retains recorded cause", () => {
+    const events = Array.from({ length: 8 }, (_, when) => ({
+      when,
+      entity_id: "light.hall",
+      state: "on",
+      context_entity_id: "automation.arrive",
+    }));
+    const visible = states(
+      entity("light.hall", "off"),
+      entity("lock.secret", "locked")
+    );
+    const result = recentHomeChanges(
+      [
+        ...events,
+        { when: 99, entity_id: "light.gone", state: "off" },
+        { when: 98, entity_id: "lock.secret", state: "locked" },
+        { when: 97, entity_id: "light.hall" },
+      ],
+      visible,
+      { "lock.secret": { hidden: true } }
+    );
+    expect(result.map((row) => row.when)).toEqual([7, 6, 5, 4, 3]);
+    expect(result[0].context_entity_id).toBe("automation.arrive");
   });
 });
