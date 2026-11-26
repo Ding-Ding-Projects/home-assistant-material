@@ -48,6 +48,7 @@ export type Printer3DField =
   | "setChamberTarget"
   | "coolingFan"
   | "auxFan"
+  | "secondaryAuxFan"
   | "chamberFan"
   | "exhaustFan"
   | "chamberLight"
@@ -100,9 +101,16 @@ const BAMBU_LAB_KEYS: KeyMap = {
   "number.target_chamber_temperature": "setChamberTarget",
   "fan.cooling_fan": "coolingFan",
   "fan.aux_fan": "auxFan",
+  "fan.secondary_aux_fan": "secondaryAuxFan",
+  // Some models rename these fans: the H3C and X2D use a part fan and a
+  // left and right aux fan, and the A1 mini calls its light the camera light.
+  "fan.part_fan": "coolingFan",
+  "fan.right_aux_fan": "auxFan",
+  "fan.left_aux_fan": "secondaryAuxFan",
   "fan.chamber_fan": "chamberFan",
   "fan.exhaust_fan": "exhaustFan",
   "light.chamber_light": "chamberLight",
+  "light.camera_light": "chamberLight",
   "light.heatbed_light": "heatbedLight",
   "switch.camera": "camera",
   "switch.prompt_sound": "promptSound",
@@ -193,6 +201,7 @@ export const listPrinter3DDevices = (
 export interface PrinterProblem {
   text: string;
   code: string;
+  /** Lower case, as the integration sends it: fatal, serious, common, info or unknown. */
   severity: string;
   wiki?: string;
 }
@@ -222,7 +231,7 @@ export const parseHmsProblems = (
     .map((n) => ({
       text: text(attributes[`${n}-Error`]),
       code: text(attributes[`${n}-Code`]),
-      severity: text(attributes[`${n}-Severity`]),
+      severity: text(attributes[`${n}-Severity`]).toLowerCase(),
       wiki: text(attributes[`${n}-Wiki`]) || undefined,
     }))
     .filter((problem) => problem.text || problem.code);
@@ -276,6 +285,13 @@ export interface StageLook {
   pulse: boolean;
 }
 
+/** Pauses the person asked for, in the app, in the G-code or with an M400. */
+const PLANNED_PAUSES = new Set([
+  "paused_user",
+  "paused_user_gcode",
+  "m400_pause",
+]);
+
 const HEATING_STAGES = new Set([
   "heating_hotend",
   "heatbed_preheating",
@@ -295,7 +311,7 @@ export const stageLook = (
   if (!online || stage === "offline" || printStatus === "offline") {
     return { tone: "neutral", pulse: false };
   }
-  if (stage === "paused_user") {
+  if (stage && PLANNED_PAUSES.has(stage)) {
     return { tone: "amber", pulse: false };
   }
   if (stage?.startsWith("paused_") || printStatus === "failed") {
@@ -323,7 +339,10 @@ export const stageLook = (
 export const isPaused = (
   stage: string | undefined,
   printStatus: string | undefined
-): boolean => printStatus === "pause" || !!stage?.startsWith("paused_");
+): boolean =>
+  printStatus === "pause" ||
+  stage === "m400_pause" ||
+  !!stage?.startsWith("paused_");
 
 /** Whether a print is going, so it can be paused, stopped and sped up. */
 export const isPrintActive = (
@@ -333,6 +352,7 @@ export const isPrintActive = (
   printStatus === "running" ||
   printStatus === "prepare" ||
   printStatus === "pause" ||
+  stage === "m400_pause" ||
   !!stage?.startsWith("paused_");
 
 export const PROGRESS_TICKS = 40;
@@ -366,6 +386,10 @@ export const splitMinutes = (
   return { hours: Math.floor(total / 60), minutes: total % 60 };
 };
 
+/** A Celsius figure in the unit an entity reports, which is Celsius or Fahrenheit. */
+export const celsiusIn = (celsius: number, unit: string | undefined): number =>
+  unit === "°F" ? Math.round((celsius * 9) / 5 + 32) : celsius;
+
 export type TemperatureTrend =
   | "none"
   | "heating"
@@ -385,13 +409,14 @@ export const temperatureTrend = (
   {
     heatBelow = 1,
     coolAbove = 1,
-  }: { heatBelow?: number; coolAbove?: number } = {}
+    unit,
+  }: { heatBelow?: number; coolAbove?: number; unit?: string } = {}
 ): TemperatureTrend => {
   if (current === undefined || target === undefined) {
     return "none";
   }
   if (target <= 0) {
-    return current > 35 ? "target_off_cooling" : "target_off";
+    return current > celsiusIn(35, unit) ? "target_off_cooling" : "target_off";
   }
   if (current < target - heatBelow) {
     return "heating";
@@ -405,8 +430,13 @@ export const temperatureTrend = (
 /** The target the first raise from Off jumps to, so it is a usable one. */
 export const firstTarget = (
   kind: "nozzle" | "bed" | "chamber",
-  max: number
-): number => Math.min(max, kind === "bed" ? 60 : kind === "chamber" ? 35 : 220);
+  max: number,
+  unit?: string
+): number =>
+  Math.min(
+    max,
+    celsiusIn(kind === "bed" ? 60 : kind === "chamber" ? 35 : 220, unit)
+  );
 
 /** A duration reading in minutes, whatever unit the entity reports it in. */
 export const durationToMinutes = (
@@ -435,10 +465,11 @@ export const stepTarget = (
   target: number,
   direction: 1 | -1,
   min: number,
-  max: number
+  max: number,
+  unit?: string
 ): number => {
   if (direction === 1 && target <= 0) {
-    return firstTarget(kind, max);
+    return firstTarget(kind, max, unit);
   }
   return Math.min(max, Math.max(min, target + direction * TARGET_STEP));
 };

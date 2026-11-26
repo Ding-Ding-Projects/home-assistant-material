@@ -4,6 +4,7 @@ import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 import type { HASSDomEvent } from "../../../../common/dom/fire_event";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import {
@@ -215,7 +216,7 @@ export class HuiDialogEditCard
           cardName = cardName.substring(0, cardName.length - 5);
         }
       } else {
-        cardName = this.hass!.localize(
+        cardName = withLanguageMode(this.hass!.localize)(
           `ui.panel.lovelace.editor.card.${this._cardConfig.type}.name`
         );
       }

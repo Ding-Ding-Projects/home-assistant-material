@@ -1,5 +1,5 @@
 import { mdiPrinter3d } from "@mdi/js";
-import type { TemplateResult } from "lit";
+import type { TemplateResult, PropertyValues  } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
@@ -11,9 +11,15 @@ import "../../../../components/ha-alert";
 import "../../../../components/ha-svg-icon";
 import "../../../../components/ha-switch";
 import type { Printer3DDevice } from "../../../../data/printer_3d";
-import { listPrinter3DDevices } from "../../../../data/printer_3d";
+import {
+  listPrinter3DDevices,
+  resolvePrinter3DEntities,
+} from "../../../../data/printer_3d";
 import type { HomeAssistant } from "../../../../types";
-import { printerDeviceName } from "../../cards/printer-3d/printer-3d-common";
+import {
+  printerDeviceName,
+  radioKeyTarget,
+} from "../../cards/printer-3d/printer-3d-common";
 import type {
   PrinterControlsCardConfig,
   PrinterStatusCardConfig,
@@ -48,6 +54,8 @@ interface ShowOption {
   key: string;
   label: string;
   help: string;
+  /** Turned off, with `help` saying why. */
+  disabled?: boolean;
 }
 
 const P = "ui.panel.lovelace.editor.card";
@@ -67,7 +75,12 @@ abstract class PrinterCardEditor<
 
   protected abstract get _prefix(): string;
 
-  protected abstract _options(localize: (key: string) => string): ShowOption[];
+  protected abstract _options(
+    localize: (key: string, values?: Record<string, string | number>) => string
+  ): ShowOption[];
+
+  /** Whether the saved card would show no printer, so saving is switched off. */
+  private _noPrinterReported = false;
 
   public abstract setConfig(config: T): void;
 
@@ -77,6 +90,25 @@ abstract class PrinterCardEditor<
         printerDeviceName(this.hass!, id)
       )
   );
+
+  protected updated(changed: PropertyValues) {
+    super.updated(changed);
+    if (!this.hass || !this._config) {
+      return;
+    }
+    // A card with no printer to show cannot be saved: the editor reports it as
+    // an error, which switches the dialog's Save off, until a printer exists.
+    const none =
+      this._printers(this.hass.entities, this.hass.devices).length === 0;
+    if (none !== this._noPrinterReported) {
+      this._noPrinterReported = none;
+      const localize = this._lang.localizer(this.hass.localize);
+      fireEvent(this, "config-changed", {
+        config: this._config,
+        error: none ? localize(`${this._prefix}.no_printer_title`) : undefined,
+      } as never);
+    }
+  }
 
   protected render() {
     if (!this.hass || !this._config) {
@@ -120,10 +152,14 @@ abstract class PrinterCardEditor<
     localize: (key: string, values?: Record<string, string | number>) => string
   ): TemplateResult {
     const selected = this._config!.device_id;
+    const tabStop = printers.some((printer) => printer.deviceId === selected)
+      ? selected
+      : printers[0]?.deviceId;
     return html`<div
         role="radiogroup"
         aria-labelledby="gh-printer"
         class="list"
+        @keydown=${this._pickKeysHandler(printers)}
       >
         ${printers.map(
           (printer) =>
@@ -131,6 +167,7 @@ abstract class PrinterCardEditor<
               class=${classMap({ pick: true, sel: printer.deviceId === selected })}
               role="radio"
               aria-checked=${printer.deviceId === selected ? "true" : "false"}
+              tabindex=${printer.deviceId === tabStop ? 0 : -1}
               @click=${this._pickHandler(printer.deviceId)}
             >
               <span class="lead"
@@ -160,7 +197,9 @@ abstract class PrinterCardEditor<
         <span class="sub">${option.help}</span>
       </span>
       <ha-switch
-        .checked=${value}
+        .checked=${value && !option.disabled}
+        .accessibleLabel=${option.label}
+        ?disabled=${option.disabled}
         @change=${this._optionHandler(option.key)}
       ></ha-switch>
     </label>`;
@@ -168,6 +207,25 @@ abstract class PrinterCardEditor<
 
   private _pickHandler(deviceId: string) {
     return () => this._pick(deviceId);
+  }
+
+  /** Arrow keys, Home and End move through the printers, as in a radio group. */
+  private _pickKeysHandler(printers: Printer3DDevice[]) {
+    return (ev: KeyboardEvent) => {
+      const group = ev.currentTarget as HTMLElement;
+      const buttons = [...group.querySelectorAll<HTMLButtonElement>("button")];
+      const index = buttons.indexOf(ev.target as HTMLButtonElement);
+      if (index < 0) {
+        return;
+      }
+      const next = radioKeyTarget(ev, buttons.length, index);
+      if (next === undefined) {
+        return;
+      }
+      ev.preventDefault();
+      buttons[next].focus();
+      this._pick(printers[next].deviceId);
+    };
   }
 
   private _optionHandler(key: string) {
@@ -215,7 +273,8 @@ abstract class PrinterCardEditor<
       align-items: center;
       gap: var(--ha-space-3, 12px);
       min-height: 56px;
-      padding: 4px var(--ha-space-3, 12px) 4px 4px;
+      padding-block: 4px;
+      padding-inline: 4px var(--ha-space-3, 12px);
       border-radius: var(--ha-border-radius-xl, 16px);
       background: var(--secondary-background-color);
       font: inherit;
@@ -308,7 +367,15 @@ export class HuiPrinterStatusCardEditor extends PrinterCardEditor<PrinterStatusC
     this._config = config;
   }
 
-  protected _options(localize: (key: string) => string): ShowOption[] {
+  protected _options(
+    localize: (key: string, values?: Record<string, string | number>) => string
+  ): ShowOption[] {
+    // A printer without a chamber sensor has no chamber temperature to show.
+    const deviceId = this._config?.device_id;
+    const noChamber =
+      !!deviceId &&
+      !!this.hass &&
+      !resolvePrinter3DEntities(this.hass, deviceId).chamberTemp;
     return [
       {
         key: "show_image",
@@ -323,7 +390,12 @@ export class HuiPrinterStatusCardEditor extends PrinterCardEditor<PrinterStatusC
       {
         key: "show_chamber",
         label: localize(`${this._prefix}.show_chamber`),
-        help: localize(`${this._prefix}.show_chamber_help`),
+        help: noChamber
+          ? localize(`${this._prefix}.show_chamber_none`, {
+              printer: printerDeviceName(this.hass!, deviceId!),
+            })
+          : localize(`${this._prefix}.show_chamber_help`),
+        disabled: noChamber,
       },
     ];
   }
@@ -340,7 +412,9 @@ export class HuiPrinterControlsCardEditor extends PrinterCardEditor<PrinterContr
     this._config = config;
   }
 
-  protected _options(localize: (key: string) => string): ShowOption[] {
+  protected _options(
+    localize: (key: string, values?: Record<string, string | number>) => string
+  ): ShowOption[] {
     return ["print", "speed", "temperature", "fans", "lights", "more"].map(
       (group) => ({
         key: `show_${group}`,

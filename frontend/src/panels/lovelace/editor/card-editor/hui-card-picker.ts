@@ -8,6 +8,7 @@ import { createRef, ref } from "lit/directives/ref";
 import { repeat } from "lit/directives/repeat";
 import { until } from "lit/directives/until";
 import memoizeOne from "memoize-one";
+import { withLanguageMode } from "../../../../common/language-mode/language-mode";
 import { fuseSearch } from "../../../../resources/fuseMultiTerm";
 import { storage } from "../../../../common/decorators/storage";
 import { PreserveScrollPositionController } from "../../../../common/controllers/preserve-scroll-position-controller";
@@ -410,10 +411,10 @@ export class HuiCardPicker extends LitElement {
 
   private _loadCards() {
     let cards: Card[] = coreCards.map((card: Card) => ({
-      name: this.hass!.localize(
+      name: withLanguageMode(this.hass!.localize)(
         `ui.panel.lovelace.editor.card.${card.type}.name`
       ),
-      description: this.hass!.localize(
+      description: withLanguageMode(this.hass!.localize)(
         `ui.panel.lovelace.editor.card.${card.type}.description`
       ),
       isSuggested: this.suggestedCards?.includes(card.type) || false,
@@ -676,6 +677,7 @@ export class HuiCardPicker extends LitElement {
         class="preview ${classMap({
           description: !element || element.tagName === "HUI-ERROR-CARD",
         })}"
+        ?inert=${!!element && element.tagName !== "HUI-ERROR-CARD"}
       >
         ${
           element && element.tagName !== "HUI-ERROR-CARD"

@@ -20,6 +20,7 @@ import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import { formatTime } from "../../../common/datetime/format_time";
+import { fireEvent } from "../../../common/dom/fire_event";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { navigate } from "../../../common/navigate";
 import "../../../components/ha-card";
@@ -49,8 +50,10 @@ import type {
   LovelaceGridOptions,
 } from "../types";
 import {
+  chipStateObj,
   formatTemperature,
   isKnownState,
+  MotionPreferenceController,
   motionReduced,
   printer3DSharedStyles,
   printerDeviceName,
@@ -80,10 +83,20 @@ const TREND_ICON: Record<TemperatureTrend, string> = {
 
 const P = "ui.panel.lovelace.cards.printer_status";
 
+type Txt = (key: string, values?: Record<string, string | number>) => string;
+
+const SEVERITIES = ["fatal", "serious", "common", "info"];
+
 @customElement("hui-printer-status-card")
 export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
   // Draws the card again when the language mode changes.
   private _lang = new LanguageModeController(this);
+
+  constructor() {
+    super();
+    // Draws the card again when the app's reduced motion settings change.
+    new MotionPreferenceController(this);
+  }
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     await import("../editor/config-elements/hui-printer-card-editors");
@@ -99,11 +112,17 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
 
   @property({ attribute: false }) public hass?: HomeAssistant;
 
+  /** Set by the editor and the card picker: nothing here may reach the printer. */
+  @property({ type: Boolean }) public preview = false;
+
   @state() private _config?: PrinterStatusCardConfig;
 
   @state() private _problemsOpen = true;
 
   private _entities?: Printer3DEntities;
+
+  /** The entity registry the entities were resolved from. */
+  private _entitiesSource?: HomeAssistant["entities"];
 
   public setConfig(config: PrinterStatusCardConfig): void {
     this._config = config;
@@ -121,9 +140,9 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
     if (
       this._config &&
       this.hass &&
-      (changed.has("_config") ||
-        changed.get("hass")?.entities !== this.hass.entities)
+      (changed.has("_config") || this._entitiesSource !== this.hass.entities)
     ) {
+      this._entitiesSource = this.hass.entities;
       this._entities = this._config.device_id
         ? resolvePrinter3DEntities(this.hass, this._config.device_id)
         : undefined;
@@ -132,6 +151,10 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
 
   protected shouldUpdate(changed: PropertyValues): boolean {
     if (!this._entities || !this.hass || !changed.has("hass")) {
+      return true;
+    }
+    // A change in the entity registry can add or rename the printer's entities.
+    if (this._entitiesSource !== this.hass.entities) {
       return true;
     }
     const oldHass = changed.get("hass") as HomeAssistant | undefined;
@@ -184,6 +207,9 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
     const localize = this._lang.localizer(hass.localize);
     const deviceId = this._config.device_id;
     if (!deviceId) {
+      const found = listPrinter3DDevices(hass, (id) =>
+        printerDeviceName(hass, id)
+      );
       return html`<ha-card class=${classMap({ still: motionReduced() })}>
         <div class="card-body">
           <div class="quiet">
@@ -191,8 +217,35 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
             <span class="grow">
               <span class="quiet-title">${localize(`${P}.title`)}</span>
               <span class="sub">${localize(`${P}.choose_printer`)}</span>
+              <span class="sub"
+                >${
+                  found.length
+                    ? localize(`${P}.choose_printer_hint`)
+                    : localize(`${P}.no_printer_found`)
+                }</span
+              >
             </span>
           </div>
+          ${
+            found.length
+              ? html`<ul class="found">
+                  ${found.map(
+                    (printer) =>
+                      html`<li>
+                        <ha-svg-icon .path=${mdiPrinter3d}></ha-svg-icon>
+                        <span class="grow">
+                          <span class="name">${printer.name}</span>
+                          ${
+                            printer.model
+                              ? html`<span class="sub">${printer.model}</span>`
+                              : nothing
+                          }
+                        </span>
+                      </li>`
+                  )}
+                </ul>`
+              : nothing
+          }
         </div>
       </ha-card>`;
     }
@@ -223,13 +276,12 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
         isPaused(stageKey, statusKey));
     const finished = online && statusKey === "finish";
 
+    const chipObj = chipStateObj(stageObj, statusObj);
     const stageText = !online
       ? localize(`${P}.offline`)
-      : isKnownState(stageObj)
-        ? hass.formatEntityState(stageObj)
-        : isKnownState(statusObj)
-          ? hass.formatEntityState(statusObj)
-          : localize(`${P}.idle`);
+      : chipObj
+        ? hass.formatEntityState(chipObj)
+        : localize(`${P}.idle`);
 
     // A short note beside the chip, only when it adds something.
     const speedObj = this._state("speedProfile");
@@ -270,14 +322,23 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
       : undefined;
     const problemCount = problems.length + (printError ? 1 : 0);
 
+    const admin = hass.user?.is_admin !== false;
     return html`<ha-card
       class=${classMap({ still: motionReduced(), offline: !online })}
-      aria-label=${localize(`${P}.card_label`, { name })}
     >
-      <div class="card-body">
+      <div
+        class="card-body"
+        role="region"
+        aria-label=${localize(`${P}.card_label`, { name })}
+      >
         <button
           class="head"
-          aria-label=${localize(`${P}.open_device`, { name })}
+          aria-label=${
+            admin
+              ? localize(`${P}.open_device`, { name })
+              : localize(`${P}.open_details`, { name })
+          }
+          aria-describedby="printer-line"
           @click=${this._openDevice}
         >
           <span class="lead"
@@ -285,7 +346,7 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
           ></span>
           <span class="grow">
             <span class="name">${name}</span>
-            <span class="sub line">
+            <span class="sub line" id="printer-line">
               <span class=${classMap({ odot: true, no: !online })}></span>
               <span class="ellipsis">${lineText}</span>
             </span>
@@ -316,7 +377,7 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
             : nothing
         }
         ${
-          online && !problemCount
+          online && !problemCount && this._config.show_problems !== false
             ? html`<div class="ok-line">
                 <ha-svg-icon .path=${mdiCheckCircleOutline}></ha-svg-icon>
                 <span>${localize(`${P}.no_problems`)}</span>
@@ -332,6 +393,13 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
             this._renderTile(tile, localize)
           )}
         </div>
+        ${
+          this.preview
+            ? html`<p class="sub preview-note">
+                ${localize(`${P}.preview_only`)}
+              </p>`
+            : nothing
+        }
       </div>
     </ha-card>`;
   }
@@ -378,10 +446,7 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
     </div>`;
   }
 
-  private _durationText(
-    minutes: number,
-    localize: ReturnType<LanguageModeController["localizer"]>
-  ): string {
+  private _durationText(minutes: number, localize: Txt): string {
     const { hours, minutes: mins } = splitMinutes(minutes);
     if (!hours) {
       return localize(`${P}.minutes`, { minutes: mins });
@@ -429,16 +494,16 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
         : localize(`${P}.finished`);
       timeSub =
         elapsed !== undefined
-          ? localize(`${P}.took`, {
-              time: this._durationText(elapsed, localize),
-            })
+          ? this._lang.compose(this.hass!.localize, (t) =>
+              t(`${P}.took`, { time: this._durationText(elapsed, t) })
+            )
           : "";
     } else {
       timeMain =
         remaining !== undefined
-          ? localize(`${P}.time_left`, {
-              time: this._durationText(remaining, localize),
-            })
+          ? this._lang.compose(this.hass!.localize, (t) =>
+              t(`${P}.time_left`, { time: this._durationText(remaining, t) })
+            )
           : "";
       timeSub = paused
         ? localize(`${P}.when_resumed`)
@@ -553,15 +618,17 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
                     <span class="problem-text">${problem.text}</span>
                     <span class="problem-meta">
                       ${
-                        problem.severity
+                        SEVERITIES.includes(problem.severity)
                           ? html`<span
                               class=${classMap({
                                 sev: true,
                                 high:
-                                  problem.severity === "Serious" ||
-                                  problem.severity === "Fatal",
+                                  problem.severity === "serious" ||
+                                  problem.severity === "fatal",
                               })}
-                              >${problem.severity}</span
+                              >${localize(
+                                `${P}.severity_${problem.severity}`
+                              )}</span
                             >`
                           : nothing
                       }
@@ -641,7 +708,7 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
         string | undefined;
       const current = idle ? undefined : stateNumber(tempObj);
       const target = idle ? undefined : stateNumber(targetObj);
-      const trend = temperatureTrend(current, target);
+      const trend = temperatureTrend(current, target, { unit });
       let sub: string;
       if (current === undefined) {
         sub = localize(`${P}.no_reading`);
@@ -652,10 +719,12 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
       } else if (trend === "target_off_cooling") {
         sub = localize(`${P}.target_off_cooling`);
       } else {
-        sub = localize(`${P}.of_target`, {
-          target: formatTemperature(hass, target, unit),
-          trend: localize(`${P}.trend_${trend}`),
-        });
+        sub = this._lang.compose(hass.localize, (t) =>
+          t(`${P}.of_target`, {
+            target: formatTemperature(hass, target, unit),
+            trend: t(`${P}.trend_${trend}`),
+          })
+        );
       }
       return {
         key,
@@ -756,8 +825,17 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
   }
 
   private _openDevice() {
-    if (this._config?.device_id) {
+    if (this.preview || !this._config?.device_id || !this.hass) {
+      return;
+    }
+    if (this.hass.user?.is_admin !== false) {
       navigate(`/config/devices/device/${this._config.device_id}`);
+      return;
+    }
+    // The device page is for administrators; others get the more info dialog.
+    const entityId = this._entities?.stage ?? this._entities?.printStatus;
+    if (entityId) {
+      fireEvent(this, "hass-more-info", { entityId });
     }
   }
 
@@ -774,6 +852,26 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
         gap: var(--ha-space-3, 12px);
         padding: var(--ha-space-4, 16px);
         box-sizing: border-box;
+        container-type: inline-size;
+      }
+      .found {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-2, 8px);
+      }
+      .found li {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3, 12px);
+        padding: var(--ha-space-2, 8px) var(--ha-space-3, 12px);
+        border-radius: var(--ha-border-radius-lg, 12px);
+        background: var(--printer-tile);
+      }
+      .preview-note {
+        margin: 0;
       }
       button {
         font: inherit;
@@ -941,8 +1039,8 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
         border-radius: 2px;
         background: var(--divider-color);
         transition:
-          height 0.25s ease,
-          background-color 0.25s ease;
+          height var(--ha-animation-duration-normal, 0.25s) ease,
+          background-color var(--ha-animation-duration-normal, 0.25s) ease;
       }
       .tick.done {
         background: var(--primary-color);
@@ -1010,7 +1108,8 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
         align-items: center;
         gap: 10px;
         min-height: 48px;
-        padding: 0 8px 0 12px;
+        padding-block: 0;
+        padding-inline: 12px 8px;
         width: 100%;
         border-radius: var(--ha-border-radius-xl, 16px);
         font-weight: var(--ha-font-weight-medium);
@@ -1079,12 +1178,13 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
       }
       .tiles {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--ha-space-2, 8px);
       }
-      @media (max-width: 420px) {
+      /* Follows the width of the card, not of the screen. */
+      @container (max-width: 300px) {
         .tiles {
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: minmax(0, 1fr);
         }
       }
       .tile {
@@ -1164,7 +1264,7 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
         display: block;
         height: 100%;
         background: var(--primary-color);
-        transition: width 0.25s ease;
+        transition: width var(--ha-animation-duration-normal, 0.25s) ease;
       }
       ha-card.offline .tiles,
       ha-card.offline .lead {

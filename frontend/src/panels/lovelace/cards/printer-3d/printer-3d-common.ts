@@ -1,4 +1,5 @@
 import type { HassEntity } from "home-assistant-js-websocket";
+import type { ReactiveController, ReactiveControllerHost } from "lit";
 import { css } from "lit";
 import { computeDeviceNameDisplay } from "../../../../common/entity/compute_device_name";
 import { formatNumberWithUnit } from "../../../../common/number/format_number";
@@ -18,6 +19,79 @@ export const stateNumber = (stateObj?: HassEntity): number | undefined => {
   const value = Number(stateObj.state);
   return Number.isFinite(value) ? value : undefined;
 };
+
+/**
+ * The state the stage chip names. The stage sensor reads idle once a print
+ * has finished or failed, and often while it is being prepared, so then the
+ * print status says more.
+ */
+export const chipStateObj = (
+  stageObj?: HassEntity,
+  statusObj?: HassEntity
+): HassEntity | undefined => {
+  const stage = isKnownState(stageObj) ? stageObj : undefined;
+  const status = isKnownState(statusObj) ? statusObj : undefined;
+  if (
+    status &&
+    (!stage || stage.state === "idle") &&
+    ["finish", "failed", "prepare", "pause"].includes(status.state)
+  ) {
+    return status;
+  }
+  return stage ?? status;
+};
+
+/**
+ * Which radio a key press moves to, following the ARIA radio group pattern:
+ * arrows move and wrap, Home and End jump. Undefined for any other key.
+ */
+export const radioKeyTarget = (
+  ev: KeyboardEvent,
+  count: number,
+  index: number
+): number | undefined => {
+  const rtl =
+    ev.currentTarget instanceof Element &&
+    getComputedStyle(ev.currentTarget).direction === "rtl";
+  switch (ev.key) {
+    case "ArrowRight":
+      return (index + (rtl ? -1 : 1) + count) % count;
+    case "ArrowLeft":
+      return (index + (rtl ? 1 : -1) + count) % count;
+    case "ArrowDown":
+      return (index + 1) % count;
+    case "ArrowUp":
+      return (index - 1 + count) % count;
+    case "Home":
+      return 0;
+    case "End":
+      return count - 1;
+    default:
+      return undefined;
+  }
+};
+
+/** Draws the host again when the app's reduced motion settings change. */
+export class MotionPreferenceController implements ReactiveController {
+  private _observer?: MutationObserver;
+
+  constructor(private _host: ReactiveControllerHost) {
+    _host.addController(this);
+  }
+
+  hostConnected() {
+    this._observer = new MutationObserver(() => this._host.requestUpdate());
+    this._observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-a11y-reduce-motion", "data-low-stimulation"],
+    });
+  }
+
+  hostDisconnected() {
+    this._observer?.disconnect();
+    this._observer = undefined;
+  }
+}
 
 /** A temperature with its unit, in the user's number format. */
 export const formatTemperature = (
@@ -48,7 +122,13 @@ export const TONE_CLASS: Record<StageTone, string> = {
 /** Styles both printer cards share: the stage chip and its quiet dot. */
 export const printer3DSharedStyles = css`
   :host {
-    --printer-amber: var(--warning-color);
+    /* The warning colour mixed toward the text colour, so amber marks stay
+       readable on their light container in a light theme too. */
+    --printer-amber: color-mix(
+      in srgb,
+      var(--warning-color) 45%,
+      var(--primary-text-color)
+    );
     --printer-amber-container: color-mix(
       in srgb,
       var(--warning-color) 22%,
@@ -76,8 +156,8 @@ export const printer3DSharedStyles = css`
     align-items: center;
     gap: var(--ha-space-2, 8px);
     min-height: 28px;
-    padding: var(--ha-space-1, 4px) var(--ha-space-3, 12px)
-      var(--ha-space-1, 4px) 10px;
+    padding-block: var(--ha-space-1, 4px);
+    padding-inline: 10px var(--ha-space-3, 12px);
     border-radius: var(--ha-border-radius-pill, 999px);
     font-size: var(--ha-font-size-s);
     font-weight: var(--ha-font-weight-medium);

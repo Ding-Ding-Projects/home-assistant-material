@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { HassEntity } from "home-assistant-js-websocket";
 import {
+  celsiusIn,
   durationToMinutes,
+  firstTarget,
   isPaused,
   listPrinter3DDevices,
   parseHmsProblems,
@@ -61,6 +63,42 @@ describe("resolvePrinter3DEntities", () => {
     });
   });
 
+  it("lower-cases the severity the way the integration sends it", () => {
+    const [problem] = parseHmsProblems({
+      "1-Error": "x",
+      "1-Code": "c",
+      "1-Severity": "Fatal",
+    });
+    expect(problem.severity).toBe("fatal");
+  });
+
+  it("finds the fans and light that some models rename", () => {
+    const renamed = Object.fromEntries(
+      [
+        entry("sensor.x2d_stage", "stage", "x2d"),
+        entry("fan.x2d_part", "part_fan", "x2d"),
+        entry("fan.x2d_left", "left_aux_fan", "x2d"),
+        entry("fan.x2d_right", "right_aux_fan", "x2d"),
+        entry("fan.x2d_exhaust", "exhaust_fan", "x2d"),
+        entry("sensor.h3c_stage", "stage", "h3c"),
+        entry("fan.h3c_second", "secondary_aux_fan", "h3c"),
+        entry("light.a1_camera", "camera_light", "h3c"),
+      ].map((e) => [e.entity_id, e])
+    ) as never;
+    expect(resolvePrinter3DEntities({ entities: renamed }, "x2d")).toEqual({
+      stage: "sensor.x2d_stage",
+      coolingFan: "fan.x2d_part",
+      secondaryAuxFan: "fan.x2d_left",
+      auxFan: "fan.x2d_right",
+      exhaustFan: "fan.x2d_exhaust",
+    });
+    expect(resolvePrinter3DEntities({ entities: renamed }, "h3c")).toEqual({
+      stage: "sensor.h3c_stage",
+      secondaryAuxFan: "fan.h3c_second",
+      chamberLight: "light.a1_camera",
+    });
+  });
+
   it("leaves out what the printer does not have", () => {
     const found = resolvePrinter3DEntities({ entities }, "p1s");
     expect(Object.keys(found)).toEqual(["printStatus"]);
@@ -86,10 +124,10 @@ describe("parseHmsProblems", () => {
       "1-Error": "First",
       "1-Code": "HMS_1",
       "1-Wiki": "https://wiki.example/1",
-      "1-Severity": "Serious",
+      "1-Severity": "serious",
     });
     expect(problems.map((p) => p.code)).toEqual(["HMS_1", "HMS_2"]);
-    expect(problems[0]).toMatchObject({ severity: "Serious", text: "First" });
+    expect(problems[0]).toMatchObject({ severity: "serious", text: "First" });
     expect(problems[1].wiki).toBeUndefined();
   });
 
@@ -134,6 +172,9 @@ describe("stageLook", () => {
       "error"
     );
     expect(isPaused("paused_filament_runout", "pause")).toBe(true);
+    expect(stageLook("paused_user_gcode", "pause", true).tone).toBe("amber");
+    expect(stageLook("m400_pause", "pause", true).tone).toBe("amber");
+    expect(isPaused("m400_pause", undefined)).toBe(true);
   });
 
   it("pulses while printing or heating, and is quiet when offline", () => {
@@ -206,5 +247,21 @@ describe("durations", () => {
     expect(durationToMinutes(120, "s")).toBe(2);
     expect(splitMinutes(84)).toEqual({ hours: 1, minutes: 24 });
     expect(splitMinutes(-5)).toEqual({ hours: 0, minutes: 0 });
+  });
+});
+
+describe("Fahrenheit", () => {
+  it("converts the Celsius constants for a Fahrenheit entity", () => {
+    expect(celsiusIn(60, "°F")).toBe(140);
+    expect(celsiusIn(60, "°C")).toBe(60);
+    expect(firstTarget("bed", 250, "°F")).toBe(140);
+    expect(firstTarget("nozzle", 608, "°F")).toBe(428);
+    expect(stepTarget("chamber", 0, 1, 32, 149, "°F")).toBe(95);
+  });
+
+  it("calls 80 °F a part that is at room temperature, not cooling", () => {
+    expect(temperatureTrend(80, 0, { unit: "°F" })).toBe("target_off");
+    expect(temperatureTrend(120, 0, { unit: "°F" })).toBe("target_off_cooling");
+    expect(temperatureTrend(80, 0)).toBe("target_off_cooling");
   });
 });

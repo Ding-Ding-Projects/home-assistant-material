@@ -34,18 +34,21 @@ import "../../../components/ha-slider";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
+import { showToast } from "../../../util/toast";
 import type {
   Printer3DEntities,
   Printer3DField,
   TemperatureTrend,
 } from "../../../data/printer_3d";
 import {
+  celsiusIn,
   isPaused,
   isPrintActive,
   listPrinter3DDevices,
   resolvePrinter3DEntities,
   stageLook,
   stepTarget,
+  TARGET_STEP,
   temperatureTrend,
 } from "../../../data/printer_3d";
 import type { HomeAssistant } from "../../../types";
@@ -56,11 +59,14 @@ import type {
   LovelaceGridOptions,
 } from "../types";
 import {
+  chipStateObj,
   formatTemperature,
   isKnownState,
+  MotionPreferenceController,
   motionReduced,
   printer3DSharedStyles,
   printerDeviceName,
+  radioKeyTarget,
   stateNumber,
   TONE_CLASS,
 } from "./printer-3d/printer-3d-common";
@@ -92,9 +98,12 @@ const SPEED_SHARE: Record<string, string> = {
 const FANS: { field: Printer3DField; key: string }[] = [
   { field: "coolingFan", key: "part_cooling_fan" },
   { field: "auxFan", key: "aux_fan" },
+  { field: "secondaryAuxFan", key: "secondary_aux_fan" },
   { field: "chamberFan", key: "chamber_fan" },
   { field: "exhaustFan", key: "exhaust_fan" },
 ];
+
+const formatPercent = (value: number): string => `${value}%`;
 
 const TREND_ICON: Record<TemperatureTrend, string> = {
   none: mdiMinus,
@@ -109,7 +118,8 @@ type L = ReturnType<LanguageModeController["localizer"]>;
 
 interface TempRow {
   key: string;
-  label: string;
+  /** The translation key of the row's name, so a sentence can be built per language. */
+  labelKey: string;
   active: boolean;
   current?: number;
   unit?: string;
@@ -128,6 +138,12 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
   // Draws the card again when the language mode changes.
   private _lang = new LanguageModeController(this);
 
+  constructor() {
+    super();
+    // Draws the card again when the app's reduced motion settings change.
+    new MotionPreferenceController(this);
+  }
+
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     await import("../editor/config-elements/hui-printer-card-editors");
     return document.createElement("hui-printer-controls-card-editor");
@@ -142,6 +158,9 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
 
   @property({ attribute: false }) public hass?: HomeAssistant;
 
+  /** Set by the editor and the card picker: nothing here may reach the printer. */
+  @property({ type: Boolean }) public preview = false;
+
   @state() private _config?: PrinterControlsCardConfig;
 
   @state() private _closed: Partial<Record<GroupKey, boolean>> = {};
@@ -150,6 +169,9 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
   private _fanLast: Record<string, number> = {};
 
   private _entities?: Printer3DEntities;
+
+  /** The entity registry the entities were resolved from. */
+  private _entitiesSource?: HomeAssistant["entities"];
 
   public setConfig(config: PrinterControlsCardConfig): void {
     this._config = config;
@@ -160,16 +182,17 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
   }
 
   public getGridOptions(): LovelaceGridOptions {
-    return { columns: 12, rows: "auto", min_columns: 6 };
+    // Half a section is too narrow for the temperature steppers.
+    return { columns: 12, rows: "auto", min_columns: 12 };
   }
 
   protected willUpdate(changed: PropertyValues): void {
     if (
       this._config &&
       this.hass &&
-      (changed.has("_config") ||
-        changed.get("hass")?.entities !== this.hass.entities)
+      (changed.has("_config") || this._entitiesSource !== this.hass.entities)
     ) {
+      this._entitiesSource = this.hass.entities;
       this._entities = this._config.device_id
         ? resolvePrinter3DEntities(this.hass, this._config.device_id)
         : undefined;
@@ -178,6 +201,10 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
 
   protected shouldUpdate(changed: PropertyValues): boolean {
     if (!this._entities || !this.hass || !changed.has("hass")) {
+      return true;
+    }
+    // A change in the entity registry can add or rename the printer's entities.
+    if (this._entitiesSource !== this.hass.entities) {
       return true;
     }
     const oldHass = changed.get("hass") as HomeAssistant | undefined;
@@ -201,17 +228,51 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
     return id ? this.hass?.states[id] : undefined;
   }
 
+  private _toast(key: string) {
+    if (this.hass) {
+      showToast(this, {
+        message: this._lang.localizer(this.hass.localize)(`${P}.${key}`),
+      });
+    }
+  }
+
+  /**
+   * Calls a service on an entity. Home Assistant drops a call to an
+   * unavailable entity without a word, so the state is checked first and a
+   * failure is told to the person.
+   */
+  private async _callEntity(
+    domain: string,
+    service: string,
+    entityId: string | undefined,
+    data = {}
+  ): Promise<boolean> {
+    if (this.preview || !entityId || !this.hass) {
+      return false;
+    }
+    if (!isKnownState(this.hass.states[entityId])) {
+      this._toast("not_available_now");
+      return false;
+    }
+    try {
+      await this.hass.callService(domain, service, {
+        entity_id: entityId,
+        ...data,
+      });
+      return true;
+    } catch (_err) {
+      this._toast("action_failed");
+      return false;
+    }
+  }
+
   private _call(
     domain: string,
     service: string,
     field: Printer3DField,
     data = {}
-  ) {
-    const entityId = this._entities?.[field];
-    if (!entityId || !this.hass) {
-      return;
-    }
-    this.hass.callService(domain, service, { entity_id: entityId, ...data });
+  ): Promise<boolean> {
+    return this._callEntity(domain, service, this._entities?.[field], data);
   }
 
   protected render() {
@@ -222,12 +283,40 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
     const localize = this._lang.localizer(hass.localize);
     const deviceId = this._config.device_id;
     if (!deviceId) {
+      const found = listPrinter3DDevices(hass, (id) =>
+        printerDeviceName(hass, id)
+      );
       return html`<ha-card class=${classMap({ still: motionReduced() })}>
         <div class="card-body">
           <div class="why">
             <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
             ${localize(`${P}.choose_printer`)}
+            ${
+              found.length
+                ? localize(`${P}.choose_printer_hint`)
+                : localize(`${P}.no_printer_found`)
+            }
           </div>
+          ${
+            found.length
+              ? html`<ul class="found">
+                  ${found.map(
+                    (printer) =>
+                      html`<li>
+                        <ha-svg-icon .path=${mdiPrinter3d}></ha-svg-icon>
+                        <span class="grow">
+                          <span class="tnm">${printer.name}</span>
+                          ${
+                            printer.model
+                              ? html`<span class="sub">${printer.model}</span>`
+                              : nothing
+                          }
+                        </span>
+                      </li>`
+                  )}
+                </ul>`
+              : nothing
+          }
         </div>
       </ha-card>`;
     }
@@ -254,13 +343,12 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
     const model = hass.devices[deviceId]?.model ?? undefined;
     const jobObj = this._state("jobName");
     const job = active && isKnownState(jobObj) ? jobObj.state : "";
+    const chipObj = chipStateObj(stageObj, statusObj);
     const stageText = !online
       ? localize(`${P}.offline`)
-      : isKnownState(stageObj)
-        ? hass.formatEntityState(stageObj)
-        : isKnownState(statusObj)
-          ? hass.formatEntityState(statusObj)
-          : localize(`${P}.idle`);
+      : chipObj
+        ? hass.formatEntityState(chipObj)
+        : localize(`${P}.idle`);
 
     const groups = GROUPS.filter(
       (group) => this._config![group.option] !== false
@@ -279,9 +367,12 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
 
     return html`<ha-card
       class=${classMap({ still: motionReduced(), offline: !online })}
-      aria-label=${localize(`${P}.card_label`, { name })}
     >
-      <div class="card-body">
+      <div
+        class="card-body"
+        role="region"
+        aria-label=${localize(`${P}.card_label`, { name })}
+      >
         <div class="head">
           <span class=${classMap({ pico: true, gone: !online })}>
             <ha-svg-icon .path=${mdiPrinter3d}></ha-svg-icon>
@@ -347,6 +438,7 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
                 ${localize(`${P}.no_groups`)}
               </p>`
         }
+        ${this.preview ? this._why(localize(`${P}.preview_only`)) : nothing}
       </div>
     </ha-card>`;
   }
@@ -385,7 +477,9 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
   }
 
   private _callHandler(domain: string, service: string, field: Printer3DField) {
-    return () => this._call(domain, service, field);
+    return () => {
+      this._call(domain, service, field);
+    };
   }
 
   private _selectHandler(
@@ -397,6 +491,31 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
       if (option !== current) {
         this._call("select", "select_option", field, { option });
       }
+    };
+  }
+
+  /** Arrow keys, Home and End move through a segmented choice, as in a radio group. */
+  private _radioKeysHandler(
+    field: Printer3DField,
+    options: string[],
+    current: string | undefined
+  ) {
+    return (ev: KeyboardEvent) => {
+      const group = ev.currentTarget as HTMLElement;
+      const buttons = [
+        ...group.querySelectorAll<HTMLButtonElement>("button:not([disabled])"),
+      ];
+      const index = buttons.indexOf(ev.target as HTMLButtonElement);
+      if (index < 0 || buttons.length !== options.length) {
+        return;
+      }
+      const next = radioKeyTarget(ev, buttons.length, index);
+      if (next === undefined) {
+        return;
+      }
+      ev.preventDefault();
+      buttons[next].focus();
+      this._selectHandler(field, options[next], current)();
     };
   }
 
@@ -474,7 +593,14 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
       return undefined;
     }
     const paused = isPaused(stageKey, statusKey);
-    const off = !online || !active;
+    // The integration makes each button available only in the state it
+    // works in, so the card follows the button's own availability.
+    const resumeMode = paused && !!e.resume;
+    const mainField: Printer3DField = resumeMode ? "resume" : "pause";
+    const mainOk = isKnownState(this._state(mainField));
+    const stopOk = isKnownState(this._state("stop"));
+    const mainOff = !online || !active || !mainOk;
+    const stopOff = !online || !active || !stopOk;
     const summary = !online
       ? localize(`${P}.offline`)
       : paused
@@ -482,32 +608,45 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
         : active
           ? localize(`${P}.printing`)
           : localize(`${P}.nothing_printing`);
-    const why = !online
-      ? localize(`${P}.why_offline`)
-      : !active
-        ? localize(`${P}.why_nothing_printing`)
-        : "";
+    const reasons: string[] = [];
+    if (!online) {
+      reasons.push(localize(`${P}.why_offline`));
+    } else if (!active) {
+      reasons.push(localize(`${P}.why_nothing_printing`));
+    } else {
+      if ((resumeMode || e.pause) && !mainOk) {
+        reasons.push(
+          localize(
+            resumeMode
+              ? `${P}.why_resume_unavailable`
+              : `${P}.why_pause_unavailable`
+          )
+        );
+      }
+      if (e.stop && !stopOk) {
+        reasons.push(localize(`${P}.why_stop_unavailable`));
+      }
+    }
     return {
       summary,
       content: html`<div class="print-row">
           ${
-            paused && e.resume
+            resumeMode || e.pause
               ? html`<ha-button
                   appearance="filled"
-                  ?disabled=${!online}
-                  @click=${this._callHandler("button", "press", "resume")}
-                  ><ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon
-                  >${localize(`${P}.resume`)}</ha-button
+                  ?disabled=${mainOff}
+                  @click=${this._callHandler("button", "press", mainField)}
+                  ><ha-svg-icon
+                    slot="start"
+                    .path=${resumeMode ? mdiPlay : mdiPause}
+                  ></ha-svg-icon
+                  >${
+                    resumeMode
+                      ? localize(`${P}.resume`)
+                      : localize(`${P}.pause`)
+                  }</ha-button
                 >`
-              : e.pause
-                ? html`<ha-button
-                    appearance="filled"
-                    ?disabled=${off}
-                    @click=${this._callHandler("button", "press", "pause")}
-                    ><ha-svg-icon slot="start" .path=${mdiPause}></ha-svg-icon
-                    >${localize(`${P}.pause`)}</ha-button
-                  >`
-                : nothing
+              : nothing
           }
           ${
             e.stop
@@ -515,7 +654,7 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
                   variant="danger"
                   appearance="filled"
                   aria-haspopup="dialog"
-                  ?disabled=${off}
+                  ?disabled=${stopOff}
                   @click=${this._askStop}
                   ><ha-svg-icon slot="start" .path=${mdiStop}></ha-svg-icon
                   >${localize(`${P}.stop`)}</ha-button
@@ -523,16 +662,16 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
               : nothing
           }
         </div>
-        ${why ? this._why(why) : nothing}`,
+        ${reasons.map((reason) => this._why(reason))}`,
     };
   }
 
   private async _askStop(ev: Event) {
     const hass = this.hass;
-    if (!hass || !this._entities?.stop) {
+    if (this.preview || !hass || !this._entities?.stop) {
       return;
     }
-    const localize = hass.localize;
+    const localize = this._lang.localizer(hass.localize);
     const jobObj = this._state("jobName");
     const name = this._config?.device_id
       ? printerDeviceName(hass, this._config.device_id)
@@ -562,7 +701,9 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
       destructive: true,
     });
     if (confirmed) {
-      this._call("button", "press", "stop");
+      // The printer may have finished or stopped while the question was open;
+      // the call checks the button's availability again and says so.
+      await this._call("button", "press", "stop");
     }
     // Focus goes back to the button that opened the question.
     button?.focus?.();
@@ -570,8 +711,14 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
 
   // ----- Speed
 
-  private _speedGroup(ctx: { online: boolean; active: boolean; localize: L }) {
-    const { online, active, localize } = ctx;
+  private _speedGroup(ctx: {
+    online: boolean;
+    active: boolean;
+    stageKey?: string;
+    statusKey?: string;
+    localize: L;
+  }) {
+    const { online, active, stageKey, statusKey, localize } = ctx;
     const select = this._state("printingSpeed");
     if (!select) {
       return undefined;
@@ -583,9 +730,11 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
     const current = isKnownState(select) ? select.state : undefined;
     const off = !online || !active || !isKnownState(select);
     const hass = this.hass!;
+    const paused = online && isPaused(stageKey, statusKey);
+    const tabStop = current && options.includes(current) ? current : options[0];
     const note = !online
       ? localize(`${P}.why_offline`)
-      : !active
+      : !active || !isKnownState(select)
         ? localize(`${P}.why_speed_idle`)
         : current
           ? localize(`${P}.speed_runs_at`, {
@@ -596,12 +745,15 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
     return {
       summary:
         off || !current
-          ? localize(`${P}.not_printing`)
+          ? paused
+            ? localize(`${P}.paused`)
+            : localize(`${P}.not_printing`)
           : hass.formatEntityState(select, current),
       content: html`<div
           class=${classMap({ seg: true, off })}
           role="radiogroup"
           aria-label=${localize(`${P}.printing_speed`)}
+          @keydown=${this._radioKeysHandler("printingSpeed", options, current)}
         >
           ${options.map(
             (option) =>
@@ -609,6 +761,7 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
                 class=${classMap({ sel: option === current })}
                 role="radio"
                 aria-checked=${option === current ? "true" : "false"}
+                tabindex=${option === tabStop ? 0 : -1}
                 ?disabled=${off}
                 @click=${this._selectHandler("printingSpeed", option, current)}
               >
@@ -626,13 +779,16 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
     const e = this._entities!;
     const activeObj = this._state("activeNozzle");
     const activeSide = isKnownState(activeObj) ? activeObj.state : "left";
-    const num = (field: Printer3DField) => {
+    const num = (field: Printer3DField, defaultMax: number) => {
       const stateObj = this._state(field);
+      const unit = stateObj?.attributes.unit_of_measurement as
+        string | undefined;
       return {
         id: this._entities?.[field],
         target: stateNumber(stateObj),
         min: Number(stateObj?.attributes.min ?? 0),
-        max: Number(stateObj?.attributes.max ?? 320),
+        max: Number(stateObj?.attributes.max ?? celsiusIn(defaultMax, unit)),
+        fallbackMax: celsiusIn(defaultMax, unit),
       };
     };
     const reading = (field: Printer3DField) => {
@@ -643,11 +799,11 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
       };
     };
     const rows: TempRow[] = [];
-    const nozzleNum = num("setNozzleTarget");
+    const nozzleNum = num("setNozzleTarget", 320);
     const dual = !!(e.leftNozzleTemp || e.rightNozzleTemp);
     const nozzleSides: {
       key: string;
-      label: string;
+      labelKey: string;
       temp: Printer3DField;
       target: Printer3DField;
       side?: string;
@@ -655,14 +811,14 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
       ? [
           {
             key: "left",
-            label: localize(`${P}.left_nozzle`),
+            labelKey: "left_nozzle",
             temp: "leftNozzleTemp",
             target: "leftNozzleTarget",
             side: "left",
           },
           {
             key: "right",
-            label: localize(`${P}.right_nozzle`),
+            labelKey: "right_nozzle",
             temp: "rightNozzleTemp",
             target: "rightNozzleTarget",
             side: "right",
@@ -671,7 +827,7 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
       : [
           {
             key: "nozzle",
-            label: localize(`${P}.nozzle`),
+            labelKey: "nozzle",
             temp: "nozzleTemp",
             target: "nozzleTarget",
           },
@@ -687,7 +843,7 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
       const canSet = !!nozzleNum.id && isActive;
       rows.push({
         key: side.key,
-        label: side.label,
+        labelKey: side.labelKey,
         active: dual && isActive,
         current: cur.value,
         unit: cur.unit,
@@ -698,41 +854,42 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
         min: nozzleNum.min,
         max: nozzleNum.max,
         kind: "nozzle",
-        why:
-          dual && !isActive && nozzleNum.id
+        why: canSet
+          ? undefined
+          : dual && !isActive && nozzleNum.id
             ? localize(`${P}.why_inactive_nozzle`)
-            : undefined,
+            : localize(`${P}.why_no_setter`),
       });
     }
-    const bedNum = num("setBedTarget");
+    const bedNum = num("setBedTarget", 120);
     if (e.bedTemp && bedNum.id) {
       const cur = reading("bedTemp");
       rows.push({
         key: "bed",
-        label: localize(`${P}.bed`),
+        labelKey: "bed",
         active: false,
         current: cur.value,
         unit: cur.unit,
         target: bedNum.target,
         setter: bedNum.id,
         min: bedNum.min,
-        max: bedNum.max || 120,
+        max: bedNum.max || bedNum.fallbackMax,
         kind: "bed",
       });
     }
-    const chamberNum = num("setChamberTarget");
+    const chamberNum = num("setChamberTarget", 65);
     if (e.chamberTemp && chamberNum.id) {
       const cur = reading("chamberTemp");
       rows.push({
         key: "chamber",
-        label: localize(`${P}.chamber`),
+        labelKey: "chamber",
         active: false,
         current: cur.value,
         unit: cur.unit,
         target: chamberNum.target,
         setter: chamberNum.id,
         min: chamberNum.min,
-        max: chamberNum.max || 65,
+        max: chamberNum.max || chamberNum.fallbackMax,
         kind: "chamber",
       });
     }
@@ -754,20 +911,22 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
     const summary =
       nozzleMax <= 0 && bed <= 0
         ? localize(`${P}.all_off`)
-        : localize(`${P}.temp_summary`, {
-            nozzle:
-              nozzleMax > 0
-                ? formatTemperature(hass, nozzleMax, rows[0].unit)
-                : localize(`${P}.off`),
-            bed:
-              bed > 0
-                ? formatTemperature(
-                    hass,
-                    bed,
-                    rows.find((r) => r.kind === "bed")?.unit
-                  )
-                : localize(`${P}.off`),
-          });
+        : this._lang.compose(hass.localize, (t) =>
+            t(`${P}.temp_summary`, {
+              nozzle:
+                nozzleMax > 0
+                  ? formatTemperature(hass, nozzleMax, rows[0].unit)
+                  : t(`${P}.off`),
+              bed:
+                bed > 0
+                  ? formatTemperature(
+                      hass,
+                      bed,
+                      rows.find((r) => r.kind === "bed")?.unit
+                    )
+                  : t(`${P}.off`),
+            })
+          );
     return {
       summary,
       content: html`${rows.map((row) => this._renderTempRow(row, online, localize))}`,
@@ -782,10 +941,21 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
       row.setter || row.target !== undefined ? target : undefined,
       {
         coolAbove: 2,
+        unit: row.unit,
       }
     );
     const disabled = !online || !row.setter;
-    const label = row.label.toLowerCase();
+    const label = localize(`${P}.${row.labelKey}`);
+    // Names inside sentences are built once per language, so the sentence
+    // never carries the other language in the bilingual mode.
+    const named = (key: string, extra: Record<string, string> = {}) =>
+      this._lang.compose(hass.localize, (t) =>
+        t(`${P}.${key}`, {
+          name: t(`${P}.${row.labelKey}`).toLowerCase(),
+          ...extra,
+        })
+      );
+    const step = formatTemperature(hass, TARGET_STEP, row.unit);
     const now =
       row.current === undefined
         ? localize(`${P}.no_reading`)
@@ -797,27 +967,29 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
               trend === "cooling" ||
               trend === "at_target" ||
               trend === "target_off_cooling"
-            ? localize(`${P}.now_trend`, {
-                value: formatTemperature(hass, row.current, row.unit),
-                trend: localize(
-                  `${P}.trend_${trend === "target_off_cooling" ? "cooling" : trend}`
-                ),
-              })
+            ? this._lang.compose(hass.localize, (t) =>
+                t(`${P}.now_trend`, {
+                  value: formatTemperature(hass, row.current!, row.unit),
+                  trend: t(
+                    `${P}.trend_${trend === "target_off_cooling" ? "cooling" : trend}`
+                  ),
+                })
+              )
             : localize(`${P}.now`, {
                 value: formatTemperature(hass, row.current, row.unit),
               });
     const down = row.setter
-      ? stepTarget(row.kind, target, -1, row.min, row.max)
+      ? stepTarget(row.kind, target, -1, row.min, row.max, row.unit)
       : target;
     const up = row.setter
-      ? stepTarget(row.kind, target, 1, row.min, row.max)
+      ? stepTarget(row.kind, target, 1, row.min, row.max, row.unit)
       : target;
     const downOff = disabled || target <= 0;
     const upOff = disabled || target >= row.max;
     return html`<div class="trow">
       <span class="grow">
         <span class="tnm"
-          ><span class="ellipsis">${row.label}</span>${
+          ><span class="ellipsis">${label}</span>${
             row.active && online
               ? html`<span class="atag">${localize(`${P}.active`)}</span>`
               : nothing
@@ -836,14 +1008,10 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
         </span>
         ${row.why && online ? html`<span class="sub">${row.why}</span>` : nothing}
       </span>
-      <div
-        class="stepper"
-        role="group"
-        aria-label=${localize(`${P}.target_for`, { name: label })}
-      >
+      <div class="stepper" role="group" aria-label=${named("target_for")}>
         <button
           class="sb"
-          aria-label=${localize(`${P}.lower_target`, { name: label, step: 5 })}
+          aria-label=${named("lower_target", { step })}
           ?disabled=${downOff}
           @click=${this._targetHandler(row.setter, down)}
         >
@@ -862,11 +1030,10 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
           class="sb"
           aria-label=${
             target <= 0
-              ? localize(`${P}.set_target`, {
-                  name: label,
+              ? named("set_target", {
                   value: formatTemperature(hass, up, row.unit),
                 })
-              : localize(`${P}.raise_target`, { name: label, step: 5 })
+              : named("raise_target", { step })
           }
           ?disabled=${upOff}
           @click=${this._targetHandler(row.setter, up)}
@@ -878,13 +1045,7 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
   }
 
   private _setTarget(entityId: string | undefined, value: number) {
-    if (!entityId) {
-      return;
-    }
-    this.hass?.callService("number", "set_value", {
-      entity_id: entityId,
-      value,
-    });
+    this._callEntity("number", "set_value", entityId, { value });
   }
 
   // ----- Fans
@@ -902,6 +1063,9 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
     const onCount = fans.filter(
       (fan) => percentOf(this._state(fan.field)!) > 0
     ).length;
+    const anyUnavailable = fans.some(
+      (fan) => !isKnownState(this._state(fan.field))
+    );
     return {
       summary: onCount
         ? localize(`${P}.n_of_m_on`, { on: onCount, total: fans.length })
@@ -911,6 +1075,9 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
         const pct = percentOf(stateObj);
         const disabled = !online || !isKnownState(stateObj);
         const name = localize(`${P}.${fan.key}`);
+        const speedLabel = this._lang.compose(this.hass!.localize, (t) =>
+          t(`${P}.fan_speed`, { name: t(`${P}.${fan.key}`).toLowerCase() })
+        );
         return html`<div class="frow">
           <span class="fnm"
             ><span class="tnm ellipsis">${name}</span
@@ -920,25 +1087,31 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
           >
           <div class="fct">
             <ha-slider
-              labeled
               min="0"
               max="100"
               step="10"
               .value=${pct}
+              .accessibleLabel=${speedLabel}
+              .valueFormatter=${formatPercent}
               ?disabled=${disabled}
-              aria-label=${localize(`${P}.fan_speed`, { name: name.toLowerCase() })}
               @change=${this._fanSliderHandler(fan.field, pct)}
             ></ha-slider>
             <ha-switch
               .checked=${pct > 0}
+              .accessibleLabel=${name}
               ?disabled=${disabled}
-              aria-label=${name}
               @change=${this._fanSwitchHandler(fan.field, pct)}
             ></ha-switch>
           </div>
         </div>`;
       })}
-      ${!online ? this._why(localize(`${P}.why_offline`)) : nothing}`,
+      ${
+        !online
+          ? this._why(localize(`${P}.why_offline`))
+          : anyUnavailable
+            ? this._why(localize(`${P}.why_unavailable`))
+            : nothing
+      }`,
     };
   }
 
@@ -999,6 +1172,9 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
     const on = present.filter(
       (light) => this._state(light.field)!.state === "on"
     ).length;
+    const anyUnavailable = present.some(
+      (light) => !isKnownState(this._state(light.field))
+    );
     return {
       summary: on
         ? localize(`${P}.n_of_m_on`, { on, total: present.length })
@@ -1026,7 +1202,13 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
             </button>`;
           })}
         </div>
-        ${!online ? this._why(localize(`${P}.why_offline`)) : nothing}`,
+        ${
+          !online
+            ? this._why(localize(`${P}.why_offline`))
+            : anyUnavailable
+              ? this._why(localize(`${P}.why_unavailable`))
+              : nothing
+        }`,
     };
   }
 
@@ -1092,6 +1274,16 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
     }
     const airCurrent = isKnownState(airduct) ? airduct.state : undefined;
     const airOff = !online || !isKnownState(airduct);
+    const airTabStop =
+      airCurrent && airOptions.includes(airCurrent)
+        ? airCurrent
+        : airOptions[0];
+    const buttonOff = (field: Printer3DField) =>
+      !online || !isKnownState(this._state(field));
+    const anyUnavailable =
+      (hasAirduct && !isKnownState(airduct)) ||
+      presentSwitches.some((item) => !isKnownState(this._state(item.field))) ||
+      buttons.some((item) => !isKnownState(this._state(item.field)));
     return {
       summary:
         hasAirduct && airCurrent
@@ -1112,6 +1304,11 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
                 class=${classMap({ seg: true, small: true, off: airOff })}
                 role="radiogroup"
                 aria-label=${localize(`${P}.airduct_mode`)}
+                @keydown=${this._radioKeysHandler(
+                  "airductMode",
+                  airOptions,
+                  airCurrent
+                )}
               >
                 ${airOptions.map(
                   (option) =>
@@ -1119,6 +1316,7 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
                       class=${classMap({ sel: option === airCurrent })}
                       role="radio"
                       aria-checked=${option === airCurrent ? "true" : "false"}
+                      tabindex=${option === airTabStop ? 0 : -1}
                       ?disabled=${airOff}
                       @click=${this._selectHandler("airductMode", option, airCurrent)}
                     >
@@ -1137,6 +1335,7 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
           <span class="grow">${item.name}</span>
           <ha-switch
             .checked=${stateObj.state === "on"}
+            .accessibleLabel=${item.name}
             ?disabled=${disabled}
             @change=${this._callHandler("switch", "toggle", item.field)}
           ></ha-switch>
@@ -1149,7 +1348,7 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
                 (item) =>
                   html`<ha-button
                     appearance="outlined"
-                    ?disabled=${!online}
+                    ?disabled=${buttonOff(item.field)}
                     @click=${this._callHandler("button", "press", item.field)}
                     ><ha-svg-icon slot="start" .path=${item.icon}></ha-svg-icon
                     >${item.name}</ha-button
@@ -1158,7 +1357,13 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
             </div>`
           : nothing
       }
-      ${!online ? this._why(localize(`${P}.why_offline`)) : nothing}`,
+      ${
+        !online
+          ? this._why(localize(`${P}.why_offline`))
+          : anyUnavailable
+            ? this._why(localize(`${P}.why_unavailable`))
+            : nothing
+      }`,
     };
   }
 
@@ -1294,6 +1499,22 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
       .cv {
         transition: transform var(--ha-animation-duration-fast, 0.2s) ease;
       }
+      .found {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-2, 8px);
+      }
+      .found li {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3, 12px);
+        padding: var(--ha-space-2, 8px) var(--ha-space-3, 12px);
+        border-radius: var(--ha-border-radius-lg, 12px);
+        background: var(--printer-tile);
+      }
       .cv.open {
         transform: rotate(180deg);
       }
@@ -1348,7 +1569,12 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
         font-size: var(--ha-font-size-s);
         font-weight: var(--ha-font-weight-medium);
         box-shadow: inset -1px 0 0 var(--divider-color);
-        transition: background-color 0.2s;
+        transition: background-color var(--ha-animation-duration-fast, 0.2s);
+      }
+      /* The segments clip their contents, so the ring sits inside. */
+      .seg button:focus-visible {
+        outline: 2px solid var(--primary-text-color);
+        outline-offset: -4px;
       }
       .seg button:last-child {
         box-shadow: none;
@@ -1424,7 +1650,7 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
         display: grid;
         place-items: center;
         color: var(--primary-color);
-        transition: background-color 0.2s;
+        transition: background-color var(--ha-animation-duration-fast, 0.2s);
       }
       .sb:hover:not([disabled]) {
         background: var(--divider-color);
@@ -1464,6 +1690,28 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
         flex: 1;
         min-width: 0;
         min-height: 48px;
+        /* A striped track of thin lines and a tall thin thumb, like the
+           layer lines of the status card. */
+        --ha-slider-track-size: 14px;
+        --thumb-width: 6px;
+        --thumb-height: 28px;
+      }
+      .fct ha-slider::part(track) {
+        background: repeating-linear-gradient(
+          90deg,
+          var(--divider-color) 0 2px,
+          transparent 2px 5px
+        );
+      }
+      .fct ha-slider::part(indicator) {
+        background: repeating-linear-gradient(
+          90deg,
+          var(--primary-color) 0 2px,
+          transparent 2px 5px
+        );
+      }
+      .fct ha-slider::part(thumb) {
+        border-radius: 3px;
       }
       .fct ha-switch {
         flex: none;
@@ -1485,8 +1733,8 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
         background: var(--printer-tile);
         color: var(--secondary-text-color);
         transition:
-          background-color 0.2s,
-          color 0.2s;
+          background-color var(--ha-animation-duration-fast, 0.2s),
+          color var(--ha-animation-duration-fast, 0.2s);
       }
       .lt .tnm {
         color: var(--primary-text-color);
