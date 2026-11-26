@@ -22920,6 +22920,8 @@
             "all_working": "All working"
           },
           "home_hero": {
+            "recent_changes": "Recent changes · last hour",
+            "no_recent_changes": "No recorded home changes this hour.",
             "lights_on": "{count, plural,\n  one {# light}\n  other {# lights}\n}, {on} on",
             "all_lights": "All lights in {room}",
             "power": "Power right now",
