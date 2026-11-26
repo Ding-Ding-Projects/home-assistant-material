@@ -1,5 +1,18 @@
 # Handoff
 
+## Emergency pause, 25 November 2026 (evening)
+
+Five pieces of work are drawn (canvases 48 to 51) and built on branches, none on `main` and none built or seen in a
+browser. See [CLOSEOUT_PROMPT.md](CLOSEOUT_PROMPT.md) for branches, test results and next steps. Findings worth keeping:
+
+- The instance on the development computer is a nearly empty test instance; the owner's day-to-day instance with the
+  cameras runs elsewhere, so its logs could not be read. The SSH page exists so that can change.
+- Before this work, camera recording logged nothing when a camera failed to record, and showed a camera as recording
+  as soon as ffmpeg started, even when no file was ever written. Both are fixed on the integration branch.
+- The timeline playhead could not be dragged: only press and release were handled, and the window re-centred after
+  each release. Fixed on the integration branch.
+
+
 ## Closeout, 25 November 2026
 
 Work paused here. What the remote holds:
