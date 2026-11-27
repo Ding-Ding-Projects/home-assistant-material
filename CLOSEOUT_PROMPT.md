@@ -1,67 +1,47 @@
 # Continuation handoff
 
-Updated 25 November 2026, when work paused. The longer record is in
-[HANDOFF.md](HANDOFF.md#closeout-25-november-2026), and the open rows are in [ROADMAP.md](ROADMAP.md).
+Updated 25 November 2026, emergency pause. Longer record: [HANDOFF.md](HANDOFF.md).
 
 ## Objective
 
-Home Assistant Material keeps today's look with a modern Material 3 polish. The current work has
-three parts: repair scrolling and cut-off text on phone-sized screens, following design canvases
-46 and 47 in `design/canvases/`; fix the card editor whose Config tab shows no form; and keep the
-marketplace, printer discovery and filter menus working. Nothing is removed. Dashboard cards stay
-as they are.
+Finish, verify and ship five pieces of work, each drawn first on a design canvas in `design/canvases/`:
+
+1. Camera recording page: one folding row per camera with a search field (canvas 48), plus dragging the camera timeline
+   across the whole day with a readout bubble (canvas 48, Timeline page).
+2. 3D printer status card and control card for dashboards (canvas 49).
+3. Camera recording logging: every reason a camera does not record goes to the log; recorder honours stream options,
+   has a socket timeout and a no-data watchdog; diagnostics download. Reported case: a 3D printer RTSPS camera that
+   streams live but never records.
+4. SSH access page with key-only SSH on the operating system and in the Docker full mode (canvas 50).
+5. Restore a backup while the first start is preparing, then continue unattended (canvas 51).
 
 ## State on the remote
 
-- `main` is at `50b086e5c`. It includes:
-  - the canvas 46 and 47 fixes;
-  - the build 564 check fixes (`e28dd990e`);
-  - the shared filter chip menu, with search and a pattern workbench in every chip menu;
-  - the marketplace rename (`f42a95165`).
-- Release run 45675736303 is building `50b086e5c`. It was unverified when work paused.
-- The owner's instance was not changed in this closeout.
-- The card editor fix sits on branch `worktree-wf_d6ee1ac0-504-1` and is not merged:
-  - `8efac94bd` is a complete first attempt;
-  - `3eafb6dcd` is a review follow-up stopped partway, which touches the shared dialog components.
-
-  Neither has been verified in a browser. The branch also carries two probe files under
-  `frontend/test/panels/lovelace/editor/scratch/`; delete them before merging.
-- The full marketplace suite passed on the current core tree: 1283 passed, 55 snapshots, 4 warnings.
-- Two design items are partly done: the docked media player bar look, and the edit-mode menu
-  buttons for badges and cards.
-
-## How a build reaches the owner's instance
-
-1. Commit with `[skip ci]`, push, then start one build: `gh workflow run release.yml --ref main`.
-   A new run cancels a waiting one, so start it once.
-2. When the image is published, check that exact build on a throwaway copy in a browser at
-   phone width and at desktop width, including a click-through of each item the build claims to
-   repair.
-3. Only on a pass, update the owner's instance, Supervisor first, with a backup. Read back the
-   versions and the health state, then report the build and the time in 24-hour form.
+- `main` has the four canvases (`f730eb76d`) and this handoff. No feature code is on `main` yet.
+- Branch `ai/integration/20261125-five-lanes` (`614cdcf64`) merges pieces 1 (rows and timeline), 2 and 3. Frontend type
+  check passes; full frontend suite: everything passes except one dialog test that also fails on `main`, and one build
+  script test that is a timing flake under full-suite load (passes alone).
+- Branch `worktree-wf_302090df-21c-1` (`773a2e7ee`): piece 4. Supervisor 512 tests pass, frontend 34 tests pass.
+- Branch `worktree-wf_302090df-21c-2` (`75b39c42a`): piece 5. Supervisor and landing page tests pass.
+- Two follow-ups were still running when work paused, in local worktrees only: the Core onboarding route for the
+  queued restore (piece 5 cannot show progress after the landing page is gone without it) and the SSH port for
+  instances made by the deploy assistant (piece 4). Their worktrees are under `.claude/worktrees/wf_b3654b0e-8d3-*`.
+- The older card editor branch `worktree-wf_d6ee1ac0-504-1` (`3eafb6dcd`) is unchanged and unmerged.
+- Nothing has been built or seen in a browser. The owner's instance was not changed.
 
 ## Next steps
 
-1. Card editor:
-   - Reproduce the empty Config tab at 390 × 844 on a throwaway copy, and record what the page
-     renders before changing code.
-   - Choose between the two approaches on the branch and fix it.
-   - Verify in a browser, then merge into `main`.
-2. Check the next published build (step 2 above) for:
-   - the canvas 46 and 47 items;
-   - filter menus not jumping while you type;
-   - the pattern workbench footer;
-   - the add-integration list and its fallback brand icon;
-   - dropping a `.hapkg` file;
-   - the printer discovery strings.
-3. Finish the two partial design items, then tick roadmap rows only with recorded evidence.
+1. Finish or redo the two follow-ups; merge pieces 4 and 5 (with follow-ups) into the integration branch; resolve
+   translation file conflicts; run the frontend type check and suites.
+2. Merge into `main` with `[skip ci]`, start one build (`gh workflow run release.yml --ref main`).
+3. Check the published build on throwaway copies: demo cameras with camera recording for pieces 1 and 3; a fresh full
+   mode copy for pieces 4 and 5 (SSH login with a pasted key; upload a backup while preparing and walk away).
+   Pieces 2 need a mocked printer (gallery or test hass) since no printer is reachable.
+4. Only on a pass, update the owner's instance.
 
 ## Rules that must hold
 
-- No confirmation is weakened: the two keys and the slider stay.
-- A browser that only watches an update never starts one.
-- Going back to an older build makes a backup first.
-- No data leaves the home except what the owner turned on.
-- Every search field keeps its pattern workbench.
-- Times are 24-hour, and layouts are sized for a 390 px phone first.
-- No private wording, machine path, serial, access code or address goes in any file here.
+- Keys only for SSH, private keys refused, port 22222 kept inside the home network.
+- No confirmation is weakened; Stop on the printer asks first.
+- Every search field keeps its pattern workbench. Times are 24-hour; layouts sized for a 390 px phone first.
+- No private wording, machine path, serial, access code or real address in any file here.
