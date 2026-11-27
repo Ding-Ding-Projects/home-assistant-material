@@ -411,6 +411,10 @@ class RestAPI(CoreSysAttributes):
                 web.get("/os/ssh/authorized_keys", api_os.ssh_authorized_keys_list),
                 web.post("/os/ssh/authorized_keys", api_os.ssh_authorized_keys_add),
                 web.delete("/os/ssh/authorized_keys", api_os.ssh_authorized_keys_clear),
+                web.delete(
+                    "/os/ssh/authorized_keys/{fingerprint:[A-Za-z0-9+_:=-]{43,51}}",
+                    api_os.ssh_authorized_keys_remove,
+                ),
             ]
         )
 
