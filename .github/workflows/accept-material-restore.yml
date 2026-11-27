@@ -1,7 +1,7 @@
 name: Verify unattended first-start restore and SSH
 on:
   push:
-    branches: [acceptance/first-start-571]
+    branches: [acceptance/first-start-572]
 permissions:
   contents: read
 jobs:
@@ -9,9 +9,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     env:
-      SOURCE_REVISION: 376efb32a08458c8929d48921e2d025ac2cba8d7
-      CORE_VERSION: 2026.11.2.571
-      SUPERVISOR_VERSION: 2026.11.0.571
+      SOURCE_REVISION: 30b46fad54ca9d9448d69f6388c641d39c86ecce
+      CORE_VERSION: 2026.11.2.572
+      SUPERVISOR_VERSION: 2026.11.0.572
       OUTER: ham-acceptance-full
     steps:
       - uses: actions/checkout@v4
