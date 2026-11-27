@@ -1,0 +1,64 @@
+name: Verify unattended first-start restore and SSH
+on:
+  push:
+    branches: [acceptance/first-start-571]
+permissions:
+  contents: read
+jobs:
+  exercise:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      SOURCE_REVISION: 376efb32a08458c8929d48921e2d025ac2cba8d7
+      CORE_VERSION: 2026.11.2.571
+      SUPERVISOR_VERSION: 2026.11.0.571
+      OUTER: ham-acceptance-full
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Reserve disk for the two Docker engines on this disposable runner
+        run: |
+          if (( $(df -BG --output=avail / | tail -1 | tr -dc '0-9') < 25 )); then
+            sudo python3 - <<'PYTHON'
+          from pathlib import Path
+          import shutil
+          for sdk in [Path("/usr/local/lib/android"), Path("/usr/share/dotnet"), Path("/usr/share/swift")]:
+              if sdk.is_dir() and not sdk.is_symlink():
+                  shutil.rmtree(sdk)
+          PYTHON
+          fi
+          df -h /
+      - name: Prepare isolated browser
+        run: |
+          python3 -m venv "$RUNNER_TEMP/accept-venv"
+          "$RUNNER_TEMP/accept-venv/bin/pip" install -q requests==2.32.5 playwright==1.55.0 bcrypt==4.3.0
+          command -v google-chrome
+      - name: Start a fresh full-mode container on loopback
+        id: start
+        run: |
+          set -euo pipefail
+          image="ghcr.io/ding-ding-projects/home-assistant-material-full:$CORE_VERSION"
+          docker pull "$image"
+          test "$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" = "$SOURCE_REVISION"
+          docker volume create ham-acceptance-restore
+          docker run -d --privileged --name "$OUTER" --label home-assistant-material.acceptance=true \
+            -p 127.0.0.1::80 -p 127.0.0.1::22222 -e HA_SUPERVISOR_VERSION="$SUPERVISOR_VERSION" \
+            -v ham-acceptance-restore:/var/lib/ha-material "$image"
+      - name: Restore the synthetic home and verify its login
+        run: |
+          "$RUNNER_TEMP/accept-venv/bin/python" -u scripts/ci/check-first-start-restore.py "$OUTER" "$CORE_VERSION" "$SOURCE_REVISION"
+      - name: Verify full-mode SSH enrollment and revocation
+        if: "!cancelled() && steps.start.outcome == 'success'"
+        run: bash scripts/ci/check-full-mode-ssh.sh "$OUTER"
+      - name: Record container health
+        if: "!cancelled()"
+        run: |
+          df -h /
+          docker ps -a --format '{{.Names}} {{.Status}}'
+          docker exec "$OUTER" docker ps -a --format '{{.Names}} {{.Status}} {{.Image}}' || true
+      - name: Remove disposable home
+        if: always()
+        run: |
+          docker rm -fv "$OUTER" || true
+          docker volume rm ham-acceptance-restore || true
