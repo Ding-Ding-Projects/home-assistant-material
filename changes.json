@@ -1,15 +1,306 @@
 {
  "format": 1,
- "generated": "2026-11-25T20:16:59Z",
+ "generated": "2026-11-27T02:12:49Z",
  "repository": "Ding-Ding-Projects/home-assistant-material",
- "newest_build": 569,
+ "newest_build": 572,
  "releases": [
+  {
+   "build": 572,
+   "core": "2026.11.2.572",
+   "supervisor": "2026.11.0.572",
+   "os": "18.5.572",
+   "tag": null,
+   "source": "30b46fad5",
+   "date": "2026-11-27T01:43:08Z",
+   "previous_build": 569,
+   "changes": [
+    {
+     "sha": "30b46fad5",
+     "date": "2026-11-27T01:43:08Z",
+     "title": "Ship the licensed first-start page typeface [skip ci]",
+     "areas": [
+      "interface"
+     ]
+    },
+    {
+     "sha": "99830f137",
+     "date": "2026-11-27T01:43:08Z",
+     "title": "Register both printer cards under the dashboard factory tag",
+     "areas": [
+      "interface"
+     ]
+    },
+    {
+     "sha": "4bfd5671b",
+     "date": "2026-11-27T01:37:57Z",
+     "title": "Exercise the current flow menu button in the dismissal test [skip ci]",
+     "areas": [
+      "interface"
+     ]
+    },
+    {
+     "sha": "ad7096830",
+     "date": "2026-11-27T01:30:35Z",
+     "title": "Package the matching first-start restore UI in landing images",
+     "areas": [
+      "build"
+     ]
+    },
+    {
+     "sha": "875394caf",
+     "date": "2026-11-27T01:26:01Z",
+     "title": "Keep provider exception details out of camera refusal logs",
+     "areas": [
+      "core"
+     ]
+    },
+    {
+     "sha": "b6b2134a2",
+     "date": "2026-11-27T01:25:44Z",
+     "title": "Record camera, printer and phone editor verification",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "sha": "c5d857fef",
+     "date": "2026-11-27T01:25:44Z",
+     "title": "Keep the camera filter clear when focus returns to the field",
+     "areas": [
+      "interface"
+     ]
+    },
+    {
+     "sha": "cbdb464aa",
+     "date": "2026-11-27T01:24:52Z",
+     "title": "Record the verified phone card editor reproduction",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "sha": "610338889",
+     "date": "2026-11-25T20:13:05-05:00",
+     "title": "Fix retry refusals, stale failed page and key recording for pending restore",
+     "areas": [
+      "core",
+      "interface",
+      "supervisor"
+     ],
+     "detail": "Treat expected retry refusals as client errors, recheck after a failed retry, record the key only for protected backups, and test the in-handler guards.",
+     "detail_yue": "重試被拒係預期情況，唔好當系統錯誤報去 Sentry；重試失敗之後 即刻再問一次真實狀態，唔好留住過期嘅「失敗」畫面；冇加密嘅 備份就唔好記住亂入嘅金鑰；仲補返核心路由嘅 401 守衛測試。"
+    },
+    {
+     "sha": "3f62fa116",
+     "date": "2026-11-25T20:03:24-05:00",
+     "title": "Add Core onboarding routes for a restore queued during first start",
+     "areas": [
+      "core",
+      "docs",
+      "interface",
+      "supervisor"
+     ],
+     "detail": "Onboarding can now read, retry and discard the pending restore.\n\nGET/DELETE /api/onboarding/restore/pending and POST .../retry reach the Supervisor through the hassio client, pass on only the fields the page needs, exist only before onboarding is done, and space changes two seconds apart. The Supervisor gains POST /backups/restore/pending/retry for a failed restore. The onboarding page offers Try again (with the key when protected) and Set up without the backup (after a confirmation).\n\nCore 11 pass, Supervisor 32 pass, frontend helper 4 pass.",
+     "detail_yue": "Core 加咗 onboarding 路由，等頁面讀得到、重試得到、放棄得到排咗隊嘅還原。 Supervisor 加咗重試路由，失敗嘅還原可以再嚟過，加密備份要再問金鑰， 放棄備份要先確認。冇登入嘅路由仲要限速，唔俾人狂試金鑰。"
+    },
+    {
+     "sha": "efb508332",
+     "date": "2026-11-25T19:46:15-05:00",
+     "title": "Handoff: emergency pause with five pieces on branches [skip ci]",
+     "areas": [
+      "docs"
+     ],
+     "detail": "Records where each piece stands, its branch and test results, and the next steps.",
+     "detail_yue": "緊急收工：五樣嘢喺分支等緊驗，交帶寫低晒。"
+    },
+    {
+     "sha": "614cdcf64",
+     "date": "2026-11-25T19:45:15-05:00",
+     "title": "Use documentation addresses in camera recording tests",
+     "areas": [
+      "core"
+     ],
+     "detail": "Test fixtures now use 203.0.113.x instead of a home network range.",
+     "detail_yue": "測試用返文件專用地址，唔再似屋企網絡。"
+    },
+    {
+     "sha": "14b1b2aa1",
+     "date": "2026-11-25T19:43:40-05:00",
+     "title": "Camera timeline: drag the playhead across the whole day, with a readout",
+     "areas": [
+      "interface"
+     ],
+     "detail": "The timeline only listened for press and release, so nothing moved while dragging, and in the 1 h and 6 h views the window re-centred on the new spot after every release. The red line could be coaxed across the day roughly the way a reluctant pet is coaxed into a carrier: half a window at a time, with complaints. Now the playhead follows the finger, the view stays still for the whole drag, and a bubble shows the exact time, whether that moment was recorded, and any event there. Letting go plays from there, or from the next recording in a gap.\n\nAlso: the camera recording page's open-rows key is classified for settings sync, and the filter chip menu's Cantonese strings are finally switched on.",
+     "detail_yue": "條紅線之前拉極都唔郁，放手先跳半格，好似氹貓入籠咁。 而家跟住手指走，拉緊會話你幾點、有冇錄到、有咩事發生，放手就播。"
+    },
+    {
+     "sha": "64567752e",
+     "date": "2026-11-25T19:39:06-05:00",
+     "title": "Suggested port now avoids SSH ports; test cleans up its temp dir",
+     "areas": [
+      "deploy"
+     ],
+     "detail": "defaults() counts each same-host instance's SSH port as taken, matching allocate(). The SSH port test removes its temp directory in a finally block.",
+     "detail_yue": "建議嘅網頁埠依家都避開 SSH 埠，同 allocate() 一致；測試用 finally 清理臨時資料夾， 失敗都唔會留尾巴。"
+    },
+    {
+     "sha": "73ac391e1",
+     "date": "2026-11-25T19:36:58-05:00",
+     "title": "Deploy assistant: publish an SSH port for every full-mode instance",
+     "areas": [
+      "deploy",
+      "docs"
+     ],
+     "detail": "Full-mode instances now publish a free host port for container port 22222, set HA_MATERIAL_SSH_PORT, and show the port plus a copyable ssh command in the instance list and details. Older instances show SSH as off.",
+     "detail_yue": "部署助手今次終於肯開 SSH 呢道門：每個 full 模式實例都自動揀個空 port (22222 起跳，唔撞第個實例)，環境變數一齊設好，列表同詳情仲有一鍵複製 嘅 ssh 指令。舊實例冇 port，就老老實實寫明 SSH 係關咗。"
+    },
+    {
+     "sha": "75b39c42a",
+     "date": "2026-11-25T19:27:21-05:00",
+     "title": "Harden restore-while-preparing after review",
+     "areas": [
+      "docs",
+      "interface",
+      "supervisor"
+     ],
+     "detail": "Fix the details crash on the first API shape, start the restore in place of an empty Core, close the cross-site and path holes on the landing page proxy, and tidy the card.",
+     "detail_yue": "呢次返工補晒審查揀出嘅窿：info 回應 apps/addons 兩種樣都食得，Core 裝好即刻還原唔再先開個空 Core，landing page proxy 加 Origin 同自訂 header 擋跨站，上傳磁碟位同 slug 都驗過，卡片嘅焦點、讀屏、48px 掣一併執好。"
+    },
+    {
+     "sha": "4fe1bfddc",
+     "date": "2026-11-25T19:09:04-05:00",
+     "title": "Fix review findings in the 3D printer status and control cards",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Buttons follow their own availability and tell the person when a call fails, HMS severity and renamed fans and lights are read as the integration sends them, registry changes are picked up, bilingual sentences are built per language, previews stay inert, and the editor, focus, contrast, motion and layout issues from the review are fixed.",
+     "detail_yue": "兩張打印機卡經過覆檢，一次過執晒：掣跟返實體自己嘅可用狀態， call 失敗會話俾人知；嚴重度、改咗名嘅風扇同燈照整合送嚟嘅樣讀； 登記表變咗都跟得上；雙語句子逐種語言砌；預覽唔會掂到真打印機。 一個三十點嘅單，逐點對過程式碼先郁手，冇理由嘅先唔做。"
+    },
+    {
+     "sha": "773a2e7ee",
+     "date": "2026-11-25T18:56:21-05:00",
+     "title": "SSH access: review fixes (key parsing, revocation, private key clearing)",
+     "areas": [
+      "docs",
+      "interface",
+      "supervisor"
+     ],
+     "detail": "Key lines are parsed the way the SSH server reads them (type first, whole key body, line feed only), so a decoy key in an options prefix or an odd line separator cannot spoof a fingerprint. The full mode now runs dropbear only while a key is listed, ends every session when one is removed, binds to the container address, logs to docker logs and reports its published port. The list answers mode \"unsupported\" instead of a 404 the websocket relay would lose. Container writes are locked and keep comments; rejected keys are no longer echoed; a failed restore tries every key. The page clears a pasted private key even from an empty field, keeps errors where they were pressed, follows the language mode, offers Undo, and puts the add card right after the status on a phone.",
+     "detail_yue": "SSH 存取頁修正：金鑰行按 SSH 伺服器嘅讀法解析（類型開頭、成條金鑰體、淨係用換行分行）， 藏喺選項前綴嘅假金鑰同奇怪分行符都騙唔到指紋。完整模式淨係喺有金鑰嗰陣先開 dropbear， 移除金鑰即刻踢走所有連線，綁定容器位址，日誌入 docker logs，仲會報公開埠。列表用 mode「unsupported」答，唔再用個會喺 websocket 轉送度跌咗嘅 404。貼私人金鑰入空欄都即刻清走， 錯誤顯示喺撳掣嗰度，跟語言模式，有復原，手機上新增卡緊跟狀態卡。"
+    },
+    {
+     "sha": "9c19843db",
+     "date": "2026-11-25T18:52:44-05:00",
+     "title": "Restore a backup card on the first-start preparing page",
+     "areas": [
+      "docs",
+      "interface",
+      "supervisor"
+     ],
+     "detail": "The landing page gets \"Restore a backup while you wait\": choose or drop a .tar file, upload with size, speed, time left and Cancel, check the details, check the encryption key, Continue. After that it shows a four step list (preparing, restoring, starting, ready to sign in) with each state written as text, Cancel restore with a confirmation until the restore starts, and on failure Try again or Set up without the backup. Wide windows get two columns. The Supervisor also gets POST /backups/{slug}/check_password, and the landing page server forwards it. Onboarding shows a pending or finished restore in place of the welcome step. English and Cantonese strings, docs page and README row included.",
+     "detail_yue": "first start 頁面加咗「等緊嗰陣順便還原備份」：上傳、睇詳情、驗金鑰、撳繼續， 之後四個步驟逐個顯示，唔使守住。未開始前可以取消（會先問），失敗可以再試 或者唔用備份直接設定。大螢幕兩欄，電話一欄。"
+    },
+    {
+     "sha": "487361d9e",
+     "date": "2026-11-25T18:49:52-05:00",
+     "title": "Camera recording: quieter, safer logs and a watchdog that watches the whole run",
+     "areas": [
+      "core"
+     ],
+     "detail": "Group repeats of one ffmpeg failure by a normalised key (no process addresses or counters), write the ffmpeg lines once, space out reminders (10 min, 1 h, 6 h), and mask credentials by the exact known source plus passwords with slashes, quotes or at signs and secrets in paths and queries. The watchdog counts only the recorder's own segments, keeps watching for stalls, and a run is only a recovery after it stayed up; the retry backoff now escalates for flapping cameras. ffmpeg is ended if anything fails after it was spawned, TLS verification follows verify_ssl, and the place in logs and diagnostics no longer carries the user name or host.",
+     "detail_yue": "Logs im shek: 同一個錯誤唔再刷屏,密碼唔再漏出嚟,睇門狗睇足成個run。"
+    },
+    {
+     "sha": "5bbf20a3a",
+     "date": "2026-11-25T18:41:26-05:00",
+     "title": "Add 3D printer status and controls dashboard cards",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Two new built-in cards, printer-status-card and printer-controls-card, set up by picking one printer device. Entities are found by the integration's entity keys (Bambu Lab map, other platforms can be added), parsing of health messages and print errors is unit tested, and both cards, their editors and Cantonese strings are registered.",
+     "detail_yue": "3D 打印機狀態同控制兩張新卡，揀部打印機就用，唔使逐隻實體揀。 有嘅先顯示，冇嘅就收埋；停止打印一定先問清楚先郁手。"
+    },
+    {
+     "sha": "5b23ba2fc",
+     "date": "2026-11-25T18:29:29-05:00",
+     "title": "Queue a restore while the first start prepares",
+     "areas": [
+      "interface",
+      "supervisor"
+     ],
+     "detail": "Supervisor keeps one pending full restore on disk (password in a mode 600 file, deleted right after use), starts it by itself once Core is installed and the Supervisor is running, and exposes it through POST /backups/{slug}/restore/full/when_ready and GET/DELETE /backups/restore/pending. Progress is the ordinary restore job, so the jobs API already carries it. A failure keeps its error on the record. The landing page server proxies only the backup routes this needs.",
+     "detail_yue": "first start 未裝好就可以先上傳備份，裝好之後 Supervisor 自己行返成個還原， 唔使撳住部機；密碼放喺 600 檔案，用完即刪。失敗會記低原因，等頁面出 「再試一次」同「唔要備份直接設定」。"
+    },
+    {
+     "sha": "0b9a7ddc9",
+     "date": "2026-11-25T18:22:24-05:00",
+     "title": "Camera recording: fix review findings on the folding rows",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Register the page in the search surface list, show errors and pattern problems where they can be seen, keep row DOM per camera, match phone and tab order, and tidy sizes, RTL and copy.",
+     "detail_yue": "呢次跟返評審嘅意見執靚：搜尋表登記咗，錯誤同壞咗嘅 pattern 肯出聲， 每部鏡頭有自己嘅 DOM，Tab 次序同畫面一樣，按鈕夠大，RTL 都啱。"
+    },
+    {
+     "sha": "ffe6d05b5",
+     "date": "2026-11-25T18:21:03-05:00",
+     "title": "Log every reason a camera does not record, and honour stream options",
+     "areas": [
+      "core"
+     ],
+     "detail": "The camera recorder now writes clear, de-duplicated log lines with the camera, place, state and retry delay; masks credentials in URLs and ffmpeg output; passes the camera's wall clock and RTSP transport options to ffmpeg; cuts runs that never write a file; and adds diagnostics.",
+     "detail_yue": "鏡頭唔錄影，以前一聲不響，而家每個原因都喺 log 度講清楚。 密碼同 token 一律遮住，ffmpeg 掛咗就連最後 20 行輸出一齊報， Bambu 嗰類時間戳亂跳嘅鏡頭，亦都跟返鏡頭自己嘅設定去錄。"
+    },
+    {
+     "sha": "afe3bb3b4",
+     "date": "2026-11-25T18:08:12-05:00",
+     "title": "Camera recording: one folding row per camera, with search",
+     "areas": [
+      "interface"
+     ],
+     "detail": "Replace the camera table with folding rows per place, a separate 48 px pause button, and one search field with the pattern workbench, a count and Expand all. Open rows are remembered across the 10 s refresh and reloads.",
+     "detail_yue": "部鏡頭而家一行一行摺埋，要睇先撳開，唔使再望住成張長長嘅表。 暫停掣獨立喺隔離，搜尋欄可以搵名、實體 ID、狀態、錄影量同地方， 仲有 pattern 工作台。開咗邊行會記住，十秒更新同重新載入都唔會收返埋。"
+    },
+    {
+     "sha": "cc12bcb2f",
+     "date": "2026-11-25T18:08:05-05:00",
+     "title": "SSH access page and key-only SSH in the full hosting mode",
+     "areas": [
+      "docs",
+      "interface",
+      "supervisor"
+     ],
+     "detail": "Settings > System > SSH access: add a public key (checked as you type, private keys refused), list keys with SHA256 fingerprints, remove one or all. Supervisor gains DELETE /os/ssh/authorized_keys/{fingerprint}, and a file backend for the full mode, where dropbear (keys only, port 22222) now runs in the outer image.",
+     "detail_yue": "SSH 存取頁加好喇：貼公開金鑰即刻驗，私人金鑰一貼就清走，列出指紋，可以單獨或者全部移除。 Supervisor 識得按指紋刪單條金鑰；Docker 完整模式嘅外層容器而家有 dropbear，淨係收金鑰， 唔收密碼，埠 22222。"
+    },
+    {
+     "sha": "f730eb76d",
+     "date": "2026-11-25T17:59:09-05:00",
+     "title": "Canvases 48 to 51: camera rows, printer cards, SSH, restore while preparing [skip ci]",
+     "areas": [
+      "design"
+     ],
+     "detail": "Four new design canvases, drawn before any code: - 48: the camera recording page folds each camera into one row and gets one search field with the pattern workbench. The page used to unroll every setting of every camera at once, which was less a list than a scroll marathon. - 49: a 3D printer status card (progress, layers left, time left, stage, problems, both nozzles, bed) and a control card with every control, grouped. - 50: an SSH access page where the owner pastes a public key. Keys only, private keys refused on sight. - 51: upload a backup while the first start is still preparing, press Continue, and walk away while it restores.",
+     "detail_yue": "畫板先行，代碼後補：相機一部一行摺埋，搵嘢有得 search； 3D 打印機有晒進度同兩個噴嘴溫度；SSH 貼條公鑰就得， 私鑰？即刻趕走；第一次開機等緊都可以上載備份，沖完涼返嚟已經還原好晒。"
+    },
+    {
+     "sha": "6e6e9c703",
+     "date": "2026-11-25T15:15:41-05:00",
+     "title": "Handoff: where the card editor, canvases 46 and 47 and build 50b086e5c stand [skip ci]",
+     "areas": [
+      "docs"
+     ],
+     "detail": "Work paused, so the handoff and continuation prompt now say exactly what is on the remote. main carries the canvas 46 and 47 fixes and the build 564 check fixes; its build was still running and is unverified. The card editor fix lives on its own branch, unmerged and unverified, with a complete first attempt and a stopped follow-up. The full marketplace suite passed (1283). Next steps are listed in order, verification before anything goes live.",
+     "detail_yue": "收工前交更：卡編輯器仲喺自己條 branch 度等驗，main 嗰個 build 仲喺度 焗緊未試食。市場測試 1283 個全部過晒，算係今日最好消息。下一手記得先 驗後上，唔好心急。"
+    }
+   ]
+  },
   {
    "build": 569,
    "core": "2026.11.2.569",
    "supervisor": "2026.11.0.569",
    "os": "18.5.569",
-   "tag": null,
+   "tag": "v2026.11.2.569",
    "source": "50b086e5c",
    "date": "2026-11-25T13:29:41-05:00",
    "previous_build": 557,
