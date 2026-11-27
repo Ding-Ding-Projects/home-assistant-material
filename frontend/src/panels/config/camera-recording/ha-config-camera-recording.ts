@@ -29,6 +29,7 @@ import "../../../components/ha-card";
 import "../../../components/ha-checkbox";
 import "../../../components/ha-icon-button";
 import "../../../components/input/ha-input-search";
+import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import "../../../components/ha-slider";
 import "../../../components/ha-switch";
 import "../../../components/entity/ha-entity-picker";
@@ -135,7 +136,7 @@ export class HaConfigCameraRecording extends LitElement {
 
   @state() private _testing = new Set<string>();
 
-  @query("ha-input-search") private _searchField?: HTMLElement;
+  @query("ha-input-search") private _searchField?: HaInputSearch;
 
   private _timer?: number;
 
@@ -388,6 +389,9 @@ export class HaConfigCameraRecording extends LitElement {
     // The button that was pressed leaves with the no-match card, so focus
     // goes to the search field instead of falling back to the page.
     await this.updateComplete;
+    // Let the field deliver the cleared value to its native input before focus
+    // synchronizes browser autofill back into the search.
+    await this._searchField?.updateComplete;
     this._searchField?.focus();
   }
 
