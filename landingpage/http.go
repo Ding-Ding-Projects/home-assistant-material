@@ -13,6 +13,62 @@ import (
 	"strings"
 )
 
+var (
+	// A backup slug is a short id. The Supervisor makes hex ones, but a backup
+	// made by another tool can carry any plain word. No slash or dot is allowed,
+	// so a slug can never walk out of the backups path.
+	backupSlug         = `[A-Za-z0-9_-]{1,64}`
+	regexBackupInfo    = regexp.MustCompile(`^/` + backupSlug + `/info$`)
+	regexBackupCheck   = regexp.MustCompile(`^/` + backupSlug + `/check_password$`)
+	regexBackupRestore = regexp.MustCompile(`^/` + backupSlug + `/restore/full/when_ready$`)
+)
+
+// backupsProxyAllowed reports whether a method and path below /backups may be
+// forwarded. Everything else the backup API offers stays unreachable from here.
+func backupsProxyAllowed(method string, cleanPath string) bool {
+	switch {
+	case method == http.MethodPost && cleanPath == "/new/upload":
+		return true
+	case method == http.MethodGet && regexBackupInfo.MatchString(cleanPath):
+		return true
+	case method == http.MethodPost && regexBackupCheck.MatchString(cleanPath):
+		return true
+	case method == http.MethodPost && regexBackupRestore.MatchString(cleanPath):
+		return true
+	case (method == http.MethodGet || method == http.MethodDelete) && cleanPath == "/restore/pending":
+		return true
+	}
+	return false
+}
+
+// requestedWithHeader has to be present on every request that changes
+// something. A web page on another site cannot add a custom header without a
+// preflight request, and this server never approves a preflight.
+const requestedWithHeader = "X-Requested-With"
+
+// backupsRequestTrusted reports whether a request that changes something came
+// from this page. The landing page has no sign in, so a page on any other site
+// must not be able to upload or queue a restore from a visitor's browser.
+func backupsRequestTrusted(r *http.Request) bool {
+	if r.Method == http.MethodGet {
+		return true
+	}
+	if origin := r.Header.Get("Origin"); origin != "" {
+		parsed, err := url.Parse(origin)
+		if err != nil || parsed.Host != r.Host {
+			return false
+		}
+	}
+	if r.Header.Get(requestedWithHeader) == "" {
+		return false
+	}
+	contentType := strings.ToLower(r.Header.Get("Content-Type"))
+	if strings.HasSuffix(r.URL.Path, "/new/upload") {
+		return strings.HasPrefix(contentType, "multipart/form-data")
+	}
+	return strings.HasPrefix(contentType, "application/json")
+}
+
 var regexASCII = regexp.MustCompile(`\x1b\[\d+m`)
 
 func httpRedirect(w http.ResponseWriter, r *http.Request) {
@@ -119,6 +175,23 @@ func httpSupervisorProxy(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Forbidden: Invalid path", http.StatusForbidden)
 		log.Printf("Blocked path traversal attempt: %s", cleanPath)
 		return
+	}
+
+	if subPath == "backups" && !backupsProxyAllowed(r.Method, cleanPath) {
+		http.Error(w, "Forbidden: Invalid path", http.StatusForbidden)
+		log.Printf("Blocked backup request: %s %s", r.Method, cleanPath)
+		return
+	}
+
+	if subPath == "backups" {
+		if !backupsRequestTrusted(r) {
+			http.Error(w, "Forbidden: Invalid request", http.StatusForbidden)
+			log.Printf("Blocked untrusted backup request: %s %s", r.Method, cleanPath)
+			return
+		}
+		// The page sends no query. Passing one on would reach the upload
+		// location and file name handling of the Supervisor.
+		r.URL.RawQuery = ""
 	}
 
 	// Update the request path to be forwarded

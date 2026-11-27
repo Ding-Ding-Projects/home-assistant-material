@@ -21,7 +21,7 @@
       }
 
       .content {
-        max-width: min(560px, calc(100vw - var(--safe-area-inset-right, 0px) - var(--safe-area-inset-left, 0px)));
+        max-width: min(1160px, calc(100vw - var(--safe-area-inset-right, 0px) - var(--safe-area-inset-left, 0px)));
         margin: 0 auto;
         padding: 0 16px;
         box-sizing: content-box;

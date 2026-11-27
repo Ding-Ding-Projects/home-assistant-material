@@ -156,6 +156,12 @@ export class HaCameraTimeline extends LitElement {
 
   @state() private _error = false;
 
+  /** The moment under the finger while the track is being dragged */
+  @state() private _drag?: number;
+
+  /** The window frozen at the start of a drag, so the view does not move under the finger */
+  private _dragWindow?: [number, number];
+
   private _timer?: number;
 
   private _request = 0;
@@ -249,6 +255,9 @@ export class HaCameraTimeline extends LitElement {
   }
 
   private _window(): [number, number] {
+    if (this._dragWindow) {
+      return this._dragWindow;
+    }
     const dayStart = this._day.getTime();
     const dayEnd = dayStart + 24 * HOUR;
     const span = Number(this._zoom) * HOUR;
@@ -439,7 +448,8 @@ export class HaCameraTimeline extends LitElement {
       }
     }
     const chosen = this._chosenBands(start, liveEdge);
-    const head = this.playhead ?? liveEdge;
+    const head = this._drag ?? this.playhead ?? liveEdge;
+    const dragging = this._drag !== undefined;
     const ticks = Array.from({ length: 5 }, (_, i) => start + (span * i) / 4);
     const kinds = this._kindsPresent(this._events);
 
@@ -484,7 +494,7 @@ export class HaCameraTimeline extends LitElement {
         aria-valuemax=${end}
         aria-valuenow=${head}
         aria-valuetext=${
-          this.playhead === undefined
+          this.playhead === undefined && !dragging
             ? this._modeLocalize("ui.components.camera_timeline.live")
             : this._time(head, true)
         }
@@ -581,10 +591,15 @@ export class HaCameraTimeline extends LitElement {
             </span>`
         )}
         <span
-          class=${classMap({ head: true, live: this.playhead === undefined })}
+          class=${classMap({
+            head: true,
+            live: this.playhead === undefined && !dragging,
+            dragging,
+          })}
           style=${styleMap({ left: pct(head) })}
           aria-hidden="true"
         ></span>
+        ${dragging ? this._renderDragBubble(head, start, span, ranges, events) : nothing}
       </div>
 
       <div class="legend">
@@ -908,10 +923,50 @@ export class HaCameraTimeline extends LitElement {
     this._seek(playTimeForClip(target.event, target.clip));
   }
 
+  private _renderDragBubble(
+    head: number,
+    start: number,
+    span: number,
+    ranges: [number, number][],
+    events: CameraEvent[]
+  ) {
+    const recorded = ranges.some(([from, to]) => head >= from && head <= to);
+    const near = events.find(
+      (event) => Math.abs(event.start - head) <= Math.max(span / 120, 15_000)
+    );
+    // Keep the bubble inside the track near its ends
+    const share = Math.min(0.82, Math.max(0.18, (head - start) / span));
+    return html`<div
+      class="bubble"
+      role="status"
+      style=${styleMap({ left: `${share * 100}%` })}
+    >
+      <span class="bubble-time">${this._time(head, true)}</span>
+      <span class=${classMap({ "bubble-state": true, kept: recorded })}
+        >${this._modeLocalize(
+          recorded
+            ? "ui.components.camera_timeline.recorded"
+            : "ui.components.camera_timeline.not_recorded"
+        )}</span
+      >
+      <span class="bubble-detail"
+        >${
+          near
+            ? `${this._eventName(near)} · ${this._time(near.start)}`
+            : this._modeLocalize(
+                recorded
+                  ? "ui.components.camera_timeline.drag_release"
+                  : "ui.components.camera_timeline.drag_gap"
+              )
+        }</span
+      >
+    </div>`;
+  }
+
   private _timeFromPointer(ev: PointerEvent) {
     const track = ev.currentTarget as HTMLElement;
     const box = track.getBoundingClientRect();
-    let share = (ev.clientX - box.left) / box.width;
+    let share = Math.min(1, Math.max(0, (ev.clientX - box.left) / box.width));
     if (getComputedStyle(track).direction === "rtl") {
       share = 1 - share;
     }
@@ -925,13 +980,27 @@ export class HaCameraTimeline extends LitElement {
     }
     const track = ev.currentTarget as HTMLElement;
     track.setPointerCapture(ev.pointerId);
+    // Freeze the view for the whole drag; it used to re-centre on the playhead
+    // after every jump, so the line could never be pulled across the day.
+    this._dragWindow = this._window();
+    this._drag = this._timeFromPointer(ev);
+    const move = (moveEv: PointerEvent) => {
+      this._drag = this._timeFromPointer(moveEv);
+    };
     const up = (upEv: PointerEvent) => {
+      track.removeEventListener("pointermove", move);
       track.removeEventListener("pointerup", up);
       track.removeEventListener("pointercancel", up);
-      if (upEv.type === "pointerup") {
-        this._seek(this._timeFromPointer(upEv));
+      const target =
+        upEv.type === "pointerup" ? this._timeFromPointer(upEv) : undefined;
+      this._drag = undefined;
+      if (target !== undefined) {
+        this._seek(target);
       }
+      this._dragWindow = undefined;
+      this.requestUpdate();
     };
+    track.addEventListener("pointermove", move);
     track.addEventListener("pointerup", up);
     track.addEventListener("pointercancel", up);
   }
@@ -1094,6 +1163,49 @@ export class HaCameraTimeline extends LitElement {
     }
     .head.live {
       background: var(--error-color);
+    }
+    .head.dragging {
+      width: 4px;
+      margin-inline-start: -2px;
+      background: var(--error-color);
+      box-shadow: 0 0 0 4px
+        color-mix(in srgb, var(--error-color) 25%, transparent);
+    }
+    .bubble {
+      position: absolute;
+      bottom: calc(100% + var(--ha-space-2));
+      transform: translateX(-50%);
+      min-width: 168px;
+      max-width: 240px;
+      padding: var(--ha-space-2) var(--ha-space-3);
+      border-radius: var(--ha-border-radius-lg);
+      background: var(--card-background-color);
+      box-shadow: var(--ha-box-shadow-l, 0 6px 16px rgba(0, 0, 0, 0.35));
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .bubble-time {
+      font-size: var(--ha-font-size-xl);
+      font-weight: var(--ha-font-weight-bold);
+      font-variant-numeric: tabular-nums;
+    }
+    .bubble-state {
+      align-self: flex-start;
+      padding: 2px var(--ha-space-2);
+      border-radius: var(--ha-border-radius-pill);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+      background: color-mix(in srgb, var(--error-color) 22%, transparent);
+    }
+    .bubble-state.kept {
+      background: color-mix(in srgb, var(--success-color) 25%, transparent);
+    }
+    .bubble-detail {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
     }
     .legend {
       font-size: var(--ha-font-size-s);

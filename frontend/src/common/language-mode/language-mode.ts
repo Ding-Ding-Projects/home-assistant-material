@@ -20,8 +20,11 @@ import yueSource from "../../translations/yue-own.json";
 
 /** The translation blocks the Cantonese source covers. */
 export const YUE_PREFIXES = [
+  "landing-page.restore.",
+  "ui.panel.page-onboarding.restore_pending.",
   "ui.components.empty-state.",
   "ui.components.top_bar_search.",
+  "ui.components.filter_chip_menu.",
   "ui.components.action-editors.",
   "ui.components.automation-editors.",
   "ui.panel.config.updates.progress.",
@@ -56,6 +59,7 @@ export const YUE_PREFIXES = [
   "ui.panel.config.device_health.",
   "ui.panel.config.helpers.demo.",
   "ui.panel.config.cloud_host.",
+  "ui.panel.config.ssh_access.",
   "ui.panel.config.tools.nav.",
   "ui.components.web-rtc-player.state.",
   "ui.components.camera_timeline.not_kept_by_choice",
@@ -118,6 +122,10 @@ export const YUE_PREFIXES = [
   "ui.panel.lovelace.cards.security_alarm.",
   "ui.panel.lovelace.cards.dashboards_list.",
   "ui.panel.lovelace.cards.room_lights.",
+  // The 3D printer cards and their editors.
+  "ui.panel.lovelace.cards.printer_status.",
+  "ui.panel.lovelace.cards.printer_controls.",
+  "ui.panel.lovelace.editor.card.printer-",
   "ui.panel.config.lovelace.resources.detail.",
   "ui.panel.config.apps.info.needs_os_title",
   "ui.panel.config.apps.info.no_store_text",

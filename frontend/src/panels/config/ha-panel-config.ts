@@ -100,6 +100,10 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-cloud-host",
         load: () => import("./cloud-host/ha-config-cloud-host"),
       },
+      "ssh-access": {
+        tag: "ha-config-ssh-access",
+        load: () => import("./ssh-access/ha-config-ssh-access"),
+      },
       system: {
         tag: "ha-config-system-navigation",
         load: () => import("./core/ha-config-system-navigation"),

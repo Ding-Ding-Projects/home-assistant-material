@@ -8,6 +8,7 @@ from contextlib import suppress
 import errno
 import logging
 from pathlib import Path
+import re
 from shutil import copy
 from typing import cast
 
@@ -29,11 +30,12 @@ from ..exceptions import (
     BackupSupervisorVersionError,
     UpdaterError,
 )
+from ..homeassistant.const import LANDINGPAGE
 from ..jobs.const import JOB_GROUP_BACKUP_MANAGER, JobConcurrency, JobCondition
 from ..jobs.decorator import Job
 from ..jobs.job_group import JobGroup
 from ..mounts.mount import Mount
-from ..resolution.const import UnhealthyReason
+from ..resolution.const import MINIMUM_FREE_SPACE_THRESHOLD, UnhealthyReason
 from ..utils.common import FileConfiguration
 from ..utils.dt import utcnow
 from ..utils.sentinel import DEFAULT
@@ -51,8 +53,11 @@ from .const import (
     BackupType,
     RestoreJobStage,
 )
+from .pending_restore import PendingRestore
 from .utils import create_slug
 from .validate import ALL_FOLDERS, SCHEMA_BACKUPS_CONFIG
+
+RE_SAFE_SLUG = re.compile(r"[A-Za-z0-9_-]{1,64}")
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -70,6 +75,7 @@ class BackupManager(FileConfiguration, JobGroup):
         self._backups: dict[str, Backup] = {}
         self._thaw_task: Awaitable[None] | None = None
         self._thaw_event: asyncio.Event = asyncio.Event()
+        self.pending_restore = PendingRestore(coresys)
 
     @property
     def list_backups(self) -> list[Backup]:
@@ -292,6 +298,78 @@ class BackupManager(FileConfiguration, JobGroup):
     async def load(self) -> None:
         """Load exists backups data."""
         await self.reload()
+        await self.pending_restore.load()
+
+    async def check_password(self, backup: Backup, password: str | None) -> None:
+        """Raise if the password does not open the backup."""
+        await self._validate_backup_location(backup, password)
+
+    async def queue_restore_when_ready(
+        self, backup: Backup, password: str | None
+    ) -> dict:
+        """Queue a full restore that starts by itself once Core is installed."""
+        if backup.sys_type != BackupType.FULL:
+            raise BackupInvalidError(
+                f"{backup.slug} is only a partial backup!", _LOGGER.error
+            )
+        # Only the first start waits for Core: later on a restore is asked for
+        # on purpose, through the ordinary restore routes
+        version = self.sys_homeassistant.version
+        if version is not None and version != LANDINGPAGE:
+            raise BackupError(
+                "A restore can only be queued before Home Assistant is installed",
+                _LOGGER.warning,
+            )
+        await self._validate_backup_location(backup, password)
+
+        newest = max(
+            self.sys_supervisor.version,
+            self.sys_updater.version_supervisor or self.sys_supervisor.version,
+        )
+        if backup.supervisor_version > newest:
+            raise BackupInvalidError(
+                f"Backup was made on Supervisor {backup.supervisor_version}, "
+                f"newer than the newest available ({newest})",
+                _LOGGER.error,
+            )
+
+        free_gib = await self.sys_host.info.free_space()
+        needed_gib = backup.size_bytes / 2**30 + MINIMUM_FREE_SPACE_THRESHOLD
+        if free_gib < needed_gib:
+            raise BackupError(
+                f"Not enough free space to restore this backup: {free_gib:.1f} GiB "
+                f"free, about {needed_gib:.1f} GiB needed",
+                _LOGGER.error,
+            )
+
+        record = await self.pending_restore.queue(
+            backup.slug,
+            backup.name,
+            backup.size_bytes,
+            password if backup.protected else None,
+        )
+        if self.sys_homeassistant.core.active_job is None:
+            self.pending_restore.start()
+        return record
+
+    async def retry_pending_restore(self, password: str | None) -> dict:
+        """Run a failed first-start restore again, with a key asked for anew."""
+        record = self.pending_restore.record
+        if record is None or record["state"] != "failed":
+            raise BackupError(
+                "There is no failed restore to try again", _LOGGER.warning
+            )
+        backup = self.get(record["slug"])
+        if backup is None:
+            raise BackupError("The uploaded backup is gone", _LOGGER.warning)
+        await self._validate_backup_location(backup, password)
+        # A key given for an unprotected backup must not be recorded
+        record = await self.pending_restore.retry(
+            password if backup.protected else None
+        )
+        if self.sys_homeassistant.core.active_job is None:
+            self.pending_restore.start()
+        return record
 
     async def reload(self, location: str | None | type[DEFAULT] = DEFAULT) -> bool:
         """Load exists backups."""
@@ -489,6 +567,11 @@ class BackupManager(FileConfiguration, JobGroup):
 
         # Read meta data
         if not await backup.load():
+            return None
+
+        # The slug names the file it is stored in, so it has to be a plain name
+        if not RE_SAFE_SLUG.fullmatch(backup.slug):
+            _LOGGER.error("Refusing to import a backup with the slug %s", backup.slug)
             return None
 
         # Move backup to destination folder

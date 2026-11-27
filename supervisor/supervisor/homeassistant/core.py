@@ -382,16 +382,26 @@ class HomeAssistantCore(JobGroup):
         self.sys_homeassistant.set_image(install_image)
         await self.sys_homeassistant.save_data()
 
+        # A backup queued while Core was installing restores by itself. The
+        # restore starts Core with the restored configuration, so the empty Core
+        # is not started first and onboarding is never shown for it.
+        pending_restore = self.sys_backups.pending_restore
+        restoring = pending_restore.ready()
+
         # finishing
-        try:
-            _LOGGER.info("Starting Home Assistant")
-            await self.start()
-        except HomeAssistantError:
-            _LOGGER.error("Can't start Home Assistant!")
+        if not restoring:
+            try:
+                _LOGGER.info("Starting Home Assistant")
+                await self.start()
+            except HomeAssistantError:
+                _LOGGER.error("Can't start Home Assistant!")
 
         # Cleanup
         with suppress(DockerError):
             await self.instance.cleanup()
+
+        if restoring:
+            pending_restore.start()
 
     @Job(
         name="home_assistant_core_update",

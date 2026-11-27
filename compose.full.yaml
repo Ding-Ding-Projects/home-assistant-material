@@ -40,10 +40,19 @@ services:
       # The core answers on port 80 inside the outer container. Published on every network
       # interface, so other devices on the network can reach it.
       - "${HA_MATERIAL_PORT:-8123}:80"
+      # SSH with your own public key, no passwords. Add keys on Settings > System > SSH access.
+      # The server runs only while a key is listed. A key gives a root shell in this privileged
+      # container, which is effectively root on the computer that runs Docker, so give keys only to
+      # people you trust with that computer. Keep this port inside your home network: do not
+      # forward it on your router. HA_MATERIAL_SSH_BIND limits the address it is published on,
+      # for example the address of your home network interface (the default is every interface).
+      - "${HA_MATERIAL_SSH_BIND:-0.0.0.0}:${HA_MATERIAL_SSH_PORT:-22222}:22222"
     volumes:
       - ha-material-full-data:/var/lib/ha-material
     environment:
       TZ: ${TZ:-UTC}
+      # Tells the Supervisor which published port to show on the SSH access page.
+      HA_MATERIAL_SSH_PORT: ${HA_MATERIAL_SSH_PORT:-22222}
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "--max-time", "5", "http://127.0.0.1:80/manifest.json"]
       interval: 30s

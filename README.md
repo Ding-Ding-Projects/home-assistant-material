@@ -37,6 +37,7 @@ desktop app has its own [folder](deploy-assistant/README.md).
 | Build it myself | [Build](#build) |
 | Deploy in one click (Docker, SSH host, VirtualBox, VMware, Raspberry Pi card) | [`deploy-assistant/`](deploy-assistant/README.md), downloads on the project page |
 | Host a separate copy from a backup (candidate workflow) | [Backup hosting](docs/features/backups/host-workflow.md), local verification in progress, not yet released |
+| Restore a backup while the first start is still preparing | [Restore while preparing](docs/features/backups/restore-while-preparing.md), built in source, not yet seen on a running first start |
 | See the project page | [ding-ding-projects.github.io/home-assistant-material](https://ding-ding-projects.github.io/home-assistant-material/) |
 | See the design | [`design/README.md`](design/README.md) |
 | Know what changed from upstream | [`docs/material-changes.md`](docs/material-changes.md) |
@@ -111,6 +112,8 @@ gigabytes for the first start, and a named volume. Physical hardware stays out o
 product never restarts or shuts down the computer. The article lists what was and was not
 verified: in particular the release job that publishes the outer image has not been run yet,
 and the currently published Supervisor image needs the next release before this mode is healthy.
+
+SSH with your own public key, no passwords, is managed on Settings > System > SSH access, on the operating system and in the full mode (port 22222, published by `compose.full.yaml` as `HA_MATERIAL_SSH_PORT`). See [`docs/features/hosting/ssh-access.md`](docs/features/hosting/ssh-access.md).
 
 ## Operating system images
 

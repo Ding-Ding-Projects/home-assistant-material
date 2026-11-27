@@ -35,6 +35,12 @@ const GRAPH = "components/chart/ha-network-graph.ts";
 
 export const SEARCH_SURFACES: SearchSurface[] = [
   {
+    file: "panels/config/camera-recording/ha-config-camera-recording.ts",
+    searches:
+      "Cameras of every recording place on the Camera recording page (name, entity ID, state, amount, place)",
+    matcher: "panels/config/camera-recording/camera-recording-list.ts",
+  },
+  {
     file: "components/data-table/ha-data-table.ts",
     searches: "The rows of any table that shows its own search field",
     matcher: TABLE_WORKER,

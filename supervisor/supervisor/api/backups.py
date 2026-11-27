@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import errno
 from io import BufferedWriter
 import logging
 from pathlib import Path
@@ -60,13 +61,23 @@ from ..const import (
     Folder,
 )
 from ..coresys import CoreSysAttributes
-from ..exceptions import APIError, APIForbidden, APINotFound
+from ..exceptions import (
+    APIError,
+    APIForbidden,
+    APINotFound,
+    BackupError,
+    BackupInvalidError,
+)
+from ..homeassistant.const import LANDINGPAGE
 from ..mounts.const import MountUsage
+from ..resolution.const import MINIMUM_FREE_SPACE_THRESHOLD
 from .const import (
     ATTR_ADDITIONAL_LOCATIONS,
     ATTR_BACKGROUND,
     ATTR_LOCATION_ATTRIBUTES,
     ATTR_LOCATIONS,
+    ATTR_PENDING_RESTORE,
+    ATTR_REMOVE_BACKUP,
     CONTENT_TYPE_TAR,
 )
 from .utils import api_process, api_validate, background_task
@@ -185,6 +196,14 @@ SCHEMA_BACKUP_PARTIAL = SCHEMA_BACKUP_FULL.extend(
         vol.Optional(ATTR_APPS): vol.Or(ALL_APPS_FLAG, vol.All([str], vol.Unique())),
         vol.Optional(ATTR_FOLDERS): SCHEMA_FOLDERS_V2,
         vol.Optional(ATTR_HOMEASSISTANT): vol.Boolean(),
+    }
+)
+
+SCHEMA_PENDING_RESTORE_CLEAR = vol.Schema(
+    {
+        vol.Optional(ATTR_REMOVE_BACKUP, default=False): vol.Boolean(),
+        # Discard an uploaded backup that was never queued
+        vol.Optional(ATTR_SLUG): str,
     }
 )
 
@@ -527,6 +546,76 @@ class APIBackups(CoreSysAttributes):
         )
 
     @api_process
+    async def restore_full_when_ready(self, request: web.Request):
+        """Queue a full restore that starts once Home Assistant is installed."""
+        backup = self._extract_slug(request)
+        body = await api_validate(
+            vol.Schema({vol.Optional(ATTR_PASSWORD): vol.Maybe(str)}), request
+        )
+        try:
+            return await self.sys_backups.queue_restore_when_ready(
+                backup, body.get(ATTR_PASSWORD)
+            )
+        except BackupInvalidError as err:
+            raise APIError(str(err)) from err
+
+    @api_process
+    async def check_password(self, request: web.Request) -> None:
+        """Check that a password opens a backup, without restoring it."""
+        backup = self._extract_slug(request)
+        body = await api_validate(
+            vol.Schema({vol.Optional(ATTR_PASSWORD): vol.Maybe(str)}), request
+        )
+        try:
+            await self.sys_backups.check_password(backup, body.get(ATTR_PASSWORD))
+        except BackupInvalidError as err:
+            # A wrong key is the caller's mistake, not an unexpected failure
+            raise APIError(str(err)) from err
+
+    @api_process
+    async def pending_restore_info(self, request: web.Request) -> dict[str, Any]:
+        """Return the queued, running or finished restore, if any."""
+        return {ATTR_PENDING_RESTORE: self.sys_backups.pending_restore.record}
+
+    @api_process
+    async def pending_restore_retry(self, request: web.Request):
+        """Run a failed first-start restore again."""
+        body = await api_validate(
+            vol.Schema({vol.Optional(ATTR_PASSWORD): vol.Maybe(str)}), request
+        )
+        try:
+            return await self.sys_backups.retry_pending_restore(
+                body.get(ATTR_PASSWORD)
+            )
+        except BackupError as err:
+            # A refusal (no failed record, backup gone, wrong key) is expected
+            raise APIError(str(err)) from err
+
+    @api_process
+    async def pending_restore_clear(self, request: web.Request) -> None:
+        """Cancel a queued restore or dismiss a failed or finished one."""
+        body = await api_validate(SCHEMA_PENDING_RESTORE_CLEAR, request)
+        pending = self.sys_backups.pending_restore
+        record = pending.record
+        if slug := body.get(ATTR_SLUG):
+            # Only while Home Assistant is not installed yet, and never the
+            # backup a restore is queued or running from
+            version = self.sys_homeassistant.version
+            if version is not None and version != LANDINGPAGE:
+                raise APIError(
+                    "An uploaded backup can only be discarded at first start"
+                )
+            if pending.active and record and record["slug"] == slug:
+                raise APIError("That backup is waiting to be restored")
+            if backup := self.sys_backups.get(slug):
+                await self.sys_backups.remove(backup)
+            return
+        await pending.clear()
+        if body[ATTR_REMOVE_BACKUP] and record:
+            if backup := self.sys_backups.get(record["slug"]):
+                await self.sys_backups.remove(backup)
+
+    @api_process
     async def restore_partial(self, request: web.Request):
         """Partial restore a backup (v2: accepts "apps" key in request body)."""
         backup = self._extract_slug(request)
@@ -665,6 +754,22 @@ class APIBackups(CoreSysAttributes):
             except vol.Invalid as ex:
                 raise APIError(humanize_error(filename, ex)) from None
 
+        if (
+            self.sys_homeassistant.version is not None
+            and self.sys_homeassistant.version == LANDINGPAGE
+            and request.content_length
+            and (free_gib := await self.sys_host.info.free_space()) is not None
+        ):
+            # The Home Assistant image is pulled onto the same disk meanwhile
+            needed_gib = (
+                request.content_length / 2**30 + MINIMUM_FREE_SPACE_THRESHOLD + 2
+            )
+            if free_gib < needed_gib:
+                raise APIError(
+                    "There is not enough free space to store the backup: "
+                    f"{free_gib:.1f} GiB free, about {needed_gib:.1f} GiB needed"
+                )
+
         tmp_path = await self.sys_backups.get_upload_path_for_location(location)
         temp_dir: TemporaryDirectory | None = None
         backup_file_stream: BufferedWriter | None = None
@@ -707,6 +812,10 @@ class APIBackups(CoreSysAttributes):
             if location in {LOCATION_CLOUD_BACKUP, None}:
                 self.sys_resolution.check_oserror(err)
             _LOGGER.error("Can't write new backup file: %s", err)
+            if err.errno == errno.ENOSPC:
+                raise APIError(
+                    "There is not enough free space to store the backup"
+                ) from err
             return False
 
         except asyncio.CancelledError:

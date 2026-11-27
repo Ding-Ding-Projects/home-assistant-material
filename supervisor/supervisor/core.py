@@ -335,6 +335,9 @@ class Core(CoreSysAttributes):
 
             await self.set_state(CoreState.RUNNING)
 
+            # A restore queued before a Supervisor restart carries on
+            self.sys_backups.pending_restore.start()
+
             # Home Assistant refreshes issues on startup complete and removes
             # repairs (and their ignored state) of issues not raised yet
             healthcheck = self.sys_create_task(self.sys_resolution.healthcheck())

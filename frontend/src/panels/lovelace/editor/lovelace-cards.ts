@@ -102,6 +102,14 @@ export const coreCards: Card[] = [
     showElement: true,
   },
   {
+    type: "printer-status-card",
+    showElement: true,
+  },
+  {
+    type: "printer-controls-card",
+    showElement: true,
+  },
+  {
     type: "plant-status",
     showElement: true,
   },

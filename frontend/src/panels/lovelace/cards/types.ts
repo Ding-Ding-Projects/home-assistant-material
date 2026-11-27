@@ -646,6 +646,27 @@ export interface GrowLightCardConfig extends LovelaceCardConfig {
   name?: string;
 }
 
+export interface PrinterStatusCardConfig extends LovelaceCardConfig {
+  type: "printer-status-card";
+  /** The printer device. */
+  device_id?: string;
+  show_image?: boolean;
+  show_problems?: boolean;
+  show_chamber?: boolean;
+}
+
+export interface PrinterControlsCardConfig extends LovelaceCardConfig {
+  type: "printer-controls-card";
+  /** The printer device. */
+  device_id?: string;
+  show_print?: boolean;
+  show_speed?: boolean;
+  show_temperature?: boolean;
+  show_fans?: boolean;
+  show_lights?: boolean;
+  show_more?: boolean;
+}
+
 export interface GrowLightOverviewCardConfig extends LovelaceCardConfig {
   type: "grow-light-overview-card";
   title?: string;
