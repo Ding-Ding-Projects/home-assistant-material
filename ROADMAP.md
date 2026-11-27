@@ -13,6 +13,14 @@ is being verified; `docs/feature-status.md` is the older row-by-row record up to
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
+## Camera recording, printer cards, SSH and restore during startup
+
+- [ ] Camera recording rows and timeline (canvas 48). At 390 × 844 in Chromium, two simulated cameras each had a disclosure, expansion survived a reload, filtering selected the correct camera, and clearing zero matches restored both rows. A pointer drag moved the time readout from 04:48 to 19:12 while the 24-hour window stayed fixed, then emitted one seek. Playback on the published build remains open.
+- [ ] Printer status and control cards (canvas 49). The built components displayed a simulated H2D printer at 32% in the same phone viewport. Stop requested confirmation, cancel sent no service call, and confirm sent one call targeting the selected printer. Check the cards again in the published dashboard.
+- [ ] Camera recording diagnostics. Check the published build with a camera that produces segments and one that supplies no recording data.
+- [ ] Key-only SSH (canvas 50). Verify adding and removing a disposable client key and termination of the connected session on a fresh full-mode instance.
+- [ ] Restore while preparing (canvas 51). Upload a disposable backup during startup and follow it through restoration on a fresh full-mode instance.
+
 ## Scroll fixes and polish, canvases 46 and 47, 25 November 2026
 
 - [ ] Canvas 46 fixes ([`design/canvases/46-scroll-fixes-and-polish`](design/canvases/46-scroll-fixes-and-polish/README.md)):
@@ -59,8 +67,7 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       Type check, lint and 215 search tests pass; not yet seen in a browser. The Apply footer, the
       chosen-count chip, the wide side panel and the same treatment for the other filter menus are
       not built.
-- [ ] Card editor on phones: the Config tab of the card editor showed no form (being fixed; not
-      merged yet).
+- [x] Card editor on phones. At 390 × 844, the floor lamp Config tab shows its entity selector and content controls in the published demo and the locally compiled candidate. The reproduction is recorded in [the handoff](HANDOFF.md).
 
 ## Grow light helper, 23 November 2026
 

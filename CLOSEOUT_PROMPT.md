@@ -1,6 +1,6 @@
 # Continuation handoff
 
-Updated 25 November 2026, emergency pause. Longer record: [HANDOFF.md](HANDOFF.md).
+Updated 27 November 2026. The five features and both follow-ups reached main at `1fe47b5db`. Chromium component checks and the remaining published-build acceptance steps are recorded in [the roadmap](ROADMAP.md). The branch list below describes the original pause on 25 November. Longer record: [HANDOFF.md](HANDOFF.md).
 
 ## Objective
 

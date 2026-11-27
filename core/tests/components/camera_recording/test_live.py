@@ -52,6 +52,7 @@ from .test_init import setup_entry
 
 ANSWER = (
     "v=0\r\no=- 1 1 IN IP4 192.0.2.9\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=mid:0\r\n"
+    "a=ice-ufrag:test\r\na=ice-pwd:local-test-password-1234\r\n"
 )
 SECRET = "429 Too Many Requests https://provider.example/live?token=abc123"
 
@@ -191,12 +192,15 @@ async def test_expired_unknown_and_bad_requests(
 async def test_refusal_is_classified_and_not_logged(
     hass: HomeAssistant,
     hass_client_no_auth: ClientSessionGenerator,
+    monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
     raises: HomeAssistantError,
     status: int,
     reason: ClipReason,
 ) -> None:
     """A refused offer gives a reason code and nothing from the provider's text is logged."""
+
+    monkeypatch.setattr(live, "_REFUSALS_LOGGED", set())
 
     async def refuse(session_id: str, send: WebRTCSendMessage) -> None:
         raise raises
