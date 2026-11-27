@@ -87,7 +87,7 @@ type Txt = (key: string, values?: Record<string, string | number>) => string;
 
 const SEVERITIES = ["fatal", "serious", "common", "info"];
 
-@customElement("hui-printer-status-card")
+@customElement("hui-printer-status-card-card")
 export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
   // Draws the card again when the language mode changes.
   private _lang = new LanguageModeController(this);
@@ -1276,6 +1276,6 @@ export class HuiPrinterStatusCard extends LitElement implements LovelaceCard {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "hui-printer-status-card": HuiPrinterStatusCard;
+    "hui-printer-status-card-card": HuiPrinterStatusCard;
   }
 }

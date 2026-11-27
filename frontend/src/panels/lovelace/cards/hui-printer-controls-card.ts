@@ -133,7 +133,7 @@ interface TempRow {
 
 const P = "ui.panel.lovelace.cards.printer_controls";
 
-@customElement("hui-printer-controls-card")
+@customElement("hui-printer-controls-card-card")
 export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
   // Draws the card again when the language mode changes.
   private _lang = new LanguageModeController(this);
@@ -1783,6 +1783,6 @@ export class HuiPrinterControlsCard extends LitElement implements LovelaceCard {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "hui-printer-controls-card": HuiPrinterControlsCard;
+    "hui-printer-controls-card-card": HuiPrinterControlsCard;
   }
 }
