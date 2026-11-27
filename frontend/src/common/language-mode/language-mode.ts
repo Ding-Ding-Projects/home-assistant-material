@@ -20,6 +20,8 @@ import yueSource from "../../translations/yue-own.json";
 
 /** The translation blocks the Cantonese source covers. */
 export const YUE_PREFIXES = [
+  "landing-page.restore.",
+  "ui.panel.page-onboarding.restore_pending.",
   "ui.components.empty-state.",
   "ui.components.top_bar_search.",
   "ui.components.filter_chip_menu.",
