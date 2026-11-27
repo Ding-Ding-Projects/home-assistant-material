@@ -1,5 +1,11 @@
 # Handoff
 
+## Phone card editor check, 27 November 2026
+
+At 390 × 844 CSS pixels in Chromium, the Floor lamp tile opened with its Config form visible in the published demo. The local demo built from `a5f04a15d` also opened the editor. On both builds, switching to Visibility, returning to Config and expanding Content exposed the name, icon, color and layout controls. On the local build the expanded form began at (12, 241) and measured 362 × 934 CSS pixels.
+
+The empty Config tab reported below did not reproduce for this card and viewport. Neither candidate was merged. The first changes preview placement and scrolling. The follow-up changes shared dialog styling at heights of 520 pixels and below. Other cards and viewport sizes were outside this check.
+
 ## Emergency pause, 25 November 2026 (evening)
 
 Five pieces of work are drawn (canvases 48 to 51) and built on branches, none on `main` and none built or seen in a
