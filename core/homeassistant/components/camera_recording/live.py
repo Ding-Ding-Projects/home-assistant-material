@@ -317,7 +317,9 @@ class LiveOfferView(HomeAssistantView):
             )
         except HomeAssistantError as err:
             session.failure = classify_offer_failure(str(err))
-            _warn_refusal_once(session.entity_id, str(err))
+            _warn_refusal_once(
+                session.entity_id, f"the offer was refused ({session.failure.value})"
+            )
             return web.Response(
                 status=429 if session.failure is ClipReason.RATE_LIMITED else 502
             )
