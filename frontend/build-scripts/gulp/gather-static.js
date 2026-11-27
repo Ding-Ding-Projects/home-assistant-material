@@ -190,6 +190,10 @@ gulp.task("copy-static-landing-page", async () => {
     paths.landingPage_output_root
   );
 
+  fs.copySync(
+    polyPath("public/static/fonts/google-sans-flex"),
+    path.join(paths.landingPage_output_static, "fonts/google-sans-flex")
+  );
   copyFonts(paths.landingPage_output_static);
   copyTranslations(paths.landingPage_output_static);
   copyLocaleData(paths.landingPage_output_static);
