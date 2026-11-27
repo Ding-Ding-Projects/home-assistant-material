@@ -166,6 +166,22 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Build the first-start page from the same frontend revision
+        env:
+          # Use the nightly translations already fetched for the main frontend.
+          SKIP_FETCH_NIGHTLY_TRANSLATIONS: "1"
+        run: |
+          ./node_modules/.bin/gulp build-landing-page
+          test -s landing-page/dist/index.html
+
+      - name: Keep the first-start page for both architecture builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: first-start-page
+          path: frontend/landing-page/dist/
+          if-no-files-found: error
+          retention-days: 14
+
   translations:
     name: Collect integration translations
     needs: prepare
@@ -290,6 +306,15 @@ jobs:
               --push
             echo "::endgroup::"
           done
+
+      - name: Set aside the vendored first-start page
+        run: mv landingpage/rootfs/usr/share/www "$RUNNER_TEMP/vendored-first-start-page"
+
+      - name: Install the newly built first-start page in the image context
+        uses: actions/download-artifact@v4
+        with:
+          name: first-start-page
+          path: landingpage/rootfs/usr/share/www
 
       - name: Build and push the landing page image
         run: |
