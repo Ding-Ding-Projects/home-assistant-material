@@ -24,10 +24,10 @@ the owner's instance only on a verified pass. The five features below reached `m
 
 - `main` is at the tip that carries this handoff. The previous release, build 572, was built from
   `30b46fad5` and published.
-- Removed from the remote because their tips were already ancestors of `main`:
+- This pass removes the branches whose tips were already ancestors of `main`:
   `ai/finish-20261127`, `ai/integration/20261125-five-lanes`, `ai/wip/20261125-ui-batch`,
   `worktree-wf_302090df-21c-1`, `worktree-wf_302090df-21c-2`,
-  `worktree-wf_b3654b0e-8d-1`, `worktree-wf_b3654b0e-8d-2`. Their work is in `main`.
+  `worktree-wf_b3654b0e-8d3-1`, `worktree-wf_b3654b0e-8d3-2`. Their work is in `main`.
 - Kept, with the reason:
   - `channel`: the release update feed. `release.yml` reads
     `.../channel/stable.json`, and `scripts/ci/publish-channel.sh` writes it. It has its own
