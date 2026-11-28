@@ -115,13 +115,18 @@ import type {
   RepositoryFilters,
 } from "./dashboard-repositories";
 import { openHelpUrl } from "../../../components/help/open-help-article";
-import { documentationUrl } from "../../../util/documentation-url";
+import { integrationGuideUrl } from "../../../util/integration-guide-url";
 import { renderRepositoryIcon } from "../tools/repository-icon";
 import {
   showAlertDialog,
   showConfirmationDialog,
 } from "../../../dialogs/generic/show-dialog-box";
 import { showOptionsFlowDialog } from "../../../dialogs/config-flow/show-dialog-options-flow";
+
+const marketplaceGuide = integrationGuideUrl({
+  domain: "marketplace",
+  is_built_in: true,
+})!;
 
 const defaultKeyData = {
   title: "",
@@ -456,7 +461,7 @@ export class HaMarketplaceDashboard extends LitElement {
                   ${this._i18n.localize("ui.panel.marketplace.dashboard.empty_text")}
                 </p>
                 <ha-button
-                  href=${documentationUrl(this._config, "/integrations/marketplace")}
+                  href=${marketplaceGuide}
                   target="_blank"
                   appearance="plain"
                   rel="noreferrer"
@@ -1009,7 +1014,7 @@ export class HaMarketplaceDashboard extends LitElement {
   private _openDocumentation() {
     openHelpUrl(
       this,
-      documentationUrl(this._config, "/integrations/marketplace"),
+      marketplaceGuide,
       "_blank",
       "noreferrer=true"
     );

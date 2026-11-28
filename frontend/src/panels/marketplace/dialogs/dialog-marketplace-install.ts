@@ -30,6 +30,7 @@ import {
   connectionContext,
   internationalizationContext,
 } from "../../../data/context";
+import { integrationGuideUrl } from "../../../util/integration-guide-url";
 import { DialogMixin } from "../../../dialogs/dialog-mixin";
 import { showConfigFlowDialog } from "../../../dialogs/config-flow/show-dialog-config-flow";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
@@ -610,7 +611,18 @@ export class DialogMarketplaceInstall extends DialogMixin<MarketplaceInstallDial
       ),
       dismissText: this._i18n.localize("ui.common.close"),
       confirm: () => {
-        navigate(`/marketplace/repository/${repository.id}`);
+        const guide =
+          repository.category === "integration" && repository.domain
+            ? integrationGuideUrl({
+                domain: repository.domain,
+                is_built_in: false,
+              })
+            : undefined;
+        if (guide) {
+          window.open(guide, "_blank", "noopener,noreferrer");
+        } else {
+          navigate(`/marketplace/repository/${repository.id}`);
+        }
       },
     });
   }

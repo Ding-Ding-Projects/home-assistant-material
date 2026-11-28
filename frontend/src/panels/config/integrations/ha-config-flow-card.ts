@@ -36,6 +36,7 @@ import {
 } from "../../../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
+import { integrationGuideUrl } from "../../../util/integration-guide-url";
 import type { DataEntryFlowProgressExtended } from "./ha-config-integrations";
 import "./ha-integration-action-card";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
@@ -67,9 +68,7 @@ export class HaConfigFlowCard extends LitElement {
     const configurationUrl = sanitizeLinkUrl(
       this.flow.context.configuration_url
     );
-    const documentationLink = this.manifest?.is_built_in
-      ? documentationUrl(this.hass, `/integrations/${this.manifest.domain}`)
-      : this.manifest?.documentation;
+    const documentationLink = integrationGuideUrl(this.manifest);
     return html`
       <ha-integration-action-card
         class=${classMap({

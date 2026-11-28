@@ -35,6 +35,7 @@ import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box
 import { haStyle } from "../../../resources/styles";
 import { restartCore } from "../../../data/supervisor/core";
 import type { HomeAssistant, ValueChangedEvent } from "../../../types";
+import { integrationGuideUrl } from "../../../util/integration-guide-url";
 import { showToast } from "../../../util/toast";
 import type {
   DraftStorage,
@@ -910,6 +911,7 @@ export class HaGuidedSetupWizard extends LitElement {
   private _renderAbout(): TemplateResult {
     const targets = this._targets();
     const draft = this._draft;
+    const guide = integrationGuideUrl(this.integration);
     return html`
       <section>
         ${
@@ -936,10 +938,17 @@ export class HaGuidedSetupWizard extends LitElement {
         }
         <h3>${this._l("about_title")}</h3>
         <p>${this._l("about_text", { name: this.integration.name })}</p>
-        <ha-button appearance="plain" href=${this.integration.documentation}>
-          <ha-svg-icon slot="end" .path=${mdiOpenInNew}></ha-svg-icon>
-          ${this._l("documentation")}
-        </ha-button>
+        ${guide
+          ? html`<ha-button
+                appearance="plain"
+                target="_blank"
+                rel="noreferrer noopener"
+                href=${guide}
+              >
+                <ha-svg-icon slot="end" .path=${mdiOpenInNew}></ha-svg-icon>
+                ${this._l("documentation")}
+              </ha-button>`
+          : nothing}
         <h3>${this._l("before_title")}</h3>
         <p>${this._l("before_text")}</p>
         ${

@@ -23,7 +23,7 @@ import type { RepairsIssue } from "../../data/repairs";
 import { DirtyStateProviderMixin } from "../../mixins/dirty-state-provider-mixin";
 import { haStyleDialog } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
-import { documentationUrl } from "../../util/documentation-url";
+import { integrationGuideUrl } from "../../util/integration-guide-url";
 import { showAlertDialog } from "../generic/show-dialog-box";
 import { showConfigFlowDialog } from "./show-dialog-config-flow";
 import type {
@@ -361,12 +361,7 @@ class DataEntryFlowDialog extends DirtyStateProviderMixin<
         this._params.manifest?.is_built_in) ||
       !!this._params.manifest?.documentation;
 
-    const documentationLink = this._params.manifest?.is_built_in
-      ? documentationUrl(
-          this.hass,
-          `/integrations/${this._params.manifest.domain}`
-        )
-      : this._params.manifest?.documentation;
+    const documentationLink = integrationGuideUrl(this._params.manifest);
 
     const dialogTitle = this._getDialogTitle();
     const dialogSubtitle = this._getDialogSubtitle();

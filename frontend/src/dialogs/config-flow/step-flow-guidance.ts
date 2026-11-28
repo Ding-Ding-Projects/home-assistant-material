@@ -4,7 +4,7 @@ import { customElement, property, state } from "lit/decorators";
 import "../../components/ha-button";
 import "../../components/ha-svg-icon";
 import type { IntegrationManifest } from "../../data/integration";
-import { documentationUrl } from "../../util/documentation-url";
+import { integrationGuideUrl } from "../../util/integration-guide-url";
 import type { HomeAssistant } from "../../types";
 
 const STEP_KEYS: Record<string, string> = {
@@ -80,9 +80,7 @@ export class StepFlowGuidance extends LitElement {
     if (!manifest || !stepKey) {
       return nothing;
     }
-    const docLink = manifest.is_built_in
-      ? documentationUrl(this.hass, `/integrations/${manifest.domain}`)
-      : manifest.documentation;
+    const docLink = integrationGuideUrl(manifest);
     const prerequisite = this._prerequisite(manifest);
     return html`
       <button
