@@ -13,6 +13,13 @@ is being verified; `docs/feature-status.md` is the older row-by-row record up to
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
+## Layout defects seen in captures, 27 November 2026
+
+- [ ] Appearance editor at 360 px wide: the Typeface, Weight, Capitals and Alignment menus show
+      only the start of their value. Seen in a capture of an earlier demo build; not yet fixed.
+- [ ] Release notes page on a wide window: the side column heading about update notes is cut off.
+      Seen in a capture of an earlier demo build; not yet fixed.
+
 ## Camera recording, printer cards, SSH and restore during startup
 
 - [ ] Camera recording rows and timeline (canvas 48). At 390 × 844 in Chromium, two simulated cameras each had a disclosure, expansion survived a reload, filtering selected the correct camera, and clearing zero matches restored both rows. A pointer drag moved the time readout from 04:48 to 19:12 while the 24-hour window stayed fixed, then emitted one seek. Playback on the published build remains open.

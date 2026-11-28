@@ -1,5 +1,38 @@
 # Handoff
 
+## Merge and cleanup pass, 27 November 2026 (late)
+
+Merged into `main` at `de762baa7`:
+
+- Pull request #14, integration documentation atlas links. One conflict in the data entry flow test
+  kept the typed click call.
+- Pull request #15, household briefings, printer discovery and Home activity. One conflict in
+  `ROADMAP.md` kept both sections.
+
+Checks on the merged tree: the frontend type check passed; 85 tests in six frontend files passed;
+the 56 Morning Briefing and Printer Door tests passed under Linux with Python 3.14.4. No full test
+suite, product build, browser check or release ran. Pushes used `[skip ci]`.
+
+The uncommitted issue sweep from the primary checkout is saved on
+`ai/wip/20261127-issue-sweep` at `a3e247ab3`. It is unfinished and is **not** in `main`. Its own
+`HANDOFF.md` has the per-issue table for issues #1 to #12 and the checks each one still needs.
+That branch edits `HANDOFF.md`, `CLOSEOUT_PROMPT.md`, `ROADMAP.md` and the translation files, so
+expect conflicts when it is brought up to date with `main`.
+
+Two layout defects are visible in the captures saved on that branch under `docs/screenshots/`,
+which show an earlier demo build. They are listed as open in [ROADMAP.md](ROADMAP.md).
+
+Removed after proving each tip is an ancestor of the pushed `main`: eight linked worktrees with
+their local branches (`ai/integration/20261125-five-lanes` and seven `worktree-wf_*` branches),
+and the remote branches `feature/household-experience` and `feature/integration-atlas-about`.
+A complete dated archive of the repository and every worktree was verified first.
+
+Kept: `channel` (update feed), `ai/wip/20261127-issue-sweep`, `worktree-wf_d6ee1ac0-504-1` with
+its worktree (unverified card editor candidate), and `ai/prepare-restore-acceptance-571` and
+`-572` (unmerged acceptance lanes pinned to build 572). The primary checkout also keeps an
+untracked `build-companion/` folder holding only rebuildable output; the ignore file for it is on
+the work-in-progress branch.
+
 ## Branch closeout, 27 November 2026
 
 Seven branches whose tips were already ancestors of `main` were removed from the remote
