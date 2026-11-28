@@ -9,7 +9,6 @@ import {
   toInstanceState,
   UserDataSync,
 } from "../../../src/common/instance-sync/user-data-sync";
-import { validateWordingData } from "../../../src/common/vocabulary/wording-sync";
 
 // The merge rules decide whether a person's own wording or appearance is kept
 // or lost when two devices disagree, so these protect: a value made only here
@@ -165,16 +164,6 @@ describe("size limit", () => {
     ).toBeGreaterThan(
       JSON.stringify({ version: 1, updated: 1, data: "é" }).length - 1
     );
-  });
-});
-
-describe("wording data check", () => {
-  it("accepts small entries and refuses unsafe or oversize ones", () => {
-    expect(validateWordingData({ light: "lamp" })).toEqual({ light: "lamp" });
-    expect(validateWordingData(["x"])).toBeUndefined();
-    expect(validateWordingData({})).toBeUndefined();
-    expect(validateWordingData({ light: "a\nb" })).toBeUndefined();
-    expect(validateWordingData({ light: 1 })).toBeUndefined();
   });
 });
 

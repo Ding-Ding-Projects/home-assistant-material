@@ -46,6 +46,7 @@ import {
 } from "../../../common/automation/version-tests";
 import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-alert";
+import "../handoff/ha-editor-handoff";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/ha-checkbox";
@@ -1491,6 +1492,7 @@ export class HaConfigAutomationHistory extends LitElement {
           </div>
           ${this._renderDiff(this._preview, this._closePreview)}
           ${this._renderRemoteCards()}
+          <ha-editor-handoff .hass=${this.hass}></ha-editor-handoff>
           <div class="heading history-heading">
             <div class="heading-text">
               <h2>${this._l("title")}</h2>

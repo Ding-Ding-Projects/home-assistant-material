@@ -1,6 +1,15 @@
 import { ResizeController } from "@lit-labs/observers/resize-controller";
 import { ContextProvider } from "@lit/context";
-import { mdiCardPlusOutline, mdiEyeOff, mdiViewGridPlus } from "@mdi/js";
+import {
+  mdiCardPlusOutline,
+  mdiEyeOff,
+  mdiFlash,
+  mdiHome,
+  mdiPlus,
+  mdiSofa,
+  mdiTablet,
+  mdiViewGridPlus,
+} from "@mdi/js";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
@@ -11,11 +20,16 @@ import memoizeOne from "memoize-one";
 import { modeText } from "../../../common/language-mode/language-mode";
 import { clamp } from "../../../common/number/clamp";
 import { getHistoryState, updateHistoryState } from "../../../common/navigate";
+import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-ripple";
 import "../../../components/ha-sortable";
 import "../../../components/ha-svg-icon";
 import "../../../components/starting-points/ha-starting-points";
+import {
+  dashboardStarterSections,
+  type DashboardStarter,
+} from "../../../components/starting-points/dashboard-starting-points";
 import type {
   StartingPoint,
   StartingPointSelectedDetail,
@@ -36,7 +50,7 @@ import "../components/hui-section-edit-mode";
 import { showCreateCardDialog } from "../editor/card-editor/show-create-card-dialog";
 import { addSection } from "../editor/config-util";
 import type { LovelacePath } from "../editor/lovelace-path";
-import { getAtPath, moveAtPath } from "../editor/lovelace-path";
+import { getAtPath, moveAtPath, setAtPath } from "../editor/lovelace-path";
 import { showCreateSectionDialog } from "../editor/section-editor/show-create-section-dialog";
 import type { HuiSection } from "../sections/hui-section";
 import {
@@ -72,6 +86,14 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
   @property({ attribute: false }) public badges: HuiBadge[] = [];
 
   @state() private _config?: LovelaceViewConfig;
+
+  @state() private _starter?: DashboardStarter;
+
+  @state() private _starterArea = "";
+
+  @state() private _starterMessage?: "starter_empty" | "starter_failed";
+
+  @state() private _startBlank = false;
 
   @state() private _sectionColumnCount = 0;
 
@@ -282,16 +304,17 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
             : nothing
         }
         ${
-          editMode && !this.isStrategy && !sections.length
+          editMode && !this.isStrategy && !sections.length && !this._startBlank
             ? html`<ha-starting-points
-                class="starting-points"
-                .heading=${modeText(
-                  this.hass.localize as any,
-                  "ui.components.starting_points.view_heading"
-                )}
-                .items=${this._startingPoints(this.hass.localize)}
-                @starting-point-selected=${this._startingPointSelected}
-              ></ha-starting-points>`
+                  class="starting-points"
+                  .heading=${modeText(
+                    this.hass.localize as any,
+                    "ui.components.starting_points.view_heading"
+                  )}
+                  .items=${this._startingPoints(this.hass.localize)}
+                  @starting-point-selected=${this._startingPointSelected}
+                ></ha-starting-points>
+                ${this._renderStarterReview()}`
             : nothing
         }
         <div class="container">
@@ -504,6 +527,24 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
 
   private _startingPoints = memoizeOne(
     (localize: HomeAssistant["localize"]): StartingPoint[] => [
+      ...(["home", "room", "tablet", "energy", "empty"] as const).map((id) => ({
+        id,
+        title: modeText(
+          localize as any,
+          `ui.components.starting_points.${id}_title`
+        ),
+        description: modeText(
+          localize as any,
+          `ui.components.starting_points.${id}_description`
+        ),
+        icon: {
+          home: mdiHome,
+          room: mdiSofa,
+          tablet: mdiTablet,
+          energy: mdiFlash,
+          empty: mdiPlus,
+        }[id],
+      })),
       {
         id: "section",
         title: modeText(
@@ -535,7 +576,99 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
   // section button; the second then opens the normal card picker for it
   @query(".container .section") private _firstSection?: HTMLElement;
 
-  private _startingPointBusy = false;
+  @state() private _startingPointBusy = false;
+
+  private _renderStarterReview() {
+    const starter = this._starter;
+    if (!starter) return nothing;
+    const text = (key: string) => modeText(this.hass.localize as any, key);
+    const areas = Object.values(this.hass.areas).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+    return html`<fieldset
+      class="starter-review"
+      ?disabled=${this._startingPointBusy}
+    >
+      <legend>${text(`ui.components.starting_points.${starter}_title`)}</legend>
+      ${
+        starter === "room"
+          ? html`<label>
+              ${text("ui.components.starting_points.choose_room")}
+              <select
+                .value=${this._starterArea}
+                @change=${(ev: Event) => {
+                  this._starterArea = (
+                    ev.currentTarget as HTMLSelectElement
+                  ).value;
+                  this._starterMessage = undefined;
+                }}
+              >
+                <option value="">
+                  ${text("ui.components.starting_points.choose_room")}
+                </option>
+                ${areas.map((area) => html`<option value=${area.area_id}>${area.name}</option>`)}
+              </select>
+            </label>`
+          : nothing
+      }
+      <ha-button
+        @click=${() => {
+          this._starter = undefined;
+        }}
+        >${text("ui.common.cancel")}</ha-button
+      >
+      <ha-button
+        ?disabled=${this._startingPointBusy || (starter === "room" && !this._starterArea)}
+        @click=${this._applyDashboardStarter}
+        >${text("ui.common.apply")}</ha-button
+      >
+      ${this._starterMessage ? html`<span role="status">${text(`ui.components.starting_points.${this._starterMessage}`)}</span>` : nothing}
+    </fieldset>`;
+  }
+
+  private async _applyDashboardStarter() {
+    const { lovelace, path } = this;
+    const starter = this._starter;
+    if (!lovelace || !path || !starter || this._startingPointBusy) return;
+    if (starter === "empty") {
+      this._startBlank = true;
+      this._starter = undefined;
+      return;
+    }
+    this._startingPointBusy = true;
+    this._starterMessage = undefined;
+    try {
+      const sections = await dashboardStarterSections(
+        starter,
+        this.hass,
+        this._starterArea
+      );
+      if (
+        !this.isConnected ||
+        this.lovelace !== lovelace ||
+        JSON.stringify(this.path) !== JSON.stringify(path) ||
+        !lovelace.editMode
+      )
+        return;
+      if (!sections.length) {
+        this._starterMessage = "starter_empty";
+        return;
+      }
+      const current = getAtPath<LovelaceViewConfig>(lovelace.config, path);
+      if (!current || current.sections?.length) return;
+      const config = setAtPath(
+        lovelace.config,
+        [...path, "sections"],
+        sections
+      );
+      await lovelace.saveConfig(config);
+      this._starter = undefined;
+    } catch {
+      this._starterMessage = "starter_failed";
+    } finally {
+      this._startingPointBusy = false;
+    }
+  }
 
   private async _startingPointSelected(
     ev: CustomEvent<StartingPointSelectedDetail>
@@ -544,6 +677,18 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
     const path = this.path;
     // A second press while the first is still saving would add a second section
     if (!lovelace || !path || this._startingPointBusy) {
+      return;
+    }
+    const id = ev.detail.id;
+    if (
+      id === "home" ||
+      id === "room" ||
+      id === "tablet" ||
+      id === "energy" ||
+      id === "empty"
+    ) {
+      this._starter = id;
+      this._starterMessage = undefined;
       return;
     }
     this._startingPointBusy = true;
@@ -672,6 +817,23 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
 
       .starting-points {
         margin: var(--ha-space-4, 16px) 0;
+      }
+
+      .starter-review {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--ha-space-2, 8px);
+        min-width: 0;
+        border: 1px solid var(--divider-color);
+        border-radius: var(--ha-border-radius-lg, 12px);
+      }
+
+      .starter-review select {
+        display: block;
+        max-width: 100%;
+        min-height: 48px;
+        font: inherit;
       }
 
       .wrapper {

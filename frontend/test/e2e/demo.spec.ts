@@ -40,6 +40,21 @@ test.describe("Home Assistant Demo", () => {
     });
   });
 
+  test("command palette shortcut honors the saved device preference", async ({
+    page,
+  }) => {
+    await loadDemo(page);
+    await expect(page.locator(demoCardSelector).first()).toBeVisible();
+    const palette = page.locator("ha-quick-bar");
+    await page.keyboard.press("ControlOrMeta+Shift+f");
+    await expect(palette).toBeVisible();
+    await page.evaluate(() => localStorage.setItem("enableShortcuts", "false"));
+    await reloadDemo(page);
+    await expect(page.locator(demoCardSelector).first()).toBeVisible();
+    await page.keyboard.press("ControlOrMeta+Shift+f");
+    await expect(palette).toBeHidden();
+  });
+
   test("sidebar navigation changes the active panel", async ({ page }) => {
     await loadDemo(page);
     await openDemoSidebar(page);

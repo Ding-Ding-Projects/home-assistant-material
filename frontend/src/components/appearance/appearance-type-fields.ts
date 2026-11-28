@@ -21,6 +21,13 @@ export const FONT_FAMILIES = [
 
 export const FONT_WEIGHTS = [300, 400, 500, 600, 700, 800] as const;
 
+export const CHARACTER_SWITCHES = [
+  "italic",
+  "underline",
+  "strikethrough",
+  "smallCaps",
+] as const;
+
 export const TEXT_TRANSFORMS = [
   "none",
   "uppercase",
@@ -38,6 +45,9 @@ export interface TypeFields {
   fontFamily?: string;
   fontWeight?: number;
   italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
+  smallCaps?: boolean;
   /** A multiple of the font size. */
   lineHeight?: number;
   /** In em. */
@@ -113,8 +123,10 @@ export const normalizeTypeFields = (
   if ((FONT_WEIGHTS as readonly unknown[]).includes(value.fontWeight)) {
     result.fontWeight = value.fontWeight as number;
   }
-  if (typeof value.italic === "boolean") {
-    result.italic = value.italic;
+  for (const key of CHARACTER_SWITCHES) {
+    if (typeof value[key] === "boolean") {
+      result[key] = value[key];
+    }
   }
   const { lineHeight, letterSpacing, maxLines } = TYPE_RANGES;
   const height = clampNumber(
@@ -189,6 +201,16 @@ export const typeFieldsToStyles = (
   }
   if (fields.italic !== undefined) {
     styles["font-style"] = fields.italic ? "italic" : "normal";
+  }
+  if (fields.underline !== undefined || fields.strikethrough !== undefined) {
+    const lines = [
+      fields.underline && "underline",
+      fields.strikethrough && "line-through",
+    ].filter(Boolean);
+    styles["text-decoration-line"] = lines.join(" ") || "none";
+  }
+  if (fields.smallCaps !== undefined) {
+    styles["font-variant-caps"] = fields.smallCaps ? "small-caps" : "normal";
   }
   if (fields.lineHeight !== undefined) {
     styles["line-height"] = String(fields.lineHeight);

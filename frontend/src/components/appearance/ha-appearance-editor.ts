@@ -73,6 +73,7 @@ import type { HaSwitch } from "../ha-switch";
 import "../input/ha-input";
 import type { HaInput } from "../input/ha-input";
 import {
+  CHARACTER_SWITCHES,
   FONT_WEIGHTS,
   isTextTooSmall,
   MIN_READABLE_FONT_SIZE,
@@ -1100,16 +1101,20 @@ export class HaAppearanceEditor extends LitElement {
             })),
           ]
         )}
-        <div class="row">
-          <span>${this._l("field_italic")}</span>
-          <ha-switch
-            .checked=${this._appearance.italic === true}
-            aria-label=${this._l("field_italic")}
-            ?inert=${this._valueLocked("italic")}
-            @change=${this._italicChanged}
-          ></ha-switch>
-          ${this._clearButton("italic")}
-        </div>
+        ${CHARACTER_SWITCHES.map(
+          (key) =>
+            html`<div class="row">
+              <span>${this._l(`field_${key}`)}</span>
+              <ha-switch
+                .checked=${this._appearance[key] === true}
+                aria-label=${this._l(`field_${key}`)}
+                ?inert=${this._valueLocked(key)}
+                @change=${(ev: Event) =>
+                  this._set(key, (ev.currentTarget as HaSwitch).checked)}
+              ></ha-switch>
+              ${this._clearButton(key)}
+            </div>`
+        )}
         ${this._scalarRange(
           "lineHeight",
           lineHeight.min,
@@ -1370,10 +1375,6 @@ export class HaAppearanceEditor extends LitElement {
     } else {
       this._set(select.key, Number(chosen));
     }
-  }
-
-  private _italicChanged(ev: Event) {
-    this._set("italic", (ev.currentTarget as HaSwitch).checked);
   }
 
   private _layers(): FillLayer[] {

@@ -35,6 +35,7 @@ import "../../../components/ha-markdown";
 import "../../../components/ha-svg-icon";
 import type { PersistentNotification } from "../../../data/persistent_notification";
 import { subscribeNotifications } from "../../../data/persistent_notification";
+import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import { haStyle } from "../../../resources/styles";
@@ -251,7 +252,7 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
                     <ha-button
                       size="s"
                       appearance="plain"
-                      ?disabled=${!all.length}
+                      ?disabled=${!shown.length}
                       @click=${this._dismissAll}
                     >
                       ${this._modeLocalize("ui.notification_drawer.dismiss_all")}
@@ -579,10 +580,21 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
     }
   }
 
-  private _dismissAll(): void {
-    this._dismissMany(
-      (this._notifications ?? []).map((n) => n.notification_id)
-    );
+  private async _dismissAll(): Promise<void> {
+    const ids = this._shown().map((item) => item.notification_id);
+    if (!ids.length) {
+      return;
+    }
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("bulk_preview_title", { count: ids.length }),
+      text: this._l("bulk_preview_note", { days: DISMISSED_KEEP_DAYS }),
+      confirmText: this._l("bulk_dismiss"),
+      dismissText: this._modeLocalize("ui.common.cancel"),
+      destructive: true,
+    });
+    if (confirmed) {
+      await this._dismissMany(ids);
+    }
   }
 
   /**

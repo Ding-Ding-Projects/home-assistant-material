@@ -352,7 +352,6 @@ describe("another account on the same browser", () => {
     const { conn, handlers, saved } = makeConn();
     stop = startInstanceSync(conn as never, "user-b");
     handlers.settings_bundle({ value: null });
-    handlers.personal_wording({ value: null });
     handlers.appearance({ value: null });
     await vi.advanceTimersByTimeAsync(SETTLE * 3);
     expect(saved).toEqual([]);

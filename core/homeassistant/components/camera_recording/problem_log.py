@@ -42,14 +42,15 @@ def _without_user_info(rest: str) -> tuple[str, bool]:
 
 def _mask_url(match: re.Match[str]) -> str:
     rest, had_user = _without_user_info(match.group("rest"))
+    rest, hash_mark, _fragment = rest.partition("#")
     path, qmark, query = rest.partition("?")
     path = _PATH_SECRET.sub(lambda m: f"{m.group(1)}=***", path)
-    if qmark:
-        query, hash_mark, fragment = query.partition("#")
-        rest = f"{path}?{_mask_query(query)}{hash_mark}{fragment}"
-    else:
-        rest = path
-    return f"{match.group('scheme')}{'***@' if had_user else ''}{rest}"
+    masked_query = f"?{_mask_query(query)}" if qmark else ""
+    masked_fragment = "#***" if hash_mark else ""
+    return (
+        f"{match.group('scheme')}{'***@' if had_user else ''}"
+        f"{path}{masked_query}{masked_fragment}"
+    )
 
 
 def mask_secrets(text: str) -> str:

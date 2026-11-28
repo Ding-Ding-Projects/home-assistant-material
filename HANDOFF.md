@@ -1,5 +1,26 @@
 # Handoff
 
+## Issue and handoff sweep, 27 November 2026
+
+The sweep began on `main` at `ddc8aea3f78d5658563509616bdf5535155e5759`. The locally edited candidate still needs integrated verification and publication. All 12 issues were open at the start. Continue on `main` and record closures only after the corresponding published checks succeed.
+
+| Item | Evidence and next check |
+| --- | --- |
+| #1 appliance boot | Four build 572 manifests and their 12 listed release digests matched. The downloaded VirtualBox archive independently matched its checksum. EFI raised a general-protection exception before the kernel, so retry the isolated guest with one virtual CPU and VMSVGA. Pi emulation remains pending. |
+| #2 signed update | Verified build 569 source image and the build 572 signed update offer. Boot reached first-start services in the isolated guest. The update and post-reboot readback remain pending. |
+| #3 build entrypoints | Verified an actual nonzero build phase, installed dependency detection and invalid-board rejection on Windows. The portable build application and release attachment wiring are local. Verify the package built from the final source revision and run both supported build entrypoints against isolated targets. |
+| #4 shell | 163 focused tests passed. The published demo showed default tabs, mobile navigation, accessibility tools, Settings and Energy. First-run, dark appearance and complete design parity remain open. |
+| #5 language and personalization | 117 focused candidate tests passed for browser-local wording. The published demo exercised language, narration, focus, schedules, identity and wording persistence. Rebuild and verify local-only storage and clearing, and diagnose the Dim Sum toggle that returned to enabled. |
+| #6 appearance | 67 focused tests passed. The published demo verified keyboard typography and colour controls. Rebuild and verify the new underline, strikethrough and small-capital controls and the remaining appearance boards. |
+| #7 navigation | Existing checks passed 569 tests. The demo shortcut preference and dashboard starting points changed locally. Verify the updated shortcut and editor flows in the built candidate and complete the extension and pattern-workbench checklist. |
+| #8 safety and sign-in | The published demo reproduced immediate support-ticket deletion. The local repair uses the existing two-key confirmation. Authenticator enrollment cancellation and retry also changed. Verify the updated flows on a built instance with a synthetic enrollment module. |
+| #9 records | 179 focused checks passed, including confirmation and selection stability for notification dismissal. The published Changelog route showed release entries. Verify the rebuilt notifications workflow and finish the History, Export, Bulk, Docs and About checks. |
+| #10 tools | 269 existing focused checks and three editor-handoff checks passed. The candidate opens an available configuration editor or edits a selected local text copy. Built acceptance, forge handoff and world generation remain open. |
+| #11 appliance and add-on | The synthetic appliance runner passed startup, update, unhealthy-update recovery and rollback. Supervisor Store discovery after the fixture renames, add-on ingress and actual board boot remain pending. The ingress panel currently covers account setup, sign-in and entity viewing. |
+| #12 editors | The published demo reproduced loss of the Audio format selector at 390 px. The candidate restores the existing rich field route for speech options. Rebuild and replay the speech, named to-do and dashboard save/reload cases. |
+
+Published synthetic checks passed for camera row filtering and full-day timeline dragging, the printer dashboard cards and Stop confirmation, and the phone card editor across 20 card and viewport combinations. The camera recording repair passed 45 Core tests and a real FFmpeg fixture. The SSH repair passed a real isolated key, bind and revocation check and a loopback connection through the selected port. Playback and hardware proof, the installed SSH Settings flow and full startup restore remain open. Rebuild the integrated candidate once all edits are settled and run the publication scan before transmission.
+
 ## Phone card editor check, 27 November 2026
 
 At 390 × 844 CSS pixels in Chromium, the Floor lamp tile opened with its Config form visible in the published demo. The local demo built from `a5f04a15d` also opened the editor. On both builds, switching to Visibility, returning to Config and expanding Content exposed the name, icon, color and layout controls. On the local build the expanded form began at (12, 241) and measured 362 × 934 CSS pixels.

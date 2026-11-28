@@ -36,7 +36,6 @@ from .const import (
     SEGMENT_SUFFIX,
     SEGMENT_TIME_FORMAT,
 )
-
 from .problem_log import ProblemLog, comparison_key, mask_secrets, source_summary
 
 STABLE_RUN_SECONDS = 120
@@ -270,22 +269,22 @@ class CameraRecorder:
                 return
             sizes = await self.hass.async_add_executor_job(self._segment_sizes)
             now = time.monotonic()
-            if any(size != previous.get(name) for name, size in sizes.items()):
+            if any(size > previous.get(name, 0) for name, size in sizes.items()):
                 last_progress = now
                 if not seen:
                     seen = True
                     self._set(RecorderState.RECORDING)
+                if not stable and now - started >= STABLE_RUN_SECONDS:
+                    stable = True
+                    self._failures = 0
+                    self.problems.recovered()
             previous = sizes
-            if seen and not stable and now - started >= STABLE_RUN_SECONDS:
-                stable = True
-                self._failures = 0
-                self.problems.recovered()
             limit = STALL_SECONDS if seen else FIRST_FILE_SECONDS
             if now - last_progress >= limit:
                 what = "no new video was written" if seen else "no video was written"
                 self._cut_reason = (
-                    f"{what} in {limit} s although ffmpeg stayed connected to "
-                    f"{self.source_text}"
+                    f"{what} in {limit} s while ffmpeg was running "
+                    f"for {self.source_text}"
                 )
                 with suppress(ProcessLookupError):
                     process.kill()
@@ -447,8 +446,6 @@ class CameraRecorder:
         # ffmpeg's last line names the cause; earlier lines repeat it with addresses.
         last = self.stderr_tail[-1] if self.stderr_tail else "no output"
         message = self._cut_reason or f"ffmpeg exited with code {code}: {last}"
-        if time.monotonic() - started > STABLE_RUN_SECONDS:
-            self._failures = 0
         delay = self._backoff()
         self._set(RecorderState.RECONNECTING, message)
         detail = "\n".join(f"    ffmpeg: {line}" for line in self.stderr_tail)

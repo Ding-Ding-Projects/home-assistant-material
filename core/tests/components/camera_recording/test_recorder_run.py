@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import Iterator
 import logging
 from pathlib import Path
+from typing import Self
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -35,7 +36,7 @@ class LiveProcess:
         self.stderr = self
         self._done = asyncio.Event()
 
-    def __aiter__(self) -> "LiveProcess":
+    def __aiter__(self) -> Self:
         """Iterate until the process ends."""
         return self
 
@@ -145,14 +146,21 @@ async def test_same_failure_with_new_addresses_logs_once(
     with caplog.at_level(logging.INFO), spawn(first, second):
         await recorder._attempt()
         await recorder._attempt()
-    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    warnings = [
+        r
+        for r in caplog.records
+        if r.name == recorder_module.LOGGER.name and r.levelno == logging.WARNING
+    ]
     assert len(warnings) == 1
     assert "missed 12 packets" in warnings[0].getMessage()
 
 
 @pytest.mark.usefixtures("stream", "fast_watchdog")
 async def test_connected_but_silent_run_is_cut(
-    hass: HomeAssistant, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    hass: HomeAssistant,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Event and live clips in the folder do not make a silent ffmpeg look healthy."""
     hass.states.async_set(CAMERA, "idle")
@@ -160,16 +168,36 @@ async def test_connected_but_silent_run_is_cut(
     (tmp_path / EVENT_CLIP).write_bytes(b"x")
     (tmp_path / LIVE_CLIP).write_bytes(b"x")
     process = LiveProcess()
+    monkeypatch.setattr(recorder_module, "STABLE_RUN_SECONDS", 0.05)
+    recorder._failures = 1
     with caplog.at_level(logging.INFO), spawn(process):
-        delay = await recorder._attempt()
+        task = asyncio.create_task(recorder._attempt())
+        await wait_for(lambda: recorder.started_at is not None)
+        (tmp_path / SEGMENT).touch()
+        delay = await task
     assert process.killed
-    assert delay == 2
+    assert delay == 5
     assert recorder.state is RecorderState.RECONNECTING
     text = caplog.text
     assert "no video was written" in text
     assert "rtsps://203.0.113.50:322" in text
+    assert "to recording" not in text
     assert "12345678" not in text
     assert "resumed" not in text
+
+
+async def test_stream_source_timeout_reports_the_retry(
+    hass: HomeAssistant, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A source timeout keeps the recorder in no-stream state and gives a retry time."""
+    hass.states.async_set(CAMERA, "idle")
+    recorder = make_recorder(hass, tmp_path)
+    with patch(f"{PATCH}.async_get_stream_source", side_effect=TimeoutError):
+        assert await recorder._attempt() == 60
+
+    assert recorder.state is RecorderState.NO_STREAM
+    assert "the camera did not give its stream address within 10 s" in caplog.text
+    assert "retry in 60 s" in caplog.text
 
 
 @pytest.mark.usefixtures("stream", "fast_watchdog")
@@ -211,7 +239,11 @@ async def test_stable_run_clears_the_problem(
     with caplog.at_level(logging.INFO), spawn(process):
         task = asyncio.create_task(recorder._attempt())
         await wait_for(lambda: recorder.state is RecorderState.STARTING)
-        (tmp_path / SEGMENT).write_bytes(b"x")
+        for size in range(1, 12):
+            if not recorder.problems.active:
+                break
+            (tmp_path / SEGMENT).write_bytes(b"x" * size)
+            await asyncio.sleep(0.01)
         await wait_for(lambda: not recorder.problems.active)
         process.finish(0)
         await task

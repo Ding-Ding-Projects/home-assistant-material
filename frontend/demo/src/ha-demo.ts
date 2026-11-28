@@ -6,6 +6,7 @@ import type { MockHomeAssistant } from "../../src/fake_data/provide_hass";
 import { provideHass } from "../../src/fake_data/provide_hass";
 import { HomeAssistantAppEl } from "../../src/layouts/home-assistant";
 import type { HomeAssistant } from "../../src/types";
+import { getState } from "../../src/util/ha-pref-storage";
 import {
   applyDemoTheme,
   demoConfigEntities,
@@ -97,6 +98,7 @@ export class HaDemo extends HomeAssistantAppEl {
   protected async _initializeHass() {
     const initial: Partial<MockHomeAssistant> = {
       panelUrl: (this as any)._panelUrl,
+      enableShortcuts: getState().enableShortcuts ?? true,
       // Override updateHass so that the correct hass lifecycle methods are called
       updateHass: (hassUpdate: Partial<HomeAssistant>) =>
         this._updateHass(hassUpdate),

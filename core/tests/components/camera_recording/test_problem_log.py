@@ -28,8 +28,9 @@ RTSPS = "rtsps://bblp:12345678@203.0.113.50:322/streaming/live/1"
         ),
         (
             "rtsp://user@cam:554/s?password=hunter2#frag",
-            "rtsp://***@cam:554/s?password=***#frag",
+            "rtsp://***@cam:554/s?password=***#***",
         ),
+        ("https://cam/s#access_token=sensitive", "https://cam/s#***"),
         ("rtsp://cam/stream", "rtsp://cam/stream"),
         ("Connection refused", "Connection refused"),
     ],
@@ -51,7 +52,9 @@ def test_problem_is_logged_once_then_repeated_rarely(
     """A repeating problem is quiet until the repeat time, then logs the attempt count."""
     problems = ProblemLog(logging.getLogger("test_problem_log"), "Recording camera.x")
     with caplog.at_level(logging.INFO, logger="test_problem_log"):
-        assert problems.failed("ffmpeg exited with code 1", now=0, suffix=" [retry 2 s]")
+        assert problems.failed(
+            "ffmpeg exited with code 1", now=0, suffix=" [retry 2 s]"
+        )
         assert not problems.failed("ffmpeg exited with code 1", now=5)
         assert not problems.failed("ffmpeg exited with code 1", now=REPEAT_SECONDS - 1)
         assert problems.failed("ffmpeg exited with code 1", now=REPEAT_SECONDS)

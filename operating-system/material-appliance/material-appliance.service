@@ -1,0 +1,17 @@
+[Unit]
+Description=Single application appliance
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+RequiresMountsFor=/mnt/data
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/material-appliance start
+ExecStop=/usr/sbin/material-appliance stop
+TimeoutStartSec=6min
+TimeoutStopSec=3min
+
+[Install]
+WantedBy=multi-user.target

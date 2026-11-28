@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Home Assistant Material Build</title><link rel="stylesheet" href="style.css"><script src="controls.js" defer></script></head>
+<body><main>
+<h1>Build workspace</h1>
+<p id="source">Preparing source…</p>
+<div class="targets"><section><h2>Container image</h2><button data-action="build" disabled>Build</button> <button data-action="run" disabled>Build and run</button></section>
+<section><h2>Appliance image</h2><label for="board">Target</label> <select id="board"><option value="ova">Virtual machine (OVA)</option><option value="rpi5-64">Raspberry Pi 5</option><option value="rpi4-64">Raspberry Pi 4</option><option value="rpi3-64">Raspberry Pi 3</option></select> <button data-action="installer" disabled>Build installer</button></section></div>
+<section class="output"><div class="toolbar"><h2>Build output</h2><button id="cancel" disabled>Cancel build</button></div>
+<p role="status" id="status">Loading</p><pre id="log" tabindex="0" aria-label="Build output"></pre></section>
+</main></body></html>

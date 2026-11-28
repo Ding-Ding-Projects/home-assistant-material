@@ -1,0 +1,21 @@
+{
+  "name": "home-assistant-material-build",
+  "productName": "Home Assistant Material Build",
+  "version": "1.0.0",
+  "description": "Build Home Assistant Material images and appliance installers",
+  "author": "Ding Ding Projects",
+  "license": "Apache-2.0",
+  "main": "main.cjs",
+  "devDependencies": {
+    "electron": "45.5.0",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "org.dingdingprojects.homeassistantmaterial.build",
+    "files": ["main.cjs", "source.cjs", "preload.cjs", "ui/**"],
+    "extraResources": [{"from": ".snapshot", "to": "source"}, {"from": "prerequisites.ps1", "to": "prerequisites.ps1"}],
+    "directories": {"output": "../dist/build-companion"},
+    "win": {"target": "portable", "signAndEditExecutable": false},
+    "portable": {"artifactName": "Home-Assistant-Material-Build.exe"}
+  }
+}

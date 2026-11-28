@@ -224,7 +224,7 @@ describe("speech", () => {
     "cache",
   ];
 
-  it("offers speakers, a counted message, languages, voices and a test button", () => {
+  it("offers speakers, a counted message, languages and a test button", () => {
     const controls = buildQuickControls(
       context("tts.speak", keys, {}, [engine], {
         engines: {
@@ -251,16 +251,7 @@ describe("speech", () => {
       valueType: "language",
       selector: { language: { languages: ["en", "yue"] } },
     });
-    const options = find(controls, "options");
-    expect(options).toMatchObject({ kind: "options" });
-    expect(
-      (options as Extract<QuickControl, { kind: "options" }>).fields.map(
-        (field) => [field.name, field.type]
-      )
-    ).toEqual([
-      ["voice", "voice"],
-      ["preferred_format", "text"],
-    ]);
+    expect(find(controls, "options")).toBeUndefined();
     expect(find(controls, "cache")).toMatchObject({ kind: "switch" });
     expect(find(controls, "$run")).toMatchObject({ kind: "run" });
   });
@@ -279,9 +270,19 @@ describe("speech", () => {
     expect(find(say, "$run")).toBeUndefined();
   });
 
-  it("keeps stored engine options visible and editable", () => {
+  it.each([{}, { options: { voice: "{{ voice }}", vendor: 1 } }])(
+    "leaves speak options to the provider-aware service field",
+    (data) => {
+      const ctx = context("tts.speak", ["options"], data, [engine]);
+      const controls = buildQuickControls(ctx);
+      expect(find(controls, "options")).toBeUndefined();
+      expect(unsupportedKeys(ctx, controls).has("options")).toBe(false);
+    }
+  );
+
+  it("keeps stored legacy say options visible and editable", () => {
     const controls = buildQuickControls(
-      context("tts.speak", ["options"], { options: { voice: "x", vendor: 1 } })
+      context("tts.say", ["options"], { options: { voice: "x", vendor: 1 } })
     );
     expect(find(controls, "options")).toMatchObject({
       value: { voice: "x", vendor: 1 },

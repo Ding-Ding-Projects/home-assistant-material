@@ -8,6 +8,7 @@ rem   build.bat --demo     build the interactive Pages demo in frontend\demo\dis
 rem   build.bat --backup-bootstrap-helper   build the pinned offline image helper
 rem   build.bat --supervisor                build the Supervisor container
 rem   build.bat --deploy-assistant          build the native desktop installer
+rem   build.bat --build-companion           package the portable build application
 rem   /s, --silent or SILENT=1 run without pausing at the end
 rem
 rem Every phase reports its real result. The script stops at the first failure and
@@ -23,17 +24,19 @@ set "TARGET=core"
 if /i "%SILENT%"=="1" set "QUIET=1"
 :args
 if "%~1"=="" goto args_done
-if /i "%~1"=="/s" set "QUIET=1"
-if /i "%~1"=="--silent" set "QUIET=1"
-if /i "%~1"=="--run" set "RUN=1"
-if /i "%~1"=="--demo" set "DEMO=1"
-if /i "%~1"=="--backup-bootstrap-helper" set "TARGET=backup-bootstrap-helper"
-if /i "%~1"=="--supervisor" set "TARGET=supervisor"
-if /i "%~1"=="--deploy-assistant" set "TARGET=deploy-assistant"
+if /i "%~1"=="/s" (set "QUIET=1") else if /i "%~1"=="--silent" (set "QUIET=1") else if /i "%~1"=="--run" (set "RUN=1") else if /i "%~1"=="--demo" (set "DEMO=1") else if /i "%~1"=="--backup-bootstrap-helper" (set "TARGET=backup-bootstrap-helper") else if /i "%~1"=="--supervisor" (set "TARGET=supervisor") else if /i "%~1"=="--deploy-assistant" (set "TARGET=deploy-assistant") else if /i "%~1"=="--build-companion" (set "TARGET=build-companion") else (
+  echo Unknown build option.
+  exit /b 2
+)
 shift
 goto args
 :args_done
 set "RC=0"
+if "%TARGET%"=="build-companion" (
+  call "%BUILD_ROOT%build-companion\package.bat"
+  set "RC=!errorlevel!"
+  goto done
+)
 if "%TARGET%"=="deploy-assistant" (
   call "%BUILD_ROOT%deploy-assistant\build.bat" notest
   set "RC=!errorlevel!"
@@ -48,6 +51,7 @@ if errorlevel 1 (
   echo Docker is not installed. Starting the dependency installer.
   if "%QUIET%"=="1" (call "%BUILD_ROOT%download-dependencies.bat" /s) else (call "%BUILD_ROOT%download-dependencies.bat")
   if errorlevel 1 ( set "RC=3" & echo The dependency installer did not finish. & goto done )
+  if exist "%ProgramFiles%\Docker\Docker\resources\bin\docker.exe" set "PATH=%ProgramFiles%\Docker\Docker\resources\bin;!PATH!"
   where docker >nul 2>&1
   if errorlevel 1 ( set "RC=3" & echo Docker was installed but is not on PATH yet. Sign out and in, then run build.bat again. & goto done )
 )
@@ -135,11 +139,14 @@ echo.
 echo [5/5] Result
 docker image inspect home-assistant-material:local --format "Built {{.Id}}"
 if errorlevel 1 ( set "RC=!errorlevel!" & echo The image is missing after the build. & goto done )
-if defined HA_BUILD_MACHINE docker image inspect home-assistant-material:machine-local --format "Built machine image {{.Id}}"
+if defined HA_BUILD_MACHINE (
+  docker image inspect home-assistant-material:machine-local --format "Built machine image {{.Id}}"
+  if errorlevel 1 (set "RC=!errorlevel!" & goto done)
+)
 if "%RUN%"=="0" goto done
 if not exist config mkdir config
-docker rm -f home-assistant-material >nul 2>&1
-docker run -d --name home-assistant-material -p 8123:8123 -v "%CD%\config:/config" home-assistant-material:local
+rem Docker rejects an occupied name or port without replacing another installation.
+docker run -d --name home-assistant-material -p 127.0.0.1:8123:8123 -v "%CD%\config:/config" home-assistant-material:local
 if errorlevel 1 ( set "RC=!errorlevel!" & echo The container did not start. & goto done )
 echo Waiting for http://localhost:8123 ...
 set /a TRIES=0

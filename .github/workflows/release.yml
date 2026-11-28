@@ -661,6 +661,42 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  build_companion:
+    name: Package the portable build application
+    needs: prepare
+    if: needs.prepare.outputs.heavy == 'true' && github.event_name == 'workflow_dispatch'
+    runs-on: windows-2025
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: build-companion
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: build-companion/package-lock.json
+      - name: Package the application and its source snapshot
+        shell: cmd
+        run: build.bat --build-companion /s
+      - name: Record the package checksum
+        shell: pwsh
+        working-directory: dist/build-companion
+        run: |
+          $package = 'Home-Assistant-Material-Build.exe'
+          $digest = (Get-FileHash -LiteralPath $package -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+          "$digest  $package" | Set-Content -LiteralPath SHA256SUMS.build-companion -Encoding ascii
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-build-companion
+          path: |
+            dist/build-companion/Home-Assistant-Material-Build.exe
+            dist/build-companion/SHA256SUMS.build-companion
+          if-no-files-found: error
+          retention-days: 14
+
   # Moves the Core and Supervisor entries of the update feed as soon as their images
   # exist, so an installed instance is offered the build without waiting one to two
   # hours for the operating system images. Operating system entries are untouched
@@ -696,7 +732,7 @@ jobs:
   # documentation or design files only skips every build job and therefore this one.
   publish:
     name: Publish the release
-    needs: [prepare, frontend, translations, core, supervisor, container, full, os, assistant]
+    needs: [prepare, frontend, translations, core, supervisor, container, full, os, assistant, build_companion]
     outputs:
       refresh_project_page: ${{ steps.publish_release.outputs.refresh_project_page }}
     # Source pushes retain build outputs. Publication is an explicit delivery
@@ -726,6 +762,7 @@ jobs:
       R_FULL: ${{ needs.full.result }}
       R_OS: ${{ needs.os.result }}
       R_ASSISTANT: ${{ needs.assistant.result }}
+      R_BUILD_COMPANION: ${{ needs.build_companion.result }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -782,6 +819,11 @@ jobs:
             compgen -G "${dir}/haos_*" >/dev/null || { echo "::error::No operating system image for ${id}."; exit 1; }
           done
           compgen -G "staged/release-assistant/*" >/dev/null || { echo "::error::No Deploy Assistant files."; exit 1; }
+          (
+            cd staged/release-build-companion
+            test -s Home-Assistant-Material-Build.exe
+            sha256sum --check SHA256SUMS.build-companion
+          )
 
           # The update feed file that goes with the release.
           mkdir out
@@ -838,6 +880,7 @@ jobs:
             echo "### Deploy Assistant"
             echo
             echo "The desktop app that installs and manages this product is attached: \`HAM-Deploy-Assistant-Setup.exe\` for Windows, the \`.deb\` or Linux \`.zip\`, and the macOS \`.zip\`. These are the files of ${ASSISTANT_TAG}, copied unchanged; check them against \`SHA256SUMS.deploy-assistant\`. Nothing is code-signed."
+            echo "The portable Windows build application is attached as \`Home-Assistant-Material-Build.exe\`. It includes this release's source snapshot. Check it against \`SHA256SUMS.build-companion\`."
             echo
             echo "### Checks"
             echo
@@ -854,6 +897,7 @@ jobs:
             echo "| Full hosting mode image | ${R_FULL} |"
             echo "| Operating system images | ${R_OS} |"
             echo "| Deploy Assistant files | ${R_ASSISTANT} |"
+            echo "| Portable build application | ${R_BUILD_COMPANION} |"
             echo
             finished="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
             seconds=$(( $(date --utc --date "${finished}" +%s) - $(date --utc --date "${STARTED}" +%s) ))

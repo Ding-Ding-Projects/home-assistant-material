@@ -49,6 +49,18 @@ endef
 
 HASSIO_INSTALL_IMAGES = YES
 
+# The appliance build uses the same data-partition producer, with a single
+# platform-specific archive and no Supervisor post-import tagging.
+ifneq ($(strip $(HAOS_APPLIANCE_IMAGE)),)
+HASSIO_DATA_IMAGE_SIZE = 6G
+define HASSIO_CONFIGURE_CMDS
+	true
+endef
+define HASSIO_BUILD_CMDS
+	bash "$(BR2_EXTERNAL_HAOS_PATH)/../material-appliance/preload.sh" "$(BR2_PACKAGE_HASSIO_ARCH)" "$(@D)"
+endef
+endif
+
 define HASSIO_INSTALL_IMAGES_CMDS
 	$(BR2_EXTERNAL_HAOS_PATH)/package/hassio/create-data-partition.sh "$(@D)" "$(BINARIES_DIR)" "$(HASSIO_VERSION_CHANNEL)" "$(DOCKER_ENGINE_VERSION)" "$(HASSIO_DATA_IMAGE_SIZE)"
 endef

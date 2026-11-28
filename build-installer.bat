@@ -37,6 +37,12 @@ if "%DEFCONFIG%"=="" ( set "RC=2" & echo Unknown board "%BOARD%". Use ova, rpi5-
 
 echo.
 echo [1/4] Checking for Docker
+where docker >nul 2>&1
+if errorlevel 1 (
+  if "%QUIET%"=="1" (call "%BUILD_ROOT%download-dependencies.bat" /s) else (call "%BUILD_ROOT%download-dependencies.bat")
+  if errorlevel 1 (set "RC=!errorlevel!" & goto done)
+  if exist "%ProgramFiles%\Docker\Docker\resources\bin\docker.exe" set "PATH=%ProgramFiles%\Docker\Docker\resources\bin;!PATH!"
+)
 docker version >nul 2>&1
 if errorlevel 1 ( set "RC=3" & echo Docker is not running. Run build.bat once, it installs and starts Docker. & goto done )
 
@@ -47,18 +53,18 @@ if errorlevel 1 ( set "RC=!errorlevel!" & echo The build container failed to bui
 
 echo.
 echo [3/4] Building the %BOARD% image (several hours on the first run)
-if not exist dist\os mkdir dist\os
-del /q dist\os\haos_* >nul 2>&1
-docker run --rm --privileged -e BUILDER_UID=1000 -e BUILDER_GID=1000 -v "%CD%:/repo:ro" -v ham-os-work:/work -v ham-os-cache:/cache -v "%CD%\dist\os:/out" haos-builder bash /repo/build/os-in-container.sh %DEFCONFIG%
+for /f %%I in ('powershell -NoProfile -Command "[guid]::NewGuid().ToString('N')"') do set "RUN_ID=%%I"
+if not defined RUN_ID (set "RC=5" & echo Could not allocate an output directory. & goto done)
+set "OS_STAGE=%CD%\dist\os\.build-%RUN_ID%"
+mkdir "%OS_STAGE%" || (set "RC=5" & goto done)
+rem Use a fresh anonymous work volume. Docker removes it with the build container.
+docker run --rm --privileged -e BUILDER_UID=1000 -e BUILDER_GID=1000 -v "%CD%:/repo:ro" -v /work -v ham-os-cache:/cache -v "%OS_STAGE%:/out" haos-builder bash /repo/build/os-in-container.sh %DEFCONFIG%
 if errorlevel 1 ( set "RC=!errorlevel!" & echo The operating system build failed. & goto done )
 
 echo.
 echo [4/4] Result
-if not exist dist\os\haos_* ( set "RC=5" & echo The build finished without producing an image. & goto done )
-for %%F in (dist\os\haos_*) do (
-  echo %%~fF
-  certutil -hashfile "%%~fF" SHA256 | findstr /v /c:"hash" /c:"CertUtil"
-)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%BUILD_ROOT%build-companion\publish-images.ps1" -Stage "%OS_STAGE%"
+set "RC=!errorlevel!"
 
 :done
 echo.

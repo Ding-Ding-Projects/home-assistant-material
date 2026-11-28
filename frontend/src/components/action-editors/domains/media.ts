@@ -73,8 +73,10 @@ const ttsControls =
         .map((name) => optionField(name, "text")),
     ];
     const options = dictionary(ctx, "options");
+    // The speak service's object selector resolves typed options across targets.
+    // Legacy say services still use the quick editor for provider-specific data.
     const optionsControl: QuickControl | undefined =
-      claim(ctx, "options") && options !== null
+      ctx.action !== "tts.speak" && claim(ctx, "options") && options !== null
         ? {
             kind: "options",
             key: "options",

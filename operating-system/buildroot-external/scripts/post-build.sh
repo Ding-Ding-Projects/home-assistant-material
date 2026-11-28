@@ -59,3 +59,14 @@ install_bootloader_config
 
 # Fix overlay presets
 "${HOST_DIR}/bin/systemctl" --root="${TARGET_DIR}" preset-all
+
+if [[ -n ${HAOS_APPLIANCE_IMAGE:-} ]]; then
+    appliance="${BR2_EXTERNAL_HAOS_PATH}/../material-appliance"
+    bash "${appliance}/validate-image.sh" "${HAOS_APPLIANCE_IMAGE}"
+    install -Dm755 "${appliance}/manage.sh" "${TARGET_DIR}/usr/sbin/material-appliance"
+    install -Dm755 "${appliance}/validate-image.sh" "${TARGET_DIR}/usr/libexec/material-validate-image"
+    install -Dm644 "${appliance}/material-appliance.service" "${TARGET_DIR}/usr/lib/systemd/system/material-appliance.service"
+    printf '%s\n' "${HAOS_APPLIANCE_IMAGE}" > "${TARGET_DIR}/usr/lib/material-appliance-image"
+    "${HOST_DIR}/bin/systemctl" --root="${TARGET_DIR}" mask haos-supervisor.service
+    "${HOST_DIR}/bin/systemctl" --root="${TARGET_DIR}" enable material-appliance.service
+fi

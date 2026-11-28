@@ -57,10 +57,13 @@ ssh_has_keys() {
 }
 
 ssh_start() {
+  # Without an outer IPv4 address there is no safe interface to listen on.
+  # Leave the listener off; the watcher retries when the interface is ready.
+  addr="$(ip -4 -o addr show dev eth0 scope global 2>/dev/null | awk '$3 == "inet" {split($4, a, "/"); print a[1]; exit}')"
+  [ -n "${addr}" ] || return 0
   # An empty host key file would make the server exit at once, so replace it.
   [ -s "${SSH_HOST_KEY}" ] || { rm -f "${SSH_HOST_KEY}"; dropbearkey -t ed25519 -f "${SSH_HOST_KEY}" >/dev/null 2>&1; }
-  addr="$(ip -4 -o addr show dev eth0 2>/dev/null | awk '{split($4, a, "/"); print a[1]; exit}')"
-  dropbear -F -E -s -g -r "${SSH_HOST_KEY}" -D "${SSH_DIR}" -p "${addr:-0.0.0.0}:${SSH_PORT}" &
+  dropbear -F -E -s -g -r "${SSH_HOST_KEY}" -D "${SSH_DIR}" -p "${addr}:${SSH_PORT}" &
   sleep 1
   if pgrep -x dropbear >/dev/null; then
     log "SSH answers on port ${SSH_PORT} for the keys on the SSH access page."

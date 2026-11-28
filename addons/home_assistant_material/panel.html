@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Assistant Material</title>
+<style>
+  :root { color-scheme: light dark; font: 100% system-ui, sans-serif }
+  body { margin: 1.5rem auto; padding: 0 1rem; max-width: 44rem }
+  label { display: block; margin-block: 1rem }
+  input, button { box-sizing: border-box; font: inherit; padding: .65rem; max-width: 100% }
+  label input { display: block; width: 25rem }
+  li { overflow-wrap: anywhere; padding-block: .35rem }
+</style>
+<main>
+  <h1>Home Assistant Material</h1>
+  <p id="status" role="status">Connecting to the separate instance…</p>
+  <button id="retry" hidden>Retry connection</button>
+  <form id="login" hidden>
+    <label id="nameField" hidden>Display name<input id="name" autocomplete="name"></label>
+    <label>Username<input id="username" autocomplete="username" required></label>
+    <label>Password<input id="password" autocomplete="current-password" type="password" required></label>
+    <button id="submit">Sign in</button>
+  </form>
+  <form id="verify" hidden>
+    <label>Verification code<input id="code" autocomplete="one-time-code" required></label>
+    <button>Verify</button>
+  </form>
+  <section id="entities" hidden>
+    <h2>Entity states</h2>
+    <button id="refresh">Refresh</button>
+    <button id="logout">Sign out</button>
+    <ul id="states"></ul>
+  </section>
+</main>
+<script src="panel.js" defer></script>
+</html>

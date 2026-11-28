@@ -82,6 +82,7 @@ class HaAuthenticatorSetupDialog extends LitElement {
     }
     this._params = params;
     this._instance++;
+    this._submitting = false;
     this._done = false;
     this._step = undefined;
     this._code = "";
@@ -347,7 +348,11 @@ class HaAuthenticatorSetupDialog extends LitElement {
     if (!secret) {
       return;
     }
-    const ok = await this._writeClipboard(secret);
+    const current = this._instance;
+    const ok = await this._writeClipboard(secret, current);
+    if (current !== this._instance) {
+      return;
+    }
     this._copied = ok;
     this._copyFailed = !ok;
     window.clearTimeout(this._copiedTimer);
@@ -359,11 +364,17 @@ class HaAuthenticatorSetupDialog extends LitElement {
   }
 
   // True only when the text really reached the clipboard
-  private async _writeClipboard(text: string): Promise<boolean> {
+  private async _writeClipboard(
+    text: string,
+    current: number
+  ): Promise<boolean> {
     try {
       await navigator.clipboard.writeText(text);
       return true;
     } catch {
+      if (current !== this._instance) {
+        return false;
+      }
       // Fall back to a hidden field inside this dialog, so that its focus
       // trap does not block the selection
       const el = document.createElement("textarea");
@@ -440,7 +451,9 @@ class HaAuthenticatorSetupDialog extends LitElement {
         this._focusCode = !this._flowLost;
       }
     } finally {
-      this._submitting = false;
+      if (current === this._instance) {
+        this._submitting = false;
+      }
     }
   }
 

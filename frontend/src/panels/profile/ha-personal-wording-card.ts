@@ -15,9 +15,7 @@ import {
   importWordingFile,
   reportWordingImport,
 } from "../../common/vocabulary/wording-import";
-import { wordingSync } from "../../common/vocabulary/wording-sync";
 import { showConfirmationDialog } from "../../dialogs/generic/show-dialog-box";
-import "../../components/instance-sync/ha-instance-sync-status";
 import "../../components/ha-alert";
 import "../../components/ha-button";
 import "../../components/ha-card";
@@ -177,10 +175,6 @@ export class HaPersonalWordingCard extends LitElement {
                 </ha-alert>`
               : nothing
           }
-          <ha-instance-sync-status
-            .sync=${wordingSync}
-            .localize=${localize}
-          ></ha-instance-sync-status>
           <p class="note">${localize("ui.personal_wording.saved_where")}</p>
           <p class="note">${localize("ui.personal_wording.clear_note")}</p>
         </div>

@@ -212,6 +212,31 @@ describe("element paths", () => {
 });
 
 describe("applying choices", () => {
+  it("restores saved character styles independently and resets to the original style", () => {
+    const element = document.createElement("span");
+    element.style.setProperty("text-decoration-line", "overline");
+    document.body.append(element);
+    const choice = normalizeAppearance(
+      JSON.parse('{"underline":true,"strikethrough":true,"smallCaps":true}')
+    );
+    applyAppearance(element, choice);
+    expect(element.style.getPropertyValue("text-decoration-line")).toBe(
+      "underline line-through"
+    );
+    expect(element.style.getPropertyValue("font-variant-caps")).toBe(
+      "small-caps"
+    );
+    applyAppearance(element, { ...choice, underline: false });
+    expect(element.style.getPropertyValue("text-decoration-line")).toBe(
+      "line-through"
+    );
+    applyAppearance(element, undefined);
+    expect(element.style.getPropertyValue("text-decoration-line")).toBe(
+      "overline"
+    );
+    expect(element.style.getPropertyValue("font-variant-caps")).toBe("");
+  });
+
   it("restores an element when its choice is removed", () => {
     const element = document.createElement("div");
     element.style.setProperty("margin", "4px");

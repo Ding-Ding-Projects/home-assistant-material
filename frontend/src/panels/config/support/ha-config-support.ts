@@ -33,6 +33,7 @@ import "../../../components/ha-textarea";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
 import { fetchProblemLog } from "../../../data/problem_log";
+import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
@@ -614,9 +615,32 @@ ${this._bundle}</pre>
     }
   }
 
-  private _remove(ev: Event): void {
+  private async _remove(ev: Event): Promise<void> {
     const number = this._ticketNumber(ev);
-    writeTickets(withoutTicket(readTickets(), number));
+    const ticket = readTickets().tickets.find((item) => item.number === number);
+    if (
+      !ticket ||
+      !(await showConfirmationDialog(this, {
+        title: this._l("remove_ticket", { number }),
+        text: ticket.subject,
+        confirmText: this._l("remove"),
+        destructive: true,
+      }))
+    ) {
+      return;
+    }
+    const store = readTickets();
+    if (
+      !store.tickets.some(
+        (item) =>
+          item.number === number &&
+          item.created === ticket.created &&
+          item.subject === ticket.subject
+      )
+    ) {
+      return;
+    }
+    writeTickets(withoutTicket(store, number));
     this._tickets = readTickets().tickets;
     this._saveExtras(pruneExtras(readExtras(), this._tickets));
     if (this._openNumber === number) {

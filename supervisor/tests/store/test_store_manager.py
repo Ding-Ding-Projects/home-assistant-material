@@ -155,7 +155,7 @@ async def test_update_unavailable_app(
 ):
     """Test updating app when new version not available for system."""
     app_config = dict(
-        await coresys.run_in_executor(load_yaml_fixture, "apps/local/ssh/config.yaml"),
+        await coresys.run_in_executor(load_yaml_fixture, "apps/local/ssh/fixture-config.yaml"),
         version=AwesomeVersion("10.0.0"),
         **config,
     )
@@ -212,7 +212,7 @@ async def test_install_unavailable_app(
 ):
     """Test updating app when new version not available for system."""
     app_config = dict(
-        await coresys.run_in_executor(load_yaml_fixture, "apps/local/ssh/config.yaml"),
+        await coresys.run_in_executor(load_yaml_fixture, "apps/local/ssh/fixture-config.yaml"),
         version=AwesomeVersion("10.0.0"),
         **config,
     )

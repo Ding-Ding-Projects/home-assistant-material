@@ -36,6 +36,7 @@ import { saveFrontendSystemData } from "../data/frontend";
 import type { OnboardingResponses, OnboardingStep } from "../data/onboarding";
 import {
   fetchOnboardingPendingRestore,
+  pendingRestorePollDelay,
   type OnboardingPendingRestore,
 } from "../data/onboarding-pending-restore";
 import "./onboarding-pending-restore";
@@ -113,12 +114,14 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
 
   @state() private _pendingRestore?: OnboardingPendingRestore;
 
-  /** True once the server has answered about a queued restore, or has not. */
+  /** True once Core has answered whether a queued restore is visible. */
   @state() private _pendingRestoreChecked = false;
 
   private _pendingTimer?: number;
 
   private _pendingMisses = 0;
+
+  private _pendingRequest = 0;
 
   @state() private _steps?: OnboardingStep[];
 
@@ -132,6 +135,7 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this._pendingRequest++;
     window.clearTimeout(this._pendingTimer);
     mainWindow.removeEventListener("location-changed", this._updatePage);
     mainWindow.removeEventListener("popstate", this._updatePage);
@@ -184,22 +188,24 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
   // and then its result in place of the welcome step; poll while it is active.
   private _checkPendingRestore = async () => {
     window.clearTimeout(this._pendingTimer);
+    const request = ++this._pendingRequest;
     const result = await fetchOnboardingPendingRestore();
+    if (request !== this._pendingRequest || !this.isConnected) {
+      return;
+    }
     const previous = this._pendingRestore?.state;
     const wasActive = previous === "queued" || previous === "running";
 
-    if (result.status === "unreachable" && wasActive) {
-      // A restore stops Core on purpose. Keep the last known state on screen
-      // and ask again, slower the longer it takes.
-      this._pendingMisses++;
-      this._pendingTimer = window.setTimeout(
-        this._checkPendingRestore,
-        Math.min(3000 * 2 ** Math.min(this._pendingMisses, 3), 24000)
-      );
+    this._pendingMisses = result.status === "unreachable" ? this._pendingMisses + 1 : 0;
+    const delay = pendingRestorePollDelay(result, this._pendingMisses);
+    if (delay !== undefined) {
+      this._pendingTimer = window.setTimeout(this._checkPendingRestore, delay);
+    }
+    if (result.status === "unreachable") {
+      // Core may already be restarting when onboarding makes its first request.
       return;
     }
 
-    this._pendingMisses = 0;
     this._pendingRestoreChecked = true;
     if (result.status === "record") {
       this._pendingRestore = result.restore;
@@ -210,10 +216,6 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
     } else {
       this._pendingRestore = undefined;
     }
-    const restoreState = this._pendingRestore?.state;
-    if (restoreState === "queued" || restoreState === "running") {
-      this._pendingTimer = window.setTimeout(this._checkPendingRestore, 3000);
-    }
   };
 
   private _signInAfterRestore() {
@@ -221,6 +223,7 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
   }
 
   private _dismissPendingRestore() {
+    this._pendingRequest++;
     window.clearTimeout(this._pendingTimer);
     this._pendingRestore = undefined;
   }
@@ -324,7 +327,7 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
     // Do not draw the welcome step until the server has said whether a
     // restore is queued, or it would flash up and then be swapped away
     if (this._init && !this._pendingRestoreChecked) {
-      return nothing;
+      return html`<onboarding-loading></onboarding-loading>`;
     }
 
     if (this._init && this._pendingRestore) {

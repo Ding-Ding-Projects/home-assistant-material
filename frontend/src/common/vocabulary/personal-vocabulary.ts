@@ -320,19 +320,6 @@ export const applyPersonalVocabulary = (text: string): string => {
   return result;
 };
 
-const localListeners = new Set<() => void>();
-
-/**
- * Calls back after the person loads or clears wording here. A copy that
- * arrives from the instance does not call it, so the two never echo.
- */
-export const subscribeLocalVocabularyChange = (
-  listener: () => void
-): (() => void) => {
-  localListeners.add(listener);
-  return () => localListeners.delete(listener);
-};
-
 /** The checked entries cached in this browser, or undefined if there are none. */
 export const getStoredPersonalVocabulary = ():
   Record<string, string> | undefined => {
@@ -347,30 +334,6 @@ export const getStoredPersonalVocabulary = ():
   }
   const result = parsePersonalVocabulary(cached);
   return result.ok && result.count ? result.entries : undefined;
-};
-
-/**
- * Puts wording that came from the instance in use and in the cache, or
- * returns every label to the shipped wording when given nothing. No
- * celebration and no sync callback: only a fresh drop celebrates.
- */
-export const applyInstanceVocabulary = (
-  entries: Record<string, string> | undefined
-): void => {
-  try {
-    if (entries) {
-      window.localStorage.setItem(
-        VOCABULARY_STORAGE_KEY,
-        JSON.stringify({ schemaVersion: 1, entries })
-      );
-    } else {
-      window.localStorage.removeItem(VOCABULARY_STORAGE_KEY);
-    }
-  } catch (_err) {
-    // Without storage the wording still applies until the page is closed.
-  }
-  activate(entries);
-  announce();
 };
 
 const announce = () => {
@@ -398,7 +361,6 @@ export const loadPersonalVocabulary = (input: Uint8Array): VocabularyResult => {
   }
   activate(result.entries);
   announce();
-  localListeners.forEach((listener) => listener());
   return result;
 };
 
@@ -411,7 +373,6 @@ export const clearPersonalVocabulary = (): void => {
   }
   activate(undefined);
   announce();
-  localListeners.forEach((listener) => listener());
 };
 
 /**

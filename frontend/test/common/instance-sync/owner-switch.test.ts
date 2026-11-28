@@ -1,3 +1,4 @@
+import { loadPersonalVocabulary } from "../../../src/common/vocabulary/personal-vocabulary";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { appearanceSync } from "../../../src/common/appearance/appearance-sync";
 import { settingsBundleSync } from "../../../src/common/instance-sync/settings-bundle";
@@ -8,7 +9,6 @@ import {
   SYNC_OWNER_KEY,
 } from "../../../src/common/instance-sync/sync-owner";
 import { SYNC_DEBOUNCE_MS } from "../../../src/common/instance-sync/user-data-sync";
-import { wordingSync } from "../../../src/common/vocabulary/wording-sync";
 
 // One browser, two tabs. Tab 1 is signed in as account A. Tab 2 signs in as
 // account B, clears A's cache and records B as the owner. Tab 1 is still
@@ -56,7 +56,6 @@ describe("a tab that lost its account", () => {
     const made = makeConn();
     stop = startInstanceSync(made.conn as never, "user-a");
     made.handlers.settings_bundle({ value: null });
-    made.handlers.personal_wording({ value: null });
     made.handlers.appearance({ value: null });
     return made;
   };
@@ -94,7 +93,7 @@ describe("a tab that lost its account", () => {
       "personalVocabulary",
       JSON.stringify({ schemaVersion: 1, entries: { light: "b-word" } })
     );
-    wordingSync.push();
+    loadPersonalVocabulary(new TextEncoder().encode(JSON.stringify({ schemaVersion: 1, entries: { light: "b-word" } })));
     await vi.advanceTimersByTimeAsync(SETTLE);
     expect(JSON.stringify(saved)).not.toContain("b-word");
     expect(saved.filter((item) => item.key === "personal_wording")).toEqual([]);

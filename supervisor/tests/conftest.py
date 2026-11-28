@@ -613,6 +613,7 @@ async def coresys(
     run_supervisor_state,
     supervisor_name,
     request: pytest.FixtureRequest,
+    shared_apps_fixtures: Path,
 ) -> CoreSys:
     """Create a CoreSys Mock."""
     with (
@@ -665,7 +666,7 @@ async def coresys(
 
     # Fix Paths. Select the apps fixtures before any fixture loads the store,
     # as repositories and store apps cache their location.
-    apps_fixtures = APPS_FIXTURES
+    apps_fixtures = shared_apps_fixtures
     if "apps_fixtures_copy" in request.fixturenames:
         apps_fixtures = request.getfixturevalue("apps_fixtures_copy")
     su_config.APPS_CORE = apps_fixtures / "core"
@@ -688,7 +689,7 @@ async def coresys(
 
     # Don't remove files/folders related to apps and stores
     apps_fixtures_before = await coresys_obj.run_in_executor(
-        _snapshot_tree, APPS_FIXTURES
+        _snapshot_tree, shared_apps_fixtures
     )
     with patch("supervisor.store.git.GitRepo.remove"):
         yield coresys_obj
@@ -699,11 +700,11 @@ async def coresys(
     # writes there (e.g. restoring a backup of the local apps folder) must use
     # apps_fixtures_copy, or other workers read a half-rewritten store.
     apps_fixtures_after = await coresys_obj.run_in_executor(
-        _snapshot_tree, APPS_FIXTURES
+        _snapshot_tree, shared_apps_fixtures
     )
     if apps_fixtures_after != apps_fixtures_before:
         pytest.fail(
-            f"Test modified the shared apps fixtures in {APPS_FIXTURES}, "
+            f"Test modified the shared apps fixtures in {shared_apps_fixtures}, "
             "use the apps_fixtures_copy fixture"
         )
 
@@ -719,8 +720,20 @@ async def ha_ws_client(coresys: CoreSys) -> AsyncMock:
     return client
 
 
+@pytest.fixture(scope="session")
+def shared_apps_fixtures(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Materialize fixture manifests outside the production store catalog."""
+    destination = tmp_path_factory.mktemp("store") / "fixtures" / "apps"
+    shutil.copytree(APPS_FIXTURES, destination)
+    for manifest in destination.rglob("fixture-config.yaml"):
+        manifest.rename(manifest.with_name("config.yaml"))
+    return destination
+
+
 @pytest.fixture
-def apps_fixtures_copy(tmp_path_factory: pytest.TempPathFactory) -> Path:
+def apps_fixtures_copy(
+    tmp_path_factory: pytest.TempPathFactory, shared_apps_fixtures: Path
+) -> Path:
     """Create a private copy of the apps fixtures for the app store paths.
 
     Required by tests that write to path_apps_local, path_apps_core or
@@ -730,7 +743,7 @@ def apps_fixtures_copy(tmp_path_factory: pytest.TempPathFactory) -> Path:
     tmp_path, which some tests use as an app location.
     """
     apps_fixtures = tmp_path_factory.mktemp("apps") / "fixtures" / "apps"
-    shutil.copytree(APPS_FIXTURES, apps_fixtures)
+    shutil.copytree(shared_apps_fixtures, apps_fixtures)
     return apps_fixtures
 
 

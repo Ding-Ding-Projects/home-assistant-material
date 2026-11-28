@@ -1,5 +1,11 @@
 # Continuation handoff
 
+## Active issue sweep, 27 November 2026
+
+Continue the 12 open issues and six handoff items on `main` in the primary checkout. The verified baseline is `ddc8aea3f78d5658563509616bdf5535155e5759`. The current edits and their remaining checks are summarized at the top of `HANDOFF.md`. Use one assigned worker per item, keep overlapping writes serialized, and preserve the existing edits. Published checks for the camera list and timeline, printer cards, and phone card editor used synthetic fixtures.
+
+The account boundary stopped new work before an integrated build, the final publication scan, release and issue closures. Reverify the remote tip, finish and verify the candidate on isolated targets, then push `main` and check the exact remote SHA. Close each issue only once its resolution is verified. Complete the goal after all 12 closures and all six handoff items have verified results.
+
 Updated 27 November 2026. The five features and both follow-ups reached main at `1fe47b5db`. Chromium component checks and the remaining published-build acceptance steps are recorded in [the roadmap](ROADMAP.md). The branch list below describes the original pause on 25 November. Longer record: [HANDOFF.md](HANDOFF.md).
 
 ## Objective

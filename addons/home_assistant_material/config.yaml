@@ -1,0 +1,18 @@
+name: Home Assistant Material
+slug: home_assistant_material
+description: Run a separate Home Assistant Material instance with private configuration and an ingress entity viewer.
+version: "1.0.0"
+arch:
+  - aarch64
+  - amd64
+startup: application
+boot: auto
+init: false
+ingress: true
+ingress_port: 8099
+panel_admin: true
+panel_icon: mdi:home-assistant
+homeassistant_api: false
+hassio_api: false
+options: {}
+schema: {}

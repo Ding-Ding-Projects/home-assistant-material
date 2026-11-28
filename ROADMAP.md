@@ -16,7 +16,7 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 ## Camera recording, printer cards, SSH and restore during startup
 
 - [ ] Camera recording rows and timeline (canvas 48). At 390 × 844 in Chromium, two simulated cameras each had a disclosure, expansion survived a reload, filtering selected the correct camera, and clearing zero matches restored both rows. A pointer drag moved the time readout from 04:48 to 19:12 while the 24-hour window stayed fixed, then emitted one seek. Playback on the published build remains open.
-- [ ] Printer status and control cards (canvas 49). The built components displayed a simulated H2D printer at 32% in the same phone viewport. Stop requested confirmation, cancel sent no service call, and confirm sent one call targeting the selected printer. Check the cards again in the published dashboard.
+- [ ] Printer status and control cards (canvas 49). The published dashboard at `ddc8aea3` showed a synthetic printer at 32% at 390 × 844. Selecting Sport sent exactly the selected speed. Cancel sent no Stop call, and completing the confirmation sent exactly one Stop call. Physical equipment remains unverified.
 - [ ] Camera recording diagnostics. Check the published build with a camera that produces segments and one that supplies no recording data.
 - [ ] Key-only SSH (canvas 50). Verify adding and removing a disposable client key and termination of the connected session on a fresh full-mode instance.
 - [ ] Restore while preparing (canvas 51). Upload a disposable backup during startup and follow it through restoration on a fresh full-mode instance.

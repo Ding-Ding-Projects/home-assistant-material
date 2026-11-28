@@ -25,9 +25,9 @@ export const interpretPendingRestoreResponse = (
   httpStatus: number,
   body: { pending_restore?: OnboardingPendingRestore | null } | undefined
 ): OnboardingPendingRestoreResult => {
-  // The route is missing on a Core without it, or on one with no Supervisor:
-  // there is nothing to show
-  if (httpStatus === 404) {
+  // Core closes this public route once owner setup advances (401).
+  // Installations without the route or Supervisor answer 404.
+  if (httpStatus === 401 || httpStatus === 404) {
     return { status: "none" };
   }
   if (httpStatus < 200 || httpStatus >= 300) {
@@ -36,6 +36,23 @@ export const interpretPendingRestoreResponse = (
   return body?.pending_restore
     ? { status: "record", restore: body.pending_restore }
     : { status: "none" };
+};
+
+/** Poll until Core has answered, and while the restore is active. */
+export const pendingRestorePollDelay = (
+  result: OnboardingPendingRestoreResult,
+  misses: number
+): number | undefined => {
+  if (result.status === "unreachable") {
+    return 3000 * 2 ** Math.min(misses, 3);
+  }
+  if (
+    result.status === "record" &&
+    (result.restore.state === "queued" || result.restore.state === "running")
+  ) {
+    return 3000;
+  }
+  return undefined;
 };
 
 export const fetchOnboardingPendingRestore =

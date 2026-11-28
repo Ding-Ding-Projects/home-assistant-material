@@ -90,7 +90,6 @@ describe("a second account on the same browser", () => {
 
     stop = startInstanceSync(conn as never, "user-b");
     // The second person's instance holds nothing yet.
-    handlers.personal_wording({ value: null });
     handlers.appearance({ value: null });
     await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS * 3);
 
@@ -116,7 +115,6 @@ describe("a second account on the same browser", () => {
     const { conn, handlers, saved } = makeConn();
 
     stop = startInstanceSync(conn as never, "user-b");
-    handlers.personal_wording({ value: null });
     handlers.appearance({ value: null });
     await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS * 3);
 
@@ -127,7 +125,7 @@ describe("a second account on the same browser", () => {
   // A cache from before this feature was never synced: no owner, no ages.
   // The first account to sign in claims it once, so nobody loses settings on
   // the update.
-  it("claims a legacy cache once and uploads it as before", async () => {
+  it("claims a legacy cache and uploads only appearance", async () => {
     window.localStorage.setItem(VOCABULARY_STORAGE_KEY, WORDING);
     window.localStorage.setItem(APPEARANCE_STORAGE_KEY, APPEARANCE);
     const { conn, handlers, saved } = makeConn();
@@ -135,13 +133,11 @@ describe("a second account on the same browser", () => {
     stop = startInstanceSync(conn as never, "user-b");
     expect(window.localStorage.getItem(SYNC_OWNER_KEY)).toBe("user-b");
     expect(applyPersonalVocabulary("light")).toBe("lamp");
-    handlers.personal_wording({ value: null });
     handlers.appearance({ value: null });
     await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS * 3);
 
     expect(saved.map((entry) => entry.key).sort()).toEqual([
       "appearance",
-      "personal_wording",
     ]);
     stop();
     stop = undefined;
@@ -150,7 +146,6 @@ describe("a second account on the same browser", () => {
     forgetClaimedOwner();
     const second = makeConn();
     stop = startInstanceSync(second.conn as never, "user-c");
-    second.handlers.personal_wording({ value: null });
     second.handlers.appearance({ value: null });
     await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS * 3);
     expect(second.saved).toEqual([]);
@@ -187,17 +182,17 @@ describe("a second account on the same browser", () => {
     expect(applyPersonalVocabulary("light")).toBe("light");
   });
 
-  it("keeps and uploads the cache for the account that owns it", async () => {
+  it("restores the owner's local wording without requesting or uploading it", async () => {
     leaveFirstPersonsCache();
     window.localStorage.setItem(SYNC_OWNER_KEY, "user-a");
     const { conn, handlers, saved } = makeConn();
 
     stop = startInstanceSync(conn as never, "user-a");
     expect(applyPersonalVocabulary("light")).toBe("lamp");
-    handlers.personal_wording({ value: null });
+    expect(handlers).not.toHaveProperty("personal_wording");
     await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS);
 
-    expect(saved.map((entry) => entry.key)).toContain("personal_wording");
+    expect(saved.map((entry) => entry.key)).not.toContain("personal_wording");
     expect(window.localStorage.getItem(VOCABULARY_STORAGE_KEY)).not.toBeNull();
   });
 
@@ -209,8 +204,8 @@ describe("a second account on the same browser", () => {
 
     starter.ensure(conn as never, "user-a");
     starter.ensure(conn as never, "user-a");
-    // One subscription for each of the three settings, and no more.
-    expect(conn.subscribeMessage).toHaveBeenCalledTimes(3);
+    // Appearance and settings subscribe. Wording is device-local.
+    expect(conn.subscribeMessage).toHaveBeenCalledTimes(2);
 
     starter.release();
     starter.release();

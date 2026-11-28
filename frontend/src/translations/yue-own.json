@@ -668,6 +668,20 @@
         }
       },
       "config": {
+        "editor_handoff": {
+          "title": "開啟設定檔編輯器",
+          "intro": "搵出呢個主機上運行緊嘅 File editor 或 Studio Code Server。",
+          "unsupported": "主機要有 Supervisor 先可以開啟附加元件編輯器。",
+          "find": "搵編輯器",
+          "checking": "搜尋緊…",
+          "unavailable": "查詢唔到部分編輯器。",
+          "empty": "冇支援嘅編輯器運行緊。",
+          "local": "開啟本機文字檔",
+          "save": "下載編輯後嘅副本",
+          "replace": "要用所選檔案取代已編輯嘅文字嗎？",
+          "file_error": "請揀一個最多 1 MiB 嘅 UTF-8 文字檔。",
+          "draft": "檔案內容"
+        },
         "ttc": {
           "add_dashboard": "加入交通儀表板",
           "add_dashboard_failed": "加唔到儀表板，請再試。",
@@ -7494,9 +7508,14 @@
       "place_image_folder": "圖片，資料夾 {folder}",
       "images_added_folder": "已加入 {count} 張圖片到資料夾 {folder}"
     },
+    "appearance_editor": {
+      "field_underline": "底線",
+      "field_strikethrough": "刪除線",
+      "field_smallCaps": "小型大寫字母"
+    },
     "personal_wording": {
       "title": "你嘅私人用字",
-      "description": "載入你自己嘅私人用字檔案，將介面稱呼改成你慣用嘅講法。檔案只會留喺呢部裝置，載入前會先完整檢查。",
+      "description": "載入你自己嘅私人用字檔案，將介面稱呼改成你慣用嘅講法。呢個瀏覽器會先完整檢查檔案，再套用。",
       "drop_title": "將用字檔案拖到呢個視窗任何位置",
       "drop_format": "JSON，最大 256 KiB，UTF-8，結構版本 1",
       "choose": "揀檔案",
@@ -7505,13 +7524,13 @@
       "none": "未載入任何用字檔案，顯示預設用字。",
       "loaded": "正在使用 {count} 個項目，結構版本 1。",
       "loaded_label": "而家載入咗",
-      "saved_where": "會儲存喺呢個實例入面你嘅帳戶，所以其他裝置都會跟住用；實例嘅備份會包括佢。登入頁面唔會用。最大約 0.75 MB。",
+      "saved_where": "用字會儲存喺呢個瀏覽器入面你嘅帳戶。登入頁面唔會用。最大約 0.75 MB。",
       "clear_confirm_title": "清除你嘅用字？",
-      "clear_confirm": "呢個動作會將你嘅用字喺呢個帳戶所有裝置上刪走，所有標籤返回預設用字。",
-      "clear_note": "清除會將你嘅用字喺呢個實例同呢個瀏覽器刪走，所有裝置都會冇咗，所有標籤返回預設用字。",
+      "clear_confirm": "呢個動作會刪除儲存喺呢個瀏覽器嘅私人用字，所有標籤會還原做預設用字。",
+      "clear_note": "清除呢個瀏覽器儲存嘅私人用字，還原預設標籤。",
       "overlay_title": "已套用個人用字",
       "overlay_count": "{count} 個標籤而家用你嘅講法。",
-      "overlay_everywhere": "呢份用字會取代你其他裝置上已儲存嘅用字。",
+      "overlay_everywhere": "呢份用字會喺呢個瀏覽器套用。",
       "cleared": "已經還原做預設用字。",
       "not_applied": "檔案未有套用，你而家嘅用字冇變。",
       "error": {
@@ -11155,6 +11174,19 @@
         "draft": "草稿"
       },
       "starting_points": {
+        "home_title": "住宅預設版面",
+        "home_description": "從住宅總覽嘅區段開始。",
+        "room_title": "一個房間",
+        "room_description": "揀一個房間，使用佢嘅住宅版面。",
+        "tablet_title": "牆上平板",
+        "tablet_description": "為可用嘅燈、開關同冷氣暖氣加入大按鈕。",
+        "energy_title": "只顯示能源",
+        "energy_description": "為功率同用電量感應器加入方塊。",
+        "empty_title": "空白",
+        "empty_description": "唔加入任何資訊卡，繼續編輯。",
+        "choose_room": "揀一個房間",
+        "starter_empty": "呢個起點暫時冇合適嘅內容。",
+        "starter_failed": "未能套用呢個起點，請再試。",
         "heading": "由範例開始",
         "automation_heading": "呢個自動化係空嘅。揀其中一個開始。",
         "script_heading": "呢個腳本係空嘅。揀其中一個開始。",

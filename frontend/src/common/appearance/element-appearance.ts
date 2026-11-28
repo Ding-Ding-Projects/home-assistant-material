@@ -539,7 +539,12 @@ export const mergeAppearance = (
 
 // ---- Elements ----
 
-const applied = new WeakMap<HTMLElement, string[]>();
+interface OriginalStyle {
+  value: string;
+  priority: string;
+}
+
+const applied = new WeakMap<HTMLElement, Map<string, OriginalStyle>>();
 
 /** The card an element draws itself with, when it is only a wrapper. */
 export const drawnCard = (element: HTMLElement): HTMLElement | undefined =>
@@ -548,20 +553,26 @@ export const drawnCard = (element: HTMLElement): HTMLElement | undefined =>
     : (element.shadowRoot?.querySelector<HTMLElement>("ha-card") ?? undefined);
 
 const applyStyles = (element: HTMLElement, styles: Record<string, string>) => {
-  const previous = applied.get(element) ?? [];
-  previous.forEach((property) => {
+  const previous = applied.get(element) ?? new Map<string, OriginalStyle>();
+  previous.forEach((original, property) => {
     if (!(property in styles)) {
-      element.style.removeProperty(property);
+      element.style.setProperty(property, original.value, original.priority);
+      previous.delete(property);
     }
   });
   Object.entries(styles).forEach(([property, value]) => {
+    if (!previous.has(property)) {
+      previous.set(property, {
+        value: element.style.getPropertyValue(property),
+        priority: element.style.getPropertyPriority(property),
+      });
+    }
     if (element.style.getPropertyValue(property) !== value) {
       element.style.setProperty(property, value);
     }
   });
-  const properties = Object.keys(styles);
-  if (properties.length) {
-    applied.set(element, properties);
+  if (previous.size) {
+    applied.set(element, previous);
   } else {
     applied.delete(element);
   }
