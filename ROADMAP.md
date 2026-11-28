@@ -21,6 +21,18 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Key-only SSH (canvas 50). Verify adding and removing a disposable client key and termination of the connected session on a fresh full-mode instance.
 - [ ] Restore while preparing (canvas 51). Upload a disposable backup during startup and follow it through restoration on a fresh full-mode instance.
 
+## Household experience, 26 November 2026
+
+- [~] Morning briefing names missing, unknown and unavailable selections, reports when none
+      could be checked, and adds entity shortcuts on companion app notifications.
+- [~] Printer Door can listen for ten seconds during first-time setup. Manual setup can
+      test the address and access code, then wait for confirmation before creating an entry.
+      The flow and error handling were tested with a simulated printer.
+- [~] Expand Recent changes on Home for the last five recorded state changes in the previous
+      hour across lights, locks, switches, covers, climate and binary sensors. Each row opens
+      a focused History interval and identifies a visible automation when the record supplies it.
+      Selection and filtering were unit-tested. Physical printer and live dashboard checks remain open.
+
 ## Scroll fixes and polish, canvases 46 and 47, 25 November 2026
 
 - [ ] Canvas 46 fixes ([`design/canvases/46-scroll-fixes-and-polish`](design/canvases/46-scroll-fixes-and-polish/README.md)):

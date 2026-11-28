@@ -18,6 +18,11 @@ import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import { formatTime } from "../../../common/datetime/format_time";
+import {
+  getLogbookDataFromServer,
+  type LogbookEntry,
+} from "../../../data/logbook";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import {
@@ -25,6 +30,7 @@ import {
   featuredRoom,
   lockFacts,
   playingMedia,
+  recentHomeChanges,
 } from "../../../common/home/home-hero";
 import { playArrival } from "../../../common/motion/drama";
 import { navigate } from "../../../common/navigate";
@@ -57,6 +63,10 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
   /** Repairs that are open and not ignored, for the administrator. */
   @state() private _repairs = 0;
 
+  @state() private _recent?: LogbookEntry[];
+  @state() private _recentFailed = false;
+  private _recentRequest = 0;
+
   private _unsubRepairs?: UnsubscribeFunc;
 
   @query(".heroes") private _heroes?: HTMLElement;
@@ -73,6 +83,8 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
     super.disconnectedCallback();
     this._unsubRepairs?.();
     this._unsubRepairs = undefined;
+    this._recentRequest++;
+    this._recent = undefined;
   }
 
   protected updated(changed: PropertyValues<this>): void {
@@ -144,7 +156,8 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
       !mediaId &&
       !updates &&
       !this._repairs &&
-      !this._doors(hass.states).length
+      !this._doors(hass.states).length &&
+      !hass.config.components.includes("logbook")
     ) {
       return nothing;
     }
@@ -156,7 +169,13 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
       doors.length > 0;
     return html`
       <div class="heroes">
-        ${needsYou ? this._renderNeeds(locks, updates, doors) : nothing}
+        ${
+          needsYou
+            ? this._renderNeeds(locks, updates, doors)
+            : hass.config.components.includes("logbook")
+              ? html`<section class="hero">${this._renderRecent()}</section>`
+              : nothing
+        }
         ${room ? this._renderRoom(room) : nothing}
         ${climateId ? this._renderClimate(hass.states[climateId]) : nothing}
         <ha-home-power-tile .hass=${hass}></ha-home-power-tile>
@@ -443,8 +462,81 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
               </div>`
             : nothing
         }
+        ${hass.config.components.includes("logbook") ? this._renderRecent() : nothing}
       </section>
     `;
+  }
+
+  private _renderRecent() {
+    const hass = this.hass!;
+    const t = this._lang.localizer(hass.localize);
+    return html`<details @toggle=${this._toggleRecent}>
+      <summary>
+        ${t("ui.panel.lovelace.cards.home_hero.recent_changes")}
+      </summary>
+      ${
+        this._recentFailed
+          ? html`<button class="action" @click=${this._loadRecent}>
+              ${t("ui.common.retry")}
+            </button>`
+          : this._recent === undefined
+            ? html`<progress></progress>`
+            : !this._recent.length
+              ? t("ui.panel.lovelace.cards.home_hero.no_recent_changes")
+              : html`<ul>
+                  ${this._recent.map((entry) => {
+                    const id = entry.entity_id!;
+                    const entity = hass.states[id];
+                    if (!entity) return nothing;
+                    const time = entry.when * 1000;
+                    const query = new URLSearchParams({
+                      entity_id: id,
+                      start_date: new Date(time - 15 * 60000).toISOString(),
+                      end_date: new Date(
+                        Math.min(Date.now(), time + 15 * 60000)
+                      ).toISOString(),
+                    });
+                    const automation = entry.context_entity_id?.startsWith(
+                      "automation."
+                    )
+                      ? hass.states[entry.context_entity_id]
+                      : undefined;
+                    return html`<li>
+                      <a href=${`/history?${query}`}>
+                        ${computeStateName(entity)} ·
+                        ${hass.formatEntityState(entity, entry.state)} ·
+                        ${formatTime(new Date(time), hass.locale, hass.config)}
+                        ${automation ? html` · ${computeStateName(automation)}` : ""}
+                      </a>
+                    </li>`;
+                  })}
+                </ul>`
+      }
+    </details>`;
+  }
+
+  private _toggleRecent(ev: Event) {
+    if ((ev.currentTarget as HTMLDetailsElement).open) this._loadRecent();
+    else this._recentRequest++;
+  }
+
+  private async _loadRecent() {
+    const hass = this.hass!;
+    const request = ++this._recentRequest;
+    this._recent = undefined;
+    this._recentFailed = false;
+    const end = Date.now();
+    try {
+      const events = await getLogbookDataFromServer(
+        hass,
+        new Date(end - 3600000).toISOString(),
+        new Date(end).toISOString()
+      );
+      if (request !== this._recentRequest) return;
+      this._recent = recentHomeChanges(events, hass.states, hass.entities);
+    } catch {
+      if (request === this._recentRequest) this._recentFailed = true;
+    }
   }
 
   /** Door sensors that report open, by their real device class. */

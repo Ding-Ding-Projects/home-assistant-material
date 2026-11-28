@@ -32,12 +32,13 @@
         "description": "The printer refused the LAN access code. Enter the current one.",
         "title": "[%key:common::config_flow::title::reauth%]"
       },
-      "user": {
+      "manual": {
         "data": {
           "access_code": "LAN access code",
           "host": "[%key:common::config_flow::data::host%]",
           "name": "[%key:common::config_flow::data::name%]",
-          "serial": "Serial number"
+          "serial": "Serial number",
+          "test_only": "Test connection before adding"
         },
         "data_description": {
           "access_code": "The LAN access code shown in the printer's network settings.",
@@ -46,6 +47,24 @@
         },
         "description": "Watch a Bambu Lab printer's door and print status over your local network. The printer must be in LAN mode or have LAN access enabled.",
         "title": "Add printer door"
+      },
+      "user": {
+        "title": "Add a printer",
+        "menu_options": {
+          "search": "Find a printer on my network",
+          "manual": "Enter address manually"
+        }
+      },
+      "tested": {
+        "title": "Connection successful",
+        "description": "The printer at {host} accepted your credentials. Submit to add it."
+      },
+      "search": {
+        "title": "Printers on your network",
+        "description": "Received announcements from {count} available printers. Choose one or use manual setup.",
+        "data": {
+          "printer": "Printer"
+        }
       }
     }
   },

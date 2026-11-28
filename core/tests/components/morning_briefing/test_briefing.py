@@ -160,7 +160,34 @@ async def test_transit_and_extra(
         "Transit alerts:",
         "- Line 1: Delays",
         "Pool: 24 °C",
+        "sensor.missing: unavailable.",
     ]
+
+
+async def test_unavailable_sources(hass: HomeAssistant) -> None:
+    """Mixed availability stays explicit and mobile targets get an entity action."""
+    calls = async_mock_service(hass, "notify", "mobile_app_phone")
+    hass.states.async_set("sensor.line", "ok")
+    hass.states.async_set("sensor.bus", "unavailable", {"friendly_name": "Bus"})
+    await _setup(
+        hass, notify=["notify.mobile_app_phone"], transit=["sensor.line", "sensor.bus"]
+    )
+
+    await _press(hass)
+    assert "No alerts from 1 checked source." in calls[0].data["message"]
+    assert "Bus: unavailable." in calls[0].data["message"]
+    assert calls[0].data["data"]["actions"] == [
+        {"action": "URI", "title": "Bus", "uri": "entityId:sensor.bus"}
+    ]
+    hass.states.async_set("sensor.line", "unknown")
+    await _press(hass)
+    assert "Couldn’t check your selected sources." in calls[1].data["message"]
+    assert "All quiet." not in calls[1].data["message"]
+    hass.states.async_set("sensor.line", "ok")
+    hass.states.async_set("sensor.bus", "ok")
+    await _press(hass)
+    assert "All quiet." in calls[2].data["message"]
+    assert "data" not in calls[2].data
 
 
 async def test_grow_lights(hass: HomeAssistant, freezer: FrozenDateTimeFactory) -> None:

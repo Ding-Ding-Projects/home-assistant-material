@@ -1,3 +1,4 @@
+import type { LogbookEntry } from "../../data/logbook";
 import type { HassEntities, HassEntity } from "home-assistant-js-websocket";
 
 /**
@@ -153,3 +154,22 @@ export const playingMedia = (
     .filter((player) => player.state === "playing" || player.state === "paused")
     .map((player) => player.entity_id)
     .sort()[0];
+
+/** The newest recorded state changes for visible household controls and sensors. */
+export function recentHomeChanges(
+  events: LogbookEntry[],
+  states: HassEntities,
+  entities: Record<string, EntityEntry>
+) {
+  return events
+    .filter(
+      ({ entity_id: id, state }) =>
+        id &&
+        state !== undefined &&
+        states[id] &&
+        !entities[id]?.hidden &&
+        /^(light|lock|switch|cover|climate|binary_sensor)\./.test(id)
+    )
+    .sort((a, b) => b.when - a.when)
+    .slice(0, 5);
+}

@@ -6858,6 +6858,8 @@
             "all_working": "全部正常"
           },
           "home_hero": {
+            "recent_changes": "最近一小時嘅變動",
+            "no_recent_changes": "呢個鐘冇家居變動記錄。",
             "lights_on": "{count} 盞燈，{on} 盞開咗",
             "all_lights": "{room} 嘅所有燈",
             "power": "而家嘅用電量",
