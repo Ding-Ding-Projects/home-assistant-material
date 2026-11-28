@@ -1,5 +1,18 @@
 # Handoff
 
+## Branch closeout, 27 November 2026
+
+Seven branches whose tips were already ancestors of `main` were removed from the remote
+(`ai/finish-20261127`, `ai/integration/20261125-five-lanes`, `ai/wip/20261125-ui-batch`, and the
+four `worktree-wf_*` follow-up branches). Nothing unmerged was deleted.
+
+Kept on purpose: `channel` (the update feed, own history), `feature/household-experience`
+(PR #15) and `feature/integration-atlas-about` (PR #14), both still conflicting with `main` and
+needing a rebase and review; `ai/prepare-restore-acceptance-571` and `-572`, disposable acceptance
+lanes pinned to build 572; and `worktree-wf_d6ee1ac0-504-1`, the unverified card editor candidate
+with two scratch probes to remove before any merge. See [CLOSEOUT_PROMPT.md](CLOSEOUT_PROMPT.md)
+for the current next steps.
+
 ## Phone card editor check, 27 November 2026
 
 At 390 × 844 CSS pixels in Chromium, the Floor lamp tile opened with its Config form visible in the published demo. The local demo built from `a5f04a15d` also opened the editor. On both builds, switching to Visibility, returning to Config and expanding Content exposed the name, icon, color and layout controls. On the local build the expanded form began at (12, 241) and measured 362 × 934 CSS pixels.
